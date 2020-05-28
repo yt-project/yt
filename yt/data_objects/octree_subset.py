@@ -1,3 +1,4 @@
+import warnings
 from contextlib import contextmanager
 
 import numpy as np
@@ -521,6 +522,34 @@ class OctreeSubset(YTSelectionContainer):
         mask = selector.select_points(x, y, z, 0.0)
         return mask
 
+    def get_vertex_centered_data(self, fields):
+        _old_api = isinstance(fields, (str, tuple))
+        if _old_api:
+            message = (
+                'get_vertex_centered_data() requires list of fields, rather than '
+                'a single field as an argument.'
+            )
+            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            fields = [fields]
+
+        # Make sure the field list has only unique entries
+        fields = list(set(fields))
+        new_fields = {}
+        cg = self.retrieve_ghost_zones(1, fields)
+        for field in fields:
+            new_fields[field] = cg[field][1: ,1: ,1: ].copy()
+            np.add(new_fields[field], cg[field][:-1,1: ,1: ], new_fields[field])
+            np.add(new_fields[field], cg[field][1: ,:-1,1: ], new_fields[field])
+            np.add(new_fields[field], cg[field][1: ,1: ,:-1], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1,1: ,:-1], new_fields[field])
+            np.add(new_fields[field], cg[field][1: ,:-1,:-1], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1,:-1,1: ], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1,:-1,:-1], new_fields[field])
+            np.multiply(new_fields[field], 0.125, new_fields[field])
+
+        if _old_api:
+            return new_fields[fields[0]]
+        return new_fields
 
 class OctreeSubsetBlockSlicePosition:
     def __init__(self, ind, block_slice):
@@ -571,9 +600,6 @@ class OctreeSubsetBlockSlicePosition:
 
     def clear_data(self):
         pass
-
-    def get_vertex_centered_data(self, *args, **kwargs):
-        raise NotImplementedError
 
     @contextmanager
     def _field_parameter_state(self, field_parameters):

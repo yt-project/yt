@@ -1,12 +1,7 @@
-from yt.funcs import iterable
-
 from yt.utilities.lib.cyoctree_raytracing import CythonOctreeRayTracing
-from yt.utilities.amr_kdtree.amr_kdtree import _apply_log
+
 import numpy as np
-
-import operator
-
-
+from itertools import product
 
 class OctreeRayTracing(object):
     octree = None
@@ -33,19 +28,42 @@ class OctreeRayTracing(object):
         ipos = np.floor(xyz * (1<<(ds.parameters['levelmax']))).astype(int)
         self.octree.add_nodes(ipos.astype(np.int32), lvl.astype(np.int32), np.arange(len(ipos), dtype=np.int32))
 
+    def vertex_centered_data(self, field):
+        data_source = self.data_source
+        chunks = data_source.index._chunk(data_source, "spatial", ngz=1)
+
+        finfo = data_source.ds._get_field_info(*field)
+        units = finfo.units
+        rv = data_source.ds.arr(np.zeros((2, 2, 2, data_source.ires.size), dtype="float64"), units)
+        ind = {(i, j, k): 0 for i, j, k in product(*[range(2)]*3)}
+        for chunk in chunks:
+            with data_source._chunked_read(chunk):
+                gz = data_source._current_chunk.objs[0]
+                gz.field_parameters = data_source.field_parameters
+                wogz = gz._base_grid
+                vertex_data = gz.get_vertex_centered_data([field])[field]
+
+                for i, j, k in product(*[range(2)]*3):
+                    ind[i, j, k] += wogz.select(
+                        data_source.selector,
+                        vertex_data[i:i+2, j:j+2, k:k+2, ...],
+                        rv[i, j, k, :], ind[i, j, k])
+        return rv
+
     def set_fields(self, fields, log_fields, no_ghost, force=False):
         if no_ghost:
             raise NotImplementedError('Ghost zones are required with Octree datasets')
 
         assert len(fields) == 1
-        fields = self.data_source._determine_fields(fields)
+        field = self.data_source._determine_fields(fields)[0]
+        take_log = log_fields[0]
+        vertex_data = self.vertex_centered_data(field)
 
-        for field, take_log in zip(fields, log_fields):
-            if take_log:
-                tmp = np.log10(self.data_source[field])
-            else:
-                tmp = self.data_source[field]
-            self.data = [tmp]*8
+        if take_log:
+            vertex_data = np.log10(vertex_data)
+
+        # Vertex_data has shape (2, 2, 2, ...)
+        self.data = vertex_data.reshape(8, -1)
 
     def cast_rays(self, vp_pos, vp_dir):
         """Cast the rays through the oct.
@@ -69,10 +87,5 @@ class OctreeRayTracing(object):
                 self.octree.cast_rays(vp_pos, vp_dir)
         return self._cell_index, self._tvalues
 
-    # def sample(self, sampler):
-    #     # TODO: Apply to sampler to each oct encountered by all rays.
-    #     self.octree.sample(sampler, self._cell_index, self._tvalues)
-
     def traverse(self, viewpoint):
         raise Exception()
-        self.octree.cast_rays()
