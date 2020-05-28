@@ -12,14 +12,6 @@
 
 typedef double F;
 
-void print_with_prefix(std::string s, int count, char c='\t') {
-    for (auto i = 0; i < count; ++i) std::cout << c;
-    std::cout << s << std::endl;
-}
-
-const bool debug = false;
-const bool debug_ray = false;
-
 /*  A simple node struct that contains a key and a fixed number of children,
     typically Nchildren = 2**Ndim
  */
@@ -183,21 +175,14 @@ public:
         Node* node = root;
         Node* child = nullptr;
 
-        if (debug )std::cerr << "Creating tree at position " << ipos[0] << " " << ipos[1] << " " << ipos[2] << ", level=" << lvl << "/" << maxDepth << std::endl;
-
         // Go down the tree
         for (auto ibit = maxDepth-1; ibit >= maxDepth - lvl; --ibit) {
-            if (debug) std::cerr << "\tbit=" << ibit << std::endl;
             // Find children based on bits
-            if (debug) std::cerr << "\t\tbitmask: ";
             for (auto idim = 0; idim < Ndim; ++idim) {
                 bitMask[idim] = ijk[idim] & mask;
-                if (debug) std::cerr << bitMask[idim];
             }
-            if (debug) std::cerr << std::endl;
             mask >>= 1;
             auto iflat = ijk2iflat<Ndim>(bitMask);
-            if (debug) std::cerr << "\t→  node[" << node->index << "].children[" << (int)iflat << "]" << std::endl;
 
             // Create child if it does not exist yet
             child = create_get_node(node, iflat);
@@ -219,15 +204,10 @@ public:
 
     void insert_node_no_ret(const int* ipos, const int lvl, keyType key) {
         Node* n = insert_node(ipos, lvl, key);
-        if (debug) {
-            std::cout << "Inserted node at position " << ipos[0] << " " << ipos[1] << " " << ipos[2];
-            std::cout << " with key " << n->key << " and index " << n->index << std::endl;
-        }
     }
 
     // Perform multiple ray cast
     RayInfo<keyType>** cast_rays(const F *origins, const F *directions, const int Nrays) {
-        // std::vector<RayInfo<keyType>> *ray_infos = mallocnew std::vector<RayInfo<keyType>>(Nrays);
         RayInfo<keyType> **ray_infos = (RayInfo<keyType>**)malloc(sizeof(RayInfo<keyType>*)*Nrays);
         int Nfound = 0;
         #pragma omp parallel for
@@ -237,11 +217,6 @@ public:
             auto ri = ray_infos[i];
             Ray<Ndim> r(&origins[3*i], &directions[3*i], -1e99, 1e99);
             cast_ray(&r, ri->keys, ri->t);
-            if (debug || debug_ray) {
-                std::cout << "Length of kv: " << ri->keys.size() << std::endl;
-                for (auto v: ri->keys) std::cout << v << " ";
-                std::cout << std::endl;
-            }
             Nfound = std::max(Nfound, (int) ri->keys.size());
         }
         return ray_infos;
@@ -249,11 +224,6 @@ public:
 
     // Perform single ray tracing
     void cast_ray(Ray<Ndim> *r, keyVector &keyList, std::vector<F> &tList) {
-        if (debug || debug_ray) {
-            std::cout << "Entering cast_ray | o=" << 
-                r->o[0] << " " << r->o[1] << " " << r->o[2] << " | d = " <<
-                r->d[0] << " " << r->d[1] << " " << r->d[2] << std::endl;
-        }
         // Boolean mask for direction
         unsigned char a = 0;
         unsigned char bmask = twotondim >> 1;
@@ -280,7 +250,6 @@ public:
             proc_subtree(t0[0], t0[1], t0[2],
                          t1[0], t1[1], t1[2],
                          root, a, keyList, tList);
-        if (debug || debug_ray) std::cout << "Leaving cast_ray" << std::endl;
     }
 
 private:
@@ -294,13 +263,11 @@ private:
     Node* create_get_node(Node* parent, int iflat) {
         // Create children if not already existing
         if (parent->children == nullptr) {
-            if (debug) std::cerr << "Allocating children for node " << parent->index << std::endl;
             parent->children = (Node**) malloc(sizeof(Node*)*twotondim);
             for (auto i = 0; i < twotondim; ++i) parent->children[i] = nullptr;
         }
 
         if (parent->children[iflat] == nullptr) {
-            if (debug) std::cerr << "Creating node[" << parent->index << "].children[" << iflat << "]" << std::endl;
             Node* node = new Node();
             node->level = parent->level + 1;
             node->index = global_index;
@@ -336,22 +303,14 @@ private:
                       const F tx1, const F ty1, const F tz1,
                       const Node *n, const unsigned char a, 
                       keyVector &keyList, std::vector<F> &tList, int lvl=0) {
-        if ((debug || debug_ray) && n) print_with_prefix("Entering proc_subtree in node " + std::to_string(n->index), lvl);
         // Check if exit face is not in our back
-        if (tx1 < 0 || ty1 < 0 || tz1 < 0) {
-            if ((debug || debug_ray)) print_with_prefix("Leaving because tx1|ty1|tz1<0", lvl);
-            return;
-        }
+        if (tx1 < 0 || ty1 < 0 || tz1 < 0) return;
 
         // Exit if the node is null (happens if it hasn't been added to the tree)
-        if (!n) {
-            if ((debug || debug_ray)) print_with_prefix("Leaving because node is null", lvl);
-            return;
-        }
+        if (!n) return;
 
         // Process leaf node
         if (n->terminal) {
-            if (debug || debug_ray) print_with_prefix("Inserting node in keyList (index=" + std::to_string(n->key) + ")", lvl);
             keyList.push_back(n->key);
             // Push entry & exit t
             tList.push_back(std::max(std::max(tx0, ty0), tz0));
@@ -361,10 +320,7 @@ private:
         }
         
         // Early break for leafs without children
-        if (n->children == nullptr) {
-            if ((debug || debug_ray)) print_with_prefix("Leaving because no children", lvl);
-            return;
-        }
+        if (n->children == nullptr) return;
 
         // Compute middle intersection
         F txm, tym, tzm;
@@ -373,7 +329,6 @@ private:
         tzm = (tz0 + tz1) * 0.5;
 
         unsigned char iNode = first_node(tx0, ty0, tz0, txm, tym, tzm);
-        if (debug || debug_ray) print_with_prefix("First node: " + std::to_string(int(iNode)), lvl);
 
         // Iterate over children
         do {
@@ -382,51 +337,38 @@ private:
             {
             case 0:
                 proc_subtree(tx0, ty0, tz0, txm, tym, tzm, n->children[a], a, keyList, tList, lvl+1);
-                if (debug || debug_ray) {
-                    // do something
-                }
                 iNode = next_node(txm, tym, tzm, 4, 2, 1);
-                if (debug || debug_ray) print_with_prefix("From 0 to " + std::to_string(iNode), lvl);
                 break;
             case 1:
                 proc_subtree(tx0, ty0, tzm, txm, tym, tz1, n->children[1^a], a, keyList, tList, lvl+1);
                 iNode = next_node(txm, tym, tz1, 5, 3, 8);
-                if (debug || debug_ray) print_with_prefix("From 1 to " + std::to_string(iNode), lvl);
                 break;
             case 2:
                 proc_subtree(tx0, tym, tz0, txm, ty1, tzm, n->children[2^a], a, keyList, tList, lvl+1);
                 iNode = next_node(txm, ty1, tzm, 6, 8, 3);
-                if (debug || debug_ray) print_with_prefix("From 2 to " + std::to_string(iNode), lvl);
                 break;
             case 3:
                 proc_subtree(tx0, tym, tzm, txm, ty1, tz1, n->children[3^a], a, keyList, tList, lvl+1);
                 iNode = next_node(txm, ty1, tz1, 7, 8, 8);
-                if (debug || debug_ray) print_with_prefix("From 3 to " + std::to_string(iNode), lvl);
                 break;
             case 4:
                 proc_subtree(txm, ty0, tz0, tx1, tym, tzm, n->children[4^a], a, keyList, tList, lvl+1);
                 iNode = next_node(tx1, tym, tzm, 8, 6, 5);
-                if (debug || debug_ray) print_with_prefix("From 4 to " + std::to_string(iNode), lvl);
                 break;
             case 5:
                 proc_subtree(txm, ty0, tzm, tx1, tym, tz1, n->children[5^a], a, keyList, tList, lvl+1);
                 iNode = next_node(tx1, tym, tz1, 8, 7, 8);
-                if (debug || debug_ray) print_with_prefix("From 5 to " + std::to_string(iNode), lvl);
                 break;
             case 6:
                 proc_subtree(txm, tym, tz0, tx1, ty1, tzm, n->children[6^a], a, keyList, tList, lvl+1);
                 iNode = next_node(tx1, ty1, tzm, 8, 8, 7);
-                if (debug || debug_ray) print_with_prefix("From 6 to " + std::to_string(iNode), lvl);
                 break;
             case 7:
                 proc_subtree(txm, tym, tzm, tx1, ty1, tz1, n->children[7^a], a, keyList, tList, lvl+1);
                 iNode = 8;
-                if (debug || debug_ray) print_with_prefix("From 7 to " + std::to_string(iNode), lvl);
                 break;
             }
         } while (iNode < twotondim);
-
-        if (debug || debug_ray) print_with_prefix("Leaving proc_subtree", lvl);
     }
 
     // From "An Efficient Parametric Algorithm for Octree Traversal" by Revelles, Urena, & Lastra
