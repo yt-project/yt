@@ -599,7 +599,6 @@ class OctreeVolumeSource(VolumeSource):
         assert self.sampler is not None
 
         data = self.data_source
-        ds = data.ds
 
         dx = data["dx"].to("unitary").value[:, None]
         xyz = np.stack([data[_].to("unitary").value for _ in "x y z".split()], axis=-1)

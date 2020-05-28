@@ -86,6 +86,3 @@ class OctreeRayTracing(object):
             self._cell_index, self._tvalues = \
                 self.octree.cast_rays(vp_pos, vp_dir)
         return self._cell_index, self._tvalues
-
-    def traverse(self, viewpoint):
-        raise Exception()
