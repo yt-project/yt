@@ -6,7 +6,7 @@ from unittest import TestCase
 import numpy as np
 
 from yt.testing import fake_random_ds
-from yt.visualization.volume_rendering.api import Scene, VolumeSource
+from yt.visualization.volume_rendering.api import Scene, create_volume_source
 
 
 def setup():

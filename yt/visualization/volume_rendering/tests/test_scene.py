@@ -7,8 +7,8 @@ import numpy as np
 
 from yt.testing import assert_fname, fake_random_ds, fake_vr_orientation_test_ds
 from yt.visualization.volume_rendering.api import (
-    VolumeSource,
     create_scene,
+    create_volume_source,
     volume_render,
 )
 

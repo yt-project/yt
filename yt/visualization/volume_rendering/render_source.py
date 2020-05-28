@@ -606,16 +606,15 @@ class OctreeVolumeSource(VolumeSource):
         RE = xyz + dx / 2
 
         mylog.debug("Gathering data")
-        dt = np.stack(
-            [_ for _ in self.volume.data] +
-            [*LE.T, *RE.T],
-            axis=-1).reshape(1, len(dx), 14, 1)
+        dt = np.stack([_ for _ in self.volume.data] + [*LE.T, *RE.T], axis=-1).reshape(
+            1, len(dx), 14, 1
+        )
         mask = np.full_like(dt[0, ...], 1, dtype=np.uint8)
         dims = np.array([1, 1, 1])
         pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims, n_fields=1)
 
         mylog.debug("Casting rays")
-        self.sampler(pg, oct=self.volume.octree, num_threads=1)
+        self.sampler(pg, oct=self.volume.octree)
         mylog.debug("Done casting rays")
 
         self.current_image = self.finalize_image(camera, self.sampler.aimage)

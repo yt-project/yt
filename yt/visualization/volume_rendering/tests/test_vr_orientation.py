@@ -9,7 +9,7 @@ from yt.utilities.answer_testing.framework import (
 from yt.visualization.volume_rendering.api import (
     ColorTransferFunction,
     Scene,
-    VolumeSource,
+    create_volume_source,
     off_axis_projection,
 )
 

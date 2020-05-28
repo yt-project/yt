@@ -9,7 +9,7 @@ from yt.utilities.lib.pixelization_routines import (
     off_axis_projection_SPH,
 )
 
-from .render_source import VolumeSource
+from .render_source import create_volume_source
 from .scene import Scene
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all

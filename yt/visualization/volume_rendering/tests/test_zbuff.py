@@ -9,8 +9,8 @@ from yt.testing import assert_almost_equal, fake_random_ds
 from yt.visualization.volume_rendering.api import (
     OpaqueSource,
     Scene,
-    VolumeSource,
     ZBuffer,
+    create_volume_source,
 )
 
 

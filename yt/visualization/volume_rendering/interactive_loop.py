@@ -3,7 +3,7 @@ import os
 
 import cyglfw3 as glfw
 import numpy as np
-from OpenGL import GL as GL
+import OpenGL.GL as GL
 
 from yt import write_bitmap
 

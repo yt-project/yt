@@ -11,7 +11,7 @@ from yt.visualization.volume_rendering.api import (
     BoxSource,
     LineSource,
     Scene,
-    VolumeSource,
+    create_volume_source,
 )
 
 
