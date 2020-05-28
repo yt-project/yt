@@ -52,8 +52,7 @@ def load_sample(name=None, specific_file=None, pbar=True):
     if pbar:
         try:
             import tqdm  # noqa: F401
-            from pch import HTTPDownloader
-            downloader = HTTPDownloader(progressbar=True)
+            downloader = pch.pooch.HTTPDownloader(progressbar=True)
         except ImportError:
             mylog.warning("tqdm is not installed, progress bar can not be displayed.")
 
@@ -152,4 +151,3 @@ def fetch_noncompressed_file(name, fido, downloader=None):
     """
     fname = fido.fido.fetch(name, downloader=downloader)
     return fname
-
