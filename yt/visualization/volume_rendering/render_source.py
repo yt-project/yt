@@ -607,10 +607,10 @@ class OctreeVolumeSource(VolumeSource):
         RE = xyz + dx / 2
 
         mylog.debug("Gathering data")
-        # TODO: compute a 2x2x2, vertex-centred dataset
-        dt = np.stack(self.volume.data + [*LE.T, *RE.T], axis=-1).reshape(
-            1, len(dx), 14, 1
-        )
+        dt = np.stack(
+            [_ for _ in self.volume.data] +
+            [*LE.T, *RE.T],
+            axis=-1).reshape(1, len(dx), 14, 1)
         mask = np.full_like(dt[0, ...], 1, dtype=np.uint8)
         dims = np.array([1, 1, 1])
         pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims, n_fields=1)

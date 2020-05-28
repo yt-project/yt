@@ -49,8 +49,6 @@ cdef class CythonOctreeRayTracing:
         if Nrays == 0:
             return
 
-        # print('Casting rays')
-
         ret = self.oct.cast_rays(&o[0,0], &d[0,0], Nrays)
 
         cdef int* cell_ind
@@ -63,8 +61,9 @@ cdef class CythonOctreeRayTracing:
         cdef double* t_ptr
         cdef int[3] index = [0, 0, 0]
 
+        # Only support square regions for the moment!
         nx = <int>np.round(Nrays**0.5)
-        ny = nx  # TODO: change this
+        ny = nx
 
         cdef int n_fields = pg.container.n_fields
 
