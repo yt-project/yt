@@ -299,7 +299,7 @@ class RAMSESIndex(OctreeIndex):
     def _get_particle_type_counts(self):
         npart = 0
         npart = {k: 0 for k in self.ds.particle_types
-                 if k is not 'all'}
+                 if k != 'all'}
         for dom in self.domains:
             for fh in dom.particle_handlers:
                 count = fh.local_particle_count
