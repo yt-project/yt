@@ -63,7 +63,9 @@ class OctreeRayTracing(object):
             vertex_data = np.log10(vertex_data)
 
         # Vertex_data has shape (2, 2, 2, ...)
-        self.data = vertex_data.reshape(8, -1)
+        # Note: here we have the wrong ordering within the oct (classical Fortran/C 
+        # ordering issue) so we need to swap axis 0 and 2.
+        self.data = vertex_data.swapaxes(0, 2).reshape(8, -1)
 
     def cast_rays(self, vp_pos, vp_dir):
         """Cast the rays through the oct.
