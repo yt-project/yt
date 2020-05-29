@@ -52,17 +52,6 @@ struct Ray {
     F tmin = -1e99;
     F tmax = 1e99;
 
-    Ray(const std::array<F, Ndim> _o, const std::array<F, Ndim> _d, const F _tmin, const F _tmax) : o(_o), tmin(_tmin), tmax(_tmax) {
-        F dd = 0;
-        for (auto idim = 0; idim < Ndim; ++idim) {
-            dd += _d[idim] * _d[idim];
-        }
-        dd = sqrt(dd);
-        for (auto idim = 0; idim < Ndim; ++idim) {
-            d[idim] = _d[idim] / dd;
-        }
-    };
-
     Ray(const F* _o, const F* _d, const F _tmin, const F _tmax) : tmin(_tmin), tmax(_tmax) {
         for (auto idim = 0; idim < Ndim; ++idim) {
             o[idim] = _o[idim];
@@ -238,6 +227,11 @@ public:
             proc_subtree(t0[0], t0[1], t0[2],
                          t1[0], t1[1], t1[2],
                          root, a, keyList, tList);
+    }
+
+    void cast_ray(double* o, double* d, keyVector &keyList, std::vector<F> &tList) {
+        Ray<Ndim> r(o, d, -1e99, 1e99);
+        cast_ray(&r, keyList, tList);
     }
 
 private:

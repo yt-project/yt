@@ -20,10 +20,10 @@ cdef extern from "octree_raytracing.cpp":
         vector[T] keys
         vector[double] t
 
-    cdef cppclass Octree3D[T]:
+    cdef cppclass Octree3D[T] nogil:
         Octree3D(int depth, double* LE, double* RE)
         void insert_node_no_ret(const int* ipos, const int lvl, T key)
-        RayInfo[T]** cast_rays(const double* origins, const double* directions, const int Nrays)
+        void cast_ray(double* origins, double* directions, vector[T] keyList, vector[double] tList)
 
 cdef class CythonOctreeRayTracing:
     cdef Octree3D[int]* oct

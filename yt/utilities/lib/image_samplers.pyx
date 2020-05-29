@@ -30,6 +30,8 @@ from .fixed_interpolator cimport \
     offset_fill, \
     vertex_interp
 
+from yt.funcs import mylog
+
 from .cyoctree_raytracing cimport CythonOctreeRayTracing, RayInfo
 
 cdef extern from "platform_dep.h":
@@ -197,28 +199,18 @@ cdef class ImageSampler:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def cast_through_octree(self, PartitionedGrid pg, CythonOctreeRayTracing oct, int num_threads = 0):
-        cdef RayInfo[int]** ret
         cdef RayInfo[int]* ri
         self.setup(pg)
 
         cdef sampler_function* sampler = <sampler_function*> self.sample
 
         cdef np.int64_t nx, ny, size
-        cdef np.int64_t iter[4]
         cdef VolumeContainer *vc
         cdef ImageAccumulator *idata
 
         nx = self.nv[0]
         ny = self.nv[1]
         size = nx * ny
-
-        cdef np.float64_t* vp_pos_ptr = <np.float64_t*> &self.vp_pos[0,0,0]
-        cdef np.float64_t* vp_dir_ptr = <np.float64_t*> &self.vp_dir[0,0,0]
-
-        ret = oct.oct.cast_rays(vp_pos_ptr, vp_dir_ptr, size)
-
-        cdef int* cell_ind
-        cdef double* tval
 
         cdef int i, j, k, vi, vj, icell
         cdef int[3] index = [0, 0, 0]
@@ -228,9 +220,12 @@ cdef class ImageSampler:
 
         cdef np.float64_t vp_dir_len
 
+        mylog.debug('Integrating rays')
         with nogil, parallel(num_threads=num_threads):
             idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
             idata.supp_data = self.supp_data
+
+            ri = new RayInfo[int]()
 
             vc = <VolumeContainer*> malloc(sizeof(VolumeContainer))
             vc.n_fields = 1
@@ -250,9 +245,12 @@ cdef class ImageSampler:
                     self.vp_dir[vi, vj, 0]**2 +
                     self.vp_dir[vi, vj, 1]**2 +
                     self.vp_dir[vi, vj, 2]**2)
+
+                # Cast ray
+                oct.oct.cast_ray(&self.vp_pos[vi, vj, 0], &self.vp_dir[vi, vj, 0],
+                                 ri.keys, ri.t)
                 # Contains the ordered indices of the cells hit by the ray
                 # and the entry/exit t values
-                ri = ret[j]
                 if ri.keys.size() == 0:
                     continue
 
@@ -285,16 +283,24 @@ cdef class ImageSampler:
                         )
                 for i in range(Nch):
                     self.image[vi, vj, i] = idata.rgba[i]
+
+                # Empty keys and t
+                ri.keys.clear()
+                ri.t.clear()
+
+            del ri
             free(vc.data)
             free(vc.mask)
             free(vc)
             idata.supp_data = NULL
             free(idata)
-        # Free memory
-        for j in range(size):
-            del ret[j]
-        free(ret)
-        pass
+
+        mylog.debug('Done integration')
+        # # Free memory
+        # for j in range(size):
+        #     del ret[j]
+        # free(ret)
+
 
     cdef void setup(self, PartitionedGrid pg):
         return
