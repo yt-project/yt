@@ -12,7 +12,7 @@ from libcpp.vector cimport vector
 from libcpp.map cimport map
 from libcpp.string cimport string
 from libcpp cimport bool
-from libc.stdint cimport uint64_t
+from libc.stdint cimport uint64_t, uint32_t
 
 # Streams req for c++ IO
 cdef extern from "<ostream>" namespace "std":
@@ -89,7 +89,7 @@ cdef extern from "boolarray.h":
         uword getWord(size_t pos)
         size_t wordinbits
 
-ctypedef np.uint32_t ewah_word_type
+ctypedef uint32_t ewah_word_type
 ctypedef EWAHBoolArray[ewah_word_type] ewah_bool_array
 ctypedef EWAHBoolArraySetBitForwardIterator[ewah_word_type] ewah_bool_iterator
 ctypedef vector[size_t] bitset_array
