@@ -852,6 +852,14 @@ class Dataset(metaclass = RegisteredDataset):
         source = self.all_data()
         max_val, mx, my, mz = \
             source.quantities.max_location(field)
+        # This is a hack to fix the fact that some non-cartesian datasets have
+        # dimensionless quantities, and we can't yet handle that.
+        if mx.units.is_dimensionless:
+            mx = self.quan(mx.v, "code_length")
+        if my.units.is_dimensionless:
+            my = self.quan(my.v, "code_length")
+        if mz.units.is_dimensionless:
+            mz = self.quan(mz.v, "code_length")
         center = self.arr([mx, my, mz], dtype="float64").to('code_length')
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
               max_val, center[0], center[1], center[2])
