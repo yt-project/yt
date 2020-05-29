@@ -21,7 +21,6 @@ cdef extern from "octree_raytracing.cpp":
         vector[double] t
 
     cdef cppclass Octree3D[T]:
-        Octree3D(int depth, double* size)
         Octree3D(int depth, double* LE, double* RE)
         void insert_node_no_ret(const int* ipos, const int lvl, T key)
         RayInfo[T]** cast_rays(const double* origins, const double* directions, const int Nrays)
