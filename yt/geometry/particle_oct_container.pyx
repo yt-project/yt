@@ -7,38 +7,37 @@ Oct container tuned for Particles
 """
 
 
+from libc.stdlib cimport malloc, free, qsort
+from libc.string cimport memset
+from libc.math cimport floor, ceil, fmod
+from libcpp.map cimport map
+from libcpp.vector cimport vector
+from yt.utilities.lib.ewah_bool_array cimport \
+    ewah_bool_array, ewah_bool_iterator, ewah_map, bool_array, ewah_word_type
+import numpy as np
+cimport numpy as np
+
 from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
     SparseOctreeContainer, OctKey, OctAllocationContainer
 cimport oct_visitors
 from oct_visitors cimport cind, OctVisitor
-from libc.stdlib cimport malloc, free, qsort
-from libc.string cimport memset
-from libc.math cimport floor, ceil, fmod
 from yt.utilities.lib.fp_utils cimport *
 from yt.utilities.lib.geometry_utils cimport bounded_morton, \
     bounded_morton_dds, bounded_morton_relative_dds, \
     bounded_morton_split_dds, bounded_morton_split_relative_dds, \
     encode_morton_64bit, decode_morton_64bit, \
     morton_neighbors_coarse, morton_neighbors_refined
-import numpy as np
-cimport numpy as np
 from selection_routines cimport SelectorObject, AlwaysSelector
 cimport cython
 from cython cimport floating
+from cython.operator cimport dereference, preincrement
 from cpython.exc cimport PyErr_CheckSignals
 from collections import defaultdict
 from yt.funcs import get_pbar
 
 from particle_deposit cimport gind
-from yt.utilities.lib.ewah_bool_array cimport \
-    ewah_bool_array, ewah_bool_iterator, ewah_map, bool_array, ewah_word_type
 #from yt.utilities.lib.ewah_bool_wrap cimport \
 from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
-from libcpp cimport bool
-from libcpp.map cimport map
-from libcpp.vector cimport vector
-from libcpp.pair cimport pair
-from cython.operator cimport dereference, preincrement
 import struct
 import os
 

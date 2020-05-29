@@ -1,11 +1,10 @@
-cimport numpy as np
 from libcpp.vector cimport vector
 from libcpp.set cimport set as cset
 from libcpp.pair cimport pair
-
 from yt.utilities.lib.ewah_bool_array cimport \
     sstream, ewah_map, ewah_bool_array, ewah_bool_iterator
 
+cimport numpy as np
 ctypedef bint bitarrtype
 ctypedef pair[np.uint64_t, np.uint64_t] ind_pair
 

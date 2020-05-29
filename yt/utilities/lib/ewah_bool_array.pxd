@@ -6,8 +6,6 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 """
 
 
-cimport numpy as np
-cimport cython
 from libcpp.vector cimport vector
 from libcpp.map cimport map
 from libcpp.string cimport string
@@ -88,6 +86,9 @@ cdef extern from "boolarray.h":
         size_t padWithZeroes(size_t totalbits)
         uword getWord(size_t pos)
         size_t wordinbits
+
+cimport numpy as np
+cimport cython
 
 IF UNAME_SYSNAME == "Windows":
     ctypedef uint32_t ewah_word_type
