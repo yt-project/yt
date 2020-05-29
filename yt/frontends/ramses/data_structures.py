@@ -254,7 +254,7 @@ class RAMSESDomainSubset(OctreeSubset):
     def fwidth(self):
         fwidth = super(RAMSESDomainSubset, self).fwidth
         if self._num_ghost_zones > 0:
-            fwidth = super(RAMSESDomainSubset, self).fwidth.reshape(-1, 8, 3)
+            fwidth = fwidth.reshape(-1, 8, 3)
             n_oct = fwidth.shape[0]
             new_fwidth = np.zeros((n_oct, self.nz**3, 3), dtype=fwidth.dtype)
             new_fwidth[:, :, :] = fwidth[:, 0:1, :]
@@ -344,14 +344,15 @@ class RAMSESIndex(OctreeIndex):
         self.field_list = self.particle_field_list + self.fluid_field_list
 
     def _identify_base_chunk(self, dobj):
-        ngz = dobj._num_ghost_zones
         if getattr(dobj, "_chunk_info", None) is None:
             domains = [dom for dom in self.domains if
                        dom.included(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
             if len(domains) > 1:
                 mylog.debug("Identified %s intersecting domains", len(domains))
-            subsets = [RAMSESDomainSubset(base_region, domain, self.dataset, num_ghost_zones=ngz)
+            subsets = [RAMSESDomainSubset(
+                            base_region, domain, self.dataset,
+                            num_ghost_zones=dobj._num_ghost_zones)
                        for domain in domains]
             dobj._chunk_info = subsets
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
