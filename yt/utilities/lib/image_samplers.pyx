@@ -286,12 +286,13 @@ cdef class ImageSampler:
                 for i in range(Nch):
                     self.image[vi, vj, i] = idata.rgba[i]
             free(vc.data)
+            free(vc.mask)
             free(vc)
             idata.supp_data = NULL
             free(idata)
         # Free memory
         for j in range(size):
-            free(ret[j])
+            del ret[j]
         free(ret)
         pass
 

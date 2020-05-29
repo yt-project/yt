@@ -277,7 +277,7 @@ private:
                 if (child) {
                     recursive_remove_node(child);
                 }
-                free(child);
+                delete child;
             }
             free(node->children);
         }
