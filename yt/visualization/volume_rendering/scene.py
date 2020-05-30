@@ -429,8 +429,22 @@ class Scene(object):
         ax = self._show_mpl(self._last_render.swapaxes(0, 1),
                             sigma_clip=sigma_clip, dpi=dpi)
 
+        # number of transfer functions?
+        num_trans_func = 0
+        for rs in rensources:
+            print("here")
+            try:
+                tf = rs.transfer_function
+                num_trans_func += 1
+                print(type(tf))
+            except AttributeError:
+                print("error")
+                pass
+
+        print("num_trans_func = ", num_trans_func)
+
         # which transfer function?
-        if len(rensources) == 1:
+        if num_trans_func == 1:
             rs = rensources[0]
             tf = rs.transfer_function
             label = rs.data_source.ds._get_field_info(rs.field).get_label()
@@ -451,13 +465,16 @@ class Scene(object):
                 cbw = 0.12
                 cbh = 0.9
 
-            cbh_each = cbh/len(rensources)
+            cbh_each = cbh/num_trans_func
 
             for i, rs in enumerate(rensources):
                 ax = self._render_figure.add_axes([cbx0, cby0 + i*cbh_each, 0.8*cbw, 0.8*cbh_each])
-                tf = rs.transfer_function
-                label = rs.data_source.ds._get_field_info(rs.field).get_label()
-                self._annotate_multi(ax, tf, rs, label=label, label_fmt=label_fmt)
+                try:
+                    tf = rs.transfer_function
+                    label = rs.data_source.ds._get_field_info(rs.field).get_label()
+                    self._annotate_multi(ax, tf, rs, label=label, label_fmt=label_fmt)
+                except AttributeError:
+                    pass
 
         # any text?
         if text_annotate is not None:
