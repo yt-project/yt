@@ -5,8 +5,9 @@ from yt.testing import assert_array_less, fake_random_ds
 
 def setup():
     from yt.config import ytcfg
+    from yt.utilities.logger import set_log_level
 
-    ytcfg["yt", "log_level"] = 50
+    set_log_level("CRITICAL")
     ytcfg["yt", "internals", "within_testing"] = True
 
 

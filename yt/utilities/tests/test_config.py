@@ -164,6 +164,7 @@ class TestYTConfigGlobalLocal(TestYTConfig):
 
 class TestYTConfigMigration(TestYTConfig):
     def setUp(self):
+        # TODO: rewrite this with pytest fixtures monkeypatching and tmp_path
         if not os.path.exists(os.path.dirname(OLD_CONFIG_FILE)):
             os.makedirs(os.path.dirname(OLD_CONFIG_FILE))
 
@@ -174,6 +175,7 @@ class TestYTConfigMigration(TestYTConfig):
             os.remove(GLOBAL_CONFIG_FILE)
 
     def tearDown(self):
+        # TODO: rewrite this with pytest fixtures monkeypatching and tmp_path
         if os.path.exists(GLOBAL_CONFIG_FILE):
             os.remove(GLOBAL_CONFIG_FILE)
         if os.path.exists(OLD_CONFIG_FILE + ".bak"):

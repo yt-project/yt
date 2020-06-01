@@ -13,13 +13,13 @@ import numpy as np
 # https://mail.python.org/archives/list/yt-dev@python.org/thread/L6AQPJ3OIMJC5SNKVM7CJG32YVQZRJWA/
 import yt.startup_tasks as __startup_tasks
 from yt import *
-from yt.config import ytcfg, ytcfg_defaults
+from yt.config import loglevel_str2int, ytcfg, ytcfg_defaults
 from yt.utilities.logger import _level
 
 unparsed_args = __startup_tasks.unparsed_args
 
-
-if _level >= int(ytcfg_defaults["yt"]["log_level"]):
+default_level = loglevel_str2int(ytcfg_defaults["yt"]["logging"]["level"])
+if _level >= default_level:
     # This won't get displayed.
     mylog.debug("Turning off NumPy error reporting")
     np.seterr(all="ignore")

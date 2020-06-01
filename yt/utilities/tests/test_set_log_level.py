@@ -7,7 +7,7 @@ def test_valid_level():
     # - case-insensitivity
     # - integer values
     # - "all" alias, which isn't standard
-    for lvl in ("all", "ALL", 10, 42, "info", "warning", "ERROR", "CRITICAL"):
+    for lvl in ("all", "ALL", 10, "info", "warning", "ERROR", "CRITICAL"):
         set_log_level(lvl)
 
 
@@ -16,4 +16,4 @@ def test_invalid_level():
     # since they are perfectly clear and readable, we check that nothing else
     # happens in the wrapper
     assert_raises(TypeError, set_log_level, 1.5)
-    assert_raises(ValueError, set_log_level, "invalid_level")
+    assert_raises(KeyError, set_log_level, "invalid_level")

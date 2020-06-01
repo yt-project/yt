@@ -138,6 +138,7 @@ if __name__ == "__main__":
         },
         packages=find_packages(),
         include_package_data=True,
+        package_data={"yt": ["utilities/monochrome_logger_theme.ini"]},
         install_requires=[
             "matplotlib>=1.5.3",
             "setuptools>=19.6",
@@ -148,6 +149,7 @@ if __name__ == "__main__":
             "more_itertools>=8.4",
             "tqdm>=3.4.0",
             "toml>=0.10.2",
+            "rich>=9.12.0",
         ],
         extras_require={"hub": ["girder_client"], "mapserver": ["bottle"]},
         cmdclass={"sdist": sdist, "build_ext": build_ext},
