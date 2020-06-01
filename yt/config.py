@@ -1,3 +1,4 @@
+import logging
 import os
 import warnings
 
@@ -7,16 +8,29 @@ from more_itertools import always_iterable
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
 
+# this is a non standard logging level name
+ALL = 1
+
+
+def loglevel_int2str(level: int) -> str:
+    if level == ALL:
+        return "ALL"
+    return logging._levelToName[level]
+
+
+def loglevel_str2int(level: str) -> int:
+    level = level.upper()
+    if level == "ALL":
+        return ALL
+    return logging._nameToLevel[level]
+
+
 ytcfg_defaults = {}
 
 ytcfg_defaults["yt"] = dict(
     serialize=False,
     only_deserialize=False,
     time_functions=False,
-    colored_logs=False,
-    suppress_stream_logging=False,
-    stdout_stream_logging=False,
-    log_level=20,
     inline=False,
     num_threads=-1,
     store_parameter_files=False,
@@ -60,6 +74,17 @@ ytcfg_defaults["yt"] = dict(
         topcomm_parallel_size=1,
         command_line=False,
     ),
+)
+
+ytcfg_defaults["logging"] = dict(
+    level="INFO",
+    use_color=False,
+    stream="stderr",
+    handler="legacy",
+    format=r"%(message)s",
+    width=-1,  # <0 means "auto"
+    date_format="[%m/%d/%Y %H:%M:%S]",
+    custom_theme="",
 )
 
 
@@ -195,6 +220,25 @@ class YTConfig:
     def _repr_json_(self):
         return self.config_root._repr_json_()
 
+    def _convert_legacy_logging_parameters(self):
+        # YTEP-0039: maintain backward compatibility for a period of time
+        # after which this function should be removed.
+
+        if "colored_logs" in self["yt"]:
+            self["logging", "use_color"] = self["yt", "colored_logs"]
+
+        if "stdout_stream_logging" in self["yt"] and self["yt", "std_stream_logging"]:
+            self["logging", "stream"] = "stdout"
+
+        if (
+            "suppress_stream_logging" in self["yt"]
+            and self["yt", "suppress_stream_logging"]
+        ):
+            self["logging", "stream"] = "none"
+
+        if "log_level" in self["yt"]:
+            self["logging", "level"] = loglevel_int2str(self["yt", "log_level"])
+
 
 _global_config_file = YTConfig.get_global_config_file()
 _local_config_file = YTConfig.get_local_config_file()
@@ -237,3 +281,5 @@ if os.path.exists(_local_config_file):
     ytcfg.read(_local_config_file)
 elif os.path.exists(_global_config_file):
     ytcfg.read(_global_config_file)
+
+ytcfg._convert_legacy_logging_parameters()

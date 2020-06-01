@@ -48,8 +48,9 @@ def write_config(config_file):
 
 
 def migrate_config():
-    if not os.path.exists(old_config_file()):
     from yt.utilities.logger import ytLogger as mylog
+
+    if not os.path.exists(old_config_file()):
         print("Old config not found.", file=sys.stderr)
         sys.exit(1)
 
@@ -72,6 +73,18 @@ def migrate_config():
 
     old_keys_to_new = {normalize_key(k): k for k in ytcfg_defaults["yt"].keys()}
 
+    # YTEP-0039: special cases
+    # colored_logs is directly converted to a new but perfectly equivalent option
+    # while other deprecated options are kept for backwards compatibility
+    # (will migrate them properly later, but they require more fine tuning)
+    old_keys_to_new.update(
+        {
+            "loglevel": "log_level",
+            "stdoutStreamLogging": "stdout_stream_logging",
+            "suppressstreamlogging": "suppress_stream_logging",
+            "colored_logs": "logging.use_color",
+        }
+    )
     config_as_dict = {}
     for section in old_config:
         if section == "DEFAULT":

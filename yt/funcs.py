@@ -347,7 +347,7 @@ def get_pbar(title, maxval):
     from yt.config import ytcfg
 
     if (
-        ytcfg.get("yt", "suppress_stream_logging")
+        ytcfg.get("logging", "stream") == "none"
         or ytcfg.get("yt", "internals", "within_testing")
         or maxval == 1
         or not is_root()

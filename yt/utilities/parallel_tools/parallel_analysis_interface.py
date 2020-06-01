@@ -10,7 +10,7 @@ import numpy as np
 from more_itertools import always_iterable
 
 import yt.utilities.logger
-from yt.config import ytcfg
+from yt.config import loglevel_str2int, ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.funcs import is_sequence
 from yt.units.unit_registry import UnitRegistry
@@ -112,7 +112,10 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     ytcfg["yt", "internals", "parallel"] = True
     if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):
         ytcfg["yt", "inline"] = True
-    yt.utilities.logger.uncolorize_logging()
+
+    if ytcfg.get("logging", "handler") == "legacy":
+        yt.utilities.logger.uncolorize_logging()
+
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.
     f = logging.Formatter(
@@ -126,7 +129,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     else:
         sys.excepthook = default_mpi_excepthook
 
-    if ytcfg.get("yt", "log_level") < 20:
+    if loglevel_str2int(ytcfg.get("logging", "level")) < logging.INFO:
         yt.utilities.logger.ytLogger.warning(
             "Log Level is set low -- this could affect parallel performance!"
         )

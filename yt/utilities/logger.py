@@ -1,13 +1,28 @@
 import logging
 import sys
+from typing import Union
 
-from yt.config import ytcfg
+import pkg_resources
+from rich.console import Console
+from rich.logging import RichHandler
+from rich.theme import Theme
+
+from yt.config import loglevel_int2str, loglevel_str2int, ytcfg
+from yt.utilities.exceptions import YTConfigError
+
+# YTEP-0039: legacy helper functions to (de)activate color logging
+# and suppress logging. They should be removed at some point.
+# (see the YTEP)
+
+ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
+cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
 
 # This next bit is grabbed from:
 # http://stackoverflow.com/questions/384076/how-can-i-make-the-python-logging-output-to-be-colored
 
 
 def add_coloring_to_emit_ansi(fn):
+    # YTEP-0039: legacy only
     # add methods we need to the class
     def new(*args):
         levelno = args[0].levelno
@@ -30,7 +45,38 @@ def add_coloring_to_emit_ansi(fn):
     return new
 
 
-def set_log_level(level):
+def disable_stream_logging():
+    # YTEP-0039: legacy only
+    if len(ytLogger.handlers) > 0:
+        ytLogger.removeHandler(ytLogger.handlers[0])
+    h = logging.NullHandler()
+    ytLogger.addHandler(h)
+
+
+def colorize_logging():
+    # YTEP-0039: legacy only
+    f = logging.Formatter(cfstring)
+    ytLogger.handlers[0].setFormatter(f)
+    handler.emit = add_coloring_to_emit_ansi(handler.emit)
+
+
+def uncolorize_logging():
+    # YTEP-0039: legacy only
+    try:
+        f = logging.Formatter(ufstring)
+        ytLogger.handlers[0].setFormatter(f)
+        handler.emit = original_emitter
+    except NameError:
+        # `handler` and `original_emitter` are not defined because
+        # ytcfg["logging", "stream"] == "none"
+        # so we continue since there is nothing to uncolorize.
+        pass
+
+
+### end legacy-only definitions (YTEP-0039)
+
+
+def set_log_level(level: Union[int, str]) -> None:
     """
     Select which minimal logging level should be displayed.
 
@@ -48,24 +94,18 @@ def set_log_level(level):
     """
     # this is a user-facing interface to avoid importing from yt.utilities in user code.
 
-    if isinstance(level, str):
-        level = level.upper()
+    if isinstance(level, int):
+        ytcfg["logging", "level"] = loglevel_int2str(level)
+    elif isinstance(level, str):
+        ytcfg["logging", "level"] = level.upper()
+        level = loglevel_str2int(level)
+    else:
+        raise TypeError(
+            f"Expected an int or an str, got `{level}` with type `{type(level)}`."
+        )
 
-    if level == "ALL":  # non-standard alias
-        level = 1
     ytLogger.setLevel(level)
-    ytLogger.debug("Set log level to %s", level)
-
-
-ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
-cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
-
-if ytcfg.get("yt", "stdout_stream_logging"):
-    stream = sys.stdout
-else:
-    stream = sys.stderr
-
-ytLogger = logging.getLogger("yt")
+    ytLogger.debug("log level set to %s", level)
 
 
 class DuplicateFilter(logging.Filter):
@@ -81,7 +121,11 @@ class DuplicateFilter(logging.Filter):
         return False
 
 
+ytLogger = logging.getLogger("yt")
 ytLogger.addFilter(DuplicateFilter())
+
+# normalize logging level string to all caps
+ytcfg["logging", "level"] = ytcfg.get("logging", "level").upper()
 
 
 class DeprecatedFieldFilter(logging.Filter):
@@ -106,46 +150,62 @@ class DeprecatedFieldFilter(logging.Filter):
 ytLogger.addFilter(DeprecatedFieldFilter())
 
 
-def disable_stream_logging():
-    if len(ytLogger.handlers) > 0:
-        ytLogger.removeHandler(ytLogger.handlers[0])
-    h = logging.NullHandler()
-    ytLogger.addHandler(h)
-
-
-def colorize_logging():
-    f = logging.Formatter(cfstring)
-    ytLogger.handlers[0].setFormatter(f)
-    yt_sh.emit = add_coloring_to_emit_ansi(yt_sh.emit)
-
-
-def uncolorize_logging():
-    try:
-        f = logging.Formatter(ufstring)
-        ytLogger.handlers[0].setFormatter(f)
-        yt_sh.emit = original_emitter
-    except NameError:
-        # yt_sh and original_emitter are not defined because
-        # suppress_stream_logging is True, so we continue since there is nothing
-        # to uncolorize
-        pass
-
-
-_level = min(max(ytcfg.get("yt", "log_level"), 0), 50)
-
-if ytcfg.get("yt", "suppress_stream_logging"):
+_stream = ytcfg.get("logging", "stream").lower()
+if _stream == "stdout":
+    stream = sys.stdout
+elif _stream == "stderr":
+    stream = sys.stderr
+elif _stream == "none":
     disable_stream_logging()
 else:
-    yt_sh = logging.StreamHandler(stream=stream)
-    # create formatter and add it to the handlers
-    formatter = logging.Formatter(ufstring)
-    yt_sh.setFormatter(formatter)
+    raise YTConfigError("yt.logging.stream", choices=["stdout", "stderr", "none"])
+
+if _stream != "none":
+    _handler = ytcfg.get("logging", "handler")
+
+    if _handler == "legacy":
+        handler = logging.StreamHandler(stream=stream)
+        _fmt = ufstring
+        _datefmt = None  # unspecified
+    elif _handler == "rich":
+        _width = ytcfg.get("logging", "width")
+        width = None if _width <= 0 else _width
+
+        theme_file = None
+        no_color = not ytcfg.get("logging", "use_color")
+        if no_color:
+            # note that the monochrome theme doesn't deactivate rich markup (bold, italic, dim)
+            theme_file = pkg_resources.resource_filename(
+                "yt", "utilities/monochrome_logger_theme.ini"
+            )
+
+        _custom_theme = ytcfg.get("logging", "custom_theme")
+        if _custom_theme:
+            theme_file = _custom_theme
+
+        if theme_file is None:
+            theme = None
+        else:
+            theme = Theme.read(theme_file)
+
+        console = Console(file=stream, width=width, theme=theme, no_color=no_color)
+        handler = RichHandler(console=console)
+        _fmt = ytcfg.get("logging", "format")
+        _datefmt = ytcfg.get("logging", "date_format")
+    else:
+        raise YTConfigError("yt.logging.handler", choices=["legacy", "rich"])
+
+    handler.setFormatter(logging.Formatter(fmt=_fmt, datefmt=_datefmt))
+
     # add the handler to the logger
-    ytLogger.addHandler(yt_sh)
-    set_log_level(_level)
+    ytLogger.addHandler(handler)
+
+    set_log_level(ytcfg.get("logging", "level"))
     ytLogger.propagate = False
 
-    original_emitter = yt_sh.emit
-
-    if ytcfg.get("yt", "colored_logs"):
+    original_emitter = handler.emit
+    if _handler == "legacy" and ytcfg.get("logging", "use_color"):
         colorize_logging()
+
+# this exists only to support yt.mods
+_level = loglevel_str2int(ytcfg.get("logging", "level"))

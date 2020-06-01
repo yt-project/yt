@@ -1,7 +1,10 @@
 # We don't need to import 'exceptions'
 import os.path
+from typing import Any, Optional, Sequence
 
 from unyt.exceptions import UnitOperationError
+
+from yt.config import ytcfg
 
 
 class YTException(Exception):
@@ -927,6 +930,20 @@ class YTArrayTooLargeToDisplay(YTException):
         msg = f"The requested array is of size {self.size}.\n"
         msg += "We do not support displaying arrays larger\n"
         msg += f"than size {self.max_size}."
+        return msg
+
+
+class YTConfigError(YTException):
+    def __init__(self, key: str, choices: Optional[Sequence[Any]] = None) -> None:
+        self.key = key
+        self.value = ytcfg.get(*(key.split(".")))
+        self.choices = choices
+
+    def __str__(self) -> str:
+        msg = f"Unrecognised value for {self.key} in config file '{self.value}'."
+        if self.choices is not None:
+            choices_repr = "\n".join(self.choices)
+            msg += f" Possible values are\n{choices_repr}"
         return msg
 
 

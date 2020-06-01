@@ -2,10 +2,11 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
-from yt.funcs import get_pbar, mylog
+from yt.funcs import get_pbar
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTIllDefinedParticleData
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
+from yt.utilities.logger import set_log_level
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 
@@ -77,8 +78,8 @@ class ParticleTrajectories:
             fields = []
 
         if self.suppress_logging:
-            old_level = int(ytcfg.get("yt", "log_level"))
-            mylog.setLevel(40)
+            old_level = ytcfg.get("logging", "level")
+            set_log_level("ERROR")
         ds_first = self.data_series[0]
         dd_first = ds_first.all_data()
 
@@ -117,7 +118,7 @@ class ParticleTrajectories:
         pbar.finish()
 
         if self.suppress_logging:
-            mylog.setLevel(old_level)
+            set_log_level(old_level)
 
         sorted_storage = sorted(my_storage.items())
         _fn, (time, *_) = sorted_storage[0]
@@ -224,8 +225,8 @@ class ParticleTrajectories:
             return
 
         if self.suppress_logging:
-            old_level = int(ytcfg.get("yt", "log_level"))
-            mylog.setLevel(40)
+            old_level = ytcfg.get("logging", "level")
+            set_log_level("ERROR")
         ds_first = self.data_series[0]
         dd_first = ds_first.all_data()
 
@@ -304,7 +305,7 @@ class ParticleTrajectories:
             self.field_data[field] = array_like_field(dd_first, output_field.copy(), fd)
 
         if self.suppress_logging:
-            mylog.setLevel(old_level)
+            set_log_level(old_level)
 
     def trajectory_from_index(self, index):
         """

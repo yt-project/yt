@@ -14,6 +14,7 @@ from yt.funcs import (
     signal_print_traceback,
 )
 from yt.utilities import rpdb
+from yt.utilities.logger import set_log_level
 
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
@@ -80,8 +81,10 @@ class SetConfigOption(argparse.Action):
         param, val = values.split("=")
         mylog.debug("Overriding config: %s = %s", param, val)
         ytcfg["yt", param] = val
-        if param == "log_level":  # special case
-            mylog.setLevel(int(val))
+
+        # TODO: check this
+        if param == "logging.level":  # special case
+            set_log_level(val)
 
 
 class YTParser(argparse.ArgumentParser):
