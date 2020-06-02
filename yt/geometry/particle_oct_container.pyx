@@ -491,7 +491,7 @@ cdef class ParticleBitmap:
                                        np.uint64_t file_id) except *:
         # Initialize
         cdef np.int64_t i, p
-        cdef np.uint64_t mi, miex, mi_max
+        cdef np.uint64_t mi, miex
         cdef np.uint64_t mi_split[3]
         cdef np.float64_t ppos[3]
         cdef np.float64_t s_ppos[3] # shifted ppos
@@ -511,7 +511,6 @@ cdef class ParticleBitmap:
         cdef np.uint64_t msize = (1 << (self.index_order1 * 3))
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
-        mi_max = (1 << self.index_order1) - 1
         # Copy over things for this file (type cast necessary?)
         for i in range(3):
             LE[i] = self.left_edge[i]
@@ -619,12 +618,9 @@ cdef class ParticleBitmap:
         if in_collection is None:
             in_collection = BoolArrayCollection()
         cdef BoolArrayCollection _in_coll = in_collection
-        cdef np.int64_t nsub
         out_collection = self.__refined_index_data_file(_in_coll, pos, hsml, mask,
-                                              sub_mi1, sub_mi2, 
-                                              file_id, &nsub,
                                               count_threshold, mask_threshold)
-        return nsub, out_collection
+        return 0, out_collection
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -636,9 +632,6 @@ cdef class ParticleBitmap:
         np.ndarray[floating, ndim=2] pos,
         np.ndarray[floating, ndim=1] hsml,
         np.ndarray[np.uint8_t, ndim=1] mask,
-        np.ndarray[np.uint64_t, ndim=1] sub_mi1,
-        np.ndarray[np.uint64_t, ndim=1] sub_mi2,
-        np.uint64_t file_id, np.int64_t *nsub_mi,
         np.uint64_t count_threshold, np.uint8_t mask_threshold
     ):
         # Initialize
@@ -647,7 +640,7 @@ cdef class ParticleBitmap:
         cdef np.uint64_t mi1, mi2
         cdef np.float64_t ppos[3]
         cdef np.float64_t s_ppos[3] # shifted ppos
-        cdef int skip, Nex
+        cdef int skip
         cdef BoolArrayCollection this_collection, out_collection
         cdef np.uint64_t bounds[2][3]
         cdef np.uint8_t fully_enclosed
@@ -660,29 +653,16 @@ cdef class ParticleBitmap:
         cdef np.float64_t radius
         cdef np.uint64_t mi_split1[3]
         cdef np.uint64_t mi_split2[3]
-        cdef np.uint64_t miex1, miex2, mi1_max, mi2_max
+        cdef np.uint64_t miex1
         cdef np.uint64_t[:] particle_counts = self.particle_counts
-        cdef int Nex_min[3]
-        cdef int Nex_max[3]
-        cdef np.float64_t rpos_min, rpos_max
-        cdef np.uint64_t xex2_min, xex2_max, yex2_min, yex2_max, zex2_min, zex2_max
         cdef np.uint64_t xex, yex, zex
-        cdef np.uint64_t xex1, yex1, zex1
-        cdef np.uint64_t xex2, yex2, zex2
-        cdef int ix, iy, iz, ixe, iye, ize
-        cdef np.ndarray[np.uint64_t, ndim=1] xex1_range = np.empty(7, 'uint64')
-        cdef np.ndarray[np.uint64_t, ndim=1] yex1_range = np.empty(7, 'uint64')
-        cdef np.ndarray[np.uint64_t, ndim=1] zex1_range = np.empty(7, 'uint64')
-        cdef np.ndarray[np.uint64_t, ndim=1] xex2_range = np.empty(7, 'uint64')
-        cdef np.ndarray[np.uint64_t, ndim=1] yex2_range = np.empty(7, 'uint64')
-        cdef np.ndarray[np.uint64_t, ndim=1] zex2_range = np.empty(7, 'uint64')
-        cdef np.float64_t clip_pos_l[3], clip_pos_r[3]
-        cdef np.int64_t msize = sub_mi1.shape[0]
+        cdef np.float64_t clip_pos_l[3]
+        cdef np.float64_t clip_pos_r[3]
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
         cdef map[np.uint64_t, np.uint64_t] refined_count
-        cdef np.uint64_t nset = 0, nfully_enclosed = 0, n_calls = 0
+        cdef np.uint64_t nfully_enclosed = 0, n_calls = 0
         mi1_max = (1 << self.index_order1) - 1
         mi2_max = (1 << self.index_order2) - 1
         cdef np.uint64_t max_mi1_elements = 1 << (3*self.index_order1)
@@ -731,7 +711,7 @@ cdef class ParticleBitmap:
                     ppos[0], ppos[1], ppos[2], LE, dds1, dds2, mi_split2)
                 if refined_count[mi1] == 0:
                     coarse_refined_map[mi1].padWithZeroes(max_mi2_elements)
-                if coarse_refined_map[mi1].get(mi2) == False:
+                if not coarse_refined_map[mi1].get(mi2):
                     coarse_refined_map[mi1].set(mi2)
                     refined_count[mi1] += 1
             else: # only hit if we have smoothing lengths.
@@ -803,11 +783,9 @@ cdef class ParticleBitmap:
                                         n_calls += 1
                                         refined_count[miex1] += self.__fill_refined_ranges(s_ppos, radius, LE, RE,
                                                                    dds1, xex, yex, zex,
-                                                                   dds2, mi1_max, mi2_max, miex1,
-                                                                   coarse_refined_map[miex1], ppos, mask[miex1],
-                                                                   max_mi2_elements)
-        cdef np.uint64_t count, vec_i
-        cdef np.uint64_t total_count = 0
+                                                                   dds2, 
+                                                                   coarse_refined_map[miex1])
+        cdef np.uint64_t vec_i
         cdef bool_array *buf = NULL
         cdef ewah_word_type w
         this_collection = BoolArrayCollection()
@@ -832,20 +810,20 @@ cdef class ParticleBitmap:
     cdef np.int64_t __fill_refined_ranges(self, np.float64_t s_ppos[3], np.float64_t radius,
                                            np.float64_t LE[3], np.float64_t RE[3],
                                            np.float64_t dds1[3], np.uint64_t xex, np.uint64_t yex, np.uint64_t zex,
-                                           np.float64_t dds2[3],
-                                           np.uint64_t mi1_max, np.uint64_t mi2_max, np.uint64_t miex1,
-                                           bool_array &refined_set, np.float64_t ppos[3], np.uint64_t mcount,
-                                          np.uint64_t max_mi2_elements) except -1:
+                                           np.float64_t dds2[3], bool_array &refined_set) except -1:
         cdef int i
         cdef np.uint64_t new_nsub = 0
         cdef np.uint64_t bounds_l[3], bounds_r[3]
-        cdef np.uint64_t miex2, mi2, miex2_min, miex2_max
-        cdef np.float64_t clip_pos_l[3], clip_pos_r[3], cell_edge_l, cell_edge_r
-        cdef np.uint64_t ex1[3], ex2[3], ex3[3]
-        cdef np.uint64_t xex_max, yex_max, zex_max
+        cdef np.uint64_t miex2, miex2_min, miex2_max
+        cdef np.float64_t clip_pos_l[3]
+        cdef np.float64_t clip_pos_r[3]
+        cdef np.float64_t cell_edge_l, cell_edge_r
+        cdef np.uint64_t ex1[3]
         cdef np.uint64_t xiex_min, yiex_min, ziex_min
         cdef np.uint64_t xiex_max, yiex_max, ziex_max
-        ex1[0] = xex; ex1[1] = yex; ex1[2] = zex
+        ex1[0] = xex
+        ex1[1] = yex
+        ex1[2] = zex
         # Check a few special cases
         for i in range(3):
             # Figure out our bounds inside our coarse cell, in the space of the
