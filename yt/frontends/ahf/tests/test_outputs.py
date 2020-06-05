@@ -34,4 +34,4 @@ def test_AHFHalosDataset():
     ad = ds.all_data()
     ad['particle_mass']
     psc = ParticleSelectionComparison(ds)
-    ds.run_defaults()
+    psc.run_defaults()

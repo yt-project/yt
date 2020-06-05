@@ -102,7 +102,7 @@ def test_cosmo_dataset():
     assert_almost_equal(yt_density.d, raw_density)
 
 @requires_file(EAGLE_6)
-def test_cosmo_dataset():
+def test_cosmo_dataset_selection():
     ds = load(EAGLE_6)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
