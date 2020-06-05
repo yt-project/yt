@@ -1291,7 +1291,7 @@ class ParticleSelectionComparison:
         for center in centers:
             c = self.ds.arr(center, "unitary")
             sp = self.ds.sphere(c, (0.1, "unitary"))
-            self.compare_dobj_selection(sp3)
+            self.compare_dobj_selection(sp)
 
         sp = self.ds.sphere("c", (0.5, "unitary"))
         self.compare_dobj_selection(sp)
