@@ -23,9 +23,6 @@ from yt.utilities.lib.volume_container cimport \
 from yt.utilities.lib.grid_traversal cimport \
     sampler_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
-from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
-# from yt.utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet #as SparseUnorderedBitmask
-# from yt.utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet #as SparseUnorderedRefinedBitmask
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit, \
     bounded_morton_dds, morton_neighbors_coarse, morton_neighbors_refined
 

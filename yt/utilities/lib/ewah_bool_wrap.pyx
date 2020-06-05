@@ -8,14 +8,9 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 
 import struct
 from libcpp.map cimport map as cmap
-from libcpp.vector cimport vector
-from libcpp.pair cimport pair
-from libcpp.set cimport set as cset
 from libcpp.map cimport map
 from libcpp.algorithm cimport sort
 from libc.stdlib cimport malloc, free, qsort
-from yt.utilities.lib.ewah_bool_array cimport \
-    sstream, ewah_map, ewah_bool_array, ewah_bool_iterator
 from cython.operator cimport dereference, preincrement
 import numpy as np
 cimport numpy as np
@@ -29,12 +24,6 @@ cdef extern from "<algorithm>" namespace "std" nogil:
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
 cdef np.uint64_t MAX_VECTOR_SIZE = <np.uint64_t>1e7
 
-DEF UncompressedFormat = 'Pointer'
-
-#ctypedef np.uint8_t bitarrtype
-ctypedef bint bitarrtype
-
-ctypedef pair[np.uint64_t, np.uint64_t] ind_pair
 ctypedef cmap[np.uint64_t, ewah_bool_array] ewahmap
 ctypedef cmap[np.uint64_t, ewah_bool_array].iterator ewahmap_it
 ctypedef pair[np.uint64_t, ewah_bool_array] ewahmap_p
@@ -44,26 +33,20 @@ cdef class FileBitmasks:
     def __cinit__(self, np.uint32_t nfiles):
         cdef int i
         self.nfiles = nfiles
-        cdef ewah_bool_array **ewah_keys = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
-        cdef ewah_bool_array **ewah_refn = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
-        cdef ewah_map **ewah_coll = <ewah_map **>malloc(nfiles*sizeof(ewah_map*))
+        self.ewah_keys = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
+        self.ewah_refn = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
+        self.ewah_coll = <ewah_map **>malloc(nfiles*sizeof(ewah_map*))
         for i in range(nfiles):
-            ewah_keys[i] = new ewah_bool_array()
-            ewah_refn[i] = new ewah_bool_array()
-            ewah_coll[i] = new ewah_map()
-        self.ewah_keys = <void **>ewah_keys
-        self.ewah_refn = <void **>ewah_refn
-        self.ewah_coll = <void **>ewah_coll
+            self.ewah_keys[i] = new ewah_bool_array()
+            self.ewah_refn[i] = new ewah_bool_array()
+            self.ewah_coll[i] = new ewah_map()
 
     cdef void _reset(self):
-        cdef ewah_bool_array **ewah_keys = <ewah_bool_array **>self.ewah_keys
-        cdef ewah_bool_array **ewah_refn = <ewah_bool_array **>self.ewah_refn
-        cdef ewah_map **ewah_coll = <ewah_map **>self.ewah_coll
         cdef np.int32_t ifile
         for ifile in range(self.nfiles):
-            ewah_keys[ifile][0].reset()
-            ewah_refn[ifile][0].reset()
-            ewah_coll[ifile][0].clear()
+            self.ewah_keys[ifile].reset()
+            self.ewah_refn[ifile].reset()
+            self.ewah_coll[ifile].clear()
 
     cdef bint _iseq(self, FileBitmasks solf):
         cdef np.int32_t ifile
@@ -323,20 +306,22 @@ cdef class FileBitmasks:
     def count_refined(self, ifile):
         return self._count_refined(ifile)
 
-    cdef int _count_coarse(self, np.uint32_t ifile):
+    cdef np.uint64_t _count_coarse(self, np.uint32_t ifile):
         return self._count_total(ifile) - self._count_refined(ifile)
 
-    cdef int _count_total(self, np.uint32_t ifile):
+    cdef np.uint64_t _count_total(self, np.uint32_t ifile):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
-        cdef int out
-        out = ewah_keys[0].numberOfOnes()
+        cdef np.uint64_t out = ewah_keys[0].numberOfOnes()
         return out
 
-    cdef int _count_refined(self, np.uint32_t ifile):
+    cdef np.uint64_t _count_refined(self, np.uint32_t ifile):
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
-        cdef int out
-        out = ewah_refn[0].numberOfOnes()
+        cdef np.uint64_t out = ewah_refn[0].numberOfOnes()
         return out
+
+    def append(self, np.uint32_t ifile, BoolArrayCollection solf):
+        if solf is None: return
+        self._append(ifile, solf)
 
     cdef void _append(self, np.uint32_t ifile, BoolArrayCollection solf):
         cdef ewah_bool_array *ewah_keys1 = (<ewah_bool_array **> self.ewah_keys)[ifile]
@@ -623,16 +608,10 @@ cdef class FileBitmasks:
         return self._check()
 
     def __dealloc__(self):
-        cdef ewah_bool_array *ewah_keys
-        cdef ewah_bool_array *ewah_refn
-        cdef ewah_map *ewah_coll
         for ifile in range(self.nfiles):
-            ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
-            ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
-            ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
-            del ewah_keys
-            del ewah_refn
-            del ewah_coll
+            del self.ewah_keys[ifile]
+            del self.ewah_refn[ifile]
+            del self.ewah_coll[ifile]
 
     def print_info(self, ifile, prefix=''):
         print("{}{: 8d} coarse, {: 8d} refined, {: 8d} total".format(
@@ -644,24 +623,16 @@ cdef class FileBitmasks:
 cdef class BoolArrayCollection:
 
     def __cinit__(self):
-        cdef ewah_bool_array *ewah_keys = new ewah_bool_array()
-        cdef ewah_bool_array *ewah_refn = new ewah_bool_array()
-        cdef ewah_bool_array *ewah_coar = new ewah_bool_array()
-        cdef ewah_map *ewah_coll = new ewah_map()
-        self.ewah_keys = <void *> ewah_keys
-        self.ewah_refn = <void *> ewah_refn
-        self.ewah_coar = <void *> ewah_coar
-        self.ewah_coll = <void *> ewah_coll
+        self.ewah_keys = new ewah_bool_array()
+        self.ewah_refn = new ewah_bool_array()
+        self.ewah_coar = new ewah_bool_array()
+        self.ewah_coll = new ewah_map()
 
     cdef void _reset(self):
-        cdef ewah_bool_array *ewah_keys = <ewah_bool_array *>self.ewah_keys
-        cdef ewah_bool_array *ewah_refn = <ewah_bool_array *>self.ewah_refn
-        cdef ewah_bool_array *ewah_coar = <ewah_bool_array *>self.ewah_coar
-        cdef ewah_map *ewah_coll = <ewah_map *>self.ewah_coll
-        ewah_keys[0].reset()
-        ewah_refn[0].reset()
-        ewah_coar[0].reset()
-        ewah_coll[0].clear()
+        self.ewah_keys[0].reset()
+        self.ewah_refn[0].reset()
+        self.ewah_coar[0].reset()
+        self.ewah_coll[0].clear()
 
     cdef int _richcmp(self, BoolArrayCollection solf, int op) except -1:
 
@@ -869,44 +840,41 @@ cdef class BoolArrayCollection:
     def ewah_coarse(self):
         return self._ewah_coarse()
 
-    cdef int _count_total(self):
+    cdef np.uint64_t _count_total(self):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
-        cdef int out
-        out = ewah_keys.numberOfOnes()
+        cdef np.uint64_t out = ewah_keys.numberOfOnes()
         return out
 
     def count_total(self):
         return self._count_total()
 
-    cdef int _count_refined(self):
+    cdef np.uint64_t _count_refined(self):
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
-        cdef int out
-        out = ewah_refn.numberOfOnes()
+        cdef np.uint64_t out = ewah_refn.numberOfOnes()
         return out
 
     def count_refined(self):
         return self._count_refined()
 
-    cdef int _count_coarse(self):
+    cdef np.uint64_t _count_coarse(self):
         self._ewah_coarse()
         cdef ewah_bool_array *ewah_coar = <ewah_bool_array *> self.ewah_coar
-        cdef int out
-        out = ewah_coar.numberOfOnes()
+        cdef np.uint64_t out = ewah_coar.numberOfOnes()
         return out
 
     def count_coarse(self):
         return self._count_coarse()
 
     cdef void _logicalor(self, BoolArrayCollection solf, BoolArrayCollection out):
-        cdef ewah_bool_array *ewah_keys1 = <ewah_bool_array *> self.ewah_keys
-        cdef ewah_bool_array *ewah_refn1 = <ewah_bool_array *> self.ewah_refn
-        cdef ewahmap *ewah_coll1 = <ewahmap *> self.ewah_coll
-        cdef ewah_bool_array *ewah_keys2 = <ewah_bool_array *> solf.ewah_keys
-        cdef ewah_bool_array *ewah_refn2 = <ewah_bool_array *> solf.ewah_refn
-        cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
-        cdef ewah_bool_array *ewah_keys3 = <ewah_bool_array *> out.ewah_keys
-        cdef ewah_bool_array *ewah_refn3 = <ewah_bool_array *> out.ewah_refn
-        cdef ewahmap *ewah_coll3 = <ewahmap *> out.ewah_coll
+        cdef ewah_bool_array *ewah_keys1 = self.ewah_keys
+        cdef ewah_bool_array *ewah_refn1 = self.ewah_refn
+        cdef ewahmap *ewah_coll1 = self.ewah_coll
+        cdef ewah_bool_array *ewah_keys2 = solf.ewah_keys
+        cdef ewah_bool_array *ewah_refn2 = solf.ewah_refn
+        cdef ewahmap *ewah_coll2 = solf.ewah_coll
+        cdef ewah_bool_array *ewah_keys3 = out.ewah_keys
+        cdef ewah_bool_array *ewah_refn3 = out.ewah_refn
+        cdef ewahmap *ewah_coll3 = out.ewah_coll
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2
         cdef np.uint64_t mi1
@@ -929,6 +897,8 @@ cdef class BoolArrayCollection:
             if it_map1 != ewah_coll1[0].end():
                 mi1_ewah1 = dereference(it_map1).second
                 mi1_ewah1.logicalor(mi1_ewah2, ewah_coll3[0][mi1])
+            else:
+                ewah_coll3[0][mi1] = mi1_ewah2
             preincrement(it_map2)
 
     cdef void _append(self, BoolArrayCollection solf):
@@ -1322,25 +1292,13 @@ cdef class BoolArrayCollectionUncompressed:
     def __cinit__(self, np.uint64_t nele1, np.uint64_t nele2):
         self.nele1 = <int>nele1
         self.nele2 = <int>nele2
-        cdef ewah_map *ewah_coll = new ewah_map()
-        self.ewah_coll = <void *> ewah_coll
+        self.ewah_coll = new ewah_map()
         cdef np.uint64_t i
-        IF UncompressedFormat == 'MemoryView':
-            self.ewah_keys = malloc(sizeof(bitarrtype)*nele1)
-            self.ewah_refn = malloc(sizeof(bitarrtype)*nele1)
-            cdef bitarrtype[:] ewah_keys = <bitarrtype[:nele1]>self.ewah_keys
-            cdef bitarrtype[:] ewah_refn = <bitarrtype[:nele1]>self.ewah_refn
-            for i in range(nele1):
-                ewah_keys[i] = 0
-                ewah_refn[i] = 0
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys = <bitarrtype *>malloc(sizeof(bitarrtype)*nele1)
-            cdef bitarrtype *ewah_refn = <bitarrtype *>malloc(sizeof(bitarrtype)*nele1)
-            for i in range(nele1):
-                ewah_keys[i] = 0
-                ewah_refn[i] = 0
-            self.ewah_keys = <void *> ewah_keys
-            self.ewah_refn = <void *> ewah_refn
+        self.ewah_keys = <bitarrtype *>malloc(sizeof(bitarrtype)*nele1)
+        self.ewah_refn = <bitarrtype *>malloc(sizeof(bitarrtype)*nele1)
+        for i in range(nele1):
+            self.ewah_keys[i] = 0
+            self.ewah_refn[i] = 0
 
     def reset(self):
         self.__dealloc__()
@@ -1350,12 +1308,8 @@ cdef class BoolArrayCollectionUncompressed:
         cdef np.uint64_t i
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> solf.ewah_refn
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] bool_keys = <bitarrtype[:self.nele1]>self.ewah_keys
-            cdef bitarrtype[:] bool_refn = <bitarrtype[:self.nele1]>self.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *bool_keys = <bitarrtype *> self.ewah_keys
-            cdef bitarrtype *bool_refn = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *bool_keys = <bitarrtype *> self.ewah_keys
+        cdef bitarrtype *bool_refn = <bitarrtype *> self.ewah_refn
         for i in range(self.nele1):
             if bool_keys[i] == 1:
                 ewah_keys[0].set(i)
@@ -1366,12 +1320,8 @@ cdef class BoolArrayCollectionUncompressed:
         ewah_coll2[0] = ewah_coll1[0]
 
     cdef void _set(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
-            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
-            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+        cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         ewah_keys[i1] = 1
         # Note the 0 here, for dereferencing
@@ -1380,17 +1330,11 @@ cdef class BoolArrayCollectionUncompressed:
             ewah_coll[0][i1].set(i2)
 
     cdef void _set_coarse(self, np.uint64_t i1):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+        cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         ewah_keys[i1] = 1
 
     cdef void _set_refined(self, np.uint64_t i1, np.uint64_t i2):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         # Note the 0 here, for dereferencing
         ewah_refn[i1] = 1
@@ -1401,10 +1345,7 @@ cdef class BoolArrayCollectionUncompressed:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void _set_coarse_array(self, np.uint8_t[:] arr):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+        cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         cdef np.uint64_t i1
         for i1 in range(arr.shape[0]):
             if arr[i1] == 1:
@@ -1415,11 +1356,8 @@ cdef class BoolArrayCollectionUncompressed:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void _set_coarse_array_ptr(self, np.uint8_t *arr):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
-        ELIF UncompressedFormat == 'Pointer':
-            # TODO: memcpy?
-            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+        # TODO: memcpy?
+        cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         cdef np.uint64_t i1
         for i1 in range(self.nele1):
             if arr[i1] == 1:
@@ -1430,10 +1368,7 @@ cdef class BoolArrayCollectionUncompressed:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void _set_refined_array(self, np.uint64_t i1, np.uint8_t[:] arr):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         cdef np.uint64_t i2
         for i2 in range(arr.shape[0]):
@@ -1446,10 +1381,7 @@ cdef class BoolArrayCollectionUncompressed:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void _set_refined_array_ptr(self, np.uint64_t i1, np.uint8_t *arr):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         cdef np.uint64_t i2
         cdef ewah_bool_array *barr = &ewah_coll[0][i1]
@@ -1463,19 +1395,12 @@ cdef class BoolArrayCollectionUncompressed:
         ewah_coll[0][i1].set(i2)
 
     cdef void _set_refn(self, np.uint64_t i1):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         ewah_refn[i1] = 1
 
     cdef bint _get(self, np.uint64_t i1, np.uint64_t i2 = FLAG):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
-            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
-            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+        cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         # Note the 0 here, for dereferencing
         if ewah_keys[i1] == 0: return 0
@@ -1484,54 +1409,36 @@ cdef class BoolArrayCollectionUncompressed:
         return ewah_coll[0][i1].get(i2)
 
     cdef bint _get_coarse(self, np.uint64_t i1):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+        cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         return <bint>ewah_keys[i1]
         # if (ewah_keys[i1] == 0): return 0
         # return 1
 
     cdef bint _isref(self, np.uint64_t i):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         return <bint>ewah_refn[i]
 
-    cdef int _count_total(self):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_keys = <bitarrtype[:self.nele1]>self.ewah_keys
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+    cdef np.uint64_t _count_total(self):
+        cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
         cdef np.uint64_t i
-        cdef int out = 0
+        cdef np.uint64_t out = 0
         for i in range(self.nele1):
             out += ewah_keys[i]
         return out
 
-    cdef int _count_refined(self):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_refn = <bitarrtype[:self.nele1]>self.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+    cdef np.uint64_t _count_refined(self):
+        cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef np.uint64_t i
-        cdef int out = 0
+        cdef np.uint64_t out = 0
         for i in range(self.nele1):
             out += ewah_refn[i]
         return out
 
     cdef void _append(self, BoolArrayCollectionUncompressed solf):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_keys1 = <bitarrtype[:self.nele1]>self.ewah_keys
-            cdef bitarrtype[:] ewah_refn1 = <bitarrtype[:self.nele1]>self.ewah_refn
-            cdef bitarrtype[:] ewah_keys2 = <bitarrtype[:solf.nele1]>solf.ewah_keys
-            cdef bitarrtype[:] ewah_refn2 = <bitarrtype[:solf.nele1]>solf.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys1 = <bitarrtype *> self.ewah_keys
-            cdef bitarrtype *ewah_refn1 = <bitarrtype *> self.ewah_refn
-            cdef bitarrtype *ewah_keys2 = <bitarrtype *> solf.ewah_keys
-            cdef bitarrtype *ewah_refn2 = <bitarrtype *> solf.ewah_refn
+        cdef bitarrtype *ewah_keys1 = <bitarrtype *> self.ewah_keys
+        cdef bitarrtype *ewah_refn1 = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *ewah_keys2 = <bitarrtype *> solf.ewah_keys
+        cdef bitarrtype *ewah_refn2 = <bitarrtype *> solf.ewah_refn
         cdef ewahmap *ewah_coll1 = <ewahmap *> self.ewah_coll
         cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewahmap_it it_map1, it_map2
@@ -1561,16 +1468,10 @@ cdef class BoolArrayCollectionUncompressed:
             preincrement(it_map2)
 
     cdef bint _intersects(self, BoolArrayCollectionUncompressed solf):
-        IF UncompressedFormat == 'MemoryView':
-            cdef bitarrtype[:] ewah_keys1 = <bitarrtype[:self.nele1]>self.ewah_keys
-            cdef bitarrtype[:] ewah_refn1 = <bitarrtype[:self.nele1]>self.ewah_refn
-            cdef bitarrtype[:] ewah_keys2 = <bitarrtype[:solf.nele1]>solf.ewah_keys
-            cdef bitarrtype[:] ewah_refn2 = <bitarrtype[:solf.nele1]>solf.ewah_refn
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys1 = <bitarrtype *> self.ewah_keys
-            cdef bitarrtype *ewah_refn1 = <bitarrtype *> self.ewah_refn
-            cdef bitarrtype *ewah_keys2 = <bitarrtype *> solf.ewah_keys
-            cdef bitarrtype *ewah_refn2 = <bitarrtype *> solf.ewah_refn
+        cdef bitarrtype *ewah_keys1 = <bitarrtype *> self.ewah_keys
+        cdef bitarrtype *ewah_refn1 = <bitarrtype *> self.ewah_refn
+        cdef bitarrtype *ewah_keys2 = <bitarrtype *> solf.ewah_keys
+        cdef bitarrtype *ewah_refn2 = <bitarrtype *> solf.ewah_refn
         cdef ewahmap *ewah_coll1 = <ewahmap *> self.ewah_coll
         cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewahmap_it it_map1, it_map2
@@ -1582,6 +1483,7 @@ cdef class BoolArrayCollectionUncompressed:
                 break
         if (mi1 < self.nele1):
             return 0
+        mi1 = self.nele1 # This is to get rid of a warning
         # Intersection at refined level
         for mi1 in range(self.nele1):
             if (ewah_refn1[mi1] == 1) and (ewah_refn2[mi1] == 1):
@@ -1602,20 +1504,16 @@ cdef class BoolArrayCollectionUncompressed:
         return 0
 
     def __dealloc__(self):
-        IF UncompressedFormat == 'MemoryView':
-            free(self.ewah_keys)
-            free(self.ewah_refn)
-        ELIF UncompressedFormat == 'Pointer':
-            cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
-            cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
-            free(ewah_keys)
-            free(ewah_refn)
+        cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
+        cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
+        free(ewah_keys)
+        free(ewah_refn)
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
         del ewah_coll
 
     def print_info(self, prefix=''):
-        cdef int nrefn = self._count_refined()
-        cdef int nkeys = self._count_total()
+        cdef np.uint64_t nrefn = self._count_refined()
+        cdef np.uint64_t nkeys = self._count_total()
         print("{}{: 8d} coarse, {: 8d} refined, {: 8d} total".format(prefix,
                                                                      nkeys - nrefn,
                                                                      nrefn,
@@ -1626,13 +1524,10 @@ cdef class BoolArrayCollectionUncompressed:
 # Vector version
 cdef class SparseUnorderedBitmaskVector:
     def __cinit__(self):
-        cdef vector[np.uint64_t] *entries = new vector[np.uint64_t]()
-        self.entries = <void *> entries
         self.total = 0
 
     cdef void _set(self, np.uint64_t ind):
-        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
-        entries[0].push_back(ind)
+        self.entries.push_back(ind)
         self.total += 1
 
     def set(self, ind):
@@ -1640,47 +1535,41 @@ cdef class SparseUnorderedBitmaskVector:
 
     cdef void _fill(self, np.uint8_t[:] mask):
         cdef np.uint64_t i, ind
-        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
-        for i in range(entries[0].size()):
-            ind = entries[0][i]
+        for i in range(self.entries.size()):
+            ind = self.entries[i]
             mask[ind] = 1
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
         self._remove_duplicates()
         cdef np.uint64_t i, ind
-        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
-        for i in range(entries[0].size()):
-            ind = entries[0][i]
+        for i in range(self.entries.size()):
+            ind = self.entries[i]
             mm._set_coarse(ind)
 
     cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
         self._remove_duplicates()
         cdef np.uint64_t i, ind
-        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
-        for i in range(entries[0].size()):
-            ind = entries[0][i]
+        for i in range(self.entries.size()):
+            ind = self.entries[i]
             mm._set_coarse(ind)
 
     cdef void _reset(self):
-        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
-        entries[0].erase(entries[0].begin(), entries[0].end())
+        self.entries.erase(self.entries.begin(), self.entries.end())
         self.total = 0
 
     cdef to_array(self):
         self._remove_duplicates()
         cdef np.ndarray[np.uint64_t, ndim=1] rv
-        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
-        rv = np.empty(entries[0].size(), dtype='uint64')
-        for i in range(entries[0].size()):
-            rv[i] = entries[0][i]
+        rv = np.empty(self.entries.size(), dtype='uint64')
+        for i in range(self.entries.size()):
+            rv[i] = self.entries[i]
         return rv
 
     cdef void _remove_duplicates(self):
-        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
         cdef vector[np.uint64_t].iterator last
-        sort(entries[0].begin(), entries[0].end())
-        last = unique(entries[0].begin(), entries[0].end())
-        entries[0].erase(last, entries[0].end())
+        sort(self.entries.begin(), self.entries.end())
+        last = unique(self.entries.begin(), self.entries.end())
+        self.entries.erase(last, self.entries.end())
 
     cdef void _prune(self):
         if self.total > MAX_VECTOR_SIZE:
@@ -1688,50 +1577,39 @@ cdef class SparseUnorderedBitmaskVector:
             self.total = 0
 
     def __dealloc__(self):
-        cdef vector[np.uint64_t] *entries = <vector[np.uint64_t]*> self.entries
-        del entries
+        self.entries.clear()
 
 # Set version
 cdef class SparseUnorderedBitmaskSet:
-    def __cinit__(self):
-        cdef cset[np.uint64_t] *entries = new cset[np.uint64_t]()
-        self.entries = <void *> entries
-
     cdef void _set(self, np.uint64_t ind):
-        cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
-        entries[0].insert(ind)
+        self.entries.insert(ind)
 
     def set(self, ind):
         self._set(ind)
 
     cdef void _fill(self, np.uint8_t[:] mask):
-        cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
-        for it in entries[0]:
+        for it in self.entries:
             mask[it] = 1
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
-        cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
-        for it in entries[0]:
+        for it in self.entries:
             mm._set_coarse(it)
 
     cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
-        cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
-        for it in entries[0]:
+        for it in self.entries:
             mm._set_coarse(it)
 
     cdef void _reset(self):
-        cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
-        entries[0].clear()
+        self.entries.clear()
 
     cdef to_array(self):
         cdef np.uint64_t ind
         cdef np.ndarray[np.uint64_t, ndim=1] rv
-        cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
         cdef cset[np.uint64_t].iterator it
-        rv = np.empty(entries[0].size(), dtype='uint64')
-        it = entries[0].begin()
+        rv = np.empty(self.entries.size(), dtype='uint64')
+        it = self.entries.begin()
         i = 0
-        while it != entries[0].end():
+        while it != self.entries.end():
             ind = dereference(it)
             rv[i] = ind
             preincrement(it)
@@ -1739,69 +1617,58 @@ cdef class SparseUnorderedBitmaskSet:
         return rv
 
     def __dealloc__(self):
-        cdef cset[np.uint64_t] *entries = <cset[np.uint64_t]*> self.entries
-        del entries
+        self.entries.clear()
 
 # vector version
 cdef class SparseUnorderedRefinedBitmaskVector:
     def __cinit__(self):
-        cdef vector[ind_pair] *entries = new vector[ind_pair]()
-        self.entries = <void *> entries
         self.total = 0
 
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
         cdef ind_pair ind
-        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
         ind.first = ind1
         ind.second = ind2
-        entries[0].push_back(ind)
+        self.entries.push_back(ind)
         self.total += 1
-
 
     def set(self, ind1, ind2):
         self._set(ind1, ind2)
 
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
-        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
-        for it in entries[0]:
+        for it in self.entries:
             mask1[it.first] = mask2[it.second] = 1
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
         self._remove_duplicates()
-        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
-        for it in entries[0]:
+        for it in self.entries:
             mm._set_refined(it.first, it.second)
 
     cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
         self._remove_duplicates()
-        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
-        for it in entries[0]:
+        for it in self.entries:
             mm._set_refined(it.first, it.second)
 
     cdef void _reset(self):
-        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
-        entries[0].erase(entries[0].begin(), entries[0].end())
+        self.entries.erase(self.entries.begin(), self.entries.end())
         self.total = 0
 
     cdef to_array(self):
-        cdef int i
+        cdef np.uint64_t i
         cdef np.ndarray[np.uint64_t, ndim=2] rv
         self._remove_duplicates()
-        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
-        rv = np.empty((entries[0].size(),2),dtype='uint64')
+        rv = np.empty((self.entries.size(),2),dtype='uint64')
         i = 0
-        for it in entries[0]:
+        for it in self.entries:
             rv[i,0] = it.first
             rv[i,1] = it.second
             i += 1
         return rv
 
     cdef void _remove_duplicates(self):
-        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
         cdef vector[ind_pair].iterator last
-        sort(entries[0].begin(), entries[0].end())
-        last = unique(entries[0].begin(), entries[0].end())
-        entries[0].erase(last, entries[0].end())
+        sort(self.entries.begin(), self.entries.end())
+        last = unique(self.entries.begin(), self.entries.end())
+        self.entries.erase(last, self.entries.end())
         # http://stackoverflow.com/questions/16970982/find-unique-rows-in-numpy-array
         # cdef np.ndarray[np.uint64_t, ndim=2] rv
         # cdef np.ndarray[np.uint64_t, ndim=2] rv_uni
@@ -1830,57 +1697,44 @@ cdef class SparseUnorderedRefinedBitmaskVector:
             self.total = 0
 
     def __dealloc__(self):
-        cdef vector[ind_pair] *entries = <vector[ind_pair]*> self.entries
-        del entries
+        self.entries.clear()
 
 # Set version
 cdef class SparseUnorderedRefinedBitmaskSet:
-    def __cinit__(self):
-        cdef cset[ind_pair] *entries = new cset[ind_pair]()
-        self.entries = <void *> entries
-
     cdef void _set(self, np.uint64_t ind1, np.uint64_t ind2):
         cdef ind_pair ind
-        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
         ind.first = ind1
         ind.second = ind2
-        entries[0].insert(ind)
+        self.entries.insert(ind)
 
     def set(self, ind1, ind2):
         self._set(ind1, ind2)
 
     cdef void _fill(self, np.uint8_t[:] mask1, np.uint8_t[:] mask2):
-        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
-        for p in entries[0]:
+        for p in self.entries:
             mask1[p.first] = mask2[p.second] = 1
 
     cdef void _fill_ewah(self, BoolArrayCollection mm):
-        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
-        for it in entries[0]:
+        for it in self.entries:
             mm._set_refined(it.first, it.second)
 
     cdef void _fill_bool(self, BoolArrayCollectionUncompressed mm):
-        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
-        for it in entries[0]:
+        for it in self.entries:
             mm._set_refined(it.first, it.second)
 
     cdef void _reset(self):
-        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
-        entries[0].clear()
+        self.entries.clear()
 
     cdef to_array(self):
-        cdef int i
+        cdef np.uint64_t i
         cdef np.ndarray[np.uint64_t, ndim=2] rv
-        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
-        rv = np.empty((entries[0].size(),2),dtype='uint64')
+        rv = np.empty((self.entries.size(),2),dtype='uint64')
         i = 0
-        for it in entries[0]:
+        for it in self.entries:
             rv[i,0] = it.first
             rv[i,1] = it.second
             i += 1
         return rv
 
     def __dealloc__(self):
-        cdef cset[ind_pair] *entries = <cset[ind_pair]*> self.entries
-        del entries
-
+        self.entries.clear()

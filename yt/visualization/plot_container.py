@@ -879,17 +879,22 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-        myzmin = zmin
-        myzmax = zmax
-        if zmin == 'min':
-            myzmin = self.plots[field].image._A.min()
-        if zmax == 'max':
-            myzmax = self.plots[field].image._A.max()
-        if dynamic_range is not None:
-            if zmax is None:
-                myzmax = myzmin * dynamic_range
-            else:
-                myzmin = myzmax / dynamic_range
+        if field == 'all':
+            fields = list(self.plots.keys())
+        else:
+            fields = ensure_list(field)
+        for field in self.data_source._determine_fields(fields):
+            myzmin = zmin
+            myzmax = zmax
+            if zmin == 'min':
+                myzmin = self.plots[field].image._A.min()
+            if zmax == 'max':
+                myzmax = self.plots[field].image._A.max()
+            if dynamic_range is not None:
+                if zmax is None:
+                    myzmax = myzmin * dynamic_range
+                else:
+                    myzmin = myzmax / dynamic_range
 
         if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
             self._field_transform[field] = log_transform
