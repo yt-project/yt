@@ -92,7 +92,7 @@ class ParticleIndex(Index):
             ds.domain_left_edge = ds.arr(1.05*min_ppos, 'code_length')
             ds.domain_right_edge = ds.arr(1.05*max_ppos, 'code_length')
             ds.domain_width = ds.domain_right_edge - ds.domain_left_edge
-            
+
         # use a trivial morton index for datasets containing a single chunk
         if len(self.data_files) == 1:
             order1 = 1
@@ -105,6 +105,11 @@ class ParticleIndex(Index):
             dont_cache = True
         else:
             dont_cache = False
+
+        # If we have applied a bounding box then we can't cache the
+        # ParticleBitmap because it is doman dependent
+        if getattr(ds, "domain_override", False):
+            dont_cache = True
 
         if not hasattr(self.ds, '_file_hash'):
             self.ds._file_hash = self._generate_hash()
