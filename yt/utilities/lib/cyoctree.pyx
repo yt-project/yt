@@ -23,50 +23,80 @@ from libc.stdlib cimport malloc, free
 np.import_array()
 
 cdef struct Octree:
+    # Array of 3*num_nodes [x1, y1, z1, x2, y2, z2, ...]
     np.float64_t * node_positions
+    # 1 or 0 of whether the oct has refined to make children
     np.uint8_t * refined
+    # Each oct stores the depth in the tree: the root node is 0
     np.uint8_t * depth
+    # pstart and pend tell us which particles in the pidx are stored in each oct
     np.int64_t * pstart
     np.int64_t * pend
+    # This tells us the index of each child
     np.int64_t * children
 
+    # Here we store the coordinates and IDs of all the particles in the tree
     np.float64_t * pposx
     np.float64_t * pposy
     np.float64_t * pposz
     np.int64_t * pidx
 
+    # The max number of particles per leaf, if above, we refine
     np.int64_t n_ref
+
+    # The number of particles in our tree, e.g the length of ppos and pidx
     np.int64_t num_particles
 
+    # The total size of the octree (x, y, z)
     np.float64_t * size
 
-    np.uint8_t max_depth
+    # The current number of nodes in the octree
     np.int64_t num_nodes
+
+    # The maximum depth before we stop refining, and the maximum number of nodes
+    # we can fit in our array
+    np.uint8_t max_depth
     np.int64_t max_num_nodes
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int octree_build_node(Octree * tree, long int node_idx):
+    """
+    This is the main function in the building of the octree. This function takes
+    in the tree and an index of a oct to process. If the node has too many
+    particles (> n_ref) and the depth is less than the maximum tree depth then
+    we refine.
+
+    The `refine` creates 8 sub octs, within our oct. We indenfity the particles
+    in each of the subocts. We then recursively call this function on each of
+    the subocts.
+
+    Args:
+        tree: A pointer to the octree
+        node_idx: The index of the current node we are processing
+
+    Returns:
+        0
+    """
     cdef np.int64_t splits[9]
     cdef np.int64_t i, j, k, n, start, end
     cdef np.float64_t lx, ly, lz, sz
 
     if ((tree.pend[node_idx] - tree.pstart[node_idx] > tree.n_ref) and
             (tree.depth[node_idx] < tree.max_depth)):
-
-        # If we are running out of space in our tree, then we *try* to relloacate
-        # a tree of double the size
+        # If we are running out of space in our tree, then we *try* to
+        # relloacate a tree of double the size
         if tree.num_nodes > tree.max_num_nodes - 16:
             octree_reallocate(tree, tree.max_num_nodes * 2)
 
         tree.refined[node_idx] = 1
 
-        # Order and split the particles into the children
-        # this is hardcoded to 8 children, but can be easily changed
+        # As we have decided to refine, we need to know which of the particles
+        # in this oct will go into each of the 8 child octs
         split_helper(tree, node_idx, splits)
 
-        # figure out the size of the current oct
+        # Figure out the size of the current oct
         sx = tree.size[0] / (2**tree.depth[node_idx])
         sy = tree.size[1] / (2**tree.depth[node_idx])
         sz = tree.size[2] / (2**tree.depth[node_idx])
@@ -74,7 +104,7 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
         ly = tree.node_positions[(3*node_idx)+1] - sy/2
         lz = tree.node_positions[(3*node_idx)+2] - sz/2
 
-        # Loop through and generate the children
+        # Loop through and generate the children AND recursively refine...
         n = 0
         for i in range(2):
             for j in range(2):
@@ -83,7 +113,7 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
                     end = splits[n + 1]
                     child = tree.num_nodes
 
-                    # store the child location
+                    # Store the child location
                     tree.children[8*node_idx + n] = child
 
                     tree.node_positions[(child*3)] = lx + sx*i
@@ -108,6 +138,17 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int octree_allocate(Octree * octree, long int num_nodes):
+    """
+    This is the main allocation function in the octree. We allocate all of the
+    arrays we require to store information about every single oct in the tree
+
+    Args:
+        octree: A pointer to the octree
+        num_nodes: The maximum number of nodes to allocate for
+
+    Returns:
+        0
+    """
     octree.node_positions = <np.float64_t *> malloc(num_nodes * 3 * sizeof(np.float64_t))
 
     octree.size = <np.float64_t *> malloc(3 *sizeof(np.float64_t))
@@ -119,13 +160,32 @@ cdef int octree_allocate(Octree * octree, long int num_nodes):
     octree.refined = <np.uint8_t *> malloc(num_nodes * sizeof(np.int8_t))
     octree.depth = <np.uint8_t *> malloc(num_nodes * sizeof(np.int8_t))
 
-
     return 0
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int octree_reallocate(Octree * octree, long int num_nodes):
+    """
+    This function re-allocates all of the arrays malloc'd in `octree_allocate`
+    Why do we want to re-allocate?
+
+    Well 2 cases:
+
+    Case 1: The octree is still building and we have ran out of space, so we
+    have asked for an increased number of nodes and are reallocating each array
+
+    Case 2: We have finished building the octree and we have used less nodes
+    than we originally allocated. We are now shrinking the octree and giving
+    the spare memory back.
+
+    Args:
+        octree: A pointer to the octree
+        num_nodes: The maximum number of nodes to (re)allocate for
+
+    Returns:
+        0
+    """
     cdef np.float64_t * old_arr
     cdef np.int64_t * old_arr_int
     cdef np.uint8_t * old_arr_uint
@@ -175,6 +235,14 @@ cdef int octree_reallocate(Octree * octree, long int num_nodes):
 @cython.boundscheck(False)
 @cython.wraparound(False)
 cdef int octree_deallocate(Octree * octree):
+    """
+    Just free-ing every array we allocated to ensure we don't leak.
+
+    Args:
+        octree: A pointer to the octree
+    Returns:
+        0
+    """
     free(octree.node_positions)
     free(octree.size)
     free(octree.children)
