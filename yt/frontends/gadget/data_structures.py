@@ -271,6 +271,8 @@ class GadgetDataset(SPHDataset):
             unit_base['cmcm'] = 1.0 / unit_base["UnitLength_in_cm"]
         self._unit_base = unit_base
         if bounding_box is not None:
+            # This ensures that we know a bounding box has been applied
+            self.domain_override = True
             bbox = np.array(bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
