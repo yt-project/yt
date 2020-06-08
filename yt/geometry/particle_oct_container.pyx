@@ -47,7 +47,7 @@ import os
 # index for the ghost cell is refined in the selector.
 DEF RefinedExternalGhosts = 1
 
-_bitmask_version = np.uint64(4)
+_bitmask_version = np.uint64(5)
 
 from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet as SparseUnorderedBitmask
 from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask
