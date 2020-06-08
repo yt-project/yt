@@ -51,7 +51,7 @@ cdef inline void FIT_initialize_table(FieldInterpolationTable *fit, int nbins,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline np.float64_t FIT_get_value(FieldInterpolationTable *fit,
+cdef inline np.float64_t FIT_get_value(const FieldInterpolationTable *fit,
                                        np.float64_t dvs[6]) nogil:
     cdef np.float64_t dd, dout
     cdef int bin_id
@@ -69,25 +69,27 @@ cdef inline np.float64_t FIT_get_value(FieldInterpolationTable *fit,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void FIT_eval_transfer(np.float64_t dt, np.float64_t *dvs,
-                            np.float64_t *rgba, int n_fits,
-                            FieldInterpolationTable fits[6],
-                            int field_table_ids[6], int grey_opacity) nogil:
+cdef inline void FIT_eval_transfer(
+        const np.float64_t dt, np.float64_t *dvs,
+        np.float64_t *rgba, const int n_fits,
+        const FieldInterpolationTable fits[6],
+        const int field_table_ids[6], const int grey_opacity) nogil:
     cdef int i, fid
     cdef np.float64_t ta
     cdef np.float64_t istorage[6]
     cdef np.float64_t trgba[6]
-    for i in range(6): istorage[i] = 0.0
+    # for i in range(6): istorage[i] = 0.0
     for i in range(n_fits):
         istorage[i] = FIT_get_value(&fits[i], dvs)
     for i in range(n_fits):
         fid = fits[i].weight_table_id
-        if fid != -1: istorage[i] *= istorage[fid]
+        if fid != -1:
+            istorage[i] *= istorage[fid]
     for i in range(6):
         trgba[i] = istorage[field_table_ids[i]]
 
     if grey_opacity == 1:
-        ta = fmax(1.0 - dt*trgba[3],0.0)
+        ta = fmax(1.0 - dt*trgba[3], 0.0)
         for i in range(4):
             rgba[i] = dt*trgba[i] + ta*rgba[i]
     else:
