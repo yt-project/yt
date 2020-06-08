@@ -1273,6 +1273,16 @@ class ParticleSelectionComparison:
     def run_defaults(self):
         """
         This runs lots of samples that touch different types of wraparounds.
+
+        Specifically, it does:
+
+            * sphere in center with radius 0.1 unitary
+            * sphere in center with radius 0.2 unitary
+            * sphere in each of the eight corners of the domain with radius 0.1 unitary
+            * sphere in center with radius 0.5 unitary
+            * box that covers 0.1 .. 0.9
+            * box from 0.8 .. 0.85
+            * box from 0.3..0.6, 0.2..0.8, 0.0..0.1
         """
         sp1 = self.ds.sphere("c", (0.1, "unitary"))
         self.compare_dobj_selection(sp1)
