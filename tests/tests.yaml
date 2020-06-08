@@ -12,7 +12,7 @@ answer_tests:
   local_athena_006:
     - yt/frontends/athena
 
-  local_athena_pp_002:
+  local_athena_pp_003:
     - yt/frontends/athena_pp
 
   local_chombo_003:
