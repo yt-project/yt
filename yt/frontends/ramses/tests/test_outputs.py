@@ -24,6 +24,7 @@ output_00080 = "output_00080/info_00080.txt"
 def test_output_00080():
     ds = data_dir_load(output_00080)
     assert_equal(str(ds), "info_00080")
+    assert_equal(ds.particle_type_counts, {'io': 1090895, 'nbody': 0})
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
     for dobj_name in dso:
         for field in _fields:
@@ -38,7 +39,6 @@ def test_output_00080():
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
-    assert_equal(ds.particle_type_counts, {'io': 1090895})
 
 @requires_file(output_00080)
 def test_RAMSESDataset():
