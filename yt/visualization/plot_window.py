@@ -1506,6 +1506,7 @@ class ProjectionPlot(PWViewerMPL):
                 proj.weight_field = proj._determine_fields(weight_field)[0]
             else:
                 proj.weight_field = weight_field
+            proj.center = center
         else:
             proj = ds.proj(fields, axis, weight_field=weight_field,
                            center=center, data_source=data_source,

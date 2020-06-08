@@ -1,4 +1,6 @@
 import builtins
+from yt.funcs import mylog
+from yt.units import YTQuantity
 
 import base64
 import numpy as np
@@ -862,10 +864,10 @@ class ImagePlotContainer(PlotContainer):
         field : string
             the field to set a colormap scale
             if field == 'all', applies to all plots.
-        zmin : float
+        zmin : float, tuple, YTQuantity or str
             the new minimum of the colormap scale. If 'min', will
             set to the minimum value in the current view.
-        zmax : float
+        zmax : float, tuple, YTQuantity or str
             the new maximum of the colormap scale. If 'max', will
             set to the maximum value in the current view.
 
@@ -879,13 +881,27 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
+        def _sanitize_units(z, _field):
+            # convert dimensionful inputs to float
+            if isinstance(z, tuple):
+                z = self.ds.quan(*z)
+            if isinstance(z, YTQuantity):
+                try:
+                    plot_units = self.frb[_field].units
+                    z = z.to(plot_units).value
+                except AttributeError:
+                    # only certain subclasses have a frb attribute they can rely on for inspecting units
+                    mylog.warning("%s class doesn't support zmin/zmax set as tuples or YTQuantity" %self.__class__.__name__)
+                    z = z.value
+            return z
+
         if field == 'all':
             fields = list(self.plots.keys())
         else:
             fields = ensure_list(field)
         for field in self.data_source._determine_fields(fields):
-            myzmin = zmin
-            myzmax = zmax
+            myzmin = _sanitize_units(zmin, field)
+            myzmax = _sanitize_units(zmax, field)
             if zmin == 'min':
                 myzmin = self.plots[field].image._A.min()
             if zmax == 'max':
@@ -895,11 +911,10 @@ class ImagePlotContainer(PlotContainer):
                     myzmax = myzmin * dynamic_range
                 else:
                     myzmin = myzmax / dynamic_range
-
-        if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
-            self._field_transform[field] = log_transform
-        self.plots[field].zmin = myzmin
-        self.plots[field].zmax = myzmax
+            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
+                self._field_transform[field] = log_transform
+            self.plots[field].zmin = myzmin
+            self.plots[field].zmax = myzmax
         return self
 
     @invalidate_plot
