@@ -272,7 +272,7 @@ class GadgetDataset(SPHDataset):
         self._unit_base = unit_base
         if bounding_box is not None:
             # This ensures that we know a bounding box has been applied
-            self.domain_override = True
+            self._domain_override = True
             bbox = np.array(bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()

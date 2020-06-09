@@ -108,7 +108,7 @@ class ParticleIndex(Index):
 
         # If we have applied a bounding box then we can't cache the
         # ParticleBitmap because it is doman dependent
-        if getattr(ds, "domain_override", False):
+        if getattr(ds, "_domain_override", False):
             dont_cache = True
 
         if not hasattr(self.ds, '_file_hash'):
