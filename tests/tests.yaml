@@ -9,7 +9,7 @@ answer_tests:
   local_artio_002:
     - yt/frontends/artio/tests/test_outputs.py
 
-  local_athena_006:
+  local_athena_007:
     - yt/frontends/athena
 
   local_athena_pp_003:
