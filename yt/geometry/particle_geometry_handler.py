@@ -3,6 +3,7 @@ import errno
 import numpy as np
 import os
 import weakref
+import struct
 
 from yt.funcs import \
     get_pbar, \
@@ -135,7 +136,7 @@ class ParticleIndex(Index):
             self._initialize_frontend_specific()
             if dont_load or rflag == 0:
                 raise OSError
-        except OSError:
+        except (OSError, struct.error):
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
             self._initialize_refined_index()
