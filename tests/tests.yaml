@@ -15,7 +15,7 @@ answer_tests:
   local_athena_pp_003:
     - yt/frontends/athena_pp
 
-  local_chombo_003:
+  local_chombo_004:
     - yt/frontends/chombo/tests/test_outputs.py
 
   local_enzo_006:
