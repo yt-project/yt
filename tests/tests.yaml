@@ -6,7 +6,7 @@ answer_tests:
   local_arepo_003:
     - yt/frontends/arepo/tests/test_outputs.py
 
-  local_artio_002:
+  local_artio_003:
     - yt/frontends/artio/tests/test_outputs.py
 
   local_athena_007:
