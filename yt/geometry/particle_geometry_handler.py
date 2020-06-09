@@ -128,11 +128,12 @@ class ParticleIndex(Index):
         else:
             fname = ds.index_filename
 
+        dont_load = dont_cache and not hasattr(ds, 'index_filename')
         try:
             rflag = self.regions.load_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
             self._initialize_frontend_specific()
-            if rflag == 0:
+            if dont_load or rflag == 0:
                 raise OSError
         except OSError:
             self.regions.reset_bitmasks()
