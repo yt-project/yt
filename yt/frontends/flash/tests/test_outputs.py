@@ -7,7 +7,6 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     data_dir_load, \
-    sph_answer, \
     nbody_answer
 from yt.frontends.flash.api import FLASHDataset, \
     FLASHParticleDataset
