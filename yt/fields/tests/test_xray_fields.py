@@ -52,5 +52,5 @@ def test_d9p_cloudy_local():
                                        table_type="cloudy",
                                        metallicity=("gas", "metallicity"))
     for test in check_xray_fields(ds, fields):
-        test_d9p_cloudy_local.__name__ = test.description
+        test_d9p_cloudy_local.__name__ = test.description + "_local"
         yield test
