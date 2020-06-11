@@ -995,10 +995,7 @@ def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
     assert_equal(tot, ds_nparticles)
     for dobj_name in dso:
         for field, weight_field in fields.items():
-            if field[0] in ds.particle_types:
-                particle_type = True
-            else:
-                particle_type = False
+            particle_type = field[0] in ds.particle_types
             for axis in [0, 1, 2]:
                 if not particle_type:
                     yield PixelizedParticleProjectionValuesTest(
