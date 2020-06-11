@@ -157,7 +157,8 @@ gather machinery also added.
     # generate an octree
     octree = ds.octree(left, right, n_ref=64)
 
-    ds.sph_smoothing_style = "scatter"
+    # Scatter deposition is the default now, and thus this will print scatter
+    print(octree.sph_smoothing_style)
 
     # the density will be calculated using SPH scatter
     density = octree[('PartType0', 'density')]
@@ -165,12 +166,15 @@ gather machinery also added.
     # this will return the x positions of the octs
     x = octree[('index', 'x')]
 
-The above code can be modified to use the scatter approach by using
-``ds.sph_smoothing_style = 'gather'`` before any field access.
+The above code can be modified to use the gather approach by using
+``ds.sph_smoothing_style = 'gather'`` before any field access. The octree just
+uses the smoothing style and number of neighbors defined by the dataset.
 
 The octree implementation is very simple. It uses a recursive algorithm to build
-a ``depth-first`` which is consistent with the results from yt-3.
-
+a ``depth-first`` which is consistent with the results from yt-3. Depth-first
+search (DFS) means that tree starts refining at the root node (this is the
+largest node which contains every particles) and refines as far as possible
+along each branch before backtracking.
 
 ``yt.units`` is now a wrapper for ``unyt``
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
