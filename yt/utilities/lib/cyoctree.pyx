@@ -512,7 +512,22 @@ cdef class CyOctree:
             np.float64_t posz, np.float64_t hsml, np.float64_t prefactor, np.float64_t prefactor_norm,
             long int num_node, int use_normalization=0):
         """
-        
+        We smooth a field onto cells within an octree using SPH deposition. To
+        achieve this we loop through every oct in the tree and check if it is a
+        leaf. A leaf just means that an oct has not refined, and thus has no
+        children.
+
+        Args:
+            buff: The array which we are depositing the field onto, it has the 
+                length of the number of leaves.
+            buff_den: The array we deposit just mass onto to allow normalization
+            pos<>: The x, y, and z coordinates of the particle we are depositing
+            hsml: The smoothing length of the particle
+            prefactor(_norm): This is a pre-computed value, based on the particles
+                properties used in the deposition
+            num_node: The current node we are checking to see if refined or not
+            use_normalization: Do we want a normalized sph field? If so, fill
+                the buff_den.
         """
 
         cdef Octree * tree = self.c_octree
@@ -558,6 +573,20 @@ cdef class CyOctree:
             np.float64_t[:] posz, np.float64_t[:] pmass, np.float64_t[:] pdens, np.float64_t[:] hsml,
             np.float64_t[:] field, kernel_name="cubic", int use_normalization=0):
         """
+        We loop through every particle in the simulation and begin to deposit
+        the particle properties onto all of the leaves that it intersects
+
+        Args:
+            buff: The array which we are depositing the field onto, it has the
+                length of the number of leaves.
+            buff_den: The array we deposit just mass onto to allow normalization
+            pos<>: The x, y, and z coordinates of all the partciles
+            pmass: The mass of the particles
+            pdens: The density of the particles
+            hsml: The smoothing lengths of the particles
+            field: The field we are depositing for each particle
+            use_normalization: Do we want a normalized sph field? If so, fill
+                the buff_den.
         """
 
         self.kernel = get_kernel_func(kernel_name)
@@ -579,6 +608,20 @@ cdef class CyOctree:
 @cython.cdivision(True)
 cdef int seperate_x(Octree * octree, double value, np.int64_t start, np.int64_t end) nogil except -1:
     """
+    This is a simple utility function which takes a selection of particles and
+    re-arranges them such that values below `value` are to the left of split and
+    values above are to the right.
+
+    e.g.
+    value = 5
+    [1., 2., 3., 4., 8., 9.]
+    split = 3
+
+    Args:
+        octree: A pointer to the octree where coordinates and IDs are stored
+        value: The value to split the data along
+        start: The first particle in the current node we are splitting
+        end: The last particle in the current node we are spliting
     """
     cdef np.int64_t index
     cdef np.int64_t split = start
@@ -599,6 +642,7 @@ cdef int seperate_x(Octree * octree, double value, np.int64_t start, np.int64_t 
 @cython.cdivision(True)
 cdef int seperate_y(Octree * octree, double value, np.int64_t start, np.int64_t end) nogil except -1:
     """
+    The same as seperate_x but along the y-axis.
     """
     cdef np.int64_t index
     cdef np.int64_t split = start
@@ -619,6 +663,7 @@ cdef int seperate_y(Octree * octree, double value, np.int64_t start, np.int64_t 
 @cython.cdivision(True)
 cdef int seperate_z(Octree * octree, double value, np.int64_t start, np.int64_t end) nogil except -1:
     """
+    The same as seperate_x but along the z-axis.
     """
     cdef np.int64_t index
     cdef np.int64_t split = start
@@ -639,6 +684,23 @@ cdef int seperate_z(Octree * octree, double value, np.int64_t start, np.int64_t 
 @cython.cdivision(True)
 cdef int split_helper(Octree * tree, np.int64_t node_idx, np.int64_t * splits):
     """
+    A utility function to split a collection of particles along the x, y and z
+    direction such that we identify the particles within the 8 children of an
+    oct.
+
+    We first split the particles in the x direction, then we split the particles
+    in the y and the z directions. This is currently hardcoded for 8 octs but
+    can be readily extended to allow over-refinement.
+
+    The splits[0] and splits[1] tell oct one the start and last particle
+    The splits[1] and splits[2] tell oct two the start and last particle and so
+    on
+
+    Args:
+        tree: A pointer to the octree
+        node_idx: The index of the oct we are splitting
+        splits: The split array which stores the start and end indices. It needs
+            to be N+1 long where N is the number of children
     """
     splits[0] = tree.pstart[node_idx]
     splits[8] = tree.pend[node_idx]
@@ -660,6 +722,16 @@ cdef int split_helper(Octree * tree, np.int64_t node_idx, np.int64_t * splits):
 cdef int select(Octree * octree, np.float64_t[::1] left_edge, np.float64_t[::1] right_edge,
         np.int64_t start, np.int64_t end) nogil except -1:
     """
+    Re-arrange the input particles such that those outside the bounds of the
+    tree occur after the split index and can thus be ignored for the remainder
+    of the tree construction
+
+    Args:
+        tree: A pointer to the octree
+        left_edge: The coords of the lower left corner of the box
+        right_edge: The coords of the upper right corner of the box
+        start: The first particle in the bounds (0)
+        end: The last particle in the bounds
     """
     cdef np.int64_t index
     cdef np.int64_t split = start
