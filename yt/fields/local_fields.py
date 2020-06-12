@@ -1,5 +1,4 @@
-import warnings
-
+from yt.funcs import iterable
 from yt.utilities.logger import ytLogger as mylog
 
 from .field_info_container import FieldInfoContainer
@@ -7,44 +6,42 @@ from .field_plugin_registry import register_field_plugin
 
 
 class LocalFieldInfoContainer(FieldInfoContainer):
-    def add_field(self, name, function=None, sampling_type=None, **kwargs):
-        if not isinstance(name, tuple):
-            if kwargs.setdefault("particle_type", False):
-                name = ("all", name)
+    def add_field(self, name, function, sampling_type, **kwargs):
+
+        sampling_type = self._sanitize_sampling_type(
+            sampling_type, kwargs.get("particle_type")
+        )
+
+        if isinstance(name, str) or not iterable(name):
+            if sampling_type == "particle":
+                ftype = "all"
             else:
-                name = ("gas", name)
+                ftype = "gas"
+            name = (ftype, name)
+
         override = kwargs.get("force_override", False)
         # Handle the case where the field has already been added.
         if not override and name in self:
-            mylog.error(
-                "Field %s already exists. To override use " + "force_override=True.",
-                name,
+            mylog.warning(
+                "Field %s already exists. To override use force_override=True.", name,
             )
-        if kwargs.setdefault("particle_type", False):
-            if sampling_type is not None and sampling_type != "particle":
-                raise RuntimeError(
-                    "Clashing definition of 'sampling_type' and "
-                    "'particle_type'. Note that 'particle_type' is "
-                    "deprecated. Please just use 'sampling_type'."
-                )
-            else:
-                sampling_type = "particle"
-        if sampling_type is None:
-            warnings.warn(
-                "Because 'sampling_type' is not specified, yt will "
-                "assume a 'cell' sampling_type for the %s field" % (name,),
-                stacklevel=3,
-            )
-            sampling_type = "cell"
+
         return super(LocalFieldInfoContainer, self).add_field(
-            name, sampling_type, function, **kwargs
+            name, function, sampling_type, **kwargs
         )
 
 
 # Empty FieldInfoContainer
 local_fields = LocalFieldInfoContainer(None, [], None)
 
-add_field = derived_field = local_fields.add_field
+# we define two handles, pointing to the same function but documented differently
+# yt.add_field() is meant to be used directly, while yt.derived_field is documented
+# as a decorator.
+add_field = local_fields.add_field
+
+
+def derived_field(name, sampling_type, **kwargs):
+    return add_field(name=name, function=None, sampling_type=sampling_type, **kwargs)
 
 
 @register_field_plugin
