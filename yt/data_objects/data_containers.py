@@ -269,9 +269,9 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
     def _ipython_key_completions_(self):
         keys = self.ds.field_list + self.ds.derived_field_list
-        types = list(set(k[0] for k in keys))
-        labels = list(set(k[1] for k in keys))
-        return types + labels
+        ftypes = list(set(k[0] for k in keys))
+        fnames = list(set(k[1] for k in keys))
+        return ftypes + fnames
 
     def __setitem__(self, key, val):
         """
