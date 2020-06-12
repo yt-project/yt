@@ -80,7 +80,8 @@ def generate_tasks_input():
                       if DROP_TAG not in line])
     tests = yaml.load(data, Loader=yaml.FullLoader)
 
-    base_argv = ['-s', '--nologcapture', '--with-xunit']
+    base_argv = ['-s', '--nologcapture', '--with-xunit',
+        '--ignore-files test_outputs_pytest']
 
     base_answer_argv = ['--local-dir=%s' % answers_dir, '--with-answer-testing',
                         '--answer-big-data', '--local']
