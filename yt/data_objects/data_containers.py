@@ -267,7 +267,11 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             rv = self.ds.arr(self.field_data[key], fi.units)
         return rv
 
-
+    def _ipython_key_completions_(self):
+        keys = self.ds.field_list + self.ds.derived_field_list
+        types = list(set(k[0] for k in keys))
+        labels = list(set(k[1] for k in keys))
+        return types + labels
 
     def __setitem__(self, key, val):
         """
