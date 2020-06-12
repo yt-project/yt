@@ -33,7 +33,7 @@ answer_tests:
   local_gadget_002:
     - yt/frontends/gadget/tests/test_outputs.py
 
-  local_gamer_006:
+  local_gamer_007:
     - yt/frontends/gamer/tests/test_outputs.py
 
   local_gdf_001:
