@@ -268,6 +268,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         return rv
 
     def _ipython_key_completions_(self):
+        # to keep in sync with yt.data_objects.region_expression.RegionExpression
         keys = self.ds.field_list + self.ds.derived_field_list
         ftypes = list(set(k[0] for k in keys))
         fnames = list(set(k[1] for k in keys))

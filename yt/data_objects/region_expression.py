@@ -63,6 +63,13 @@ class RegionExpression(object):
                 return self.all_data
             return self._create_region(item)
 
+    def _ipython_key_completions_(self):
+        # to keep in sync with yt.data_objects.data_containers.YTDataContainer
+        keys = self.ds.field_list + self.ds.derived_field_list
+        ftypes = list(set(k[0] for k in keys))
+        fnames = list(set(k[1] for k in keys))
+        return ftypes + fnames
+
     def _spec_to_value(self, input):
         if isinstance(input, tuple):
             v = self.ds.quan(input[0], input[1]).to("code_length")
