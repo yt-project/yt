@@ -953,7 +953,7 @@ cdef class RegionSelector(SelectorObject):
         re_all = (np.array(RE) == _ensure_code(dobj.ds.domain_right_edge)).all()
         # If we have a bounding box, then we should *not* revert to all data
         domain_override = getattr(dobj.ds, '_domain_override', False)
-        if le_all and re_all and not dobj.ds._domain_override:
+        if le_all and re_all and not domain_override:
             self.is_all_data = True
         else:
             self.is_all_data = False
