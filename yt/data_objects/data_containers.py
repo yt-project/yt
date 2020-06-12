@@ -257,14 +257,17 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         # hanging off the dataset to define this unit object.
         # Note that this is less succinct so that we can account for the case
         # when there are, for example, no elements in the object.
-        rv = self.field_data.get(f, None)
-        if rv is None:
+        try:
+            rv = self.field_data[f]
+        except KeyError:
             if isinstance(f, tuple):
                 fi = self.ds._get_field_info(*f)
             elif isinstance(f, bytes):
                 fi = self.ds._get_field_info("unknown", f)
             rv = self.ds.arr(self.field_data[key], fi.units)
         return rv
+
+
 
     def __setitem__(self, key, val):
         """
