@@ -25,7 +25,7 @@ Example usage:
 >>> req = urllib2.Request("http://localhost:5000", f,
 ...                       {'Content-Length': str(len(s))})
 """
-from __future__ import print_function
+
 
 import http.client as http_client
 import urllib

@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 from yt.utilities.on_demand_imports import \
     _h5py as h5py

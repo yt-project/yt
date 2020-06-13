@@ -191,7 +191,7 @@ Some implementation details
   treat it as if it were -1 (try relative and absolute imports). For
   more information about the level parameter, run ``help(__import__)``.
 """
-from __future__ import print_function
+
 
 import sys
 import imp

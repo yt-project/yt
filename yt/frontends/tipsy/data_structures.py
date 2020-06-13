@@ -148,7 +148,7 @@ class TipsyDataset(SPHDataset):
                 param, val = (i.strip() for i in line.split('=', 1))
                 val = val.split('#')[0]
                 if param.startswith('n') or param.startswith('i'):
-                    val = long(val)
+                    val = int(val)
                 elif param.startswith('d'):
                     val = float(val)
                 elif param.startswith('b'):

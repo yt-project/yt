@@ -1,4 +1,4 @@
-from __future__ import print_function
+
 from yt.geometry.fake_octree import create_fake_octree
 from yt.geometry.oct_container import RAMSESOctreeContainer, ParticleOctreeContainer
 import numpy as np
