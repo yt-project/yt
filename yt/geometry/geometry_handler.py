@@ -413,9 +413,6 @@ class ChunkDataCache:
         return self
 
     def __next__(self):
-        return self.next()
-
-    def next(self):
         if len(self.queue) == 0:
             for i in range(self.max_length):
                 try:
