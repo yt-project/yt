@@ -1,6 +1,5 @@
 import contextlib
 import os
-import sys
 
 import numpy as np
 
@@ -15,8 +14,6 @@ from .fields import SDFFieldInfo
 
 @contextlib.contextmanager
 def safeopen(*args, **kwargs):
-    if sys.version[0] != "3":
-        kwargs.pop("encoding")
     with open(*args, **kwargs) as f:
         yield f
 

@@ -32,21 +32,6 @@ import socket
 import sys
 import urllib
 
-
-def request_has_data(req):
-    if sys.version_info >= (3, 0, 0):
-        return hasattr(req, "data")
-    else:
-        return req.has_data()
-
-
-def request_get_data(req):
-    if sys.version_info >= (3, 0, 0):
-        return req.data
-    else:
-        return req.get_data()
-
-
 __all__ = [
     "StreamingHTTPConnection",
     "StreamingHTTPRedirectHandler",
@@ -182,8 +167,8 @@ class StreamingHTTPHandler(urllib.request.HTTPHandler):
         if we're using an iterable value"""
         # Make sure that if we're using an iterable object as the request
         # body, that we've also specified Content-Length
-        if request_has_data(req):
-            data = request_get_data(req)
+        if hasattr(req, "data"):
+            data = req.data
             if hasattr(data, "read") or hasattr(data, "next"):
                 if not req.has_header("Content-length"):
                     raise ValueError("No Content-Length specified for iterable body")
@@ -208,8 +193,8 @@ if hasattr(http_client, "HTTPS"):
         def https_request(self, req):
             # Make sure that if we're using an iterable object as the request
             # body, that we've also specified Content-Length
-            if request_has_data(req):
-                data = request_get_data(req)
+            if hasattr(req, "data")(req):
+                data = req.data
                 if hasattr(data, "read") or hasattr(data, "next"):
                     if not req.has_header("Content-length"):
                         raise ValueError(
