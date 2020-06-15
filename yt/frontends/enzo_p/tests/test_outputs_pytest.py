@@ -18,7 +18,7 @@ from yt.testing import \
     assert_array_equal
 from yt.frontends.enzo_p.api import EnzoPDataset
 from yt.utilities.answer_testing.answer_tests import \
-    pixelized_projection_values_test, field_values_test
+    pixelized_projection_values, field_values
 from yt.utilities.answer_testing import utils
 
 
@@ -50,9 +50,9 @@ class TestEnzoP:
     @utils.requires_ds(hello_world)
     def test_hello_world(self, f, a, d, w, ds_hello_world):
         ds = ds_hello_world
-        ppv = pixelized_projection_values_test(ds, a, f, w, d)
+        ppv = pixelized_projection_values(ds, a, f, w, d)
         self.hashes.update({'pixelized_projection_values' : ppv})
-        fv = field_values_test(ds, f, d)
+        fv = field_values(ds, f, d)
         self.hashes.update({'field_values' : fv})
         dobj = utils.create_obj(ds, d)
         s1 = dobj["ones"].sum()
@@ -63,7 +63,7 @@ class TestEnzoP:
     @utils.requires_ds(ep_cosmo)
     def test_particle_fields(self, f, d, ds_ep_cosmo):
         ds = ds_ep_cosmo
-        fv = field_values_test(ds, f, d, particle_type=True)
+        fv = field_values(ds, f, d, particle_type=True)
         self.hashes.update({'field_values' : fv})
         dobj = utils.create_obj(ds, d)
         s1 = dobj["ones"].sum()

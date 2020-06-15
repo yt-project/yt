@@ -22,7 +22,7 @@ test_params = {
         'd' : [(None, ('sphere', ('max', (0.25, 'unitary')))), ('None', 'sphere')],
         'w' : [(None, 'density'), ('None', 'density')]
     },
-    'test_particle_data' : {
+    'test_particle_fields' : {
         'f' : [('particle_position_x', 'particle_position_y', 'particle_position_z',
                 'particle_velocity_x', 'particle_velocity_y', 'particle_velocity_z'),
                 ('x', 'y', 'z', 'vx', 'vy', 'vz')],
