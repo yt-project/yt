@@ -16,7 +16,8 @@ from yt.testing import \
     assert_allclose, \
     requires_file, \
     units_override_check
-import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing.answer_tests import generic_array, \
+    small_patch_amr
 from yt.utilities.answer_testing import utils
 
 
@@ -30,7 +31,7 @@ AM06 = "AM06/AM06.out1.00400.athdf"
 #============================================
 @pytest.mark.answer_test
 @pytest.mark.usefixtures('answer_file')
-class TestAthenaPP(fw.AnswerTest):
+class TestAthenaPP:
     #-----
     # test_disk
     #-----
@@ -44,8 +45,8 @@ class TestAthenaPP(fw.AnswerTest):
         assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
         def field_func(name):
             return dd[field]
-        ga_hd = self.generic_array_test(field_func, args=[field])
-        self.hashes.update({'generic_array' : ga_hd})
+        ga = generic_array(field_func, args=[field])
+        self.hashes.update({'generic_array' : ga})
 
     #-----
     # test_AM06
@@ -54,7 +55,7 @@ class TestAthenaPP(fw.AnswerTest):
     @utils.requires_ds(AM06)
     def test_AM06(self, a, d, w, f, ds_AM06):
         # Run the small_patch_amr test suite
-        self.hashes.update(self.small_patch_amr(ds_AM06, f, w, a, d))
+        self.hashes.update(small_patch_amr(ds_AM06, f, w, a, d))
 
     #-----
     # test_AM06_override
