@@ -578,6 +578,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             bounding_box=bounding_box,
             unit_system=unit_system,
         )
+        self._check_hsml()
 
     def _get_hvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")
@@ -595,6 +596,11 @@ class GadgetHDF5Dataset(GadgetDataset):
         uvals.update((str(k), v) for k, v in handle["/Units"].attrs.items())
         handle.close()
         return uvals
+
+    def _check_hsml(self):
+        handle = h5py.File(self.parameter_filename, mode="r")
+        self.gen_hsmls = "SmoothingLength" not in handle[self._sph_ptypes[0]]
+        handle.close()
 
     def _set_owls_eagle(self):
 

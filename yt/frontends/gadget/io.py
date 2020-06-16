@@ -3,6 +3,8 @@ import os
 import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
+from yt.utilities.lib.particle_kdtree_tools import \
+    generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -84,11 +86,48 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
+    def _generate_smoothing_length(self, data_files, kdtree):
+        if not self.ds.gen_hsmls:
+            return
+        # TODO: We need to do something like this here but I'm not sure how
+        """
+        if os.path.exists(self.hsml_filename):
+            with open(self.hsml_filename, 'rb') as f:
+                file_hash = struct.unpack('q', f.read(struct.calcsize('q')))[0]
+            if file_hash != self.ds._file_hash:
+                os.remove(self.hsml_filename)
+            else:
+                return
+        """
+        positions = []
+        for data_file in data_files:
+            for _, ppos in self._yield_coordinates(
+                    data_file, needed_ptype=self.ds._sph_ptypes[0]):
+                positions.append(ppos)
+        if len(positions) == 0:
+            return
+        positions = np.concatenate(positions)[kdtree.idx]
+        hsml = generate_smoothing_length(
+            positions, kdtree, self.ds._num_neighbors)
+        dtype = positions.dtype
+        hsml = hsml[np.argsort(kdtree.idx)].astype(dtype)
+        for i, data_file in enumerate(data_files): 
+            si, ei = data_file.start, data_file.end
+            hsml_fn = data_file.filename+".hsml"
+            with h5py.File(hsml_fn, mode='a') as f:                    
+                g = f.require_group(self.ds._sph_ptypes[0])
+                d = g.require_dataset("SmoothingLength", shape=(,), dtype=dtype)
+                d[si:ei] = hsml
+
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
         ptype = self.ds._sph_ptypes[0]
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
-        with h5py.File(data_file.filename, "r") as f:
+        if self.ds.gen_hsmls:
+            fn = data_file.filename+".hsml"
+        else:
+            fn = data_file.filename
+        with h5py.File(fn, mode="r") as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
             ds = f[ptype]["SmoothingLength"][si:ei, ...]
