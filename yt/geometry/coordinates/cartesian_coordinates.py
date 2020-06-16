@@ -284,10 +284,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
             if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
                 le, re = data_source.data_source.get_bbox()
-                le[self.x_axis[dim]] = bounds[0]
-                le[self.y_axis[dim]] = bounds[2]
-                re[self.x_axis[dim]] = bounds[1]
-                re[self.y_axis[dim]] = bounds[3]
+                xa = self.x_axis[dim]
+                ya = self.y_axis[dim]
+                le[xa] = max(bounds[0], self.ds.domain_left_edge[xa])
+                le[ya] = max(bounds[2], self.ds.domain_left_edge[ya])
+                re[xa] = min(bounds[1], self.ds.domain_right_edge[xa])
+                re[ya] = min(bounds[3], self.ds.domain_right_edge[ya])
+                # We actually need to clip these
                 proj_reg = data_source.ds.region(
                     left_edge=le, right_edge=re, center=data_source.center,
                     data_source=data_source.data_source
