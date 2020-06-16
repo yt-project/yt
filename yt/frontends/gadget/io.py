@@ -1,4 +1,5 @@
 import os
+from collections import defaultdict
 
 import numpy as np
 
@@ -100,24 +101,33 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 return
         """
         positions = []
+        counts = defaultdict(int)
         for data_file in data_files:
             for _, ppos in self._yield_coordinates(
                     data_file, needed_ptype=self.ds._sph_ptypes[0]):
+                counts[data_file.filename] += ppos.shape[0]
                 positions.append(ppos)
         if len(positions) == 0:
             return
+        offsets = {}
+        offset = 0
+        for fn in counts:
+            offsets[fn] = offset
+            offset += counts[fn]
         positions = np.concatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(
             positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype
         hsml = hsml[np.argsort(kdtree.idx)].astype(dtype)
-        for i, data_file in enumerate(data_files): 
+        for data_file in data_files: 
             si, ei = data_file.start, data_file.end
+            fn = data_file.filename
             hsml_fn = data_file.filename+".hsml"
-            with h5py.File(hsml_fn, mode='a') as f:                    
+            with h5py.File(hsml_fn, mode='a') as f:
                 g = f.require_group(self.ds._sph_ptypes[0])
-                d = g.require_dataset("SmoothingLength", shape=(,), dtype=dtype)
-                d[si:ei] = hsml
+                d = g.require_dataset("SmoothingLength", dtype=dtype,
+                                      shape=(counts[fn],))
+                d[si:ei] = hsml[si+offsets[fn]:ei+offsets[fn]]
 
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
         ptype = self.ds._sph_ptypes[0]
