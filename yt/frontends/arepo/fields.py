@@ -7,24 +7,22 @@ metal_elements = ["He", "C", "N", "O", "Ne", "Mg", "Si", "Fe"]
 
 
 class ArepoFieldInfo(GadgetFieldInfo):
-    known_particle_fields = GadgetFieldInfo.known_particle_fields + (
-        ("smoothing_length", ("code_length", [], None)),
-        ("MagneticField", ("code_magnetic", ["particle_magnetic_field"], None)),
-        (
-            "MagneticFieldDivergence",
-            ("code_magnetic/code_length", ["magnetic_field_divergence"], None),
-        ),
-        ("GFM_Metallicity", ("", ["metallicity"], None)),
-        ("GFM_Metals_00", ("", ["H_fraction"], None)),
-        ("GFM_Metals_01", ("", ["He_fraction"], None)),
-        ("GFM_Metals_02", ("", ["C_fraction"], None)),
-        ("GFM_Metals_03", ("", ["N_fraction"], None)),
-        ("GFM_Metals_04", ("", ["O_fraction"], None)),
-        ("GFM_Metals_05", ("", ["Ne_fraction"], None)),
-        ("GFM_Metals_06", ("", ["Mg_fraction"], None)),
-        ("GFM_Metals_07", ("", ["Si_fraction"], None)),
-        ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
-    )
+    known_particle_fields = GadgetFieldInfo.known_particle_fields + \
+                            (("MagneticField",
+                              ("code_magnetic", ["particle_magnetic_field"], None)),
+                             ("MagneticFieldDivergence",
+                              ("code_magnetic/code_length", ["magnetic_field_divergence"], None)),
+                             ("GFM_Metallicity", ("", ["metallicity"], None)),
+                             ("GFM_Metals_00", ("", ["H_fraction"], None)),
+                             ("GFM_Metals_01", ("", ["He_fraction"], None)),
+                             ("GFM_Metals_02", ("", ["C_fraction"], None)),
+                             ("GFM_Metals_03", ("", ["N_fraction"], None)),
+                             ("GFM_Metals_04", ("", ["O_fraction"], None)),
+                             ("GFM_Metals_05", ("", ["Ne_fraction"], None)),
+                             ("GFM_Metals_06", ("", ["Mg_fraction"], None)),
+                             ("GFM_Metals_07", ("", ["Si_fraction"], None)),
+                             ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
+                             )
 
     def __init__(self, ds, field_list, slice_info=None):
         if ds.cosmological_simulation:

@@ -4,6 +4,13 @@ from yt.utilities.physical_ratios import _primordial_mass_fraction
 
 
 class GadgetFieldInfo(SPHFieldInfo):
+    def __init__(self, ds, field_list, slice_info=None):
+        if ds.gen_hsmls:
+            hsml = (("smoothing_length", ("code_length", [], None)),)
+            self.known_particle_fields += hsml
+        super(GadgetFieldInfo, self).__init__(ds, field_list,
+                                              slice_info=slice_info)
+
     def setup_particle_fields(self, ptype, *args, **kwargs):
 
         # setup some special fields that only make sense for SPH particles

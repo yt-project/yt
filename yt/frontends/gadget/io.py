@@ -119,7 +119,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype
         hsml = hsml[np.argsort(kdtree.idx)].astype(dtype)
-        for data_file in data_files: 
+        for data_file in data_files:
             si, ei = data_file.start, data_file.end
             fn = data_file.filename
             hsml_fn = data_file.filename+".hsml"
@@ -127,19 +127,18 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 g = f.require_group(self.ds._sph_ptypes[0])
                 d = g.require_dataset("SmoothingLength", dtype=dtype,
                                       shape=(counts[fn],))
-                d[si:ei] = hsml[si+offsets[fn]:ei+offsets[fn]]
+                begin = si+offsets[fn]
+                end = min(ei, d.size)+offsets[fn]
+                d[si:ei] = hsml[begin:end]
 
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
         ptype = self.ds._sph_ptypes[0]
-        ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
         if self.ds.gen_hsmls:
             fn = data_file.filename+".hsml"
         else:
             fn = data_file.filename
         with h5py.File(fn, mode="r") as f:
-            pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
-            pcount = np.clip(pcount - si, 0, ei - si)
             ds = f[ptype]["SmoothingLength"][si:ei, ...]
             dt = ds.dtype.newbyteorder("N")  # Native
             if position_dtype is not None and dt < position_dtype:
@@ -280,6 +279,9 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     if len(g[kk].shape) > 1:
                         self._vector_fields[kk] = g[kk].shape[1]
                     fields.append((ptype, str(kk)))
+
+        if self.ds.gen_hsmls:
+            fields.append(("PartType0", "smoothing_length"))
 
         f.close()
         return fields, {}
