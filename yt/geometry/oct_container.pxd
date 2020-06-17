@@ -12,7 +12,7 @@ cimport numpy as np
 from yt.utilities.lib.fp_utils cimport *
 cimport oct_visitors
 cimport selection_routines
-from .oct_visitors cimport OctVisitor, Oct, cind
+from .oct_visitors cimport OctVisitor, Oct, cind, OctInfo
 from libc.stdlib cimport bsearch, qsort, realloc, malloc, free
 from libc.math cimport floor
 from yt.utilities.lib.allocation_container cimport \
@@ -26,12 +26,6 @@ cdef struct OctKey:
     # These next two are for particle sparse octrees.
     np.int64_t *indices
     np.int64_t pcount
-
-cdef struct OctInfo:
-    np.float64_t left_edge[3]
-    np.float64_t dds[3]
-    np.int64_t ipos[3]
-    np.int32_t level
 
 cdef struct OctList
 
