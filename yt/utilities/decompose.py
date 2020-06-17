@@ -1,5 +1,3 @@
-
-
 import numpy as np
 
 SIEVE_PRIMES = \

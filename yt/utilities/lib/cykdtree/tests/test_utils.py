@@ -1,5 +1,3 @@
-
-
 import numpy as np
 from nose.tools import assert_equal
 from yt.utilities.lib.cykdtree.tests import parametrize, assert_less_equal

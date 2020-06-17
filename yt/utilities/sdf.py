@@ -1,4 +1,3 @@
-
 from io import StringIO
 import os
 import numpy as np
@@ -1342,4 +1341,3 @@ class SDFIndex:
         pbox[0, 1] = pbox[0, 0] + pad[0]
         for k in self.get_bbox(pbox[:,0], pbox[:,1]):
             yield k
-
