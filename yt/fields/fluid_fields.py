@@ -218,7 +218,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
             f  = field_data[slice_3dr]/ds[slice_3d]
             f -= field_data[slice_3dl]/ds[slice_3d]
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
-            new_field = data.ds.arr(new_field, vr.units / dt.units)
+            new_field = data.ds.arr(new_field, field_data.units / ds.units)
             new_field[slice_3d] = f
 
             if block_reorder == 'F':
