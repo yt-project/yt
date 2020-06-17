@@ -90,24 +90,24 @@ class GDFHierarchy(GridIndex):
     def __init__(self, ds, dataset_type='grid_data_format'):
         self.dataset = weakref.proxy(ds)
         self.index_filename = self.dataset.parameter_filename
-        h5f = h5py.File(self.index_filename, 'r')
+        h5f = h5py.File(self.index_filename, mode='r')
         self.dataset_type = dataset_type
         GridIndex.__init__(self, ds, dataset_type)
         self.directory = os.path.dirname(self.index_filename)
         h5f.close()
 
     def _detect_output_fields(self):
-        h5f = h5py.File(self.index_filename, 'r')
+        h5f = h5py.File(self.index_filename, mode='r')
         self.field_list = [("gdf", str(f)) for f in h5f['field_types'].keys()]
         h5f.close()
 
     def _count_grids(self):
-        h5f = h5py.File(self.index_filename, 'r')
+        h5f = h5py.File(self.index_filename, mode='r')
         self.num_grids = h5f['/grid_parent_id'].shape[0]
         h5f.close()
 
     def _parse_index(self):
-        h5f = h5py.File(self.index_filename, 'r')
+        h5f = h5py.File(self.index_filename, mode='r')
         dxs = []
         self.grids = np.empty(self.num_grids, dtype='object')
         levels = (h5f['grid_level'][:]).copy()
@@ -196,7 +196,7 @@ class GDFDataset(Dataset):
         """
 
         # This should be improved.
-        h5f = h5py.File(self.parameter_filename, "r")
+        h5f = h5py.File(self.parameter_filename, mode="r")
         for field_name in h5f["/field_types"]:
             current_field = h5f["/field_types/%s" % field_name]
             if 'field_to_cgs' in current_field.attrs:
@@ -245,7 +245,7 @@ class GDFDataset(Dataset):
         h5f.close()
 
     def _parse_parameter_file(self):
-        self._handle = h5py.File(self.parameter_filename, "r")
+        self._handle = h5py.File(self.parameter_filename, mode="r")
         if 'data_software' in self._handle['gridded_data_format'].attrs:
             self.data_software = \
                 self._handle['gridded_data_format'].attrs['data_software']
@@ -294,7 +294,7 @@ class GDFDataset(Dataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0], 'r')
+            fileh = h5py.File(args[0], mode='r')
             if "gridded_data_format" in fileh:
                 fileh.close()
                 return True

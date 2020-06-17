@@ -99,7 +99,7 @@ def save_as_dataset(ds, filename, data, field_types=None,
                    "length_unit", "mass_unit", "time_unit",
                    "velocity_unit", "magnetic_unit"]
 
-    fh = h5py.File(filename, "w")
+    fh = h5py.File(filename, mode="w")
     if ds is None: ds = {}
 
     if hasattr(ds, "parameters") and isinstance(ds.parameters, dict):

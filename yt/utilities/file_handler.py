@@ -39,7 +39,7 @@ class HDF5FileHandler(object):
     handle = None
 
     def __init__(self, filename):
-        self.handle = h5py.File(filename, 'r')
+        self.handle = h5py.File(filename, mode='r')
 
     def __getitem__(self, key):
         return self.handle[key]

@@ -115,7 +115,7 @@ class EnzoPGrid(AMRGridPatch):
     @property
     def particle_count(self):
         if self._particle_count is None:
-            with h5py.File(self.filename, "r") as f:
+            with h5py.File(self.filename, mode="r") as f:
                 fnstr = "%s/%s" % \
                   (self.block_name,
                    self.ds.index.io._sep.join(["particle", "%s", "%s"]))

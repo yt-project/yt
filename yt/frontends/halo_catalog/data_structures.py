@@ -69,7 +69,7 @@ class HaloCatalogFile(ParticleFile):
 
 class HaloCatalogHDF5File(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id):
-        with h5py.File(filename, "r") as f:
+        with h5py.File(filename, mode="r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
         super(HaloCatalogHDF5File, self).__init__(
@@ -82,7 +82,7 @@ class HaloCatalogHDF5File(HaloCatalogFile):
 
         if f is None:
             close = True
-            f = h5py.File(self.filename, "r")
+            f = h5py.File(self.filename, mode="r")
         else:
             close = False
 
@@ -131,7 +131,7 @@ class HaloCatalogDataset(SavedDataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         if not args[0].endswith(".h5"): return False
-        with h5py.File(args[0], "r") as f:
+        with h5py.File(args[0], mode="r") as f:
             if "data_type" in f.attrs and \
               parse_h5_attr(f, "data_type") == "halo_catalog":
                 return True

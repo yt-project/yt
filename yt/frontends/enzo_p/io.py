@@ -38,7 +38,7 @@ class EnzoPIOHandler(BaseIOHandler):
 
     def _read_field_names(self, grid):
         if grid.filename is None: return []
-        f = h5py.File(grid.filename, "r")
+        f = h5py.File(grid.filename, mode="r")
         try:
             group = f[grid.block_name]
         except KeyError:
@@ -92,7 +92,7 @@ class EnzoPIOHandler(BaseIOHandler):
                 if g.filename is None:
                     continue
                 if f is None:
-                    f = h5py.File(g.filename, "r")
+                    f = h5py.File(g.filename, mode="r")
                 if g.particle_count is None:
                     fnstr = "%s/%s" % \
                       (g.block_name, self._sep.join(["particle", "%s", "%s"]))

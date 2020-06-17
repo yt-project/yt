@@ -40,7 +40,7 @@ class MoabHex8Hierarchy(UnstructuredIndex):
         self.dataset_type = dataset_type
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
-        self._fhandle = h5py.File(self.index_filename,'r')
+        self._fhandle = h5py.File(self.index_filename, mode='r')
 
         UnstructuredIndex.__init__(self, ds, dataset_type)
 
@@ -85,7 +85,7 @@ class MoabHex8Dataset(Dataset):
         setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
 
     def _parse_parameter_file(self):
-        self._handle = h5py.File(self.parameter_filename, "r")
+        self._handle = h5py.File(self.parameter_filename, mode="r")
         coords = self._handle["/tstt/nodes/coordinates"]
         self.domain_left_edge = coords[0]
         self.domain_right_edge = coords[-1]

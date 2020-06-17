@@ -80,7 +80,7 @@ def test_particle_fields():
 def test_hierarchy():
     ds = data_dir_load(hello_world)
 
-    fh = h5py.File(ds.index.grids[0].filename, "r")
+    fh = h5py.File(ds.index.grids[0].filename, mode="r")
     for grid in ds.index.grids:
         assert_array_equal(
             grid.LeftEdge.d, fh[grid.block_name].attrs["enzo_GridLeftEdge"])

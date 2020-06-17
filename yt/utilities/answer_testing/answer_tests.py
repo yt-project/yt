@@ -283,7 +283,7 @@ def light_cone_projection(parameter_file, simulation_type):
     lc.project_light_cone(
         (600.0, "arcmin"), (60.0, "arcsec"), "density",
         weight_field=None, save_stack=True)
-    fh = h5py.File("LC/LightCone.h5", "r")
+    fh = h5py.File("LC/LightCone.h5", mode="r")
     data = fh["density_None"].value
     units = fh["density_None"].attrs["units"]
     assert units == "g/cm**2"

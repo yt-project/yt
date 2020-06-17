@@ -1011,7 +1011,7 @@ class YTArray(np.ndarray):
         if dataset_name is None:
             dataset_name = 'array_data'
 
-        f = h5py.File(filename, "r")
+        f = h5py.File(filename, mode="r")
         if group_name is not None:
             g = f[group_name]
         else:

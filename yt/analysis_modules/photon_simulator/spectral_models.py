@@ -333,7 +333,7 @@ class TableAbsorbModel(SpectralModel):
         if not os.path.exists(filename):
             raise IOError("File does not exist: %s." % filename)
         self.filename = filename
-        f = h5py.File(self.filename,"r")
+        f = h5py.File(self.filename, mode="r")
         emin = f["energy"][:].min()
         emax = f["energy"][:].max()
         self.sigma = YTArray(f["cross_section"][:], "cm**2")

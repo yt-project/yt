@@ -43,7 +43,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda f: f.filename):
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
                     coords = f[ptype]["CenterOfMass"][()].astype("float64")
@@ -60,7 +60,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             if fh.filename == offset_file.filename:
                 ofh = fh
             else:
-                ofh = h5py.File(offset_file.filename, "r")
+                ofh = h5py.File(offset_file.filename, mode="r")
             subindex = np.arange(offset_file.total_offset) + offset_file.offset_start
             substart = max(fofindex[0] - subindex[0], 0)
             subend = min(fofindex[-1] - subindex[0], subindex.size - 1)
@@ -77,7 +77,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda f: f.filename):
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0: continue
@@ -118,7 +118,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
         ind = 0
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             if not f.keys(): return None
             dx = np.finfo(f["FOF"]['CenterOfMass'].dtype).eps
             dx = 2.0*self.ds.quan(dx, "code_length")
@@ -149,7 +149,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             pcount = {"FOF": f["FOF"].attrs["Number_of_groups"]}
             if "SUBFIND" in f:
                 # We need this to figure out where the offset fields are stored.
@@ -164,7 +164,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         fields = []
         pcount = data_file.total_particles
         if sum(pcount.values()) == 0: return fields, {}
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             for ptype in self.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0: continue
                 fields.append((ptype, "particle_identifier"))
