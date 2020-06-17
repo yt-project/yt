@@ -3,7 +3,7 @@ answer_tests:
   local_amrvac_004:
     - yt/frontends/amrvac/tests/test_outputs.py
     
-  local_arepo_003:
+  local_arepo_004:
     - yt/frontends/arepo/tests/test_outputs.py
 
   local_artio_003:
@@ -27,10 +27,10 @@ answer_tests:
   local_fits_003:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_010:
+  local_flash_011:
     - yt/frontends/flash/tests/test_outputs.py
 
-  local_gadget_002:
+  local_gadget_003:
     - yt/frontends/gadget/tests/test_outputs.py
 
   local_gamer_007:
@@ -39,7 +39,7 @@ answer_tests:
   local_gdf_001:
     - yt/frontends/gdf/tests/test_outputs.py
 
-  local_gizmo_003:
+  local_gizmo_004:
     - yt/frontends/gizmo/tests/test_outputs.py
 
   local_halos_009:
@@ -48,7 +48,7 @@ answer_tests:
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_owls_003:
+  local_owls_004:
     - yt/frontends/owls/tests/test_outputs.py
 
   local_pw_028:
@@ -59,7 +59,7 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
     - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
 
-  local_tipsy_003:
+  local_tipsy_004:
     - yt/frontends/tipsy/tests/test_outputs.py
 
   local_varia_013:
