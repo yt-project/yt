@@ -205,16 +205,25 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi+1:]
         slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
         def func(field, data):
+            block_reorder = getattr(data, '_block_reorder', 'C')
+            if block_reorder == 'F':
+                field_data = data[grad_field].swapaxes(0, 2)
+            else:
+                field_data = data[grad_field]
             ds = div_fac * data[ftype, "d%s" % ax]
             if ax == "theta":
                 ds *= data[ftype, "r"]
             if ax == "phi":
                 ds *= data[ftype, "r"] * np.sin(data[ftype, "theta"])
-            f  = data[grad_field][slice_3dr]/ds[slice_3d]
-            f -= data[grad_field][slice_3dl]/ds[slice_3d]
+            f  = field_data[slice_3dr]/ds[slice_3d]
+            f -= field_data[slice_3dl]/ds[slice_3d]
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
             new_field = data.ds.arr(new_field, vr.units / ds.units)
             new_field[slice_3d] = f
+
+            if block_reorder:
+                new_field = new_field.swapaxes(0, 2)
+
             return new_field
         return func
 
