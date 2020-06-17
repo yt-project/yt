@@ -189,7 +189,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
 
     geom = registry.ds.geometry
     if is_curvilinear(geom):
-        mylog.warning("In %s geometry, gradient fields may contain artifacts near cartesian axes." % geom)
+        mylog.warning("In %s geometry, gradient fields may contain artifacts near cartesian axes.", geom)
 
     assert(isinstance(grad_field, tuple))
     ftype, fname = grad_field
