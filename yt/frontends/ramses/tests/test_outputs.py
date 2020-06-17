@@ -461,3 +461,17 @@ def test_magnetic_field_aliasing():
                   'magnetic_field_divergence']:
         assert ('gas',field) in ds.derived_field_list
         ad[('gas',field)]
+
+output_00080 = "output_00080/info_00080.txt"
+@requires_file(output_00080)
+def test_field_accession():
+    ds = yt.load(output_00080)
+    fields = [
+        ('gas', 'density'),  # basic ones
+        ('gas' ,'pressure'),
+        ('gas', 'pressure_gradient_magnitude'), # requires ghost zones
+    ]
+    # Check accessing gradient works for a variety of spatial domains
+    for reg in (ds.all_data(), ds.sphere([.1]*3, .01), ds.sphere([.5]*3, 0.05), ds.box([.1]*3, [.2]*3)):
+        for field in fields:
+            reg[field]
