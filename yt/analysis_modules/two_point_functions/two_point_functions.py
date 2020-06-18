@@ -649,7 +649,7 @@ class TwoPointFunctions(ParallelAnalysisInterface):
         """
         if self.mine == 0:
             for fset in self._fsets:
-                f = h5py.File(fn % fset.function.__name__, "w")
+                f = h5py.File(fn % fset.function.__name__, mode="w")
                 bin_names = []
                 prob_names = []
                 bin_counts = []

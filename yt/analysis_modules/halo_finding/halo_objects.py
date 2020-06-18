@@ -660,7 +660,7 @@ class LoadedHalo(Halo):
         # First get the list of fields from the first file. Not all fields
         # are saved all the time (e.g. creation_time, particle_type).
         mylog.info("Getting field %s from hdf5 halo particle files." % field)
-        f = h5py.File(fnames[0], 'r')
+        f = h5py.File(fnames[0], mode='r')
         fields = f["Halo%08d" % halo].keys()
         # If we dont have this field, we can give up right now.
         if field not in fields:
@@ -677,7 +677,7 @@ class LoadedHalo(Halo):
         del f
         offset = 0
         for fname in fnames:
-            f = h5py.File(fname, 'r')
+            f = h5py.File(fname, mode='r')
             this = f["Halo%08d" % halo][field][:]
             s = this.size
             field_data[offset:offset + s] = this
@@ -1368,7 +1368,7 @@ class GenericHaloFinder(HaloList, ParallelAnalysisInterface):
         """
         ensure_dir_exists(prefix)
         fn = "%s.h5" % self.comm.get_filename(prefix)
-        f = h5py.File(fn, "w")
+        f = h5py.File(fn, mode="w")
         for halo in self._groups:
             if not self.comm.is_mine(halo): continue
             halo.write_particle_list(f)

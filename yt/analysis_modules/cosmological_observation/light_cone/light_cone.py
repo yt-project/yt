@@ -438,7 +438,7 @@ class LightCone(CosmologySplice):
 
         mylog.info("Writing light cone data to %s." % filename)
 
-        fh = h5py.File(filename, "a")
+        fh = h5py.File(filename, mode="a")
 
         if field_node in fh:
             del fh[field_node]

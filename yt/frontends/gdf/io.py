@@ -45,7 +45,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             grid = chunks[0].objs[0]
-            h5f = h5py.File(grid.filename, 'r')
+            h5f = h5py.File(grid.filename, mode='r')
             gds = h5f.get(_grid_dname(grid.id))
             for ftype, fname in fields:
                 if self.ds.field_ordering == 1:

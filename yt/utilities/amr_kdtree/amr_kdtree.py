@@ -438,7 +438,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             fn = '%s_kd_bricks.h5'%self.ds
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
-        f = h5py.File(fn,'w')
+        f = h5py.File(fn, mode='w')
         for node in self.tree.depth_traverse():
             i = node.node_id
             if node.data is not None:
@@ -458,7 +458,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank-1, tag=self.comm.rank-1)
         try:
-            f = h5py.File(fn,"a")
+            f = h5py.File(fn, mode="a")
             for node in self.tree.depth_traverse():
                 i = node.node_id
                 if node.grid != -1:

@@ -339,7 +339,7 @@ class SpectrumBuilder(object):
         self.flux = {}
         for file in self.model:
             fname = self.bcdir + "/" + self.model[file]
-            fp = h5py.File(fname, 'r')
+            fp = h5py.File(fname, mode='r')
             self.age = YTArray(fp["agebins"][:], 'yr')  # 1D floats
             self.wavelength = fp["wavebins"][:]  # 1D floats
             self.flux[file] = fp["flam"][:, :]  # 2D floats, [agebin, wavebin]

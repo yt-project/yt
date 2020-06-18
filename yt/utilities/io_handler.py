@@ -88,7 +88,7 @@ class BaseIOHandler(object):
 
     def _field_in_backup(self, grid, backup_file, field_name):
         if os.path.exists(backup_file):
-            fhandle = h5py.File(backup_file, 'r')
+            fhandle = h5py.File(backup_file, mode='r')
             g = fhandle["data"]
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
             if field_name in grid_group:
@@ -107,7 +107,7 @@ class BaseIOHandler(object):
         if not grid.ds.read_from_backup:
             return self._read_data(grid, field)
         elif self._field_in_backup(grid, backup_filename, field):
-            fhandle = h5py.File(backup_filename, 'r')
+            fhandle = h5py.File(backup_filename, mode='r')
             g = fhandle["data"]
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
             data = grid_group[field][:]

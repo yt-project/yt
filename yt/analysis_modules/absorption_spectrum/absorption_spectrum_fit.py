@@ -1008,7 +1008,7 @@ def _output_fit(lineDic, file_name = 'spectrum_fit.h5'):
         Name of the file to output fit to. Default = 'spectrum_fit.h5'
 
     """
-    f = h5py.File(file_name, 'w')
+    f = h5py.File(file_name, mode='w')
     for ion, params in lineDic.items():
         f.create_dataset("{0}/N".format(ion),data=params['N'])
         f.create_dataset("{0}/b".format(ion),data=params['b'])

@@ -132,7 +132,7 @@ class PhotonList(object):
         photons = {}
         parameters = {}
 
-        f = h5py.File(filename, "r")
+        f = h5py.File(filename, mode="r")
 
         p = f["/parameters"]
         parameters["FiducialExposureTime"] = YTQuantity(p["fid_exp_time"].value, "s")
@@ -445,7 +445,7 @@ class PhotonList(object):
 
         if comm.rank == 0:
 
-            f = h5py.File(photonfile, "w")
+            f = h5py.File(photonfile, mode="w")
 
             # Parameters
 
@@ -921,7 +921,7 @@ class EventList(object):
         events = {}
         parameters = {}
 
-        f = h5py.File(h5file, "r")
+        f = h5py.File(h5file, mode="r")
 
         p = f["/parameters"]
         parameters["ExposureTime"] = YTQuantity(p["exp_time"].value, "s")
@@ -1222,7 +1222,7 @@ class EventList(object):
         """
         Write an EventList to the HDF5 file given by *h5file*.
         """
-        f = h5py.File(h5file, "w")
+        f = h5py.File(h5file, mode="w")
 
         p = f.create_group("parameters")
         p.create_dataset("exp_time", data=float(self.parameters["ExposureTime"]))
@@ -1473,8 +1473,8 @@ def merge_files(input_files, output_file, clobber=False,
         raise IOError("Cannot overwrite existing file %s. " % output_file +
                       "If you want to do this, set clobber=True.")
 
-    f_in = h5py.File(input_files[0], "r")
-    f_out = h5py.File(output_file, "w")
+    f_in = h5py.File(input_files[0], mode="r")
+    f_out = h5py.File(output_file, mode="w")
 
     exp_time_key = ""
     p_out = f_out.create_group("parameters")
@@ -1486,7 +1486,7 @@ def merge_files(input_files, output_file, clobber=False,
 
     skip = [exp_time_key] if add_exposure_times else []
     for fn in input_files[1:]:
-        f = h5py.File(fn, "r")
+        f = h5py.File(fn, mode="r")
         validate_parameters(f_in["parameters"], f["parameters"], skip=skip)
         f.close()
 
@@ -1496,7 +1496,7 @@ def merge_files(input_files, output_file, clobber=False,
     tot_exp_time = 0.0
 
     for i, fn in enumerate(input_files):
-        f = h5py.File(fn, "r")
+        f = h5py.File(fn, mode="r")
         if add_exposure_times:
             tot_exp_time += f["/parameters"][exp_time_key].value
         elif i == 0:
@@ -1537,7 +1537,7 @@ def convert_old_file(input_file, output_file, clobber=False):
         raise IOError("Cannot overwrite existing file %s. " % output_file +
                       "If you want to do this, set clobber=True.")
 
-    f_in = h5py.File(input_file, "r")
+    f_in = h5py.File(input_file, mode="r")
 
     if "num_photons" in f_in:
         params = ["fid_exp_time", "fid_area", "fid_d_a", "fid_redshift",
@@ -1550,7 +1550,7 @@ def convert_old_file(input_file, output_file, clobber=False):
                   "instrument", "sky_center", "pix_center", "dtheta"]
         data = ["xsky", "ysky", "xpix", "ypix", "eobs", "pi", "pha"]
 
-    f_out = h5py.File(output_file, "w")
+    f_out = h5py.File(output_file, mode="w")
 
     p = f_out.create_group("parameters")
     d = f_out.create_group("data")

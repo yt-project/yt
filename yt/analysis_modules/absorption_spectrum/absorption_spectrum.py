@@ -635,7 +635,7 @@ class AbsorptionSpectrum(object):
 
         """
         mylog.info("Writing spectrum to hdf5 file: %s.", filename)
-        output = h5py.File(filename, 'w')
+        output = h5py.File(filename, mode='w')
         output.create_dataset('wavelength', data=self.lambda_field)
         output.create_dataset('tau', data=self.tau_field)
         output.create_dataset('flux', data=self.flux_field)

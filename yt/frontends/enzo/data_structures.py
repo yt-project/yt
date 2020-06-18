@@ -384,7 +384,7 @@ class EnzoHierarchy(GridIndex):
                 continue
             gs = self.grids[select_grids > 0]
             g = gs[0]
-            handle = h5py.File(g.filename, "r")
+            handle = h5py.File(g.filename, mode="r")
             node = handle["/Grid%08i/Particles/" % g.id]
             for ptype in (str(p) for p in node):
                 if ptype not in _fields: continue

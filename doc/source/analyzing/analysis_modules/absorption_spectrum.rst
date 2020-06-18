@@ -195,7 +195,7 @@ errors produced in saving to a ascii file will negatively impact fit quality.
 
 .. code-block:: python
 
-    f = h5py.File('spectrum.h5', 'r')
+    f = h5py.File('spectrum.h5', mode='r')
     wavelength = f["wavelength"][:]
     flux = f['flux'][:]
     f.close()

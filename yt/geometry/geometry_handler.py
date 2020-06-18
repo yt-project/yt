@@ -106,7 +106,7 @@ class Index(ParallelAnalysisInterface):
     def __create_data_file(self, fn):
         # Note that this used to be parallel_root_only; it no longer is,
         # because we have better logic to decide who owns the file.
-        f = h5py.File(fn, 'a')
+        f = h5py.File(fn, mode='a')
         f.close()
 
     def _setup_data_io(self):

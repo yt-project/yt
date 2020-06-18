@@ -44,7 +44,7 @@ class IOHandlerYTNonspatialhdf5(BaseIOHandler):
                 gf = self._cached_fields[g.id]
                 rv.update(gf)
             if len(rv) == len(fields): return rv
-            f = h5py.File(u(g.filename), "r")
+            f = h5py.File(u(g.filename), mode="r")
             for field in fields:
                 if field in rv:
                     self._hits += 1
@@ -79,7 +79,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
                 gf = self._cached_fields[g.id]
                 rv.update(gf)
             if len(rv) == len(fields): return rv
-            f = h5py.File(u(g.filename), "r")
+            f = h5py.File(u(g.filename), mode="r")
             gds = f[self.ds.default_fluid_type]
             for field in fields:
                 if field in rv:
@@ -110,7 +110,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
             for g in chunk.objs:
                 if g.filename is None: continue
                 if f is None:
-                    f = h5py.File(g.filename, "r")
+                    f = h5py.File(g.filename, mode="r")
                 gf = self._cached_fields.get(g.id, {})
                 nd = 0
                 for field in fields:
@@ -140,7 +140,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
             for g in chunk.objs:
                 if g.filename is None: continue
                 if f is None:
-                    f = h5py.File(g.filename, "r")
+                    f = h5py.File(g.filename, mode="r")
                 if g.NumberOfParticles == 0:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
@@ -162,7 +162,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
             for g in chunk.objs:
                 if g.filename is None: continue
                 if f is None:
-                    f = h5py.File(g.filename, "r")
+                    f = h5py.File(g.filename, mode="r")
                 if g.NumberOfParticles == 0:
                     continue
                 for ptype, field_list in sorted(ptf.items()):
@@ -191,7 +191,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0: continue
@@ -209,7 +209,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     units = _get_position_array_units(ptype, f, "x")
                     x, y, z = \
@@ -229,7 +229,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
         ind = 0
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             for ptype in all_count:
                 if ptype not in f or all_count[ptype] == 0: continue
                 pos = np.empty((all_count[ptype], 3), dtype="float64")
@@ -269,7 +269,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
     def _identify_fields(self, data_file):
         fields = []
         units = {}
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             for ptype in f:
                 fields.extend([(ptype, str(field)) for field in f[ptype]])
                 units.update(dict([((ptype, str(field)), 
@@ -288,7 +288,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0: continue
@@ -307,7 +307,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files):
             all_count = self._count_particles(data_file)
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     x = _get_position_array(ptype, f, "px")
                     y = _get_position_array(ptype, f, "py")
@@ -327,7 +327,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
         ind = 0
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             for ptype in all_count:
                 if ptype not in f or all_count[ptype] == 0: continue
                 pos = np.empty((all_count[ptype], 3), dtype="float64")

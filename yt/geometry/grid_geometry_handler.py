@@ -75,7 +75,7 @@ class GridIndex(Index):
         return
         try:
             backup_filename = self.dataset.backup_filename
-            f = h5py.File(backup_filename, 'r')
+            f = h5py.File(backup_filename, mode='r')
             g = f["data"]
             grid = self.grids[0] # simply check one of the grids
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
