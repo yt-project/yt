@@ -1,7 +1,7 @@
 import os
 import tempfile
 from collections import OrderedDict
-from yt.testing import requires_file
+from yt.testing import requires_file, ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
@@ -17,6 +17,12 @@ _tng59_bbox = [[45135.0, 51343.0], [51844.0, 56184.0], [60555.0, 63451.0]]
 def test_arepo_hdf5():
     assert isinstance(data_dir_load(bullet_h5),
                       ArepoHDF5Dataset)
+
+@requires_file(bullet_h5)
+def test_arepo_hdf5_selection():
+    ds = data_dir_load(bullet_h5)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
 
 
 bullet_fields = OrderedDict(
@@ -76,3 +82,9 @@ def test_index_override():
                                            'bounding_box': _tng59_bbox})
     ds.index
     assert len(open(tmpname, "r").read()) == 0
+
+@requires_file(tng59_h5)
+def test_arepo_tng59_selection():
+    ds = data_dir_load(tng59_h5)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
