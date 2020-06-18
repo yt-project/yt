@@ -286,10 +286,18 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 le, re = data_source.data_source.get_bbox()
                 xa = self.x_axis[dim]
                 ya = self.y_axis[dim]
-                le[xa] = max(bounds[0], self.ds.domain_left_edge[xa])
-                le[ya] = max(bounds[2], self.ds.domain_left_edge[ya])
-                re[xa] = min(bounds[1], self.ds.domain_right_edge[xa])
-                re[ya] = min(bounds[3], self.ds.domain_right_edge[ya])
+                if not self.ds.periodicity[xa]:
+                    le[xa] = max(bounds[0], self.ds.domain_left_edge[xa])
+                    re[xa] = min(bounds[1], self.ds.domain_right_edge[xa])
+                else:
+                    le[xa] = bounds[0]
+                    re[xa] = bounds[1]
+                if not self.ds.periodicity[ya]:
+                    le[ya] = max(bounds[2], self.ds.domain_left_edge[ya])
+                    re[ya] = min(bounds[3], self.ds.domain_right_edge[ya])
+                else:
+                    le[ya] = bounds[2]
+                    re[ya] = bounds[3]
                 # We actually need to clip these
                 proj_reg = data_source.ds.region(
                     left_edge=le, right_edge=re, center=data_source.center,
