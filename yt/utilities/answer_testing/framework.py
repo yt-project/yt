@@ -983,7 +983,7 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def _particle_answer(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
+def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
