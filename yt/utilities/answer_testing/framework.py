@@ -983,7 +983,7 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
+def _particle_answer(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
@@ -998,36 +998,20 @@ def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
             particle_type = field[0] in ds.particle_types
             for axis in [0, 1, 2]:
                 if not particle_type:
-                    yield PixelizedParticleProjectionValuesTest(
+                    yield proj_test_class(
                         ds, axis, field, weight_field,
                         dobj_name)
             yield FieldValuesTest(ds, field, dobj_name,
                                   particle_type=particle_type)
 
+
+def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
+    return _particle_answers(ds, ds_str_repr, ds_nparticles, fields,
+        PixelizedParticleProjectionValuesTest)
 
 def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
-    if not can_run_ds(ds):
-        return
-    assert_equal(str(ds), ds_str_repr)
-    dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
-    dd = ds.all_data()
-    assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
-    tot = sum(dd[ptype, "particle_position"].shape[0]
-              for ptype in ds.particle_types_raw)
-    assert_equal(tot, ds_nparticles)
-    for dobj_name in dso:
-        for field, weight_field in fields.items():
-            if field[0] in ds.particle_types:
-                particle_type = True
-            else:
-                particle_type = False
-            for axis in [0, 1, 2]:
-                if particle_type is False:
-                    yield PixelizedProjectionValuesTest(
-                        ds, axis, field, weight_field,
-                        dobj_name)
-            yield FieldValuesTest(ds, field, dobj_name,
-                                  particle_type=particle_type)
+    return _particle_answers(ds, ds_str_repr, ds_nparticles, fields,
+        PixelizedProjectionValuesTest)
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of
