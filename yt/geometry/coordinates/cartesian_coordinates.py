@@ -286,6 +286,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 le, re = data_source.data_source.get_bbox()
                 xa = self.x_axis[dim]
                 ya = self.y_axis[dim]
+                # If we're not periodic, we need to clip to the boundary edges
+                # or we get errors about extending off the edge of the region.
                 if not self.ds.periodicity[xa]:
                     le[xa] = max(bounds[0], self.ds.domain_left_edge[xa])
                     re[xa] = min(bounds[1], self.ds.domain_right_edge[xa])
