@@ -2,7 +2,8 @@ import numpy as np
 from yt.testing import \
     assert_equal, \
     requires_file, \
-    units_override_check
+    units_override_check, \
+    ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
@@ -66,6 +67,12 @@ fid_1to3_b1_fields = OrderedDict(
 @requires_file(fid_1to3_b1)
 def test_FLASHParticleDataset():
     assert isinstance(data_dir_load(fid_1to3_b1), FLASHParticleDataset)
+
+@requires_file(fid_1to3_b1)
+def test_FLASHParticleDataset_selection():
+    ds = data_dir_load(fid_1to3_b1)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
 
 
 dens_turb_mag = 'DensTurbMag/DensTurbMag_hdf5_plt_cnt_0015'

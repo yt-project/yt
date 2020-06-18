@@ -1,5 +1,5 @@
 from collections import OrderedDict
-from yt.testing import requires_file
+from yt.testing import requires_file, ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
@@ -14,6 +14,12 @@ tng59_h5 = "TNGHalo/halo_59.hdf5"
 def test_arepo_hdf5():
     assert isinstance(data_dir_load(bullet_h5),
                       ArepoHDF5Dataset)
+
+@requires_file(bullet_h5)
+def test_arepo_hdf5_selection():
+    ds = data_dir_load(bullet_h5)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
 
 
 bullet_fields = OrderedDict(
@@ -64,3 +70,8 @@ def test_arepo_tng59():
         test_arepo_tng59.__name__ = test.description
         yield test
 
+@requires_file(tng59_h5)
+def test_arepo_tng59_selection():
+    ds = data_dir_load(tng59_h5)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()

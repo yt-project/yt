@@ -2,7 +2,8 @@ from collections import OrderedDict
 
 from yt.testing import \
     assert_equal, \
-    requires_file
+    requires_file, \
+    ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
@@ -35,6 +36,8 @@ def test_pkdgrav():
     tot = sum(dd[ptype,"Coordinates"].shape[0]
               for ptype in ds.particle_types if ptype != "all")
     assert_equal(tot, 26847360)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
     for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
@@ -65,6 +68,8 @@ def test_gasoline_dmonly():
     tot = sum(dd[ptype,"Coordinates"].shape[0]
               for ptype in ds.particle_types if ptype != "all")
     assert_equal(tot, 10550576)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
     for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
@@ -93,6 +98,8 @@ tipsy_gal = 'TipsyGalaxy/galaxy.00300'
 @requires_ds(tipsy_gal)
 def test_tipsy_galaxy():
     ds = data_dir_load(tipsy_gal)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
     for test in sph_answer(ds, 'galaxy.00300', 315372, tg_fields):
         test_tipsy_galaxy.__name__ = test.description
         yield test

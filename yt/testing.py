@@ -1269,3 +1269,57 @@ class ParticleSelectionComparison:
                 obj_results.append(chunk[ptype, "particle_position"])
             obj_results = np.concatenate(obj_results, axis = 0)
             assert_equal(sel_pos, obj_results)
+
+    def run_defaults(self):
+        """
+        This runs lots of samples that touch different types of wraparounds.
+
+        Specifically, it does:
+
+            * sphere in center with radius 0.1 unitary
+            * sphere in center with radius 0.2 unitary
+            * sphere in each of the eight corners of the domain with radius 0.1 unitary
+            * sphere in center with radius 0.5 unitary
+            * box that covers 0.1 .. 0.9
+            * box from 0.8 .. 0.85
+            * box from 0.3..0.6, 0.2..0.8, 0.0..0.1
+        """
+        sp1 = self.ds.sphere("c", (0.1, "unitary"))
+        self.compare_dobj_selection(sp1)
+
+        sp2 = self.ds.sphere("c", (0.2, "unitary"))
+        self.compare_dobj_selection(sp2)
+
+        centers = [[0.04, 0.5, 0.5],
+                   [0.5, 0.04, 0.5]
+                   [0.5, 0.5, 0.04]
+                   [0.04, 0.04, 0.04]
+                   [0.96, 0.5, 0.5]
+                   [0.5, 0.96, 0.5]
+                   [0.5, 0.5, 0.96]
+                   [0.96, 0.96, 0.96]]
+        for center in centers:
+            c = self.ds.arr(center, "unitary")
+            sp = self.ds.sphere(c, (0.1, "unitary"))
+            self.compare_dobj_selection(sp)
+
+        sp = self.ds.sphere("c", (0.5, "unitary"))
+        self.compare_dobj_selection(sp)
+
+        dd = self.ds.all_data()
+        self.compare_dobj_selection(dd)
+
+        reg1 = self.ds.r[ (0.1, 'unitary'):(0.9, 'unitary'),
+                          (0.1, 'unitary'):(0.9, 'unitary'),
+                          (0.1, 'unitary'):(0.9, 'unitary')]
+        self.compare_dobj_selection(reg1)
+
+        reg2 = self.ds.r[ (0.8, 'unitary'):(0.85, 'unitary'),
+                          (0.8, 'unitary'):(0.85, 'unitary'),
+                          (0.8, 'unitary'):(0.85, 'unitary')]
+        self.compare_dobj_selection(reg2)
+
+        reg3 = self.ds.r[ (0.3, 'unitary'):(0.6, 'unitary'),
+                          (0.2, 'unitary'):(0.8, 'unitary'),
+                          (0.0, 'unitary'):(0.1, 'unitary')]
+        self.compare_dobj_selection(reg3)
