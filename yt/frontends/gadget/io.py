@@ -41,7 +41,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
-            f = h5py.File(data_file.filename, "r")
+            f = h5py.File(data_file.filename, mode="r")
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
@@ -104,7 +104,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
-            f = h5py.File(data_file.filename, "r")
+            f = h5py.File(data_file.filename, mode="r")
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
@@ -165,7 +165,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         f.close()
         if None not in (si, ei):
@@ -174,7 +174,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         return npart
 
     def _identify_fields(self, data_file):
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         fields = []
         cname = self.ds._particle_coordinates_name  # Coordinates
         mname = self.ds._particle_mass_name  # Mass

@@ -81,7 +81,7 @@ class OWLSSubfindParticleIndex(ParticleIndex):
 class OWLSSubfindHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
         super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id)
-        with h5py.File(filename, "r") as f:
+        with h5py.File(filename, mode="r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
     

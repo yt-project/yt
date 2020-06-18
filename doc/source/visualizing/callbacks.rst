@@ -781,7 +781,7 @@ Annotate Triangle Facets Callback
    #setup file path for yt test directory
    filename = os.path.join(yt.config.ytcfg.get("yt", "test_data_dir"),
                            "MoabTest/mcnp_n_impr_fluka.h5m")
-   f = h5py.File(filename, "r")
+   f = h5py.File(filename, mode="r")
    coords = f["/tstt/nodes/coordinates"][:]
    conn = f["/tstt/elements/Tri3/connectivity"][:]
    points = coords[conn-1]

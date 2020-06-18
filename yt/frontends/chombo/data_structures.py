@@ -31,7 +31,7 @@ from .fields import ChomboFieldInfo, Orion2FieldInfo, \
 
 def is_chombo_hdf5(fn):
     try:
-        with h5py.File(fn, 'r') as fileh:
+        with h5py.File(fn, mode='r') as fileh:
             valid = "Chombo_global" in fileh["/"]
     except (KeyError, IOError, ImportError):
         return False
@@ -366,7 +366,7 @@ class ChomboDataset(Dataset):
 
         if not (pluto_ini_file_exists or orion2_ini_file_exists):
             try:
-                fileh = h5py.File(args[0],'r')
+                fileh = h5py.File(args[0], mode='r')
                 valid = "Chombo_global" in fileh["/"]
                 # ORION2 simulations should always have this:
                 valid = valid and not ('CeilVA_mass' in fileh.attrs.keys())
@@ -674,7 +674,7 @@ class Orion2Dataset(ChomboDataset):
 
         if not pluto_ini_file_exists:
             try:
-                fileh = h5py.File(args[0],'r')
+                fileh = h5py.File(args[0], mode='r')
                 valid = 'CeilVA_mass' in fileh.attrs.keys()
                 valid = "Chombo_global" in fileh["/"] and "Charm_global" not in fileh["/"]
                 valid = valid and 'CeilVA_mass' in fileh.attrs.keys()
@@ -734,7 +734,7 @@ class ChomboPICDataset(ChomboDataset):
             return False
 
         try:
-            fileh = h5py.File(args[0],'r')
+            fileh = h5py.File(args[0], mode='r')
             valid = "Charm_global" in fileh["/"]
             fileh.close()
             return valid
