@@ -1,3 +1,5 @@
+import os
+import tempfile
 from collections import OrderedDict
 from yt.testing import requires_file, ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
@@ -8,6 +10,7 @@ from yt.frontends.arepo.api import ArepoHDF5Dataset
 
 bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
 tng59_h5 = "TNGHalo/halo_59.hdf5"
+_tng59_bbox = [[45135.0, 51343.0], [51844.0, 56184.0], [60555.0, 63451.0]]
 
 
 @requires_file(bullet_h5)
@@ -61,14 +64,24 @@ tng59_fields = OrderedDict(
     ]
 )
 
-
 @requires_ds(tng59_h5)
 def test_arepo_tng59():
-    ds = data_dir_load(tng59_h5)
+    ds = data_dir_load(tng59_h5, kwargs = {'bounding_box': _tng59_bbox})
     for test in sph_answer(ds, 'halo_59', 10107142,
                            tng59_fields):
         test_arepo_tng59.__name__ = test.description
         yield test
+
+@requires_ds(tng59_h5)
+def test_index_override():
+    # This tests that we can supply an index_filename, and that when we do, it
+    # doesn't get written if our bounding_box is overwritten.
+    tmpfd, tmpname = tempfile.mkstemp(suffix=".ewah")
+    os.close(tmpfd)
+    ds = data_dir_load(tng59_h5, kwargs = {'index_filename': tmpname,
+                                           'bounding_box': _tng59_bbox})
+    ds.index
+    assert len(open(tmpname, "r").read()) == 0
 
 @requires_file(tng59_h5)
 def test_arepo_tng59_selection():
