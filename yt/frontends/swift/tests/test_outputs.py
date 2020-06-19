@@ -4,7 +4,7 @@ import numpy as np
 
 from yt.testing import requires_file
 from yt.frontends.swift.api import SwiftDataset
-from yt.testing import assert_almost_equal
+from yt.testing import assert_almost_equal, ParticleSelectionComparison
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 keplerian_ring = "KeplerianRing/keplerian_ring_0020.hdf5"
@@ -51,6 +51,12 @@ def test_non_cosmo_dataset():
     # make sure the actual values are the same
     assert_almost_equal(yt_density.d, raw_density)
 
+@requires_file(keplerian_ring)
+def test_non_cosmo_dataset_selection():
+    ds = load(keplerian_ring)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
+
 @requires_file(EAGLE_6)
 def test_cosmo_dataset():
     ds = load(EAGLE_6)
@@ -94,3 +100,9 @@ def test_cosmo_dataset():
 
     # make sure the actual values are the same
     assert_almost_equal(yt_density.d, raw_density)
+
+@requires_file(EAGLE_6)
+def test_cosmo_dataset_selection():
+    ds = load(EAGLE_6)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()

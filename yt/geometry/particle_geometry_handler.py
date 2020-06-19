@@ -3,6 +3,7 @@ import errno
 import numpy as np
 import os
 import weakref
+import struct
 
 from yt.funcs import \
     get_pbar, \
@@ -128,13 +129,16 @@ class ParticleIndex(Index):
         else:
             fname = ds.index_filename
 
+        dont_load = dont_cache and not hasattr(ds, 'index_filename')
         try:
+            if dont_load:
+                raise OSError
             rflag = self.regions.load_bitmasks(fname)
             rflag = self.regions.check_bitmasks()
             self._initialize_frontend_specific()
             if rflag == 0:
                 raise OSError
-        except OSError:
+        except (OSError, struct.error):
             self.regions.reset_bitmasks()
             self._initialize_coarse_index()
             self._initialize_refined_index()
