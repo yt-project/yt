@@ -417,7 +417,7 @@ class ProfilePlot(object):
         obj._font_color = None
         obj.profiles = ensure_list(profiles)
         obj.x_log = None
-        obj.y_log = sanitize_field_tuple_keys(y_log, obj.profiles[0].data_source)
+        obj.y_log = sanitize_field_tuple_keys(y_log, obj.profiles[0].data_source) or {}
         obj.y_title = {}
         obj.x_title = None
         obj.label = sanitize_label(labels, len(obj.profiles))
