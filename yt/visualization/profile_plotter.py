@@ -33,7 +33,7 @@ from .plot_container import \
     log_transform, linear_transform, get_log_minorticks, \
     validate_plot, invalidate_plot
 from yt.data_objects.profiles import \
-    create_profile
+    create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import \
     Dataset
 from yt.data_objects.data_containers import \
@@ -184,11 +184,13 @@ class ProfilePlot(object):
         Whether the x_axis should be plotted with a logarithmic
         scaling (True), or linear scaling (False).
         Default: True.
-    y_log : dict
+    y_log : dict or bool
         A dictionary containing field:boolean pairs, setting the logarithmic
         property for that field. May be overridden after instantiation using 
-        set_log.
-        Default: None
+        set_log
+        A single boolean can be passed to signifies all fields should use
+        logarithmic (True) or linear scaling (False).
+        Default: True.
 
     Examples
     --------
@@ -237,18 +239,20 @@ class ProfilePlot(object):
                  weight_field="cell_mass", n_bins=64,
                  accumulation=False, fractional=False,
                  label=None, plot_spec=None,
-                 x_log=True, y_log=None):
+                 x_log=True, y_log=True):
 
         data_source = data_object_or_all_data(data_source)
-
+        y_fields = ensure_list(y_fields)
         logs = {x_field: bool(x_log)}
+        if isinstance(y_log, bool):
+            y_log = {y_field: y_log for y_field in y_fields}
 
         if isinstance(data_source.ds, YTProfileDataset):
             profiles = [data_source.ds.profile]
         else:
             profiles = [create_profile(data_source, [x_field],
                                        n_bins=[n_bins],
-                                       fields=ensure_list(y_fields),
+                                       fields=y_fields,
                                        weight_field=weight_field,
                                        accumulation=accumulation,
                                        fractional=fractional,
@@ -413,11 +417,7 @@ class ProfilePlot(object):
         obj._font_color = None
         obj.profiles = ensure_list(profiles)
         obj.x_log = None
-        obj.y_log = {}
-        if y_log is not None:
-            for field, log in y_log.items():
-                field, = obj.profiles[0].data_source._determine_fields([field])
-                obj.y_log[field] = log
+        obj.y_log = sanitize_field_tuple_keys(y_log, obj.profiles[0].data_source)
         obj.y_title = {}
         obj.x_title = None
         obj.label = sanitize_label(labels, len(obj.profiles))
