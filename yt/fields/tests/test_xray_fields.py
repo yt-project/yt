@@ -38,11 +38,12 @@ def test_sloshing_apec():
 @requires_ds(d9p, big_data=True)
 def test_d9p_cloudy():
     ds = data_dir_load(d9p)
-    fields = add_xray_emissivity_field(ds, 0.5001, 2.0, redshift=ds.current_redshift,
+    fields = add_xray_emissivity_field(ds, 0.5, 2.0, redshift=ds.current_redshift,
                                        table_type="cloudy", cosmology=ds.cosmology,
                                        metallicity=("gas", "metallicity"))
     for test in check_xray_fields(ds, fields):
-        test_d9p_cloudy.__name__ = test.description + "_current_redshift"
+        test.suffix = "current_redshift"
+        test_d9p_cloudy.__name__ = test.description + test.suffix
         yield test
 
 @requires_ds(d9p, big_data=True)
@@ -52,5 +53,6 @@ def test_d9p_cloudy_local():
                                        table_type="cloudy",
                                        metallicity=("gas", "metallicity"))
     for test in check_xray_fields(ds, fields):
-        test_d9p_cloudy_local.__name__ = test.description + "_dist_1Mpc"
+        test.suffix = "dist_1Mpc"
+        test_d9p_cloudy_local.__name__ = test.description + test.suffix
         yield test
