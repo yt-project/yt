@@ -582,7 +582,7 @@ def find_root(f, a, b, tol=1e-6):
 
 
 def quad(fintegrand, xmin, xmax, n=1e4):
-    spacings = np.logspace(np.log10(xmin), np.log10(xmax), n)
+    spacings = np.logspace(np.log10(xmin), np.log10(xmax), num=int(n))
     integrand_arr = fintegrand(spacings)
     val = np.trapz(integrand_arr, dx=np.diff(spacings))
     return val
@@ -612,7 +612,7 @@ def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
     integrand = lambda x: 1./(x*sqrt(Oml0+Om0*x**-3.0))
     # current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
     current_time = quad(integrand, 1e-4, at)
-    # spacings = np.logspace(-5,np.log10(at),1e5)
+    # spacings = np.logspace(-5,np.log10(at),num=int(1e5))
     # integrand_arr = integrand(spacings)
     # current_time = np.trapz(integrand_arr,dx=np.diff(spacings))
     current_time *= 9.779/h
