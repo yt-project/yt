@@ -3,7 +3,7 @@ answer_tests:
   local_amrvac_004:
     - yt/frontends/amrvac/tests/test_outputs.py
     
-  local_arepo_004:
+  local_arepo_005:
     - yt/frontends/arepo/tests/test_outputs.py
 
   local_artio_003:
@@ -27,7 +27,7 @@ answer_tests:
   local_fits_003:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_011:
+  local_flash_012:
     - yt/frontends/flash/tests/test_outputs.py
 
   local_gadget_003:
