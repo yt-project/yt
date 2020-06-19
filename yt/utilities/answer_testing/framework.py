@@ -437,6 +437,9 @@ class AnswerTestingTest(object):
             oname = "_".join((str(s) for s in obj_type))
         args = [self._type_name, str(self.ds), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
+        suffix = getattr(self, "suffix", None)
+        if suffix:
+            args.append(suffix)
         return "_".join(args).replace('.', '_')
 
 class FieldValuesTest(AnswerTestingTest):
