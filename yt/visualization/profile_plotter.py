@@ -181,9 +181,9 @@ class ProfilePlot(object):
         arguments.  For example, dict(color="red", linestyle=":").
         Default: None.
     x_log : bool
-        If not None, whether the x_axis should be plotted with a logarithmic
-        scaling.
-        Default: None
+        Whether the x_axis should be plotted with a logarithmic
+        scaling (True), or linear scaling (False).
+        Default: True.
     y_log : dict
         A dictionary containing field:boolean pairs, setting the logarithmic
         property for that field. May be overridden after instantiation using 
@@ -237,14 +237,11 @@ class ProfilePlot(object):
                  weight_field="cell_mass", n_bins=64,
                  accumulation=False, fractional=False,
                  label=None, plot_spec=None,
-                 x_log=None, y_log=None):
+                 x_log=True, y_log=None):
 
         data_source = data_object_or_all_data(data_source)
 
-        if x_log is None:
-            logs = None
-        else:
-            logs = {x_field:x_log}
+        logs = {x_field: bool(x_log)}
 
         if isinstance(data_source.ds, YTProfileDataset):
             profiles = [data_source.ds.profile]
