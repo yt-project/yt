@@ -8,7 +8,7 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     data_dir_load, \
-    sph_answer
+    nbody_answer
 from yt.frontends.flash.api import FLASHDataset, \
     FLASHParticleDataset
 from collections import OrderedDict
@@ -54,12 +54,11 @@ fid_1to3_b1 = "fiducial_1to3_b1/fiducial_1to3_b1_hdf5_part_0080"
 
 fid_1to3_b1_fields = OrderedDict(
     [
-        (("deposit", "all_density"), None),
-        (("deposit", "all_count"), None),
-        (("deposit", "all_cic"), None),
-        (("deposit", "all_cic_velocity_x"), ("deposit", "all_cic")),
-        (("deposit", "all_cic_velocity_y"), ("deposit", "all_cic")),
-        (("deposit", "all_cic_velocity_z"), ("deposit", "all_cic")),
+        (("all", "particle_mass"), None),
+        (("all", "particle_ones"), None),
+        (("all", "particle_velocity_x"), ("all", "particle_mass")),
+        (("all", "particle_velocity_y"), ("all", "particle_mass")),
+        (("all", "particle_velocity_z"), ("all", "particle_mass")),
     ]
 )
 
@@ -92,6 +91,6 @@ def test_FLASH25_dataset():
 @requires_ds(fid_1to3_b1, big_data=True)
 def test_fid_1to3_b1():
     ds = data_dir_load(fid_1to3_b1)
-    for test in sph_answer(ds, 'fiducial_1to3_b1_hdf5_part_0080', 6684119, fid_1to3_b1_fields):
+    for test in nbody_answer(ds, 'fiducial_1to3_b1_hdf5_part_0080', 6684119, fid_1to3_b1_fields):
         test_fid_1to3_b1.__name__ = test.description
         yield test

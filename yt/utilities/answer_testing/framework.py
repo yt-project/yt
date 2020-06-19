@@ -556,6 +556,13 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         self.weight_field = weight_field
         self.obj_type = obj_type
 
+    def _get_frb(self, obj):
+        proj = self.ds.proj(self.field, self.axis,
+                              weight_field=self.weight_field,
+                              data_source = obj)
+        frb = proj.to_frb((1.0, 'unitary'), 256)
+        return proj, frb
+
     def run(self):
         if self.obj_type is not None:
             obj = create_obj(self.ds, self.obj_type)
@@ -580,6 +587,13 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             assert (k in old_result)
         for k in new_result:
             assert_rel_equal(new_result[k], old_result[k], 10)
+
+class PixelizedParticleProjectionValuesTest(PixelizedProjectionValuesTest):
+
+    def _get_frb(self, obj):
+        proj_plot = particle_plots.ParticleProjectionPlot(self.ds, self.axis, [self.field],
+                                                          weight_field = self.weight_field)
+        return proj_plot.data_source, proj_plot.frb
 
 class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
@@ -969,7 +983,7 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
@@ -981,17 +995,23 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
     assert_equal(tot, ds_nparticles)
     for dobj_name in dso:
         for field, weight_field in fields.items():
-            if field[0] in ds.particle_types:
-                particle_type = True
-            else:
-                particle_type = False
+            particle_type = field[0] in ds.particle_types
             for axis in [0, 1, 2]:
-                if particle_type is False:
-                    yield PixelizedProjectionValuesTest(
+                if not particle_type:
+                    yield proj_test_class(
                         ds, axis, field, weight_field,
                         dobj_name)
             yield FieldValuesTest(ds, field, dobj_name,
                                   particle_type=particle_type)
+
+
+def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
+    return _particle_answers(ds, ds_str_repr, ds_nparticles, fields,
+        PixelizedParticleProjectionValuesTest)
+
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+    return _particle_answers(ds, ds_str_repr, ds_nparticles, fields,
+        PixelizedProjectionValuesTest)
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of
