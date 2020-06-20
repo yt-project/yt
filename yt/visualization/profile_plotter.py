@@ -188,7 +188,7 @@ class ProfilePlot(object):
         A dictionary containing field:boolean pairs, setting the logarithmic
         property for that field. May be overridden after instantiation using 
         set_log
-        A single boolean can be passed to signifies all fields should use
+        A single boolean can be passed to signify all fields should use
         logarithmic (True) or linear scaling (False).
         Default: True.
 
