@@ -1322,7 +1322,10 @@ class ParticleSelectionComparison:
             obj_results = []
             for chunk in dobj.chunks([], "io"):
                 obj_results.append(chunk[ptype, "particle_position"])
-            obj_results = np.concatenate(obj_results, axis = 0)
+            if any(_.size > 0 for _ in obj_results):
+                obj_results = np.concatenate(obj_results, axis = 0)
+            else:
+                obj_results = np.empty((0, 3))
             assert_equal(sel_pos, obj_results)
 
     def run_defaults(self):
@@ -1353,8 +1356,14 @@ class ParticleSelectionComparison:
                    [0.5, 0.96, 0.5],
                    [0.5, 0.5, 0.96],
                    [0.96, 0.96, 0.96]]
+        r = self.ds.quan(0.1, "unitary")
         for center in centers:
             c = self.ds.arr(center, "unitary")
+            if not all(self.ds.periodicity):
+                # filter out the periodic bits for non-periodic datasets
+                if any(c - r < self.ds.domain_left_edge) or \
+                   any(c + r > self.ds.domain_right_edge):
+                    continue
             sp = self.ds.sphere(c, (0.1, "unitary"))
             self.compare_dobj_selection(sp)
 
