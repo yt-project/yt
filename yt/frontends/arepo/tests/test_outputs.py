@@ -38,7 +38,7 @@ bullet_fields = OrderedDict(
 @requires_ds(bullet_h5)
 def test_arepo_bullet():
     ds = data_dir_load(bullet_h5)
-    for test in sph_answer(ds, 'snapshot_150', 40193369, 
+    for test in sph_answer(ds, 'snapshot_150', 26529600, 
                            bullet_fields):
         test_arepo_bullet.__name__ = test.description
         yield test

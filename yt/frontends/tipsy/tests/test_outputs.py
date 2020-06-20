@@ -33,7 +33,7 @@ def test_pkdgrav():
     dd = ds.all_data()
     assert_equal(dd["Coordinates"].shape, (26847360, 3))
     tot = sum(dd[ptype,"Coordinates"].shape[0]
-              for ptype in ds.particle_types if ptype != "all")
+              for ptype in ds.particle_types_raw)
     assert_equal(tot, 26847360)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
@@ -65,7 +65,7 @@ def test_gasoline_dmonly():
     dd = ds.all_data()
     assert_equal(dd["Coordinates"].shape, (10550576, 3))
     tot = sum(dd[ptype,"Coordinates"].shape[0]
-              for ptype in ds.particle_types if ptype != "all")
+              for ptype in ds.particle_types_raw)
     assert_equal(tot, 10550576)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
