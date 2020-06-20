@@ -57,6 +57,9 @@ class OWLSSubfindParticleIndex(ParticleIndex):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
+        self._setup_filenames()
+        self._calculate_particle_index_starts()
+        self._calculate_file_offset_map()
         dsl = []
         units = {}
         for dom in self.data_files:
@@ -73,14 +76,9 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
             
-    def _setup_geometry(self):
-        super(OWLSSubfindParticleIndex, self)._setup_geometry()
-        self._calculate_particle_index_starts()
-        self._calculate_file_offset_map()
-    
 class OWLSSubfindHDF5File(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
-        super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id)
+    def __init__(self, ds, io, filename, file_id, bounds):
+        super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id, bounds)
         with h5py.File(filename, mode="r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
