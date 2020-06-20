@@ -701,14 +701,8 @@ class ProfilePlot(object):
 
     def _get_field_log(self, field_y, profile):
         yfi = profile.field_info[field_y]
-        if self.x_log is None:
-            x_log = profile.x_log
-        else:
-            x_log = self.x_log
-        if field_y in self.y_log:
-            y_log = self.y_log[field_y]
-        else:
-            y_log = yfi.take_log
+        x_log = self.x_log or profile.x_log
+        y_log = self.y_log.get(field_y, yfi.take_log)
         scales = {True: 'log', False: 'linear'}
         return scales[x_log], scales[y_log]
 
