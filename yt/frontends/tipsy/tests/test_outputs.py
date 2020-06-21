@@ -50,7 +50,7 @@ def test_gasoline_dmonly():
                   unit_base = {'length': (60.0, "Mpccm/h")})
     ds = data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
     for test in nbody_answer(ds, "agora_1e11.00400", 10550576, _fields):
-        yield yest
+        yield test
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
 
