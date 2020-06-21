@@ -44,7 +44,7 @@ answer_tests:
 
   local_halos_009:
     - yt/frontends/ahf/tests/test_outputs.py
-    - yt/frontends/owls_subfind/tests/test_outputs.py
+    # - yt/frontends/owls_subfind/tests/test_outputs.py
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
