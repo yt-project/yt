@@ -8,14 +8,20 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
     sph_answer, \
+    nbody_answer, \
     create_obj, \
     FieldValuesTest, \
     PixelizedProjectionValuesTest
 from yt.frontends.tipsy.api import TipsyDataset
 
-_fields = (("deposit", "all_density"),
-           ("deposit", "all_count"),
-           ("deposit", "DarkMatter_density"),
+_fields = OrderedDict(
+    [
+        (("all", "particle_mass"), None),
+        (("all", "particle_ones"), None),
+        (("all", "particle_velocity_x"), ("all", "particle_mass")),
+        (("all", "particle_velocity_y"), ("all", "particle_mass")),
+        (("all", "particle_velocity_z"), ("all", "particle_mass")),
+    ]
 )
 
 pkdgrav = "halo1e11_run1.00400/halo1e11_run1.00400"
@@ -28,27 +34,10 @@ pkdgrav_kwargs = dict(cosmology_parameters = pkdgrav_cosmology_parameters,
 @requires_ds(pkdgrav, big_data = True, file_check = True)
 def test_pkdgrav():
     ds = data_dir_load(pkdgrav, TipsyDataset, (), kwargs = pkdgrav_kwargs)
-    assert_equal(str(ds), "halo1e11_run1.00400")
-    dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
-    dd = ds.all_data()
-    assert_equal(dd["Coordinates"].shape, (26847360, 3))
-    tot = sum(dd[ptype,"Coordinates"].shape[0]
-              for ptype in ds.particle_types_raw)
-    assert_equal(tot, 26847360)
+    for test in nbody_answer(ds, "halo1e11_run1.00400", 26847360, _fields):
+        yield test
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
-    for dobj_name in dso:
-        for field in _fields:
-            for axis in [0, 1, 2]:
-                for weight_field in [None]:
-                    yield PixelizedProjectionValuesTest(
-                        ds, axis, field, weight_field,
-                        dobj_name)
-            yield FieldValuesTest(ds, field, dobj_name)
-        dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
-        s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        assert_equal(s1, s2)
 
 gasoline_dmonly = "agora_1e11.00400/agora_1e11.00400"
 @requires_ds(gasoline_dmonly, big_data = True, file_check = True)
@@ -60,35 +49,23 @@ def test_gasoline_dmonly():
     kwargs = dict(cosmology_parameters = cosmology_parameters,
                   unit_base = {'length': (60.0, "Mpccm/h")})
     ds = data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
-    assert_equal(str(ds), "agora_1e11.00400")
-    dso = [ None, ("sphere", ("c", (0.3, 'unitary')))]
-    dd = ds.all_data()
-    assert_equal(dd["Coordinates"].shape, (10550576, 3))
-    tot = sum(dd[ptype,"Coordinates"].shape[0]
-              for ptype in ds.particle_types_raw)
-    assert_equal(tot, 10550576)
+    for test in nbody_answer(ds, "agora_1e11.00400", 10550576, _fields):
+        yield yest
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
-    for dobj_name in dso:
-        for field in _fields:
-            for axis in [0, 1, 2]:
-                for weight_field in [None]:
-                    yield PixelizedProjectionValuesTest(
-                        ds, axis, field, weight_field,
-                        dobj_name)
-            yield FieldValuesTest(ds, field, dobj_name)
-        dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
-        s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        assert_equal(s1, s2)
 
-tg_fields = OrderedDict(
+tg_sph_fields = OrderedDict(
     [
         (('gas', 'density'), None),
         (('gas', 'temperature'), None),
         (('gas', 'temperature'), ('gas', 'density')),
         (('gas', 'velocity_magnitude'), None),
         (('gas', 'Fe_fraction'), None),
+    ]
+)
+
+tg_nbody_fields = OrderedDict(
+    [
         (('Stars', 'Metals'), None),
     ]
 )
@@ -104,7 +81,10 @@ def test_tipsy_galaxy():
     # selection using bboxes.
     #psc = ParticleSelectionComparison(ds)
     #psc.run_defaults()
-    for test in sph_answer(ds, 'galaxy.00300', 315372, tg_fields):
+    for test in sph_answer(ds, 'galaxy.00300', 315372, tg_sph_fields):
+        test_tipsy_galaxy.__name__ = test.description
+        yield test
+    for test in nbody_answer(ds, 'galaxy.00300', 315372, tg_nbody_fields):
         test_tipsy_galaxy.__name__ = test.description
         yield test
 
