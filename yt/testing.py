@@ -1358,7 +1358,7 @@ class ParticleSelectionComparison:
                    [0.96, 0.96, 0.96]]
         r = self.ds.quan(0.1, "unitary")
         for center in centers:
-            c = self.ds.arr(center, "unitary")
+            c = self.ds.arr(center, "unitary") + self.ds.domain_left_edge.in_units("unitary")
             if not all(self.ds.periodicity):
                 # filter out the periodic bits for non-periodic datasets
                 if any(c - r < self.ds.domain_left_edge) or \
