@@ -1,22 +1,6 @@
-"""
-Utilities to aid testing.
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import hashlib
 import matplotlib
-from yt.extern.six import string_types
-from yt.extern.six.moves import cPickle
+import pickle
 import itertools as it
 import numpy as np
 import functools
@@ -39,7 +23,7 @@ from numpy.testing import assert_allclose, assert_raises  # NOQA
 from numpy.random import RandomState
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTUnitOperationError
+from unyt.exceptions import UnitOperationError
 import yt
 
 ANSWER_TEST_TAG = "answer_test"
@@ -277,8 +261,7 @@ def fake_particle_ds(
                   "particle_velocity_z"),
         units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s'),
         negative = (False, False, False, False, True, True, True),
-        npart = 16**3, length_unit=1.0, data=None,
-        over_refine_factor = 1):
+        npart = 16**3, length_unit=1.0, data=None):
     from yt.frontends.stream.api import load_particles
 
     prng = RandomState(0x4d3d3d3)
@@ -302,7 +285,7 @@ def fake_particle_ds(
         v = (prng.random_sample(npart) - offset)
         data[field] = (v, u)
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
-    ds = load_particles(data, 1.0, bbox=bbox, over_refine_factor = over_refine_factor)
+    ds = load_particles(data, 1.0, bbox=bbox)
     return ds
 
 
@@ -453,6 +436,85 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     ds = load_uniform_grid(data, arr.shape, bbox=bbox)
     return ds
 
+def fake_sph_orientation_ds():
+    """Returns an in-memory SPH dataset useful for testing
+
+    This dataset should have one particle at the origin, one more particle
+    along the x axis, two along y, and three along z. All particles will
+    have non-overlapping smoothing regions with a radius of 0.25, masses of 1,
+    and densities of 1, and zero velocity.
+    """
+    from yt import load_particles
+
+    npart = 7
+
+    # one particle at the origin, one particle along x-axis, two along y,
+    # three along z
+    data = {
+        'particle_position_x': (
+            np.array([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]), 'cm'),
+        'particle_position_y': (
+            np.array([0.0, 0.0, 1.0, 2.0, 0.0, 0.0, 0.0]), 'cm'),
+        'particle_position_z': (
+            np.array([0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 3.0]), 'cm'),
+        'particle_mass': (np.ones(npart), 'g'),
+        'particle_velocity_x': (np.zeros(npart), 'cm/s'),
+        'particle_velocity_y': (np.zeros(npart), 'cm/s'),
+        'particle_velocity_z': (np.zeros(npart), 'cm/s'),
+        'smoothing_length': (0.25*np.ones(npart), 'cm'),
+        'density': (np.ones(npart), 'g/cm**3'),
+        'temperature': (np.ones(npart), 'K'),
+    }
+
+    bbox = np.array([[-4, 4], [-4, 4], [-4, 4]])
+
+    return load_particles(data=data, length_unit=1.0, bbox=bbox)
+
+def fake_sph_grid_ds(hsml_factor=1.0):
+    """Returns an in-memory SPH dataset useful for testing
+
+    This dataset should have 27 particles with the particles arranged uniformly
+    on a 3D grid. The bottom left corner is (0.5,0.5,0.5) and the top right
+    corner is (2.5,2.5,2.5). All particles will have non-overlapping smoothing
+    regions with a radius of 0.05, masses of 1, and densities of 1, and zero
+    velocity.
+    """
+    from yt import load_particles
+
+    npart = 27
+
+    x = np.empty(npart)
+    y = np.empty(npart)
+    z = np.empty(npart)
+
+    tot = 0
+    for i in range(0,3):
+        for j in range(0,3):
+            for k in range(0,3):
+                x[tot] = i+0.5
+                y[tot] = j+0.5
+                z[tot] = k+0.5
+                tot+=1
+
+    data = {
+        'particle_position_x': (
+            x, 'cm'),
+        'particle_position_y': (
+            y, 'cm'),
+        'particle_position_z': (
+            z, 'cm'),
+        'particle_mass': (np.ones(npart), 'g'),
+        'particle_velocity_x': (np.zeros(npart), 'cm/s'),
+        'particle_velocity_y': (np.zeros(npart), 'cm/s'),
+        'particle_velocity_z': (np.zeros(npart), 'cm/s'),
+        'smoothing_length': (0.05*np.ones(npart)*hsml_factor, 'cm'),
+        'density': (np.ones(npart), 'g/cm**3'),
+        'temperature': (np.ones(npart), 'K'),
+    }
+
+    bbox = np.array([[0, 3], [0, 3], [0, 3]])
+
+    return load_particles(data=data, length_unit=1.0, bbox=bbox)
 
 def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
     # Implementation taken from url:
@@ -573,14 +635,14 @@ def expand_keywords(keywords, full=False):
     >>> keywords['dpi'] = (50, 100, 200)
     >>> keywords['cmap'] = ('arbre', 'kelp')
     >>> list_of_kwargs = expand_keywords(keywords)
-    >>> print list_of_kwargs
+    >>> print(list_of_kwargs)
 
     array([{'cmap': 'arbre', 'dpi': 50},
            {'cmap': 'kelp', 'dpi': 100},
            {'cmap': 'arbre', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
-    >>> print list_of_kwargs
+    >>> print(list_of_kwargs)
 
     array([{'cmap': 'arbre', 'dpi': 50},
            {'cmap': 'arbre', 'dpi': 100},
@@ -605,7 +667,7 @@ def expand_keywords(keywords, full=False):
         # Determine the maximum number of values any of the keywords has
         num_lists = 0
         for val in keywords.values():
-            if isinstance(val, string_types):
+            if isinstance(val, str):
                 num_lists = max(1.0, num_lists)
             else:
                 num_lists = max(len(val), num_lists)
@@ -622,7 +684,7 @@ def expand_keywords(keywords, full=False):
             list_of_kwarg_dicts[i] = {}
             for key in keywords.keys():
                 # if it's a string, use it (there's only one)
-                if isinstance(keywords[key], string_types):
+                if isinstance(keywords[key], str):
                     list_of_kwarg_dicts[i][key] = keywords[key]
                 # if there are more options, use the i'th val
                 elif i < len(keywords[key]):
@@ -976,7 +1038,7 @@ def check_results(func):
             ha = hashlib.md5(_rv.tostring()).hexdigest()
             fn = "func_results_ref_%s.cpkl" % (name)
             with open(fn, "wb") as f:
-                cPickle.dump( (mi, ma, st, su, si, ha), f)
+                pickle.dump( (mi, ma, st, su, si, ha), f)
             return rv
         return _func
     from yt.mods import unparsed_args
@@ -1004,7 +1066,7 @@ def check_results(func):
                 print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
-                ref = cPickle.load(f)
+                ref = pickle.load(f)
             print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
@@ -1103,7 +1165,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         des = des.in_units(act.units)
-    except YTUnitOperationError:
+    except UnitOperationError:
         raise AssertionError("Units of actual (%s) and desired (%s) do not have "
                              "equivalent dimensions" % (act.units, des.units))
 
@@ -1117,7 +1179,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         at = at.in_units(act.units)
-    except YTUnitOperationError:
+    except UnitOperationError:
         raise AssertionError("Units of atol (%s) and actual (%s) do not have "
                              "equivalent dimensions" % (at.units, act.units))
 
@@ -1216,3 +1278,112 @@ class TempDirTest(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
+
+class ParticleSelectionComparison:
+    """
+    This is a test helper class that takes a particle dataset, caches the
+    particles it has on disk (manually reading them using lower-level IO
+    routines) and then received a data object that it compares against manually
+    running the data object's selection routines.  All supplied data objects
+    must be created from the input dataset.
+    """
+
+    def __init__(self, ds):
+        self.ds = ds
+        # Construct an index so that we get all the data_files
+        ds.index
+        particles = {}
+        # hsml is the smoothing length we use for radial selection
+        hsml = {}
+        for data_file in ds.index.data_files:
+            for ptype, pos_arr in ds.index.io._yield_coordinates(data_file):
+                particles.setdefault(ptype, []).append(pos_arr)
+                if ptype in getattr(ds, '_sph_ptypes', ()):
+                    hsml.setdefault(ptype, []).append(ds.index.io._get_smoothing_length(
+                        data_file, pos_arr.dtype, pos_arr.shape))
+        for ptype in particles:
+            particles[ptype] = np.concatenate(particles[ptype])
+            if ptype in hsml:
+                hsml[ptype] = np.concatenate(hsml[ptype])
+        self.particles = particles
+        self.hsml = hsml
+
+    def compare_dobj_selection(self, dobj):
+        for ptype in sorted(self.particles):
+            x, y, z = self.particles[ptype].T
+            # Set our radii to zero for now, I guess?
+            radii = self.hsml.get(ptype, 0.0)
+            sel_index = dobj.selector.select_points(x, y, z, radii)
+            if sel_index is None:
+                sel_pos = np.empty((0, 3))
+            else:
+                sel_pos = self.particles[ptype][sel_index, :]
+
+            obj_results = []
+            for chunk in dobj.chunks([], "io"):
+                obj_results.append(chunk[ptype, "particle_position"])
+            if any(_.size > 0 for _ in obj_results):
+                obj_results = np.concatenate(obj_results, axis = 0)
+            else:
+                obj_results = np.empty((0, 3))
+            assert_equal(sel_pos, obj_results)
+
+    def run_defaults(self):
+        """
+        This runs lots of samples that touch different types of wraparounds.
+
+        Specifically, it does:
+
+            * sphere in center with radius 0.1 unitary
+            * sphere in center with radius 0.2 unitary
+            * sphere in each of the eight corners of the domain with radius 0.1 unitary
+            * sphere in center with radius 0.5 unitary
+            * box that covers 0.1 .. 0.9
+            * box from 0.8 .. 0.85
+            * box from 0.3..0.6, 0.2..0.8, 0.0..0.1
+        """
+        sp1 = self.ds.sphere("c", (0.1, "unitary"))
+        self.compare_dobj_selection(sp1)
+
+        sp2 = self.ds.sphere("c", (0.2, "unitary"))
+        self.compare_dobj_selection(sp2)
+
+        centers = [[0.04, 0.5, 0.5],
+                   [0.5, 0.04, 0.5],
+                   [0.5, 0.5, 0.04],
+                   [0.04, 0.04, 0.04],
+                   [0.96, 0.5, 0.5],
+                   [0.5, 0.96, 0.5],
+                   [0.5, 0.5, 0.96],
+                   [0.96, 0.96, 0.96]]
+        r = self.ds.quan(0.1, "unitary")
+        for center in centers:
+            c = self.ds.arr(center, "unitary")
+            if not all(self.ds.periodicity):
+                # filter out the periodic bits for non-periodic datasets
+                if any(c - r < self.ds.domain_left_edge) or \
+                   any(c + r > self.ds.domain_right_edge):
+                    continue
+            sp = self.ds.sphere(c, (0.1, "unitary"))
+            self.compare_dobj_selection(sp)
+
+        sp = self.ds.sphere("c", (0.5, "unitary"))
+        self.compare_dobj_selection(sp)
+
+        dd = self.ds.all_data()
+        self.compare_dobj_selection(dd)
+
+        reg1 = self.ds.r[ (0.1, 'unitary'):(0.9, 'unitary'),
+                          (0.1, 'unitary'):(0.9, 'unitary'),
+                          (0.1, 'unitary'):(0.9, 'unitary')]
+        self.compare_dobj_selection(reg1)
+
+        reg2 = self.ds.r[ (0.8, 'unitary'):(0.85, 'unitary'),
+                          (0.8, 'unitary'):(0.85, 'unitary'),
+                          (0.8, 'unitary'):(0.85, 'unitary')]
+        self.compare_dobj_selection(reg2)
+
+        reg3 = self.ds.r[ (0.3, 'unitary'):(0.6, 'unitary'),
+                          (0.2, 'unitary'):(0.8, 'unitary'),
+                          (0.0, 'unitary'):(0.1, 'unitary')]
+        self.compare_dobj_selection(reg3)

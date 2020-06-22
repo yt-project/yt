@@ -1,19 +1,3 @@
-"""
-OWLSSubfind data-file handling function
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
@@ -42,7 +26,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda f: f.filename):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
@@ -76,7 +60,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files, key=lambda f: f.filename):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]

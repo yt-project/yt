@@ -1,18 +1,3 @@
-"""
-OWLSSimulation class and member functions.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013-2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
 
 from yt.frontends.gadget.simulation_handling import \
@@ -44,7 +29,7 @@ class OWLSSimulation(GadgetSimulation):
     >>> es = yt.simulation("my_simulation.par", "OWLS")
     >>> es.get_time_series()
     >>> for ds in es:
-    ...     print ds.current_time
+    ...     print(ds.current_time)
 
     """
 

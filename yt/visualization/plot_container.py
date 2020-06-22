@@ -1,23 +1,6 @@
-"""
-A base class for "image" plots with colorbars.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+import builtins
 from yt.funcs import mylog
 from yt.units import YTQuantity
-from yt.extern.six.moves import builtins
-from yt.extern.six import  \
-    iteritems, \
-    string_types
 
 import base64
 import numpy as np
@@ -37,8 +20,6 @@ from yt.funcs import \
     ensure_dir, \
     ensure_list, \
     issue_deprecation_warning
-from yt.units.unit_lookup_table import \
-    prefixable_units, latex_prefixes
 from yt.units.unit_object import \
     Unit
 from yt.utilities.definitions import \
@@ -47,6 +28,10 @@ from yt.utilities.exceptions import \
     YTNotInsideNotebook
 from yt.visualization.color_maps import \
     yt_colormaps
+
+latex_prefixes = {
+    "u": r"\mu",
+    }
 
 
 def invalidate_data(f):
@@ -489,7 +474,7 @@ class PlotContainer(object):
         if suffix is None:
             suffix = get_image_suffix(name)
             if suffix != '':
-                for k, v in iteritems(self.plots):
+                for k, v in self.plots.items():
                     names.append(v.save(name, mpl_kwargs))
                 return names
         if hasattr(self.data_source, 'axis'):
@@ -505,7 +490,7 @@ class PlotContainer(object):
                 weight = weight[1].replace(' ', '_')
         if 'Cutting' in self.data_source.__class__.__name__:
             type = 'OffAxisSlice'
-        for k, v in iteritems(self.plots):
+        for k, v in self.plots.items():
             if isinstance(k, tuple):
                 k = k[1]
             if axis:
@@ -546,7 +531,7 @@ class PlotContainer(object):
         """
         interactivity = self.plots[list(self.plots.keys())[0]].interactivity
         if interactivity:
-            for k,v in sorted(iteritems(self.plots)):
+            for k,v in sorted(self.plots.items()):
                 v.show()
         else:
             if "__IPYTHON__" in dir(builtins):
@@ -662,7 +647,7 @@ class PlotContainer(object):
                     pp = un[0]
                     if pp in latex_prefixes:
                         symbol_wo_prefix = un[1:]
-                        if symbol_wo_prefix in prefixable_units:
+                        if symbol_wo_prefix in self.ds.unit_registry.prefixable_units:
                             un = un.replace(
                                 pp, "{"+latex_prefixes[pp]+"}", 1)
                 axes_unit_labels[i] = r'\ \ ('+un+')'
@@ -860,7 +845,7 @@ class ImagePlotContainer(PlotContainer):
         """
         if color is None:
             cmap = self._colormaps[field]
-            if isinstance(cmap, string_types):
+            if isinstance(cmap, str):
                 try:
                     cmap = yt_colormaps[cmap]
                 except KeyError:
@@ -896,14 +881,13 @@ class ImagePlotContainer(PlotContainer):
             zmin = zmax / dynamic_range.
 
         """
-
-        def _sanitize_units(z):
+        def _sanitize_units(z, _field):
             # convert dimensionful inputs to float
             if isinstance(z, tuple):
                 z = self.ds.quan(*z)
             if isinstance(z, YTQuantity):
                 try:
-                    plot_units = self.frb[field].units
+                    plot_units = self.frb[_field].units
                     z = z.to(plot_units).value
                 except AttributeError:
                     # only certain subclasses have a frb attribute they can rely on for inspecting units
@@ -911,22 +895,26 @@ class ImagePlotContainer(PlotContainer):
                     z = z.value
             return z
 
-        myzmin = _sanitize_units(zmin)
-        myzmax = _sanitize_units(zmax)
-        if zmin == 'min':
-            myzmin = self.plots[field].image._A.min()
-        if zmax == 'max':
-            myzmax = self.plots[field].image._A.max()
-        if dynamic_range is not None:
-            if zmax is None:
-                myzmax = myzmin * dynamic_range
-            else:
-                myzmin = myzmax / dynamic_range
-
-        if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
-            self._field_transform[field] = log_transform
-        self.plots[field].zmin = myzmin
-        self.plots[field].zmax = myzmax
+        if field == 'all':
+            fields = list(self.plots.keys())
+        else:
+            fields = ensure_list(field)
+        for field in self.data_source._determine_fields(fields):
+            myzmin = _sanitize_units(zmin, field)
+            myzmax = _sanitize_units(zmax, field)
+            if zmin == 'min':
+                myzmin = self.plots[field].image._A.min()
+            if zmax == 'max':
+                myzmax = self.plots[field].image._A.max()
+            if dynamic_range is not None:
+                if zmax is None:
+                    myzmax = myzmin * dynamic_range
+                else:
+                    myzmin = myzmax / dynamic_range
+            if myzmin > 0.0 and self._field_transform[field] == symlog_transform:
+                self._field_transform[field] = log_transform
+            self.plots[field].zmin = myzmin
+            self.plots[field].zmax = myzmax
         return self
 
     @invalidate_plot

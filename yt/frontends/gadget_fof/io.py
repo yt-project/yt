@@ -1,19 +1,3 @@
-"""
-GadgetFOF data-file handling function
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from collections import defaultdict
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
@@ -43,7 +27,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     coords = data_file._get_particle_positions(ptype, f=f)
@@ -53,6 +37,16 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                     y = coords[:, 1]
                     z = coords[:, 2]
                     yield ptype, (x, y, z)
+
+    def _yield_coordinates(self, data_file):
+        ptypes = self.ds.particle_types_raw
+        with h5py.File(data_file.filename, "r") as f:
+            for ptype in sorted(ptypes):
+                pcount = data_file.total_particles[ptype]
+                if pcount == 0: continue
+                coords = f[ptype]["%sPos" % ptype][()].astype("float64")
+                coords = np.resize(coords, (pcount, 3))
+                yield ptype, coords
 
     def _read_offset_particle_field(self, field, data_file, fh):
         field_data = np.empty(data_file.total_particles["Group"], dtype="float64")
@@ -78,7 +72,8 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
@@ -110,7 +105,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                                 if my_div > 1:
                                     findex = int(field[field.rfind("_") + 1:])
                                     field_data = field_data[:, findex]
-                        data = field_data[mask]
+                        data = field_data[si:ei][mask]
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
@@ -151,7 +146,14 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        return data_file.total_particles
+        si, ei = data_file.start, data_file.end
+        pcount = \
+          {"Group": data_file.header["Ngroups_ThisFile"],
+           "Subhalo": data_file.header["Nsubgroups_ThisFile"]}
+        if None not in (si, ei):
+            for ptype in pcount:
+                pcount[ptype] = np.clip(pcount[ptype]-si, 0, ei-si)
+        return pcount
 
     def _identify_fields(self, data_file):
         fields = []

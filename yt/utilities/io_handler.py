@@ -1,30 +1,12 @@
-"""
-The data-file handling functions
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from collections import defaultdict
 from contextlib import contextmanager
 
 import os
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-from yt.extern.six import add_metaclass
 from yt.utilities.lru_cache import \
     local_lru_cache, _make_key
 from yt.geometry.selection_routines import GridSelector
-
-_axis_ids = {0:2,1:1,2:0}
 
 io_registry = {}
 
@@ -44,14 +26,15 @@ class RegisteredIOHandler(type):
             cls._read_obj_field = local_lru_cache(maxsize=use_caching, 
                     typed=True, make_key=_make_io_key)(cls._read_obj_field)
 
-@add_metaclass(RegisteredIOHandler)
-class BaseIOHandler(object):
+class BaseIOHandler(metaclass = RegisteredIOHandler):
     _vector_fields = ()
     _dataset_type = None
     _particle_reader = False
     _cache_on = False
     _misses = 0
     _hits = 0
+
+    __metaclass__ = RegisteredIOHandler
 
     def __init__(self, ds):
         self.queue = defaultdict(dict)
@@ -165,19 +148,21 @@ class BaseIOHandler(object):
     def _read_chunk_data(self, chunk, fields):
         return {}
 
-    def _count_particles_chunks(self, chunks, ptf, selector):
-        psize = defaultdict(lambda: 0) # COUNT PTYPES ON DISK
+    def _count_particles_chunks(self, psize, chunks, ptf, selector):
         for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+            # assume particles have zero radius, we break this assumption
+            # in the SPH frontend and override this function there
             psize[ptype] += selector.count_points(x, y, z, 0.0)
-        return dict(psize.items())
+        return psize
 
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type
-        ptf = defaultdict(list)        # ON-DISK TO READ
-        fsize = defaultdict(lambda: 0) # COUNT RV
-        field_maps = defaultdict(list) # ptypes -> fields
+        ptf = defaultdict(list)         # ptype -> on-disk fields to read
+        fsize = defaultdict(lambda: 0)  # ptype -> size of return value
+        psize = defaultdict(lambda: 0)  # ptype -> particle count on disk
+        field_maps = defaultdict(list)  # ptype -> fields (including unions)
         chunks = list(chunks)
         unions = self.ds.particle_unions
         # What we need is a mapping from particle types to return types
@@ -192,14 +177,13 @@ class BaseIOHandler(object):
             else:
                 ptf[ftype].append(fname)
                 field_maps[field].append(field)
-        # We can't hash chunks, but otherwise this is a neat idea.
-        # Now we have our full listing.
-        # Here, ptype_map means which particles contribute to a given type.
-        # And ptf is the actual fields from disk to read.
-        psize = self._count_particles_chunks(chunks, ptf, selector)
+        # Now we have our full listing
+
+        # psize maps the names of particle types to the number of
+        # particles of each type
+        self._count_particles_chunks(psize, chunks, ptf, selector)
+
         # Now we allocate
-        # ptf, remember, is our mapping of what we want to read
-        #for ptype in ptf:
         for field in fields:
             if field[0] in unions:
                 for pt in unions[field[0]]:

@@ -1,17 +1,3 @@
-"""
-Test for write_bitmap and add_rgba_points
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import os
 import os.path
 import tempfile
@@ -30,7 +16,6 @@ def setup():
 
 
 def test_splat():
-    """Tests functionality of off_axis_projection and write_projection."""
     # Perform I/O in safe place instead of yt main dir
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()

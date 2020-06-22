@@ -1,17 +1,5 @@
-"""
-Testsuite for PlotWindow class
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import matplotlib
 import numpy as np
 import os
@@ -137,6 +125,8 @@ PROJECTION_METHODS = (
     'sum',
     'mip'
 )
+
+BUFF_SIZES = [(800, 800), (1600, 1600), (1254, 1254), (800, 600)]
 
 def simple_contour(test_obj, plot):
     plot.annotate_contour(test_obj.plot_field)
@@ -336,6 +326,15 @@ class TestPlotWindowSave(unittest.TestCase):
             proj = ProjectionPlot(test_ds, 0, 'density', method=method)
             proj.save()
 
+    def test_projection_plot_bs(self):
+        test_ds = fake_random_ds(16)
+        for bf in BUFF_SIZES:
+            proj = ProjectionPlot(test_ds, 0, ('gas', 'density'), buff_size=bf)
+            image = proj.frb['gas', 'density']
+
+            # note that image.shape is inverted relative to the passed in buff_size
+            assert_equal(image.shape[::-1], bf)
+
     def test_offaxis_slice_plot(self):
         test_ds = fake_random_ds(16)
         slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
@@ -476,7 +475,7 @@ def test_set_unit():
 
     slc.set_unit('temperature', 'degF')
 
-    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+    assert str(slc.frb['gas', 'temperature'].units) == '°F'
     assert_array_almost_equal(np.array(slc.frb['gas', 'temperature']),
                               np.array(orig_array)*1.8 - 459.67)
 
@@ -484,7 +483,7 @@ def test_set_unit():
     # new unit
     slc.set_buff_size(1000)
 
-    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+    assert str(slc.frb['gas', 'temperature'].units) == '°F'
 
     slc.set_buff_size(800)
 

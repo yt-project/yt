@@ -1,22 +1,3 @@
-"""
-Utility functions for ytdata frontend.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import numpy as np
-
-from yt.funcs import iterable
 from yt.units.yt_array import \
     YTArray
 from yt.utilities.logger import \
@@ -233,15 +214,9 @@ def _yt_array_hdf5_attr(fh, attr, val):
     if val is None: val = "None"
     if hasattr(val, "units"):
         fh.attrs["%s_units" % attr] = str(val.units)
-    # The following is a crappy workaround for getting
-    # Unicode strings into HDF5 attributes in Python 3
-    if iterable(val):
-        val = np.array(val)
-        if val.dtype.kind == 'U':
-            val = val.astype('|S')
     try:
         fh.attrs[str(attr)] = val
     # This is raised if no HDF5 equivalent exists.
     # In that case, save its string representation.
     except TypeError:
-        fh.attrs[str(attr)] = str(val)
+        fh.attrs[str(attr)] = repr(val)

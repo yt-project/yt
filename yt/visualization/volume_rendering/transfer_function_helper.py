@@ -1,19 +1,3 @@
-"""
-A helper class to build, display, and modify transfer functions for volume
-rendering.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import matplotlib
 import numpy as np
 
@@ -23,7 +7,7 @@ from yt.funcs import mylog
 from yt.data_objects.profiles import create_profile
 from yt.visualization.volume_rendering.transfer_functions import \
     ColorTransferFunction
-from yt.extern.six import BytesIO
+from io import BytesIO
 
 
 class TransferFunctionHelper(object):

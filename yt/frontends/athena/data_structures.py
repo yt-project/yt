@@ -1,18 +1,3 @@
-"""
-Data structures for Athena.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import os
 import weakref
@@ -27,30 +12,25 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
+from yt.utilities.chemical_formulas import \
+    default_mu
 from yt.utilities.lib.misc_utilities import \
     get_box_grids_level
 from yt.geometry.geometry_handler import \
     YTDataChunk
-from yt.extern.six import PY2
 
 from .fields import AthenaFieldInfo
 from yt.utilities.decompose import \
     decompose_array, get_psize
 
 def chk23(strin):
-    if PY2:
-        return strin
-    else:
-        return strin.encode('utf-8')
+    return strin.encode('utf-8')
 
 def str23(strin):
-    if PY2:
-        return strin
+    if isinstance(strin, list):
+        return [s.decode('utf-8') for s in strin]
     else:
-        if isinstance(strin, list):
-            return [s.decode('utf-8') for s in strin]
-        else:
-            return strin.decode('utf-8')
+        return strin.decode('utf-8')
 
 def check_readline(fl):
     line = fl.readline()
@@ -571,6 +551,7 @@ class AthenaDataset(Dataset):
             self.parameters["Gamma"] = 5./3.
         self.geometry = self.specified_parameters.get("geometry", "cartesian")
         self._handle.close()
+        self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

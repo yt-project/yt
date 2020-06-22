@@ -1,19 +1,3 @@
-"""
-Gizmo frontend tests
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from collections import OrderedDict
 
 import yt
@@ -34,9 +18,6 @@ fields = OrderedDict(
         (("gas", "metallicity"), ('gas', 'density')),
         (("gas", "O_metallicity"), ('gas', 'density')),
         (('gas', 'velocity_magnitude'), None),
-        (("deposit", "all_count"), None),
-        (("deposit", "all_cic"), None),
-        (("deposit", "PartType0_density"), None),
     ]
 )
 
@@ -105,6 +86,7 @@ def test_gas_particle_fields():
     for species in metal_elements:
         for suffix in ["nuclei_mass_density", "metallicity"]:
             derived_fields += ["%s_%s" % (species, suffix)]
+    derived_fields += ["magnetic_field_%s" % axis for axis in "xyz"]
     for field in derived_fields:
         assert (ptype, field) in ds.derived_field_list
 

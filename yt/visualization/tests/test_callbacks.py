@@ -1,18 +1,3 @@
-"""
-Tests for callbacks
-
-
-
-"""
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import tempfile
 import shutil
 from numpy.testing import \
@@ -184,7 +169,7 @@ def test_ray_callback():
         ax = 'z'
         vector = [1.0,1.0,1.0]
         ds = fake_amr_ds(fields = ("density",))
-        ray = ds.ray((0.1, 0.2, 0.3), (1.6, 1.8, 1.5))
+        ray = ds.ray((0.1, 0.2, 0.3), (.6, .8, .5))
         oray = ds.ortho_ray(0, (0.3, 0.4))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_ray(oray)
@@ -206,7 +191,7 @@ def test_ray_callback():
 
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields = ("density",), geometry="spherical")
-        ray = ds.ray((0.1, 0.2, 0.3), (1.6, 1.8, 1.5))
+        ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.8, 0.5))
         oray = ds.ortho_ray(0, (0.3, 0.4))
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_ray(oray)

@@ -1,19 +1,3 @@
-"""
-SDF data-file handling function
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from yt.utilities.io_handler import \
@@ -44,7 +28,7 @@ class IOHandlerSDF(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert(len(data_files) == 1)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             yield "dark_matter", (
                 self._handle['x'], self._handle['y'], self._handle['z'])
 
@@ -57,7 +41,7 @@ class IOHandlerSDF(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert(len(data_files) == 1)
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle['x']
                 y = self._handle['y']

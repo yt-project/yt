@@ -1,16 +1,3 @@
-"""
-BoxLib code fields
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import string
 import re
 import numpy as np
@@ -211,7 +198,8 @@ class BoxlibFieldInfo(FieldInfoContainer):
             return velocity
 
         for ax in 'xyz':
-            self.add_field((ptype, "particle_velocity_%s" % ax), sampling_type="particle",
+            self.add_field((ptype, "particle_velocity_%s" % ax),
+                           sampling_type="particle",
                            function=_get_vel(ax),
                            units="code_length/code_time")
 
@@ -224,14 +212,17 @@ class BoxlibFieldInfo(FieldInfoContainer):
             self.setup_momentum_to_velocity()
         elif any(f[1] == "xvel" for f in self.field_list):
             self.setup_velocity_to_momentum()
-        self.add_field(("gas", "thermal_energy"), sampling_type="cell",
+        self.add_field(("gas", "thermal_energy"),
+                       sampling_type="cell",
                        function=_thermal_energy,
                        units=unit_system["specific_energy"])
-        self.add_field(("gas", "thermal_energy_density"), sampling_type="cell",
+        self.add_field(("gas", "thermal_energy_density"),
+                       sampling_type="cell",
                        function=_thermal_energy_density,
                        units=unit_system["pressure"])
         if ("gas", "temperature") not in self.field_aliases:
-            self.add_field(("gas", "temperature"), sampling_type="cell",
+            self.add_field(("gas", "temperature"),
+                           sampling_type="cell",
                            function=_temperature,
                            units=unit_system["temperature"])
 
@@ -241,7 +232,8 @@ class BoxlibFieldInfo(FieldInfoContainer):
                 return data["%smom" % axis]/data["density"]
             return velocity
         for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax), sampling_type="cell",
+            self.add_field(("gas", "velocity_%s" % ax),
+                           sampling_type="cell",
                            function=_get_vel(ax),
                            units=self.ds.unit_system["velocity"])
 
@@ -251,7 +243,8 @@ class BoxlibFieldInfo(FieldInfoContainer):
                 return data["%svel" % axis]*data["density"]
             return momentum
         for ax in 'xyz':
-            self.add_field(("gas", "momentum_%s" % ax), sampling_type="cell",
+            self.add_field(("gas", "momentum_%s" % ax),
+                           sampling_type="cell",
                            function=_get_mom(ax),
                            units=mom_units)
 
@@ -406,7 +399,8 @@ class MaestroFieldInfo(FieldInfoContainer):
                 # We have a mass fraction
                 nice_name, tex_label = _nice_species_name(field)
                 # Overwrite field to use nicer tex_label display_name
-                self.add_output_field(("boxlib", field), sampling_type="cell",
+                self.add_output_field(("boxlib", field),
+                                      sampling_type="cell",
                                       units="",
                                       display_name=tex_label)
                 self.alias(("gas", "%s_fraction" % nice_name),
@@ -437,7 +431,9 @@ class MaestroFieldInfo(FieldInfoContainer):
                 nice_name, tex_label = _nice_species_name(field)
                 display_name = r'\dot{\omega}\left[%s\right]' % tex_label
                 # Overwrite field to use nicer tex_label'ed display_name
-                self.add_output_field(("boxlib", field), sampling_type="cell",  units=unit_system["frequency"],
+                self.add_output_field(("boxlib", field),
+                                      sampling_type="cell",
+                                      units=unit_system["frequency"],
                                       display_name=display_name)
                 self.alias(("gas", "%s_creation_rate" % nice_name),
                            ("boxlib", field), units=unit_system["frequency"])

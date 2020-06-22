@@ -1,19 +1,3 @@
-"""
-Data structures for Gadget frontend
-
-
-
-
-"""
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.extern.six import string_types
 from yt.funcs import only_on_root
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
@@ -24,9 +8,9 @@ import os
 from yt.data_objects.static_output import \
     ParticleFile
 from yt.frontends.sph.data_structures import \
-    SPHDataset
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
+    SPHDataset, \
+    SPHParticleIndex
+from yt.utilities.chemical_formulas import default_mu
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.fortran_utils import read_record
@@ -41,9 +25,8 @@ from .definitions import \
 from .fields import \
     GadgetFieldInfo
 
-
 def _fix_unit_ordering(unit):
-    if isinstance(unit[0], string_types):
+    if isinstance(unit[0], str):
         unit = unit[1], unit[0]
     return unit
 
@@ -63,7 +46,7 @@ class GadgetBinaryHeader(object):
 
     def __init__(self, filename, header_spec):
         self.filename = filename
-        if isinstance(header_spec, string_types):
+        if isinstance(header_spec, str):
             header_spec = [header_spec]
         self.spec = [GadgetDataset._setup_binary_spec(hs, gadget_header_specs)
                      for hs in header_spec]
@@ -182,47 +165,81 @@ class GadgetBinaryHeader(object):
 
 
 class GadgetBinaryFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
-        header = ds._header
+
+    def __init__(self, ds, io, filename, file_id, range=None):
+        header = GadgetBinaryHeader(filename, ds._header.spec)
         self.header = header.value
         self._position_offset = header.position_offset
         with header.open() as f:
             self._file_size = f.seek(0, os.SEEK_END)
 
-        super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id)
+        super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id, range)
 
-    def _calculate_offsets(self, field_list):
+    def _calculate_offsets(self, field_list, pcounts):
+        # Note that we ignore pcounts here because it's the global count.  We
+        # just want the local count, which we store here.
         self.field_offsets = self.io._calculate_field_offsets(
-            field_list, self.total_particles,
-            self._position_offset, self._file_size)
+            field_list, self.header['Npart'].copy(), self._position_offset,
+            self.start, self._file_size)
 
+class GadgetBinaryIndex(SPHParticleIndex):
+
+    def __init__(self, ds, dataset_type):
+        super(GadgetBinaryIndex, self).__init__(ds, dataset_type)
+        self._initialize_index()
+
+    def _initialize_index(self):
+        # Normally this function is called during field detection. We call it
+        # here because we need to know which fields exist on-disk so that we can
+        # read in the smoothing lengths for SPH data before we construct the
+        # Morton bitmaps.
+        self._detect_output_fields()
+        super(GadgetBinaryIndex, self)._initialize_index()
+
+    def _initialize_frontend_specific(self):
+        super(GadgetBinaryIndex, self)._initialize_frontend_specific()
+        self.io._float_type = self.ds._header.float_type
 
 class GadgetDataset(SPHDataset):
-    _index_class = ParticleIndex
+    _index_class = GadgetBinaryIndex
     _file_class = GadgetBinaryFile
     _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Mass"
     _particle_coordinates_name = "Coordinates"
     _particle_velocity_name = "Velocities"
+    _sph_ptypes = ('Gas',)
     _suffix = ""
 
     def __init__(self, filename, dataset_type="gadget_binary",
                  additional_fields=(),
-                 unit_base=None, n_ref=64,
-                 over_refine_factor=1,
+                 unit_base=None,
+                 index_order=None,
+                 index_filename=None,
+                 kdtree_filename=None,
                  kernel_name=None,
-                 index_ptype="all",
-                 bounding_box=None,
-                 header_spec="default",
-                 field_spec="default",
-                 ptype_spec="default",
+                 bounding_box = None,
+                 header_spec = "default",
+                 field_spec = "default",
+                 ptype_spec = "default",
+                 long_ids = False,
                  units_override=None,
+                 mean_molecular_weight=None,
+                 header_offset = 0,
                  unit_system="cgs",
                  use_dark_factor = False,
                  w_0 = -1.0,
                  w_a = 0.0):
         if self._instantiated:
             return
+        # Check if filename is a directory
+        if os.path.isdir(filename):
+            # Get the .0 snapshot file. We know there's only 1 and it's valid since we
+            # came through _is_valid in load()
+            for f in os.listdir(filename):
+                fname = os.path.join(filename, f)
+                if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
+                    filename = os.path.join(filename, f)
+                    break
         self._header = GadgetBinaryHeader(filename, header_spec)
         header_size = self._header.size
         if header_size != [256]:
@@ -241,14 +258,21 @@ class GadgetDataset(SPHDataset):
             field_spec, gadget_field_specs)
         self._ptype_spec = self._setup_binary_spec(
             ptype_spec, gadget_ptype_specs)
-        self.index_ptype = index_ptype
         self.storage_filename = None
+        if long_ids:
+            self._id_dtype = 'u8'
+        else:
+            self._id_dtype = 'u4'
+        self.long_ids = long_ids
+        self.header_offset = header_offset
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
             unit_base['cmcm'] = 1.0 / unit_base["UnitLength_in_cm"]
         self._unit_base = unit_base
         if bounding_box is not None:
+            # This ensures that we know a bounding box has been applied
+            self._domain_override = True
             bbox = np.array(bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
@@ -266,8 +290,11 @@ class GadgetDataset(SPHDataset):
         self.w_a = w_a
 
         super(GadgetDataset, self).__init__(
-            filename, dataset_type=dataset_type, unit_system=unit_system,
-            n_ref=n_ref, over_refine_factor=over_refine_factor,
+            filename, dataset_type=dataset_type,
+            unit_system=unit_system,
+            index_order=index_order,
+            index_filename=index_filename,
+            kdtree_filename=kdtree_filename,
             kernel_name=kernel_name)
         if self.cosmological_simulation:
             self.time_unit.convert_to_units('s/h')
@@ -277,10 +304,14 @@ class GadgetDataset(SPHDataset):
             self.time_unit.convert_to_units('s')
             self.length_unit.convert_to_units('kpc')
             self.mass_unit.convert_to_units('Msun')
+        if mean_molecular_weight is None:
+            self.mu = default_mu
+        else:
+            self.mu = mean_molecular_weight
 
     @classmethod
     def _setup_binary_spec(cls, spec, spec_dict):
-        if isinstance(spec, string_types):
+        if isinstance(spec, str):
             _hs = ()
             for hs in spec.split("+"):
                 _hs += spec_dict[hs]
@@ -305,11 +336,11 @@ class GadgetDataset(SPHDataset):
         # Set standard values
 
         # We may have an overridden bounding box.
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        if self.domain_left_edge is None and hvals['BoxSize'] != 0:
+                self.domain_left_edge = np.zeros(3, "float64")
+                self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
+
+        self.domain_dimensions = np.ones(3, "int32")
         self.periodicity = (True, True, True)
 
         self.cosmological_simulation = 1
@@ -468,32 +499,54 @@ class GadgetDataset(SPHDataset):
             header_spec = kwargs['header_spec']
         else:
             header_spec = 'default'
-        header = GadgetBinaryHeader(args[0], header_spec)
+        # Check to see if passed filename is a directory. If so, use it to get
+        # the .0 snapshot file. Make sure there's only one such file, otherwise
+        # there's an ambiguity about which file the user wants. Ignore ewah files
+        if os.path.isdir(args[0]):
+            valid_files = []
+            for f in os.listdir(args[0]):
+                fname = os.path.join(args[0], f)
+                if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
+                    valid_files.append(f)
+            if len(valid_files) == 0:
+                return False
+            elif len(valid_files) > 1:
+                return False
+            else:
+                validated_file = os.path.join(args[0], valid_files[0])
+        else:
+            validated_file = args[0]
+        header = GadgetBinaryHeader(validated_file, header_spec)
         return header.validate()
+
+            
 
 
 class GadgetHDF5Dataset(GadgetDataset):
     _file_class = ParticleFile
+    _index_class = SPHParticleIndex
     _field_info_class = GadgetFieldInfo
     _particle_mass_name = "Masses"
+    _sph_ptypes = ('PartType0',)
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="gadget_hdf5",
-                 unit_base=None, n_ref=64,
-                 over_refine_factor=1,
+                 unit_base=None,
+                 index_order=None,
+                 index_filename=None,
                  kernel_name=None,
-                 index_ptype="all",
                  bounding_box=None,
                  units_override=None,
                  unit_system="cgs"):
         self.storage_filename = None
         filename = os.path.abspath(filename)
         if units_override is not None:
-            raise RuntimeError("units_override is not supported for GadgetHDF5Dataset. " +
-                               "Use unit_base instead.")
+            raise RuntimeError(
+                "units_override is not supported for GadgetHDF5Dataset. "
+                "Use unit_base instead.")
         super(GadgetHDF5Dataset, self).__init__(
-            filename, dataset_type, unit_base=unit_base, n_ref=n_ref,
-            over_refine_factor=over_refine_factor, index_ptype=index_ptype,
+            filename, dataset_type, unit_base=unit_base,
+            index_order=index_order, index_filename=index_filename,
             kernel_name=kernel_name, bounding_box=bounding_box,
             unit_system=unit_system)
 
@@ -530,13 +583,12 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.omega_matter = self.parameters["Omega0"]
         self.hubble_constant = self.parameters["HubbleParam"]
 
-        if self.domain_left_edge is None:
-            self.domain_left_edge = np.zeros(3, "float64")
-            self.domain_right_edge = np.ones(
-                3, "float64") * self.parameters["BoxSize"]
+        if self.domain_left_edge is None and self.parameters['BoxSize'] != 0:
+                self.domain_left_edge = np.zeros(3, "float64")
+                self.domain_right_edge = \
+                    np.ones(3, "float64") * self.parameters["BoxSize"]
 
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
 
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
@@ -581,4 +633,12 @@ class GadgetHDF5Dataset(GadgetDataset):
         except Exception:
             valid = False
             pass
+
+        try:
+            fh = h5py.File(args[0], mode='r')
+            valid = fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
+            fh.close()
+        except (IOError, KeyError, ImportError):
+            pass
+
         return valid

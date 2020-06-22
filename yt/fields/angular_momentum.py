@@ -1,20 +1,3 @@
-"""
-The basic field info container resides here.  These classes, code specific and
-universal, are the means by which we access fields across YT, both derived and
-native.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from .derived_field import \
@@ -40,39 +23,41 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
         rv = obtain_position_vector(data)
         units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units=units)
-        return rv[...,1] * zv - rv[...,2] * yv
+        rv = data.ds.arr(rv, units=units)
+        return rv[..., 1] * zv - rv[..., 2] * yv
 
     def _specific_angular_momentum_y(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
         units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units=units)
-        return rv[...,2] * xv - rv[...,0] * zv
+        rv = data.ds.arr(rv, units=units)
+        return rv[..., 2] * xv - rv[..., 0] * zv
 
     def _specific_angular_momentum_z(field, data):
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
         units = rv.units
         rv = np.rollaxis(rv, 0, len(rv.shape))
-        rv = data.ds.arr(rv, input_units=units)
-        return rv[...,0] * yv - rv[...,1] * xv
+        rv = data.ds.arr(rv, units=units)
+        return rv[..., 0] * yv - rv[..., 1] * xv
 
     registry.add_field((ftype, "specific_angular_momentum_x"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_specific_angular_momentum_x,
                        units=unit_system["specific_angular_momentum"],
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("bulk_velocity")])
+
     registry.add_field((ftype, "specific_angular_momentum_y"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_specific_angular_momentum_y,
                        units=unit_system["specific_angular_momentum"],
                        validators=[ValidateParameter("center"),
                                    ValidateParameter("bulk_velocity")])
+
     registry.add_field((ftype, "specific_angular_momentum_z"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_specific_angular_momentum_z,
                        units=unit_system["specific_angular_momentum"],
                        validators=[ValidateParameter("center"),
@@ -82,30 +67,33 @@ def setup_angular_momentum(registry, ftype = "gas", slice_info = None):
                            unit_system["specific_angular_momentum"], ftype=ftype)
 
     def _angular_momentum_x(field, data):
-        return data[ftype, "cell_mass"] \
+        return data[ftype, "mass"] \
              * data[ftype, "specific_angular_momentum_x"]
+
     registry.add_field((ftype, "angular_momentum_x"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_angular_momentum_x,
                        units=unit_system["angular_momentum"],
                        validators=[ValidateParameter('center'),
                                    ValidateParameter("bulk_velocity")])
 
     def _angular_momentum_y(field, data):
-        return data[ftype, "cell_mass"] \
+        return data[ftype, "mass"] \
              * data[ftype, "specific_angular_momentum_y"]
+
     registry.add_field((ftype, "angular_momentum_y"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_angular_momentum_y,
                        units=unit_system["angular_momentum"],
                        validators=[ValidateParameter('center'),
                                    ValidateParameter("bulk_velocity")])
 
     def _angular_momentum_z(field, data):
-        return data[ftype, "cell_mass"] \
+        return data[ftype, "mass"] \
              * data[ftype, "specific_angular_momentum_z"]
+
     registry.add_field((ftype, "angular_momentum_z"),
-                       sampling_type="cell",
+                       sampling_type="local",
                        function=_angular_momentum_z,
                        units=unit_system["angular_momentum"],
                        validators=[ValidateParameter('center'),

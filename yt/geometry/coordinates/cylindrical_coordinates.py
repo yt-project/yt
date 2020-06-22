@@ -1,19 +1,3 @@
-"""
-Definitions for cylindrical coordinate systems
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 from .coordinate_handler import \
     CoordinateHandler, \
@@ -39,31 +23,57 @@ class CylindricalCoordinateHandler(CoordinateHandler):
 
     def setup_fields(self, registry):
         # return the fields for r, z, theta
-        registry.add_field(("index", "dx"), sampling_type="cell",  function=_unknown_coord)
-        registry.add_field(("index", "dy"), sampling_type="cell",  function=_unknown_coord)
-        registry.add_field(("index", "x"), sampling_type="cell",  function=_unknown_coord)
-        registry.add_field(("index", "y"), sampling_type="cell",  function=_unknown_coord)
+        registry.add_field(("index", "dx"),
+                           sampling_type="cell",
+                           function=_unknown_coord)
+
+        registry.add_field(("index", "dy"),
+                           sampling_type="cell",
+                           function=_unknown_coord)
+
+        registry.add_field(("index", "x"),
+                           sampling_type="cell",
+                           function=_unknown_coord)
+
+        registry.add_field(("index", "y"),
+                           sampling_type="cell",
+                           function=_unknown_coord)
         f1, f2 = _get_coord_fields(self.axis_id['r'])
-        registry.add_field(("index", "dr"), sampling_type="cell",  function = f1,
+        registry.add_field(("index", "dr"),
+                           sampling_type="cell",
+                           function = f1,
                            display_field = False,
                            units = "code_length")
-        registry.add_field(("index", "r"), sampling_type="cell",  function = f2,
+
+        registry.add_field(("index", "r"),
+                           sampling_type="cell",
+                           function = f2,
                            display_field = False,
                            units = "code_length")
 
         f1, f2 = _get_coord_fields(self.axis_id['z'])
-        registry.add_field(("index", "dz"), sampling_type="cell",  function = f1,
+        registry.add_field(("index", "dz"),
+                           sampling_type="cell",
+                           function = f1,
                            display_field = False,
                            units = "code_length")
-        registry.add_field(("index", "z"), sampling_type="cell",  function = f2,
+
+        registry.add_field(("index", "z"),
+                           sampling_type="cell",
+                           function = f2,
                            display_field = False,
                            units = "code_length")
 
         f1, f2 = _get_coord_fields(self.axis_id['theta'], "")
-        registry.add_field(("index", "dtheta"), sampling_type="cell",  function = f1,
+        registry.add_field(("index", "dtheta"),
+                           sampling_type="cell",
+                           function = f1,
                            display_field = False,
                            units = "")
-        registry.add_field(("index", "theta"), sampling_type="cell",  function = f2,
+
+        registry.add_field(("index", "theta"),
+                           sampling_type="cell",
+                           function = f2,
                            display_field = False,
                            units = "")
 
@@ -74,26 +84,34 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             vol *= data["index", "dtheta"]
             vol *= data["index", "dz"]
             return vol
-        registry.add_field(("index", "cell_volume"), sampling_type="cell",
-                 function=_CylindricalVolume,
-                 units = "code_length**3")
+        registry.add_field(("index", "cell_volume"),
+                           sampling_type="cell",
+                           function=_CylindricalVolume,
+                           units = "code_length**3")
+        registry.alias(('index', 'volume'), ('index', 'cell_volume'))
 
         def _path_r(field, data):
             return data["index", "dr"]
-        registry.add_field(("index", "path_element_r"), sampling_type="cell", 
-                 function = _path_r,
-                 units = "code_length")
+
+        registry.add_field(("index", "path_element_r"),
+                           sampling_type="cell",
+                           function = _path_r,
+                           units = "code_length")
+
         def _path_theta(field, data):
             # Note: this already assumes cell-centered
             return data["index", "r"] * data["index", "dtheta"]
-        registry.add_field(("index", "path_element_theta"), sampling_type="cell", 
-                 function = _path_theta,
-                 units = "code_length")
+        registry.add_field(("index", "path_element_theta"),
+                           sampling_type="cell",
+                           function = _path_theta,
+                           units = "code_length")
+
         def _path_z(field, data):
             return data["index", "dz"]
-        registry.add_field(("index", "path_element_z"), sampling_type="cell", 
-                 function = _path_z,
-                 units = "code_length")
+        registry.add_field(("index", "path_element_z"),
+                           sampling_type="cell",
+                           function = _path_z,
+                           units = "code_length")
 
     def pixelize(self, dimension, data_source, field, bounds, size,
                  antialias = True, periodic = False):

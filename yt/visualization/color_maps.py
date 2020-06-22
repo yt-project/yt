@@ -1,21 +1,8 @@
-"""
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import numpy as np
 
 import matplotlib.colors as cc
 import matplotlib.cm as mcm
 from . import _colormap_data as _cm
-from yt.extern.six import string_types
 
 try:
     import cmocean
@@ -541,7 +528,7 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
     # Figure out how many intervals there are total.
     rolling_index = 0
     for i, (color, interval) in enumerate(ctuple_list):
-        if isinstance(color, string_types):
+        if isinstance(color, str):
             ctuple_list[i] = (color_dict[color], interval)
         rolling_index += interval
     scale = 256./rolling_index

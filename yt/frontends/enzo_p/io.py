@@ -1,23 +1,7 @@
-"""
-Enzo-P-specific IO functions
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2017, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.utilities.exceptions import \
     YTException
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.extern.six import b, iteritems
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
@@ -50,7 +34,7 @@ class EnzoPIOHandler(BaseIOHandler):
         dtypes = set()
         # keep one field for each particle type so we can count later
         sample_pfields = {}
-        for name, v in iteritems(group):
+        for name, v in group.items():
             if not hasattr(v, "shape") or v.dtype == "O":
                 continue
             # mesh fields are "field <name>"
@@ -142,7 +126,7 @@ class EnzoPIOHandler(BaseIOHandler):
                     # problem, but one we can return to.
                     if fid is not None:
                         fid.close()
-                    fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
+                    fid = h5py.h5f.open(obj.filename.encode('latin-1'), h5py.h5f.ACC_RDONLY)
                     filename = obj.filename
                 for field in fields:
                     data = None
@@ -156,12 +140,12 @@ class EnzoPIOHandler(BaseIOHandler):
         fid, data = fid_data
         if fid is None:
             close = True
-            fid = h5py.h5f.open(b(obj.filename), h5py.h5f.ACC_RDONLY)
+            fid = h5py.h5f.open(obj.filename.encode('latin-1'), h5py.h5f.ACC_RDONLY)
         else:
             close = False
         ftype, fname = field
         node = "/%s/field%s%s" % (obj.block_name, self._sep, fname)
-        dg = h5py.h5d.open(fid, b(node))
+        dg = h5py.h5d.open(fid, node.encode('latin-1'))
         rdata = np.empty(self.ds.grid_dimensions[:self.ds.dimensionality][::-1],
                          dtype=self._field_dtype)
         dg.read(h5py.h5s.ALL, h5py.h5s.ALL, rdata)

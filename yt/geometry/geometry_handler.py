@@ -1,21 +1,5 @@
-"""
-Geometry container base class.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
-from yt.extern.six.moves import cPickle
+import pickle
 import weakref
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
@@ -32,7 +16,6 @@ from yt.utilities.exceptions import YTFieldNotFound
 
 class Index(ParallelAnalysisInterface):
     """The base index class"""
-    _global_mesh = True
     _unsupported_objects = ()
     _index_properties = ()
 
@@ -149,7 +132,7 @@ class Index(ParallelAnalysisInterface):
         Save an object (*obj*) to the data_file using the Pickle protocol,
         under the name *name* on the node /Objects.
         """
-        s = cPickle.dumps(obj, protocol=-1)
+        s = pickle.dumps(obj, protocol=-1)
         self.save_data(np.array(s, dtype='c'), "/Objects", name, force = True)
 
     def load_object(self, name):
@@ -160,7 +143,7 @@ class Index(ParallelAnalysisInterface):
         obj = self.get_data("/Objects", name)
         if obj is None:
             return
-        obj = cPickle.loads(obj.value)
+        obj = pickle.loads(obj.value)
         if iterable(obj) and len(obj) == 2:
             obj = obj[1] # Just the object, not the ds
         if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
@@ -220,8 +203,9 @@ class Index(ParallelAnalysisInterface):
         selector = dobj.selector
         if chunk is None:
             self._identify_base_chunk(dobj)
+        chunks = self._chunk_io(dobj, cache = False)
         fields_to_return = self.io._read_particle_selection(
-            self._chunk_io(dobj, cache = False),
+            chunks,
             selector,
             fields_to_read)
         return fields_to_return, fields_to_generate
@@ -307,11 +291,11 @@ class YTDataChunk(object):
         if self._fast_index is not None:
             ci = self._fast_index.select_fcoords(
                 self.dobj.selector, self.data_size)
-            ci = YTArray(ci, input_units = "code_length",
+            ci = YTArray(ci, units = "code_length",
                          registry = self.dobj.ds.unit_registry)
             return ci
         ci = np.empty((self.data_size, 3), dtype='float64')
-        ci = YTArray(ci, input_units = "code_length",
+        ci = YTArray(ci, units = "code_length",
                      registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
@@ -343,11 +327,11 @@ class YTDataChunk(object):
         if self._fast_index is not None:
             ci = self._fast_index.select_fwidth(
                 self.dobj.selector, self.data_size)
-            ci = YTArray(ci, input_units = "code_length",
+            ci = YTArray(ci, units = "code_length",
                          registry = self.dobj.ds.unit_registry)
             return ci
         ci = np.empty((self.data_size, 3), dtype='float64')
-        ci = YTArray(ci, input_units = "code_length",
+        ci = YTArray(ci, units = "code_length",
                      registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0
@@ -399,7 +383,7 @@ class YTDataChunk(object):
         nodes_per_elem = self.dobj.index.meshes[0].connectivity_indices.shape[1]
         dim = self.dobj.ds.dimensionality
         ci = np.empty((self.data_size, nodes_per_elem, dim), dtype='float64')
-        ci = YTArray(ci, input_units = "code_length",
+        ci = YTArray(ci, units = "code_length",
                      registry = self.dobj.ds.unit_registry)
         if self.data_size == 0: return ci
         ind = 0

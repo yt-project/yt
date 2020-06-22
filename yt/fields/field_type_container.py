@@ -5,7 +5,6 @@ A proxy object for field descriptors, usually living as ds.fields.
 import weakref
 import textwrap
 import inspect
-from yt.extern.six import string_types
 from yt.fields.derived_field import \
     DerivedField
 
@@ -52,7 +51,7 @@ class FieldTypeContainer(object):
         ob = None
         if isinstance(obj, FieldNameContainer):
             ob = obj.field_type
-        elif isinstance(obj, string_types):
+        elif isinstance(obj, str):
             ob = obj
 
         return ob in self.field_types
@@ -104,7 +103,7 @@ class FieldNameContainer(object):
         elif isinstance(obj, tuple):
             if self.field_type == obj[0] and obj in self.ds.field_info:
                 return True
-        elif isinstance(obj, string_types):
+        elif isinstance(obj, str):
             if (self.field_type, obj) in self.ds.field_info:
                 return True
         return False

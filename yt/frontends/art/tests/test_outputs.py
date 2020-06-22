@@ -1,24 +1,9 @@
-"""
-ART frontend tests using D9p a=0.500
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.testing import \
     requires_file, \
     assert_equal, \
     units_override_check, \
-    assert_almost_equal
+    assert_almost_equal, \
+    ParticleSelectionComparison
 from yt.units.yt_array import \
     YTQuantity
 from yt.utilities.answer_testing.framework import \
@@ -117,3 +102,9 @@ def test_ARTDataset():
 @requires_file(d9p)
 def test_units_override():
     units_override_check(d9p)
+
+@requires_file(d9p)
+def test_particle_selection():
+    ds = data_dir_load(d9p)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()

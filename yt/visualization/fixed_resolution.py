@@ -1,25 +1,11 @@
-"""
-Fixed resolution buffer support, along with a primitive image analysis tool.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.funcs import \
     get_output_filename, \
     mylog, \
     ensure_list, \
-    deprecate
+    deprecate, \
+    issue_deprecation_warning
 from .volume_rendering.api import off_axis_projection
 from .fixed_resolution_filters import apply_filter, filter_registry
 from yt.data_objects.image_array import ImageArray
@@ -75,9 +61,9 @@ class FixedResolutionBuffer(object):
     >>> proj = ds.proj(0, "density")
     >>> frb1 = FixedResolutionBuffer(proj, (0.2, 0.3, 0.4, 0.5),
     ...                              (1024, 1024))
-    >>> print frb1["density"].max()
+    >>> print(frb1["density"].max())
     1.0914e-9 g/cm**3
-    >>> print frb1["temperature"].max()
+    >>> print(frb1["temperature"].max())
     104923.1 K
     """
     _exclude_fields = ('pz','pdz','dx','x','y','z',
@@ -86,8 +72,8 @@ class FixedResolutionBuffer(object):
                        ('index', 'r'), ('index', 'dr'),
                        ('index', 'phi'), ('index', 'dphi'),
                        ('index', 'theta'), ('index', 'dtheta'))
-    def __init__(self, data_source, bounds, buff_size, antialias = True,
-                 periodic = False):
+    def __init__(self, data_source, bounds, buff_size, antialias=True,
+                 periodic=False):
         self.data_source = data_source
         self.ds = data_source.ds
         self.bounds = bounds
@@ -130,6 +116,7 @@ class FixedResolutionBuffer(object):
             if hasattr(b, "in_units"):
                 b = float(b.in_units("code_length"))
             bounds.append(b)
+
         buff = self.ds.coordinates.pixelize(self.data_source.axis,
             self.data_source, item, bounds, self.buff_size,
             int(self.antialias))
@@ -137,10 +124,19 @@ class FixedResolutionBuffer(object):
         for name, (args, kwargs) in self._filters:
             buff = filter_registry[name](*args[1:], **kwargs).apply(buff)
 
-        # Need to add _period and self.periodic
-        # self._period, int(self.periodic)
-        ia = ImageArray(buff, input_units=self.data_source[item].units,
-                        info=self._get_info(item))
+        # FIXME FIXME FIXME we shouldn't need to do this for projections
+        # but that will require fixing data object access for particle
+        # projections
+        try:
+            if hasattr(item, 'name'):
+                it = item.name
+            else:
+                it = item
+            units = self.data_source._projected_units[it]
+        except (KeyError, AttributeError):
+            units = self.data_source[item].units
+
+        ia = ImageArray(buff, units=units, info=self._get_info(item))
         self.data[item] = ia
         return self.data[item]
 
@@ -276,7 +272,6 @@ class FixedResolutionBuffer(object):
                 equiv_array, equiv_array.units, equiv_array.units.registry,
                 self[field].info)
 
-
     def export_hdf5(self, filename, fields = None):
         r"""Export a set of fields to a set of HDF5 datasets.
 
@@ -296,8 +291,58 @@ class FixedResolutionBuffer(object):
             output.create_dataset(field,data=self[field])
         output.close()
 
+    def to_fits_data(self, fields=None, other_keys=None, length_unit=None,
+                     **kwargs):
+        r"""Export the fields in this FixedResolutionBuffer instance 
+        to a FITSImageData instance.
+
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.
+
+        Parameters
+        ----------
+        fields : list of strings
+            These fields will be pixelized and output. If "None", the keys of 
+            the FRB will be used.
+        other_keys : dictionary, optional
+            A set of header keys and values to write into the FITS header.
+        length_unit : string, optional
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
+        """
+        from yt.visualization.fits_image import FITSImageData
+
+        if length_unit is None:
+            length_unit = self.ds.length_unit
+
+        if "units" in kwargs:
+            issue_deprecation_warning("The 'units' keyword argument has been "
+                                      "replaced by the 'length_unit' keyword "
+                                      "argument and the former has been "
+                                      "deprecated. Setting 'length_unit' "
+                                      "to 'units'.")
+            length_unit = kwargs.pop("units")
+
+        if fields is None:
+            fields = list(self.data.keys())
+        else:
+            fields = ensure_list(fields)
+
+        if len(fields) == 0:
+            raise RuntimeError(
+                "No fields to export. Either pass a field or list of fields to "
+                "to_fits_data or access a field from the FixedResolutionBuffer "
+                "object."
+            )
+
+        fid = FITSImageData(self, fields=fields, length_unit=length_unit)
+        if other_keys is not None:
+            for k,v in other_keys.items():
+                fid.update_all_headers(k, v)
+        return fid
+
     def export_fits(self, filename, fields=None, overwrite=False,
-                    other_keys=None, units="cm", **kwargs):
+                    other_keys=None, length_unit=None, **kwargs):
         r"""Export a set of pixelized fields to a FITS file.
 
         This will export a set of FITS images of either the fields specified
@@ -314,29 +359,18 @@ class FixedResolutionBuffer(object):
             If the file exists, this governs whether we will overwrite.
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
-        units : string, optional
-            the length units that the coordinates are written in, default 'cm'.
+        length_unit : string, optional
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
         """
-
-        from yt.visualization.fits_image import FITSImageData
-
-        if fields is None:
-            fields = list(self.data.keys())
-        else:
-            fields = ensure_list(fields)
-
-        if len(fields) == 0:
-            raise RuntimeError(
-                "No fields to export. Either pass a field or list of fields to "
-                "export_fits or access a field from the fixed resolution buffer "
-                "object."
-            )
-
-        fib = FITSImageData(self, fields=fields, units=units)
-        if other_keys is not None:
-            for k,v in other_keys.items():
-                fib.update_all_headers(k,v)
-        fib.writeto(filename, overwrite=overwrite, **kwargs)
+        issue_deprecation_warning("The 'export_fits' method of "
+                                  "FixedResolutionBuffer is deprecated. "
+                                  "Use the 'to_fits_data' method to create "
+                                  "a FITSImageData instance and then "
+                                  "use its `writeto` method.")
+        fid = self.to_fits_data(fields=fields, other_keys=other_keys,
+                                length_unit=length_unit, **kwargs)
+        fid.writeto(filename, overwrite=overwrite, **kwargs)
 
     def export_dataset(self, fields=None, nprocs=1):
         r"""Export a set of pixelized fields to an in-memory dataset that can be
@@ -619,7 +653,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                                       splat_vals)
         # remove values in no-particle region
         buff[buff_mask==0] = np.nan
-        ia = ImageArray(buff, input_units=data.units,
+        ia = ImageArray(buff, units=data.units,
                         info=self._get_info(item))
 
         # divide by the weight_field, if needed
@@ -632,7 +666,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
                                           py[mask],
                                           weight_data[mask])
             weight_array = ImageArray(weight_buff,
-                                      input_units=weight_data.units,
+                                      units=weight_data.units,
                                       info=self._get_info(item))
             # remove values in no-particle region
             weight_buff[weight_buff_mask==0] = np.nan

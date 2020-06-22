@@ -105,12 +105,12 @@ class TestFieldAccess(object):
                     g.clear_data()
                     g.field_parameters.update(sp)
                     r1 = field._function(field, g)
-                    if field.particle_type:
+                    if field.sampling_type == 'particle':
                         assert_equal(v1.shape[0], g.NumberOfParticles)
                     else:
                         assert_array_equal(r1.shape, v1.shape)
                         for ax in 'xyz':
-                            assert_array_equal(g[ax].shape, v1.shape)
+                            assert_array_equal(g['index', ax].shape, v1.shape)
                     with field.unit_registry(g):
                         res = field._function(field, g)
                         assert_array_equal(v1.shape, res.shape)
@@ -127,6 +127,9 @@ def get_base_ds(nprocs):
     pfields, punits = [], []
 
     for fname, (code_units, aliases, dn) in StreamFieldInfo.known_particle_fields:
+        if fname == 'smoothing_lenth':
+            # we test SPH fields elsewhere
+            continue
         pfields.append(fname)
         punits.append(code_units)
 
@@ -203,15 +206,6 @@ def test_add_deposited_particle_field():
     # The sum should equal the number of cells that have particles
     assert_equal(ret.sum(), np.count_nonzero(ad[("deposit", "io_count")]))
 
-@requires_file('GadgetDiskGalaxy/snapshot_200.hdf5')
-def test_add_smoothed_particle_field():
-    ds = load('GadgetDiskGalaxy/snapshot_200.hdf5')
-    fn = ds.add_smoothed_particle_field(('PartType0', 'particle_ones'))
-    assert_equal(fn, ('deposit', 'PartType0_smoothed_particle_ones'))
-    dd = ds.sphere('center', (500, 'code_length'))
-    ret = dd[fn]
-    assert_almost_equal(ret.sum(), 638.5652315154682)
-
 def test_add_gradient_fields():
     ds = get_base_ds(1)
     gfields = ds.add_gradient_fields(("gas","density"))
@@ -234,10 +228,7 @@ def test_add_gradient_fields():
             assert str(ret.units) == "1/cm"
 
 def test_add_gradient_fields_curvilinear():
-    def _dimensionful_density(field, data):
-        return data.apply_units(data["Density"], "g/cm**3")
-    ds = fake_amr_ds(geometry="spherical")
-    ds.add_field(("gas", "density"), _dimensionful_density, units="g/cm**3", sampling_type="cell")
+    ds = fake_amr_ds(fields = ["density"], geometry="spherical")
     gfields = ds.add_gradient_fields(("gas", "density"))
     gfields += ds.add_gradient_fields(("index", "ones"))
     field_list = [('gas', 'density_gradient_r'),
@@ -373,9 +364,8 @@ def test_add_field_string_aliasing():
     def pmass_alias(field, data):
         return data['particle_mass']
         
-    ds.add_field('particle_mass_alias', function=pmass_alias,
-                 sampling_type='particle',
-                 units='g')
+    ds.add_field('particle_mass_alias', function=pmass_alias, 
+                 units='g', sampling_type='particle')
 
     ds.field_info['particle_mass_alias']
     ds.field_info['all', 'particle_mass_alias']

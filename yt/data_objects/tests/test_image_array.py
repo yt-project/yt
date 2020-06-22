@@ -52,7 +52,7 @@ class TestImageArray(unittest.TestCase):
         os.chdir(self.tmpdir)
 
     def test_image_arry_units(self):
-        im_arr = ImageArray(dummy_image(0.3, 3), input_units='cm')
+        im_arr = ImageArray(dummy_image(0.3, 3), units='cm')
 
         assert str(im_arr.units) == 'cm'
 
@@ -67,7 +67,7 @@ class TestImageArray(unittest.TestCase):
                   'normal_vector': np.array([0., 1., 0.]),
                   'width': 0.245, 'type': 'rendering'}
 
-        im_arr = ImageArray(dummy_image(0.3, 3), input_units='cm', info=myinfo)
+        im_arr = ImageArray(dummy_image(0.3, 3), units='cm', info=myinfo)
         im_arr.save('test_3d_ImageArray', png=False)
 
         im = np.zeros([64, 128])
@@ -79,7 +79,7 @@ class TestImageArray(unittest.TestCase):
                   'normal_vector': np.array([0., 1., 0.]),
                   'width': 0.245, 'type': 'rendering'}
 
-        im_arr = ImageArray(im, info=myinfo, input_units='cm')
+        im_arr = ImageArray(im, info=myinfo, units='cm')
         im_arr.save('test_2d_ImageArray', png=False)
 
         im_arr.save('test_2d_ImageArray_ds', png=False, dataset_name='Random_DS')

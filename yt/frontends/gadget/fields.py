@@ -1,22 +1,8 @@
-"""
-Gadget-specific fields
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.frontends.sph.fields import SPHFieldInfo
-from yt.fields.particle_fields import add_volume_weighted_smoothed_field
 from yt.utilities.physical_constants import mp, kb
+from yt.utilities.physical_ratios import \
+    _primordial_mass_fraction
+
 
 class GadgetFieldInfo(SPHFieldInfo):
 
@@ -51,10 +37,10 @@ class GadgetFieldInfo(SPHFieldInfo):
                     return data[(ptype, 'FourMetalFractions')][:,i]
                 return _Fraction
 
-            self.add_field( (ptype, metal_name+"_fraction"),
-                            sampling_type="particle",
-                            function=_Fraction_wrap(i),
-                            units="")
+            self.add_field((ptype, metal_name+"_fraction"),
+                           sampling_type="particle",
+                           function=_Fraction_wrap(i),
+                           units="")
 
             # add the metal density fields
             def _Density_wrap(i):
@@ -63,16 +49,16 @@ class GadgetFieldInfo(SPHFieldInfo):
                            data[(ptype, 'density')]
                 return _Metal_density
 
-            self.add_field( (ptype, metal_name+"_density"),
-                            sampling_type="particle",
-                            function=_Density_wrap(i),
-                            units=self.ds.unit_system["density"])
+            self.add_field((ptype, metal_name+"_density"),
+                           sampling_type="particle",
+                           function=_Density_wrap(i),
+                           units=self.ds.unit_system["density"])
 
     def setup_gas_particle_fields(self, ptype):
         if (ptype, "ElectronAbundance") in self.ds.field_list:
             def _temperature(field, data):
                 # Assume cosmic abundances
-                x_H = 0.76
+                x_H = _primordial_mass_fraction["H"]
                 gamma = 5.0/3.0
                 a_e = data[ptype, 'ElectronAbundance']
                 mu = 4.0 / (3.0 * x_H + 1.0 + 4.0 * x_H * a_e)
@@ -80,30 +66,16 @@ class GadgetFieldInfo(SPHFieldInfo):
                 return ret.in_units(self.ds.unit_system["temperature"])
         else:
             def _temperature(field, data):
-                # Assume cosmic abundances
-                x_H = 0.76
                 gamma = 5.0/3.0
-                if data.has_field_parameter("mean_molecular_weight"):
-                    mu = data.get_field_parameter("mean_molecular_weight")
-                else:
-                    # Assume zero ionization
-                    mu = 4.0 / (3.0 * x_H + 1.0)
-                ret = data[ptype, "InternalEnergy"]*(gamma-1)*mu*mp/kb
+                ret = data[ptype, "InternalEnergy"]*(gamma-1)*data.ds.mu*mp/kb
                 return ret.in_units(self.ds.unit_system["temperature"])
 
-        self.add_field(
-            (ptype, "Temperature"),
-            sampling_type="particle",
-            function=_temperature,
-            units=self.ds.unit_system["temperature"])
+        self.add_field((ptype, "Temperature"),
+                       sampling_type="particle",
+                       function=_temperature,
+                       units=self.ds.unit_system["temperature"])
         self.alias((ptype, 'temperature'), (ptype, 'Temperature'))
-
-        # For now, we hardcode num_neighbors.  We should make this configurable
-        # in the future.
-        num_neighbors = 64
-        fn = add_volume_weighted_smoothed_field(
-            ptype, "particle_position", "particle_mass", "smoothing_length",
-            "density", "Temperature", self, num_neighbors)
-
-        # Alias ("gas", "temperature") to the new smoothed Temperature field
-        self.alias(("gas", "temperature"), fn[0])
+        # need to do this manually since that automatic aliasing that happens
+        # in the FieldInfoContainer base class has already happened at this
+        # point
+        self.alias(('gas', 'temperature'), (ptype, 'Temperature'))

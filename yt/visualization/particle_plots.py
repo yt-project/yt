@@ -1,18 +1,3 @@
-"""
-This is a simple mechanism for interfacing with Particle plots
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from yt.visualization.fixed_resolution import \
@@ -54,6 +39,11 @@ class ParticleAxisAlignedDummyDataSource(object):
 
         LE = center - 0.5*YTArray(width)
         RE = center + 0.5*YTArray(width)
+        for ax in range(3):
+            if not ds.periodicity[ax]:
+                LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
+                RE[ax] = min(RE[ax], ds.domain_right_edge[ax])
+
         self.dd = ds.region(center, LE, RE, fields,
                             field_parameters=field_parameters,
                             data_source=data_source)

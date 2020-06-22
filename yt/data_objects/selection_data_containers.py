@@ -1,42 +1,42 @@
-"""
-Data containers based on geometric selection
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from yt.data_objects.data_containers import \
     YTSelectionContainer0D, YTSelectionContainer1D, \
     YTSelectionContainer2D, YTSelectionContainer3D, YTSelectionContainer
 from yt.data_objects.static_output import Dataset
-from yt.extern.six import string_types
-from yt.funcs import ensure_list, iterable, validate_width_tuple, \
-    fix_length, fix_axis, validate_3d_array, validate_float, \
-    validate_iterable, validate_object, validate_axis, validate_center
+from yt.frontends.sph.data_structures import \
+    SPHDataset
+from yt.funcs import \
+    ensure_list, \
+    iterable, \
+    validate_width_tuple, \
+    fix_length, \
+    fix_axis, \
+    mylog, \
+    validate_3d_array, \
+    validate_float, \
+    validate_iterable, \
+    validate_object, \
+    validate_axis, \
+    validate_center
 from yt.units.yt_array import \
+    udot, \
+    unorm, \
     YTArray, \
     YTQuantity
 from yt.utilities.exceptions import \
     YTSphereTooSmall, \
     YTIllDefinedCutRegion, \
-    YTEllipsoidOrdering
+    YTEllipsoidOrdering, \
+    YTException
+from yt.utilities.lib.pixelization_routines import \
+    SPHKernelInterpolationTable
 from yt.utilities.minimal_representation import \
     MinimalSliceData
 from yt.utilities.math_utils import get_rotation_matrix
 from yt.utilities.orientation import Orientation
 from yt.geometry.selection_routines import points_in_cells
-from yt.utilities.on_demand_imports import _scipy
+from yt.utilities.on_demand_imports import _scipy, _miniball
 
 
 class YTPoint(YTSelectionContainer0D):
@@ -115,7 +115,7 @@ class YTOrthoRay(YTSelectionContainer1D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> oray = ds.ortho_ray(0, (0.2, 0.74))
-    >>> print oray["Density"]
+    >>> print(oray["Density"])
 
     Note: The low-level data representation for rays are not guaranteed to be 
     spatially ordered.  In particular, with AMR datasets, higher resolution 
@@ -197,7 +197,7 @@ class YTRay(YTSelectionContainer1D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> ray = ds.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
-    >>> print ray["Density"], ray["t"], ray["dts"]
+    >>> print(ray["Density"], ray["t"], ray["dts"])
 
     Note: The low-level data representation for rays are not guaranteed to be 
     spatially ordered.  In particular, with AMR datasets, higher resolution 
@@ -209,8 +209,7 @@ class YTRay(YTSelectionContainer1D):
     >>> my_ray = ds.ray(...)
     >>> ray_sort = np.argsort(my_ray["t"])
     >>> density = my_ray["density"][ray_sort]
-
-"""
+    """
     _type_name = "ray"
     _con_args = ('start_point', 'end_point')
     _container_fields = ("t", "dts")
@@ -236,12 +235,24 @@ class YTRay(YTSelectionContainer1D):
             self.end_point = \
               self.ds.arr(end_point, 'code_length',
                           dtype='float64')
+        if ((self.start_point < self.ds.domain_left_edge).any() or
+            (self.end_point > self.ds.domain_right_edge).any()):
+            mylog.warn(
+                'Ray start or end is outside the domain. ' +
+                'Returned data will only be for the ray section inside the domain.')
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)
         self.set_field_parameter('center', self.start_point)
         self._dts, self._ts = None, None
 
     def _generate_container_field(self, field):
+        # What should we do with `ParticleDataset`?
+        if isinstance(self.ds, SPHDataset):
+            return self._generate_container_field_sph(field)
+        else:
+            return self._generate_container_field_grid(field)
+
+    def _generate_container_field_grid(self, field):
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if field == "dts":
@@ -250,6 +261,30 @@ class YTRay(YTSelectionContainer1D):
             return self._current_chunk.tcoords
         else:
             raise KeyError(field)
+
+    def _generate_container_field_sph(self, field):
+        if field not in ["dts", "t"]:
+            raise KeyError(field)
+
+        length = unorm(self.vec)
+        pos = self[self.ds._sph_ptypes[0], "particle_position"]
+        r = pos - self.start_point
+        l = udot(r, self.vec/length)
+
+        if field == "t":
+            return l / length
+
+        hsml = self[self.ds._sph_ptypes[0], "smoothing_length"]
+        mass = self[self.ds._sph_ptypes[0], "particle_mass"]
+        dens = self[self.ds._sph_ptypes[0], "density"]
+        # impact parameter from particle to ray
+        b = np.sqrt(np.sum(r**2, axis=1) - l**2)
+
+        # Use an interpolation table to evaluate the integrated 2D
+        # kernel from the dimensionless impact parameter b/hsml.
+        itab = SPHKernelInterpolationTable(self.ds.kernel_name)
+        dl = itab.interpolate_array(b / hsml) * mass / dens / hsml**2
+        return dl / length
 
 class YTSlice(YTSelectionContainer2D):
     """
@@ -288,7 +323,7 @@ class YTSlice(YTSelectionContainer2D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> slice = ds.slice(0, 0.25)
-    >>> print slice["Density"]
+    >>> print(slice["Density"])
     """
     _top_node = "/Slices"
     _type_name = "slice"
@@ -395,7 +430,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
          fields.
     data_source: optional
         Draw the selection from the provided data source rather than
-        all data associated with the data_set
+        all data associated with the dataset
 
     Notes
     -----
@@ -411,7 +446,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
     >>> import yt
     >>> ds = yt.load("RedshiftOutput0005")
     >>> cp = ds.cutting([0.1, 0.2, -0.9], [0.5, 0.42, 0.6])
-    >>> print cp["Density"]
+    >>> print(cp["Density"])
     """
     _plane = None
     _top_node = "/CuttingPlanes"
@@ -634,6 +669,18 @@ class YTDisk(YTSelectionContainer3D):
         self.radius = fix_length(radius, self.ds)
         self._d = -1.0 * np.dot(self._norm_vec, self.center)
 
+    def _get_bbox(self):
+        """
+        Return the minimum bounding box for the disk.
+        """
+        # http://www.iquilezles.org/www/articles/diskbbox/diskbbox.htm
+        pa = self.center + self._norm_vec*self.height
+        pb = self.center - self._norm_vec*self.height
+        a = pa - pb
+        db = self.radius*np.sqrt(1.0-a.d*a.d/np.dot(a,a))
+        return np.minimum(pa-db, pb-db), np.maximum(pa+db, pb+db)
+
+
 class YTRegion(YTSelectionContainer3D):
     """A 3D region of data with an arbitrary center.
 
@@ -667,15 +714,22 @@ class YTRegion(YTSelectionContainer3D):
         YTSelectionContainer3D.__init__(self, center, ds,
                                         field_parameters, data_source)
         if not isinstance(left_edge, YTArray):
-            self.left_edge = self.ds.arr(left_edge, 'code_length')
+            self.left_edge = self.ds.arr(left_edge, 'code_length', dtype='float64')
         else:
             # need to assign this dataset's unit registry to the YTArray
-            self.left_edge = self.ds.arr(left_edge.copy())
+            self.left_edge = self.ds.arr(left_edge.copy(), dtype='float64')
         if not isinstance(right_edge, YTArray):
-            self.right_edge = self.ds.arr(right_edge, 'code_length')
+            self.right_edge = self.ds.arr(right_edge, 'code_length', dtype='float64')
         else:
             # need to assign this dataset's unit registry to the YTArray
-            self.right_edge = self.ds.arr(right_edge.copy())
+            self.right_edge = self.ds.arr(right_edge.copy(), dtype='float64')
+
+    def _get_bbox(self):
+        """
+        Return the minimum bounding box for the region.
+        """
+        return self.left_edge, self.right_edge
+
 
 class YTDataCollection(YTSelectionContainer3D):
     """
@@ -697,6 +751,7 @@ class YTDataCollection(YTSelectionContainer3D):
         self._obj_ids = np.array([o.id - o._id_offset for o in obj_list],
                                 dtype="int64")
         self._obj_list = obj_list
+
 
 class YTSphere(YTSelectionContainer3D):
     """
@@ -736,6 +791,54 @@ class YTSphere(YTSelectionContainer3D):
         if radius < self.index.get_smallest_dx():
             raise YTSphereTooSmall(ds, radius.in_units("code_length"),
                                    self.index.get_smallest_dx().in_units("code_length"))
+        self.set_field_parameter('radius', radius)
+        self.set_field_parameter("center", self.center)
+        self.radius = radius
+
+    def _get_bbox(self):
+        """
+        Return the minimum bounding box for the sphere.
+        """
+        return -self.radius + self.center, self.radius + self.center
+
+class YTMinimalSphere(YTSelectionContainer3D):
+    """
+    Build the smallest sphere that encompasses a set of points.
+
+    Parameters
+    ----------
+    points : YTArray
+        The points that the sphere will contain.
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("output_00080/info_00080.txt")
+    >>> points = ds.r['particle_position']
+    >>> sphere = ds.minimal_sphere(points)
+    """
+    _type_name = "sphere"
+    _override_selector_name = "minimal_sphere"
+    _con_args = ('center', 'radius')
+
+    def __init__(self, points, ds=None, field_parameters=None, data_source=None):
+        validate_object(ds, Dataset)
+        validate_object(field_parameters, dict)
+        validate_object(data_source, YTSelectionContainer)
+        validate_object(points, YTArray)
+
+        points = fix_length(points, ds)
+        if len(points) < 2:
+            raise YTException("Not enough points. Expected at least 2, got %s" % len(points))
+        mylog.debug('Building minimal sphere around points.')
+        mb = _miniball.Miniball(points)
+        if not mb.is_valid():
+            raise YTException("Could not build valid sphere around points.")
+
+        center = ds.arr(mb.center(), points.units)
+        radius = ds.quan(np.sqrt(mb.squared_radius()), points.units)
+        super(YTMinimalSphere, self).__init__(center, ds, field_parameters, data_source)
         self.set_field_parameter('radius', radius)
         self.set_field_parameter("center", self.center)
         self.radius = radius
@@ -830,6 +933,15 @@ class YTEllipsoid(YTSelectionContainer3D):
         self.set_field_parameter('e1', e1)
         self.set_field_parameter('e2', e2)
 
+    def _get_bbox(self):
+        """
+        Get the bounding box for the ellipsoid. NOTE that in this case
+        it is not the *minimum* bounding box.
+        """
+        radius = self.ds.arr(np.max([self._A, self._B, self._C]), "code_length")
+        return -radius + self.center, radius + self.center
+
+
 class YTCutRegion(YTSelectionContainer3D):
     """
     This is a data object designed to allow individuals to apply logical
@@ -861,7 +973,7 @@ class YTCutRegion(YTSelectionContainer3D):
         validate_object(data_source, YTSelectionContainer)
         validate_iterable(conditionals)
         for condition in conditionals:
-            validate_object(condition, string_types)
+            validate_object(condition, str)
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(base_object, YTSelectionContainer)
@@ -1030,6 +1142,14 @@ class YTCutRegion(YTSelectionContainer3D):
     @property
     def fwidth(self):
         return self.base_object.fwidth[self._cond_ind,:]
+
+    def _get_bbox(self):
+        """
+        Get the bounding box for the cut region. Here we just use
+        the bounding box for the source region.
+        """
+        return self.base_object._get_bbox()
+
 
 class YTIntersectionContainer3D(YTSelectionContainer3D):
     """

@@ -1,24 +1,7 @@
-"""
-Coordinate handler base class.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import weakref
 from numbers import Number
 
-from yt.extern.six import string_types
 from yt.funcs import \
     validate_width_tuple, \
     fix_unitary, \
@@ -215,6 +198,8 @@ class CoordinateHandler(object):
 
     def sanitize_width(self, axis, width, depth):
         if width is None:
+            # initialize the index if it is not already initialized
+            self.ds.index
             # Default to code units
             if not iterable(axis):
                 xax = self.x_axis[axis]
@@ -241,18 +226,21 @@ class CoordinateHandler(object):
         return width
 
     def sanitize_center(self, center, axis):
-        if isinstance(center, string_types):
+        if isinstance(center, str):
             if center.lower() == "m" or center.lower() == "max":
                 v, center = self.ds.find_max(("gas", "density"))
                 center = self.ds.arr(center, 'code_length')
             elif center.lower() == "c" or center.lower() == "center":
+                # domain_left_edge and domain_right_edge might not be
+                # initialized until we create the index, so create it
+                self.ds.index
                 center = (self.ds.domain_left_edge + self.ds.domain_right_edge) / 2
             else:
                 raise RuntimeError('center keyword \"%s\" not recognized' % center)
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
-            if isinstance(center[0], string_types) and isinstance(center[1], string_types):
+            if isinstance(center[0], str) and isinstance(center[1], str):
                 if center[0].lower() == "min":
                     v, center = self.ds.find_min(center[1])
                 elif center[0].lower() == "max":
@@ -260,7 +248,7 @@ class CoordinateHandler(object):
                 else:
                     raise RuntimeError("center keyword \"%s\" not recognized" % center)
                 center = self.ds.arr(center, 'code_length')
-            elif iterable(center[0]) and isinstance(center[1], string_types):
+            elif iterable(center[0]) and isinstance(center[1], str):
                 center = self.ds.arr(center[0], center[1])
             else:
                 center = self.ds.arr(center, 'code_length')

@@ -1,22 +1,6 @@
-"""
-Some convenience functions, objects, and iterators
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
 
 # Named imports
-from yt.extern.six import string_types
 from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.utilities.parameter_file_storage import \
@@ -51,7 +35,7 @@ def load(*args ,**kwargs):
     candidates = []
     valid_file = []
     for argno, arg in enumerate(args):
-        if isinstance(arg, string_types):
+        if isinstance(arg, str):
             if os.path.exists(arg):
                 valid_file.append(True)
             elif arg.startswith("http"):
@@ -97,7 +81,7 @@ def load(*args ,**kwargs):
     if len(candidates) == 0:
         if ytcfg.get("yt", "enzo_db") != '' \
            and len(args) == 1 \
-           and isinstance(args[0], string_types):
+           and isinstance(args[0], str):
             erdb = EnzoRunDatabase()
             fn = erdb.find_uuid(args[0])
             n = "EnzoDataset"

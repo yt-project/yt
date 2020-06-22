@@ -1,11 +1,3 @@
-# -----------------------------------------------------------------------------
-# Copyright (c) 2016, Fabian Koller (HZDR)
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
-
 import numpy as np
 
 from yt.utilities.logger import ytLogger as mylog
@@ -38,11 +30,11 @@ def parse_unit_dimension(unit_dimension):
     Examples
     --------
     >>> velocity = [1., 0., -1., 0., 0., 0., 0.]
-    >>> print parse_unit_dimension(velocity)
+    >>> print(parse_unit_dimension(velocity))
     'm**1*s**-1'
 
     >>> magnetic_field = [0., 1., -2., -1., 0., 0., 0.]
-    >>> print parse_unit_dimension(magnetic_field)
+    >>> print(parse_unit_dimension(magnetic_field))
     'kg**1*s**-2*A**-1'
     """
     if len(unit_dimension) != 7:

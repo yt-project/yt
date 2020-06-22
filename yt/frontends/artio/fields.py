@@ -1,19 +1,3 @@
-"""
-ARTIO-specific fields
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.units.yt_array import \
@@ -78,7 +62,8 @@ class ARTIOFieldInfo(FieldInfoContainer):
                 return data["momentum_%s" % axis]/data["density"]
             return velocity
         for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax), sampling_type="cell",
+            self.add_field(("gas", "velocity_%s" % ax),
+                           sampling_type="cell",
                            function = _get_vel(ax),
                            units = unit_system["velocity"])
 
@@ -102,7 +87,9 @@ class ARTIOFieldInfo(FieldInfoContainer):
         # TODO: The conversion factor here needs to be addressed, as previously
         # it was set as:
         # unit_T = unit_v**2.0*mb / constants.k
-        self.add_field(("gas", "temperature"), sampling_type="cell",  function = _temperature,
+        self.add_field(("gas", "temperature"),
+                       sampling_type="cell",
+                       function = _temperature,
                        units = unit_system["temperature"])
 
         # Create a metal_density field as sum of existing metal fields.
@@ -122,7 +109,8 @@ class ARTIOFieldInfo(FieldInfoContainer):
                 def _metal_density(field, data):
                     tr = data["metal_ii_density"]
                     return tr
-            self.add_field(("gas","metal_density"), sampling_type="cell",
+            self.add_field(("gas","metal_density"),
+                           sampling_type="cell",
                            function=_metal_density,
                            units=unit_system["density"],
                            take_log=True)
@@ -135,13 +123,21 @@ class ARTIOFieldInfo(FieldInfoContainer):
             def _age(field, data):
                 return data.ds.current_time - data["STAR","creation_time"]
 
-            self.add_field((ptype, "creation_time"), sampling_type="particle",  function=_creation_time, units="yr")
-            self.add_field((ptype, "age"), sampling_type="particle",  function=_age, units="yr")
+            self.add_field((ptype, "creation_time"),
+                           sampling_type="particle",
+                           function=_creation_time,
+                           units="yr")
+            self.add_field((ptype, "age"),
+                           sampling_type="particle",
+                           function=_age,
+                           units="yr")
 
             if self.ds.cosmological_simulation:
                 def _creation_redshift(field,data):
                     return 1.0/data.ds._handle.auni_from_tcode_array(data["STAR","BIRTH_TIME"]) - 1.0
 
-                self.add_field((ptype, "creation_redshift"), sampling_type="particle",  function=_creation_redshift)
+                self.add_field((ptype, "creation_redshift"),
+                               sampling_type="particle",
+                               function=_creation_redshift)
 
         super(ARTIOFieldInfo, self).setup_particle_fields(ptype)

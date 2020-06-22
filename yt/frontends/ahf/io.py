@@ -1,18 +1,3 @@
-"""
-AHF-specific IO functions
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2017, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from operator import attrgetter
 
 import numpy as np
@@ -43,6 +28,13 @@ class IOHandlerAHFHalos(BaseIOHandler):
             x, y, z = (pos[:, i] for i in range(3))
             yield 'halos', (x, y, z)
 
+    def _yield_coordinates(self, data_file):
+        halos = data_file.read_data(usecols=['Xc', 'Yc', 'Zc'])
+        x = halos['Xc'].astype('float64')
+        y = halos['Yc'].astype('float64')
+        z = halos['Zc'].astype('float64')
+        yield 'halos', np.asarray((x, y, z)).T
+
     def _read_particle_fields(self, chunks, ptf, selector):
         # This gets called after the arrays have been allocated.  It needs to
         # yield ((ptype, field), data) where data is the masked results of
@@ -50,6 +42,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
         for data_file in self._get_data_files(chunks, ptf):
+            si, ei = data_file.start, data_file.end
             cols = []
             for field_list in ptf.values():
                 cols.extend(field_list)
@@ -63,7 +56,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
             if mask is None: continue
             for ptype, field_list in sorted(ptf.items()):
                 for field in field_list:
-                    data = halos[field][mask].astype('float64')
+                    data = halos[field][si:ei][mask].astype('float64')
                     yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
@@ -90,7 +83,11 @@ class IOHandlerAHFHalos(BaseIOHandler):
 
     def _count_particles(self, data_file):
         halos = data_file.read_data(usecols=['ID'])
-        return {'halos': len(halos['ID'])}
+        nhalos = len(halos['ID'])
+        si, ei = data_file.start, data_file.end
+        if None not in (si, ei):
+            nhalos = np.clip(nhalos - si, 0, ei - si)
+        return {'halos': nhalos}
 
     def _identify_fields(self, data_file):
         fields = [('halos', f) for f in data_file.col_names]

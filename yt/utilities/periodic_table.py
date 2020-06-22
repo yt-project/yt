@@ -1,21 +1,5 @@
-"""
-A simple periodic table.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import numbers
-from yt.extern.six import string_types
 
 _elements = (
     (1, 1.0079400000, "Hydrogen", "H"),
@@ -164,7 +148,7 @@ class PeriodicTable:
     def __getitem__(self, key):
         if isinstance(key, (np.number, numbers.Number)):
             d = self.elements_by_number
-        elif isinstance(key, string_types):
+        elif isinstance(key, str):
             if len(key) <= 2:
                 d = self.elements_by_symbol
             elif len(key) == 3 and key[0] == "U":

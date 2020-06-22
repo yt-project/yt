@@ -1,20 +1,3 @@
-"""
-RAMSES-specific data structures
-
-
-
-"""
-# BytesIO needs absolute import
-from __future__ import print_function, absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
 import numpy as np
 import stat
@@ -22,7 +5,6 @@ import weakref
 from collections import defaultdict
 from glob import glob
 
-from yt.extern.six import string_types
 from yt.funcs import \
     mylog, \
     setdefaultattr
@@ -376,7 +358,7 @@ class RAMSESDataset(Dataset):
                  extra_particle_fields=None, cosmological=None,
                  bbox=None):
         # Here we want to initiate a traceback, if the reader is not built.
-        if isinstance(fields, string_types):
+        if isinstance(fields, str):
             fields = field_aliases[fields]
         '''
         fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file

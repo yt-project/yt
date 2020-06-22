@@ -1,18 +1,3 @@
-"""
-A simple CSV database for grabbing and storing datasets
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import csv
 import os.path
 from itertools import islice

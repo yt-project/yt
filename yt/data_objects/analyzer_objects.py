@@ -1,21 +1,4 @@
-"""
-Analyzer objects for time series datasets
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import inspect
-
-from yt.extern.six import add_metaclass
 
 analysis_task_registry = {}
 
@@ -26,8 +9,7 @@ class RegisteredTask(type):
             return
         analysis_task_registry[cls.__name__] = cls
 
-@add_metaclass(RegisteredTask)
-class AnalysisTask(object):
+class AnalysisTask(metaclass = RegisteredTask):
 
     def __init__(self, *args, **kwargs):
         # This should only get called if the subclassed object

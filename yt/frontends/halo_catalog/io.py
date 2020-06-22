@@ -1,30 +1,14 @@
-"""
-HaloCatalog data-file handling function
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
-from yt.utilities.exceptions import YTDomainOverflow
 from yt.funcs import \
     mylog, \
     parse_h5_attr
-
+from yt.units.yt_array import \
+    uvstack
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import \
     BaseIOHandler
-
 from yt.utilities.lib.geometry_utils import compute_morton
 
 
@@ -46,13 +30,23 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, mode="r") as f:
                 units = parse_h5_attr(f[pn % "x"], "units")
                 pos = data_file._get_particle_positions(ptype, f=f)
                 x, y, z = (self.ds.arr(pos[:, i], units)
                            for i in range(3))
                 yield "halos", (x, y, z)
+
+    def _yield_coordinates(self, data_file):
+        pn = "particle_position_%s"
+        with h5py.File(data_file.filename, 'r') as f:
+            units = parse_h5_attr(f[pn % "x"], "units")
+            x, y, z = (self.ds.arr(f[pn % ax].value.astype("float64"), units)
+                       for ax in 'xyz')
+            pos = uvstack([x, y, z]).T
+            pos.convert_to_units('code_length')
+            yield 'halos', pos
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
@@ -65,7 +59,8 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         pn = "particle_position_%s"
-        for data_file in sorted(data_files):
+        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+            si, ei = data_file.start, data_file.end
             with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[pn % "x"], "units")
@@ -76,7 +71,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                     del x, y, z
                     if mask is None: continue
                     for field in field_list:
-                        data = f[field][mask].astype("float64")
+                        data = f[field][si:ei][mask].astype("float64")
                         yield (ptype, field), data
 
     def _initialize_index(self, data_file, regions):
@@ -105,7 +100,11 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         return morton
 
     def _count_particles(self, data_file):
-        return {'halos': data_file.header['num_halos']}
+        si, ei = data_file.start, data_file.end
+        nhalos = data_file.header['num_halos']
+        if None not in (si, ei):
+            nhalos = np.clip(nhalos - si, 0, ei - si)
+        return {'halos': nhalos}
 
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, mode="r") as f:

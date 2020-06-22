@@ -1,19 +1,3 @@
-"""
-Data structures for GadgetFOF frontend.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from collections import defaultdict
 from functools import partial
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -25,7 +9,7 @@ import weakref
 from yt.data_objects.data_containers import \
     YTSelectionContainer
 from yt.data_objects.static_output import \
-    Dataset
+    ParticleDataset
 from yt.frontends.gadget.data_structures import \
     _fix_unit_ordering
 from yt.frontends.gadget_fof.fields import \
@@ -44,9 +28,6 @@ from yt.utilities.logger import ytLogger as \
     mylog
 
 class GadgetFOFParticleIndex(ParticleIndex):
-    def __init__(self, ds, dataset_type):
-        super(GadgetFOFParticleIndex, self).__init__(ds, dataset_type)
-
     def _calculate_particle_count(self):
         """
         Calculate the total number of each type of particle.
@@ -110,14 +91,15 @@ class GadgetFOFParticleIndex(ParticleIndex):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
-    def _setup_geometry(self):
-        super(GadgetFOFParticleIndex, self)._setup_geometry()
+    def _setup_data_io(self):
+        super(GadgetFOFParticleIndex, self)._setup_data_io()
+        self._setup_filenames()
         self._calculate_particle_count()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
 
 class GadgetFOFHDF5File(HaloCatalogFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, frange):
         with h5py.File(filename, mode="r") as f:
             self.header = \
               dict((str(field), val)
@@ -127,11 +109,9 @@ class GadgetFOFHDF5File(HaloCatalogFile):
             self.group_subs_sum = f["Group/GroupNsubs"][()].sum() \
               if "Group/GroupNsubs" in f else 0
         self.total_ids = self.header["Nids_ThisFile"]
-        self.total_particles = \
-          {"Group": self.header["Ngroups_ThisFile"],
-           "Subhalo": self.header["Nsubgroups_ThisFile"]}
         self.total_offset = 0
-        super(GadgetFOFHDF5File, self).__init__(ds, io, filename, file_id)
+        super(GadgetFOFHDF5File, self).__init__(
+            ds, io, filename, file_id, frange)
 
     def _read_particle_positions(self, ptype, f=None):
         """
@@ -151,17 +131,14 @@ class GadgetFOFHDF5File(HaloCatalogFile):
 
         return pos
 
-class GadgetFOFDataset(Dataset):
+class GadgetFOFDataset(ParticleDataset):
     _index_class = GadgetFOFParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFFieldInfo
 
     def __init__(self, filename, dataset_type="gadget_fof_hdf5",
-                 n_ref=16, over_refine_factor=1, index_ptype="all",
+                 index_order=None, index_filename=None,
                  unit_base=None, units_override=None, unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
-        self.index_ptype = index_ptype
         if unit_base is not None and "UnitLength_in_cm" in unit_base:
             # We assume this is comoving, because in the absence of comoving
             # integration the redshift will be zero.
@@ -170,9 +147,10 @@ class GadgetFOFDataset(Dataset):
         if units_override is not None:
             raise RuntimeError("units_override is not supported for GadgetFOFDataset. "+
                                "Use unit_base instead.")
-        super(GadgetFOFDataset, self).__init__(filename, dataset_type,
-                                               units_override=units_override,
-                                               unit_system=unit_system)
+        super(GadgetFOFDataset, self).__init__(
+            filename, dataset_type, units_override=units_override,
+            index_order=index_order, index_filename=index_filename,
+            unit_system=unit_system)
 
     def add_field(self, *args, **kwargs):
         super(GadgetFOFDataset, self).add_field(*args, **kwargs)
@@ -212,8 +190,7 @@ class GadgetFOFDataset(Dataset):
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * \
           self.parameters["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
         self.current_redshift = self.parameters["Redshift"]
@@ -324,7 +301,7 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
             ndoms = self.real_ds.file_count
             cls = self.real_ds._file_class
             self.data_files = \
-              [cls(self.dataset, self.io, template % {'num':i}, i)
+              [cls(self.dataset, self.io, template % {'num':i}, i, None)
                for i in range(ndoms)]
         else:
             self.data_files = self.real_ds.index.data_files
@@ -437,15 +414,17 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
 
         return data
 
-class GadgetFOFHaloDataset(Dataset):
+class GadgetFOFHaloDataset(ParticleDataset):
     _index_class = GadgetFOFHaloParticleIndex
     _file_class = GadgetFOFHDF5File
     _field_info_class = GadgetFOFHaloFieldInfo
 
     def __init__(self, ds, dataset_type="gadget_fof_halo_hdf5"):
         self.real_ds = ds
-        self.particle_types_raw = self.real_ds.particle_types_raw
-        self.particle_types = self.particle_types_raw
+        for attr in ['filename_template', 'file_count',
+                     'particle_types_raw', 'particle_types',
+                     'periodicity']:
+            setattr(self, attr, getattr(self.real_ds, attr))
 
         super(GadgetFOFHaloDataset, self).__init__(
             self.real_ds.parameter_filename, dataset_type)
@@ -531,22 +510,22 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     >>> ds = yt.load("gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5")
     >>>
     >>> halo = ds.halo("Group", 0)
-    >>> print halo.mass
+    >>> print(halo.mass)
     13256.5517578 code_mass
-    >>> print halo.position
+    >>> print(halo.position)
     [ 16.18603706   6.95965052  12.52694607] code_length
-    >>> print halo.velocity
+    >>> print(halo.velocity)
     [ 6943694.22793569  -762788.90647454  -794749.63819757] cm/s
-    >>> print halo["Group_R_Crit200"]
+    >>> print(halo["Group_R_Crit200"])
     [ 0.79668683] code_length
     >>>
     >>> # particle ids for this halo
-    >>> print halo["member_ids"]
+    >>> print(halo["member_ids"])
     [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
     >>>
     >>> # get the first subhalo of this halo
     >>> subhalo = ds.halo("Subhalo", (0, 0))
-    >>> print subhalo["member_ids"]
+    >>> print(subhalo["member_ids"])
     [  723631.   690744.   854212. ...,   808362.   956359.  1248821.] dimensionless
 
     """

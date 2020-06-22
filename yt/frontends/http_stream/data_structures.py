@@ -1,20 +1,3 @@
-"""
-Data structures for HTTPStream frontend.
-
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import json
 import numpy as np
 import time
@@ -43,14 +26,14 @@ class HTTPStreamDataset(ParticleDataset):
     
     def __init__(self, base_url,
                  dataset_type="http_particle_stream", unit_system="cgs",
-                 n_ref=64, over_refine_factor=1):
+                 index_order=None, index_filename=None):
         if get_requests() is None:
             raise ImportError(
                 "This functionality depends on the requests package")
         self.base_url = base_url
         super(HTTPStreamDataset, self).__init__(
             "", dataset_type=dataset_type, unit_system=unit_system,
-            n_ref=n_ref, over_refine_factor=over_refine_factor)
+            index_order=index_order, index_filename=index_filename)
 
     def __repr__(self):
         return self.base_url
@@ -73,8 +56,7 @@ class HTTPStreamDataset(ParticleDataset):
         # Now we get what we need
         self.domain_left_edge = np.array(header['domain_left_edge'], "float64")
         self.domain_right_edge = np.array(header['domain_right_edge'], "float64")
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
         self.periodicity = (True, True, True)
 
         self.current_time = header['current_time']

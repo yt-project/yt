@@ -1,18 +1,3 @@
-"""
-Commonly used mathematical functions.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import math
 from yt.units.yt_array import \
@@ -141,6 +126,95 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
     if r2.size == 1:
         return np.sqrt(r2[0,0])
     return np.sqrt(r2)
+
+def periodic_ray(start, end, left=None, right=None):
+    """
+    periodic_ray(start, end, left=None, right=None)
+
+    Break up periodic ray into non-periodic segments.
+    Accepts start and end points of periodic ray as YTArrays.
+    Accepts optional left and right edges of periodic volume as YTArrays.
+    Returns a list of lists of coordinates, where each element of the
+    top-most list is a 2-list of start coords and end coords of the
+    non-periodic ray:
+
+    [[[x0start,y0start,z0start], [x0end, y0end, z0end]],
+     [[x1start,y1start,z1start], [x1end, y1end, z1end]],
+     ...,]
+
+    Parameters
+    ----------
+    start : array
+        The starting coordinate of the ray.
+    end : array
+        The ending coordinate of the ray.
+    left : optional, array
+        The left corner of the periodic domain. If not given, an array
+        of zeros with same size as the starting coordinate us used.
+    right : optional, array
+        The right corner of the periodic domain. If not given, an array
+        of ones with same size as the starting coordinate us used.
+
+    Examples
+    --------
+    >>> import yt
+    >>> start = yt.YTArray([0.5, 0.5, 0.5])
+    >>> end = yt.YTArray([1.25, 1.25, 1.25])
+    >>> periodic_ray(start, end)
+    [[YTArray([0.5, 0.5, 0.5]) (dimensionless), YTArray([1., 1., 1.]) (dimensionless)],
+     [YTArray([0., 0., 0.]) (dimensionless), YTArray([0.25, 0.25, 0.25]) (dimensionless)]]
+
+    """
+
+    if left is None:
+        left = np.zeros(start.shape)
+    if right is None:
+        right = np.ones(start.shape)
+    dim = right - left
+
+    vector = end - start
+    wall = np.zeros_like(start)
+    close = np.zeros(start.shape, dtype=object)
+
+    left_bound = vector < 0
+    right_bound = vector > 0
+    no_bound = vector == 0.0
+    bound = vector != 0.0
+
+    wall[left_bound] = left[left_bound]
+    close[left_bound] = np.max
+    wall[right_bound] = right[right_bound]
+    close[right_bound] = np.min
+    wall[no_bound] = np.inf
+    close[no_bound] = np.min
+
+    segments = []
+    this_start = start.copy()
+    this_end = end.copy()
+    t = 0.0
+    tolerance = 1e-6
+    while t < 1.0 - tolerance:
+        hit_left = (this_start <= left) & (vector < 0)
+        if (hit_left).any():
+            this_start[hit_left] += dim[hit_left]
+            this_end[hit_left] += dim[hit_left]
+        hit_right = (this_start >= right) & (vector > 0)
+        if (hit_right).any():
+            this_start[hit_right] -= dim[hit_right]
+            this_end[hit_right] -= dim[hit_right]
+
+        nearest = vector.unit_array * \
+          np.array([close[q]([this_end[q], wall[q]]) \
+                    for q in range(start.size)])
+        dt = ((nearest - this_start) / vector)[bound].min()
+        now = this_start + vector * dt
+        close_enough = np.abs(now - nearest) / np.abs(vector.max()) < 1e-10
+        now[close_enough] = nearest[close_enough]
+        segments.append([this_start.copy(), now.copy()])
+        this_start = now.copy()
+        t += dt
+
+    return segments
 
 def euclidean_dist(a, b):
     r"""Find the Euclidean distance between two points.

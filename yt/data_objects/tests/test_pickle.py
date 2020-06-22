@@ -1,18 +1,4 @@
-"""
-Testsuite for pickling yt objects.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-from yt.extern.six.moves import cPickle
+import pickle
 import os
 import tempfile
 from yt.testing \
@@ -44,11 +30,11 @@ def test_save_load_pickle():
 
     # save object
     cpklfile = tempfile.NamedTemporaryFile(delete=False)
-    cPickle.dump(contours[1][0], cpklfile)
+    pickle.dump(contours[1][0], cpklfile)
     cpklfile.close()
 
     # load object
-    test_load = cPickle.load(open(cpklfile.name, "rb"))
+    test_load = pickle.load(open(cpklfile.name, "rb"))
 
     assert_equal.description = \
         "%s: File was pickle-loaded successfully" % __name__

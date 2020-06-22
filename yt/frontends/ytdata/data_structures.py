@@ -1,19 +1,3 @@
-"""
-Data structures for YTData frontend.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from collections import \
     defaultdict
 from numbers import \
@@ -37,9 +21,8 @@ from yt.data_objects.profiles import \
     Profile3DFromDataset
 from yt.data_objects.static_output import \
     Dataset, \
-    ParticleFile
-from yt.extern.six import \
-    string_types
+    ParticleFile, \
+    validate_index_order
 from yt.funcs import \
     is_root, \
     parse_h5_attr
@@ -85,7 +68,11 @@ class SavedDataset(Dataset):
             for key in f.attrs.keys():
                 v = parse_h5_attr(f, key)
                 if key == "con_args":
-                    v = v.astype("str")
+                    try:
+                        v = eval(v)
+                    except ValueError:
+                        # support older ytdata outputs
+                        v = v.astype('str')
                 self.parameters[key] = v
             self._with_parameter_file_open(f)
 
@@ -162,7 +149,7 @@ class SavedDataset(Dataset):
                                self.parameters["%s_units" % attr])
                 del self.parameters[attr]
                 del self.parameters["%s_units" % attr]
-            elif isinstance(unit, string_types):
+            elif isinstance(unit, str):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
                 uq = self.quan(unit, cgs_unit)
@@ -220,12 +207,12 @@ class YTDataset(SavedDataset):
         pass
 
 class YTDataHDF5File(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range):
         with h5py.File(filename, mode="r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
 
-        super(YTDataHDF5File, self).__init__(ds, io, filename, file_id)
+        super(YTDataHDF5File, self).__init__(ds, io, filename, file_id, range)
 
 class YTDataContainerDataset(YTDataset):
     """Dataset for saved geometric data containers."""
@@ -236,10 +223,10 @@ class YTDataContainerDataset(YTDataset):
     fluid_types = ("grid", "gas", "deposit", "index")
 
     def __init__(self, filename, dataset_type="ytdatacontainer_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None,
+                 index_order=None, index_filename=None, units_override=None,
                  unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+        self.index_order = validate_index_order(index_order)
+        self.index_filename=index_filename
         super(YTDataContainerDataset, self).__init__(filename, dataset_type,
             units_override=units_override, unit_system=unit_system)
 
@@ -249,8 +236,7 @@ class YTDataContainerDataset(YTDataset):
         self.particle_types = self.particle_types_raw
         self.filename_template = self.parameter_filename
         self.file_count = 1
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
 
     def _setup_gas_alias(self):
         "Alias the grid type to gas by making a particle union."
@@ -276,7 +262,7 @@ class YTDataContainerDataset(YTDataset):
             # since this is now particle-like data.
             data_type = self.parameters.get("data_type")
             container_type = self.parameters.get("container_type")
-            ex_container_type = ["cutting", "proj", "ray", "slice", "cut_region"]
+            ex_container_type = ["cutting", "quad_proj", "ray", "slice", "cut_region"]
             if data_type == "yt_light_ray" or container_type in ex_container_type:
                 mylog.info("Returning an all_data data container.")
                 return self.all_data()
@@ -351,7 +337,7 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
     def _parse_parameter_file(self):
         super(YTSpatialPlotDataset, self)._parse_parameter_file()
         if self.parameters["container_type"] == "proj":
-            if isinstance(self.parameters["weight_field"], string_types) and \
+            if isinstance(self.parameters["weight_field"], str) and \
               self.parameters["weight_field"] == "None":
                 self.parameters["weight_field"] = None
             elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -365,7 +351,7 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_data_container" and \
-                cont_type in ["cutting", "proj", "slice"]:
+                cont_type in ["cutting", "proj", "slice", "quad_proj"]:
                 return True
         return False
 
@@ -386,7 +372,7 @@ class YTGrid(AMRGridPatch):
         except YTFieldTypeNotFound:
             return tr
         finfo = self.ds._get_field_info(*fields[0])
-        if not finfo.particle_type:
+        if not finfo.sampling_type == "particle":
             return tr.reshape(self.ActiveDimensions[:self.ds.dimensionality])
         return tr
 
@@ -602,7 +588,7 @@ class YTNonspatialGrid(AMRGridPatch):
         for ftype, fname in fields_to_get:
             finfo = self.ds._get_field_info(ftype, fname)
             finfos[ftype, fname] = finfo
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))
@@ -621,7 +607,7 @@ class YTNonspatialGrid(AMRGridPatch):
                 else:
                     v = v.astype(np.float64)
             if convert:
-                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
                 self.field_data[f].convert_to_units(finfos[f].output_units)
 
         read_particles, gen_particles = self.index._read_fluid_fields(
@@ -635,7 +621,7 @@ class YTNonspatialGrid(AMRGridPatch):
                 else:
                     v = v.astype(np.float64)
             if convert:
-                self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+                self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
                 self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
@@ -755,7 +741,7 @@ class YTProfileDataset(YTNonspatialDataset):
     def _parse_parameter_file(self):
         super(YTGridDataset, self)._parse_parameter_file()
 
-        if isinstance(self.parameters["weight_field"], string_types) and \
+        if isinstance(self.parameters["weight_field"], str) and \
           self.parameters["weight_field"] == "None":
             self.parameters["weight_field"] = None
         elif isinstance(self.parameters["weight_field"], np.ndarray):
@@ -788,7 +774,7 @@ class YTProfileDataset(YTNonspatialDataset):
             setattr(self, range_name, self.parameters[range_name])
 
             bin_field = "%s_field" % ax
-            if isinstance(self.parameters[bin_field], string_types) and \
+            if isinstance(self.parameters[bin_field], str) and \
               self.parameters[bin_field] == "None":
                 self.parameters[bin_field] = None
             elif isinstance(self.parameters[bin_field], np.ndarray):

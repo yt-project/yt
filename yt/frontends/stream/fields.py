@@ -1,18 +1,3 @@
-"""
-Fields specific to Streaming data
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.fields.field_info_container import \
     FieldInfoContainer
 
@@ -78,11 +63,14 @@ class StreamFieldInfo(FieldInfoContainer):
             if field[0] in self.ds.particle_types:
                 continue
             units = self.ds.stream_handler.field_units[field]
-            if units != '': 
-                self.add_output_field(field, sampling_type="cell", units=units)
+            if units != '':
+                self.add_output_field(field,
+                                      sampling_type="cell",
+                                      units=units)
         setup_magnetic_field_aliases(self, "stream", ["magnetic_field_%s" % ax for ax in "xyz"])
 
     def add_output_field(self, name, sampling_type, **kwargs):
         if name in self.ds.stream_handler.field_units:
             kwargs['units'] = self.ds.stream_handler.field_units[name]
-        super(StreamFieldInfo, self).add_output_field(name, sampling_type, **kwargs)
+        super(StreamFieldInfo, self).add_output_field(
+            name, sampling_type, **kwargs)

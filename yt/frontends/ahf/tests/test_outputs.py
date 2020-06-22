@@ -1,22 +1,8 @@
-"""
-AHF frontend tests using ahf_halos dataset
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2017, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os.path
 from yt.testing import \
     assert_equal, \
-    requires_file
+    requires_file, \
+    ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds, \
@@ -43,4 +29,9 @@ def test_fields_ahf_halos():
 
 @requires_file(ahf_halos)
 def test_AHFHalosDataset():
-    assert isinstance(load(ahf_halos), AHFHalosDataset)
+    ds = load(ahf_halos)
+    assert isinstance(ds, AHFHalosDataset)
+    ad = ds.all_data()
+    ad['particle_mass']
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()

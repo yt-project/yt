@@ -1,18 +1,3 @@
-"""
-Clump finding helper classes
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import uuid
 
@@ -235,17 +220,17 @@ class Clump(TreeContainer):
         >>> new_ds = yt.load(fn)
         >>> print (ds.tree["clump", "cell_mass"])
         1296926163.91 Msun
-        >>> print ds.tree["grid", "density"]
+        >>> print(ds.tree["grid", "density"])
         [  2.54398434e-26   2.46620353e-26   2.25120154e-26 ...,   1.12879234e-25
            1.59561490e-25   1.09824903e-24] g/cm**3
-        >>> print ds.tree["all", "particle_mass"]
+        >>> print(ds.tree["all", "particle_mass"])
         [  4.25472446e+38   4.25472446e+38   4.25472446e+38 ...,   2.04238266e+38
            2.04523901e+38   2.04770938e+38] g
-        >>> print ds.tree.children[0]["clump", "cell_mass"]
+        >>> print(ds.tree.children[0]["clump", "cell_mass"])
         909636495.312 Msun
-        >>> print ds.leaves[0]["clump", "cell_mass"]
+        >>> print(ds.leaves[0]["clump", "cell_mass"])
         3756566.99809 Msun
-        >>> print ds.leaves[0]["grid", "density"]
+        >>> print(ds.leaves[0]["grid", "density"])
         [  6.97820274e-24   6.58117370e-24   7.32046082e-24   6.76202430e-24
            7.41184837e-24   6.76981480e-24   6.94287213e-24   6.56149658e-24
            6.76584569e-24   6.94073710e-24   7.06713082e-24   7.22556526e-24
@@ -299,7 +284,7 @@ class Clump(TreeContainer):
             field_data = {}
             need_grid_positions = False
             for f in self.base.data._determine_fields(fields) + contour_fields:
-                if ds.field_info[f].particle_type:
+                if ds.field_info[f].sampling_type == "particle":
                     if f[0] not in ptypes:
                         ptypes.append(f[0])
                     ftypes[f] = f[0]

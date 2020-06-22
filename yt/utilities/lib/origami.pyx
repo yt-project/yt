@@ -5,13 +5,6 @@ This calls the ORIGAMI routines
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
@@ -31,8 +24,8 @@ def run_origami(np.ndarray[np.float64_t, ndim=1] pos_x,
     # C-contiguous.
     global printed_citation
     if printed_citation == 0:
-        print "ORIGAMI was developed by Bridget Falck and Mark Neyrinck."
-        print "Please cite Falck, Neyrinck, & Szalay 2012, ApJ, 754, 2, 125."
+        print("ORIGAMI was developed by Bridget Falck and Mark Neyrinck.")
+        print("Please cite Falck, Neyrinck, & Szalay 2012, ApJ, 754, 2, 125.")
         printed_citation = 1
     cdef int npart = pos_x.size
     if npart == 1:

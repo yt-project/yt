@@ -1,21 +1,8 @@
-"""
-This is a library of yt-defined exceptions
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 
 # We don't need to import 'exceptions'
 import os.path
+
+from unyt.exceptions import UnitOperationError
 
 class YTException(Exception):
     def __init__(self, message = None, ds = None):
@@ -167,86 +154,15 @@ class YTCoordinateNotImplemented(YTException):
     def __str__(self):
         return "This coordinate is not implemented for this geometry type."
 
+# define for back compat reasons for code written before yt 4.0
+YTUnitOperationError = UnitOperationError
+    
 class YTUnitNotRecognized(YTException):
     def __init__(self, unit):
         self.unit = unit
 
     def __str__(self):
         return "This dataset doesn't recognize %s" % self.unit
-
-class YTUnitOperationError(YTException, ValueError):
-    def __init__(self, operation, unit1, unit2=None):
-        self.operation = operation
-        self.unit1 = unit1
-        self.unit2 = unit2
-        YTException.__init__(self)
-
-    def __str__(self):
-        err = "The %s operator for YTArrays with units (%s) " % (self.operation, self.unit1, )
-        if self.unit2 is not None:
-            err += "and (%s) " % self.unit2
-        err += "is not well defined."
-        return err
-
-class YTUnitConversionError(YTException):
-    def __init__(self, unit1, dimension1, unit2, dimension2):
-        self.unit1 = unit1
-        self.unit2 = unit2
-        self.dimension1 = dimension1
-        self.dimension2 = dimension2
-        YTException.__init__(self)
-
-    def __str__(self):
-        err = "Unit dimensionalities do not match. Tried to convert between " \
-          "%s (dim %s) and %s (dim %s)." \
-          % (self.unit1, self.dimension1, self.unit2, self.dimension2)
-        return err
-
-class YTUnitsNotReducible(YTException):
-    def __init__(self, unit, units_base):
-        self.unit = unit
-        self.units_base = units_base
-        YTException.__init__(self)
-
-    def __str__(self):
-        err = "The unit '%s' cannot be reduced to a single expression within " \
-          "the %s base system of units." % (self.unit, self.units_base)
-        return err
-
-class YTEquivalentDimsError(YTUnitOperationError):
-    def __init__(self, old_units, new_units, base):
-        self.old_units = old_units
-        self.new_units = new_units
-        self.base = base
-
-    def __str__(self):
-        err = "It looks like you're trying to convert between '%s' and '%s'. Try " \
-          "using \"to_equivalent('%s', '%s')\" instead." % (self.old_units, self.new_units,
-                                                            self.new_units, self.base)
-        return err
-
-class YTUfuncUnitError(YTException):
-    def __init__(self, ufunc, unit1, unit2):
-        self.ufunc = ufunc
-        self.unit1 = unit1
-        self.unit2 = unit2
-        YTException.__init__(self)
-
-    def __str__(self):
-        err = "The NumPy %s operation is only allowed on objects with " \
-              "identical units. Convert one of the arrays to the other\'s " \
-              "units first. Received units (%s) and (%s)." % \
-              (self.ufunc, self.unit1, self.unit2)
-        return err
-
-class YTIterableUnitCoercionError(YTException):
-    def __init__(self, quantity_list):
-        self.quantity_list = quantity_list
-
-    def __str__(self):
-        err = "Received a list or tuple of quantities with nonuniform units: " \
-              "%s" % self.quantity_list
-        return err
 
 class YTFieldUnitError(YTException):
     def __init__(self, field_info, returned_units):
@@ -539,6 +455,15 @@ class YTGDFAlreadyExists(Exception):
     def __str__(self):
         return "A file already exists at %s and overwrite=False." % self.filename
 
+class YTNonIndexedDataContainer(YTException):
+    def __init__(self, cont):
+        self.cont = cont
+
+    def __str__(self):
+        return ("The data container (%s) is an unindexed type.  "
+                "Operations such as ires, icoords, fcoords and fwidth "
+                "will not work on it." % type(self.cont))
+
 class YTGDFUnknownGeometry(Exception):
     def __init__(self, geometry):
         self.geometry = geometry
@@ -595,10 +520,11 @@ class YTInvalidFieldType(YTException):
         self.fields = fields
 
     def __str__(self):
-        msg = ("\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can only "
-               "plot fields that\n"
-               "are defined on a mesh, but received the following particle "
-               "fields:\n\n"
+        msg = ("\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can "
+               "only plot fields that\n"
+               "are defined on a mesh or for SPH particles, but received the "
+               "following N-body\n"
+               "particle fields:\n\n"
                "    %s\n\n"
                "Did you mean to use ParticlePlot or plot a deposited particle "
                "field instead?" % self.fields)
@@ -775,6 +701,15 @@ class YTCommandRequiresModule(YTException):
         msg += "or:\n"
         msg += "  pip install %s\n" % self.module
         return msg
+
+class YTModuleRemoved(Exception):
+    def __init__(self, name, new_home=None, info=None):
+        message = "The %s module has been removed from yt." % name
+        if new_home is not None:
+            message += "\nIt has been moved to %s." % new_home
+        if info is not None:
+            message += "\nFor more information, see %s." % info
+        Exception.__init__(self, message)
 
 class YTArrayTooLargeToDisplay(YTException):
     def __init__(self, size, max_size):

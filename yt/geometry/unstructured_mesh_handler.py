@@ -1,19 +1,3 @@
-"""
-Unstructured-mesh geometry handler
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import os
 import weakref
@@ -24,7 +8,6 @@ from yt.utilities.lib.mesh_utilities import smallest_fwidth
 
 class UnstructuredIndex(Index):
     """The Index subclass for unstructured and hexahedral mesh datasets. """
-    _global_mesh = False
     _unsupported_objects = ('proj', 'covering_grid', 'smoothed_covering_grid')
 
     def __init__(self, ds, dataset_type):
@@ -73,8 +56,6 @@ class UnstructuredIndex(Index):
 
     def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        # We actually do not really use the data files except as input to the
-        # ParticleOctreeSubset.
         # This is where we will perform cutting of the Octree and
         # load-balancing.  That may require a specialized selector object to
         # cut based on some space-filling curve index.

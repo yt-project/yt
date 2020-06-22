@@ -1,18 +1,3 @@
-"""
-GadgetFOF frontend tests using gadget_fof datasets
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from yt.frontends.gadget_fof.api import \
@@ -20,7 +5,8 @@ from yt.frontends.gadget_fof.api import \
 from yt.testing import \
     requires_file, \
     assert_equal, \
-    assert_array_equal
+    assert_array_equal, \
+    ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds, \
@@ -53,6 +39,11 @@ def test_GadgetFOFDataset():
 
 # fof/subhalo catalog with member particles
 g298 = "gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5"
+@requires_file(g298)
+def test_particle_selection():
+    ds = data_dir_load(g298)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
 
 @requires_file(g298)
 def test_subhalos():

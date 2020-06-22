@@ -110,10 +110,10 @@ def make_utf8(text, encoding):
 def get_xmlrpc_service():
     """Create the XMLRPC server proxy and cache it."""
     global _xmlrpc_service
-    from yt.extern.six.moves import xmlrpc_client
+    import xmlrpc.client
     if _xmlrpc_service is None:
         try:
-            _xmlrpc_service = xmlrpc_client.ServerProxy(SERVICE_URL + 'xmlrpc/',
+            _xmlrpc_service = xmlrpc.client.ServerProxy(SERVICE_URL + 'xmlrpc/',
                                                         allow_none=True)
         except Exception as err:
             fail('Could not connect to Pastebin: %s' % err, -1)

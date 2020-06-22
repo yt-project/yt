@@ -14,7 +14,6 @@ API for yt.frontends.amrvac
 #-----------------------------------------------------------------------------
 
 from yt.utilities.on_demand_imports import _f90nml as f90nml
-from yt.extern.six import string_types
 
 def read_amrvac_namelist(parfiles):
     """Read one or more parfiles, and return a unified f90nml.Namelist object.
@@ -35,9 +34,9 @@ def read_amrvac_namelist(parfiles):
 
     """
     # typechecking
-    if isinstance(parfiles, string_types):
+    if isinstance(parfiles, str):
         parfiles = [parfiles]
-    assert all([isinstance(pf, string_types) for pf in parfiles])
+    assert all([isinstance(pf, str) for pf in parfiles])
 
     # first merge the namelists
     namelists = [f90nml.read(parfile) for parfile in parfiles]

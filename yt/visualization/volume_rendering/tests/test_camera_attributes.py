@@ -1,19 +1,8 @@
-"""
-Tests for setting camera and scene attributes
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import yt.units as u
 
 from yt.testing import \
+    assert_almost_equal, \
     assert_equal, \
     fake_random_ds
 from yt.visualization.volume_rendering.api import \
@@ -74,14 +63,14 @@ def test_scene_and_camera_attributes():
             try:
                 # test properties
                 setattr(cam, attribute, attribute_value)
-                assert_equal(getattr(cam, attribute), expected_result)
+                assert_almost_equal(getattr(cam, attribute), expected_result)
             except RuntimeError:
                 assert expected_result is RuntimeError
 
             try:
                 # test setters/getters
                 getattr(cam, 'set_%s' % attribute)(attribute_value)
-                assert_equal(getattr(cam, 'get_%s' % attribute)(),
+                assert_almost_equal(getattr(cam, 'get_%s' % attribute)(),
                              expected_result)
             except RuntimeError:
                 assert expected_result is RuntimeError

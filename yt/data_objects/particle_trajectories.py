@@ -1,16 +1,3 @@
-"""
-Particle trajectories
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.data_objects.field_data import YTFieldData
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -59,7 +46,7 @@ class ParticleTrajectories(object):
     >>> ts = DatasetSeries(my_fns)
     >>> trajs = ts.particle_trajectories(indices, fields=fields)
     >>> for t in trajs :
-    >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
+    >>>     print(t["particle_velocity_x"].max(), t["particle_velocity_x"].min())
     """
     def __init__(self, outputs, indices, fields=None, suppress_logging=False, ptype=None):
 

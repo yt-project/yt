@@ -6,13 +6,6 @@ Oct definitions file
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport cython
 cimport numpy as np
@@ -30,6 +23,9 @@ cdef int ORDER_MAX
 cdef struct OctKey:
     np.int64_t key
     Oct *node
+    # These next two are for particle sparse octrees.
+    np.int64_t *indices
+    np.int64_t pcount
 
 cdef struct OctInfo:
     np.float64_t left_edge[3]
@@ -76,14 +72,13 @@ cdef class OctreeContainer:
     cdef int get_root(self, int ind[3], Oct **o) nogil
     cdef Oct **neighbors(self, OctInfo *oinfo, np.int64_t *nneighbors,
                          Oct *o, bint periodicity[3])
-    cdef void oct_bounds(self, Oct *, np.float64_t *, np.float64_t *)
     # This function must return the offset from global-to-local domains; i.e.,
     # AllocationContainer.offset if such a thing exists.
     cdef np.int64_t get_domain_offset(self, int domain_id)
     cdef void visit_all_octs(self,
                         selection_routines.SelectorObject selector,
                         OctVisitor visitor,
-                        int vc = ?)
+                        int vc = ?, np.int64_t *indices = ?)
     cdef Oct *next_root(self, int domain_id, int ind[3])
     cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
     cdef void append_domain(self, np.int64_t domain_count)

@@ -1,22 +1,6 @@
-"""
-A plotting mechanism based on the idea of a "window" into the data.
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import numpy as np
 import matplotlib
 import types
-import six
 import sys
 
 from collections import defaultdict
@@ -39,7 +23,6 @@ from .base_plot_types import CallbackWrapper
 
 from yt.data_objects.image_array import \
     ImageArray
-from yt.extern.six import string_types
 from yt.frontends.ytdata.data_structures import \
     YTSpatialPlotDataset
 from yt.funcs import \
@@ -60,8 +43,8 @@ from yt.utilities.exceptions import \
     YTPlotCallbackError, \
     YTDataTypeUnsupported, \
     YTInvalidFieldType, \
-    YTUnitNotRecognized, \
-    YTUnitConversionError
+    YTUnitNotRecognized
+from unyt.exceptions import UnitConversionError
 
 from .geo_plot_utils import get_mpl_transform
 
@@ -111,7 +94,7 @@ def get_axes_unit(width, ds):
     if ds.no_cgs_equiv_length:
         return ("code_length",)*2
     if iterable(width):
-        if isinstance(width[1], string_types):
+        if isinstance(width[1], str):
             axes_unit = (width[1], width[1])
         elif iterable(width[1]):
             axes_unit = (width[0][1], width[1][1])
@@ -135,7 +118,12 @@ def validate_mesh_fields(data_source, fields):
     canonical_fields = data_source._determine_fields(fields)
     invalid_fields = []
     for field in canonical_fields:
-        if data_source.ds.field_info[field].particle_type:
+        finfo = data_source.ds.field_info[field]
+        if finfo.sampling_type == "particle":
+            if not hasattr(data_source.ds, '_sph_ptypes'):
+                pass
+            elif finfo.is_sph_field:
+                continue
             invalid_fields.append(field)
 
     if len(invalid_fields) > 0:
@@ -741,12 +729,12 @@ class PlotWindow(ImagePlotContainer):
         """
         # blind except because it could be in conversion_factors or units
         if unit_name is not None:
-            if isinstance(unit_name, string_types):
+            if isinstance(unit_name, str):
                 unit_name = (unit_name, unit_name)
             for un in unit_name:
                 try:
                     self.ds.length_unit.in_units(un)
-                except (YTUnitConversionError, UnitParseError):
+                except (UnitConversionError, UnitParseError):
                     raise YTUnitNotRecognized(un)
         self._axes_unit_names = unit_name
         return self
@@ -754,6 +742,28 @@ class PlotWindow(ImagePlotContainer):
     @invalidate_plot
     def toggle_right_handed(self):
         self._right_handed = not self._right_handed
+
+    def to_fits_data(self, fields=None, other_keys=None, length_unit=None,
+                     **kwargs):
+        r"""Export the fields in this PlotWindow instance 
+        to a FITSImageData instance.
+
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.
+
+        Parameters
+        ----------
+        fields : list of strings
+            These fields will be pixelized and output. If "None", the keys of 
+            the FRB will be used.
+        other_keys : dictionary, optional
+            A set of header keys and values to write into the FITS header.
+        length_unit : string, optional
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
+        """
+        return self.frb.to_fits_data(fields=fields, other_keys=other_keys,
+                                     length_unit=length_unit, **kwargs)
 
 
 class PWViewerMPL(PlotWindow):
@@ -779,7 +789,7 @@ class PWViewerMPL(PlotWindow):
         xc = None
         yc = None
 
-        if isinstance(origin, string_types):
+        if isinstance(origin, str):
             origin = tuple(origin.split('-'))[:3]
         if 1 == len(origin):
             origin = ('lower', 'left') + origin
@@ -792,8 +802,8 @@ class PWViewerMPL(PlotWindow):
             xc = self.ds.quan(origin[0], 'code_length')
             yc = self.ds.quan(origin[1], 'code_length')
         elif 3 == len(origin) and isinstance(origin[0], tuple):
-            xc = YTQuantity(origin[0][0], origin[0][1])
-            yc = YTQuantity(origin[1][0], origin[0][1])
+            xc = self.ds.quan(origin[0][0], origin[0][1])
+            yc = self.ds.quan(origin[1][0], origin[0][1])
 
         assert origin[-1] in ['window', 'domain', 'native']
 
@@ -1129,6 +1139,15 @@ class PWViewerMPL(PlotWindow):
         self.setup_callbacks()
         return self
 
+    def list_annotations(self):
+        """
+        List the current callbacks for the plot, along with their index.  This
+        index can be used with annotate_clear to remove a callback from the
+        current plot.
+        """
+        for i, cb in enumerate(self._callbacks):
+            print(i, cb)
+
     def run_callbacks(self):
         for f in self.fields:
             keys = self.frb.keys()
@@ -1140,11 +1159,10 @@ class PWViewerMPL(PlotWindow):
                 try:
                     callback(cbw)
                 except YTDataTypeUnsupported as e:
-                    six.reraise(YTDataTypeUnsupported, e)
+                    raise e
                 except Exception as e:
-                    six.reraise(YTPlotCallbackError,
-                                YTPlotCallbackError(callback._type_name, e),
-                                sys.exc_info()[2])
+                    new_exc = YTPlotCallbackError(callback._type_name, e)
+                    raise new_exc.with_traceback(sys.exc_info()[2])
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]
@@ -1251,6 +1269,10 @@ class AxisAlignedSlicePlot(PWViewerMPL):
     data_source: YTSelectionContainer object
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
+    buff_size: length 2 sequence
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
+         used.  Effectively sets a resolution limit to the image if buff_size is 
+         smaller than the finest gridding.
 
     Examples
     --------
@@ -1268,7 +1290,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  origin='center-window', right_handed=True, fontsize=18, field_parameters=None,
-                 window_size=8.0, aspect=None, data_source=None):
+                 window_size=8.0, aspect=None, data_source=None, buff_size=(800,800)):
         # this will handle time series data and controllers
         axis = fix_axis(axis, ds)
         (bounds, center, display_center) = \
@@ -1294,7 +1316,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
         PWViewerMPL.__init__(self, slc, bounds, origin=origin,
                              fontsize=fontsize, fields=fields,
                              window_size=window_size, aspect=aspect,
-                             right_handed=right_handed)
+                             right_handed=right_handed, buff_size=buff_size)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1430,6 +1452,10 @@ class ProjectionPlot(PWViewerMPL):
     data_source: YTSelectionContainer object
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
+    buff_size: length 2 sequence
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
+         used.  Effectively sets a resolution limit to the image if buff_size is 
+         smaller than the finest gridding.
 
     Examples
     --------
@@ -1448,8 +1474,8 @@ class ProjectionPlot(PWViewerMPL):
     def __init__(self, ds, axis, fields, center='c', width=None, axes_unit=None,
                  weight_field=None, max_level=None, origin='center-window',
                  right_handed=True, fontsize=18, field_parameters=None, data_source=None,
-                 method = "integrate", proj_style = None, window_size=8.0,
-                 aspect=None):
+                 method = "integrate", proj_style = None, window_size=8.0, 
+                 buff_size=(800,800), aspect=None):
         axis = fix_axis(axis, ds)
         if ds.geometry in ("spherical", "cylindrical", "geographic", "internal_geographic"):
             mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
@@ -1488,7 +1514,7 @@ class ProjectionPlot(PWViewerMPL):
                            max_level=max_level)
         PWViewerMPL.__init__(self, proj, bounds, fields=fields, origin=origin,
                              right_handed=right_handed, fontsize=fontsize, window_size=window_size,
-                             aspect=aspect)
+                             aspect=aspect, buff_size=buff_size)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1563,6 +1589,10 @@ class OffAxisSlicePlot(PWViewerMPL):
     data_source : YTSelectionContainer Object
          Object to be used for data selection.  Defaults ds.all_data(), a
          region covering the full domain.
+    buff_size: length 2 sequence
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
+         used.  Effectively sets a resolution limit to the image if buff_size is 
+         smaller than the finest gridding.
     """
 
     _plot_type = 'OffAxisSlice'
@@ -1570,7 +1600,7 @@ class OffAxisSlicePlot(PWViewerMPL):
 
     def __init__(self, ds, normal, fields, center='c', width=None,
                  axes_unit=None, north_vector=None, right_handed=True, fontsize=18,
-                 field_parameters=None, data_source=None):
+                 field_parameters=None, data_source=None, buff_size=(800,800)):
         (bounds, center_rot) = get_oblique_window_parameters(normal,center,width,ds)
         if field_parameters is None:
             field_parameters = {}
@@ -1589,7 +1619,8 @@ class OffAxisSlicePlot(PWViewerMPL):
         # aren't well-defined for off-axis data objects
         PWViewerMPL.__init__(self, cutting, bounds, fields=fields,
                              origin='center-window',periodic=False,
-                             right_handed=right_handed, oblique=True, fontsize=fontsize)
+                             right_handed=right_handed, oblique=True, 
+                             fontsize=fontsize, buff_size=buff_size)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1717,6 +1748,10 @@ class OffAxisProjectionPlot(PWViewerMPL):
     data_source: YTSelectionContainer object
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
+    buff_size: length 2 sequence
+         Size of the buffer to use for the image, i.e. the number of resolution elements 
+         used.  Effectively sets a resolution limit to the image if buff_size is 
+         smaller than the finest gridding.         
     """
     _plot_type = 'OffAxisProjection'
     _frb_generator = OffAxisProjectionFixedResolutionBuffer
@@ -1726,7 +1761,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
                  max_level=None, north_vector=None, right_handed=True,
                  volume=None, no_ghost=False, le=None, re=None,
                  interpolated=False, fontsize=18, method="integrate",
-                 data_source=None):
+                 data_source=None, buff_size=(800,800)):
         (bounds, center_rot) = \
           get_oblique_window_parameters(normal,center,width,ds,depth=depth)
         fields = ensure_list(fields)[:]
@@ -1754,7 +1789,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         PWViewerMPL.__init__(
             self, OffAxisProj, bounds, fields=fields, origin='center-window',
             periodic=False, oblique=True, right_handed=right_handed,
-            fontsize=fontsize)
+            fontsize=fontsize, buff_size=buff_size)
         if axes_unit is None:
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
@@ -1969,7 +2004,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal, string_types):
+    if iterable(normal) and not isinstance(normal, str):
         if np.count_nonzero(normal) == 1:
             normal = ("x","y","z")[np.nonzero(normal)[0][0]]
         else:
@@ -1977,7 +2012,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal,normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal, string_types):
+    if iterable(normal) and not isinstance(normal, str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if 'origin' in kwargs:
             msg = "Ignoring 'origin' keyword as it is ill-defined for " \
@@ -2103,9 +2138,9 @@ def plot_2d(ds, fields, center='c', width=None, axes_unit=None,
         raise NotImplementedError("plot_2d does not yet support datasets with {} geometries".format(ds.geometry))
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument
-    if not isinstance(center, string_types) and obj_length(center) == 2:
-        c0_string = isinstance(center[0], string_types)
-        c1_string = isinstance(center[1], string_types)
+    if not isinstance(center, str) and obj_length(center) == 2:
+        c0_string = isinstance(center[0], str)
+        c1_string = isinstance(center[1], str)
         if not c0_string and not c1_string:
             if obj_length(center[0]) == 2 and c1_string:
                 center = ds.arr(center[0], center[1])

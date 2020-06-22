@@ -1,13 +1,9 @@
 import os
 from yt.utilities.cython_fortran_utils import FortranFile
-from yt.extern.six import add_metaclass, PY2
 from yt.funcs import mylog
 from yt.config import ytcfg
 
 from .io import _read_part_file_descriptor
-
-if PY2:
-    FileNotFoundError = IOError
 
 PARTICLE_HANDLERS = set()
 PRESENT_PART_FILES = {}
@@ -30,9 +26,7 @@ class RAMSESParticleFileHandlerRegistry(type):
             register_particle_handler(cls)
         return cls
 
-
-@add_metaclass(RAMSESParticleFileHandlerRegistry)
-class ParticleFileHandler(object):
+class ParticleFileHandler(metaclass = RAMSESParticleFileHandlerRegistry):
     '''
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -41,6 +35,7 @@ class ParticleFileHandler(object):
     implement all functions containing a `NotImplementedError`.
 
     See `SinkParticleFileHandler` for an example implementation.'''
+
 
     # These properties are static properties
     ptype = None  # The name to give to the particle type

@@ -1,18 +1,3 @@
-"""
-Athena++-specific fields
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.fields.field_info_container import \
     FieldInfoContainer
 from yt.utilities.physical_constants import \
@@ -51,7 +36,8 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 self.alias(("gas","%s_%s" % (vel_prefix, comp)), vel_field,
                            units=unit_system["velocity"])
             elif mom_field in self.field_list:
-                self.add_output_field(mom_field, sampling_type="cell",
+                self.add_output_field(mom_field,
+                                      sampling_type="cell",
                                       units="code_mass/code_time/code_length**2")
                 self.add_field(("gas","%s_%s" % (vel_prefix, comp)), sampling_type="cell",
                                function=velocity_field(i+1), units=unit_system["velocity"])
@@ -80,11 +66,7 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                            units=unit_system["specific_energy"])
         # Add temperature field
         def _temperature(field, data):
-            if data.has_field_parameter("mu"):
-                mu = data.get_field_parameter("mu")
-            else:
-                mu = 0.6
-            return (data["gas","pressure"]/data["gas","density"])*mu*mh/kboltz
+            return (data["gas","pressure"]/data["gas","density"])*data.ds.mu*mh/kboltz
         self.add_field(("gas", "temperature"), sampling_type="cell", function=_temperature,
                        units=unit_system["temperature"])
 

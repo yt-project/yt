@@ -16,12 +16,8 @@ Coding is only one way to be involved!
 Communication Channels
 ----------------------
 
-There are five main communication channels for yt:
+There are three main communication channels for yt:
 
- * We have an IRC channel, on ``irc.freenode.net`` in ``#yt``.
-   You can connect through our web
-   gateway without any special client, at https://yt-project.org/irc.html .
-   *IRC is the first stop for conversation!*
  * Many yt developers participate in the yt Slack community. Slack is a free
    chat service that many teams use to organize their work. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
@@ -405,12 +401,6 @@ the following subdirectories:
    classes for data regions, covering grids, time series, and so on.  This
    also includes derived fields and derived quantities.
 
-``analysis_modules``
-   This is where all mechanisms for processing data live.  This includes
-   things like clump finding, halo profiling, halo finding, and so on.  This
-   is something of a catchall, but it serves as a level of greater
-   abstraction that simply data selection and modification.
-
 ``gui``
    This is where all GUI components go.  Typically this will be some small
    tool used for one or two things, which contains a launching mechanism on
@@ -762,6 +752,7 @@ Source code style guide
 
  * In general, follow PEP-8 guidelines.
    https://www.python.org/dev/peps/pep-0008/
+ * We no longer have a copyright blurb in every source file.
  * Classes are ``ConjoinedCapitals``, methods and functions are
    ``lowercase_with_underscores``.
  * Use 4 spaces, not tabs, to represent indentation.
@@ -784,7 +775,7 @@ Source code style guide
    that occur on an object.  See :ref:`docstrings` below for a fiducial example
    of a docstring.
  * Use only one top-level import per line. Unless there is a good reason not to,
-   imports should happen at the top of the file, after the copyright blurb.
+   imports should happen at the top of the file.
  * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use
    ``is`` or ``is not``.
  * If you are comparing with a numpy boolean array, just refer to the array.

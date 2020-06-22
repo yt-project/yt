@@ -1,20 +1,4 @@
-"""
-Parallel data mapping techniques for yt
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.extern.six.moves import cStringIO
+from io import StringIO
 import itertools
 import logging
 import numpy as np
@@ -471,7 +455,7 @@ def parallel_objects(objects, njobs = 0, storage = None, barrier = True,
     ...     sto.result = sp.quantities["AngularMomentumVector"]()
     ...
     >>> for sphere_id, L in sorted(storage.items()):
-    ...     print centers[sphere_id], L
+    ...     print(centers[sphere_id], L)
     ...
 
     """
@@ -571,7 +555,7 @@ def parallel_ring(objects, generator_func, mutable = False):
     ...
     >>> obj = range(8)
     >>> for obj, arr in parallel_ring(obj, gfunc):
-    ...     print arr['x'].sum(), arr['y'].sum(), arr['z'].sum()
+    ...     print(arr['x'].sum(), arr['y'].sum(), arr['z'].sum())
     ...
 
     """
@@ -809,7 +793,7 @@ class Communicator(object):
                     registry = UnitRegistry(lut=info[3], add_default_symbols=False)
                     if info[-1] == "ImageArray":
                         data = ImageArray(np.empty(info[0], dtype=info[1]),
-                                          input_units=info[2],
+                                          units=info[2],
                                           registry=registry)
                     else:
                         data = YTArray(np.empty(info[0], dtype=info[1]), 
@@ -924,7 +908,7 @@ class Communicator(object):
         if self.comm.rank == 0:
             return open(fn, "w")
         else:
-            return cStringIO()
+            return StringIO()
 
     def get_filename(self, prefix, rank=None):
         if not self._distributed: return prefix
@@ -976,14 +960,14 @@ class Communicator(object):
         while mask < size:
             if (mask & rank) != 0:
                 target = (rank & ~mask) % size
-                #print "SENDING FROM %02i to %02i" % (rank, target)
+                #print("SENDING FROM %02i to %02i" % (rank, target))
                 buf = qt.tobuffer()
                 self.send_quadtree(target, buf, tgd, args)
                 #qt = self.recv_quadtree(target, tgd, args)
             else:
                 target = (rank | mask)
                 if target < size:
-                    #print "RECEIVING FROM %02i on %02i" % (target, rank)
+                    #print("RECEIVING FROM %02i on %02i" % (target, rank))
                     buf = self.recv_quadtree(target, tgd, args)
                     qto = QuadTree(tgd, args[2], qt.bounds)
                     qto.frombuffer(buf[0], buf[1], buf[2], merge_style)
@@ -1038,7 +1022,7 @@ class Communicator(object):
         if len(metadata) == 5:
             registry = UnitRegistry(lut=metadata[3], add_default_symbols=False)
             if metadata[-1] == "ImageArray":
-                arr = ImageArray(arr, input_units=metadata[2],
+                arr = ImageArray(arr, units=metadata[2],
                                  registry=registry)
             else:
                 arr = YTArray(arr, metadata[2], registry=registry)
@@ -1061,7 +1045,7 @@ class Communicator(object):
             # We assume send.units is consistent with the units
             # on the receiving end.
             if isinstance(send, ImageArray):
-                recv = ImageArray(recv, input_units=send.units)
+                recv = ImageArray(recv, units=send.units)
             else:
                 recv = YTArray(recv, send.units)
         recv[offset:offset+send.size] = send[:]

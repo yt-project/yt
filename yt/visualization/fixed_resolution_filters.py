@@ -1,18 +1,4 @@
-"""
-Fixed resolution buffer filters.
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
-from yt.extern.six import add_metaclass
 from functools import wraps
 
 filter_registry = {}
@@ -33,8 +19,7 @@ class RegisteredFilter(type):
         filter_registry[name] = cls
 
 
-@add_metaclass(RegisteredFilter)
-class FixedResolutionBufferFilter(object):
+class FixedResolutionBufferFilter(metaclass = RegisteredFilter):
 
     """
     This object allows to apply data transformation directly to

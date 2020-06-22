@@ -1,21 +1,5 @@
-"""
-Utilities for flagging zones for refinement in a dataset
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np # For modern purposes
 from yt.utilities.lib.misc_utilities import grow_flagging_field
-from yt.extern.six import add_metaclass
 
 flagging_method_registry = {}
 
@@ -25,8 +9,7 @@ class RegisteredFlaggingMethod(type):
         if hasattr(cls, "_type_name") and not cls._skip_add:
             flagging_method_registry[cls._type_name] = cls
 
-@add_metaclass(RegisteredFlaggingMethod)
-class FlaggingMethod(object):
+class FlaggingMethod(metaclass = RegisteredFlaggingMethod):
     _skip_add = False
 
 class OverDensity(FlaggingMethod):

@@ -1,7 +1,9 @@
 import numpy as np
 
 from yt.testing import \
-    assert_equal
+    assert_equal, \
+    fake_particle_ds, \
+    fake_sph_orientation_ds
 from yt.frontends.stream.api import load_uniform_grid, \
     refine_amr, \
     load_amr_grids, \
@@ -77,18 +79,18 @@ def test_stream_particles():
     # Check to make sure the fields have been defined correctly
 
     for ptype in ("all", "io"):
-        assert ug1._get_field_info(ptype, "particle_position_x").particle_type
-        assert ug1._get_field_info(ptype, "particle_position_y").particle_type
-        assert ug1._get_field_info(ptype, "particle_position_z").particle_type
-        assert ug1._get_field_info(ptype, "particle_mass").particle_type
-    assert not ug1._get_field_info("gas", "density").particle_type
+        assert ug1._get_field_info(ptype, "particle_position_x").sampling_type == "particle"
+        assert ug1._get_field_info(ptype, "particle_position_y").sampling_type == "particle"
+        assert ug1._get_field_info(ptype, "particle_position_z").sampling_type == "particle"
+        assert ug1._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+    assert not ug1._get_field_info("gas", "density").sampling_type == "particle"
 
     for ptype in ("all", "io"):
-        assert ug2._get_field_info(ptype, "particle_position_x").particle_type
-        assert ug2._get_field_info(ptype, "particle_position_y").particle_type
-        assert ug2._get_field_info(ptype, "particle_position_z").particle_type
-        assert ug2._get_field_info(ptype, "particle_mass").particle_type
-    assert not ug2._get_field_info("gas", "density").particle_type
+        assert ug2._get_field_info(ptype, "particle_position_x").sampling_type == "particle"
+        assert ug2._get_field_info(ptype, "particle_position_y").sampling_type == "particle"
+        assert ug2._get_field_info(ptype, "particle_position_z").sampling_type == "particle"
+        assert ug2._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+    assert not ug2._get_field_info("gas", "density").sampling_type == "particle"
 
     # Now refine this
 
@@ -106,7 +108,7 @@ def test_stream_particles():
                     dimensions=grid.ActiveDimensions)
 
         for field in amr1.field_list:
-            if field[0] != "all":
+            if field[0] not in ("all", "nbody"):
                 data[field] = grid[field]
 
         grid_data.append(data)
@@ -133,19 +135,19 @@ def test_stream_particles():
         assert tot_parts == grid.NumberOfParticles
         assert tot_all_parts == grid.NumberOfParticles
 
-    assert amr1._get_field_info("all", "particle_position_x").particle_type
-    assert amr1._get_field_info("all", "particle_position_y").particle_type
-    assert amr1._get_field_info("all", "particle_position_z").particle_type
-    assert amr1._get_field_info("all", "particle_mass").particle_type
-    assert not amr1._get_field_info("gas", "density").particle_type
+    assert amr1._get_field_info("all", "particle_position_x").sampling_type == "particle"
+    assert amr1._get_field_info("all", "particle_position_y").sampling_type == "particle"
+    assert amr1._get_field_info("all", "particle_position_z").sampling_type == "particle"
+    assert amr1._get_field_info("all", "particle_mass").sampling_type == "particle"
+    assert not amr1._get_field_info("gas", "density").sampling_type == "particle"
 
-    assert amr2._get_field_info("all", "particle_position_x").particle_type
-    assert amr2._get_field_info("all", "particle_position_y").particle_type
-    assert amr2._get_field_info("all", "particle_position_z").particle_type
-    assert amr2._get_field_info("all", "particle_mass").particle_type
-    assert not amr2._get_field_info("gas", "density").particle_type
+    assert amr2._get_field_info("all", "particle_position_x").sampling_type == "particle"
+    assert amr2._get_field_info("all", "particle_position_y").sampling_type == "particle"
+    assert amr2._get_field_info("all", "particle_position_z").sampling_type == "particle"
+    assert amr2._get_field_info("all", "particle_mass").sampling_type == "particle"
+    assert not amr2._get_field_info("gas", "density").sampling_type == "particle"
 
-    # Now perform similar checks, but with multiple particle types
+# Now perform similar checks, but with multiple particle types
 
     num_dm_particles = 30000
     xd = np.random.uniform(size=num_dm_particles)
@@ -194,14 +196,14 @@ def test_stream_particles():
     # Check to make sure the fields have been defined correctly
 
     for ptype in ("dm", "star"):
-        assert ug3._get_field_info(ptype, "particle_position_x").particle_type
-        assert ug3._get_field_info(ptype, "particle_position_y").particle_type
-        assert ug3._get_field_info(ptype, "particle_position_z").particle_type
-        assert ug3._get_field_info(ptype, "particle_mass").particle_type
-        assert ug4._get_field_info(ptype, "particle_position_x").particle_type
-        assert ug4._get_field_info(ptype, "particle_position_y").particle_type
-        assert ug4._get_field_info(ptype, "particle_position_z").particle_type
-        assert ug4._get_field_info(ptype, "particle_mass").particle_type
+        assert ug3._get_field_info(ptype, "particle_position_x").sampling_type == "particle"
+        assert ug3._get_field_info(ptype, "particle_position_y").sampling_type == "particle"
+        assert ug3._get_field_info(ptype, "particle_position_z").sampling_type == "particle"
+        assert ug3._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+        assert ug4._get_field_info(ptype, "particle_position_x").sampling_type == "particle"
+        assert ug4._get_field_info(ptype, "particle_position_y").sampling_type == "particle"
+        assert ug4._get_field_info(ptype, "particle_position_z").sampling_type == "particle"
+        assert ug4._get_field_info(ptype, "particle_mass").sampling_type == "particle"
 
     # Now refine this
 
@@ -219,7 +221,7 @@ def test_stream_particles():
                     dimensions=grid.ActiveDimensions)
 
         for field in amr3.field_list:
-            if field[0] != "all":
+            if field[0] not in ("all", "nbody"):
                 data[field] = grid[field]
 
         grid_data.append(data)
@@ -235,14 +237,14 @@ def test_stream_particles():
     assert_equal(number_of_particles3, number_of_particles4)
 
     for ptype in ("dm", "star"):
-        assert amr3._get_field_info(ptype, "particle_position_x").particle_type
-        assert amr3._get_field_info(ptype, "particle_position_y").particle_type
-        assert amr3._get_field_info(ptype, "particle_position_z").particle_type
-        assert amr3._get_field_info(ptype, "particle_mass").particle_type
-        assert amr4._get_field_info(ptype, "particle_position_x").particle_type
-        assert amr4._get_field_info(ptype, "particle_position_y").particle_type
-        assert amr4._get_field_info(ptype, "particle_position_z").particle_type
-        assert amr4._get_field_info(ptype, "particle_mass").particle_type
+        assert amr3._get_field_info(ptype, "particle_position_x").sampling_type == "particle"
+        assert amr3._get_field_info(ptype, "particle_position_y").sampling_type == "particle"
+        assert amr3._get_field_info(ptype, "particle_position_z").sampling_type == "particle"
+        assert amr3._get_field_info(ptype, "particle_mass").sampling_type == "particle"
+        assert amr4._get_field_info(ptype, "particle_position_x").sampling_type == "particle"
+        assert amr4._get_field_info(ptype, "particle_position_y").sampling_type == "particle"
+        assert amr4._get_field_info(ptype, "particle_position_z").sampling_type == "particle"
+        assert amr4._get_field_info(ptype, "particle_mass").sampling_type == "particle"
 
     for grid in amr3.index.grids:
         tot_parts = grid["dm", "particle_position_x"].size
@@ -270,13 +272,14 @@ def test_load_particles_types():
     ds1 = load_particles(data1)
     ds1.index
 
-    assert set(ds1.particle_types) == {"all", "io"}
+    assert set(ds1.particle_types) == {"all", "io", "nbody"}
 
     dd = ds1.all_data()
 
     for ax in "xyz":
         assert dd["io", "particle_position_%s" % ax].size == num_particles
         assert dd["all", "particle_position_%s" % ax].size == num_particles
+        assert dd["nbody", "particle_position_%s" % ax].size == num_particles
 
     num_dm_particles = 10000
     num_star_particles = 50000
@@ -294,7 +297,7 @@ def test_load_particles_types():
     ds2 = load_particles(data2)
     ds2.index
 
-    assert set(ds2.particle_types) == {"all", "star", "dm"}
+    assert set(ds2.particle_types) == {"all", "star", "dm", "nbody"}
 
     dd = ds2.all_data()
 
@@ -304,6 +307,45 @@ def test_load_particles_types():
             npart += dd[ptype, "particle_position_%s" % ax].size
         assert npart == num_tot_particles
         assert dd["all", "particle_position_%s" % ax].size == num_tot_particles
+
+def test_load_particles_with_data_source():
+    ds1 = fake_particle_ds()
+
+    # Load from dataset
+    ad = ds1.all_data()
+    fields = ['particle_mass']
+    fields += ['particle_position_{}'.format(ax) for ax in 'xyz']
+    data = {field: ad[field] for field in fields}
+    ds2 = load_particles(data, data_source=ad)
+
+    def in_cgs(quan):
+        return quan.in_cgs().v
+
+    # Test bbox is parsed correctly
+    for attr in ['domain_left_edge', 'domain_right_edge']:
+        assert np.allclose(
+            in_cgs(getattr(ds1, attr)),
+            in_cgs(getattr(ds2, attr))
+        )
+
+    # Test sim_time is parsed correctly
+    assert in_cgs(ds1.current_time) == in_cgs(ds2.current_time)
+
+    # Test code units are parsed correctly
+    def get_cu(ds, dim):
+        return ds.quan(1, 'code_' + dim)
+    for dim in ['length', 'mass', 'time', 'velocity', 'magnetic']:
+        assert in_cgs(get_cu(ds1, dim)) == in_cgs(get_cu(ds2, dim))
+
+def test_add_sph_fields():
+    ds = fake_particle_ds()
+    ds.index
+    assert set(ds.particle_types) == {'io', 'all', 'nbody'}
+
+    ds.add_sph_fields()
+    assert set(ds.particle_types) == {'io', 'all'}
+    assert ('io', 'smoothing_length') in ds.field_list
+    assert ('io', 'density') in ds.field_list
 
 def test_particles_outside_domain():
     np.random.seed(0x4d3d3d3)
@@ -322,3 +364,11 @@ def test_particles_outside_domain():
     assert wh.size == 1000 - ds.particle_type_counts['io']
     ad = ds.all_data()
     assert ds.particle_type_counts['io'] == ad['particle_position_x'].size
+
+def test_stream_sph_projection():
+    ds = fake_sph_orientation_ds()
+    proj = ds.proj(('gas', 'density'), 2)
+    frb = proj.to_frb(ds.domain_width[0], (256, 256))
+    image = frb['gas', 'density']
+    assert image.max() > 0
+    assert image.shape == (256, 256)

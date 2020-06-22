@@ -1,18 +1,3 @@
-"""
-Tests for loading in-memory datasets
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import os
 import shutil
@@ -63,7 +48,7 @@ def test_dimensionless_field_units():
 
     dd = ds.all_data()
 
-    assert_equal(Z.max(), dd["metallicity"].max())
+    assert_equal(Z.max(), float(dd["stream", "metallicity"].max()))
 
 def test_inconsistent_field_shape():
 

@@ -7,16 +7,11 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 * Contribute: https://github.com/yt-project/yt
 
 """
+import sys
+if sys.version_info[0] < 3:
+    raise Exception("Python 2 no longer supported.  Please install Python 3 for use with yt.")
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-__version__ = "3.7.dev0"
+__version__ = "4.0.dev0"
 
 # First module imports
 import numpy as np # For modern purposes
@@ -44,7 +39,7 @@ from yt.utilities.logger import ytLogger as mylog
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
 from yt.units.unit_object import define_unit
-from yt.units.yt_array import \
+from yt.units import \
     YTArray, \
     YTQuantity, \
     uconcatenate, \
@@ -126,16 +121,15 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.convenience import \
     load, simulation
 
+from yt.utilities.load_sample import load_sample
+
 from yt.testing import run_nose
 
 # Import some helpful math utilities
 from yt.utilities.math_utils import \
     ortho_find, quartiles, periodic_position
 
-from yt.units.unit_systems import UnitSystem
-from yt.units.unit_object import unit_system_registry
-
-from yt.analysis_modules.list_modules import \
-    amods
+from yt.units.unit_systems import \
+    UnitSystem, unit_system_registry
 
 _called_from_pytest = False

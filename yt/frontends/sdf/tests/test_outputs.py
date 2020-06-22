@@ -1,23 +1,10 @@
-"""
-SDF frontend tests
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 import socket
+import urllib
 from yt.testing import assert_equal
 from yt.frontends.sdf.api import SDFDataset
 from yt.visualization.api import ProjectionPlot
 from yt.testing import requires_module
-from yt.extern.six.moves import urllib
 
 
 _fields = (('deposit', 'all_cic'))

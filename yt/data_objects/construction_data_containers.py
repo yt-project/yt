@@ -1,19 +1,3 @@
-"""
-Data containers that require processing before they can be utilized.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 from functools import wraps
 import fileinput
@@ -58,12 +42,21 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
 from yt.units.unit_object import Unit
 from yt.units.yt_array import uconcatenate
 import yt.geometry.particle_deposit as particle_deposit
+from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.fields.field_exceptions import \
     NeedsOriginalGrid
 from yt.frontends.stream.api import load_uniform_grid
+from yt.frontends.sph.data_structures import ParticleDataset
 from yt.units.yt_array import YTArray
-import yt.extern.six as six
+from yt.utilities.lib.pixelization_routines import \
+    pixelize_sph_kernel_arbitrary_grid, \
+    interpolate_sph_grid_gather, \
+    interpolate_sph_positions_gather, \
+    normalization_3d_utility, \
+    normalization_1d_utility
+from yt.extern.tqdm import tqdm
+from yt.utilities.lib.cyoctree import CyOctree
 
 class YTStreamline(YTSelectionContainer1D):
     """
@@ -158,74 +151,15 @@ class YTStreamline(YTSelectionContainer1D):
         self._ts[grid.id] = ts
         return mask
 
-
-class YTQuadTreeProj(YTSelectionContainer2D):
-    """
-    This is a data object corresponding to a line integral through the
-    simulation domain.
-
-    This object is typically accessed through the `proj` object that
-    hangs off of index objects.  YTQuadTreeProj is a projection of a
-    `field` along an `axis`.  The field can have an associated
-    `weight_field`, in which case the values are multiplied by a weight
-    before being summed, and then divided by the sum of that weight; the
-    two fundamental modes of operating are direct line integral (no
-    weighting) and average along a line of sight (weighting.)  What makes
-    `proj` different from the standard projection mechanism is that it
-    utilizes a quadtree data structure, rather than the old mechanism for
-    projections.  It will not run in parallel, but serial runs should be
-    substantially faster.  Note also that lines of sight are integrated at
-    every projected finest-level cell.
-
-    Parameters
-    ----------
-    field : string
-        This is the field which will be "projected" along the axis.  If
-        multiple are specified (in a list) they will all be projected in
-        the first pass.
-    axis : int
-        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
-    weight_field : string
-        If supplied, the field being projected will be multiplied by this
-        weight value before being integrated, and at the conclusion of the
-        projection the resultant values will be divided by the projected
-        `weight_field`.
-    center : array_like, optional
-        The 'center' supplied to fields that use it.  Note that this does
-        not have to have `coord` as one value.  Strictly optional.
-    data_source : `yt.data_objects.data_containers.YTSelectionContainer`, optional
-        If specified, this will be the data source used for selecting
-        regions to project.
-    method : string, optional
-        The method of projection to be performed.
-        "integrate" : integration along the axis
-        "mip" : maximum intensity projection
-        "sum" : same as "integrate", except that we don't multiply by the path length
-        WARNING: The "sum" option should only be used for uniform resolution grid
-        datasets, as other datasets may result in unphysical images.
-    style : string, optional
-        The same as the method keyword.  Deprecated as of version 3.0.2.
-        Please use method keyword instead.
-    field_parameters : dict of items
-        Values to be passed as field parameters that can be
-        accessed by generated fields.
-
-    Examples
-    --------
-
-    >>> ds = load("RedshiftOutput0005")
-    >>> prj = ds.proj("density", 0)
-    >>> print proj["density"]
-    """
+class YTProj(YTSelectionContainer2D):
     _key_fields = YTSelectionContainer2D._key_fields + ['weight_field']
-    _type_name = "proj"
     _con_args = ('axis', 'field', 'weight_field')
     _container_fields = ('px', 'py', 'pdx', 'pdy', 'weight_field')
-    def __init__(self, field, axis, weight_field = None,
-                 center = None, ds = None, data_source = None,
-                 style = None, method = "integrate",
-                 field_parameters = None, max_level = None):
-        YTSelectionContainer2D.__init__(self, axis, ds, field_parameters)
+
+    def __init__(self, field, axis, weight_field=None, center=None, ds=None,
+                 data_source=None, style=None, method="integrate",
+                 field_parameters=None, max_level=None):
+        super(YTProj, self).__init__(axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
         # keyword.  TODO: Remove this keyword and this check at some point in
         # the future.
@@ -264,11 +198,8 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         for f in field:
             nodal_flag = self.ds._get_field_info(f).nodal_flag
             if any(nodal_flag):
-                raise RuntimeError("Nodal fields are currently not supported for projections.")
-
-        if not self.deserialize(field):
-            self.get_data(field)
-            self.serialize()
+                raise RuntimeError("Nodal fields are currently not supported "
+                                   "for projections.")
 
     @property
     def blocks(self):
@@ -276,56 +207,16 @@ class YTQuadTreeProj(YTSelectionContainer2D):
 
     @property
     def field(self):
-        return [k for k in self.field_data.keys() if k not in self._container_fields]
-
-    @property
-    def _mrep(self):
-        return MinimalProjectionData(self)
-
-    def hub_upload(self):
-        self._mrep.upload()
-
-    def deserialize(self, fields):
-        if not ytcfg.getboolean("yt", "serialize"):
-            return False
-        for field in fields:
-            self[field] = None
-        deserialized_successfully = False
-        store_file = self.ds.parameter_filename + '.yt'
-        if os.path.isfile(store_file):
-            deserialized_successfully = self._mrep.restore(store_file, self.ds)
-
-            if deserialized_successfully:
-                mylog.info("Using previous projection data from %s" % store_file)
-                for field, field_data in self._mrep.field_data.items():
-                    self[field] = field_data
-        if not deserialized_successfully:
-            for field in fields:
-                del self[field]
-        return deserialized_successfully
-
-    def serialize(self):
-        if not ytcfg.getboolean("yt", "serialize"):
-            return
-        self._mrep.store(self.ds.parameter_filename + '.yt')
-
-    def _get_tree(self, nvals):
-        xax = self.ds.coordinates.x_axis[self.axis]
-        yax = self.ds.coordinates.y_axis[self.axis]
-        xd = self.ds.domain_dimensions[xax]
-        yd = self.ds.domain_dimensions[yax]
-        bounds = (self.ds.domain_left_edge[xax],
-                  self.ds.domain_right_edge[xax],
-                  self.ds.domain_left_edge[yax],
-                  self.ds.domain_right_edge[yax])
-        return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
-                        bounds, method = self.method)
+        return [k for k in self.field_data.keys() if k not in
+                self._container_fields]
 
     def get_data(self, fields = None):
         fields = fields or []
         fields = self._determine_fields(ensure_list(fields))
         # We need a new tree for every single set of fields we add
         if len(fields) == 0: return
+        if isinstance(self.ds, ParticleDataset):
+            return
         tree = self._get_tree(len(fields))
         # This only needs to be done if we are in parallel; otherwise, we can
         # safely build the mesh as we go.
@@ -336,8 +227,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           [], "io", local_only = True)):
-                mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
-                            chunk.ires.size, get_memory_usage()/1024.)
                 if not _units_initialized:
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
@@ -397,72 +286,6 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         mylog.info("Projection completed")
         self.tree = tree
 
-    def _initialize_chunk(self, chunk, tree):
-        icoords = chunk.icoords
-        xax = self.ds.coordinates.x_axis[self.axis]
-        yax = self.ds.coordinates.y_axis[self.axis]
-        i1 = icoords[:,xax]
-        i2 = icoords[:,yax]
-        ilevel = chunk.ires * self.ds.ires_factor
-        tree.initialize_chunk(i1, i2, ilevel)
-
-    def _initialize_projected_units(self, fields, chunk):
-        for field in self.data_source._determine_fields(fields):
-            finfo = self.ds._get_field_info(*field)
-            if finfo.units is None:
-                # First time calling a units="auto" field, infer units and cache
-                # for future field accesses.
-                finfo.units = str(chunk[field].units)
-            field_unit = Unit(finfo.units, registry=self.ds.unit_registry)
-            if self.method == "mip" or self._sum_only:
-                path_length_unit = Unit(registry=self.ds.unit_registry)
-            else:
-                ax_name = self.ds.coordinates.axis_name[self.axis]
-                path_element_name = ("index", "path_element_%s" % (ax_name))
-                path_length_unit = self.ds.field_info[path_element_name].units
-                path_length_unit = Unit(path_length_unit,
-                                        registry=self.ds.unit_registry)
-                # Only convert to appropriate unit system for path
-                # elements that aren't angles
-                if not path_length_unit.is_dimensionless:
-                    path_length_unit = path_length_unit.get_base_equivalent(
-                        unit_system=self.ds.unit_system)
-            if self.weight_field is None:
-                self._projected_units[field] = field_unit*path_length_unit
-            else:
-                self._projected_units[field] = field_unit
-
-    def _handle_chunk(self, chunk, fields, tree):
-        if self.method == "mip" or self._sum_only:
-            dl = self.ds.quan(1.0, "")
-        else:
-            # This gets explicitly converted to cm
-            ax_name = self.ds.coordinates.axis_name[self.axis]
-            dl = chunk["index", "path_element_%s" % (ax_name)]
-            # This is done for cases where our path element does not have a CGS
-            # equivalent.  Once "preferred units" have been implemented, this
-            # will not be necessary at all, as the final conversion will occur
-            # at the display layer.
-            if not dl.units.is_dimensionless:
-                dl.convert_to_units(self.ds.unit_system["length"])
-        v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
-        for i, field in enumerate(fields):
-            d = chunk[field] * dl
-            v[:,i] = d
-        if self.weight_field is not None:
-            w = chunk[self.weight_field]
-            np.multiply(v, w[:,None], v)
-            np.multiply(w, dl, w)
-        else:
-            w = np.ones(chunk.ires.size, dtype="float64")
-        icoords = chunk.icoords
-        xax = self.ds.coordinates.x_axis[self.axis]
-        yax = self.ds.coordinates.y_axis[self.axis]
-        i1 = icoords[:,xax]
-        i2 = icoords[:,yax]
-        ilevel = chunk.ires * self.ds.ires_factor
-        tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
-
     def to_pw(self, fields=None, center='c', width=None, origin='center-window'):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
@@ -492,6 +315,206 @@ class YTQuadTreeProj(YTSelectionContainer2D):
         pw = self._get_pw(fields, center, width, 'native', 'Projection')
         pw.show()
         return pw
+
+    def _initialize_projected_units(self, fields, chunk):
+        for field in self.data_source._determine_fields(fields):
+            if field in self._projected_units:
+                continue
+            finfo = self.ds._get_field_info(*field)
+            if finfo.units is None:
+                # First time calling a units="auto" field, infer units and cache
+                # for future field accesses.
+                finfo.units = str(chunk[field].units)
+            field_unit = Unit(finfo.output_units,
+                              registry=self.ds.unit_registry)
+            if self.method == "mip" or self._sum_only:
+                path_length_unit = Unit(registry=self.ds.unit_registry)
+            else:
+                ax_name = self.ds.coordinates.axis_name[self.axis]
+                path_element_name = ("index", "path_element_%s" % (ax_name))
+                path_length_unit = self.ds.field_info[path_element_name].units
+                path_length_unit = Unit(path_length_unit,
+                                        registry=self.ds.unit_registry)
+                # Only convert to appropriate unit system for path
+                # elements that aren't angles
+                if not path_length_unit.is_dimensionless:
+                    path_length_unit = path_length_unit.get_base_equivalent(
+                        unit_system=self.ds.unit_system)
+            if self.weight_field is None:
+                self._projected_units[field] = field_unit*path_length_unit
+            else:
+                self._projected_units[field] = field_unit
+
+class YTParticleProj(YTProj):
+    """
+    A projection operation optimized for SPH particle data.
+    """
+    _type_name = "particle_proj"
+    def __init__(self, field, axis, weight_field=None, center=None, ds=None,
+                 data_source=None, style=None, method="integrate",
+                 field_parameters=None, max_level=None):
+        super(YTParticleProj, self).__init__(
+            field, axis, weight_field, center, ds, data_source, style, method,
+            field_parameters, max_level)
+
+    def _handle_chunk(self, chunk, fields, tree):
+        raise NotImplementedError("Particle projections have not yet been "
+                                  "implemented")
+
+
+class YTQuadTreeProj(YTProj):
+    """
+    This is a data object corresponding to a line integral through the
+    simulation domain.
+
+    This object is typically accessed through the `proj` object that
+    hangs off of index objects.  YTQuadTreeProj is a projection of a
+    `field` along an `axis`.  The field can have an associated
+    `weight_field`, in which case the values are multiplied by a weight
+    before being summed, and then divided by the sum of that weight; the
+    two fundamental modes of operating are direct line integral (no
+    weighting) and average along a line of sight (weighting.)  What makes
+    `proj` different from the standard projection mechanism is that it
+    utilizes a quadtree data structure, rather than the old mechanism for
+    projections.  It will not run in parallel, but serial runs should be
+    substantially faster.  Note also that lines of sight are integrated at
+    every projected finest-level cell.
+
+    Parameters
+    ----------
+    field : string
+        This is the field which will be "projected" along the axis.  If
+        multiple are specified (in a list) they will all be projected in
+        the first pass.
+    axis : int
+        The axis along which to slice.  Can be 0, 1, or 2 for x, y, z.
+    weight_field : string
+        If supplied, the field being projected will be multiplied by this
+        weight value before being integrated, and at the conclusion of the
+        projection the resultant values will be divided by the projected
+        `weight_field`.
+    center : array_like, optional
+        The 'center' supplied to fields that use it.  Note that this does
+        not have to have `coord` as one value.  Strictly optional.
+    data_source : `yt.data_objects.data_containers.YTSelectionContainer`, optional
+        If specified, this will be the data source used for selecting
+        regions to project.
+    method : string, optional
+        The method of projection to be performed.
+        "integrate" : integration along the axis
+        "mip" : maximum intensity projection
+        "sum" : same as "integrate", except that we don't multiply by the path length
+        WARNING: The "sum" option should only be used for uniform resolution grid
+        datasets, as other datasets may result in unphysical images.
+    style : string, optional
+        The same as the method keyword.  Deprecated as of version 3.0.2.
+        Please use method keyword instead.
+    field_parameters : dict of items
+        Values to be passed as field parameters that can be
+        accessed by generated fields.
+
+    Examples
+    --------
+
+    >>> ds = load("RedshiftOutput0005")
+    >>> prj = ds.proj("density", 0)
+    >>> print(proj["density"])
+    """
+    _type_name = "quad_proj"
+    def __init__(self, field, axis, weight_field=None, center=None, ds=None,
+                 data_source=None, style=None, method="integrate",
+                 field_parameters=None, max_level=None):
+        super(YTQuadTreeProj, self).__init__(
+            field, axis, weight_field, center, ds, data_source, style, method,
+            field_parameters, max_level)
+
+        if not self.deserialize(field):
+            self.get_data(field)
+            self.serialize()
+
+    @property
+    def _mrep(self):
+        return MinimalProjectionData(self)
+
+    def hub_upload(self):
+        self._mrep.upload()
+
+    def deserialize(self, fields):
+        if not ytcfg.getboolean("yt", "serialize"):
+            return False
+        for field in fields:
+            self[field] = None
+        deserialized_successfully = False
+        store_file = self.ds.parameter_filename + '.yt'
+        if os.path.isfile(store_file):
+            deserialized_successfully = self._mrep.restore(store_file, self.ds)
+
+            if deserialized_successfully:
+                mylog.info("Using previous projection data from %s" % store_file)
+                for field, field_data in self._mrep.field_data.items():
+                    self[field] = field_data
+        if not deserialized_successfully:
+            for field in fields:
+                del self[field]
+        return deserialized_successfully
+
+    def serialize(self):
+        if not ytcfg.getboolean("yt", "serialize"):
+            return
+        self._mrep.store(self.ds.parameter_filename + '.yt')
+
+    def _get_tree(self, nvals):
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        xd = self.ds.domain_dimensions[xax]
+        yd = self.ds.domain_dimensions[yax]
+        bounds = (self.ds.domain_left_edge[xax],
+                  self.ds.domain_right_edge[xax],
+                  self.ds.domain_left_edge[yax],
+                  self.ds.domain_right_edge[yax])
+        return QuadTree(np.array([xd,yd], dtype='int64'), nvals,
+                        bounds, method = self.method)
+
+    def _initialize_chunk(self, chunk, tree):
+        icoords = chunk.icoords
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        i1 = icoords[:,xax]
+        i2 = icoords[:,yax]
+        ilevel = chunk.ires * self.ds.ires_factor
+        tree.initialize_chunk(i1, i2, ilevel)
+
+    def _handle_chunk(self, chunk, fields, tree):
+        mylog.debug("Adding chunk (%s) to tree (%0.3e GB RAM)",
+                    chunk.ires.size, get_memory_usage()/1024.)
+        if self.method == "mip" or self._sum_only:
+            dl = self.ds.quan(1.0, "")
+        else:
+            ax_name = self.ds.coordinates.axis_name[self.axis]
+            dl = chunk["index", "path_element_%s" % (ax_name)]
+            # This is done for cases where our path element does not have a CGS
+            # equivalent.  Once "preferred units" have been implemented, this
+            # will not be necessary at all, as the final conversion will occur
+            # at the display layer.
+            if not dl.units.is_dimensionless:
+                dl.convert_to_units(self.ds.unit_system["length"])
+        v = np.empty((chunk.ires.size, len(fields)), dtype="float64")
+        for i, field in enumerate(fields):
+            d = chunk[field] * dl
+            v[:,i] = d
+        if self.weight_field is not None:
+            w = chunk[self.weight_field]
+            np.multiply(v, w[:,None], v)
+            np.multiply(w, dl, w)
+        else:
+            w = np.ones(chunk.ires.size, dtype="float64")
+        icoords = chunk.icoords
+        xax = self.ds.coordinates.x_axis[self.axis]
+        yax = self.ds.coordinates.y_axis[self.axis]
+        i1 = icoords[:,xax]
+        i2 = icoords[:,yax]
+        ilevel = chunk.ires * self.ds.ires_factor
+        tree.add_chunk_to_tree(i1, i2, ilevel, v, w)
 
 class YTCoveringGrid(YTSelectionContainer3D):
     """A 3D region with all data extracted to a single, specified
@@ -651,7 +674,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             edge_units.registry = self.ds.unit_registry
         else:
             edge_units = 'code_length'
-        return self.ds.arr(edge, edge_units)
+        return self.ds.arr(edge, edge_units, dtype='float64')
 
     def _reshape_vals(self, arr):
         if len(arr.shape) == 3: return arr
@@ -687,20 +710,36 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     "with nonzero num_ghost_zones." % self._num_ghost_zones)
             else:
                 raise
-        if len(part) > 0: self._fill_particles(part)
+
+        # checking if we have a sph particles
+        if len(part) == 0:
+            is_sph_field = False
+        else:
+            is_sph_field = self.ds.field_info[part[0]].is_sph_field
+
+        if len(part) > 0 and len(alias) == 0:
+            if(is_sph_field):
+                self._fill_sph_particles(fields)
+                for field in fields:
+                    if field in gen:
+                        gen.remove(field)
+            else:
+                self._fill_particles(part)
+
         if len(fill) > 0: self._fill_fields(fill)
         for a, f in sorted(alias.items()):
-            if f.particle_type:
+            if f.sampling_type == 'particle' and not is_sph_field:
                 self[a] = self._data_source[f]
             else:
                 self[a] = f(self)
             self.field_data[a].convert_to_units(f.output_units)
+
         if len(gen) > 0:
             part_gen = []
             cell_gen = []
             for field in gen:
                 finfo = self.ds.field_info[field]
-                if finfo.particle_type:
+                if finfo.sampling_type == 'particle':
                     part_gen.append(field)
                 else:
                     cell_gen.append(field)
@@ -723,7 +762,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 fill.append(field)
         for field in fill:
             finfo = self.ds._get_field_info(*field)
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append(field)
         gen = [f for f in gen if f not in fill and f not in alias]
         fill = [f for f in fill if f not in particles]
@@ -732,6 +771,72 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def _fill_particles(self, part):
         for p in part:
             self[p] = self._data_source[p]
+
+    def _fill_sph_particles(self, fields):
+        # checks that we have the field and gets information
+        fields = [f for f in fields if f not in self.field_data]
+        if len(fields) == 0: return
+
+        smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+        normalize = getattr(self.ds, 'use_sph_normalization', True)
+
+        bounds, size = self._get_grid_bounds_size()
+
+        if smoothing_style == "scatter":
+            for field in fields:
+                fi = self.ds._get_field_info(field)
+                ptype = fi.name[0]
+                if ptype not in self.ds._sph_ptypes:
+                    raise KeyError("%s is not a SPH particle type!" % ptype)
+                buff = np.zeros(size, dtype="float64")
+                if normalize:
+                    buff_den = np.zeros(size, dtype="float64")
+
+                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+                for chunk in self._data_source.chunks([field],"io"):
+                    px = chunk[(ptype,'particle_position_x')].in_base("code").d
+                    py = chunk[(ptype,'particle_position_y')].in_base("code").d
+                    pz = chunk[(ptype,'particle_position_z')].in_base("code").d
+                    hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+                    mass = chunk[(ptype,'particle_mass')].in_base("code").d
+                    dens = chunk[(ptype,'density')].in_base("code").d
+                    field_quantity = chunk[field].d
+
+                    pixelize_sph_kernel_arbitrary_grid(buff, px, py, pz, hsml,
+                                    mass, dens, field_quantity, bounds,
+                                    pbar=pbar)
+                    if normalize:
+                        pixelize_sph_kernel_arbitrary_grid(buff_den, px, py, pz,
+                                    hsml, mass, dens, np.ones(dens.shape[0]),
+                                    bounds, pbar=pbar)
+
+                if normalize:
+                    normalization_3d_utility(buff, buff_den)
+
+                self[field] = self.ds.arr(buff, fi.units)
+                pbar.close()
+
+        if(smoothing_style == "gather"):
+            num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+            for field in fields:
+                buff = np.zeros(size, dtype="float64")
+
+                fields_to_get = ['particle_position', 'density', 'particle_mass',
+                                 'smoothing_length', field[1]]
+                all_fields = all_data(self.ds, field[0], fields_to_get, kdtree=True)
+
+                fi = self.ds._get_field_info(field)
+                interpolate_sph_grid_gather(buff, all_fields['particle_position'],
+                                            bounds,
+                                            all_fields['smoothing_length'],
+                                            all_fields['particle_mass'],
+                                            all_fields['density'],
+                                            all_fields[field[1]].in_units(fi.units),
+                                            self.ds.index.kdtree,
+                                            use_normalization=normalize,
+                                            num_neigh=num_neighbors)
+
+                self[field] = self.ds.arr(buff, fi.units)
 
     def _fill_fields(self, fields):
         fields = [f for f in fields if f not in self.field_data]
@@ -857,6 +962,43 @@ class YTCoveringGrid(YTSelectionContainer3D):
                                sim_time=self.ds.current_time.v)
         write_to_gdf(ds, gdf_path, **kwargs)
 
+    def _get_grid_bounds_size(self):
+        dd = self.ds.domain_width / 2**self.level
+        bounds = np.zeros(6, dtype=float)
+
+        bounds[0] = self.left_edge[0].in_base("code")
+        bounds[1] = bounds[0] + dd[0].d * self.ActiveDimensions[0]
+        bounds[2] = self.left_edge[1].in_base("code")
+        bounds[3] = bounds[2] + dd[1].d * self.ActiveDimensions[1]
+        bounds[4] = self.left_edge[2].in_base("code")
+        bounds[5] = bounds[4] + dd[2].d * self.ActiveDimensions[2]
+        size = np.ones(3, dtype=int) * 2**self.level
+
+        return bounds, size
+
+    def to_fits_data(self, fields, length_unit=None):
+        r"""Export a set of gridded fields to a FITS file.
+
+        This will export a set of FITS images of either the fields specified
+        or all the fields already in the object.
+
+        Parameters
+        ----------
+        fields : list of strings
+            These fields will be pixelized and output. If "None", the keys of the
+            FRB will be used.
+        length_unit : string, optional
+            the length units that the coordinates are written in. The default
+            is to use the default length unit of the dataset.
+        """
+        from yt.visualization.fits_image import FITSImageData
+        if length_unit is None:
+            length_unit = self.ds.length_unit
+        fields = ensure_list(fields)
+        fid = FITSImageData(self, fields, length_unit=length_unit)
+        return fid
+
+
 class YTArbitraryGrid(YTCoveringGrid):
     """A 3D region with arbitrary bounds and dimensions.
 
@@ -919,6 +1061,17 @@ class YTArbitraryGrid(YTCoveringGrid):
             fi = self.ds._get_field_info(field)
             self[field] = self.ds.arr(dest, fi.units)
 
+    def _get_grid_bounds_size(self):
+        bounds = np.empty(6, dtype=float)
+        bounds[0] = self.left_edge[0].in_base("code")
+        bounds[2] = self.left_edge[1].in_base("code")
+        bounds[4] = self.left_edge[2].in_base("code")
+        bounds[1] = self.right_edge[0].in_base("code")
+        bounds[3] = self.right_edge[1].in_base("code")
+        bounds[5] = self.right_edge[2].in_base("code")
+        size = self.ActiveDimensions
+
+        return bounds, size
 
 class LevelState(object):
     current_dx = None
@@ -1170,8 +1323,8 @@ class YTSurface(YTSelectionContainer3D):
     >>> from yt.units import kpc
     >>> sp = ds.sphere("max", (10, "kpc")
     >>> surf = ds.surface(sp, "density", 5e-27)
-    >>> print surf["temperature"]
-    >>> print surf.vertices
+    >>> print(surf["temperature"])
+    >>> print(surf.vertices)
     >>> bounds = [(sp.center[i] - 5.0*kpc,
     ...            sp.center[i] + 5.0*kpc) for i in range(3)]
     >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
@@ -1805,8 +1958,8 @@ class YTSurface(YTSelectionContainer3D):
         >>> from yt.units import kpc
         >>> sp = ds.sphere("max", (10, "kpc")
         >>> surf = ds.surface(sp, "density", 5e-27)
-        >>> print surf["temperature"]
-        >>> print surf.vertices
+        >>> print(surf["temperature"])
+        >>> print(surf.vertices)
         >>> bounds = [(sp.center[i] - 5.0*kpc,
         ...            sp.center[i] + 5.0*kpc) for i in range(3)]
         >>> surf.export_ply("my_galaxy.ply", bounds = bounds)
@@ -1861,7 +2014,7 @@ class YTSurface(YTSelectionContainer3D):
         f.write(b"ply\n")
         f.write(b"format binary_little_endian 1.0\n")
         line = "element vertex %i\n" % (nv)
-        f.write(six.b(line))
+        f.write(line.encode("latin-1"))
         f.write(b"property float x\n")
         f.write(b"property float y\n")
         f.write(b"property float z\n")
@@ -1875,7 +2028,7 @@ class YTSurface(YTSelectionContainer3D):
         else:
             v = np.empty(self.vertices.shape[1], dtype=vs[:3])
         line = "element face %i\n" % (nv / 3)
-        f.write(six.b(line))
+        f.write(line.encode("latin-1"))
         f.write(b"property list uchar int vertex_indices\n")
         if color_field is not None and sample_type == "face":
             f.write(b"property uchar red\n")
@@ -2032,3 +2185,251 @@ class YTSurface(YTSelectionContainer3D):
             mylog.error("Problem uploading.")
 
         return model_uid
+
+class YTOctree(YTSelectionContainer3D):
+    """A 3D region with all the data filled into an octree. This container
+    will mean deposit particle fields onto octs using a kernel and SPH
+    smoothing.
+
+    Parameters
+    ----------
+    right_edge : array_like
+        The right edge of the region to be extracted.  Specify units by supplying
+        a YTArray, otherwise code length units are assumed.
+    left_edge : array_like
+        The left edge of the region to be extracted.  Specify units by supplying
+        a YTArray, otherwise code length units are assumed.
+    n_ref: int
+        This is the maximum number of particles per leaf in the resulting
+        octree.
+    over_refine_factor: int
+        Each leaf has a number of cells, the number of cells is equal to
+        2**(3*over_refine_factor)
+    density_factor: int
+        This tells the tree that each node must divide into
+        2**(3*density_factor) children if it contains more particles than n_ref
+    ptypes: list
+        This is the type of particles to include when building the tree. This
+        will default to all particles
+
+    Examples
+    --------
+
+    octree = ds.octree(n_ref=64, over_refine_factor=2)
+    x_positions_of_cells = octree[('index', 'x')]
+    y_positions_of_cells = octree[('index', 'y')]
+    z_positions_of_cells = octree[('index', 'z')]
+    density_of_gas_in_cells = octree[('gas', 'density')]
+
+    """
+    _spatial = True
+    _type_name = "octree"
+    _con_args = ('left_edge', 'right_edge', 'n_ref')
+    _container_fields = (("index", "dx"),
+                         ("index", "dy"),
+                         ("index", "dz"),
+                         ("index", "x"),
+                         ("index", "y"),
+                         ("index", "z"))
+    def __init__(self, left_edge=None, right_edge=None, n_ref=32, over_refine_factor=1,
+                 density_factor=1, ptypes = None, force_build=False, ds = None,
+                 field_parameters = None):
+        if field_parameters is None:
+            center = None
+        else:
+            center = field_parameters.get("center", None)
+        YTSelectionContainer3D.__init__(self,
+            center, ds, field_parameters)
+
+        self.left_edge = self._sanitize_edge(left_edge, ds.domain_left_edge)
+        self.right_edge = self._sanitize_edge(right_edge, ds.domain_right_edge)
+        self.n_ref = n_ref
+        self.density_factor = density_factor
+        self.over_refine_factor = over_refine_factor
+        self.ptypes = self._sanitize_ptypes(ptypes)
+
+        self._setup_data_source()
+        self.tree
+
+    def __eq__(self, other):
+        return self.tree == other.tree
+
+    def _generate_tree(self, fname = None):
+        positions = []
+        for ptype in self.ptypes:
+            positions.append(self._data_source[(ptype,
+                             'particle_position')].in_units("code_length").d)
+        positions = np.concatenate(positions)
+
+        if positions == []:
+            self._octree = None
+            return
+
+        mylog.info('Allocating Octree for %s particles' % positions.shape[0])
+        self.loaded = False
+        self._octree = CyOctree(
+            positions.astype('float64', copy=False),
+            left_edge=self.ds.domain_left_edge.in_units("code_length"),
+            right_edge=self.ds.domain_right_edge.in_units("code_length"),
+            n_ref=self.n_ref,
+            over_refine_factor=self.over_refine_factor,
+            density_factor=self.density_factor,
+            data_version=self.ds._file_hash
+        )
+
+        if fname is not None:
+            mylog.info('Saving octree to file %s' % os.path.basename(fname))
+            self._octree.save(fname)
+
+    @property
+    def tree(self):
+        self.ds.index
+
+        # Chose _octree as _tree seems to be used
+        if hasattr(self, '_octree'):
+            return self._octree
+
+        ds = self.ds
+        if getattr(ds, 'tree_filename', None) is None:
+            if os.path.exists(ds.parameter_filename):
+                fname = ds.parameter_filename + ".octree"
+            else:
+                # we don't want to write to disk for in-memory data
+                fname = None
+        else:
+            fname = ds.tree_filename
+
+        if fname is None:
+            self._generate_tree(fname)
+        elif not os.path.exists(fname):
+            self._generate_tree(fname)
+        else:
+            self.loaded = True
+            mylog.info('Loading octree from %s' % os.path.basename(fname))
+            self._octree = CyOctree()
+            self._octree.load(fname)
+            if self._octree.data_version != self.ds._file_hash:
+                mylog.info('Detected hash mismatch, regenerating Octree')
+                self._generate_tree(fname)
+
+        pos = ds.arr(self._octree.cell_positions, "code_length")
+        self[('index', 'coordinates')] = pos
+        self[('index', 'x')] = pos[:, 0]
+        self[('index', 'y')] = pos[:, 1]
+        self[('index', 'z')] = pos[:, 2]
+
+        return self._octree
+
+    def _sanitize_ptypes(self, ptypes):
+        if ptypes is None:
+            return ['all']
+
+        if not isinstance(ptypes, list):
+            ptypes = [ptypes]
+
+        self.ds.index
+        for ptype in ptypes:
+            if ptype not in self.ds.particle_types:
+                mess = "{} not found. Particle type must ".format(ptype)
+                mess += "be in the dataset!"
+                raise TypeError(mess)
+
+        return ptypes
+
+    def _setup_data_source(self):
+        self._data_source = self.ds.region(
+            self.center, self.left_edge, self.right_edge)
+
+    def _sanitize_edge(self, edge, default):
+        if edge is None:
+            return default.copy()
+        if not iterable(edge):
+            edge = [edge]*len(self.ds.domain_left_edge)
+        if len(edge) != len(self.ds.domain_left_edge):
+            raise RuntimeError(
+                "Length of edges must match the dimensionality of the "
+                "dataset")
+        if hasattr(edge, 'units'):
+            edge_units = edge.units
+        else:
+            edge_units = 'code_length'
+        return self.ds.arr(edge, edge_units)
+
+    def get_data(self, fields = None):
+        if fields is None: return
+
+        # not sure on the best way to do this
+        if isinstance(fields, list) and len(fields) > 1:
+            for field in fields: self.get_data(field)
+            return
+        elif isinstance(fields, list):
+            fields = fields[0]
+
+        sph_ptypes = getattr(self.ds, '_sph_ptypes', 'None')
+        if fields[0] in sph_ptypes:
+            smoothing_style = getattr(self.ds, 'sph_smoothing_style', 'scatter')
+            normalize = getattr(self.ds, 'use_sph_normalization', True)
+
+            units = self.ds._get_field_info(fields).units
+            if smoothing_style == "scatter":
+                self.scatter_smooth(fields, units, normalize)
+            else:
+                self.gather_smooth(fields, units, normalize)
+        elif fields[0] == 'index':
+            return self[fields]
+        else:
+            raise NotImplementedError
+
+    def gather_smooth(self, fields, units, normalize):
+        buff = np.zeros(self[('index', 'x')].shape[0], dtype="float64")
+
+        num_neighbors = getattr(self.ds, 'num_neighbors', 32)
+
+        # for the gather approach we load up all of the data, this like other
+        # gather approaches is not memory conservative and with spatial chunking
+        # this can be fixed
+        fields_to_get = ['particle_position', 'density', 'particle_mass',
+                         'smoothing_length', fields[1]]
+        all_fields = all_data(self.ds, fields[0], fields_to_get, kdtree=True)
+
+        interpolate_sph_positions_gather(buff, all_fields['particle_position'],
+                                         self._octree.cell_positions,
+                                         all_fields['smoothing_length'],
+                                         all_fields['particle_mass'],
+                                         all_fields['density'],
+                                         all_fields[fields[1]].in_units(units),
+                                         self.ds.index.kdtree,
+                                         use_normalization=normalize,
+                                         num_neigh=num_neighbors)
+
+        self[fields] = self.ds.arr(buff, units)
+
+    def scatter_smooth(self, fields, units, normalize):
+        buff = np.zeros(self[('index', 'x')].shape[0], dtype="float64")
+
+        if normalize:
+            buff_den = np.zeros(buff.shape[0], dtype="float64")
+        else:
+            buff_den = np.empty(0)
+
+        ptype = fields[0]
+        pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
+        for chunk in self._data_source.chunks([fields], "io"):
+            px = chunk[(ptype,'particle_position_x')].in_base("code").d
+            py = chunk[(ptype,'particle_position_y')].in_base("code").d
+            pz = chunk[(ptype,'particle_position_z')].in_base("code").d
+            hsml = chunk[(ptype,'smoothing_length')].in_base("code").d
+            pmass = chunk[(ptype,'particle_mass')].in_base("code").d
+            pdens = chunk[(ptype,'density')].in_base("code").d
+            field_quantity = chunk[fields].in_base("code").d
+
+            self.tree.interpolate_sph_cells(buff, buff_den, px, py, pz, pmass,
+                                            pdens, hsml, field_quantity,
+                                            use_normalization=normalize)
+            pbar.update(1)
+        pbar.close()
+
+        if normalize:
+            normalization_1d_utility(buff, buff_den)
+
+        self[fields] = self.ds.arr(buff, units)

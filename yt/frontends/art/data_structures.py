@@ -1,14 +1,3 @@
-"""
-ART-specific data structures
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import glob
 import numpy as np
 import os
@@ -798,11 +787,11 @@ class ARTDomainFile(object):
             level_oct_offsets.append(f.tell())
 
             # Get the info for this level, skip the rest
-            # print "Reading oct tree data for level", Lev
-            # print 'offset:',f.tell()
+            # print("Reading oct tree data for level", Lev)
+            # print('offset:',f.tell())
             Level[Lev], iNOLL[Lev], iHOLL[Lev] = fpu.read_vector(f, 'i', '>')
-            # print 'Level %i : '%Lev, iNOLL
-            # print 'offset after level record:',f.tell()
+            # print('Level %i : '%Lev, iNOLL)
+            # print('offset after level record:',f.tell())
             nLevel = iNOLL[Lev]
             ntot = ntot + nLevel
 

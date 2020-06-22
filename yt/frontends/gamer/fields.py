@@ -1,20 +1,5 @@
-"""
-GAMER-specific fields
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.utilities.physical_constants import mh, boltzmann_constant_cgs
+from yt.utilities.physical_constants import mh, kb
 
 b_units   = "code_magnetic"
 pre_units = "code_mass / (code_length*code_time**2)"
@@ -76,9 +61,10 @@ class GAMERFieldInfo(FieldInfoContainer):
                 return data["gas", "momentum_%s"%v] / data["gas","density"]
             return _velocity
         for v in "xyz":
-            self.add_field( ("gas","velocity_%s"%v), sampling_type="cell",
-                            function = velocity_xyz(v),
-                            units = unit_system["velocity"] )
+            self.add_field(("gas","velocity_%s"%v),
+                           sampling_type="cell",
+                           function = velocity_xyz(v),
+                           units = unit_system["velocity"] )
 
         # ============================================================================
         # note that yt internal fields assume
@@ -107,31 +93,45 @@ class GAMERFieldInfo(FieldInfoContainer):
         # thermal energy per mass (i.e., specific)
         def _thermal_energy(field, data):
             return et(data) / data["gamer","Dens"]
-        self.add_field( ("gas","thermal_energy"), sampling_type="cell",
-                        function = _thermal_energy,
-                        units = unit_system["specific_energy"] )
+        self.add_field(("gas","thermal_energy"),
+                       sampling_type="cell",
+                       function = _thermal_energy,
+                       units = unit_system["specific_energy"] )
 
         # total energy per mass
         def _total_energy(field, data):
             return data["gamer","Engy"] / data["gamer","Dens"]
-        self.add_field( ("gas","total_energy"), sampling_type="cell",
-                        function = _total_energy,
-                        units = unit_system["specific_energy"] )
+        self.add_field(("gas","total_energy"),
+                       sampling_type="cell",
+                       function = _total_energy,
+                       units = unit_system["specific_energy"] )
 
         # pressure
         def _pressure(field, data):
             return et(data)*(data.ds.gamma-1.0)
-        self.add_field( ("gas","pressure"), sampling_type="cell",
-                        function = _pressure,
-                        units = unit_system["pressure"] )
+        self.add_field(("gas","pressure"),
+                       sampling_type="cell",
+                       function = _pressure,
+                       units = unit_system["pressure"] )
+
+        # mean molecular weight
+        if hasattr(self.ds, "mu"):
+            def _mu(field, data):
+                return data.ds.mu*data["index", "ones"]
+
+            self.add_field(("gas", "mean_molecular_weight"),
+                           sampling_type="cell",
+                           function=_mu,
+                           units="")
 
         # temperature
         def _temperature(field, data):
-            return data.ds.mu*mh*data["gas","pressure"] / \
-                   (data["gas","density"]*boltzmann_constant_cgs)
-        self.add_field( ("gas","temperature"), sampling_type="cell",
-                        function = _temperature,
-                        units = unit_system["temperature"] )
+            return data.ds.mu*data["gas","pressure"]*mh / \
+                   (data["gas","density"]*kb)
+        self.add_field(("gas","temperature"),
+                       sampling_type="cell",
+                       function = _temperature,
+                       units = unit_system["temperature"] )
 
         # magnetic field aliases --> magnetic_field_x/y/z
         if self.ds.mhd:

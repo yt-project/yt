@@ -1,22 +1,6 @@
-"""
-Useful functions.  If non-original, see function for citation.
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import errno
-from yt.extern.six import string_types
-from yt.extern.six.moves import input, builtins
+import builtins
+import copy
 import time
 import inspect
 import traceback
@@ -38,14 +22,13 @@ import glob
 from math import floor, ceil
 from numbers import Number as numeric_type
 
-from yt.extern.six.moves import urllib
+import urllib.request
+import urllib.parse
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.lru_cache import lru_cache
-from yt.utilities.exceptions import \
-    YTInvalidWidthError, \
-    YTEquivalentDimsError
+from yt.utilities.exceptions import YTInvalidWidthError
 from yt.extern.tqdm import tqdm
-from yt.units.yt_array import YTArray, YTQuantity
+from yt.units import YTArray, YTQuantity
 from functools import wraps
 
 # Some functions for handling sequences and other types
@@ -237,6 +220,15 @@ def rootloginfo(*args):
     if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0: return
     mylog.info(*args)
 
+class VisibleDeprecationWarning(UserWarning):
+    """Visible deprecation warning, adapted from NumPy
+
+    By default python does not show users deprecation warnings.
+    This ensures that a deprecation warning is visible to users
+    if that is desired.
+    """
+    pass
+
 def deprecate(replacement):
     def real_deprecate(func):
         """
@@ -255,7 +247,7 @@ def deprecate(replacement):
             message = "%s has been deprecated and may be removed without notice!"
             if replacement is not None:
                 message += " Use %s instead." % replacement
-            warnings.warn(message % func.__name__, DeprecationWarning,
+            warnings.warn(message % func.__name__, VisibleDeprecationWarning,
                           stacklevel=2)
             func(*args, **kwargs)
         return run_func
@@ -447,8 +439,9 @@ def paste_traceback(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     sys.__excepthook__(exc_type, exc, tb)
-    from yt.extern.six.moves import StringIO, xmlrpc_client
-    p = xmlrpc_client.ServerProxy(
+    import xmlrpc.client
+    from io import StringIO
+    p = xmlrpc.client.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     s = StringIO()
@@ -465,13 +458,14 @@ def paste_traceback_detailed(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     import cgitb
-    from yt.extern.six.moves import StringIO, xmlrpc_client
+    from io import StringIO
+    import xmlrpc.client
     s = StringIO()
     handler = cgitb.Hook(format="text", file = s)
     handler(exc_type, exc, tb)
     s = s.getvalue()
     print(s)
-    p = xmlrpc_client.ServerProxy(
+    p = xmlrpc.client.ServerProxy(
             "http://paste.yt-project.org/xmlrpc/",
             allow_none=True)
     ret = p.pastes.newPaste('text', s, None, '', '', True)
@@ -765,7 +759,7 @@ def fix_length(length, ds):
     if isinstance(length, numeric_type):
         return YTArray(length, 'code_length', registry=registry)
     length_valid_tuple = isinstance(length, (list, tuple)) and len(length) == 2
-    unit_is_string = isinstance(length[1], string_types)
+    unit_is_string = isinstance(length[1], str)
     length_is_number = (isinstance(length[0], numeric_type) and not
                         isinstance(length[0], YTArray))
     if length_valid_tuple and unit_is_string and length_is_number:
@@ -848,11 +842,11 @@ def get_output_filename(name, keyword, suffix):
     Examples
     --------
 
-    >>> print get_output_filename(None, "Projection_x", ".png")
+    >>> print(get_output_filename(None, "Projection_x", ".png"))
     Projection_x.png
-    >>> print get_output_filename("my_file", "Projection_x", ".png")
+    >>> print(get_output_filename("my_file", "Projection_x", ".png"))
     my_file.png
-    >>> print get_output_filename("my_file/", "Projection_x", ".png")
+    >>> print(get_output_filename("my_file/", "Projection_x", ".png"))
     my_file/Projection_x.png
     
     """
@@ -896,7 +890,7 @@ def validate_width_tuple(width):
             "width (%s) is not a two element tuple" % width)
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
-    unit_is_string = isinstance(width[1], string_types)
+    unit_is_string = isinstance(width[1], str)
     if not is_numeric or length_has_units and unit_is_string:
         msg = "width (%s) is invalid. " % str(width)
         msg += "Valid widths look like this: (12, 'au')"
@@ -1024,6 +1018,13 @@ def enable_plugins(pluginfilename=None):
         if k not in ytnamespace:
             if callable(execdict[k]):
                 setattr(yt, k, execdict[k])
+
+def subchunk_count(n_total, chunk_size):
+    handled = 0
+    while handled < n_total:
+        tr = min(n_total - handled, chunk_size)
+        yield tr
+        handled += tr
 
 def fix_unitary(u):
     if u == '1':
@@ -1188,12 +1189,24 @@ def obj_length(v):
         # to signify zero length (aka a scalar).
         return 0
 
-def handle_mks_cgs(values, field_units):
-    try:
-        values = values.to(field_units)
-    except YTEquivalentDimsError as e:
-        values = values.to_equivalent(e.new_units, e.base)
-    return values
+def array_like_field(data, x, field):
+    field = data._determine_fields(field)[0]
+    if isinstance(field, tuple):
+        finfo = data.ds._get_field_info(field[0],field[1])
+    else:
+        finfo = data.ds._get_field_info(field)
+    if finfo.sampling_type == 'particle':
+        units = finfo.output_units
+    else:
+        units = finfo.units
+    if isinstance(x, YTArray):
+        arr = copy.deepcopy(x)
+        arr.convert_to_units(units)
+        return arr
+    if isinstance(x, np.ndarray):
+        return data.ds.arr(x, units)
+    else:
+        return data.ds.quan(x, units)
 
 def validate_3d_array(obj):
     if not iterable(obj) or len(obj) != 3:
@@ -1204,7 +1217,7 @@ def validate_float(obj):
     """Validates if the passed argument is a float value.
 
     Raises an exception if `obj` is a single float value
-    or a YTQunatity of size 1.
+    or a YTQuantity of size 1.
 
     Parameters
     ----------
@@ -1234,7 +1247,7 @@ def validate_float(obj):
     """
     if isinstance(obj, tuple):
         if len(obj) != 2 or not isinstance(obj[0], numeric_type)\
-                or not isinstance(obj[1], string_types):
+                or not isinstance(obj[1], str):
             raise TypeError("Expected a numeric value (or tuple of format "
                             "(float, String)), received an inconsistent tuple "
                             "'%s'." % str(obj))
@@ -1267,7 +1280,7 @@ def validate_axis(ds, axis):
                         "received '%s'." % (list(valid_axis), axis))
 
 def validate_center(center):
-    if isinstance(center, string_types):
+    if isinstance(center, str):
         c = center.lower()
         if c not in ["c", "center", "m", "max", "min"] \
                 and not c.startswith("max_") and not c.startswith("min_"):

@@ -1,22 +1,6 @@
-"""
-Python-based grid handler, not to be confused with the SWIG-handler
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import warnings
 import weakref
 import numpy as np
-from six import string_types
 
 from yt.config import ytcfg
 from yt.data_objects.data_containers import \
@@ -93,7 +77,7 @@ class AMRGridPatch(YTSelectionContainer):
         except YTFieldTypeNotFound:
             return tr
         finfo = self.ds._get_field_info(*fields[0])
-        if not finfo.particle_type:
+        if not finfo.sampling_type == "particle":
             num_nodes = 2**sum(finfo.nodal_flag)
             new_shape = list(self.ActiveDimensions)
             if num_nodes > 1:
@@ -278,7 +262,7 @@ class AMRGridPatch(YTSelectionContainer):
         return cube
 
     def get_vertex_centered_data(self, fields, smoothed=True, no_ghost=False):
-        _old_api = isinstance(fields, (string_types, tuple))
+        _old_api = isinstance(fields, (str, tuple))
         if _old_api:
             message = (
                 'get_vertex_centered_data() requires list of fields, rather than '

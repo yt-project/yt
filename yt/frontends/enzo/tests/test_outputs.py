@@ -1,18 +1,3 @@
-"""
-Enzo frontend tests
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from yt.testing import \
@@ -26,9 +11,7 @@ from yt.utilities.answer_testing.framework import \
     requires_ds, \
     small_patch_amr, \
     big_patch_amr, \
-    data_dir_load, \
-    AnalyticHaloMassFunctionTest, \
-    SimulatedHaloMassFunctionTest
+    data_dir_load
 from yt.visualization.plot_window import \
     SlicePlot
 from yt.frontends.enzo.api import EnzoDataset
@@ -136,18 +119,6 @@ def test_kh2d():
         test_kh2d.__name__ = test.description
         yield test
 
-@requires_ds(enzotiny)
-def test_simulated_halo_mass_function():
-    ds = data_dir_load(enzotiny)
-    for finder in ["fof", "hop"]:
-        yield SimulatedHaloMassFunctionTest(ds, finder)
-
-@requires_ds(enzotiny)
-def test_analytic_halo_mass_function():
-    ds = data_dir_load(enzotiny)
-    for fit in range(1, 6):
-        yield AnalyticHaloMassFunctionTest(ds, fit)
-
 @requires_ds(ecp, big_data=True)
 def test_ecp():
     ds = data_dir_load(ecp)
@@ -163,9 +134,9 @@ def test_nuclei_density_fields():
     ds = data_dir_load(ecp)
     ad = ds.all_data()
     assert_array_equal(ad["H_nuclei_density"],
-                       (ad["H_number_density"] + ad["H_p1_number_density"]))
+                       (ad["H_p0_number_density"] + ad["H_p1_number_density"]))
     assert_array_equal(ad["He_nuclei_density"],
-        (ad["He_number_density"] +
+        (ad["He_p0_number_density"] +
          ad["He_p1_number_density"] + ad["He_p2_number_density"]))
 
 @requires_file(enzotiny)

@@ -1,24 +1,7 @@
-"""
-The basic field info container resides here.  These classes, code specific and
-universal, are the means by which we access fields across YT, both derived and
-native.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 from numbers import Number as numeric_type
+import warnings
 
-from yt.extern.six import string_types
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import \
     is_curvilinear
@@ -38,7 +21,6 @@ from .particle_fields import \
     particle_vector_functions, \
     particle_scalar_functions, \
     standard_particle_fields, \
-    add_volume_weighted_smoothed_field, \
     sph_whitelist_fields
 
 def tupleize(inp):
@@ -89,7 +71,7 @@ class FieldInfoContainer(dict):
                 self.alias((ftype, f), ("index", f))
 
     def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64):
-        skip_output_units = ("code_length")
+        skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
             output_units = units
@@ -150,30 +132,32 @@ class FieldInfoContainer(dict):
         for units, field in self.extra_union_fields:
             add_union_field(self, ptype, field, units)
 
-    def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
+    def setup_smoothed_fields(self, ptype, num_neighbors=64, ftype="gas"):
         # We can in principle compute this, but it is not yet implemented.
-        if (ptype, "density") not in self:
+        if (ptype, "density") not in self or not hasattr(self.ds, '_sph_ptypes'):
             return
-        if (ptype, "smoothing_length") in self:
-            sml_name = "smoothing_length"
-        else:
-            sml_name = None
         new_aliases = []
         for ptype2, alias_name in list(self):
             if ptype2 != ptype:
                 continue
             if alias_name not in sph_whitelist_fields:
-                continue
-            fn = add_volume_weighted_smoothed_field(
-                ptype, "particle_position", "particle_mass",
-                sml_name, "density", alias_name, self,
-                num_neighbors)
-            if 'particle_' in alias_name:
-                alias_name = alias_name.replace('particle_', '')
-            new_aliases.append(((ftype, alias_name), fn[0]))
-        for alias, source in new_aliases:
-            #print "Aliasing %s => %s" % (alias, source)
-            self.alias(alias, source)
+                if alias_name.startswith('particle_'):
+                    pass
+                else:
+                    continue
+            uni_alias_name = alias_name
+            if 'particle_position_' in alias_name:
+                uni_alias_name = alias_name.replace('particle_position_', '')
+            elif 'particle_' in alias_name:
+                uni_alias_name = alias_name.replace('particle_', '')
+            new_aliases.append(
+                ((ftype, uni_alias_name), (ptype, alias_name), )
+            )
+            new_aliases.append(
+                ((ptype, uni_alias_name), (ptype, alias_name), )
+            )
+            for alias, source in new_aliases:
+                self.alias(alias, source)
 
     # Collect the names for all aliases if geometry is curvilinear
     def get_aliases_gallery(self):
@@ -208,7 +192,7 @@ class FieldInfoContainer(dict):
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
-            if not isinstance(units, string_types) and args[0] != "":
+            if not isinstance(units, str) and args[0] != "":
                 units = "((%s)*%s)" % (args[0], units)
             if isinstance(units, (numeric_type, np.number, np.ndarray)) and \
                 args[0] == "" and units != 1.0:
@@ -217,7 +201,7 @@ class FieldInfoContainer(dict):
                 units = ""
             elif units == 1.0:
                 units = ""
-            self.add_output_field(field, sampling_type="cell", units = units,
+            self.add_output_field(field, sampling_type="cell",units = units,
                                   display_name = display_name)
             axis_names = self.ds.coordinates.axis_order
             for alias in aliases:
@@ -297,7 +281,18 @@ class FieldInfoContainer(dict):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
 
+        particle_field = False
         if sampling_type == 'particle':
+            particle_field = True
+
+        if kwargs.get('particle_type', False):
+            warnings.warn(
+                'The particle_type keyword argument of add_field has been '
+                'deprecated. Please set sampling_type="particle" instead.',
+                stacklevel=2)
+            particle_field = True
+
+        if particle_field:
             ftype = 'all'
         else:
             ftype = self.ds.default_fluid_type

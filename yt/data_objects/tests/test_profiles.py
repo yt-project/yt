@@ -15,6 +15,7 @@ from yt.testing import \
     assert_raises,\
     assert_rel_equal, \
     fake_random_ds, \
+    fake_sph_orientation_ds, \
     requires_module
 from yt.utilities.exceptions import YTIllDefinedProfile
 from yt.visualization.profile_plotter import ProfilePlot, PhasePlot
@@ -27,16 +28,15 @@ def test_profiles():
     ds = fake_random_ds(64, nprocs = 8, fields = _fields, units = _units)
     nv = ds.domain_dimensions.prod()
     dd = ds.all_data()
-    (rmi, rma), (tmi, tma), (dmi, dma) = dd.quantities["Extrema"](
-        ["density", "temperature", "dinosaurs"])
     rt, tt, dt = dd.quantities["TotalQuantity"](
         ["density", "temperature", "dinosaurs"])
 
     e1, e2 = 0.9, 1.1
     for nb in [8, 16, 32, 64]:
         for input_units in ['mks', 'cgs']:
-            for ex in [rmi, rma, tmi, tma, dmi, dma]:
-                getattr(ex, 'convert_to_%s' % input_units)()
+            (rmi, rma), (tmi, tma), (dmi, dma) = [
+                getattr(ex, 'in_%s' % input_units)() for ex in
+                 dd.quantities["Extrema"](["density", "temperature", "dinosaurs"])]
             # We log all the fields or don't log 'em all.  No need to do them
             # individually.
             for lf in [True, False]:
@@ -304,6 +304,12 @@ def test_profile_zero_weight():
                                 weight_field=("gas", "DM_cell_mass"))
 
     assert not np.any(np.isnan(profile['gas', 'radial_velocity']))
+
+def test_profile_sph_data():
+    ds = fake_sph_orientation_ds()
+    # test we create a profile without raising YTIllDefinedProfile
+    yt.create_profile(ds.all_data(), ['density', 'temperature'],
+                      ['kinetic_energy'], weight_field=None)
 
 def test_profile_override_limits():
     ds = fake_random_ds(64, nprocs = 8, fields = _fields, units = _units)

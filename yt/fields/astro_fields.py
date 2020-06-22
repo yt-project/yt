@@ -1,38 +1,15 @@
-"""
-Astronomy and astrophysics fields.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
 from .derived_field import \
     ValidateParameter
-from .field_exceptions import \
-    NeedsParameter
 from .field_plugin_registry import \
     register_field_plugin
 
-from yt.utilities.physical_constants import \
-    mh, \
-    me, \
-    sigma_thompson, \
-    clight, \
-    kboltz, \
-    G
 
 @register_field_plugin
 def setup_astro_fields(registry, ftype = "gas", slice_info = None):
     unit_system = registry.ds.unit_system
+    pc = registry.ds.units.physical_constants
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -50,102 +27,83 @@ def setup_astro_fields(registry, ftype = "gas", slice_info = None):
         """
         sqrt(3 pi / (16 G rho))
         """
-        return np.sqrt(3.0 * np.pi / (16.0 * data[ftype, "density"] * G))
+        return np.sqrt(3.0 * np.pi / (16.0 * pc.G * data[ftype, "density"]))
 
-    registry.add_field((ftype, "dynamical_time"), sampling_type="cell", 
+    registry.add_field((ftype, "dynamical_time"),
+                       sampling_type="local",
                        function=_dynamical_time,
                        units=unit_system["time"])
 
     def _jeans_mass(field, data):
-        MJ_constant = (((5.0 * kboltz) / (G * mh)) ** (1.5)) * \
-          (3.0 / (4.0 * np.pi)) ** (0.5)
-        u = ((data[ftype, "temperature"] /
-               data[ftype, "mean_molecular_weight"])**(1.5)) * \
-             (data[ftype, "density"]**(-0.5)) * MJ_constant
+        MJ_constant = (((5.0 * pc.kboltz) / (pc.G * pc.mh)) ** 1.5) * \
+          (3.0 / (4.0 * np.pi)) ** 0.5
+        u = (MJ_constant * \
+             ((data[ftype, "temperature"] /
+               data[ftype, "mean_molecular_weight"])**1.5) * \
+             (data[ftype, "density"]**(-0.5)))
         return u
 
-    registry.add_field((ftype, "jeans_mass"), sampling_type="cell", 
+    registry.add_field((ftype, "jeans_mass"),
+                       sampling_type="local",
                        function=_jeans_mass,
                        units=unit_system["mass"])
 
-    def _chandra_emissivity(field, data):
-        logT0 = np.log10(data[ftype, "temperature"].to_ndarray().astype(np.float64)) - 7
-        # we get rid of the units here since this is a fit and not an
-        # analytical expression
-        return data.ds.arr(data[ftype, "number_density"].to_ndarray().astype(np.float64)**2
-                           * (10**(- 0.0103 * logT0**8 + 0.0417 * logT0**7
-                                   - 0.0636 * logT0**6 + 0.1149 * logT0**5
-                                   - 0.3151 * logT0**4 + 0.6655 * logT0**3
-                                   - 1.1256 * logT0**2 + 1.0026 * logT0**1
-                                   - 0.6984 * logT0)
-                             + data[ftype, "metallicity"].to_ndarray() *
-                             10**(  0.0305 * logT0**11 - 0.0045 * logT0**10
-                                    - 0.3620 * logT0**9  + 0.0513 * logT0**8
-                                    + 1.6669 * logT0**7  - 0.3854 * logT0**6
-                                    - 3.3604 * logT0**5  + 0.4728 * logT0**4
-                                    + 4.5774 * logT0**3  - 2.3661 * logT0**2
-                                    - 1.6667 * logT0**1  - 0.2193 * logT0)),
-                           "") # add correct units here
-
-    registry.add_field((ftype, "chandra_emissivity"), sampling_type="cell", 
-                       function=_chandra_emissivity,
-                       units="") # add correct units here
-
     def _emission_measure(field, data):
-        if data.has_field_parameter("X_H"):
-            X_H = data.get_field_parameter("X_H")
-        else:
-            X_H = 0.76
-        nenh = data["density"]/mh
-        nenh *= nenh
-        nenh *= 0.5*(1.+X_H)*X_H*data["cell_volume"]
-        return nenh
-    
-    registry.add_field((ftype, "emission_measure"), sampling_type="cell", 
+        dV = data[ftype, "mass"]/data[ftype, "density"]
+        nenhdV = data[ftype, "H_nuclei_density"]*dV
+        nenhdV *= data[ftype, "El_number_density"]
+        return nenhdV
+
+    registry.add_field((ftype, "emission_measure"),
+                       sampling_type="local",
                        function=_emission_measure,
                        units=unit_system["number_density"])
-
-    def _xray_emissivity(field, data):
-        # old scaling coefficient was 2.168e60
-        return data.ds.arr(data[ftype, "density"].to_ndarray().astype(np.float64)**2
-                           * data[ftype, "temperature"].to_ndarray()**0.5,
-                           "") # add correct units here
-
-    registry.add_field((ftype, "xray_emissivity"), sampling_type="cell", 
-                       function=_xray_emissivity,
-                       units="") # add correct units here
 
     def _mazzotta_weighting(field, data):
         # Spectroscopic-like weighting field for galaxy clusters
         # Only useful as a weight_field for temperature, metallicity, velocity
-        ret = data["density"]/mh
-        ret *= ret*data["kT"]**-0.75
+        ret = data[ftype, "El_number_density"].d**2
+        ret *= data[ftype, "kT"].d**-0.75
         return ret
 
-    registry.add_field((ftype,"mazzotta_weighting"), sampling_type="cell", 
+    registry.add_field((ftype,"mazzotta_weighting"),
+                       sampling_type="local",
                        function=_mazzotta_weighting,
-                       units="keV**-0.75*cm**-6")
+                       units="")
+
+    def _optical_depth(field, data):
+        return data[ftype, "El_number_density"]*pc.sigma_thompson
+
+    registry.add_field((ftype, "optical_depth"), sampling_type="local",
+                       function=_optical_depth, units=unit_system["length"]**-1)
 
     def _sz_kinetic(field, data):
-        scale = 0.88 * sigma_thompson / mh / clight
-        vel_axis = data.get_field_parameter("axis")
-        if vel_axis > 2:
-            raise NeedsParameter(["axis"])
-        vel = data[ftype, "velocity_%s" % ({0: "x", 1: "y", 2: "z"}[vel_axis])]
         # minus sign is because radial velocity is WRT viewer
         # See issue #1225
-        return -scale * vel * data[ftype, "density"]
+        return -data[ftype, "velocity_los"]*data[ftype, "optical_depth"]/pc.clight
 
-    registry.add_field((ftype, "sz_kinetic"), sampling_type="cell", 
+    registry.add_field((ftype, "sz_kinetic"),
+                       sampling_type="local",
                        function=_sz_kinetic,
                        units=unit_system["length"]**-1,
                        validators=[
                            ValidateParameter("axis", {'axis': [0, 1, 2]})])
 
     def _szy(field, data):
-        scale = 0.88 / mh * kboltz / (me * clight*clight) * sigma_thompson
-        return scale * data[ftype, "density"] * data[ftype, "temperature"]
+        kT = data[ftype, "kT"]/(pc.me*pc.clight*pc.clight) 
+        return data[ftype, "optical_depth"] * kT
 
-    registry.add_field((ftype, "szy"), sampling_type="cell", 
+    registry.add_field((ftype, "szy"),
+                       sampling_type="local",
                        function=_szy,
                        units=unit_system["length"]**-1)
+
+    def _entropy(field, data):
+        mgammam1 = -2./3.
+        tr = data[ftype, "kT"] * data[ftype, "El_number_density"]**mgammam1
+        return data.apply_units(tr, field.units)
+
+    registry.add_field((ftype, "entropy"),
+                       sampling_type="local",
+                       units="keV*cm**2",
+                       function=_entropy)

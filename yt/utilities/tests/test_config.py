@@ -1,12 +1,3 @@
-# -*- coding: UTF-8 -*-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import contextlib
 import os
 import sys
@@ -22,8 +13,8 @@ import yt.utilities.command_line
 import yt.config
 from yt.config import \
     CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE, CONFIG_DIR, YTConfigParser
-from yt.extern.six import StringIO
-from yt.extern.six.moves.configparser import NoOptionError
+from io import StringIO
+from configparser import NoOptionError
 from yt.fields.tests.test_fields_plugins import TEST_PLUGIN_FILE
 
 _TEST_PLUGIN = '_test_plugin.py'

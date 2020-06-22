@@ -1,19 +1,3 @@
-"""
-Data structures for OWLSSubfind frontend.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from collections import defaultdict
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
@@ -34,7 +18,7 @@ from yt.utilities.logger import ytLogger as \
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.data_objects.static_output import \
-    Dataset, \
+    ParticleDataset, \
     ParticleFile
 from yt.frontends.gadget.data_structures import \
     _fix_unit_ordering
@@ -73,6 +57,9 @@ class OWLSSubfindParticleIndex(ParticleIndex):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
+        self._setup_filenames()
+        self._calculate_particle_index_starts()
+        self._calculate_file_offset_map()
         dsl = []
         units = {}
         for dom in self.data_files:
@@ -89,32 +76,26 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
             
-    def _setup_geometry(self):
-        super(OWLSSubfindParticleIndex, self)._setup_geometry()
-        self._calculate_particle_index_starts()
-        self._calculate_file_offset_map()
-    
 class OWLSSubfindHDF5File(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
-        super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id)
+    def __init__(self, ds, io, filename, file_id, bounds):
+        super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id, bounds)
         with h5py.File(filename, mode="r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
     
-class OWLSSubfindDataset(Dataset):
+class OWLSSubfindDataset(ParticleDataset):
     _index_class = OWLSSubfindParticleIndex
     _file_class = OWLSSubfindHDF5File
     _field_info_class = OWLSSubfindFieldInfo
     _suffix = ".hdf5"
 
     def __init__(self, filename, dataset_type="subfind_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None,
-                 unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
-        super(OWLSSubfindDataset, self).__init__(filename, dataset_type,
-                                                 units_override=units_override,
-                                                 unit_system=unit_system)
+                 index_order=None, index_filename=None,
+                 units_override=None, unit_system="cgs"):
+        super(OWLSSubfindDataset, self).__init__(
+            filename, dataset_type, index_order=index_order,
+            index_filename=index_filename, units_override=units_override,
+            unit_system=unit_system)
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
@@ -132,8 +113,7 @@ class OWLSSubfindDataset(Dataset):
         self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
         self.domain_left_edge = np.zeros(3, "float64")
         self.domain_right_edge = np.ones(3, "float64") * hvals["BoxSize"]
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(3, "int32") * nz
+        self.domain_dimensions = np.ones(3, "int32")
         self.cosmological_simulation = 1
         self.periodicity = (True, True, True)
         self.current_redshift = hvals["Redshift"]

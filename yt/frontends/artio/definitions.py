@@ -1,19 +1,3 @@
-"""
-Definitions specific to ART
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 yt_to_art = {
     'Density': 'HVAR_GAS_DENSITY',
     'TotalEnergy': 'HVAR_GAS_ENERGY',

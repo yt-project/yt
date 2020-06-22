@@ -1,19 +1,3 @@
-"""
-Cosmology related fields.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from .derived_field import \
     ValidateParameter
 from .field_exceptions import \
@@ -21,9 +5,6 @@ from .field_exceptions import \
     NeedsParameter
 from .field_plugin_registry import \
     register_field_plugin
-
-from yt.utilities.physical_constants import \
-    speed_of_light_cgs
 
 @register_field_plugin
 def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
@@ -45,14 +26,16 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "density"] + \
           data[ftype, "dark_matter_density"]
 
-    registry.add_field((ftype, "matter_density"), sampling_type="cell", 
+    registry.add_field((ftype, "matter_density"),
+                       sampling_type="local",
                        function=_matter_density,
                        units=unit_system["density"])
 
     def _matter_mass(field, data):
         return data[ftype, "matter_density"] * data["index", "cell_volume"]
 
-    registry.add_field((ftype, "matter_mass"), sampling_type="cell", 
+    registry.add_field((ftype, "matter_mass"),
+                       sampling_type="local",
                        function=_matter_mass,
                        units=unit_system["mass"])
 
@@ -65,7 +48,8 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "matter_density"] / \
           co.critical_density(data.ds.current_redshift)
 
-    registry.add_field((ftype, "overdensity"), sampling_type="cell", 
+    registry.add_field((ftype, "overdensity"),
+                       sampling_type="local",
                        function=_overdensity,
                        units="")
 
@@ -83,7 +67,8 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
         return data[ftype, "density"] / omega_baryon / co.critical_density(0.0) / \
           (1.0 + data.ds.current_redshift)**3
 
-    registry.add_field((ftype, "baryon_overdensity"), sampling_type="cell", 
+    registry.add_field((ftype, "baryon_overdensity"),
+                       sampling_type="local",
                        function=_baryon_overdensity,
                        units="",
                        validators=[ValidateParameter("omega_baryon")])
@@ -100,7 +85,8 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
           co.critical_density(0.0) / \
           (1.0 + data.ds.current_redshift)**3
 
-    registry.add_field((ftype, "matter_overdensity"), sampling_type="cell", 
+    registry.add_field((ftype, "matter_overdensity"),
+                       sampling_type="local",
                        function=_matter_overdensity,
                        units="")
 
@@ -113,7 +99,8 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
             ret = data["radius"] / virial_radius
         return ret
 
-    registry.add_field(("index", "virial_radius_fraction"), sampling_type="cell", 
+    registry.add_field(("index", "virial_radius_fraction"),
+                       sampling_type="local",
                        function=_virial_radius_fraction,
                        validators=[ValidateParameter("virial_radius")],
                        units="")
@@ -126,6 +113,7 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
           not data.ds.cosmological_simulation:
             raise NeedsConfiguration("cosmological_simulation", 1)
         co = data.ds.cosmology
+        pc = data.ds.units.physical_constants
         observer_redshift = data.get_field_parameter('observer_redshift')
         source_redshift = data.get_field_parameter('source_redshift')
 
@@ -138,11 +126,12 @@ def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):
 
         # removed the factor of 1 / a to account for the fact that we are projecting
         # with a proper distance.
-        return (1.5 * (co.hubble_constant / speed_of_light_cgs)**2 * (dl * dls / ds) * \
+        return (1.5 * (co.hubble_constant / pc.clight)**2 * (dl * dls / ds) * \
           data[ftype, "matter_overdensity"]).in_units("1/cm")
 
-    registry.add_field((ftype, "weak_lensing_convergence"), sampling_type="cell", 
+    registry.add_field((ftype, "weak_lensing_convergence"),
+                       sampling_type="local",
                        function=_weak_lensing_convergence,
                        units=unit_system["length"]**-1,
-        validators=[ValidateParameter("observer_redshift"),
-                    ValidateParameter("source_redshift")])
+                       validators=[ValidateParameter("observer_redshift"),
+                                   ValidateParameter("source_redshift")])

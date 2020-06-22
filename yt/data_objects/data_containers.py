@@ -1,18 +1,3 @@
-"""
-Various non-grid data containers.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import itertools
 import uuid
 
@@ -33,14 +18,16 @@ from yt.funcs import \
     mylog, \
     ensure_list, \
     fix_axis, \
-    iterable, validate_width_tuple
-from yt.units.unit_object import UnitParseError
+    iterable, \
+    validate_width_tuple
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
 import yt.units.dimensions as ytdims
+from unyt.exceptions import \
+    UnitConversionError, \
+    UnitParseError
 from yt.utilities.exceptions import \
-    YTUnitConversionError, \
     YTFieldUnitError, \
     YTFieldUnitParseError, \
     YTSpatialFieldUnitError, \
@@ -50,6 +37,7 @@ from yt.utilities.exceptions import \
     YTFieldTypeNotFound, \
     YTDataSelectorNotImplemented, \
     YTDimensionalityError, \
+    YTNonIndexedDataContainer, \
     YTBooleanObjectError, \
     YTBooleanObjectsWrongDataset, YTException
 from yt.utilities.lib.marching_cubes import \
@@ -66,7 +54,7 @@ from yt.fields.field_exceptions import \
 import yt.geometry.selection_routines
 from yt.geometry.selection_routines import \
     compose_selector
-from yt.extern.six import add_metaclass, string_types
+from yt.units.yt_array import uconcatenate
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 
@@ -75,8 +63,12 @@ data_object_registry = {}
 def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
     if weight is None:
-        if field_object.particle_type:
-            weight_field = (field_object.name[0], 'particle_ones')
+        if field_object.sampling_type == "particle":
+            if field_object.name[0] == "gas":
+                ptype = ds._sph_ptypes[0]
+            else:
+                ptype = field_object.name[0]
+            weight_field = (ptype, 'particle_ones')
         else:
             weight_field = ('index', 'ones')
     else:
@@ -87,10 +79,10 @@ class RegisteredDataContainer(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         if hasattr(cls, "_type_name") and not cls._skip_add:
-            data_object_registry[cls._type_name] = cls
+            name = getattr(cls, "_override_selector_name", cls._type_name)
+            data_object_registry[name] = cls
 
-@add_metaclass(RegisteredDataContainer)
-class YTDataContainer(object):
+class YTDataContainer(metaclass = RegisteredDataContainer):
     """
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
@@ -127,10 +119,14 @@ class YTDataContainer(object):
         self.ds.objects.append(weakref.proxy(self))
         mylog.debug("Appending object to %s (type: %s)", self.ds, type(self))
         self.field_data = YTFieldData()
+        if self.ds.unit_system.has_current_mks:
+            mag_unit = "T"
+        else:
+            mag_unit = "G"
         self._default_field_parameters = {
             'center': self.ds.arr(np.zeros(3, dtype='float64'), 'cm'),
             'bulk_velocity': self.ds.arr(np.zeros(3, dtype='float64'), 'cm/s'),
-            'bulk_magnetic_field': self.ds.arr(np.zeros(3, dtype='float64'), 'G'),
+            'bulk_magnetic_field': self.ds.arr(np.zeros(3, dtype='float64'), mag_unit),
             'normal': self.ds.arr([0.0, 0.0, 1.0], ''),
         }
         if field_parameters is None: field_parameters = {}
@@ -170,22 +166,26 @@ class YTDataContainer(object):
           self.field_parameters[parameter]
 
     def apply_units(self, arr, units):
-        return self.ds.arr(arr, input_units = units)
+        try:
+            arr.units.registry = self.ds.unit_registry
+            return arr.to(units)
+        except AttributeError:
+            return self.ds.arr(arr, units=units)
 
     def _set_center(self, center):
         if center is None:
             self.center = None
             return
         elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.copy())
+            self.center = self.ds.arr(center.astype('float64'))
             self.center.convert_to_units('code_length')
         elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.copy() for c in center])
+                self.center = self.ds.arr([c.copy() for c in center], dtype='float64')
                 self.center.convert_to_units('code_length')
             else:
-                self.center = self.ds.arr(center, 'code_length')
-        elif isinstance(center, string_types):
+                self.center = self.ds.arr(center, 'code_length', dtype='float64')
+        elif isinstance(center, str):
             if center.lower() in ("c", "center"):
                 self.center = self.ds.domain_center
             # is this dangerous for race conditions?
@@ -287,7 +287,7 @@ class YTDataContainer(object):
         with self._field_type_state(ftype, finfo):
             if fname in self._container_fields:
                 tr = self._generate_container_field(field)
-            if finfo.particle_type: # This is a property now
+            if finfo.sampling_type == "particle":
                 tr = self._generate_particle_field(field)
             else:
                 tr = self._generate_fluid_field(field)
@@ -318,7 +318,14 @@ class YTDataContainer(object):
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
-        rv = self.ds.arr(np.empty(self.ires.size, dtype="float64"), units)
+        try:
+            rv = self.ds.arr(np.zeros(self.ires.size, dtype="float64"), units)
+            accumulate = False
+        except YTNonIndexedDataContainer:
+            # In this case, we'll generate many tiny arrays of unknown size and
+            # then concatenate them.
+            outputs = []
+            accumulate = True
         ind = 0
         if ngz == 0:
             deps = self._identify_dependencies([field], spatial = True)
@@ -327,6 +334,11 @@ class YTDataContainer(object):
                 for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
                                                     preload_fields = deps)):
                     o = self._current_chunk.objs[0]
+                    if accumulate:
+                        rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"),
+                                         units)
+                        outputs.append(rv)
+                        ind = 0 # Does this work with mesh?
                     with o._activate_cache():
                         ind += o.select(self.selector, self[field], rv, ind)
         else:
@@ -336,10 +348,19 @@ class YTDataContainer(object):
                     gz = self._current_chunk.objs[0]
                     gz.field_parameters = self.field_parameters
                     wogz = gz._base_grid
-                    ind += wogz.select(
-                        self.selector,
-                        gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
-                        rv, ind)
+                    if accumulate:
+                        rv = self.ds.arr(np.empty(wogz.ires.size,
+                                dtype="float64"), units)
+                        outputs.append(rv)
+                    if gz._type_name == 'octree_subset':
+                        raise NotImplementedError
+                    else:
+                        ind += wogz.select(
+                            self.selector,
+                            gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
+                            rv, ind)
+        if accumulate:
+            rv = uconcatenate(outputs)
         return rv
 
     def _generate_particle_field(self, field):
@@ -401,6 +422,7 @@ class YTDataContainer(object):
             obj.field_parameters = old_fp
 
     _key_fields = None
+
     def write_out(self, filename, fields=None, format="%0.16e"):
         """Write out the YTDataContainer object in a text file.
 
@@ -609,7 +631,7 @@ class YTDataContainer(object):
             if field in self._container_fields:
                 ftypes[field] = "grid"
                 need_grid_positions = True
-            elif self.ds.field_info[field].particle_type:
+            elif self.ds.field_info[field].sampling_type == "particle":
                 if field[0] not in ptypes:
                     ptypes.append(field[0])
                 ftypes[field] = field[0]
@@ -618,7 +640,7 @@ class YTDataContainer(object):
                 ftypes[field] = "grid"
                 need_grid_positions = True
         # projections and slices use px and py, so don't need positions
-        if self._type_name in ["cutting", "proj", "slice"]:
+        if self._type_name in ["cutting", "proj", "slice", "quad_proj"]:
             need_grid_positions = False
 
         if need_particle_positions:
@@ -644,7 +666,7 @@ class YTDataContainer(object):
 
         extra_attrs = dict([(arg, getattr(self, arg, None))
                             for arg in self._con_args + self._tds_attrs])
-        extra_attrs["con_args"] = self._con_args
+        extra_attrs["con_args"] = repr(self._con_args)
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
         extra_attrs["dimensionality"] = self._dimensionality
@@ -815,7 +837,7 @@ class YTDataContainer(object):
 
             ## you must have velocities (and they must be named "Velocities")
             tracked_arrays = [
-                self[ptype,'relative_particle_velocity'].convert_to_units(velocity_units)]
+                self[ptype,'relative_particle_velocity'].in_units(velocity_units)]
             tracked_names = ['Velocities']
 
             ## explicitly go after the fields we want
@@ -834,7 +856,7 @@ class YTDataContainer(object):
 
                 ## perform the unit conversion and take the log if 
                 ##  necessary.
-                this_field_array.convert_to_units(units)
+                this_field_array.in_units(units)
                 if log_flag:
                     this_field_array = np.log10(this_field_array)
 
@@ -851,7 +873,7 @@ class YTDataContainer(object):
             ## create a firefly ParticleGroup for this particle type
             pg = ParticleGroup(
                 UIname =  ptype,
-                coordinates=self[ptype,'relative_particle_position'].convert_to_units(coordinate_units),
+                coordinates=self[ptype,'relative_particle_position'].in_units(coordinate_units),
                 tracked_arrays=tracked_arrays,
                 tracked_names=tracked_names,
                 tracked_filter_flags=tracked_filter_flags,
@@ -899,7 +921,7 @@ class YTDataContainer(object):
         if axis is None:
             mv, pos0, pos1, pos2 = self.quantities.max_location(field)
             return pos0, pos1, pos2
-        if isinstance(axis, string_types):
+        if isinstance(axis, str):
             axis = [axis]
         rv = self.quantities.sample_at_max_field_values(field, axis)
         if len(rv) == 2:
@@ -941,7 +963,7 @@ class YTDataContainer(object):
         if axis is None:
             mv, pos0, pos1, pos2 = self.quantities.min_location(field)
             return pos0, pos1, pos2
-        if isinstance(axis, string_types):
+        if isinstance(axis, str):
             axis = [axis]
         rv = self.quantities.sample_at_min_field_values(field, axis)
         if len(rv) == 2:
@@ -1301,9 +1323,9 @@ class YTDataContainer(object):
         >>> sp = ds.sphere("c", 0.1)
         >>> sp_clone = sp.clone()
         >>> sp["density"]
-        >>> print sp.field_data.keys()
+        >>> print(sp.field_data.keys())
         [("gas", "density")]
-        >>> print sp_clone.field_data.keys()
+        >>> print(sp_clone.field_data.keys())
         []
         """
         args = self.__reduce__()
@@ -1337,7 +1359,8 @@ class YTDataContainer(object):
         if obj is None: obj = self
         old_particle_type = obj._current_particle_type
         old_fluid_type = obj._current_fluid_type
-        if finfo.particle_type:
+        fluid_types = self.ds.fluid_types
+        if finfo.sampling_type == "particle" and ftype not in fluid_types:
             obj._current_particle_type = ftype
         else:
             obj._current_fluid_type = ftype
@@ -1354,8 +1377,8 @@ class YTDataContainer(object):
                 continue
             if isinstance(field, tuple):
                 if len(field) != 2 or \
-                   not isinstance(field[0], string_types) or \
-                   not isinstance(field[1], string_types):
+                   not isinstance(field[0], str) or \
+                   not isinstance(field[1], str):
                     raise YTFieldNotParseable(field)
                 ftype, fname = field
                 finfo = self.ds._get_field_info(ftype, fname)
@@ -1365,8 +1388,14 @@ class YTDataContainer(object):
             else:
                 fname = field
                 finfo = self.ds._get_field_info("unknown", fname)
-                if finfo.particle_type:
+                if finfo.sampling_type == "particle":
                     ftype = self._current_particle_type
+                    if hasattr(self.ds, '_sph_ptypes'):
+                        ptypes = self.ds._sph_ptypes
+                        if finfo.name[0] in ptypes:
+                            ftype = finfo.name[0]
+                        elif finfo.alias_field and finfo.alias_name[0] in ptypes:
+                            ftype = self._current_fluid_type
                 else:
                     ftype = self._current_fluid_type
                     if (ftype, fname) not in self.ds.field_info:
@@ -1384,9 +1413,13 @@ class YTDataContainer(object):
 
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
-            if finfo.particle_type and ftype not in self.ds.particle_types:
+            particle_field = finfo.sampling_type == "particle"
+            local_field = finfo.local_sampling
+            if local_field:
+                pass
+            elif particle_field and ftype not in self.ds.particle_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
-            elif not finfo.particle_type and ftype not in self.ds.fluid_types:
+            elif not particle_field and ftype not in self.ds.fluid_types:
                 raise YTFieldTypeNotFound(ftype, ds=self.ds)
             explicit_fields.append((ftype, fname))
         return explicit_fields
@@ -1435,7 +1468,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if data_source is not None:
             if data_source.ds != self.ds:
                 raise RuntimeError("Attempted to construct a DataContainer with a data_source "
-                                   "from a different DataSet", ds, data_source.ds)
+                                   "from a different Dataset", ds, data_source.ds)
             if data_source._dimensionality < self._dimensionality:
                 raise RuntimeError("Attempted to construct a DataContainer with a data_source "
                                    "of lower dimensionality (%u vs %u)" %
@@ -1455,7 +1488,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             raise YTDataSelectorNotImplemented(self._type_name)
 
         if self._data_source is not None:
-            self._selector = compose_selector(self, self._data_source.selector, sclass(self))
+            self._selector = compose_selector(
+                self, self._data_source.selector, sclass(self))
         else:
             self._selector = sclass(self)
         return self._selector
@@ -1561,7 +1595,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         for ftype, fname in fields_to_get:
             finfo = self.ds._get_field_info(ftype, fname)
             finfos[ftype, fname] = finfo
-            if finfo.particle_type:
+            if finfo.sampling_type == "particle":
                 particles.append((ftype, fname))
             elif (ftype, fname) not in fluids:
                 fluids.append((ftype, fname))
@@ -1571,13 +1605,14 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         read_fluids, gen_fluids = self.index._read_fluid_fields(
                                         fluids, self, self._current_chunk)
         for f, v in read_fluids.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+            self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
             self.field_data[f].convert_to_units(finfos[f].output_units)
 
         read_particles, gen_particles = self.index._read_particle_fields(
                                         particles, self, self._current_chunk)
+
         for f, v in read_particles.items():
-            self.field_data[f] = self.ds.arr(v, input_units = finfos[f].units)
+            self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
             self.field_data[f].convert_to_units(finfos[f].output_units)
 
         fields_to_generate += gen_fluids + gen_particles
@@ -1602,6 +1637,8 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 fi = self.ds._get_field_info(*field)
                 try:
                     fd = self._generate_field(field)
+                    if hasattr(fd, 'units'):
+                        fd.units.registry = self.ds.unit_registry
                     if fd is None:
                         raise RuntimeError
                     if fi.units is None:
@@ -1631,7 +1668,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         fd = self.ds.arr(fd, '')
                         if fi.units != '':
                             raise YTFieldUnitError(fi, fd.units)
-                    except YTUnitConversionError:
+                    except UnitConversionError:
                         raise YTFieldUnitError(fi, fd.units)
                     except UnitParseError:
                         raise YTFieldUnitParseError(fi)
@@ -1944,14 +1981,14 @@ class YTSelectionContainer2D(YTSelectionContainer):
             if isinstance(w, tuple) and isinstance(u, tuple):
                 height = u
                 w, u = w
-            width = self.ds.quan(w, input_units = u)
+            width = self.ds.quan(w, units = u)
         elif not isinstance(width, YTArray):
             width = self.ds.quan(width, 'code_length')
         if height is None:
             height = width
         elif iterable(height):
             h, u = height
-            height = self.ds.quan(h, input_units = u)
+            height = self.ds.quan(h, units = u)
         elif not isinstance(height, YTArray):
             height = self.ds.quan(height, 'code_length')
         if not iterable(resolution):
@@ -2484,8 +2521,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> verts = dd.extract_isocontours("Density", rho,
         ...             "triangles.obj", True)
         """
+        from yt.data_objects.static_output import ParticleDataset
+        from yt.frontends.stream.data_structures import StreamParticlesDataset
         verts = []
         samples = []
+        if isinstance(self.ds, (ParticleDataset, StreamParticlesDataset)):
+            raise NotImplementedError
         for block, mask in self.blocks:
             my_verts = self._extract_isocontours_from_grid(
                 block, mask, field, value, sample_values)
@@ -2659,7 +2700,24 @@ class YTSelectionContainer3D(YTSelectionContainer):
                     {'contour_slices_%s' % contour_key: cids})
         return cons, contours
 
+    def _get_bbox(self):
+        """
+        Return the bounding box for this data container.
+        This generic version will return the bounds of the entire domain.
+        """
+        return self.ds.domain_left_edge, self.ds.domain_right_edge
 
+    def get_bbox(self):
+        """
+        Return the bounding box for this data container.
+        """
+        if self.ds.geometry != "cartesian":
+            raise NotImplementedError("get_bbox is currently only implemented "
+                                      "for cartesian geometries!")
+        le, re = self._get_bbox()
+        le.convert_to_units("code_length")
+        re.convert_to_units("code_length")
+        return le, re
 
     def volume(self):
         """
@@ -2714,6 +2772,15 @@ class YTBooleanContainer(YTSelectionContainer3D):
         name = "Boolean%sSelector" % (self.op,)
         sel_cls = getattr(yt.geometry.selection_routines, name)
         self._selector = sel_cls(self)
+
+    def _get_bbox(self):
+        le1, re1 = self.dobj1._get_bbox()
+        if self.op == "NOT":
+            return le1, re1
+        else:
+            le2, re2 = self.dobj2._get_bbox()
+            return np.minimum(le1, le2), np.maximum(re1, re2)
+
 
 # Many of these items are set up specifically to ensure that
 # we are not breaking old pickle files.  This means we must only call the

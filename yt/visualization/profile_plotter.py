@@ -1,22 +1,4 @@
-"""
-This is a simple mechanism for interfacing with Profile and Phase plots
-
-
-
-"""
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.extern.six.moves import builtins
-from yt.extern.six.moves import zip as izip
-from yt.extern.six import string_types, iteritems
+import builtins
 from collections import OrderedDict
 from distutils.version import LooseVersion
 import base64
@@ -120,7 +102,7 @@ def sanitize_label(label, nprofiles):
         raise RuntimeError("Number of labels must match number of profiles")
 
     for l in label:
-        if l is not None and not isinstance(l, string_types):
+        if l is not None and not isinstance(l, str):
             raise RuntimeError("All labels must be None or a string")
 
     return label
@@ -283,9 +265,9 @@ class ProfilePlot(object):
             self._setup_plots()
         unique = set(self.plots.values())
         if len(unique) < len(self.plots):
-            iters = izip(range(len(unique)), sorted(unique))
+            iters = zip(range(len(unique)), sorted(unique))
         else:
-            iters = iteritems(self.plots)
+            iters = self.plots.items()
         if not suffix:
             suffix = "png"
         suffix = ".%s" % suffix
@@ -353,9 +335,9 @@ class ProfilePlot(object):
         ret = ''
         unique = set(self.plots.values())
         if len(unique) < len(self.plots):
-            iters = izip(range(len(unique)), sorted(unique))
+            iters = zip(range(len(unique)), sorted(unique))
         else:
-            iters = iteritems(self.plots)
+            iters = self.plots.items()
         for uid, plot in iters:
             with matplotlib_style_context():
                 img = plot._repr_png_()
@@ -1263,7 +1245,7 @@ class PhasePlot(ImagePlotContainer):
             if suffix is None:
                 suffix = get_image_suffix(name)
                 if suffix != '':
-                    for k, v in iteritems(self.plots):
+                    for k, v in self.plots.items():
                         names.append(v.save(name, mpl_kwargs))
                     return names
                 else:

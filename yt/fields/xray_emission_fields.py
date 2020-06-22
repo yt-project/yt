@@ -1,19 +1,3 @@
-"""
-Integrator classes to deal with interpolation and integration of input spectral
-bins.  Currently only supports Cloudy and APEC-style data.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import os
@@ -23,7 +7,6 @@ from yt.fields.derived_field import DerivedField
 from yt.funcs import \
     mylog, \
     only_on_root, \
-    issue_deprecation_warning, \
     parse_h5_attr
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.exceptions import YTException
@@ -33,9 +16,10 @@ from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 
 data_version = {"cloudy": 2,
-                "apec": 2}
+                "apec": 3}
 
 data_url = "http://yt-project.org/data"
+
 
 def _get_data_file(table_type, data_dir=None):
     data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
@@ -45,10 +29,11 @@ def _get_data_file(table_type, data_dir=None):
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
         msg = "Failed to find emissivity data file %s! " % data_file + \
-            "Please download from http://yt-project.org/data!"
+              "Please download from %s!" % data_url
         mylog.error(msg)
         raise IOError(msg)
     return data_path
+
 
 class EnergyBoundsException(YTException):
     def __init__(self, lower, upper):
@@ -59,6 +44,7 @@ class EnergyBoundsException(YTException):
         return "Energy bounds are %e to %e keV." % \
           (self.lower, self.upper)
 
+
 class ObsoleteDataException(YTException):
     def __init__(self, table_type):
         data_file = "%s_emissivity_v%d.h5" % (table_type, data_version[table_type])
@@ -67,6 +53,7 @@ class ObsoleteDataException(YTException):
 
     def __str__(self):
         return self.msg
+
 
 class XrayEmissivityIntegrator(object):
     r"""Class for making X-ray emissivity fields. Uses hdf5 data tables
@@ -149,10 +136,11 @@ class XrayEmissivityIntegrator(object):
 
         return emiss
 
+
 def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
-                              metallicity=("gas", "metallicity"), 
+                              metallicity=("gas", "metallicity"),
                               table_type="cloudy", data_dir=None,
-                              cosmology=None, **kwargs):
+                              cosmology=None, dist=None, ftype="gas"):
     r"""Create X-ray emissivity fields for a given energy range.
 
     Parameters
@@ -179,12 +167,24 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
         If set and redshift > 0.0, this cosmology will be used when computing the
         cosmological dependence of the emission fields. If not set, yt's default
         LCDM cosmology will be used.
+    dist : (value, unit) tuple or :class:`~yt.units.yt_array.YTQuantity`, optional
+        The distance to the source, used for making intensity fields. You should
+        only use this if your source is nearby (not cosmological). Default: None
+    ftype : string, optional
+        The field type to use when creating the fields, default "gas"
 
-    This will create three fields:
+    This will create at least three fields:
 
     "xray_emissivity_{e_min}_{e_max}_keV" (erg s^-1 cm^-3)
     "xray_luminosity_{e_min}_{e_max}_keV" (erg s^-1)
     "xray_photon_emissivity_{e_min}_{e_max}_keV" (photons s^-1 cm^-3)
+
+    and if a redshift or distance is specified it will create two others:
+
+    "xray_intensity_{e_min}_{e_max}_keV" (erg s^-1 cm^-3 arcsec^-2)
+    "xray_photon_intensity_{e_min}_{e_max}_keV" (photons s^-1 cm^-3 arcsec^-2)
+
+    These latter two are really only useful when making projections.
 
     Examples
     --------
@@ -192,22 +192,10 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
     >>> import yt
     >>> ds = yt.load("sloshing_nomag2_hdf5_plt_cnt_0100")
     >>> yt.add_xray_emissivity_field(ds, 0.5, 2)
-    >>> p = yt.ProjectionPlot(ds, 'x', "xray_emissivity_0.5_2_keV")
+    >>> p = yt.ProjectionPlot(ds, 'x', ("gas","xray_emissivity_0.5_2_keV"),
+    ...                       table_type='apec')
     >>> p.save()
     """
-    # The next several if constructs are for backwards-compatibility
-    if "constant_metallicity" in kwargs:
-        issue_deprecation_warning("The \"constant_metallicity\" parameter is deprecated. Set "
-                                  "the \"metallicity\" parameter to a constant float value instead.")
-        metallicity = kwargs["constant_metallicity"]
-    if "with_metals" in kwargs:
-        issue_deprecation_warning("The \"with_metals\" parameter is deprecated. Use the "
-                                  "\"metallicity\" parameter to choose a constant or "
-                                  "spatially varying metallicity.")
-        if kwargs["with_metals"] and isinstance(metallicity, float):
-            raise RuntimeError("\"with_metals=True\", but you specified a constant metallicity!")
-        if not kwargs["with_metals"] and not isinstance(metallicity, float):
-            raise RuntimeError("\"with_metals=False\", but you didn't specify a constant metallicity!")
     if not isinstance(metallicity, float) and metallicity is not None:
         try:
             metallicity = ds._get_field_info(*metallicity)
@@ -215,7 +203,20 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
             raise RuntimeError("Your dataset does not have a {} field! ".format(metallicity) +
                                "Perhaps you should specify a constant metallicity instead?")
 
-    my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, redshift=redshift)
+    if table_type == "cloudy":
+        # Cloudy wants to scale by nH**2
+        other_n = "H_nuclei_density"
+    else:
+        # APEC wants to scale by nH*ne
+        other_n = "El_number_density"
+
+    def _norm_field(field, data):
+        return data[ftype, "H_nuclei_density"]*data[ftype, other_n]
+    ds.add_field((ftype, "norm_field"), _norm_field, units="cm**-6",
+                 sampling_type='local')
+
+    my_si = XrayEmissivityIntegrator(table_type, data_dir=data_dir, 
+                                     redshift=redshift)
 
     em_0 = my_si.get_interpolator("primordial", e_min, e_max)
     emp_0 = my_si.get_interpolator("primordial", e_min, e_max, energy=False)
@@ -225,87 +226,99 @@ def add_xray_emissivity_field(ds, e_min, e_max, redshift=0.0,
 
     def _emissivity_field(field, data):
         with np.errstate(all='ignore'):
-            dd = {"log_nH": np.log10(data["gas", "H_nuclei_density"]),
-                  "log_T": np.log10(data["gas", "temperature"])}
+            dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
+                  "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, em_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity.name]
+                my_Z = data[metallicity.name].to("Zsun")
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, em_Z(dd))
 
         my_emissivity[np.isnan(my_emissivity)] = 0
 
-        return data["gas","H_nuclei_density"]**2 * \
+        return data[ftype, "norm_field"] * \
             YTArray(my_emissivity, "erg*cm**3/s")
 
-    emiss_name = "xray_emissivity_%s_%s_keV" % (e_min, e_max)
-    ds.add_field(("gas", emiss_name), function=_emissivity_field,
+    emiss_name = (ftype, "xray_emissivity_%s_%s_keV" % (e_min, e_max))
+    ds.add_field(emiss_name, function=_emissivity_field,
                  display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
-                 sampling_type="cell", units="erg/cm**3/s")
+                 sampling_type="local", units="erg/cm**3/s")
 
     def _luminosity_field(field, data):
-        return data[emiss_name] * data["cell_volume"]
+        return data[emiss_name]*data[ftype, "mass"]/data[ftype, "density"]
 
-    lum_name = "xray_luminosity_%s_%s_keV" % (e_min, e_max)
-    ds.add_field(("gas", lum_name), function=_luminosity_field,
+    lum_name = (ftype, "xray_luminosity_%s_%s_keV" % (e_min, e_max))
+    ds.add_field(lum_name, function=_luminosity_field,
                  display_name=r"\rm{L}_{X} (%s-%s keV)" % (e_min, e_max),
-                 sampling_type="cell", units="erg/s")
+                 sampling_type="local", units="erg/s")
 
     def _photon_emissivity_field(field, data):
-        dd = {"log_nH": np.log10(data["gas", "H_nuclei_density"]),
-              "log_T": np.log10(data["gas", "temperature"])}
+        dd = {"log_nH": np.log10(data[ftype, "H_nuclei_density"]),
+              "log_T": np.log10(data[ftype, "temperature"])}
 
         my_emissivity = np.power(10, emp_0(dd))
         if metallicity is not None:
             if isinstance(metallicity, DerivedField):
-                my_Z = data[metallicity.name]
+                my_Z = data[metallicity.name].to("Zsun")
             else:
                 my_Z = metallicity
             my_emissivity += my_Z * np.power(10, emp_Z(dd))
 
-        return data["gas", "H_nuclei_density"]**2 * \
+        return data[ftype, "norm_field"] * \
             YTArray(my_emissivity, "photons*cm**3/s")
 
-    phot_name = "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max)
-    ds.add_field(("gas", phot_name), function=_photon_emissivity_field,
+    phot_name = (ftype, "xray_photon_emissivity_%s_%s_keV" % (e_min, e_max))
+    ds.add_field(phot_name, function=_photon_emissivity_field,
                  display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
-                 sampling_type="cell", units="photons/cm**3/s")
+                 sampling_type="local", units="photons/cm**3/s")
 
     fields = [emiss_name, lum_name, phot_name]
 
-    if redshift > 0.0:
+    if redshift > 0.0 or dist is not None:
 
-        if cosmology is None:
-            if hasattr(ds, "cosmology"):
-                cosmology = ds.cosmology
+        if dist is None:
+            if cosmology is None:
+                if hasattr(ds, "cosmology"):
+                    cosmology = ds.cosmology
+                else:
+                    cosmology = Cosmology()
+            D_L = cosmology.luminosity_distance(0.0, redshift)
+            angular_scale = 1.0/cosmology.angular_scale(0.0, redshift)
+            dist_fac = ds.quan(1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale).v, "rad**-2")
+        else:
+            redshift = 0.0  # Only for local sources!
+            if not isinstance(dist, YTQuantity):
+                try:
+                    dist = ds.quan(dist[0], dist[1])
+                except TypeError:
+                    raise RuntimeError("Please specifiy 'dist' as a YTQuantity "
+                                       "or a (value, unit) tuple!")
             else:
-                cosmology = Cosmology()
+                dist = ds.quan(dist.value, dist.units)
+            angular_scale = dist/ds.quan(1.0, "radian")
+            dist_fac = ds.quan(1.0/(4.0*np.pi*dist*dist*angular_scale*angular_scale).v, "rad**-2")
 
-        D_L = cosmology.luminosity_distance(0.0, redshift)
-        angular_scale = 1.0/cosmology.angular_scale(0.0, redshift)
-        dist_fac = 1.0/(4.0*np.pi*D_L*D_L*angular_scale*angular_scale)
-
-        ei_name = "xray_intensity_%s_%s_keV" % (e_min, e_max)
+        ei_name = (ftype, "xray_intensity_%s_%s_keV" % (e_min, e_max))
         def _intensity_field(field, data):
             I = dist_fac*data[emiss_name]
             return I.in_units("erg/cm**3/s/arcsec**2")
-        ds.add_field(("gas", ei_name), function=_intensity_field,
+        ds.add_field(ei_name, function=_intensity_field,
                      display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
-                     sampling_type="cell", units="erg/cm**3/s/arcsec**2")
+                     sampling_type="local", units="erg/cm**3/s/arcsec**2")
 
-        i_name = "xray_photon_intensity_%s_%s_keV" % (e_min, e_max)
+        i_name = (ftype, "xray_photon_intensity_%s_%s_keV" % (e_min, e_max))
         def _photon_intensity_field(field, data):
             I = (1.0+redshift)*dist_fac*data[phot_name]
             return I.in_units("photons/cm**3/s/arcsec**2")
-        ds.add_field(("gas", i_name), function=_photon_intensity_field,
+        ds.add_field(i_name, function=_photon_intensity_field,
                      display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
-                     sampling_type="cell", units="photons/cm**3/s/arcsec**2")
+                     sampling_type="local", units="photons/cm**3/s/arcsec**2")
 
         fields += [ei_name, i_name]
 
-    [mylog.info("Adding %s field." % field) for field in fields]
+    [mylog.info("Adding ('%s','%s') field." % field) for field in fields]
 
     return fields

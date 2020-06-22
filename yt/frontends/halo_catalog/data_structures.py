@@ -1,19 +1,3 @@
-"""
-Data structures for HaloCatalog frontend.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import glob
@@ -45,9 +29,9 @@ class HaloCatalogParticleIndex(ParticleIndex):
                    self.dataset.parameter_filename, 0)]
 
 class HaloCatalogFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range):
         super(HaloCatalogFile, self).__init__(
-            ds, io, filename, file_id)
+            ds, io, filename, file_id, range)
 
     def _read_particle_positions(self, ptype, f=None):
         raise NotImplementedError
@@ -61,6 +45,10 @@ class HaloCatalogFile(ParticleFile):
         dle = self.ds.domain_left_edge.to('code_length').v
         dw = self.ds.domain_width.to('code_length').v
         pos = self._read_particle_positions(ptype, f=f)
+        si, ei = self.start, self.end
+        if None not in (si, ei):
+            pos = pos[si:ei]
+
         np.subtract(pos, dle, out=pos)
         np.mod(pos, dw, out=pos)
         np.add(pos, dle, out=pos)
@@ -68,12 +56,12 @@ class HaloCatalogFile(ParticleFile):
         return pos
 
 class HaloCatalogHDF5File(HaloCatalogFile):
-    def __init__(self, ds, io, filename, file_id):
+    def __init__(self, ds, io, filename, file_id, range):
         with h5py.File(filename, mode="r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
         super(HaloCatalogHDF5File, self).__init__(
-            ds, io, filename, file_id)
+            ds, io, filename, file_id, range)
 
     def _read_particle_positions(self, ptype, f=None):
         """
@@ -107,10 +95,7 @@ class HaloCatalogDataset(SavedDataset):
                   "domain_left_edge", "domain_right_edge")
 
     def __init__(self, filename, dataset_type="halocatalog_hdf5",
-                 n_ref = 16, over_refine_factor = 1, units_override=None,
-                 unit_system="cgs"):
-        self.n_ref = n_ref
-        self.over_refine_factor = over_refine_factor
+                 units_override=None, unit_system="cgs"):
         super(HaloCatalogDataset, self).__init__(filename, dataset_type,
                                                  units_override=units_override,
                                                  unit_system=unit_system)
@@ -118,8 +103,7 @@ class HaloCatalogDataset(SavedDataset):
     def _parse_parameter_file(self):
         self.refine_by = 2
         self.dimensionality = 3
-        nz = 1 << self.over_refine_factor
-        self.domain_dimensions = np.ones(self.dimensionality, "int32") * nz
+        self.domain_dimensions = np.ones(self.dimensionality, "int32")
         self.periodicity = (True, True, True)
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)

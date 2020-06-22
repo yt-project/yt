@@ -1,18 +1,3 @@
-"""
-Test suite for cartesian domain decomposition.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 from yt.testing import assert_array_equal, assert_almost_equal
 import numpy as np
 import yt.utilities.decompose as dec

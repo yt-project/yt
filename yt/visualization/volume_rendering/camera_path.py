@@ -1,19 +1,3 @@
-"""
-Create smooth camera paths from keyframes.
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import random
 import numpy as np
 from yt.visualization.volume_rendering.create_spline import create_spline
@@ -250,7 +234,7 @@ class Keyframes(object):
                     current = next
                     self.current_score = next_score
                     if self.current_score > self.best_score:
-                        #print num_eval, self.current_score, self.best_score, current
+                        #print(num_eval, self.current_score, self.best_score, current)
                         self.best_score = self.current_score
                         self.best = current
                     break

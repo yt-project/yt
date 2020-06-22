@@ -22,7 +22,7 @@ except ImportError:
         return sha.new(str(bits)).hexdigest()
 
 import re, os, mimetypes
-from yt.extern.six.moves import urllib
+import urllib
 try:
     from email.header import Header
 except ImportError:

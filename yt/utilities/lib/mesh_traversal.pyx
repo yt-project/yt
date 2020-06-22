@@ -5,13 +5,6 @@ mesh source using either pyembree or the cython ray caster.
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport cython
 cimport numpy as np
@@ -31,9 +24,9 @@ rtc.rtcInit(NULL)
 rtc.rtcSetErrorFunction(error_printer)
 
 cdef void error_printer(const rtc.RTCError code, const char *_str):
-    print "ERROR CAUGHT IN EMBREE"
+    print("ERROR CAUGHT IN EMBREE")
     rtc.print_error(code)
-    print "ERROR MESSAGE:", _str
+    print("ERROR MESSAGE:", _str)
 
 cdef class YTEmbreeScene:
 

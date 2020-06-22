@@ -1,22 +1,8 @@
-"""
-Rockstar frontend tests using rockstar_halos dataset
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os.path
 from yt.testing import \
     assert_equal, \
-    requires_file
+    requires_file, \
+    ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     FieldValuesTest, \
     requires_ds, \
@@ -38,3 +24,9 @@ def test_fields_r1():
 @requires_file(r1)
 def test_RockstarDataset():
     assert isinstance(data_dir_load(r1), RockstarDataset)
+
+@requires_file(r1)
+def test_particle_selection():
+    ds = data_dir_load(r1)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()

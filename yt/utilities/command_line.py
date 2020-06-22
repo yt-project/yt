@@ -1,20 +1,3 @@
-"""
-A means of running standalone commands with a shared set of options.
-
-
-
-"""
-from __future__ import print_function
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import argparse
 import base64
 import getpass
@@ -40,9 +23,9 @@ from yt.funcs import \
     update_hg_or_git, \
     enable_plugins, \
     download_file
-from yt.extern.six import add_metaclass, string_types
-from yt.extern.six.moves import urllib, input
-from yt.extern.six.moves.urllib.parse import urlparse
+import urllib
+import urllib.request
+from urllib.parse import urlparse
 from yt.extern.tqdm import tqdm
 from yt.convenience import load
 from yt.visualization.plot_window import \
@@ -74,7 +57,7 @@ def _fix_ds(arg, *args, **kwargs):
     return ds
 
 def _add_arg(sc, arg):
-    if isinstance(arg, string_types):
+    if isinstance(arg, str):
         arg = _common_options[arg].copy()
     argc = dict(arg.items())
     argnames = []
@@ -198,8 +181,7 @@ class YTCommandSubtype(type):
                 for arg in cls.args:
                     _add_arg(sc, arg)
 
-@add_metaclass(YTCommandSubtype)
-class YTCommand(object):
+class YTCommand(metaclass = YTCommandSubtype):
     args = ()
     name = None
     description = ""

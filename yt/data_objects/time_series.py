@@ -1,18 +1,3 @@
-"""
-Time series analysis functions.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import inspect
 import functools
 import glob
@@ -22,7 +7,6 @@ import weakref
 
 from functools import wraps
 
-from yt.extern.six import add_metaclass, string_types
 from yt.convenience import load
 from yt.config import ytcfg
 from yt.data_objects.data_containers import data_object_registry
@@ -143,7 +127,7 @@ class DatasetSeries(object):
     ...     SlicePlot(ds, "x", "Density").save()
     ...
     >>> def print_time(ds):
-    ...     print ds.current_time
+    ...     print(ds.current_time)
     ...
     >>> ts = DatasetSeries(
     ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
@@ -154,7 +138,7 @@ class DatasetSeries(object):
 
     """
     def __new__(cls, outputs, *args, **kwargs):
-        if isinstance(outputs, string_types):
+        if isinstance(outputs, str):
             outputs = get_filenames_from_glob_pattern(outputs)
         ret = super(DatasetSeries, cls).__new__(cls)
         try:
@@ -167,7 +151,7 @@ class DatasetSeries(object):
                  mixed_dataset_types = False, **kwargs):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
         self._mixed_dataset_types = mixed_dataset_types
-        if iterable(outputs) and not isinstance(outputs, string_types):
+        if iterable(outputs) and not isinstance(outputs, str):
             self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
@@ -183,7 +167,7 @@ class DatasetSeries(object):
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
-            if isinstance(o, string_types):
+            if isinstance(o, str):
                 ds = self._load(o, **self.kwargs)
                 self._setup_function(ds)
                 yield ds
@@ -199,7 +183,7 @@ class DatasetSeries(object):
                                  parallel=self.parallel,
                                  **self.kwargs)
         o = self._pre_outputs[key]
-        if isinstance(o, string_types):
+        if isinstance(o, str):
             o = self._load(o, **self.kwargs)
             self._setup_function(o)
         return o
@@ -260,7 +244,7 @@ class DatasetSeries(object):
         This demonstrates how one might store results:
 
         >>> def print_time(ds):
-        ...     print ds.current_time
+        ...     print(ds.current_time)
         ...
         >>> ts = DatasetSeries("DD*/DD*.index",
         ...             setup_function = print_time )
@@ -271,7 +255,7 @@ class DatasetSeries(object):
         ...     sto.result = (v, c)
         ...
         >>> for i, (v, c) in sorted(my_storage.items()):
-        ...     print "% 4i  %0.3e" % (i, v)
+        ...     print("% 4i  %0.3e" % (i, v))
         ...
 
         This shows how to dispatch 4 processors to each dataset:
@@ -305,7 +289,7 @@ class DatasetSeries(object):
             if storage is not None:
                 sto, output = output
 
-            if isinstance(output, string_types):
+            if isinstance(output, str):
                 ds = self._load(output, **self.kwargs)
                 self._setup_function(ds)
             else:
@@ -374,7 +358,7 @@ class DatasetSeries(object):
         --------
 
         >>> def print_time(ds):
-        ...     print ds.current_time
+        ...     print(ds.current_time)
         ...
         >>> ts = DatasetSeries.from_filenames(
         ...     "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0[0-6][0-9]0",
@@ -385,13 +369,13 @@ class DatasetSeries(object):
 
         """
         
-        if isinstance(filenames, string_types):
+        if isinstance(filenames, str):
             filenames = get_filenames_from_glob_pattern(filenames)
 
         # This will crash with a less informative error if filenames is not
         # iterable, but the plural keyword should give users a clue...
         for fn in filenames:
-            if not isinstance(fn, string_types):
+            if not isinstance(fn, str):
                 raise YTOutputNotIdentified("DataSeries accepts a list of "
                                             "strings, but "
                                             "received {0}".format(fn))
@@ -455,7 +439,7 @@ class DatasetSeries(object):
         >>> ts = DatasetSeries(my_fns)
         >>> trajs = ts.particle_trajectories(indices, fields=fields)
         >>> for t in trajs :
-        >>>     print t["particle_velocity_x"].max(), t["particle_velocity_x"].min()
+        >>>     print(t["particle_velocity_x"].max(), t["particle_velocity_x"].min())
 
         Note
         ----
@@ -507,8 +491,7 @@ class RegisteredSimulationTimeSeries(type):
             simulation_time_series_registry[code_name] = cls
             mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
-@add_metaclass(RegisteredSimulationTimeSeries)
-class SimulationTimeSeries(DatasetSeries):
+class SimulationTimeSeries(DatasetSeries, metaclass = RegisteredSimulationTimeSeries):
     def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.

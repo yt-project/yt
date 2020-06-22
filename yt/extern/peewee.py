@@ -12,7 +12,6 @@ import logging
 import os
 import re
 import time
-from yt.extern.six import string_types
 
 try:
     import sqlite3
@@ -772,7 +771,7 @@ class SelectQuery(BaseQuery):
     def group_by(self, clause):
         model = self.query_context
         
-        if isinstance(clause, string_types):
+        if isinstance(clause, str):
             fields = (clause,)
         elif isinstance(clause, (list, tuple)):
             fields = clause
@@ -802,7 +801,7 @@ class SelectQuery(BaseQuery):
         )
 
     def parse_select_query(self, alias_map):
-        if isinstance(self.query, string_types):
+        if isinstance(self.query, str):
             if self.query in ('*', self.model._meta.pk_name) and self.use_aliases():
                 return '%s.%s' % (alias_map[self.model], self.query)
             return self.query
@@ -1109,7 +1108,7 @@ class DateTimeField(Field):
     db_field = 'datetime'
     
     def python_value(self, value):
-        if isinstance(value, string_types):
+        if isinstance(value, str):
             value = value.rsplit('.', 1)[0]
             return datetime(*time.strptime(value, '%Y-%m-%d %H:%M:%S')[:6])
         return value

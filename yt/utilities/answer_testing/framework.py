@@ -9,7 +9,8 @@ import time
 import hashlib
 import contextlib
 import sys
-from yt.extern.six.moves import cPickle, urllib
+import pickle
+import urllib
 import shelve
 import zlib
 import tempfile
@@ -195,7 +196,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
                 # Raise error if all tries were unsuccessful
                 raise YTCloudError(url)
             # This is dangerous, but we have a controlled S3 environment
-            rv = cPickle.loads(data)
+            rv = pickle.loads(data)
         self.cache[ds_name] = rv
         return rv
 
@@ -214,7 +215,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         pb = get_pbar("Storing results ", len(result_storage))
         for i, ds_name in enumerate(result_storage):
             pb.update(i)
-            rs = cPickle.dumps(result_storage[ds_name])
+            rs = pickle.dumps(result_storage[ds_name])
             object_name = "%s_%s" % (self.answer_name, ds_name)
             if object_name in c.get_object_names():
                 obj = c.get_object(object_name)
@@ -436,6 +437,9 @@ class AnswerTestingTest(object):
             oname = "_".join((str(s) for s in obj_type))
         args = [self._type_name, str(self.ds), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
+        suffix = getattr(self, "suffix", None)
+        if suffix:
+            args.append(suffix)
         return "_".join(args).replace('.', '_')
 
 class FieldValuesTest(AnswerTestingTest):
@@ -453,8 +457,11 @@ class FieldValuesTest(AnswerTestingTest):
     def run(self):
         obj = create_obj(self.ds, self.obj_type)
         field = obj._determine_fields(self.field)[0]
+        fd = self.ds.field_info[field]
         if self.particle_type:
             weight_field = (field[0], "particle_ones")
+        elif fd.is_sph_field:
+            weight_field = (field[0], "ones")
         else:
             weight_field = ("index", "ones")
         avg = obj.quantities.weighted_average_quantity(
@@ -464,6 +471,10 @@ class FieldValuesTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         err_msg = "Field values for %s not equal." % (self.field,)
+        if hasattr(new_result, "d"):
+            new_result = new_result.d
+        if hasattr(old_result, "d"):
+            old_result = old_result.d
         if self.decimals is None:
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
@@ -493,6 +504,10 @@ class AllFieldValuesTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         err_msg = "All field values for %s not equal." % self.field
+        if hasattr(new_result, "d"):
+            new_result = new_result.d
+        if hasattr(old_result, "d"):
+            old_result = old_result.d
         if self.decimals is None:
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
@@ -548,6 +563,10 @@ class ProjectionValuesTest(AnswerTestingTest):
                 # not do the test here.
                 continue
             nres, ores = new_result[k][nind], old_result[k][oind]
+            if hasattr(nres, "d"):
+                nres = nres.d
+            if hasattr(ores, "d"):
+                ores = ores.d
             if self.decimals is None:
                 assert_equal(nres, ores, err_msg=err_msg)
             else:
@@ -565,6 +584,13 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         self.field = field
         self.weight_field = weight_field
         self.obj_type = obj_type
+
+    def _get_frb(self, obj):
+        proj = self.ds.proj(self.field, self.axis,
+                              weight_field=self.weight_field,
+                              data_source = obj)
+        frb = proj.to_frb((1.0, 'unitary'), 256)
+        return proj, frb
 
     def run(self):
         if self.obj_type is not None:
@@ -593,6 +619,13 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             if k == "weight_field_sum": continue
             assert_allclose_units(new_result[k], old_result[k], 1e-10)
 
+class PixelizedParticleProjectionValuesTest(PixelizedProjectionValuesTest):
+
+    def _get_frb(self, obj):
+        proj_plot = particle_plots.ParticleProjectionPlot(self.ds, self.axis, [self.field],
+                                                          weight_field = self.weight_field)
+        return proj_plot.data_source, proj_plot.frb
+
 class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
     _attrs = ("field",)
@@ -613,6 +646,10 @@ class GridValuesTest(AnswerTestingTest):
         for k in new_result:
             assert (k in old_result)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             assert_equal(new_result[k], old_result[k])
 
 class VerifySimulationSameTest(AnswerTestingTest):
@@ -650,6 +687,10 @@ class GridHierarchyTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             assert_equal(new_result[k], old_result[k])
 
 class ParentageRelationshipsTest(AnswerTestingTest):
@@ -675,55 +716,6 @@ class ParentageRelationshipsTest(AnswerTestingTest):
             assert(newp == oldp)
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert(newc == oldc)
-
-class SimulatedHaloMassFunctionTest(AnswerTestingTest):
-    _type_name = "SimulatedHaloMassFunction"
-    _attrs = ("finder",)
-
-    def __init__(self, ds_fn, finder):
-        super(SimulatedHaloMassFunctionTest, self).__init__(ds_fn)
-        self.finder = finder
-
-    def run(self):
-        from yt.analysis_modules.halo_analysis.api import HaloCatalog
-        from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
-        hc = HaloCatalog(data_ds=self.ds, finder_method=self.finder)
-        hc.create()
-
-        hmf = HaloMassFcn(halos_ds=hc.halos_ds)
-        result = np.empty((2, hmf.masses_sim.size))
-        result[0] = hmf.masses_sim.d
-        result[1] = hmf.n_cumulative_sim.d
-        return result
-
-    def compare(self, new_result, old_result):
-        err_msg = ("Simulated halo mass functions not equation for " +
-                   "%s halo finder.") % self.finder
-        assert_equal(new_result, old_result,
-                     err_msg=err_msg, verbose=True)
-
-class AnalyticHaloMassFunctionTest(AnswerTestingTest):
-    _type_name = "AnalyticHaloMassFunction"
-    _attrs = ("fitting_function",)
-
-    def __init__(self, ds_fn, fitting_function):
-        super(AnalyticHaloMassFunctionTest, self).__init__(ds_fn)
-        self.fitting_function = fitting_function
-
-    def run(self):
-        from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
-        hmf = HaloMassFcn(simulation_ds=self.ds,
-                          fitting_function=self.fitting_function)
-        result = np.empty((2, hmf.masses_analytic.size))
-        result[0] = hmf.masses_analytic.d
-        result[1] = hmf.n_cumulative_analytic.d
-        return result
-
-    def compare(self, new_result, old_result):
-        err_msg = ("Analytic halo mass functions not equal for " +
-                   "fitting function %d.") % self.fitting_function
-        assert_almost_equal(new_result, old_result,
-                            err_msg=err_msg, verbose=True)
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = []
@@ -884,6 +876,10 @@ class GenericArrayTest(AnswerTestingTest):
                                           err_msg="Number of outputs not equal.",
                                           verbose=True)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             if self.decimals is None:
                 assert_almost_equal(new_result[k], old_result[k])
             else:
@@ -957,6 +953,10 @@ class AxialPixelizationTest(AnswerTestingTest):
                                           err_msg="Number of outputs not equal.",
                                           verbose=True)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             if self.decimals is None:
                 assert_almost_equal(new_result[k], old_result[k])
             else:
@@ -1029,33 +1029,37 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
     dd = ds.all_data()
-    assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
+    # this needs to explicitly be "all"
+    assert_equal(dd["all", "particle_position"].shape,
+                 (ds_nparticles, 3))
     tot = sum(dd[ptype, "particle_position"].shape[0]
-              for ptype in ds.particle_types if ptype != "all")
+              for ptype in ds.particle_types_raw)
     assert_equal(tot, ds_nparticles)
     for dobj_name in dso:
-        dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
-        s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        assert_equal(s1, s2)
         for field, weight_field in fields.items():
-            if field[0] in ds.particle_types:
-                particle_type = True
-            else:
-                particle_type = False
+            particle_type = field[0] in ds.particle_types
             for axis in [0, 1, 2]:
                 if not particle_type:
-                    yield PixelizedProjectionValuesTest(
+                    yield proj_test_class(
                         ds, axis, field, weight_field,
                         dobj_name)
             yield FieldValuesTest(ds, field, dobj_name,
                                   particle_type=particle_type)
+
+
+def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
+    return _particle_answers(ds, ds_str_repr, ds_nparticles, fields,
+        PixelizedParticleProjectionValuesTest)
+
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+    return _particle_answers(ds, ds_str_repr, ds_nparticles, fields,
+        PixelizedProjectionValuesTest)
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of

@@ -5,13 +5,6 @@ Simple utilities that don't fit anywhere else
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 from yt.funcs import get_pbar
 import numpy as np
@@ -22,7 +15,6 @@ cimport libc.math as math
 from libc.math cimport abs, sqrt
 from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max
 from yt.geometry.selection_routines cimport _ensure_code
-from yt.utilities.exceptions import YTEquivalentDimsError
 
 from libc.stdlib cimport malloc, free
 from libc.string cimport strcmp
@@ -469,17 +461,17 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
         for i in range(n_grids):
             # Check for disqualification
             for j in range(2):
-                #print "Checking against", i,j,dim,data[i,j,dim]
+                #print("Checking against", i,j,dim,data[i,j,dim])
                 if not (l_corner[dim] < data[i, j, dim] and
                         data[i, j, dim] < r_corner[dim]):
-                    #print "Skipping ", data[i,j,dim]
+                    #print("Skipping ", data[i,j,dim])
                     continue
                 skipit = 0
                 # Add our left ...
                 for k in range(n_unique):
                     if uniques[k] == data[i, j, dim]:
                         skipit = 1
-                        #print "Identified", uniques[k], data[i,j,dim], n_unique
+                        #print("Identified", uniques[k], data[i,j,dim], n_unique)
                         break
                 if skipit == 0:
                     uniques[n_unique] = data[i, j, dim]
@@ -491,7 +483,7 @@ def kdtree_get_choices(np.ndarray[np.float64_t, ndim=3] data,
     # I recognize how lame this is.
     cdef np.ndarray[np.float64_t, ndim=1] tarr = np.empty(my_max, dtype='float64')
     for i in range(my_max):
-        #print "Setting tarr: ", i, uniquedims[best_dim][i]
+        #print("Setting tarr: ", i, uniquedims[best_dim][i])
         tarr[i] = uniquedims[best_dim][i]
     tarr.sort()
     if my_split < 0:
@@ -569,7 +561,8 @@ def get_box_grids_below_level(
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
-def obtain_position_vector(data):
+def obtain_position_vector(
+    data, field_names = ('x', 'y', 'z')):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
     cdef np.ndarray[np.float64_t, ndim=1] xf
@@ -583,14 +576,14 @@ def obtain_position_vector(data):
     cdef np.float64_t c[3]
     cdef int i, j, k
 
-    units = data['x'].units
+    units = data[field_names[0]].units
     center = data.get_field_parameter("center").to(units)
     c[0] = center[0]; c[1] = center[1]; c[2] = center[2]
-    if len(data['x'].shape) == 1:
+    if len(data[field_names[0]].shape) == 1:
         # One dimensional data
-        xf = data['x']
-        yf = data['y']
-        zf = data['z']
+        xf = data[field_names[0]]
+        yf = data[field_names[1]]
+        zf = data[field_names[2]]
         rf = YTArray(np.empty((3, xf.shape[0]), 'float64'), xf.units)
         for i in range(xf.shape[0]):
             rf[0, i] = xf[i] - c[0]
@@ -599,9 +592,9 @@ def obtain_position_vector(data):
         return rf
     else:
         # Three dimensional data
-        xg = data['x']
-        yg = data['y']
-        zg = data['z']
+        xg = data[field_names[0]]
+        yg = data[field_names[1]]
+        zg = data[field_names[2]]
         shape = (3, xg.shape[0], xg.shape[1], xg.shape[2])
         rg = YTArray(np.empty(shape, 'float64'), xg.units)
         #rg = YTArray(rg, xg.units)
@@ -666,11 +659,7 @@ def obtain_relative_velocity_vector(
         if bulk_vector is None:
             bv[0] = bv[1] = bv[2] = 0.0
         else:
-            if hasattr(bulk_vector, 'in_units'):
-                try:
-                    bulk_vector = bulk_vector.in_units(vxg.units)
-                except YTEquivalentDimsError as e:
-                    bulk_vector = bulk_vector.to_equivalent(e.new_units, e.base)
+            bulk_vector = bulk_vector.in_units(vxg.units)
             bv[0] = bulk_vector[0]
             bv[1] = bulk_vector[1]
             bv[2] = bulk_vector[2]
@@ -785,6 +774,61 @@ def fill_region(input_fields, output_fields,
                                         ifield[i]
                                     tot += 1
     return tot
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def flip_bitmask(np.ndarray[np.float64_t, ndim=1] vals,
+                 np.float64_t left_edge, np.float64_t right_edge, 
+                 np.uint64_t nbins):
+    cdef np.uint64_t i, bin_id
+    cdef np.float64_t idx = nbins / (right_edge - left_edge)
+    cdef np.ndarray[np.uint8_t, ndim=1, cast=True] bitmask
+    bitmask = np.zeros(nbins, dtype="uint8")
+    for i in range(vals.shape[0]):
+        bin_id = <np.uint64_t> ((vals[i] - left_edge)*idx)
+        bitmask[bin_id] = 1
+    return bitmask
+
+#@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def flip_morton_bitmask(np.ndarray[np.uint64_t, ndim=1] morton_indices,
+                        int max_order):
+    # We assume that the morton_indices are fed to us in a setup that allows
+    # for 20 levels.  This means that we shift right by 3*(20-max_order) (or is
+    # that a fencepost?)
+    cdef np.uint64_t mi, i
+    cdef np.ndarray[np.uint8_t, ndim=1, cast=True] bitmask
+    # Note that this will fail if it's too big, since numpy will check nicely
+    # the memory availability.  I guess.
+    bitmask = np.zeros(1 << (3*max_order), dtype="uint8")
+    for i in range(morton_indices.shape[0]):
+        mi = (morton_indices[i] >> (3 * (20-max_order)))
+        bitmask[mi] = 1
+    return bitmask
+
+#@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def count_collisions(np.ndarray[np.uint8_t, ndim=2] masks):
+    cdef int i, j, k
+    cdef np.ndarray[np.uint32_t, ndim=1] counts
+    cdef np.ndarray[np.uint8_t, ndim=1] collides
+    counts = np.zeros(masks.shape[1], dtype="uint32")
+    collides = np.zeros(masks.shape[1], dtype="uint8")
+    for i in range(masks.shape[1]):
+        print i
+        for j in range(masks.shape[1]):
+            collides[j] = 0
+        for k in range(masks.shape[0]):
+            if masks[k,i] == 0: continue
+            for j in range(masks.shape[1]):
+                if j == i: continue
+                if masks[k,j] == 1:
+                    collides[j] = 1
+        counts[i] = collides.sum()
+    return counts
 
 @cython.cdivision(True)
 @cython.boundscheck(False)

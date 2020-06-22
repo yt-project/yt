@@ -1,19 +1,3 @@
-"""
-AMR kD-Tree Framework
-
-
-"""
-from __future__ import print_function
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import operator
 import numpy as np
 
@@ -105,15 +89,15 @@ class Tree(object):
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            nle = self.ds.arr(node.get_left_edge(), input_units="code_length")
-            nre = self.ds.arr(node.get_right_edge(), input_units="code_length")
+            nle = self.ds.arr(node.get_left_edge(), units="code_length")
+            nre = self.ds.arr(node.get_right_edge(), units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')
             ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
             assert(np.all(grid.LeftEdge <= nle))
             assert(np.all(grid.RightEdge >= nre))
             assert(np.all(dims > 0))
-            # print grid, dims, li, ri
+            # print(grid, dims, li, ri)
 
         # Calculate the Volume
         vol = self.trunk.kd_sum_volume()
@@ -130,8 +114,8 @@ class Tree(object):
             grid = self.ds.index.grids[node.grid - self._id_offset]
             dds = grid.dds
             gle = grid.LeftEdge
-            nle = self.ds.arr(node.get_left_edge(), input_units="code_length")
-            nre = self.ds.arr(node.get_right_edge(), input_units="code_length")
+            nle = self.ds.arr(node.get_left_edge(), units="code_length")
+            nre = self.ds.arr(node.get_right_edge(), units="code_length")
             li = np.rint((nle-gle)/dds).astype('int32')
             ri = np.rint((nre-gle)/dds).astype('int32')
             dims = (ri - li).astype('int32')
