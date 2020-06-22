@@ -27,7 +27,7 @@ YTQuantity = unyt_quantity
 from yt.units.unit_symbols import _SymbolContainer
 from yt.units.physical_constants import _ConstantContainer
 
-class UnitContainer(object):
+class UnitContainer:
     """A container for units and constants to associate with a dataset
 
     This object is usually accessed on a Dataset instance via ``ds.units``.

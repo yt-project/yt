@@ -719,7 +719,7 @@ class ARTDomainSubset(OctreeSubset):
                 source)
         return tr
 
-class ARTDomainFile(object):
+class ARTDomainFile:
     """
     Read in the AMR, left/right edges, fill out the octhandler
     """

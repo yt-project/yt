@@ -31,7 +31,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface \
 from yt.utilities.parameter_file_storage import \
     simulation_time_series_registry
      
-class AnalysisTaskProxy(object):
+class AnalysisTaskProxy:
     def __init__(self, time_series):
         self.time_series = time_series
 
@@ -75,7 +75,7 @@ attrs = ("refine_by", "dimensionality", "current_time",
          "omega_matter", "omega_lambda", "omega_radiation",
          "hubble_constant")
 
-class TimeSeriesParametersContainer(object):
+class TimeSeriesParametersContainer:
     def __init__(self, data_object):
         self.data_object = data_object
 
@@ -84,7 +84,7 @@ class TimeSeriesParametersContainer(object):
             return self.data_object.eval(get_ds_prop(attr)())
         raise AttributeError(attr)
 
-class DatasetSeries(object):
+class DatasetSeries:
     r"""The DatasetSeries object is a container of multiple datasets,
     allowing easy iteration and computation on them.
 
@@ -449,7 +449,7 @@ class DatasetSeries(object):
         return ParticleTrajectories(self, indices, fields=fields, suppress_logging=suppress_logging,
                                     ptype=ptype)
 
-class TimeSeriesQuantitiesContainer(object):
+class TimeSeriesQuantitiesContainer:
     def __init__(self, data_object, quantities):
         self.data_object = data_object
         self.quantities = quantities
@@ -465,7 +465,7 @@ class TimeSeriesQuantitiesContainer(object):
             return run_quantity
         return run_quantity_wrapper(q, key)
 
-class DatasetSeriesObject(object):
+class DatasetSeriesObject:
     def __init__(self, time_series, data_object_name, *args, **kwargs):
         self.time_series = weakref.proxy(time_series)
         self.data_object_name = data_object_name

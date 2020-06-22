@@ -164,7 +164,7 @@ class AnswerTesting(Plugin):
     def help(self):
         return "yt answer testing support"
 
-class AnswerTestStorage(object):
+class AnswerTestStorage:
     def __init__(self, reference_name=None, answer_name=None):
         self.reference_name = reference_name
         self.answer_name = answer_name
@@ -323,7 +323,7 @@ def sim_dir_load(sim_fn, path = None, sim_type = "Enzo",
     return simulation(os.path.join(path, sim_fn), sim_type,
                       find_outputs=find_outputs)
 
-class AnswerTestingTest(object):
+class AnswerTestingTest:
     reference_storage = None
     result_storage = None
     prefix = ""

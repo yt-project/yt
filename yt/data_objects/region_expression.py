@@ -5,7 +5,7 @@ from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError
 from yt.visualization.line_plot import LineBuffer
 
-class RegionExpression(object):
+class RegionExpression:
     _all_data = None
     def __init__(self, ds):
         self.ds = weakref.proxy(ds)

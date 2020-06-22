@@ -2,7 +2,7 @@
 import numpy as np
 
 
-class ZBuffer(object):
+class ZBuffer:
     """A container object for z-buffer arrays
 
     A zbuffer is a companion array for an image that allows the volume rendering

@@ -446,7 +446,7 @@ class OctreeSubset(YTSelectionContainer):
         mask = selector.select_points(x,y,z, 0.0)
         return mask
 
-class OctreeSubsetBlockSlicePosition(object):
+class OctreeSubsetBlockSlicePosition:
     def __init__(self, ind, block_slice):
         self.ind = ind
         self.block_slice = block_slice
@@ -497,7 +497,7 @@ class OctreeSubsetBlockSlicePosition(object):
         yield self.block_slice.octree_subset._field_parameter_state(
                 field_parameters)
 
-class OctreeSubsetBlockSlice(object):
+class OctreeSubsetBlockSlice:
     def __init__(self, octree_subset):
         self.octree_subset = octree_subset
         # Cache some attributes

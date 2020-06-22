@@ -12,7 +12,7 @@ clump_validator_registry = OperatorRegistry()
 def add_validator(name, function):
     clump_validator_registry[name] = ClumpValidator(function)
 
-class ClumpValidator(object):
+class ClumpValidator:
     r"""
     A ClumpValidator is a function that takes a clump and returns 
     True or False as to whether the clump is valid and shall be kept.

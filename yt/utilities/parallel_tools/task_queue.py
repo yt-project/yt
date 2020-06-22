@@ -14,7 +14,7 @@ messages = dict(
     end = dict(msg = 'no_more_tasks'),
 )
 
-class TaskQueueNonRoot(object):
+class TaskQueueNonRoot:
     def __init__(self, tasks, comm, subcomm):
         self.tasks = tasks
         self.results = {}

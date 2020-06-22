@@ -35,7 +35,7 @@ def _byte_swap_32(x):
     return struct.unpack('>I', struct.pack('<I', x))[0]
 
 
-class GadgetBinaryHeader(object):
+class GadgetBinaryHeader:
     """A convenient interface to Gadget binary header.
     
     This is a helper class to facilitate the main dataset and IO classes.

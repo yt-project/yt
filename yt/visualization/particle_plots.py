@@ -16,7 +16,7 @@ from yt.visualization.profile_plotter import \
     PhasePlot
 
 
-class ParticleAxisAlignedDummyDataSource(object):
+class ParticleAxisAlignedDummyDataSource:
     _type_name = 'Particle'
     _dimensionality = 2
     _con_args = ('center', 'axis', 'width', 'fields', 'weight_field')

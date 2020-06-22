@@ -48,7 +48,7 @@ def _strify(s):
         return s.encode("utf-8")
     return str(s)
 
-class MultipartParam(object):
+class MultipartParam:
     """Represents a single parameter in a multipart/form-data request
 
     ``name`` is the name of this parameter.

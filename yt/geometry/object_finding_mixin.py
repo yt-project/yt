@@ -13,7 +13,7 @@ from yt.utilities.physical_ratios import \
     HUGE
 from yt.utilities.exceptions import YTTooParallel
 
-class ObjectFindingMixin(object) :
+class ObjectFindingMixin :
 
     def find_ray_grids(self, coord, axis):
         """

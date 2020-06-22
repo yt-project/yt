@@ -109,7 +109,7 @@ if not os.path.exists(CURRENT_CONFIG_FILE):
     except IOError:
         warnings.warn("unable to write new config file")
 
-class YTConfigParser(configparser.ConfigParser, object):
+class YTConfigParser(configparser.ConfigParser):
     def __setitem__(self, key, val):
         self.set(key[0], key[1], val)
 

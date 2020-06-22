@@ -139,7 +139,7 @@ def get_keyv(iarr, level):
     np.bitwise_or(i1, i3, i1)
     return i1
 
-class DataStruct(object):
+class DataStruct:
     """docstring for DataStruct"""
 
     _offset = 0
@@ -203,7 +203,7 @@ class DataStruct(object):
         else:
             return arr[mask]
 
-class RedirectArray(object):
+class RedirectArray:
     """docstring for RedirectArray"""
     def __init__(self, http_array, key):
         self.http_array = http_array
@@ -539,7 +539,7 @@ def _shift_periodic(pos, left, right, domain_width):
     return
 
 
-class SDFIndex(object):
+class SDFIndex:
 
     """docstring for SDFIndex
 

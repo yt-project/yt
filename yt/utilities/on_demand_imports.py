@@ -1,7 +1,7 @@
 from pkg_resources import parse_version
 import sys
 
-class NotAModule(object):
+class NotAModule:
     """
     A class to implement an informative error message that will be outputted if
     someone tries to use an on-demand import without having the requisite
@@ -44,7 +44,7 @@ class NotCartopy(NotAModule):
                 "For further instruction please refer to the "
                 "yt documentation." % self.pkg_name)
 
-class netCDF4_imports(object):
+class netCDF4_imports:
     _name = "netCDF4"
     _Dataset = None
     @property
@@ -61,7 +61,7 @@ class netCDF4_imports(object):
 _netCDF4 = netCDF4_imports()
 
 
-class astropy_imports(object):
+class astropy_imports:
     _name = "astropy"
     _pyfits = None
     @property
@@ -162,7 +162,7 @@ class astropy_imports(object):
 
 _astropy = astropy_imports()
 
-class cartopy_imports(object):
+class cartopy_imports:
     _name = "cartopy"
 
     _crs = None
@@ -190,7 +190,7 @@ class cartopy_imports(object):
 
 _cartopy = cartopy_imports()
 
-class pooch_imports(object):
+class pooch_imports:
     _name = "pooch"
 
     _pooch = None
@@ -206,7 +206,7 @@ class pooch_imports(object):
 
 _pooch = pooch_imports()
 
-class scipy_imports(object):
+class scipy_imports:
     _name = "scipy"
     _integrate = None
     @property
@@ -298,7 +298,7 @@ class scipy_imports(object):
 
 _scipy = scipy_imports()
 
-class h5py_imports(object):
+class h5py_imports:
     _name = "h5py"
     _err = None
 
@@ -446,7 +446,7 @@ class h5py_imports(object):
 
 _h5py = h5py_imports()
 
-class nose_imports(object):
+class nose_imports:
     _name = "nose"
     _run = None
     @property
@@ -461,7 +461,7 @@ class nose_imports(object):
 
 _nose = nose_imports()
 
-class libconf_imports(object):
+class libconf_imports:
     _name = "libconf"
     _load = None
     @property
@@ -476,7 +476,7 @@ class libconf_imports(object):
 
 _libconf = libconf_imports()
 
-class yaml_imports(object):
+class yaml_imports:
     _name = "yaml"
     _load = None
     _FullLoader = None
@@ -512,7 +512,7 @@ class NotMiniball(NotAModule):
                "install via `pip install MiniballCpp`.")
         self.error = ImportError(str % self.pkg_name)
 
-class miniball_imports(object):
+class miniball_imports:
     _name = 'miniball'
     _Miniball = None
 

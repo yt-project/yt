@@ -1,5 +1,5 @@
 
-class Converter(object):
+class Converter:
     def __init__(self, basename, outname=None):
         self.basename = basename
         self.outname = outname

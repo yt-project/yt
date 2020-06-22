@@ -9,7 +9,7 @@ from functools import wraps
 from yt.config import ytcfg
 from yt.funcs import mylog
 
-class PerformanceCounters(object):
+class PerformanceCounters:
     _shared_state = {}
     def __new__(cls, *args, **kwargs):
         self = object.__new__(cls, *args, **kwargs)
@@ -81,7 +81,7 @@ yt_counters = PerformanceCounters()
 time_function = yt_counters.call_func
 
 
-class ProfilingController(object):
+class ProfilingController:
     def __init__(self):
         self.profilers = {}
 

@@ -154,7 +154,7 @@ def get_mpi_type(dtype):
     for dt, val in dtype_names.items():
         if dt == dtype: return val
 
-class ObjectIterator(object):
+class ObjectIterator:
     """
     This is a generalized class that accepts a list of objects and then
     attempts to intelligently iterate over them.
@@ -317,14 +317,14 @@ def parallel_root_only(func):
         return rv
     return root_only
 
-class Workgroup(object):
+class Workgroup:
     def __init__(self, size, ranks, comm, name):
         self.size = size
         self.ranks = ranks
         self.comm = comm
         self.name = name
 
-class ProcessorPool(object):
+class ProcessorPool:
     comm = None
     size = None
     ranks = None
@@ -391,7 +391,7 @@ class ProcessorPool(object):
             if wg.name == key: return wg
         raise KeyError(key)
 
-class ResultsStorage(object):
+class ResultsStorage:
     slots = ['result', 'result_id']
     result = None
     result_id = None
@@ -616,7 +616,7 @@ def parallel_ring(objects, generator_func, mutable = False):
         my_comm.mpi_Request_Waitall(tags)
         del odata
 
-class CommunicationSystem(object):
+class CommunicationSystem:
     communicators = []
 
     def __init__(self):
@@ -648,7 +648,7 @@ class CommunicationSystem(object):
 def _reconstruct_communicator():
     return communication_system.communicators[-1]
 
-class Communicator(object):
+class Communicator:
     comm = None
     _grids = None
     _distributed = None
@@ -1069,7 +1069,7 @@ class Communicator(object):
 
 communication_system = CommunicationSystem()
 
-class ParallelAnalysisInterface(object):
+class ParallelAnalysisInterface:
     comm = None
     _grids = None
     _distributed = None

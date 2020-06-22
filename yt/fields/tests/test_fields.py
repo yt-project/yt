@@ -61,7 +61,7 @@ def _strip_ftype(field):
     return field[1]
 
 
-class TestFieldAccess(object):
+class TestFieldAccess:
     description = None
 
     def __init__(self, field_name, ds, nprocs):
