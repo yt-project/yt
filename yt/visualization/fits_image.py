@@ -553,9 +553,9 @@ class FITSImageData(object):
         clobber : overwrite, optional
             Whether or not to overwrite a previously existing file.
             Default: False
-
-        Additional keyword arguments are passed to
-        :meth:`~astropy.io.fits.HDUList.writeto`.
+        **kwargs
+            Additional keyword arguments are passed to
+            :meth:`~astropy.io.fits.HDUList.writeto`.
         """
         if "clobber" in kwargs:
             issue_deprecation_warning("The \"clobber\" keyword argument "
@@ -574,7 +574,7 @@ class FITSImageData(object):
     def to_glue(self, label="yt", data_collection=None):
         """
         Takes the data in the FITSImageData instance and exports it to
-        Glue (http://www.glueviz.org) for interactive analysis. Optionally 
+        Glue (http://glueviz.org) for interactive analysis. Optionally 
         add a *label*. If you are already within the Glue environment, you 
         can pass a *data_collection* object, otherwise Glue will be started.
         """

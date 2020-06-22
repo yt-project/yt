@@ -42,7 +42,8 @@ def test_d9p_cloudy():
                                        table_type="cloudy", cosmology=ds.cosmology,
                                        metallicity=("gas", "metallicity"))
     for test in check_xray_fields(ds, fields):
-        test_d9p_cloudy.__name__ = test.description
+        test.suffix = "current_redshift"
+        test_d9p_cloudy.__name__ = test.description + test.suffix
         yield test
 
 @requires_ds(d9p, big_data=True)
@@ -52,5 +53,6 @@ def test_d9p_cloudy_local():
                                        table_type="cloudy",
                                        metallicity=("gas", "metallicity"))
     for test in check_xray_fields(ds, fields):
-        test_d9p_cloudy_local.__name__ = test.description
+        test.suffix = "dist_1Mpc"
+        test_d9p_cloudy_local.__name__ = test.description + test.suffix
         yield test

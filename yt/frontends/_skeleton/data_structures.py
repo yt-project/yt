@@ -134,4 +134,9 @@ class SkeletonDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
+        #
+        # The functionality in this method should be unique enough that it can
+        # differentiate the frontend from others. Sometimes this means looking
+        # for specific fields or attributes in the dataset in addition to
+        # looking at the file name or extension.
         return False

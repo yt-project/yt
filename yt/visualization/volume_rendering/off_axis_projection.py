@@ -98,7 +98,7 @@ def off_axis_projection(data_source, center, normal_vector,
     if method not in ['integrate','sum']:
         raise NotImplementedError("Only 'integrate' or 'sum' methods are valid for off-axis-projections")
 
-    if interpolated is True:
+    if interpolated:
         raise NotImplementedError("Only interpolated=False methods are currently implemented for off-axis-projections")
 
     data_source = data_source_or_all(data_source)

@@ -158,6 +158,7 @@ class StreamHierarchy(GridIndex):
         self.grid_left_edge[:] = self.stream_handler.left_edges
         self.grid_right_edge[:] = self.stream_handler.right_edges
         self.grid_levels[:] = self.stream_handler.levels
+        self.min_level = self.grid_levels.min()
         self.grid_procs = self.stream_handler.processor_ids
         self.grid_particle_count[:] = self.stream_handler.particle_count
         mylog.debug("Copying reverse tree")
@@ -449,7 +450,7 @@ def assign_particle_data(ds, pdata, bbox):
                     [min(bbox[1, 0], s[1, 0]), max(bbox[1, 1], s[1, 1])],
                     [min(bbox[2, 0], s[2, 0]), max(bbox[2, 1], s[2, 1])]]
                 m += ("Set bbox=%s to avoid this in the future.")
-                mylog.warn(m % (num_unassigned, num_particles, sug_bbox))
+                mylog.warning(m % (num_unassigned, num_particles, sug_bbox))
                 particle_grid_inds = particle_grid_inds[assigned_particles]
                 x = x[assigned_particles]
                 y = y[assigned_particles]
@@ -539,9 +540,9 @@ def process_data(data, grid_dims=None):
                      + StreamFieldInfo.known_other_fields
         # We do not want to override any of the known ones, if it's not
         # overridden here.
-        if any(f[0] == new_field[1] for f in known_fields) and \
-           field_units[new_field] == "":
-               field_units.pop(new_field)
+        if any(f[0] == new_field[1] for f in known_fields) \
+        and field_units[new_field] == "":
+           field_units.pop(new_field)
     data = new_data
     # Sanity checking that all fields have the same dimensions.
     g_shapes = []
@@ -1416,7 +1417,7 @@ def hexahedral_connectivity(xgrid, ygrid, zgrid):
     cycle = np.rollaxis(np.indices((nx-1,ny-1,nz-1)), 0, 4)
     cycle.shape = ((nx-1)*(ny-1)*(nz-1), 3)
     off = _cis + cycle[:, np.newaxis]
-    connectivity = ((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2]
+    connectivity = np.array(((off[:,:,0] * ny) + off[:,:,1]) * nz + off[:,:,2], order='C')
     return coords, connectivity
 
 class StreamHexahedralMesh(SemiStructuredMesh):

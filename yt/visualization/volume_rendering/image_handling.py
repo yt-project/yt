@@ -12,7 +12,7 @@ def export_rgba(image, fn, h5=True, fits=False, ):
     if (not h5 and not fits) or (h5 and fits):
         raise ValueError("Choose either HDF5 or FITS format!")
     if h5:
-        f = h5py.File('%s.h5'%fn, "w")
+        f = h5py.File('%s.h5'%fn, mode="w")
         f.create_dataset("R", data=image[:,:,0])
         f.create_dataset("G", data=image[:,:,1])
         f.create_dataset("B", data=image[:,:,2])
@@ -35,7 +35,7 @@ def import_rgba(name, h5=True):
     in.
     """
     if h5:
-        f = h5py.File(name, "r")
+        f = h5py.File(name, mode="r")
         r = f['R'].value
         g = f['G'].value
         b = f['B'].value

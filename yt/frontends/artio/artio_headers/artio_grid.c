@@ -831,7 +831,7 @@ int artio_grid_write_oct(artio_fileset *handle, float *variables,
 	/* check that no last-level octs have refined cells */
 	if ( ghandle->cur_level == ghandle->cur_num_levels ) {
 		for ( i = 0; i < 8; i++ ) {
-			if ( cellrefined[i] ) {
+			if ( cellrefined[i] > 0) {
 				return ARTIO_ERR_INVALID_OCT_REFINED;
 			}
 		}
@@ -996,7 +996,7 @@ int artio_grid_read_oct(artio_fileset *handle,
 
 	if ( refined != NULL ) {
 		for ( i = 0; i < 8; i++ ) {
-			refined[i] = local_refined[i];
+			refined[i] = (local_refined[i] > 0);
 		}
 	}
 
@@ -1008,7 +1008,7 @@ int artio_grid_read_oct(artio_fileset *handle,
 		}
 
 		for ( i = 0; i < 8; i++ ) {
-			if ( local_refined[i] ) {
+			if ( local_refined[i] > 0) {
 				if ( ghandle->next_level_oct >= ghandle->next_level_size ) {
 					return ARTIO_ERR_INVALID_STATE;
 				}
@@ -1251,8 +1251,8 @@ int artio_grid_read_sfc_range_levels(artio_fileset *handle,
 					callback( sfc, level, pos, variables, oct_refined, params );
 				} else {
 					for (i = 0; i < 8; i++) {
-						if ( (options & ARTIO_READ_REFINED && oct_refined[i]) ||
-								(options & ARTIO_READ_LEAFS && !oct_refined[i]) ) {
+						if ( (options & ARTIO_READ_REFINED && oct_refined[i]>0) ||
+								(options & ARTIO_READ_LEAFS && oct_refined[i]<=0) ) {
 							for ( j = 0; j < 3; j++ ) {
 								cell_pos[j] = pos[j] + ghandle->cell_size_level*oct_pos_offsets[i][j];
 							}

@@ -14,13 +14,14 @@ vel_units = "code_velocity"
 # NOTE: ARTIO uses momentum density.
 mom_units = "code_mass / (code_length**2 * code_time)"
 en_units = "code_mass*code_velocity**2/code_length**3"
+p_units = "code_mass / (code_length * code_time**2)"
 
 class ARTIOFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("HVAR_GAS_DENSITY", (rho_units, ["density"], None)),
         ("HVAR_GAS_ENERGY", (en_units, ["total_energy"], None)),
         ("HVAR_INTERNAL_ENERGY", (en_units, ["thermal_energy"], None)),
-        ("HVAR_PRESSURE", ("", ["pressure"], None)), # Unused
+        ("HVAR_PRESSURE", (p_units, ["pressure"], None)),
         ("HVAR_MOMENTUM_X", (mom_units, ["momentum_x"], None)),
         ("HVAR_MOMENTUM_Y", (mom_units, ["momentum_y"], None)),
         ("HVAR_MOMENTUM_Z", (mom_units, ["momentum_z"], None)),
@@ -29,11 +30,12 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("HVAR_METAL_DENSITY_II", (rho_units, ["metal_ii_density"], None)),
         ("VAR_POTENTIAL", ("", ["potential"], None)),
         ("VAR_POTENTIAL_HYDRO", ("", ["gas_potential"], None)),
-        ("RT_HVAR_HI", (rho_units, ["HI density"], None)),
-        ("RT_HVAR_HII", (rho_units, ["HII density"], None)),
-        ("RT_HVAR_HeI", (rho_units, ["HeI density"], None)),
-        ("RT_HVAR_HeII", (rho_units, ["HeII density"], None)),
-        ("RT_HVAR_HeIII", (rho_units, ["HeIII density"], None)),
+        ("RT_HVAR_HI", (rho_units, ["H_density"], None)),
+        ("RT_HVAR_HII", (rho_units, ["H_p1_density"], None)),
+        ("RT_HVAR_H2", (rho_units, ["H2_density"], None)),
+        ("RT_HVAR_HeI", (rho_units, ["He_density"], None)),
+        ("RT_HVAR_HeII", (rho_units, ["He_p1_density"], None)),
+        ("RT_HVAR_HeIII", (rho_units, ["He_p2_density"], None)),
     )
 
     known_particle_fields = (

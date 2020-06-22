@@ -37,10 +37,24 @@ def get_block_level(block):
     return l
 
 def get_block_info(block, min_dim=3):
+    """Decode a block name to get its left and right sides and level.
+
+    Given a block name, this function returns the locations of the block's left
+    and right edges (measured as binary fractions of the domain along each
+    axis) and level.
+
+    Unrefined blocks in the root array (which can each hold an of octree) have
+    a refinement level of 0 while their ancestors (used internally by Enzo-p's
+    solvers - they don't actually hold meaningful data) have negative levels.
+    Because identification of negative refinement levels requires knowledge of
+    the root array shape (the 'root_blocks' value specified in the parameter
+    file), all unrefined blocks are assumed to have a level of 0.
+    """
     mybs, dim = get_block_string_and_dim(
         block, min_dim=min_dim)
     left = np.zeros(dim)
     right = np.ones(dim)
+    level = 0
     for i, myb in enumerate(mybs):
         if myb == '': continue
         level, left[i], right[i] = bdecode(myb)
@@ -63,6 +77,7 @@ def get_root_block_id(block, min_dim=3):
     for i, myb in enumerate(mybs):
         if myb == '': continue
         s = get_block_level(myb)
+        if s == 0: continue
         rbid[i] = int(myb[:s], 2)
     return rbid
 
@@ -75,7 +90,7 @@ def get_child_index(anc_id, desc_id):
     return cid
 
 def is_parent(anc_block, desc_block):
-    dim = anc_block.count("_")
+    dim = anc_block.count("_") + 1
     if ( len(desc_block.replace(":", "")) -
          len( anc_block.replace(":", "")) ) / dim != 1:
         return False

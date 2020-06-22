@@ -112,7 +112,7 @@ class MultipartParam(object):
                     fileobj.seek(0, 2)
                     self.filesize = fileobj.tell()
                     fileobj.seek(0)
-                except:
+                except Exception:
                     raise ValueError("Could not determine filesize")
 
     def __lt__(self, other):

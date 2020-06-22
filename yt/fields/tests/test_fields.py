@@ -227,6 +227,27 @@ def test_add_gradient_fields():
         else:
             assert str(ret.units) == "1/cm"
 
+def test_add_gradient_fields_curvilinear():
+    ds = fake_amr_ds(fields = ["density"], geometry="spherical")
+    gfields = ds.add_gradient_fields(("gas", "density"))
+    gfields += ds.add_gradient_fields(("index", "ones"))
+    field_list = [('gas', 'density_gradient_r'),
+                  ('gas', 'density_gradient_theta'),
+                  ('gas', 'density_gradient_phi'),
+                  ('gas', 'density_gradient_magnitude'),
+                  ('index', 'ones_gradient_r'),
+                  ('index', 'ones_gradient_theta'),
+                  ('index', 'ones_gradient_phi'),
+                  ('index', 'ones_gradient_magnitude')]
+    assert_equal(gfields, field_list)
+    ad = ds.all_data()
+    for field in field_list:
+        ret = ad[field]
+        if field[0] == 'gas':
+            assert str(ret.units) == "g/cm**4"
+        else:
+            assert str(ret.units) == "1/cm"
+
 def get_data(ds, field_name):
     # Need to create a new data object otherwise the errors we are
     # intentionally raising lead to spurious GenerationInProgress errors
@@ -241,7 +262,7 @@ def test_add_field_unit_semantics():
         return data['density'].in_cgs()
 
     def unitless_data(field, data):
-            return np.ones(data['density'].shape)
+        return np.ones(data['density'].shape)
 
     ds.add_field(('gas','density_alias_no_units'), sampling_type='cell',
                  function=density_alias)

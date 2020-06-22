@@ -24,6 +24,7 @@ from numpy.random import RandomState
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
 from unyt.exceptions import UnitOperationError
+import yt
 
 ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase
@@ -522,7 +523,7 @@ def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
 
     if refined in (None, True):
         refined = [True]
-    if refined is False:
+    if not refined:
         refined = [False]
         return refined
 
@@ -565,6 +566,32 @@ def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=None, quantities=None,
                      over_refine_factor=over_refine_factor,
                      unit_system=unit_system)
     return ds
+
+def add_noise_fields(ds):
+    """Add 4 classes of noise fields to a dataset"""
+    prng = RandomState(0x4d3d3d3)
+    def _binary_noise(field, data):
+        """random binary data"""
+        res = prng.random_integers(0, 1, data.size).astype("float64")
+        return res
+
+    def _positive_noise(field, data):
+        """random strictly positive data"""
+        return prng.random_sample(data.size) + 1e-16
+
+    def _negative_noise(field, data):
+        """random negative data"""
+        return - prng.random_sample(data.size)
+
+    def _even_noise(field, data):
+        """random data with mixed signs"""
+        return 2 * prng.random_sample(data.size) - 1
+
+    ds.add_field("noise0", _binary_noise, sampling_type="cell")
+    ds.add_field("noise1", _positive_noise, sampling_type="cell")
+    ds.add_field("noise2", _negative_noise, sampling_type="cell")
+    ds.add_field("noise3", _even_noise, sampling_type="cell")
+
 
 def expand_keywords(keywords, full=False):
     """
@@ -677,9 +704,15 @@ def requires_module(module):
     platform.
     """
     def ffalse(func):
-        return lambda: None
+        @functools.wraps(func)
+        def false_wrapper(*args, **kwargs):
+            return None
+        return false_wrapper
     def ftrue(func):
-        return func
+        @functools.wraps(func)
+        def true_wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return true_wrapper
     try:
         importlib.import_module(module)
     except ImportError:
@@ -690,9 +723,15 @@ def requires_module(module):
 def requires_file(req_file):
     path = ytcfg.get("yt", "test_data_dir")
     def ffalse(func):
-        return lambda: None
+        @functools.wraps(func)
+        def false_wrapper(*args, **kwargs):
+            return None
+        return false_wrapper
     def ftrue(func):
-        return func
+        @functools.wraps(func)
+        def true_wrapper(*args, **kwargs):
+            return func
+        return true_wrapper
     if os.path.exists(req_file):
         return ftrue
     else:
@@ -982,6 +1021,7 @@ def check_results(func):
 
     """
     def compute_results(func):
+        @functools.wraps(func)
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
@@ -1006,6 +1046,7 @@ def check_results(func):
         return compute_results(func)
 
     def compare_results(func):
+        @functools.wraps(func)
         def _func(*args, **kwargs):
             name = kwargs.pop("result_basename", func.__name__)
             rv = func(*args, **kwargs)
@@ -1199,8 +1240,22 @@ def requires_backend(backend):
     Decorated function or null function
 
     """
+    import pytest
     def ffalse(func):
-        return lambda: None
+        # returning a lambda : None causes an error when using pytest. Having
+        # a function (skip) that returns None does work, but pytest marks the
+        # test as having passed, which seems bad, since it wasn't actually run.
+        # Using pytest.skip() means that a change to test_requires_backend was
+        # needed since None is no longer returned, so we check for the skip
+        # exception in the xfail case for that test
+        def skip(*args, **kwargs):
+            msg = "`{}` backend not found, skipping: `{}`".format(backend, func.__name__)
+            print(msg)
+            pytest.skip(msg)
+        if yt._called_from_pytest:
+            return skip
+        else:
+            return lambda : None
 
     def ftrue(func):
         return func
@@ -1223,3 +1278,112 @@ class TempDirTest(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
+
+class ParticleSelectionComparison:
+    """
+    This is a test helper class that takes a particle dataset, caches the
+    particles it has on disk (manually reading them using lower-level IO
+    routines) and then received a data object that it compares against manually
+    running the data object's selection routines.  All supplied data objects
+    must be created from the input dataset.
+    """
+
+    def __init__(self, ds):
+        self.ds = ds
+        # Construct an index so that we get all the data_files
+        ds.index
+        particles = {}
+        # hsml is the smoothing length we use for radial selection
+        hsml = {}
+        for data_file in ds.index.data_files:
+            for ptype, pos_arr in ds.index.io._yield_coordinates(data_file):
+                particles.setdefault(ptype, []).append(pos_arr)
+                if ptype in getattr(ds, '_sph_ptypes', ()):
+                    hsml.setdefault(ptype, []).append(ds.index.io._get_smoothing_length(
+                        data_file, pos_arr.dtype, pos_arr.shape))
+        for ptype in particles:
+            particles[ptype] = np.concatenate(particles[ptype])
+            if ptype in hsml:
+                hsml[ptype] = np.concatenate(hsml[ptype])
+        self.particles = particles
+        self.hsml = hsml
+
+    def compare_dobj_selection(self, dobj):
+        for ptype in sorted(self.particles):
+            x, y, z = self.particles[ptype].T
+            # Set our radii to zero for now, I guess?
+            radii = self.hsml.get(ptype, 0.0)
+            sel_index = dobj.selector.select_points(x, y, z, radii)
+            if sel_index is None:
+                sel_pos = np.empty((0, 3))
+            else:
+                sel_pos = self.particles[ptype][sel_index, :]
+
+            obj_results = []
+            for chunk in dobj.chunks([], "io"):
+                obj_results.append(chunk[ptype, "particle_position"])
+            if any(_.size > 0 for _ in obj_results):
+                obj_results = np.concatenate(obj_results, axis = 0)
+            else:
+                obj_results = np.empty((0, 3))
+            assert_equal(sel_pos, obj_results)
+
+    def run_defaults(self):
+        """
+        This runs lots of samples that touch different types of wraparounds.
+
+        Specifically, it does:
+
+            * sphere in center with radius 0.1 unitary
+            * sphere in center with radius 0.2 unitary
+            * sphere in each of the eight corners of the domain with radius 0.1 unitary
+            * sphere in center with radius 0.5 unitary
+            * box that covers 0.1 .. 0.9
+            * box from 0.8 .. 0.85
+            * box from 0.3..0.6, 0.2..0.8, 0.0..0.1
+        """
+        sp1 = self.ds.sphere("c", (0.1, "unitary"))
+        self.compare_dobj_selection(sp1)
+
+        sp2 = self.ds.sphere("c", (0.2, "unitary"))
+        self.compare_dobj_selection(sp2)
+
+        centers = [[0.04, 0.5, 0.5],
+                   [0.5, 0.04, 0.5],
+                   [0.5, 0.5, 0.04],
+                   [0.04, 0.04, 0.04],
+                   [0.96, 0.5, 0.5],
+                   [0.5, 0.96, 0.5],
+                   [0.5, 0.5, 0.96],
+                   [0.96, 0.96, 0.96]]
+        r = self.ds.quan(0.1, "unitary")
+        for center in centers:
+            c = self.ds.arr(center, "unitary")
+            if not all(self.ds.periodicity):
+                # filter out the periodic bits for non-periodic datasets
+                if any(c - r < self.ds.domain_left_edge) or \
+                   any(c + r > self.ds.domain_right_edge):
+                    continue
+            sp = self.ds.sphere(c, (0.1, "unitary"))
+            self.compare_dobj_selection(sp)
+
+        sp = self.ds.sphere("c", (0.5, "unitary"))
+        self.compare_dobj_selection(sp)
+
+        dd = self.ds.all_data()
+        self.compare_dobj_selection(dd)
+
+        reg1 = self.ds.r[ (0.1, 'unitary'):(0.9, 'unitary'),
+                          (0.1, 'unitary'):(0.9, 'unitary'),
+                          (0.1, 'unitary'):(0.9, 'unitary')]
+        self.compare_dobj_selection(reg1)
+
+        reg2 = self.ds.r[ (0.8, 'unitary'):(0.85, 'unitary'),
+                          (0.8, 'unitary'):(0.85, 'unitary'),
+                          (0.8, 'unitary'):(0.85, 'unitary')]
+        self.compare_dobj_selection(reg2)
+
+        reg3 = self.ds.r[ (0.3, 'unitary'):(0.6, 'unitary'),
+                          (0.2, 'unitary'):(0.8, 'unitary'),
+                          (0.0, 'unitary'):(0.1, 'unitary')]
+        self.compare_dobj_selection(reg3)

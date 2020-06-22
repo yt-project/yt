@@ -174,6 +174,8 @@ class TipsyDataset(SPHDataset):
                 self.domain_left_edge = None
                 self.domain_right_edge = None
         else:
+            # This ensures that we know a bounding box has been applied
+            self._domain_override = True
             bbox = np.array(self.bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
@@ -266,7 +268,7 @@ class TipsyDataset(SPHDataset):
             density_unit = self.mass_unit / self.length_unit**3
 
         if not hasattr(self, "time_unit"):
-            self.time_unit = 1.0 / np.sqrt(G * density_unit)
+            self.time_unit = 1.0 / np.sqrt(density_unit * G)
 
     @staticmethod
     def _validate_header(filename):
@@ -278,7 +280,7 @@ class TipsyDataset(SPHDataset):
         '''
         try:
             f = open(filename,'rb')
-        except:
+        except Exception:
             return False, 1
         try:
             f.seek(0, os.SEEK_END)

@@ -123,7 +123,7 @@ else:
     help_parser.set_defaults(func=print_help)
 
 
-if parallel_capable is True:
+if parallel_capable:
     pass
 elif exe_name in \
         ["mpi4py", "embed_enzo",

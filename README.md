@@ -1,12 +1,13 @@
 # The yt Project
 
-[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
-[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/mm3/archives/list/yt-dev@python.org//)
+[![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-users@python.org//)
+[![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-dev@python.org//)
 [![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=master)](https://travis-ci.org/yt-project/yt)
 [![codecov](https://codecov.io/gh/yt-project/yt/branch/master/graph/badge.svg)](https://codecov.io/gh/yt-project/yt)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
+[![Sponsor our Project](https://img.shields.io/badge/donate-to%20yt-blueviolet)](https://numfocus.salsalabs.org/donate-to-yt/index.html)
                 
 <a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
 
@@ -21,7 +22,7 @@ oceanography. Composed of a friendly community of users and developers, we want
 to make it easy to use and develop - we'd love it if you got involved!
 
 We've written a [method
-paper](http://adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
+paper](https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T) you may be interested
 in; if you use yt in the preparation of a publication, please consider citing
 it.
 
@@ -34,7 +35,7 @@ guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-co
 ## Installation
 
 You can install the most recent stable version of yt either with conda from
-[conda-forge](http://conda-forge.github.io/):
+[conda-forge](https://conda-forge.org/):
 
 ```
 conda install -c conda-forge yt
@@ -154,10 +155,19 @@ We have some community and documentation resources available.
  * Our latest documentation is always at http://yt-project.org/docs/dev/ and it
    includes recipes, tutorials, and API documentation
  * The [discussion mailing
-   list](https://mail.python.org/mm3/archives/list/yt-users@python.org//)
+   list](https://mail.python.org/archives/list/yt-users@python.org//)
    should be your first stop for general questions
  * The [development mailing
-   list](https://mail.python.org/mm3/archives/list/yt-dev@python.org//) is
+   list](https://mail.python.org/archives/list/yt-dev@python.org//) is
    better suited for more development issues
  * You can also join us on Slack at yt-project.slack.com ([request an
-   invite](http://yt-project.org/slack.html))
+   invite](https://yt-project.org/slack.html))
+
+## Powered by NumFOCUS
+
+yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/). 
+If you're interested in
+supporting the active maintenance and development of this project, consider
+[donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html). 
+
+

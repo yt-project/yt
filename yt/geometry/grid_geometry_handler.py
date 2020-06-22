@@ -6,6 +6,8 @@ from collections import defaultdict
 
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
+from yt.fields.derived_field import ValidateSpatial
+from yt.fields.field_detector import FieldDetector
 from yt.funcs import \
     ensure_list, ensure_numpy_array
 from yt.geometry.geometry_handler import \
@@ -57,7 +59,7 @@ class GridIndex(Index):
         return
         try:
             backup_filename = self.dataset.backup_filename
-            f = h5py.File(backup_filename, 'r')
+            f = h5py.File(backup_filename, mode='r')
             g = f["data"]
             grid = self.grids[0] # simply check one of the grids
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
@@ -162,7 +164,7 @@ class GridIndex(Index):
         print("%s" % (len(header.expandtabs())*"-"))
         for level in range(MAXLEVEL):
             if (self.level_stats['numgrids'][level]) == 0:
-                break
+                continue
             print("% 3i\t% 6i\t% 14i\t% 14i" % \
                   (level, self.level_stats['numgrids'][level],
                    self.level_stats['numcells'][level],
@@ -173,8 +175,7 @@ class GridIndex(Index):
         print("\n")
         try:
             print("z = %0.8f" % (self["CosmologyCurrentRedshift"]))
-        except:
-            pass
+        except Exception: pass
         print("t = %0.8e = %0.8e s = %0.8e years" % \
             (self.ds.current_time.in_units("code_time"),
              self.ds.current_time.in_units("s"),
@@ -371,6 +372,30 @@ class GridIndex(Index):
                 with self.io.preload(dc, preload_fields, 
                             4.0 * size):
                     yield dc
+
+    def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):
+        units = self.ds.field_info[ftype, deposit_field].units
+        take_log = self.ds.field_info[ftype, deposit_field].take_log
+        field_name = "cell_%s_%s" % (ftype, deposit_field)
+
+        def _mesh_sampling_particle_field(field, data):
+            pos = data[ptype, "particle_position"]
+            field_values = data[ftype, deposit_field]
+
+            if isinstance(data, FieldDetector):
+                return np.zeros(pos.shape[0])
+
+            i, j, k = np.floor((pos - data.LeftEdge)/data.dds).astype('int64').T
+
+            return field_values[i, j, k]
+
+        self.ds.add_field(
+            (ptype, field_name),
+            function=_mesh_sampling_particle_field,
+            sampling_type="particle",
+            units=units,
+            take_log=take_log,
+            validators=[ValidateSpatial()])
 
 
 def _grid_sort_id(g):

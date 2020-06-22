@@ -369,7 +369,7 @@ class EnzoHierarchy(GridIndex):
                 continue
             gs = self.grids[select_grids > 0]
             g = gs[0]
-            handle = h5py.File(g.filename, "r")
+            handle = h5py.File(g.filename, mode="r")
             node = handle["/Grid%08i/Particles/" % g.id]
             for ptype in (str(p) for p in node):
                 if ptype not in _fields: continue
@@ -564,6 +564,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = "Inline_processor_%07i" % (self.grid_procs[i,0])
             grid._prepare_grid()
+            grid._setup_dx()
             grid.proc_num = self.grid_procs[i,0]
             self.grids[i] = grid
         mylog.debug("Prepared")

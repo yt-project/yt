@@ -22,6 +22,7 @@ from yt.utilities.file_handler import \
 from yt.utilities.physical_ratios import cm_per_mpc
 from .fields import FLASHFieldInfo
 
+
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
     #__slots__ = ["_level_id", "stop_index"]
@@ -34,6 +35,7 @@ class FLASHGrid(AMRGridPatch):
 
     def __repr__(self):
         return "FLASHGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+
 
 class FLASHHierarchy(GridIndex):
 
@@ -164,6 +166,7 @@ class FLASHHierarchy(GridIndex):
                 g.dds[1] = DD
         self.max_level = self.grid_levels.max()
 
+
 class FLASHDataset(Dataset):
     _index_class = FLASHHierarchy
     _field_info_class = FLASHFieldInfo
@@ -193,7 +196,7 @@ class FLASHDataset(Dataset):
             # particle_filename is specified by user
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
-            except:
+            except Exception:
                 raise IOError(self.particle_filename)
         # Check if the particle file has the same time
         if self._particle_handle != self._handle:
@@ -305,7 +308,7 @@ class FLASHDataset(Dataset):
             for hn in hns:
                 if hn not in self._handle:
                     continue
-                if hn is 'simulation parameters':
+                if hn == 'simulation parameters':
                     zipover = ((name, self._handle[hn][name][0])
                                for name in self._handle[hn].dtype.names)
                 else:
@@ -394,7 +397,7 @@ class FLASHDataset(Dataset):
         # Try to determine Gamma
         try:
             self.gamma = self.parameters["gamma"]
-        except:
+        except Exception:
             mylog.info("Cannot find Gamma")
             pass
 
@@ -414,7 +417,7 @@ class FLASHDataset(Dataset):
             self.omega_matter = self.parameters['omegamatter']
             self.hubble_constant = self.parameters['hubbleconstant']
             self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2 # convert to 'h'
-        except:
+        except Exception:
             self.current_redshift = self.omega_lambda = self.omega_matter = \
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
@@ -439,8 +442,10 @@ class FLASHDataset(Dataset):
     def close(self):
         self._handle.close()
 
+
 class FLASHParticleFile(ParticleFile):
     pass
+
 
 class FLASHParticleDataset(FLASHDataset):
     _index_class = ParticleIndex
@@ -448,13 +453,13 @@ class FLASHParticleDataset(FLASHDataset):
     _file_class = FLASHParticleFile
 
     def __init__(self, filename, dataset_type='flash_particle_hdf5',
-                 storage_filename = None,
-                 units_override = None,
+                 storage_filename=None,
+                 units_override=None,
                  index_order=None,
                  index_filename=None,
-                 unit_system = "cgs"):
+                 unit_system="cgs"):
         self.index_order = validate_index_order(index_order)
-        self.index_filename=index_filename
+        self.index_filename = index_filename
 
         if self._handle is not None: return
         self._handle = HDF5FileHandler(filename)

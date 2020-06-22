@@ -284,10 +284,23 @@ class CartesianCoordinateHandler(CoordinateHandler):
             if isinstance(data_source, YTParticleProj):
                 weight = data_source.weight_field
                 le, re = data_source.data_source.get_bbox()
-                le[self.x_axis[dim]] = bounds[0]
-                le[self.y_axis[dim]] = bounds[2]
-                re[self.x_axis[dim]] = bounds[1]
-                re[self.y_axis[dim]] = bounds[3]
+                xa = self.x_axis[dim]
+                ya = self.y_axis[dim]
+                # If we're not periodic, we need to clip to the boundary edges
+                # or we get errors about extending off the edge of the region.
+                if not self.ds.periodicity[xa]:
+                    le[xa] = max(bounds[0], self.ds.domain_left_edge[xa])
+                    re[xa] = min(bounds[1], self.ds.domain_right_edge[xa])
+                else:
+                    le[xa] = bounds[0]
+                    re[xa] = bounds[1]
+                if not self.ds.periodicity[ya]:
+                    le[ya] = max(bounds[2], self.ds.domain_left_edge[ya])
+                    re[ya] = min(bounds[3], self.ds.domain_right_edge[ya])
+                else:
+                    le[ya] = bounds[2]
+                    re[ya] = bounds[3]
+                # We actually need to clip these
                 proj_reg = data_source.ds.region(
                     left_edge=le, right_edge=re, center=data_source.center,
                     data_source=data_source.data_source

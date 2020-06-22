@@ -159,7 +159,7 @@ class GadgetBinaryHeader(object):
             self.open().close()
             self.gadget_format
             self.float_type
-        except:
+        except Exception:
             return False
         return True
 
@@ -271,6 +271,8 @@ class GadgetDataset(SPHDataset):
             unit_base['cmcm'] = 1.0 / unit_base["UnitLength_in_cm"]
         self._unit_base = unit_base
         if bounding_box is not None:
+            # This ensures that we know a bounding box has been applied
+            self._domain_override = True
             bbox = np.array(bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
                 bbox = bbox.transpose()
@@ -628,7 +630,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             valid = all(ng in fh["/"] for ng in need_groups) and \
                 not any(vg in fh["/"] for vg in veto_groups)
             fh.close()
-        except:
+        except Exception:
             valid = False
             pass
 

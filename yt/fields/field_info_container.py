@@ -3,6 +3,8 @@ from numbers import Number as numeric_type
 import warnings
 
 from yt.funcs import mylog, only_on_root
+from yt.geometry.geometry_handler import \
+    is_curvilinear
 from yt.units.unit_object import Unit
 from yt.units.dimensions import dimensionless
 from .derived_field import \
@@ -49,6 +51,10 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
+        if ds is not None and is_curvilinear(ds.geometry):
+            self.curvilinear = True
+        else:
+            self.curvilinear = False
         self.setup_fluid_aliases()
 
     def setup_fluid_fields(self):
@@ -64,7 +70,7 @@ class FieldInfoContainer(dict):
                 if (ftype, f) in self: continue
                 self.alias((ftype, f), ("index", f))
 
-    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64 ):
+    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64):
         skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
@@ -153,8 +159,27 @@ class FieldInfoContainer(dict):
             for alias, source in new_aliases:
                 self.alias(alias, source)
 
+    # Collect the names for all aliases if geometry is curvilinear
+    def get_aliases_gallery(self):
+        aliases_gallery = []
+        known_other_fields = dict(self.known_other_fields)
+        if self.curvilinear:
+            for field in sorted(self.field_list):
+                if field[0] in self.ds.particle_types:
+                    continue
+                args = known_other_fields.get(field[1], ("", [], None))
+                units, aliases, display_name = args
+                for alias in aliases:
+                    aliases_gallery.append(alias)
+        return aliases_gallery
+
     def setup_fluid_aliases(self, ftype='gas'):
         known_other_fields = dict(self.known_other_fields)
+
+        # For non-Cartesian geometry, convert alias of vector fields to 
+        # curvilinear coordinates
+        aliases_gallery = self.get_aliases_gallery()
+            
         for field in sorted(self.field_list):
             if not isinstance(field, tuple):
                 raise RuntimeError
@@ -178,7 +203,25 @@ class FieldInfoContainer(dict):
                 units = ""
             self.add_output_field(field, sampling_type="cell",units = units,
                                   display_name = display_name)
+            axis_names = self.ds.coordinates.axis_order
             for alias in aliases:
+                if self.curvilinear: # For non-Cartesian geometry, convert vector aliases
+                    
+                    if alias[-2:] not in ["_x", "_y", "_z"]:
+                        to_convert = False
+                    else:
+                        for suffix in ["x", "y", "z"]:
+                            if "%s_%s" % (alias[:-2], suffix) not in aliases_gallery:
+                                to_convert = False
+                                break
+                        to_convert = True
+                    if to_convert:
+                        if alias[-2:]=="_x":
+                            alias = "%s_%s" % (alias[:-2], axis_names[0])
+                        elif alias[-2:]=="_y":
+                            alias = "%s_%s" % (alias[:-2], axis_names[1])
+                        elif alias[-2:]=="_z":
+                            alias = "%s_%s" % (alias[:-2], axis_names[2])
                 self.alias((ftype, alias), field)
 
     def add_field(self, name, sampling_type, function=None, **kwargs):
@@ -350,8 +393,8 @@ class FieldInfoContainer(dict):
         unavailable = []
         fields_to_check = fields_to_check or list(self.keys())
         for field in fields_to_check:
-            mylog.debug("Checking %s", field)
-            if field not in self: raise RuntimeError
+            if field not in self:
+                raise YTFieldNotFound(str(field))
             fi = self[field]
             try:
                 fd = fi.get_dependencies(ds = self.ds)

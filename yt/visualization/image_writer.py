@@ -175,7 +175,7 @@ def write_image(image, filename, color_bounds = None, cmap_name = None, func = l
         The min and max to scale between.  Outlying values will be clipped.
     cmap_name : string, optional
         An acceptable colormap.  See either yt.visualization.color_maps or
-        http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
     func : function, optional
         A function to transform the buffer before applying a colormap. 
 
@@ -216,7 +216,7 @@ def apply_colormap(image, color_bounds = None, cmap_name = None, func=lambda x: 
         The min and max to scale between.  Outlying values will be clipped.
     cmap_name : string, optional
         An acceptable colormap.  See either yt.visualization.color_maps or
-        http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
     func : function, optional
         A function to transform the buffer before applying a colormap. 
 

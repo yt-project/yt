@@ -12,6 +12,17 @@ from yt.utilities.exceptions import \
     YTSimulationNotIdentified
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
+def _sanitize_load_args(*args):
+    """Filter out non-pathlike arguments, ensure list form, and expand '~' tokens"""
+    try:
+        # os.PathLike is python >= 3.6
+        path_types = str, os.PathLike
+    except AttributeError:
+        path_types = str,
+
+    return [os.path.expanduser(arg) if isinstance(arg, path_types)
+            else arg for arg in args]
+
 def load(*args ,**kwargs):
     """
     This function attempts to determine the base data type of a filename or
@@ -20,9 +31,8 @@ def load(*args ,**kwargs):
     match, at which point it returns an instance of the appropriate
     :class:`yt.data_objects.static_output.Dataset` subclass.
     """
+    args = _sanitize_load_args(*args)
     candidates = []
-    args = [os.path.expanduser(arg) if isinstance(arg, str)
-            else arg for arg in args]
     valid_file = []
     for argno, arg in enumerate(args):
         if isinstance(arg, str):

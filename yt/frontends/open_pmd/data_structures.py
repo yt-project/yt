@@ -24,7 +24,7 @@ from yt.utilities.on_demand_imports import _h5py as h5
 ompd_known_versions = [StrictVersion("1.0.0"),
                        StrictVersion("1.0.1"),
                        StrictVersion("1.1.0")]
-opmd_required_attributes = ["openPMD", "basePath", "meshesPath", "particlesPath"]
+opmd_required_attributes = ["openPMD", "basePath"]
 
 
 class OpenPMDGrid(AMRGridPatch):
@@ -132,7 +132,7 @@ class OpenPMDHierarchy(GridIndex):
                 except AttributeError:
                     # This is a h5.Dataset (i.e. no axes)
                     mesh_fields.append(mname.replace("_", "-"))
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             pass
         self.field_list = [("openPMD", str(field)) for field in mesh_fields]
 
@@ -175,7 +175,7 @@ class OpenPMDHierarchy(GridIndex):
                 self.field_list.extend(
                     [("io",
                       ("particle_" + "_".join(str(field).split("_")[1:]))) for field in particle_fields])
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             pass
 
     def _count_grids(self):
@@ -205,9 +205,8 @@ class OpenPMDHierarchy(GridIndex):
                 offset = tuple(mesh.attrs["gridGlobalOffset"])
                 unit_si = mesh.attrs["gridUnitSI"]
                 self.meshshapes[mname] = (shape, spacing, offset, unit_si)
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             pass
-
         try:
             particles = f[bp + pp]
             for pname in particles.keys():
@@ -221,7 +220,7 @@ class OpenPMDHierarchy(GridIndex):
                         self.numparts[pname] = species["/position/" + axis].attrs["shape"]
                     else:
                         self.numparts[pname] = species["/position/" + axis].len()
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             pass
 
         # Limit values per grid by resulting memory footprint
@@ -407,7 +406,7 @@ class OpenPMDDataset(Dataset):
             mylog.debug("self.particle_types: {}".format(self.particle_types))
             self.particle_types_raw = self.particle_types
             self.particle_types = tuple(self.particle_types)
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             pass
 
     def _set_paths(self, handle, path, iteration):
@@ -429,7 +428,7 @@ class OpenPMDDataset(Dataset):
         elif "fileBased" in encoding:
             itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
             regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
-            if path is "":
+            if path == "":
                 mylog.warning("For file based iterations, please use absolute file paths!")
                 pass
             for filename in listdir(path):
@@ -443,22 +442,24 @@ class OpenPMDDataset(Dataset):
             mylog.warning("Only chose to load one iteration ({})".format(iteration))
 
         self.base_path = "/data/{}/".format(iteration)
-        self.meshes_path = self._handle["/"].attrs["meshesPath"].decode()
         try:
+            self.meshes_path = self._handle["/"].attrs["meshesPath"].decode()
             handle[self.base_path + self.meshes_path]
         except(KeyError):
             if self.standard_version <= StrictVersion("1.1.0"):
                 mylog.info("meshesPath not present in file."
                            " Assuming file contains no meshes and has a domain extent of 1m^3!")
+                self.meshes_path = None
             else:
                 raise
-        self.particles_path = self._handle["/"].attrs["particlesPath"].decode()
         try:
+            self.particles_path = self._handle["/"].attrs["particlesPath"].decode()
             handle[self.base_path + self.particles_path]
         except(KeyError):
             if self.standard_version <= StrictVersion("1.1.0"):
                 mylog.info("particlesPath not present in file."
                            " Assuming file contains no particles!")
+                self.particles_path = None
             else:
                 raise
 
@@ -521,7 +522,7 @@ class OpenPMDDataset(Dataset):
             self.domain_dimensions = np.append(fs, np.ones(3 - self.dimensionality))
             self.domain_left_edge = np.append(dle, np.zeros(3 - len(dle)))
             self.domain_right_edge = np.append(dre, np.ones(3 - len(dre)))
-        except(KeyError):
+        except(KeyError, TypeError, AttributeError):
             if self.standard_version <= StrictVersion("1.1.0"):
                 self.dimensionality = 3
                 self.domain_dimensions = np.ones(3, dtype=np.float64)

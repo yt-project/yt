@@ -1,3 +1,12 @@
+"""
+yt is a toolkit for analyzing and visualizing volumetric data.
+
+* Website: https://yt-project.org
+* Documentation: https://yt-project.org/doc
+* Data hub: https://girder.hub.yt
+* Contribute: https://github.com/yt-project/yt
+
+"""
 import sys
 if sys.version_info[0] < 3:
     raise Exception("Python 2 no longer supported.  Please install Python 3 for use with yt.")
@@ -43,7 +52,8 @@ from yt.units import \
     uvstack, \
     uhstack, \
     loadtxt, \
-    savetxt
+    savetxt, \
+    display_ytarray
 
 from yt.fields.api import \
     field_plugins, \
@@ -92,7 +102,7 @@ from yt.visualization.api import \
     apply_colormap, scale_image, write_projection, \
     SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, LinePlot, \
     LineBuffer, ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps, add_cmap, make_colormap, \
+    show_colormaps, add_colormap, make_colormap, \
     ProfilePlot, PhasePlot, ParticlePhasePlot, \
     ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
     FITSImageData, FITSSlice, FITSProjection, FITSOffAxisSlice, \
@@ -121,3 +131,5 @@ from yt.utilities.math_utils import \
 
 from yt.units.unit_systems import \
     UnitSystem, unit_system_registry
+
+_called_from_pytest = False

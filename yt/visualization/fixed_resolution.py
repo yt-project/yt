@@ -12,6 +12,7 @@ from yt.data_objects.image_array import ImageArray
 from yt.utilities.lib.pixelization_routines import \
     pixelize_cylinder
 from yt.utilities.lib.api import add_points_to_greyscale_image
+from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.frontends.stream.api import load_uniform_grid
 
 import numpy as np
@@ -284,9 +285,8 @@ class FixedResolutionBuffer(object):
         fields : list of strings
             These fields will be pixelized and output.
         """
-        import h5py
         if fields is None: fields = list(self.data.keys())
-        output = h5py.File(filename, "a")
+        output = h5py.File(filename, mode="a")
         for field in fields:
             output.create_dataset(field,data=self[field])
         output.close()
@@ -569,7 +569,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
                              self.bounds[3] - self.bounds[2],
                              self.bounds[5] - self.bounds[4]))
         buff = off_axis_projection(dd.dd, dd.center, dd.normal_vector,
-                                   width, dd.resolution, item,
+                                   width, self.buff_size, item,
                                    weight=dd.weight_field, volume=dd.volume,
                                    no_ghost=dd.no_ghost,
                                    interpolated=dd.interpolated,

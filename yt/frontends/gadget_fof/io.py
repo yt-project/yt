@@ -28,7 +28,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     coords = data_file._get_particle_positions(ptype, f=f)
                     if coords is None:
@@ -56,7 +56,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
             if fh.filename == offset_file.filename:
                 ofh = fh
             else:
-                ofh = h5py.File(offset_file.filename, "r")
+                ofh = h5py.File(offset_file.filename, mode="r")
             subindex = np.arange(offset_file.total_offset) + offset_file.offset_start
             substart = max(fofindex[0] - subindex[0], 0)
             subend = min(fofindex[-1] - subindex[0], subindex.size - 1)
@@ -74,7 +74,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0:
@@ -120,7 +120,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         mylog.debug("Initializing index % 5i (% 7i particles)",
                     data_file.file_id, pcount)
         ind = 0
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             if not f.keys(): return None
             dx = np.finfo(f["Group"]["GroupPos"].dtype).eps
             dx = 2.0*self.ds.quan(dx, "code_length")
@@ -159,7 +159,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         fields = []
         pcount = data_file.total_particles
         if sum(pcount.values()) == 0: return fields, {}
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             for ptype in self.ds.particle_types_raw:
                 if data_file.total_particles[ptype] == 0: continue
                 fields.append((ptype, "particle_identifier"))
@@ -232,7 +232,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
         all_data = {}
         if not scalar_fields: return all_data
         pcount = 1
-        with h5py.File(dobj.scalar_data_file.filename, "r") as f:
+        with h5py.File(dobj.scalar_data_file.filename, mode="r") as f:
             for ptype, field_list in sorted(scalar_fields.items()):
                 for field in field_list:
                     if field == "particle_identifier":
@@ -263,7 +263,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             pcount = end_index - start_index
             if pcount == 0: continue
             field_end = field_start + end_index - start_index
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
                         field_data = all_data[(ptype, field)]
@@ -303,7 +303,7 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
         fields = []
         scalar_fields = []
         id_fields = {}
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             for ptype in self.ds.particle_types_raw:
                 fields.append((ptype, "particle_identifier"))
                 scalar_fields.append((ptype, "particle_identifier"))
@@ -349,7 +349,7 @@ def subfind_field_list(fh, ptype, pcount):
                     fields.append(("Group", fname))
                 offset_fields.append(fname)
             else:
-                mylog.warn("Cannot add field (%s, %s) with size %d." % \
-                           (ptype, fh[field].name, fh[field].size))
+                mylog.warning("Cannot add field (%s, %s) with size %d." % \
+                              (ptype, fh[field].name, fh[field].size))
                 continue
     return fields, offset_fields

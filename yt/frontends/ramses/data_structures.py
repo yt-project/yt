@@ -19,6 +19,7 @@ from yt.data_objects.octree_subset import \
 from yt.data_objects.particle_filters import add_particle_filter
 
 from yt.utilities.physical_constants import mp, kb
+from yt.utilities.on_demand_imports import _f90nml as f90nml
 from .definitions import ramses_header, field_aliases, particle_families
 from .fields import \
     RAMSESFieldInfo, _X
@@ -299,7 +300,7 @@ class RAMSESIndex(OctreeIndex):
     def _get_particle_type_counts(self):
         npart = 0
         npart = {k: 0 for k in self.ds.particle_types
-                 if k is not 'all'}
+                 if k != 'all'}
         for dom in self.domains:
             for fh in dom.particle_handlers:
                 count = fh.local_particle_count
@@ -335,8 +336,7 @@ class RAMSESIndex(OctreeIndex):
         dx = self.get_smallest_dx()
         try:
             print("z = %0.8f" % (self.dataset.current_redshift))
-        except:
-            pass
+        except Exception: pass
         print("t = %0.8e = %0.8e s = %0.8e years" % (
             self.ds.current_time.in_units("code_time"),
             self.ds.current_time.in_units("s"),
@@ -512,7 +512,7 @@ class RAMSESDataset(Dataset):
                     dom, mi, ma = f.readline().split()
                     self.hilbert_indices[int(dom)] = (float(mi), float(ma))
 
-        if rheader['ordering type'] != 'hilbert' and self.bbox:
+        if rheader['ordering type'] != 'hilbert' and self._bbox is not None:
             raise NotImplementedError(
                 'The ordering %s is not compatible with the `bbox` argument.'
                 % rheader['ordering type'])
@@ -563,6 +563,24 @@ class RAMSESDataset(Dataset):
 
         if self.num_groups > 0:
             self.group_size = rheader['ncpu'] // self.num_groups
+
+        # Read namelist.txt file (if any)
+        self.read_namelist()
+
+    def read_namelist(self):
+        """Read the namelist.txt file in the output folder, if present"""
+        namelist_file = os.path.join(self.root_folder, 'namelist.txt')
+        if os.path.exists(namelist_file):
+            try:
+                with open(namelist_file, 'r') as f:
+                    nml = f90nml.read(f)
+            except ImportError as e:
+                nml = "An error occurred when reading the namelist: %s" % str(e)
+            except ValueError as e:
+                mylog.warn("Could not parse `namelist.txt` file as it was malformed: %s" % str(e))
+                return
+
+            self.parameters['namelist'] = nml
 
     @classmethod
     def _is_valid(self, *args, **kwargs):

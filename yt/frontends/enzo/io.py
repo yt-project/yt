@@ -18,7 +18,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
 
     def _read_field_names(self, grid):
         if grid.filename is None: return []
-        f = h5py.File(grid.filename, "r")
+        f = h5py.File(grid.filename, mode="r")
         try:
             group = f["/Grid%08i" % grid.id]
         except KeyError:
@@ -68,7 +68,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if g.filename is None: continue
                 if f is None:
                     #print("Opening (read) %s" % g.filename)
-                    f = h5py.File(g.filename, "r")
+                    f = h5py.File(g.filename, mode="r")
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
@@ -269,7 +269,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
-        f = h5py.File(grid.filename, "r")
+        f = h5py.File(grid.filename, mode="r")
         ds = f["/Grid%08i/%s" % (grid.id, field)][:]
         f.close()
         return ds.transpose()[:,:,None]
@@ -285,7 +285,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             if not (len(chunks) == len(chunks[0].objs) == 1):
                 raise RuntimeError
             g = chunks[0].objs[0]
-            f = h5py.File(g.filename, 'r')
+            f = h5py.File(g.filename, mode='r')
             gds = f.get("/Grid%08i" % g.id)
             for ftype, fname in fields:
                 rv[(ftype, fname)] = np.atleast_3d(
@@ -308,7 +308,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             for g in chunk.objs:
                 if f is None:
                     #print("Opening (count) %s" % g.filename)
-                    f = h5py.File(g.filename, "r")
+                    f = h5py.File(g.filename, mode="r")
                 gds = f.get("/Grid%08i" % g.id)
                 if gds is None:
                     gds = f
@@ -326,7 +326,7 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
     _particle_reader = False
 
     def _read_data_set(self, grid, field):
-        f = h5py.File(grid.filename, "r")
+        f = h5py.File(grid.filename, mode="r")
         ds = f["/Grid%08i/%s" % (grid.id, field)][:]
         f.close()
         return ds.transpose()[:,None,None]

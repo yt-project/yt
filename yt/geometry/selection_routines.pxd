@@ -12,8 +12,6 @@ from oct_visitors cimport Oct, OctVisitor
 from oct_container cimport OctreeContainer
 from grid_visitors cimport GridTreeNode, GridVisitorData, \
     grid_visitor_function, check_child_masked
-from yt.utilities.lib.ewah_bool_wrap cimport \
-    BoolArrayCollection
 from yt.utilities.lib.geometry_utils cimport decode_morton_64bit
 from yt.utilities.lib.fp_utils cimport _ensure_code
 

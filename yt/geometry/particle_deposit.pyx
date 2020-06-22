@@ -10,6 +10,7 @@ Particle Deposition onto Cells
 
 
 cimport numpy as np
+
 import numpy as np
 from libc.stdlib cimport malloc, free
 cimport cython
@@ -52,12 +53,12 @@ cdef class ParticleDepositOperation:
                      np.ndarray[np.int64_t, ndim=1] dom_ind,
                      np.ndarray[np.float64_t, ndim=2] positions,
                      fields = None, int domain_id = -1,
-                     int domain_offset = 0):
+                     int domain_offset = 0, lvlmax = None):
         cdef int nf, i, j
         if fields is None:
             fields = []
         nf = len(fields)
-        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers 
+        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers
         if nf > 0: field_pointers = OnceIndirect(fields)
         cdef np.float64_t pos[3]
         cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
@@ -68,7 +69,15 @@ cdef class ParticleDepositOperation:
         cdef np.int64_t offset, moff
         cdef Oct *oct
         cdef np.int64_t numpart = positions.shape[0]
+        cdef np.int8_t use_lvlmax
         moff = octree.get_domain_offset(domain_id + domain_offset)
+        if lvlmax is None:
+            use_lvlmax = False
+            lvlmax = []
+        else:
+            use_lvlmax = True
+        cdef np.ndarray[np.int32_t, ndim=1] lvlmaxval = np.asarray(lvlmax, dtype=np.int32)
+
         for i in range(positions.shape[0]):
             # We should check if particle remains inside the Oct here
             for j in range(nf):
@@ -81,7 +90,10 @@ cdef class ParticleDepositOperation:
             # previously generated.  This way we can support not knowing the
             # full octree structure.  All we *really* care about is some
             # arbitrary offset into a field value for deposition.
-            oct = octree.get(pos, &oi)
+            if not use_lvlmax:
+                oct = octree.get(pos, &oi)
+            else:
+                oct = octree.get(pos, &oi, max_level=lvlmaxval[i])
             # This next line is unfortunate.  Basically it says, sometimes we
             # might have particles that belong to octs outside our domain.
             # For the distributed-memory octrees, this will manifest as a NULL
@@ -98,7 +110,7 @@ cdef class ParticleDepositOperation:
             offset = dom_ind[oct.domain_ind - moff]
             if offset < 0: continue
             # Check that we found the oct ...
-            self.process(dims, oi.left_edge, oi.dds,
+            self.process(dims, i, oi.left_edge, oi.dds,
                          offset, pos, field_vals, oct.domain_ind)
             if self.update_values == 1:
                 for j in range(nf):
@@ -114,7 +126,7 @@ cdef class ParticleDepositOperation:
             fields = []
         nf = len(fields)
         cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
-        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers 
+        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers
         if nf > 0: field_pointers = OnceIndirect(fields)
         cdef np.float64_t pos[3]
         cdef np.int64_t gid = getattr(gobj, "id", -1)
@@ -139,16 +151,17 @@ cdef class ParticleDepositOperation:
                     continue_loop = True
             if continue_loop:
                 continue
-            self.process(dims, left_edge, dds, 0, pos, field_vals, gid)
+            self.process(dims, i, left_edge, dds, 0, pos, field_vals, gid)
             if self.update_values == 1:
                 for j in range(nf):
                     field_pointers[j][i] = field_vals[j]
 
-    cdef int process(self, int dim[3], np.float64_t left_edge[3],
+    cdef int process(self, int dim[3], int ipart, np.float64_t left_edge[3],
                      np.float64_t dds[3], np.int64_t offset,
                      np.float64_t ppos[3], np.float64_t[:] fields,
-                     np.int64_t domain_ind) except -1:
-        raise NotImplementedError
+                     np.int64_t domain_ind) nogil except -1:
+        with gil:
+            raise NotImplementedError
 
 cdef class CountParticles(ParticleDepositOperation):
     cdef np.int64_t[:,:,:,:] count
@@ -158,14 +171,15 @@ cdef class CountParticles(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="int64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef int process(self, int dim[3],
+    @cython.boundscheck(False)
+    cdef int process(self, int dim[3], int ipart,
                      np.float64_t left_edge[3],
                      np.float64_t dds[3],
                      np.int64_t offset, # offset into IO field
                      np.float64_t ppos[3], # this particle's position
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) except -1:
+                     ) nogil except -1:
         # here we do our thing; this is the kernel
         cdef int ii[3]
         cdef int i
@@ -195,14 +209,15 @@ cdef class SimpleSmooth(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef int process(self, int dim[3],
+    @cython.boundscheck(False)
+    cdef int process(self, int dim[3], int ipart,
                      np.float64_t left_edge[3],
                      np.float64_t dds[3],
                      np.int64_t offset,
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) except -1:
+                     ) nogil except -1:
         cdef int ii[3]
         cdef int ib0[3]
         cdef int ib1[3]
@@ -232,7 +247,8 @@ cdef class SimpleSmooth(ParticleDepositOperation):
                     dist = idist[0] + idist[1] + idist[2]
                     # Calculate distance in multiples of the smoothing length
                     dist = sqrt(dist) / fields[0]
-                    self.temp[k,j,i,offset] = self.sph_kernel(dist)
+                    with gil:
+                        self.temp[k,j,i,offset] = self.sph_kernel(dist)
                     kernel_sum += self.temp[k,j,i,offset]
         # Having found the kernel, deposit accordingly into gdata
         for i from ib0[0] <= i <= ib1[0]:
@@ -254,14 +270,15 @@ cdef class SumParticleField(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef int process(self, int dim[3],
+    @cython.boundscheck(False)
+    cdef int process(self, int dim[3], int ipart,
                      np.float64_t left_edge[3],
                      np.float64_t dds[3],
                      np.int64_t offset,
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) except -1:
+                     ) nogil except -1:
         cdef int ii[3]
         cdef int i
         for i in range(3):
@@ -296,14 +313,15 @@ cdef class StdParticleField(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef int process(self, int dim[3],
+    @cython.boundscheck(False)
+    cdef int process(self, int dim[3], int ipart,
                      np.float64_t left_edge[3],
                      np.float64_t dds[3],
                      np.int64_t offset,
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) except -1:
+                     ) nogil except -1:
         cdef int ii[3]
         cdef int i, cell_index
         cdef float k, mk, qk
@@ -312,7 +330,6 @@ cdef class StdParticleField(ParticleDepositOperation):
         k = self.i[ii[2], ii[1], ii[0], offset]
         mk = self.mk[ii[2], ii[1], ii[0], offset]
         qk = self.qk[ii[2], ii[1], ii[0], offset]
-        #print(k, mk, qk, cell_index)
         if k == 0.0:
             # Initialize cell values
             self.mk[ii[2], ii[1], ii[0], offset] = fields[0]
@@ -347,14 +364,15 @@ cdef class CICDeposit(ParticleDepositOperation):
             np.zeros(self.nvals, dtype="float64", order='F'), 4)
 
     @cython.cdivision(True)
-    cdef int process(self, int dim[3],
+    @cython.boundscheck(False)
+    cdef int process(self, int dim[3], int ipart,
                      np.float64_t left_edge[3],
                      np.float64_t dds[3],
                      np.int64_t offset, # offset into IO field
                      np.float64_t ppos[3], # this particle's position
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) except -1:
+                     ) nogil except -1:
 
         cdef int i, j, k
         cdef np.uint64_t ii
@@ -401,14 +419,15 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
             np.zeros(self.nvals, dtype='float64', order='F'), 4)
 
     @cython.cdivision(True)
-    cdef int process(self, int dim[3],
+    @cython.boundscheck(False)
+    cdef int process(self, int dim[3], int ipart,
                      np.float64_t left_edge[3],
                      np.float64_t dds[3],
                      np.int64_t offset,
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) except -1:
+                     ) nogil except -1:
         cdef int ii[3]
         cdef int i
         for i in range(3):
@@ -435,14 +454,15 @@ cdef class MeshIdentifier(ParticleDepositOperation):
         self.update_values = 1
 
     @cython.cdivision(True)
-    cdef int process(self, int dim[3],
+    @cython.boundscheck(False)
+    cdef int process(self, int dim[3], int ipart,
                       np.float64_t left_edge[3],
                       np.float64_t dds[3],
                       np.int64_t offset,
                       np.float64_t ppos[3],
                       np.float64_t[:] fields,
                       np.int64_t domain_ind
-                      ) except -1:
+                      ) nogil except -1:
         fields[0] = domain_ind
         return 0
 
@@ -450,6 +470,42 @@ cdef class MeshIdentifier(ParticleDepositOperation):
         return
 
 deposit_mesh_id = MeshIdentifier
+
+cdef class CellIdentifier(ParticleDepositOperation):
+    cdef np.int64_t[:] indexes, cell_index
+    # This method stores the offset of the grid containing each particle
+    # and compute the index of the cell in the oct.
+    def initialize(self, int npart):
+        self.indexes = np.zeros(npart, dtype=np.int64, order='F') - 1
+        self.cell_index = np.zeros(npart, dtype=np.int64, order='F') - 1
+
+    @cython.cdivision(True)
+    @cython.boundscheck(False)
+    cdef int process(self, int dim[3], int ipart,
+                      np.float64_t left_edge[3],
+                      np.float64_t dds[3],
+                      np.int64_t offset,
+                      np.float64_t ppos[3],
+                      np.float64_t[:] fields,
+                      np.int64_t domain_ind
+                      ) nogil except -1:
+        cdef int i, icell
+        self.indexes[ipart] = offset
+
+        icell = 0
+        for i in range(3):
+            if ppos[i] > left_edge[i] + dds[i]:
+                icell |= 4 >> i
+
+        # Compute cell index
+        self.cell_index[ipart] = icell
+
+        return 0
+
+    def finalize(self):
+        return np.asarray(self.indexes), np.asarray(self.cell_index)
+
+deposit_cell_id = CellIdentifier
 
 cdef class NNParticleField(ParticleDepositOperation):
     cdef np.float64_t[:,:,:,:] nnfield
@@ -462,14 +518,15 @@ cdef class NNParticleField(ParticleDepositOperation):
         self.distfield[:] = np.inf
 
     @cython.cdivision(True)
-    cdef int process(self, int dim[3],
+    @cython.boundscheck(False)
+    cdef int process(self, int dim[3], int ipart,
                      np.float64_t left_edge[3],
                      np.float64_t dds[3],
                      np.int64_t offset,
                      np.float64_t ppos[3],
                      np.float64_t[:] fields,
                      np.int64_t domain_ind
-                     ) except -1:
+                     ) nogil except -1:
         # This one is a bit slow.  Every grid cell is going to be iterated
         # over, and we're going to deposit particles in it.
         cdef int i, j, k

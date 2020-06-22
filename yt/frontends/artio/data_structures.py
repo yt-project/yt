@@ -229,7 +229,7 @@ class ARTIOIndex(Index):
             try:
                 all_data = all(dobj.left_edge == self.ds.domain_left_edge) and\
                     all(dobj.right_edge == self.ds.domain_right_edge)
-            except:
+            except Exception:
                 all_data = False
             base_region = getattr(dobj, "base_region", dobj)
             sfc_start = getattr(dobj, "sfc_start", None)
@@ -438,7 +438,7 @@ class ARTIODataset(Dataset):
                 self.artio_parameters["length_unit"][0] * abox
 
             if self.artio_parameters["DeltaDC"][0] != 0:
-                mylog.warn("DeltaDC != 0, which implies auni != abox.  Be sure you understand which expansion parameter is appropriate for your use! (Gnedin, Kravtsov, & Rudd 2011)")
+                mylog.warning("DeltaDC != 0, which implies auni != abox.  Be sure you understand which expansion parameter is appropriate for your use! (Gnedin, Kravtsov, & Rudd 2011)")
         else:
             self.cosmological_simulation = False
 

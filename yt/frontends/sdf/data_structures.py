@@ -62,6 +62,8 @@ class SDFDataset(ParticleDataset):
                  units_override=None,
                  unit_system="cgs"):
         if bounding_box is not None:
+            # This ensures that we know a bounding box has been applied
+            self._domain_override = True
             self._subspace = True
             bbox = np.array(bounding_box, dtype="float64")
             if bbox.shape == (2, 3):
@@ -103,7 +105,7 @@ class SDFDataset(ParticleDataset):
         try:
             self.unique_identifier = \
                 int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        except:
+        except Exception:
             self.unique_identifier = time.time()
 
         if self.domain_left_edge is None or self.domain_right_edge is None:

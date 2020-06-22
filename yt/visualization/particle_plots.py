@@ -39,6 +39,11 @@ class ParticleAxisAlignedDummyDataSource(object):
 
         LE = center - 0.5*YTArray(width)
         RE = center + 0.5*YTArray(width)
+        for ax in range(3):
+            if not ds.periodicity[ax]:
+                LE[ax] = max(LE[ax], ds.domain_left_edge[ax])
+                RE[ax] = min(RE[ax], ds.domain_right_edge[ax])
+
         self.dd = ds.region(center, LE, RE, fields,
                             field_parameters=field_parameters,
                             data_source=data_source)
@@ -238,7 +243,7 @@ class ParticleProjectionPlot(PWViewerMPL):
 
         self.set_axes_unit(axes_unit)
 
-        if self._use_cbar is False:
+        if not self._use_cbar:
             self.hide_colorbar()
 
 

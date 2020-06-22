@@ -30,6 +30,7 @@ def determine_particle_fields(handle):
         _particle_fields = {}
     return _particle_fields
 
+
 class IOHandlerFLASH(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "flash_hdf5"
@@ -145,6 +146,7 @@ class IOHandlerFLASH(BaseIOHandler):
                     rv[g.id][field] = np.asarray(data[...,i], "=f8")
         return rv
 
+
 class IOHandlerFLASHParticle(BaseIOHandler):
     _particle_reader = True
     _dataset_type = "flash_particle_hdf5"
@@ -170,18 +172,15 @@ class IOHandlerFLASHParticle(BaseIOHandler):
                 data_files.update(obj.data_files)
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
-        assert(len(data_files) == 1)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            pcount = self._count_particles(data_file)["io"]
-            for ptype, field_list in sorted(ptf.items()):
-                total = 0
-                while total < pcount:
-                    count = min(self._chunksize, pcount - total)
-                    x = np.asarray(p_fields[total:total+count, px], dtype="=f8")
-                    y = np.asarray(p_fields[total:total+count, py], dtype="=f8")
-                    z = np.asarray(p_fields[total:total+count, pz], dtype="=f8")
-                    total += count
-                    yield ptype, (x, y, z)
+            pxyz = np.asarray(p_fields[data_file.start:data_file.end, (px,py,pz)], dtype="=f8")
+            yield "io", pxyz.T
+
+    def _yield_coordinates(self, data_file, needed_ptype=None):
+        px, py, pz = self._position_fields
+        p_fields = self._handle["/tracer particles"]
+        pxyz = np.asarray(p_fields[data_file.start:data_file.end, (px,py,pz)], dtype="=f8")
+        yield ("io", pxyz)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -192,24 +191,20 @@ class IOHandlerFLASHParticle(BaseIOHandler):
                 data_files.update(obj.data_files)
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
-        assert(len(data_files) == 1)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            pcount = self._count_particles(data_file)["io"]
+            si, ei = data_file.start, data_file.end
+            # This should just be a single item
             for ptype, field_list in sorted(ptf.items()):
-                total = 0
-                while total < pcount:
-                    count = min(self._chunksize, pcount - total)
-                    x = np.asarray(p_fields[total:total+count, px], dtype="=f8")
-                    y = np.asarray(p_fields[total:total+count, py], dtype="=f8")
-                    z = np.asarray(p_fields[total:total+count, pz], dtype="=f8")
-                    total += count
-                    mask = selector.select_points(x, y, z, 0.0)
-                    del x, y, z
-                    if mask is None: continue
-                    for field in field_list:
-                        fi = self._particle_fields[field]
-                        data = p_fields[total-count:total, fi]
-                        yield (ptype, field), data[mask]
+                x = np.asarray(p_fields[si:ei, px], dtype="=f8")
+                y = np.asarray(p_fields[si:ei, py], dtype="=f8")
+                z = np.asarray(p_fields[si:ei, pz], dtype="=f8")
+                mask = selector.select_points(x, y, z, 0.0)
+                del x, y, z
+                if mask is None: continue
+                for field in field_list:
+                    fi = self._particle_fields[field]
+                    data = p_fields[si:ei, fi]
+                    yield (ptype, field), data[mask]
 
     def _initialize_index(self, data_file, regions):
         p_fields = self._handle["/tracer particles"]
@@ -236,8 +231,9 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         if self._pcount is None:
             self._pcount = self._handle["/localnp"][:].sum()
         si, ei = data_file.start, data_file.end
+        pcount = self._pcount
         if None not in (si, ei):
-            pcount = np.clip(self._pcount - si, 0, ei - si)
+            pcount = np.clip(pcount - si, 0, ei - si)
         return {'io': pcount}
 
     def _identify_fields(self, data_file):

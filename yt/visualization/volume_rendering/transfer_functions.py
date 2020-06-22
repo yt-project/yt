@@ -585,7 +585,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.yaxis.set_ticks(xticks)
         def x_format(x, pos):
             val = x * (self.alpha.x[-1] - self.alpha.x[0]) / (self.alpha.x.size-1) + self.alpha.x[0]
-            if log_scale is True:
+            if log_scale:
                 val = 10**val
             if label_fmt is None:
                 if abs(val) < 1.e-3 or abs(val) > 1.e4:
@@ -634,7 +634,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             The alpha value height for the Gaussian
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
-            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+            https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
         col_bounds: array_like, optional
             Limits ([min, max]) the values over which the colormap spans to
             these values.  Useful for sampling an entire colormap over a range
@@ -682,7 +682,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             Larger values will be more opaque.
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
-            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+            https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
         scale_func: function(:obj:`!value`, :obj:`!minval`, :obj:`!maxval`), optional
             A user-defined function that can be used to scale the alpha channel
             as a function of the TransferFunction field values. Function maps
@@ -749,7 +749,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             set as 1.0 everywhere.
         colormap : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
-            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+            https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
         col_bounds: array_like, optional
             Limits ([min, max]) the values over which the colormap spans to
             these values.  Useful for sampling an entire colormap over a range

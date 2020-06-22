@@ -212,7 +212,7 @@ class GAMERDataset(Dataset):
         else:
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
-            except:
+            except Exception:
                 raise IOError(self.particle_filename)
 
         # currently GAMER only supports refinement by a factor of 2
@@ -230,16 +230,20 @@ class GAMERDataset(Dataset):
             setdefaultattr( self, 'mass_unit',   self.quan(self.parameters['Unit_M'], 'g' ) )
             setdefaultattr( self, 'time_unit',   self.quan(self.parameters['Unit_T'], 's' ) )
 
+            if self.mhd:
+                setdefaultattr( self, 'magnetic_unit', self.quan(self.parameters['Unit_B'], 'gauss') )
+
         else:
             if len(self.units_override) == 0:
                 mylog.warning("Cannot determine code units ==> " +
                               "Use units_override to specify the units")
 
-            for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g")]:
-                setdefaultattr(self, "%s_unit"%unit, self.quan(1.0, cgs))
+            for unit, value, cgs in [ ("length", 1.0, "cm"), ("time", 1.0, "s"), ("mass", 1.0, "g"),
+                                      ("magnetic", np.sqrt(4.0*np.pi), "gauss") ]:
+                setdefaultattr(self, "%s_unit"%unit, self.quan(value, cgs))
 
                 if len(self.units_override) == 0:
-                    mylog.warning("Assuming %s unit = 1.0 %s", unit, cgs)
+                    mylog.warning("Assuming %8s unit = %f %s", unit, value, cgs)
 
     def _parse_parameter_file(self):
         self.unique_identifier = \
@@ -254,10 +258,9 @@ class GAMERDataset(Dataset):
         parameters = self.parameters
 
         # reset 'Model' to be more readable
+        # (no longer regard MHD as a separate model)
         if parameters['Model'] == 1:
             parameters['Model'] = 'Hydro'
-        elif parameters['Model'] == 2:
-            parameters['Model'] = 'MHD'
         elif parameters['Model'] == 3:
             parameters['Model'] = 'ELBDM'
         else:
@@ -273,8 +276,15 @@ class GAMERDataset(Dataset):
         self.domain_dimensions = parameters['NX0'].astype('int64')
 
         # periodicity
-        periodic         = parameters['Opt__BC_Flu'][0] == 0
-        self.periodicity = (periodic,periodic,periodic)
+        if parameters['FormatVersion'] >= 2106:
+            periodic_bc = 1
+        else:
+            periodic_bc = 0
+        self.periodicity = (
+            bool(parameters['Opt__BC_Flu'][0]==periodic_bc),
+            bool(parameters['Opt__BC_Flu'][2]==periodic_bc),
+            bool(parameters['Opt__BC_Flu'][4]==periodic_bc),
+        )
 
         # cosmological parameters
         if parameters['Comoving']:
@@ -292,10 +302,13 @@ class GAMERDataset(Dataset):
             self.hubble_constant         = 0.0
 
         # make aliases to some frequently used variables
-        if parameters['Model'] == 'Hydro' or parameters['Model'] == 'MHD':
+        if parameters['Model'] == 'Hydro':
             self.gamma = parameters["Gamma"]
             # default to 0.6 for old data format
             self.mu    = parameters.get('MolecularWeight', 0.6)
+            self.mhd   = parameters.get("Magnetohydrodynamics", 0)
+        else:
+            self.mhd   = 0
 
         # old data format (version < 2210) does not contain any information of code units
         self.parameters.setdefault('Opt__Unit', 0)
@@ -309,6 +322,5 @@ class GAMERDataset(Dataset):
             f = HDF5FileHandler(args[0])
             if 'Info' in f['/'].keys() and 'KeyInfo' in f['/Info'].keys():
                 return True
-        except:
-            pass
+        except Exception: pass
         return False

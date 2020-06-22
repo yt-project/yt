@@ -96,7 +96,7 @@ class YTStreamline(YTSelectionContainer1D):
 
     """
     _type_name = "streamline"
-    _con_args = ('positions')
+    _con_args = ('positions',)
     sort_by = 't'
     def __init__(self, positions, length = 1.0, fields=None, ds=None, **kwargs):
         YTSelectionContainer1D.__init__(self, ds, fields, **kwargs)
@@ -227,7 +227,7 @@ class YTProj(YTSelectionContainer2D):
         with self.data_source._field_parameter_state(self.field_parameters):
             for chunk in parallel_objects(self.data_source.chunks(
                                           [], "io", local_only = True)):
-                if _units_initialized is False:
+                if not _units_initialized:
                     self._initialize_projected_units(fields, chunk)
                     _units_initialized = True
                 self._handle_chunk(chunk, fields, tree)
@@ -577,6 +577,50 @@ class YTCoveringGrid(YTSelectionContainer3D):
         self._setup_data_source()
         self.get_data(fields)
 
+    def to_xarray(self, fields = None):
+        r"""Export this fixed-resolution object to an xarray Dataset
+
+        This function will take a regularized grid and optionally a list of
+        fields and return an xarray Dataset object.  If xarray is not
+        importable, this will raise ImportError.
+
+        Parameters
+        ----------
+        fields : list of strings or tuple field names, default None
+            If this is supplied, it is the list of fields to be exported into
+            the data frame.  If not supplied, whatever fields presently exist
+            will be used.
+
+        Returns
+        -------
+        arr : Dataset
+            The data contained in the object.
+
+        Examples
+        --------
+
+        >>> dd = ds.r[::256j, ::256j, ::256j]
+        >>> xf1 = dd.to_xarray(["density", "temperature"])
+        >>> dd["velocity_magnitude"]
+        >>> xf2 = dd.to_xarray()
+        """
+        import xarray as xr
+        data = {}
+        coords = {}
+        for f in fields or self.field_data.keys():
+            data[f] = {'dims': ('x','y','z',), 'data': self[f],
+                       'attrs': {'units': str(self[f].uq)}}
+        # We have our data, so now we generate both our coordinates and our metadata.
+        LE = self.LeftEdge + self.dds/2.0
+        RE = self.RightEdge - self.dds/2.0
+        N = self.ActiveDimensions
+        u = str(LE.uq)
+        for i, ax in enumerate('xyz'):
+            coords[ax] = {'dims': (ax,),
+                          'data': np.mgrid[LE[i]:RE[i]:N[i]*1j],
+                          'attrs': {'units': u}}
+        return xr.Dataset.from_dict( {'data_vars': data, 'coords': coords} )
+
     @property
     def icoords(self):
         ic = np.indices(self.ActiveDimensions).astype("int64")
@@ -604,6 +648,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         tr = np.ones(self.ActiveDimensions.prod(), dtype="int64")
         tr *= self.level
         return tr
+
+    def set_field_parameter(self, name, val):
+        super(YTCoveringGrid, self).set_field_parameter(name, val)
+        if self._data_source is not None:
+            self._data_source.set_field_parameter(name, val)
 
     def _sanitize_dims(self, dims):
         if not iterable(dims):
@@ -817,23 +866,24 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def _generate_container_field(self, field):
         rv = self.ds.arr(np.ones(self.ActiveDimensions, dtype="float64"),
                              "")
-        if field == ("index", "dx"):
+        axis_name = self.ds.coordinates.axis_name
+        if field == ("index", "d%s" % axis_name[0]):
             np.multiply(rv, self.dds[0], rv)
-        elif field == ("index", "dy"):
+        elif field == ("index", "d%s" % axis_name[1]):
             np.multiply(rv, self.dds[1], rv)
-        elif field == ("index", "dz"):
+        elif field == ("index", "d%s" % axis_name[2]):
             np.multiply(rv, self.dds[2], rv)
-        elif field == ("index", "x"):
+        elif field == ("index", axis_name[0]):
             x = np.mgrid[self.left_edge[0] + 0.5*self.dds[0]:
                          self.right_edge[0] - 0.5*self.dds[0]:
                          self.ActiveDimensions[0] * 1j]
             np.multiply(rv, x[:,None,None], rv)
-        elif field == ("index", "y"):
+        elif field == ("index", axis_name[1]):
             y = np.mgrid[self.left_edge[1] + 0.5*self.dds[1]:
                          self.right_edge[1] - 0.5*self.dds[1]:
                          self.ActiveDimensions[1] * 1j]
             np.multiply(rv, y[None,:,None], rv)
-        elif field == ("index", "z"):
+        elif field == ("index", axis_name[2]):
             z = np.mgrid[self.left_edge[2] + 0.5*self.dds[2]:
                          self.right_edge[2] - 0.5*self.dds[2]:
                          self.ActiveDimensions[2] * 1j]
@@ -1246,12 +1296,12 @@ class YTSurface(YTSelectionContainer3D):
     of the Triangles in that isocontour.
 
     This object simply returns the vertices of all the triangles calculated by
-    the `marching cubes <http://en.wikipedia.org/wiki/Marching_cubes>`_
+    the `marching cubes <https://en.wikipedia.org/wiki/Marching_cubes>`_
     algorithm; for more complex operations, such as identifying connected sets
     of cells above a given threshold, see the extract_connected_sets function.
     This is more useful for calculating, for instance, total isocontour area, or
     visualizing in an external program (such as `MeshLab
-    <http://meshlab.sf.net>`_.)  The object has the properties .vertices and
+    <http://www.meshlab.net>`_.)  The object has the properties .vertices and
     will sample values if a field is requested.  The values are interpolated to
     the center of a given face.
 
@@ -1361,8 +1411,7 @@ class YTSurface(YTSelectionContainer3D):
     def calculate_flux(self, field_x, field_y, field_z, fluxing_field = None):
         r"""This calculates the flux over the surface.
 
-        This function will conduct `marching cubes
-        <http://en.wikipedia.org/wiki/Marching_cubes>`_ on all the cells in a
+        This function will conduct `Marching Cubes`_ on all the cells in a
         given data container (grid-by-grid), and then for each identified
         triangular segment of an isocontour in a given cell, calculate the
         gradient (i.e., normal) in the isocontoured field, interpolate the local
@@ -1401,7 +1450,8 @@ class YTSurface(YTSelectionContainer3D):
         References
         ----------
 
-        .. [1] Marching Cubes: http://en.wikipedia.org/wiki/Marching_cubes
+        .. _Marching Cubes:
+            https://en.wikipedia.org/wiki/Marching_cubes
 
         Examples
         --------
@@ -1929,14 +1979,14 @@ class YTSurface(YTSelectionContainer3D):
                          sample_type)
 
     def _color_samples(self, cs, color_log, color_map, arr):
-            if color_log: cs = np.log10(cs)
-            mi, ma = cs.min(), cs.max()
-            cs = (cs - mi) / (ma - mi)
-            from yt.visualization.image_writer import map_to_colors
-            cs = map_to_colors(cs, color_map)
-            arr["red"][:] = cs[0,:,0]
-            arr["green"][:] = cs[0,:,1]
-            arr["blue"][:] = cs[0,:,2]
+        if color_log: cs = np.log10(cs)
+        mi, ma = cs.min(), cs.max()
+        cs = (cs - mi) / (ma - mi)
+        from yt.visualization.image_writer import map_to_colors
+        cs = map_to_colors(cs, color_map)
+        arr["red"][:] = cs[0,:,0]
+        arr["green"][:] = cs[0,:,1]
+        arr["blue"][:] = cs[0,:,2]
 
     @parallel_root_only
     def _export_ply(self, filename, bounds = None, color_field = None,

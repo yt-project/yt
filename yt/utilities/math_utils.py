@@ -114,8 +114,8 @@ def periodic_dist(a, b, period, periodicity=(True, True, True)):
     c = np.empty((2,) + a.shape, dtype="float64")
     c[0,:] = np.abs(a - b)
 
-    p_directions = [i for i,p in enumerate(periodicity) if p is True]
-    np_directions = [i for i,p in enumerate(periodicity) if p is False]
+    p_directions = [i for i,p in enumerate(periodicity) if p]
+    np_directions = [i for i,p in enumerate(periodicity) if not p]
     for d in p_directions:
         c[1,d,:] = period[d,:] - np.abs(a - b)[d,:]
     for d in np_directions:
@@ -885,7 +885,7 @@ def get_perspective_matrix(fovy, aspect, z_near, z_far):
     hardware that automatically performs the divide by w operation.
     See the following for more details about the OpenGL perspective matrices.
 
-    http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
+    https://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
     http://www.songho.ca/opengl/gl_projectionmatrix.html
 
     """
@@ -957,7 +957,7 @@ def get_orthographic_matrix(maxr, aspect, z_near, z_far):
     See the following for more details about the OpenGL perspective matrices.
 
     http://www.scratchapixel.com/lessons/3d-basic-rendering/perspective-and-orthographic-projection-matrix/orthographic-projection-matrix
-    http://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
+    https://www.tomdalling.com/blog/modern-opengl/explaining-homogenous-coordinates-and-projective-geometry/
     http://www.songho.ca/opengl/gl_projectionmatrix.html
 
     """

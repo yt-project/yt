@@ -10,6 +10,7 @@ from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot, ProfilePlot
 from yt.units.yt_array import YTQuantity
 from yt.units.unit_object import Unit
+from yt.funcs import issue_deprecation_warning
 
 def convert_frac_to_tex(string):
     frac_pos = string.find(r'\frac')
@@ -358,13 +359,13 @@ class DualEPS(object):
             _ylabel = pyxize_label(yaxis.label.get_text())
             # set log if necessary
             if subplot.get_xscale() == "log":
-                 _xlog = True 
+                _xlog = True 
             else:
-                 _xlog = False
+                _xlog = False
             if subplot.get_yscale() == "log":
-                 _ylog = True 
+                _ylog = True 
             else:
-                 _ylog = False
+                _ylog = False
             _tickcolor = None 
         elif isinstance(plot, PhasePlot):
             k = list(plot.plots.keys())[0]
@@ -960,9 +961,9 @@ class DualEPS(object):
         elif format == "pdf":
             self.canvas.writePDFfile(filename)
         elif format == "png":
-             self.canvas.writeGSfile(filename+".png", "png16m", resolution=resolution)
+            self.canvas.writeGSfile(filename+".png", "png16m", resolution=resolution)
         elif format == "jpg":
-             self.canvas.writeGSfile(filename+".jpeg", "jpeg", resolution=resolution)
+            self.canvas.writeGSfile(filename+".jpeg", "jpeg", resolution=resolution)
         else:
             raise RuntimeError("format %s unknown." % (format))
             
@@ -1001,7 +1002,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
         Labels for the y-axes
     colorbars : list of dicts
         Dicts that describe the type of colorbar to be used in each
-        figure.  Use the function return_cmap() to create these dicts.
+        figure.  Use the function return_colormap() to create these dicts.
     shrink_cb : float
         Factor by which the colorbar is shrunk.
     figsize : tuple of floats
@@ -1032,10 +1033,10 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     >>> images = ["density.jpg", "hi_density.jpg", "entropy.jpg",
     >>>           "special.jpg"]
     >>> cbs=[]
-    >>> cbs.append(return_cmap("arbre", "Density [cm$^{-3}$]", (0,10), False))
-    >>> cbs.append(return_cmap("kelp", "HI Density", (0,5), False))
-    >>> cbs.append(return_cmap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
-    >>> cbs.append(return_cmap("Spectral", "Stuff$_x$!", (1,300), True))
+    >>> cbs.append(return_colormap("arbre", "Density [cm$^{-3}$]", (0,10), False))
+    >>> cbs.append(return_colormap("kelp", "HI Density", (0,5), False))
+    >>> cbs.append(return_colormap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
+    >>> cbs.append(return_colormap("Spectral", "Stuff$_x$!", (1,300), True))
     >>> 
     >>> mp = multiplot(2,2, images=images, margins=(0.1,0.1),
     >>>                titles=["1","2","3","4"],
@@ -1263,7 +1264,7 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
     >>>
     >>> p2 = SlicePlot(ds, 0, 'temperature')
     >>> p2.set_width(10, 'kpc')
-    >>> p2.set_cmap('temperature', 'hot')
+    >>> p2.set_colormap('temperature', 'hot')
     >>>
     >>> sph = ds.sphere(ds.domain_center, (10, 'kpc'))
     >>> p3 = PhasePlot(sph, 'radius', 'density', 'temperature',
@@ -1280,16 +1281,16 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
         if fields is None:
             fields = plots.fields
         if len(fields) < nrow*ncol:
-            raise RuntimeError("Number of plots is less "\
-                               "than nrow(%d) x ncol(%d)." % \
-                               (len(fields), nrow, ncol))
+            raise RuntimeError("Number of plots ({0}) is less "
+                               "than nrow({1}) x ncol({2}).".format(
+                               len(fields), nrow, ncol))
             return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow*ncol:
-            raise RuntimeError("Number of plots is less "\
-                               "than nrow(%d) x ncol(%d)." % \
-                               (len(fields), nrow, ncol))
+            raise RuntimeError("Number of plots ({0}) is less "
+                               "than nrow({1}) x ncol({2}).".format(
+                               len(fields), nrow, ncol))
             return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:
@@ -1340,6 +1341,10 @@ def single_plot(plot, field=None, figsize=(12,12), cb_orient="right",
 
 #=============================================================================
 def return_cmap(cmap=None, label="", range=(0,1), log=False):
+    issue_deprecation_warning("Deprecated alias. Use return_colormap instead.")
+    return return_colormap(cmap=cmap, label=label, crange=range, log=log)
+
+def return_colormap(cmap=None, label="", range=(0,1), log=False):
     r"""Returns a dict that describes a colorbar.  Exclusively for use with
     multiplot.
 
@@ -1356,7 +1361,7 @@ def return_cmap(cmap=None, label="", range=(0,1), log=False):
 
     Examples
     --------
-    >>> cb = return_cmap("arbre", "Density [cm$^{-3}$]", (0,10), False)
+    >>> cb = return_colormap("arbre", "Density [cm$^{-3}$]", (0,10), False)
     """
     if cmap is None:
         cmap = ytcfg.get("yt", "default_colormap")

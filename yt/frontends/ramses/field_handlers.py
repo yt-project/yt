@@ -158,11 +158,12 @@ class FieldFileHandler(metaclass = RAMSESFieldFileHandlerRegistry):
         Called once to setup the fields of this type
 
         It should set the following static variables:
+
         * parameters: dictionary
-           Dictionary containing the variables. The keys should match
-           those of `cls.attrs`
+            Dictionary containing the variables. The keys should match
+            those of `cls.attrs`
         * field_list: list of (ftype, fname)
-           The list of the field present in the file
+            The list of the field present in the file
         '''
         # this function must be implemented by subclasses
         raise NotImplementedError
@@ -298,6 +299,7 @@ class HydroFieldFileHandler(FieldFileHandler):
 
             # We get no fields for old-style hydro file descriptor
             ok = len(fields) > 0
+
         elif cls.config_field and ytcfg.has_section(cls.config_field):
             # Or this is given by the config
             cfg = ytcfg.get(cls.config_field, 'fields')
@@ -340,14 +342,14 @@ class HydroFieldFileHandler(FieldFileHandler):
                 if nvar == 11:
                     fields = ["Density",
                               "x-velocity", "y-velocity", "z-velocity",
-                              "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                              "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
+                              "B_x_left","B_y_left","B_z_left",
+                              "B_x_right","B_y_right","B_z_right",
                               "Pressure"]
                 if nvar > 11:
                     fields = ["Density",
                               "x-velocity", "y-velocity", "z-velocity",
-                              "x-Bfield-left", "y-Bfield-left", "z-Bfield-left",
-                              "x-Bfield-right", "y-Bfield-right", "z-Bfield-right",
+                              "B_x_left","B_y_left","B_z_left",
+                              "B_x_right","B_y_right","B_z_right",
                               "Pressure", "Metallicity"]
             mylog.debug("No fields specified by user; automatically setting fields array to %s"
                         % str(fields))

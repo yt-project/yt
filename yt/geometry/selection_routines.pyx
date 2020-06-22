@@ -25,9 +25,6 @@ from yt.utilities.lib.volume_container cimport \
 from yt.utilities.lib.grid_traversal cimport \
     sampler_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
-from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
-# from yt.utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet #as SparseUnorderedBitmask
-# from yt.utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet #as SparseUnorderedRefinedBitmask
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit, \
     bounded_morton_dds, morton_neighbors_coarse, morton_neighbors_refined
 
@@ -1147,7 +1144,10 @@ cdef class CutRegionSelector(SelectorObject):
     cdef tuple _conditionals
 
     def __init__(self, dobj):
-        positions = np.array([dobj['index', 'x'], dobj['index', 'y'], dobj['index', 'z']]).T
+        axis_name = dobj.ds.coordinates.axis_name
+        positions = np.array([dobj['index', axis_name[0]],
+                              dobj['index', axis_name[1]],
+                              dobj['index', axis_name[2]]]).T
         self._conditionals = tuple(dobj.conditionals)
         self._positions = set(tuple(position) for position in positions)
 
