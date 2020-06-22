@@ -107,13 +107,13 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     data_file, needed_ptype=self.ds._sph_ptypes[0]):
                 counts[data_file.filename] += ppos.shape[0]
                 positions.append(ppos)
-        if len(positions) == 0:
+        if not positions:
             return
         offsets = {}
         offset = 0
-        for fn in counts:
+        for fn, count in counts.items():
             offsets[fn] = offset
-            offset += counts[fn]
+            offset += count
         positions = np.concatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(
             positions, kdtree, self.ds._num_neighbors)
@@ -280,10 +280,11 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         self._vector_fields[kk] = g[kk].shape[1]
                     fields.append((ptype, str(kk)))
 
+        f.close()
+
         if self.ds.gen_hsmls:
             fields.append(("PartType0", "smoothing_length"))
 
-        f.close()
         return fields, {}
 
 
