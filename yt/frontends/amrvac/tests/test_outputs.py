@@ -65,42 +65,42 @@ def test_grid_attributes():
 @requires_ds(blastwave_polar_2D)
 def test_bw_polar_2d():
     ds = data_dir_load(blastwave_polar_2D)
-    for test in small_patch_amr(ds, _get_fields_to_check(ds.field_list)):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_bw_polar_2d.__name__ = test.description
         yield test
 
 @requires_ds(blastwave_cartesian_3D)
 def test_blastwave_cartesian_3D():
     ds = data_dir_load(blastwave_cartesian_3D)
-    for test in small_patch_amr(ds, _get_fields_to_check(ds.field_list)):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_blastwave_cartesian_3D.__name__ = test.description
         yield test
 
 @requires_ds(blastwave_spherical_2D)
 def test_blastwave_spherical_2D():
     ds = data_dir_load(blastwave_spherical_2D)
-    for test in small_patch_amr(ds, _get_fields_to_check(ds.field_list)):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_blastwave_spherical_2D.__name__ = test.description
         yield test
 
 @requires_ds(blastwave_cylindrical_3D)
 def test_blastwave_cylindrical_3D():
     ds = data_dir_load(blastwave_cylindrical_3D)
-    for test in small_patch_amr(ds, _get_fields_to_check(ds.field_list)):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_blastwave_cylindrical_3D.__name__ = test.description
         yield test
 
 @requires_ds(khi_cartesian_2D)
 def test_khi_cartesian_2D():
     ds = data_dir_load(khi_cartesian_2D)
-    for test in small_patch_amr(ds, _get_fields_to_check(ds.field_list)):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_khi_cartesian_2D.__name__ = test.description
         yield test
 
 @requires_ds(khi_cartesian_3D)
 def test_khi_cartesian_3D():
     ds = data_dir_load(khi_cartesian_3D)
-    for test in small_patch_amr(ds, _get_fields_to_check(ds.field_list)):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_khi_cartesian_3D.__name__ = test.description
         yield test
 
@@ -114,7 +114,7 @@ def test_jet_cylindrical_25D():
 @requires_ds(riemann_cartesian_175D)
 def test_riemann_cartesian_175D():
     ds = data_dir_load(riemann_cartesian_175D)
-    for test in small_patch_amr(ds, _get_fields_to_check(ds.field_list)):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_riemann_cartesian_175D.__name__ = test.description
         yield test
 
@@ -122,7 +122,7 @@ def test_riemann_cartesian_175D():
 def test_rmi_cartesian_dust_2D():
     # dataset with dust fields
     ds = data_dir_load(rmi_cartesian_dust_2D)
-    for test in small_patch_amr(ds, _get_fields_to_check(ds.field_list)):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_rmi_cartesian_dust_2D.__name__ = test.description
         yield test
 
