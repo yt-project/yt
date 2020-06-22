@@ -56,13 +56,6 @@ class BaseIOHandler(metaclass=RegisteredIOHandler):
     def preload(self, chunk, fields, max_size):
         yield self
 
-    def pop(self, grid, field):
-        if grid.id in self.queue and field in self.queue[grid.id]:
-            return self.modify(self.queue[grid.id].pop(field))
-        else:
-            # We only read the one set and do not store it if it isn't pre-loaded
-            return self._read_data_set(grid, field)
-
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)
 
@@ -132,6 +125,13 @@ class BaseIOHandler(metaclass=RegisteredIOHandler):
             else:
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
+
+    def io_iter(self, chunks, fields):
+        raise NotImplementedError(
+            "subclassing Dataset.io_iter this is required in order to use the default "
+            "implementation of Dataset._read_fluid_selection. "
+            "Custom implementations of the latter may not rely on this method."
+        )
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]

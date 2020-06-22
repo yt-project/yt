@@ -1,3 +1,4 @@
+import abc
 import functools
 import itertools
 import os
@@ -73,7 +74,7 @@ def _unsupported_object(ds, obj_name):
     return _raise_unsupp
 
 
-class RegisteredDataset(type):
+class RegisteredDataset(abc.ABCMeta):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         output_type_registry[name] = cls
@@ -167,6 +168,16 @@ class Dataset(metaclass=RegisteredDataset):
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
+
+    # these are set in self._parse_parameter_file()
+    domain_left_edge = MutableAttribute()
+    domain_right_edge = MutableAttribute()
+    domain_dimensions = MutableAttribute()
+    periodicity = MutableAttribute()
+
+    # these are set in self._set_derived_attrs()
+    domain_width = MutableAttribute()
+    domain_center = MutableAttribute()
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, str):
@@ -273,6 +284,26 @@ class Dataset(metaclass=RegisteredDataset):
     def unique_identifier(self, value):
         self._unique_identifier = value
 
+    # abstract methods require implementation in subclasses
+    @classmethod
+    @abc.abstractmethod
+    def _is_valid(cls, *args, **kwargs):
+        # A heuristic test to determine if the data format can be interpreted
+        # with the present frontend
+        return False
+
+    @abc.abstractmethod
+    def _parse_parameter_file(self):
+        # set up various attributes from self.parameter_filename
+        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
+        pass
+
+    @abc.abstractmethod
+    def _set_code_unit_attributes(self):
+        # set up code-units to physical units normalization factors
+        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
+        pass
+
     def _set_derived_attrs(self):
         if self.domain_left_edge is None or self.domain_right_edge is None:
             self.domain_center = np.zeros(3)
@@ -351,12 +382,6 @@ class Dataset(metaclass=RegisteredDataset):
             self._checksum = m
         return self._checksum
 
-    domain_left_edge = MutableAttribute(True)
-    domain_right_edge = MutableAttribute(True)
-    domain_width = MutableAttribute(True)
-    domain_dimensions = MutableAttribute(False)
-    domain_center = MutableAttribute(True)
-
     @property
     def _mrep(self):
         return MinimalDataset(self)
@@ -367,10 +392,6 @@ class Dataset(metaclass=RegisteredDataset):
 
     def hub_upload(self):
         self._mrep.upload()
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return False
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
