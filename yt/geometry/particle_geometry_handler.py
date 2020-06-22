@@ -54,8 +54,8 @@ class ParticleIndex(Index):
         fi = 0
         for i in range(int(ndoms)):
             start = 0
-            if self._chunk_size > 0:
-                end = start + self._chunk_size
+            if self._chunksize > 0:
+                end = start + self._chunksize
             else:
                 end = None
             while 1:
@@ -64,10 +64,10 @@ class ParticleIndex(Index):
                     break
                 fi += 1
                 self.data_files.append(df)
-                if self._chunk_size <= 0:
+                if self._chunksize <= 0:
                     break
                 start = end
-                end += self._chunk_size
+                end += self._chunksize
         self.total_particles = sum(
                 sum(d.total_particles.values()) for d in self.data_files)
 
