@@ -18,7 +18,7 @@ from pyembree.rtcore cimport Vec3f
 cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmin, fmax, sqrt
-from yt.utilities.lib.mesh_samplers cimport sample_hex20, sample_tet10
+from .mesh_samplers cimport sample_hex20, sample_tet10
 from yt.utilities.lib.bounding_volume_hierarchy cimport BBox
 from yt.utilities.lib.primitives cimport \
     patchSurfaceFunc, \

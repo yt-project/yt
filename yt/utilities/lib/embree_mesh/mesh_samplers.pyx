@@ -14,7 +14,7 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
 from pyembree.rtcore cimport Vec3f, Triangle, Vertex
-from yt.utilities.lib.mesh_construction cimport \
+from .mesh_construction cimport \
     MeshDataContainer, \
     Patch, \
     Tet_Patch
