@@ -72,7 +72,7 @@ class TipsyDataset(SPHDataset):
         success, self.endian = self._validate_header(filename)
         if not success:
             print("SOMETHING HAS GONE WRONG.  NBODIES != SUM PARTICLES.")
-            print("%s != (%s == %s + %s + %s)" % (
+            print("%s != (sum == %s + %s + %s)" % (
                 self.parameters['nbodies'],
                 self.parameters['nsph'],
                 self.parameters['ndark'],
