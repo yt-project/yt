@@ -69,7 +69,7 @@ class EnzoPFieldInfo(FieldInfoContainer):
             val = constants[names.index("mass")][2]
             val = self.ds.quan(val, self.ds.mass_unit)
             if self.ds.cosmological_simulation:
-                val /= self.ds.domain_dimensions.prod()
+                val = val / self.ds.domain_dimensions.prod()
 
             def _pmass(field, data):
                 return val * data[ptype, "particle_ones"]
