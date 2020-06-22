@@ -1,17 +1,13 @@
 from collections import OrderedDict
 
 from yt.testing import \
-    assert_equal, \
     requires_file, \
     ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
     sph_answer, \
-    nbody_answer, \
-    create_obj, \
-    FieldValuesTest, \
-    PixelizedProjectionValuesTest
+    nbody_answer
 from yt.frontends.tipsy.api import TipsyDataset
 
 _fields = OrderedDict(

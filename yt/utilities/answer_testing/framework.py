@@ -1035,7 +1035,9 @@ def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
     assert_equal(str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
     dd = ds.all_data()
-    assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
+    # this needs to explicitly be "all"
+    assert_equal(dd["all", "particle_position"].shape,
+                 (ds_nparticles, 3))
     tot = sum(dd[ptype, "particle_position"].shape[0]
               for ptype in ds.particle_types_raw)
     assert_equal(tot, ds_nparticles)
