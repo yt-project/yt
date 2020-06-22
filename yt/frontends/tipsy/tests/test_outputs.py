@@ -25,8 +25,11 @@ pkdgrav_cosmology_parameters = dict(current_redshift = 0.0,
                                 omega_lambda = 0.728,
                                 omega_matter = 0.272,
                                 hubble_constant = 0.702)
-pkdgrav_kwargs = dict(cosmology_parameters = pkdgrav_cosmology_parameters,
-                  unit_base = {'length': (60.0, "Mpccm/h")})
+pkdgrav_kwargs = dict(
+    field_dtypes = {"Coordinates": "d"},
+    cosmology_parameters = pkdgrav_cosmology_parameters,
+    unit_base = {'length': (60.0, "Mpccm/h")}
+)
 @requires_ds(pkdgrav, big_data = True, file_check = True)
 def test_pkdgrav():
     ds = data_dir_load(pkdgrav, TipsyDataset, (), kwargs = pkdgrav_kwargs)
