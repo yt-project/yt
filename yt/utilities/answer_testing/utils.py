@@ -574,3 +574,13 @@ def _create_phase_plot_attribute_plot(data_source, x_field, y_field, z_field,
         cls = getattr(particle_plots, plot_type)
     plot = cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
     return plot
+
+
+def get_parameterization(fname):
+    try:
+        ds = data_dir_load(fname)
+        fields = ds.field_list
+        ids = [str(i) for i in range(len(ds.field_list))]
+        return [fields, ids]
+    except YTOutputNotIdentified:
+        return [[pytest.param(None, marks=pytest.mark.skip),], ['skipped',]]

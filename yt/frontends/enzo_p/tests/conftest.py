@@ -4,13 +4,6 @@ Purpose: Contains fixtures for loading data.
 """
 import pytest
 
-from yt.utilities.answer_testing import utils
-
-
-# Test data
-hello_world = "hello-0210/hello-0210.block_list"
-ep_cosmo = "ENZOP_DD0140/ENZOP_DD0140.block_list"
-
 
 # Test parameters. Format:
 # {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
@@ -38,13 +31,3 @@ def pytest_generate_tests(metafunc):
             # Parametrize
             for param_name, param_vals in params.items():
                 metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
-
-@pytest.fixture(scope='class')
-def ds_hello_world():
-    ds = utils.data_dir_load(hello_world)
-    return ds
-
-@pytest.fixture(scope='class')
-def ds_ep_cosmo():
-    ds = utils.data_dir_load(ep_cosmo)
-    return ds

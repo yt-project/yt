@@ -50,44 +50,44 @@ class TestAMRVac:
             assert isinstance(g.Level, (np.int32, np.int64, int))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(blastwave_polar_2D)
-    def test_bw_polar_2d(self, a, d, w, f, ds_bw_polar_2D):
-        self.hashes.update(small_patch_amr(ds_bw_polar_2D, f, w, a, d))
+    @pytest.mark.parametrize('ds', [blastwave_polar_2D], indirect=True)
+    def test_bw_polar_2d(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(blastwave_cartesian_3D)
-    def test_blastwave_cartesian_3D(self, a, d, w, f, ds_blastwave_cartesian_3D):
-        self.hashes.update(small_patch_amr(ds_blastwave_cartesian_3D, f, w, a, d))
+    @pytest.mark.parametrize('ds', [blastwave_cartesian_3D], indirect=True)
+    def test_blastwave_cartesian_3D(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(blastwave_spherical_2D)
-    def test_blastwave_spherical_2D(self, a, d, w, f, ds_blastwave_spherical_2D):
-        self.hashes.update(small_patch_amr(ds_blastwave_spherical_2D, f, w, a, d))
+    @pytest.mark.parametrize('ds', [blastwave_spherical_2D], indirect=True)
+    def test_blastwave_spherical_2D(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(blastwave_cylindrical_3D)
-    def test_blastwave_cylindrical_3D(self, a, d, w, f, ds_blastwave_cylindrical_3D):
-        self.hashes.update(small_patch_amr(ds_blastwave_cylindrical_3D, f, w, a, d))
+    @pytest.mark.parametrize('ds', [blastwave_cylindrical_3D], indirect=True)
+    def test_blastwave_cylindrical_3D(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(khi_cartesian_2D)
-    def test_khi_cartesian_2D(self, a, d, w, f, ds_khi_cartesian_2D):
-        self.hashes.update(small_patch_amr(ds_khi_cartesian_2D, f, w, a, d))
+    @pytest.mark.parametrize('ds', [khi_cartesian_2D], indirect=True)
+    def test_khi_cartesian_2D(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(khi_cartesian_3D)
-    def test_khi_cartesian_3D(self, a, d, w, f, ds_khi_cartesian_3D):
-        self.hashes.update(small_patch_amr(ds_khi_cartesian_3D, f, w, a, d))
+    @pytest.mark.parametrize('ds', [khi_cartesian_3D], indirect=True)
+    def test_khi_cartesian_3D(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(jet_cylindrical_25D)
-    def test_jet_cylindrical_25D(self, a, d, w, f, ds_jet_cylindrical_25D):
-        self.hashes.update(small_patch_amr(ds_jet_cylindrical_25D, f, w, a, d))
+    @pytest.mark.parametrize('ds', [jet_cylindrical_25D], indirect=True)
+    def test_jet_cylindrical_25D(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(riemann_cartesian_175D)
-    def test_riemann_cartesian_175D(self, a, d, w, f, ds_riemann_cartesian_175D):
-        self.hashes.update(small_patch_amr(ds_riemann_cartesian_175D, f, w, a, d))
+    @pytest.mark.parametrize('ds', [riemann_cartesian_175D], indirect=True)
+    def test_riemann_cartesian_175D(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
 
 # Tests for units: verify that overriding certain units yields the correct derived units.

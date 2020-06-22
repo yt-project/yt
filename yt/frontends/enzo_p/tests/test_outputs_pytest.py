@@ -42,14 +42,13 @@ _pfields = ("particle_position_x", "particle_position_y",
 @pytest.mark.usefixtures('answer_file')
 class TestEnzoP:
 
-    @requires_file(hello_world)
-    def test_EnzoPDataset(self, ds_hello_world):
-        assert isinstance(ds_hello_world, EnzoPDataset)
+    @pytest.mark.parametrize('ds', [hello_world], indirect=True)
+    def test_EnzoPDataset(self, ds):
+        assert isinstance(ds, EnzoPDataset)
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(hello_world)
-    def test_hello_world(self, f, a, d, w, ds_hello_world):
-        ds = ds_hello_world
+    @pytest.mark.parametrize('ds', [hello_world], indirect=True)
+    def test_hello_world(self, f, a, d, w, ds):
         ppv = pixelized_projection_values(ds, a, f, w, d)
         self.hashes.update({'pixelized_projection_values' : ppv})
         fv = field_values(ds, f, d)
@@ -60,9 +59,8 @@ class TestEnzoP:
         assert_equal(s1, s2)
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(ep_cosmo)
-    def test_particle_fields(self, f, d, ds_ep_cosmo):
-        ds = ds_ep_cosmo
+    @pytest.mark.parametrize('ds', [ep_cosmo], indirect=True)
+    def test_particle_fields(self, f, d, ds):
         fv = field_values(ds, f, d, particle_type=True)
         self.hashes.update({'field_values' : fv})
         dobj = utils.create_obj(ds, d)
@@ -70,9 +68,8 @@ class TestEnzoP:
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
-    @requires_file(hello_world)
-    def test_hierarchy(self, ds_hello_world):
-        ds = ds_hello_world
+    @pytest.mark.parametrize('ds', [hello_world], indirect=True)
+    def test_hierarchy(self, ds):
         fh = h5py.File(ds.index.grids[0].filename, "r")
         for grid in ds.index.grids:
             assert_array_equal(
@@ -87,9 +84,8 @@ class TestEnzoP:
                 assert_equal(child.Parent.id, grid.id)
         fh.close()
 
-    @requires_file(ep_cosmo)
-    def test_critical_density(self, ds_ep_cosmo):
-        ds = ds_ep_cosmo
+    @pytest.mark.parametrize('ds', [ep_cosmo], indirect=True)
+    def test_critical_density(self, ds):
         c1 = (ds.r["dark", "particle_mass"].sum() +
               ds.r["gas", "cell_mass"].sum()) / \
               ds.domain_width.prod() / ds.critical_density

@@ -36,12 +36,12 @@ class TestAthenaPP:
     # test_disk
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(disk)
-    def test_disk(self, field, ds_disk):
-        dd = ds_disk.all_data()
-        vol = (ds_disk.domain_right_edge[0]**3-ds_disk.domain_left_edge[0]**3)/3.0
-        vol *= np.cos(ds_disk.domain_left_edge[1])-np.cos(ds_disk.domain_right_edge[1])
-        vol *= ds_disk.domain_right_edge[2].v-ds_disk.domain_left_edge[2].v
+    @pytest.mark.parametrize('ds', [disk], indirect=True)
+    def test_disk(self, field, ds):
+        dd = ds.all_data()
+        vol = (ds.domain_right_edge[0]**3-ds.domain_left_edge[0]**3)/3.0
+        vol *= np.cos(ds.domain_left_edge[1])-np.cos(ds.domain_right_edge[1])
+        vol *= ds.domain_right_edge[2].v-ds.domain_left_edge[2].v
         assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
         def field_func(name):
             return dd[field]
@@ -52,10 +52,9 @@ class TestAthenaPP:
     # test_AM06
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(AM06)
-    def test_AM06(self, a, d, w, f, ds_AM06):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_AM06, f, w, a, d))
+    @pytest.mark.parametrize('ds', [AM06], indirect=True)
+    def test_AM06(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_AM06_override

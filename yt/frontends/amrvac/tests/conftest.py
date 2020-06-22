@@ -4,100 +4,72 @@ Purpose: Generates parameters and loads data for tests.
 """
 import pytest
 
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.utils import get_parameterization
 
 
-# Data files
-blastwave_spherical_2D = "amrvac/bw_2d0000.dat"
-khi_cartesian_2D = "amrvac/kh_2d0000.dat"
-khi_cartesian_3D = "amrvac/kh_3D0000.dat"
-jet_cylindrical_25D = "amrvac/Jet0003.dat"
-riemann_cartesian_175D = "amrvac/R_1d0005.dat"
-blastwave_cartesian_3D = "amrvac/bw_3d0000.dat"
-blastwave_polar_2D = "amrvac/bw_polar_2D0000.dat"
-blastwave_cylindrical_3D = "amrvac/bw_cylindrical_3D0000.dat"
+bw_polar_2d = get_parameterization("amrvac/bw_polar_2D0000.dat")
+bw_cart_3d = get_parameterization("amrvac/bw_3d0000.dat")
+bw_sph_2d = get_parameterization("amrvac/bw_2d0000.dat")
+bw_cyl_3d = get_parameterization("amrvac/bw_cylindrical_3D0000.dat")
+khi_cart_2d = get_parameterization("amrvac/kh_2d0000.dat")
+khi_cart_3d = get_parameterization("amrvac/kh_3D0000.dat")
+jet_cyl_25d = get_parameterization("amrvac/Jet0003.dat")
+rie_cart_175d = get_parameterization("amrvac/R_1d0005.dat")
 
-
-# Global test parameters
-axes = [0, 1, 2]
-center = "max"
-ds_objs = [None, ("sphere", (center, (0.1, 'unitary')))]
-weights = [None, "density"]
-
-
-# Tests that use the hashing fixture
-hash_tests = [
-    'test_bw_polar_2d',
-    'test_blastwave_cartesian_3D',
-    'test_blastwave_spherical_2D',
-    'test_blastwave_cylindrical_3D',
-    'test_khi_cartesian_2D',
-    'test_khi_cartesian_3D',
-    'test_jet_cylindrical_25D',
-    'test_riemann_cartesian_175D',
-]
+test_params = {
+    'test_bw_polar_2d' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [bw_polar_2d[0], bw_polar_2d[1]]
+    },
+    'test_blastwave_cartesian_3D' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [bw_cart_3d[0], bw_cart_3d[1]]
+    },
+    'test_blastwave_spherical_2D' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [bw_sph_2d[0], bw_sph_2d[1]]
+    },
+    'test_blastwave_cylindrical_3D' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [bw_cyl_3d[0], bw_cyl_3d[1]]
+    },
+    'test_khi_cartesian_2D' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [khi_cart_2d[0], khi_cart_2d[1]]
+    },
+    'test_khi_cartesian_3D' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [khi_cart_3d[0], khi_cart_3d[1]]
+    },
+    'test_jet_cylindrical_25D' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [jet_cyl_25d[0], jet_cyl_25d[1]]
+    },
+    'test_riemann_cartesian_175D' : {
+        'a' : [(0, 1, 2), ('0', '1', '2')],
+        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
+        'w' : [(None, 'density'), ('None', 'density')],
+        'f' : [rie_cart_175d[0], rie_cart_175d[1]]
+    },
+}
 
 
 def pytest_generate_tests(metafunc):
-    if metafunc.function.__name__ == 'test_bw_polar_2d':
-        fields = utils.data_dir_load(blastwave_polar_2D).field_list
-    if metafunc.function.__name__ == 'test_blastwave_cartesian_3D':
-        fields = utils.data_dir_load(blastwave_cartesian_3D).field_list
-    if metafunc.function.__name__ == 'test_blastwave_spherical_2D':
-        fields = utils.data_dir_load(blastwave_spherical_2D).field_list
-    if metafunc.function.__name__ == 'test_blastwave_cylindrical_3D':
-        fields = utils.data_dir_load(blastwave_cylindrical_3D).field_list
-    if metafunc.function.__name__ == 'test_khi_cartesian_2D':
-        fields = utils.data_dir_load(khi_cartesian_2D).field_list
-    if metafunc.function.__name__ == 'test_khi_cartesian_3D':
-        fields = utils.data_dir_load(khi_cartesian_3D).field_list
-    if metafunc.function.__name__ == 'test_jet_cylindrical_25D':
-        fields = utils.data_dir_load(jet_cylindrical_25D).field_list
-    if metafunc.function.__name__ == 'test_riemann_cartesian_175D':
-        fields = utils.data_dir_load(riemann_cartesian_175D).field_list
-    if metafunc.function.__name__ in hash_tests:
-        metafunc.parametrize('a', axes, ids=['0', '1', '2'])
-        metafunc.parametrize('d', ds_objs, ids=['None', 'sphere'])
-        metafunc.parametrize('w', weights, ids=['None', 'density'])
-        metafunc.parametrize('f', fields, ids=[str(i) for i in range(len(fields))])
-
-
-@pytest.fixture(scope='class')
-def ds_bw_polar_2D():
-    ds = utils.data_dir_load(blastwave_polar_2D)
-    return ds
-
-@pytest.fixture(scope='class')
-def ds_blastwave_cartesian_3D():
-    ds = utils.data_dir_load(blastwave_cartesian_3D)
-    return ds
-
-@pytest.fixture(scope='class')
-def ds_blastwave_spherical_2D():
-    ds = utils.data_dir_load(blastwave_spherical_2D)
-    return ds
-
-@pytest.fixture(scope='class')
-def ds_blastwave_cylindrical_3D():
-    ds = utils.data_dir_load(blastwave_cylindrical_3D)
-    return ds
-
-@pytest.fixture(scope='class')
-def ds_khi_cartesian_2D():
-    ds = utils.data_dir_load(khi_cartesian_2D)
-    return ds
-
-@pytest.fixture(scope='class')
-def ds_khi_cartesian_3D():
-    ds = utils.data_dir_load(khi_cartesian_3D)
-    return ds
-
-@pytest.fixture(scope='class')
-def ds_jet_cylindrical_25D():
-    ds = utils.data_dir_load(jet_cylindrical_25D)
-    return ds
-
-@pytest.fixture(scope='class')
-def ds_riemann_cartesian_175D():
-    ds = utils.data_dir_load(riemann_cartesian_175D)
-    return ds
+    for test_name, params in test_params.items():
+        if metafunc.function.__name__ == test_name:
+            for param_name, param_vals in params.items():
+                metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])

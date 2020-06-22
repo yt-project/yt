@@ -72,57 +72,52 @@ def color_conservation_test(ds):
 class TestEnzo:
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(toro1d)
-    def test_toro1d(self, a, d, w, f, ds_toro1d):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_toro1d, f, w, a, d))
+    @pytest.mark.parametrize('ds', [toro1d], indirect=True)
+    def test_toro1d(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(kh2d)
-    def test_kh2d(self, a, d, w, f, ds_kh2d):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_kh2d, f, w, a, d))
+    @pytest.mark.parametrize('ds', [kh2d], indirect=True)
+    def test_kh2d(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(m7)
-    def test_moving7(self, a, d, w, f, ds_m7):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_m7, f, w, a, d))
+    @pytest.mark.parametrize('ds', [m7], indirect=True)
+    def test_moving7(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.big_data
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(g30)
-    def test_galaxy0030(self, a, d, w, f, ds_g30):
-        # Color conservation test
-        color_conservation_test(ds_g30)
-        # Run the big patch amr test suite
-        self.hashes.update(big_patch_amr(ds_g30, f, w, a, d))
+    @pytest.mark.parametrize('ds', [g30], indirect=True)
+    def test_galaxy0030(self, a, d, w, f, ds):
+        color_conservation_test(ds)
+        self.hashes.update(big_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_simulated_halo_mass_function(self, finder, ds_enzotiny):
-        shmf = simulated_halo_mass_function(ds_enzotiny, finder)
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_simulated_halo_mass_function(self, finder, ds):
+        shmf = simulated_halo_mass_function(ds, finder)
         self.hashes.update({'simulated_halo_mass_function' : shmf})
 
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_analytic_halo_mass_function(self, fit, ds_enzotiny):
-        ahmf = analytic_halo_mass_function(ds_enzotiny, fit)
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_analytic_halo_mass_function(self, fit, ds):
+        ahmf = analytic_halo_mass_function(ds, fit)
         self.hashes.update({'analytic_halo_mass_function' : ahmf})
 
     @pytest.mark.big_data
-    @utils.requires_ds(ecp)
-    def test_ecp(self, ds_ecp):
-        color_conservation_test(ds_ecp)
+    @pytest.mark.parametrize('ds', [ecp], indirect=True)
+    def test_ecp(self, ds):
+        color_conservation_test(ds)
 
     @requires_file(enzotiny)
-    def test_units_override(self, ds_enzotiny):
-        units_override_check(ds_enzotiny, enzotiny)
+    def test_units_override(self):
+        units_override_check(enzotiny)
 
     @pytest.mark.big_data
-    @utils.requires_ds(ecp)
-    def test_nuclei_density_fields(self, ds_ecp):
-        ad = ds_ecp.all_data()
+    @pytest.mark.parametrize('ds', [ecp], indirect=True)
+    def test_nuclei_density_fields(self, ds):
+        ad = ds.all_data()
         # Hydrogen
         hd1 = utils.generate_hash(ad["H_nuclei_density"].tostring())
         hd2 = utils.generate_hash((ad["H_number_density"] +
@@ -135,13 +130,15 @@ class TestEnzo:
         )
         assert hd1 == hd2
 
-    @requires_file(enzotiny)
-    def test_EnzoDataset(self, ds_enzotiny):
-        assert isinstance(ds_enzotiny, EnzoDataset)
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_EnzoDataset(self, ds):
+        assert isinstance(ds, EnzoDataset)
 
     @requires_file(two_sphere_test)
     @requires_file(active_particle_cosmology)
-    def test_active_particle_datasets(self, ds_two_sphere_test, ds_active_particle_cosmology):
+    def test_active_particle_datasets(self):
+        ds_two_sphere_test = utils.data_dir_load(two_sphere_test)
+        ds_active_particle_cosmology = utils.data_dir_load(active_particle_cosmology)
         # Set up lists for comparison
         pfields = ['GridID', 'creation_time', 'dynamical_time',
                    'identifier', 'level', 'metallicity', 'particle_mass']
@@ -166,11 +163,11 @@ class TestEnzo:
         assert_equal(apcos_fields, real_apcos_fields)
         assert_equal(ds_active_particle_cosmology.particle_type_counts, apcos_pcounts)
 
-    @requires_file(mhdctot)
-    def test_face_centered_mhdct_fields(self, ds_mhdctot):
-        ad = ds_mhdctot.all_data()
-        grid = ds_mhdctot.index.grids[0]
-        dims = ds_mhdctot.domain_dimensions
+    @pytest.mark.parametrize('ds', [mhdctot], indirect=True)
+    def test_face_centered_mhdct_fields(self, ds):
+        ad = ds.all_data()
+        grid = ds.index.grids[0]
+        dims = ds.domain_dimensions
         dims_prod = dims.prod()
         for field, flag in NODAL_FLAGS.items():
             assert_equal(ad[field].shape, (dims_prod, 2*sum(flag)))
@@ -181,36 +178,36 @@ class TestEnzo:
         assert (ad['ByF'].sum(axis=-1)/2 == ad['By']).all()
         assert (ad['BzF'].sum(axis=-1)/2 == ad['Bz']).all()
 
-    @utils.requires_ds(dnz)
-    def test_deeply_nested_zoom(self, ds_dnz):
+    @pytest.mark.parametrize('ds', [dnz], indirect=True)
+    def test_deeply_nested_zoom(self, ds):
         # Carefully chosen to just barely miss a grid in the middle of
         # the image
         center = [0.4915073260199302, 0.5052605316800006, 0.4905805557500548]
-        plot = SlicePlot(ds_dnz, 'z', 'density', width=(0.001, 'pc'),
+        plot = SlicePlot(ds, 'z', 'density', width=(0.001, 'pc'),
                          center=center)
         image = plot.frb['density']
         assert (image > 0).all()
-        v, c = ds_dnz.find_max('density')
-        assert_allclose_units(v, ds_dnz.quan(0.005878286377124154, 'g/cm**3'))
+        v, c = ds.find_max('density')
+        assert_allclose_units(v, ds.quan(0.005878286377124154, 'g/cm**3'))
         c_actual = [0.49150732540021, 0.505260532936791, 0.49058055816398]
-        c_actual = ds_dnz.arr(c_actual, 'code_length')
+        c_actual = ds.arr(c_actual, 'code_length')
         assert_allclose_units(c, c_actual)
-        assert_equal(max([g['density'].max() for g in ds_dnz.index.grids]), v)
+        assert_equal(max([g['density'].max() for g in ds.index.grids]), v)
 
-    @requires_file(kh2d)
-    def test_2d_grid_shape(self, ds_kh2d):
+    @pytest.mark.parametrize('ds', [kh2d], indirect=True)
+    def test_2d_grid_shape(self, ds):
         r"""See issue #1601: we want to make sure that accessing data on
         a grid object returns a 3D array with a dummy dimension
         """
-        g = ds_kh2d.index.grids[1]
+        g = ds.index.grids[1]
         assert g['density'].shape == (128, 100, 1)
 
-    @requires_file(p3mini)
-    def test_nonzero_omega_radiation(self, ds_p3mini):
+    @pytest.mark.parametrize('ds', [p3mini], indirect=True)
+    def test_nonzero_omega_radiation(self, ds):
         r"""Test support for non-zero omega_radiation cosmologies.
         """
         err_msg = "Simulation time not consistent with cosmology calculator."
-        t_from_z = ds_p3mini.cosmology.t_from_z(ds_p3mini.current_redshift)
-        tratio = ds_p3mini.current_time / t_from_z
-        assert_equal(ds_p3mini.omega_radiation, ds_p3mini.cosmology.omega_radiation)
+        t_from_z = ds.cosmology.t_from_z(ds.current_redshift)
+        tratio = ds.current_time / t_from_z
+        assert_equal(ds.omega_radiation, ds.cosmology.omega_radiation)
         assert_almost_equal(tratio, 1, 4, err_msg=err_msg)

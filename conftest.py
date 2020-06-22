@@ -223,7 +223,7 @@ def _param_list(request):
     blacklist = ['hashing', 'answer_file', 'request']
     test_params = {}
     for key, val in request.node.funcargs.items():
-        if key not in blacklist and not key.startswith('ds_'):
+        if key not in blacklist and not key.startswith('ds'):
             test_params[key] = val
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
@@ -305,3 +305,12 @@ def hashing(request):
         utils._handle_raw_arrays(request.cls.raw_answer_file,
             request.cls.hashes, request.config.getoption('--raw-answer-store'),
             request.node.name)
+
+
+@pytest.fixture(scope='class')
+def ds(request):
+    dataset = utils.data_dir_load(request.param)
+    if dataset:
+        return dataset
+    else:
+        pytest.skip(f"Data file: `{request.param}` not found.")

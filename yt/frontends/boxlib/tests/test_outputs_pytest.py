@@ -57,37 +57,33 @@ class TestBoxLib:
     # test_radavect
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(radadvect)
-    def test_radadvect(self, f, a, d, w, ds_radadvect):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_radadvect, f, w, a, d))
+    @pytest.mark.parametrize('ds', [radadvect], indirect=True)
+    def test_radadvect(self, f, a, d, w, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_radtube
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(rt)
-    def test_radtube(self, f, a, d, w, ds_rt):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_rt, f, w, a, d))
+    @pytest.mark.parametrize('ds', [rt], indirect=True)
+    def test_radtube(self, f, a, d, w, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_star
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(star)
-    def test_star(self, f, a, d, w, ds_star):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_star, f, w, a, d))
+    @pytest.mark.parametrize('ds', [star], indirect=True)
+    def test_star(self, f, a, d, w, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_LyA
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(LyA)
-    def test_LyA(self, f, a, d, w, ds_LyA):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_LyA, f, w, a, d))
+    @pytest.mark.parametrize('ds', [LyA], indirect=True)
+    def test_LyA(self, f, a, d, w, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_nyx_particle_io
@@ -121,10 +117,9 @@ class TestBoxLib:
     # test_RT_particles
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(RT_particles)
-    def test_RT_particles(self, f, a, d, w, ds_RT_particles):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_RT_particles, f, w, a, d))
+    @pytest.mark.parametrize('ds', [RT_particles], indirect=True)
+    def test_RT_particles(self, f, a, d, w, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_castro_particle_io
@@ -155,28 +150,25 @@ class TestBoxLib:
     # test_langmuir
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(langmuir)
-    def test_langmuir(self, f, a, d, w, ds_langmuir):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_langmuir, f, w, a, d))
+    @pytest.mark.parametrize('ds', [langmuir], indirect=True)
+    def test_langmuir(self, f, a, d, w, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_plasma
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(plasma)
-    def test_plasma(self, f, a, d, w, ds_plasma):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_plasma, f, w, a, d))
+    @pytest.mark.parametrize('ds', [plasma], indirect=True)
+    def test_plasma(self, f, a, d, w, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_beam
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(beam)
-    def test_beam(self, f, a, d, w, ds_beam):
-        # Run the small_patch_amr test suite
-        self.hashes.update(small_patch_amr(ds_beam, f, w, a, d))
+    @pytest.mark.parametrize('ds', [beam], indirect=True)
+    def test_beam(self, f, a, d, w, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     #-----
     # test_warpx_particle_io
@@ -215,9 +207,9 @@ class TestBoxLib:
     # test_raw_fields
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(raw_fields)
-    def test_raw_fields(self, f, ds_raw_fields):
-        gv = grid_values(ds_raw_fields, f)
+    @pytest.mark.parametrize('ds', [raw_fields], indirect=True)
+    def test_raw_fields(self, f, ds):
+        gv = grid_values(ds, f)
         self.hashes.update({'grid_values' : gv})
 
     #-----
