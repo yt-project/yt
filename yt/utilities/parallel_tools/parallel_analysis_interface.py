@@ -710,8 +710,7 @@ class Communicator:
             data = self.comm.bcast(data, root=0)
             return data
         elif datatype == "dict" and op == "cat":
-            field_keys = data.keys()
-            field_keys.sort()
+            field_keys = sorted(data.keys())
             size = data[field_keys[0]].shape[-1]
             sizes = np.zeros(self.comm.size, dtype='int64')
             outsize = np.array(size, dtype='int64')
@@ -1058,7 +1057,7 @@ class Communicator:
         return recv
 
     def probe_loop(self, tag, callback):
-        while 1:
+        while True:
             st = MPI.Status()
             self.comm.Probe(MPI.ANY_SOURCE, tag = tag, status = st)
             try:

@@ -1765,7 +1765,7 @@ class ParticleCallback(PlotCallback):
         # we construct a rectangular prism
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        if type(self.data_source)==YTCutRegion:
+        if isinstance(self.data_source, YTCutRegion):
             mylog.warning("Parameter 'width' is ignored in annotate_particles if the "
                           "data_source is a cut_region. "
                           "See https://github.com/yt-project/yt/issues/1933 for further details.")

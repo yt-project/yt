@@ -197,7 +197,7 @@ class OpenPMDHierarchy(GridIndex):
             meshes = f[bp + mp]
             for mname in meshes.keys():
                 mesh = meshes[mname]
-                if type(mesh) is h5.Group:
+                if isinstance(mesh, h5.Group):
                     shape = mesh[list(mesh.keys())[0]].shape
                 else:
                     shape = mesh.shape
@@ -495,7 +495,7 @@ class OpenPMDDataset(Dataset):
             meshes = f[bp + mp]
             for mname in meshes.keys():
                 mesh = meshes[mname]
-                if type(mesh) is h5.Group:
+                if isinstance(mesh, h5.Group):
                     shape = np.asarray(mesh[list(mesh.keys())[0]].shape)
                 else:
                     shape = np.asarray(mesh.shape)

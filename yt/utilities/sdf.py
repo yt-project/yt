@@ -178,13 +178,12 @@ class DataStruct:
 
     def __getitem__(self, key):
         mask = None
-        kt = type(key)
-        if kt == int or kt == np.int64 or kt == np.int32 or kt == np.int:
+        if isinstance(key, (int, np.int, np.integer)):
             if key == -1:
                 key = slice(-1, None)
             else:
                 key = slice(key, key+1)
-        elif type(key) == np.ndarray:
+        elif isinstance(key, np.ndarray):
             mask = key
             key = slice(None, None)
         if not isinstance(key, slice):

@@ -50,7 +50,7 @@ class ObjectFindingMixin :
             # search is smaller than the number of processors being applied to
             # the task, by 
             nproc = ytcfg.getint("yt", "__topcomm_parallel_size")
-            while 1:
+            while True:
                 gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
                 if gi.sum() >= nproc:
                     break
