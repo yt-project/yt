@@ -27,7 +27,8 @@ from yt.frontends.ytdata.data_structures import \
     YTSpatialPlotDataset
 from yt.funcs import \
     mylog, iterable, ensure_list, \
-    fix_axis, fix_unitary, obj_length
+    fix_axis, fix_unitary, obj_length, \
+    issue_deprecation_warning
 from yt.units.unit_object import \
     Unit
 from yt.units.unit_registry import \
@@ -1125,8 +1126,26 @@ class PWViewerMPL(PlotWindow):
             callback.__doc__ = CallbackMaker.__doc__
             self.__dict__['annotate_'+cbname] = types.MethodType(callback,self)
 
-    @invalidate_plot
     def annotate_clear(self, index=None):
+        """
+        Clear callbacks from the plot.  If index is not set, clear all
+        callbacks.  If index is set, clear that index (ie 0 is the first one
+        created, 1 is the 2nd one created, -1 is the last one created, etc.)
+
+        .. note::
+
+            Deprecated in favor of `clear_annotations`.
+
+        See Also
+        --------
+        :py:meth:`yt.visualization.plot_window.PWViewerMPL.clear_annotations`
+        """
+        issue_deprecation_warning("\"annotate_clear\" has been deprecated"
+            " in favor of \"clear_annotations\". Using \"clear_annotations\".")
+        self.clear_annotations(index=index)
+
+    @invalidate_plot
+    def clear_annotations(self, index=None):
         """
         Clear callbacks from the plot.  If index is not set, clear all
         callbacks.  If index is set, clear that index (ie 0 is the first one

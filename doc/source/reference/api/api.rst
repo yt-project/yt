@@ -676,6 +676,7 @@ See also :ref:`callbacks`.
 .. autosummary::
 
    ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
+   ~yt.visualization.plot_window.PWViewerMPL.clear_annotations
    ~yt.visualization.plot_modifications.ArrowCallback
    ~yt.visualization.plot_modifications.CellEdgesCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
