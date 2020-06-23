@@ -27,8 +27,6 @@ from yt.frontends.halo_catalog.data_structures import \
     HaloCatalogFile, HaloCatalogParticleIndex
 from yt.funcs import \
     setdefaultattr
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.units import Mpc
 
