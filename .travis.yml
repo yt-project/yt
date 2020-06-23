@@ -89,23 +89,9 @@ jobs:
       script: coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
-      name: "Python: 3.6 Unit Tests"
-      python: 3.6
-      script: coverage run $(which nosetests) -c nose_unit.cfg
-
-    - stage: tests
-      name: "Python: 3.8 Unit Tests"
+      name: "Python: 3.8 Unit Tests (Pytest)"
       python: 3.8
-      script: coverage run $(which nosetests) -c nose_unit.cfg
-
-      # This is not necessarily going to be forever -- once we merge yt-4.0
-      # with master we will likely change this around to reduce the number of
-      # versions we test on.
-    - stage: tests
-      name: "Python: 3.7 Answer Tests"
-      python: 3.7
-      script: coverage run $(which nosetests) -c nose_answer.cfg
-      after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_nosetests.xml"
+      script: pytest -vv
 
     - stage: tests
       name: "MacOS: Unit Tests"
