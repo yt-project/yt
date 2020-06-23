@@ -1047,8 +1047,10 @@ class YTCutRegion(YTSelectionContainer3D):
         ds=None,
         field_parameters=None,
         base_object=None,
-        locals={},
+        locals=None,
     ):
+        if locals is None:
+            locals = {}
         validate_object(data_source, YTSelectionContainer)
         validate_iterable(conditionals)
         for condition in conditionals:

@@ -2120,7 +2120,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self.coords = None
         self._grids = None
 
-    def cut_region(self, field_cuts, field_parameters=None, locals={}):
+    def cut_region(self, field_cuts, field_parameters=None, locals=None):
         """
         Return a YTCutRegion, where the a cell is identified as being inside
         the cut region based on the value of one or more fields.  Note that in
@@ -2151,6 +2151,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.cut_region(["obj['temperature'] > 1e6"])
         >>> print(cr.quantities.total_quantity("cell_mass").in_units('Msun'))
         """
+        if locals is None:
+            locals = {}
         cr = self.ds.cut_region(
             self, field_cuts, field_parameters=field_parameters, locals=locals
         )
