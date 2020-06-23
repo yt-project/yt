@@ -105,7 +105,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
 
-  local_ramses_002:
+  local_ramses_003:
     - yt/frontends/ramses/tests/test_outputs.py
 
   local_ytdata_006:
