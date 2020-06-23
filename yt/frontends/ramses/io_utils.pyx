@@ -74,8 +74,6 @@ def read_amr(FortranFile f, dict headers,
                                     count_boundary = 1)
                 if n > 0:
                     max_level = max(ilevel - min_level, max_level)
-                if n != ng:
-                    raise ValueError('Expected %s octs, got %s' % (ng, n))
 
     return max_level
 
@@ -103,8 +101,8 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
     skip_len = twotondim * nvar
 
     # It goes: level, CPU, 8-variable (1 oct)
-    offset = np.full((ncpu, n_levels), -1, dtype=np.int64)
-    level_count = np.zeros((ncpu, n_levels), dtype=np.int64)
+    offset = np.full((ncpu_and_bound, n_levels), -1, dtype=np.int64)
+    level_count = np.zeros((ncpu_and_bound, n_levels), dtype=np.int64)
 
     cdef np.int64_t[:,:] level_count_view = level_count
     cdef np.int64_t[:,:] offset_view = offset
