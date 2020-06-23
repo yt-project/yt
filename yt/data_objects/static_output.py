@@ -532,9 +532,7 @@ class Dataset(metaclass=RegisteredDataset):
                 continue
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
-        if hasattr(self, "cosmological_simulation") and getattr(
-            self, "cosmological_simulation"
-        ):
+        if hasattr(self, "cosmological_simulation") and self.cosmological_simulation:
             for a in [
                 "current_redshift",
                 "omega_lambda",
