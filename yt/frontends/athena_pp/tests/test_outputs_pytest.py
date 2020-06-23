@@ -76,12 +76,12 @@ class TestAthenaPP:
     # test_units_override
     #-----
     @requires_file(AM06)
-    def test_units_override(self, ds_AM06):
-        units_override_check(ds_AM06, AM06)
+    def test_units_override(self):
+        units_override_check(AM06)
 
     #-----
     # test_AthenaPPDataset
     #-----
     @requires_file(AM06)
-    def test_AthenaPPDataset(self, ds_AM06):
-        assert isinstance(ds_AM06, AthenaPPDataset)
+    def test_AthenaPPDataset(self):
+        assert isinstance(utils.data_dir_load(AM06), AthenaPPDataset)

@@ -89,8 +89,8 @@ class TestBoxLib:
     # test_nyx_particle_io
     #-----
     @requires_file(LyA)
-    def test_nyx_particle_io(self, ds_LyA):
-        ds = ds_LyA
+    def test_nyx_particle_io(self):
+        ds = utils.data_dir_load(LyA)
         grid = ds.index.grids[0]
         npart_grid_0 = 7908  # read directly from the header
         assert_equal(grid['particle_position_x'].size, npart_grid_0)
@@ -125,8 +125,8 @@ class TestBoxLib:
     # test_castro_particle_io
     #-----
     @requires_file(RT_particles)
-    def test_castro_particle_io(self, ds_RT_particles):
-        ds = ds_RT_particles
+    def test_castro_particle_io(self):
+        ds = utils.data_dir_load(RT_particles)
         grid = ds.index.grids[2]
         npart_grid_2 = 49  # read directly from the header
         assert_equal(grid['particle_position_x'].size, npart_grid_2)
@@ -174,8 +174,8 @@ class TestBoxLib:
     # test_warpx_particle_io
     #-----
     @requires_file(plasma)
-    def test_warpx_particle_io(self, ds_plasma):
-        ds = ds_plasma
+    def test_warpx_particle_io(self):
+        ds = utils.data_dir_load(plasma)
         grid = ds.index.grids[0]
         # read directly from the header
         npart0_grid_0 = 344  
@@ -216,36 +216,36 @@ class TestBoxLib:
     # test_OrionDataset
     #-----
     @requires_file(rt)
-    def test_OrionDataset(self, ds_rt):
-        assert isinstance(ds_rt, OrionDataset)
+    def test_OrionDataset(self):
+        assert isinstance(utils.data_dir_load(rt), OrionDataset)
 
     #-----
     # teset_NyxDataset
     #-----
     @requires_file(LyA)
-    def test_NyxDataset(self, ds_LyA):
-        assert isinstance(ds_LyA, NyxDataset)
+    def test_NyxDataset(self):
+        assert isinstance(utils.data_dir_load(LyA), NyxDataset)
 
     #-----
     # test_CastroDataset
     #-----
     @requires_file(RT_particles)
-    def test_CastroDataset(self, ds_RT_particles):
-        assert isinstance(ds_RT_particles, CastroDataset)
+    def test_CastroDataset(self):
+        assert isinstance(utils.data_dir_load(RT_particles), CastroDataset)
 
     #-----
     # test_WarpXDataset
     #-----
     @requires_file(plasma)
-    def test_WarpXDataset(self, ds_plasma):
-        assert isinstance(ds_plasma, WarpXDataset)
+    def test_WarpXDataset(self):
+        assert isinstance(utils.data_dir_load(plasma), WarpXDataset)
 
     #-----
     # test_units_override
     #-----
     @requires_file(rt)
-    def test_units_override(self, ds_rt):
-        units_override_check(ds_rt, rt)
+    def test_units_override(self):
+        units_override_check(rt)
 
     #-----
     # test_nyx_no_part
