@@ -116,11 +116,7 @@ class MutableAttribute:
             pass
         if self.display_array:
             try:
-                setattr(
-                    ret,
-                    "_ipython_display_",
-                    functools.partial(_wrap_display_ytarray, ret),
-                )
+                ret._ipython_display_ = functools.partial(_wrap_display_ytarray, ret)
             # This will error out if the items have yet to be turned into
             # YTArrays, in which case we just let it go.
             except AttributeError:
