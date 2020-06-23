@@ -306,5 +306,5 @@ def find_compare_maxima(expected_maxima, buf, resolution, width):
                 found_match = True
                 break
         if found_match is not True:
-            assert False
+            raise AssertionError
     pass
