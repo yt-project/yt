@@ -18,6 +18,7 @@ import base64
 import numpy
 import matplotlib
 import getpass
+import glob
 from math import floor, ceil
 from numbers import Number as numeric_type
 
@@ -38,7 +39,7 @@ def iterable(obj):
     *obj* iterable.
     """
     try: len(obj)
-    except: return False
+    except Exception: return False
     return True
 
 def ensure_list(obj):
@@ -168,7 +169,7 @@ def time_execution(func):
         mylog.debug('%s took %0.3f s', func.__name__, (t2-t1))
         return res
     from yt.config import ytcfg
-    if ytcfg.getboolean("yt","timefunctions") is True:
+    if ytcfg.getboolean("yt","timefunctions"):
         return wrapper
     else:
         return func
@@ -643,7 +644,10 @@ def get_yt_version():
     if version is None:
         return version
     else:
-        return version[:12].strip().decode('utf-8')
+        v_str = version[:12].strip()
+        if hasattr(v_str, 'decode'):
+            v_str = v_str.decode('utf-8')
+        return v_str
 
 def get_version_stack():
     version_info = {}
@@ -659,7 +663,7 @@ def get_script_contents():
     if not os.path.exists(finfo[0]): return None
     try:
         contents = open(finfo[0]).read()
-    except:
+    except Exception:
         contents = None
     return contents
 
@@ -804,7 +808,12 @@ def fix_axis(axis, ds):
 
 def get_image_suffix(name):
     suffix = os.path.splitext(name)[1]
-    return suffix if suffix in ['.png', '.eps', '.ps', '.pdf'] else ''
+    supported_suffixes = ['.png', '.eps', '.ps', '.pdf', '.jpg', '.jpeg']
+    if suffix in supported_suffixes or suffix == '':
+        return suffix
+    else:
+        mylog.warning('Unsupported image suffix requested (%s)' % suffix)
+        return ''
 
 def get_output_filename(name, keyword, suffix):
     r"""Return an appropriate filename for output.
@@ -954,51 +963,61 @@ def deprecated_class(cls):
         return cls(*args, **kwargs)
     return _func
 
-def enable_plugins():
-    """Forces the plugins file to be parsed.
+def enable_plugins(pluginfilename=None):
+    """Forces a plugin file to be parsed.
 
-    This plugin file is a means of creating custom fields, quantities,
+    A plugin file is a means of creating custom fields, quantities,
     data objects, colormaps, and other code classes and objects to be used
     in yt scripts without modifying the yt source directly.
 
-    The file must be located at ``$HOME/.config/yt/my_plugins.py``.
+    If <pluginfilename> is omited, this function will look for a plugin file at
+    ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
+    system-level configuration.
 
-    Warning: when you use this function, your script will only be reproducible
-    if you also provide the ``my_plugins.py`` file.
+    Warning: a script using this function will only be reproducible if your plugin
+    file is shared with it.
     """
     import yt
     from yt.fields.my_plugin_fields import my_plugins_fields
     from yt.config import ytcfg, CONFIG_DIR
-    my_plugin_name = ytcfg.get("yt", "pluginfilename")
 
-    # In the following order if pluginfilename is: an absolute path, located in
-    # the CONFIG_DIR, located in an obsolete config dir.
-    _fn = None
-    old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
-    for base_prefix in ('', CONFIG_DIR, old_config_dir):
-        if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
-            _fn = os.path.join(base_prefix, my_plugin_name)
-            break
-
-    if _fn is not None and os.path.isfile(_fn):
+    if pluginfilename is not None:
+        _fn = pluginfilename
+        if not os.path.isfile(_fn):
+            raise FileNotFoundError(_fn)
+    else:
+        # Determine global plugin location. By decreasing priority order:
+        # - absolute path
+        # - CONFIG_DIR
+        # - obsolete config dir.
+        my_plugin_name = ytcfg.get("yt", "pluginfilename")
+        old_config_dir = os.path.join(os.path.expanduser('~'), '.yt')
+        for base_prefix in ('', CONFIG_DIR, old_config_dir):
+            if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
+                _fn = os.path.join(base_prefix, my_plugin_name)
+                break
+        else:
+            mylog.error("Could not find a global system plugin file.")
+            return
         if _fn.startswith(old_config_dir):
-            mylog.warn(
+            mylog.warning(
                 'Your plugin file is located in a deprecated directory. '
                 'Please move it from %s to %s',
                 os.path.join(old_config_dir, my_plugin_name),
                 os.path.join(CONFIG_DIR, my_plugin_name))
-        mylog.info("Loading plugins from %s", _fn)
-        ytdict = yt.__dict__
-        execdict = ytdict.copy()
-        execdict['add_field'] = my_plugins_fields.add_field
-        with open(_fn) as f:
-            code = compile(f.read(), _fn, 'exec')
-            exec(code, execdict, execdict)
-        ytnamespace = list(ytdict.keys())
-        for k in execdict.keys():
-            if k not in ytnamespace:
-                if callable(execdict[k]):
-                    setattr(yt, k, execdict[k])
+
+    mylog.info("Loading plugins from %s", _fn)
+    ytdict = yt.__dict__
+    execdict = ytdict.copy()
+    execdict['add_field'] = my_plugins_fields.add_field
+    with open(_fn) as f:
+        code = compile(f.read(), _fn, 'exec')
+        exec(code, execdict, execdict)
+    ytnamespace = list(ytdict.keys())
+    for k in execdict.keys():
+        if k not in ytnamespace:
+            if callable(execdict[k]):
+                setattr(yt, k, execdict[k])
 
 def subchunk_count(n_total, chunk_size):
     handled = 0
@@ -1017,7 +1036,7 @@ def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
     """Generate file hash without reading in the entire file at once.
 
     Original code licensed under MIT.  Source:
-    http://pythoncentral.io/hashing-files-with-python/
+    https://www.pythoncentral.io/hashing-files-with-python/
 
     Parameters
     ----------
@@ -1044,7 +1063,7 @@ def get_hash(infile, algorithm='md5', BLOCKSIZE=65536):
 
     try:
         hasher = getattr(hashlib, algorithm)()
-    except:
+    except Exception:
         raise NotImplementedError("'%s' not available!  Available algorithms: %s" %
                                   (algorithm, hashlib.algorithms))
 
@@ -1126,7 +1145,7 @@ interactivity = False
 def toggle_interactivity():
     global interactivity
     interactivity = not interactivity
-    if interactivity is True:
+    if interactivity:
         if '__IPYTHON__' in dir(builtins):
             import IPython
             shell = IPython.get_ipython()
@@ -1273,3 +1292,9 @@ def validate_center(center):
         raise TypeError("Expected 'center' to be a numeric object of type "
                         "list/tuple/np.ndarray/YTArray/YTQuantity, "
                         "received '%s'." % str(type(center)).split("'")[1])
+
+def sglob(pattern):
+    """
+    Return the results of a glob through the sorted() function.
+    """
+    return sorted(glob.glob(pattern))

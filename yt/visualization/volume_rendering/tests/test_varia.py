@@ -80,13 +80,13 @@ class VariousVRTests(TestCase):
 
         source.set_log(False)
 
-        assert source.log_field is False
+        assert not source.log_field
         assert source.transfer_function.x_bounds == [0.1, 1]
         assert source._volume is None
 
         source.set_log(True)
 
-        assert source.log_field is True
+        assert source.log_field
         assert source.transfer_function.x_bounds == [-1, 0]
         assert source._volume is None
 
@@ -109,7 +109,7 @@ class VariousVRTests(TestCase):
         source.set_field('density')
 
         assert source.volume is not None
-        assert source.volume._initialized is False
+        assert not source.volume._initialized
         assert source.volume.fields is None
 
         del source.volume
@@ -122,7 +122,7 @@ class VariousVRTests(TestCase):
         sc.render()
 
         assert source.volume is not None
-        assert source.volume._initialized is True
+        assert source.volume._initialized
         assert source.volume.fields == [('gas', 'density')]
         assert source.volume.log_fields == [True]
 
@@ -132,6 +132,6 @@ class VariousVRTests(TestCase):
         sc.render()
 
         assert source.volume is not None
-        assert source.volume._initialized is True
+        assert source.volume._initialized
         assert source.volume.fields == [('gas', 'velocity_x')]
         assert source.volume.log_fields == [False]

@@ -8,7 +8,7 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
     YTFileNotParseable
-import re
+from .definitions import VERSION_RE, VAR_DESC_RE
 
 def convert_ramses_ages(ds, conformal_ages):
     tf = ds.t_frw
@@ -198,8 +198,6 @@ def _read_part_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile(r'# version: *(\d+)')
-    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
     mapping = [
@@ -215,7 +213,7 @@ def _read_part_file_descriptor(fname):
         ('family', 'particle_family'),
         ('tag', 'particle_tag')
     ]
-    # Convert in dictionary
+    # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
     with open(fname, 'r') as f:
@@ -255,8 +253,6 @@ def _read_fluid_file_descriptor(fname):
     """
     Read a file descriptor and returns the array of the fields found.
     """
-    VERSION_RE = re.compile(r'# version: *(\d+)')
-    VAR_DESC_RE = re.compile(r'\s*(\d+),\s*(\w+),\s*(\w+)')
 
     # Mapping
     mapping = [
@@ -267,7 +263,14 @@ def _read_fluid_file_descriptor(fname):
         ('pressure', 'Pressure'),
         ('metallicity', 'Metallicity'),
     ]
-    # Convert in dictionary
+
+    # Add mapping for magnetic fields
+    mapping += [(key, key) for key in 
+                ('B_{0}_{1}'.format(dim,side) for side in ['left','right'] 
+                 for dim in ['x','y','z'])]  
+
+
+    # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
     with open(fname, 'r') as f:

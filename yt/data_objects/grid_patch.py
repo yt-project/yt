@@ -293,15 +293,17 @@ class AMRGridPatch(YTSelectionContainer):
         else:
             cg = self.retrieve_ghost_zones(1, fields, smoothed=smoothed)
             for field in fields:
-                np.add(new_fields[field], cg[field][1: ,1: ,1: ], new_fields[field])
-                np.add(new_fields[field], cg[field][:-1,1: ,1: ], new_fields[field])
-                np.add(new_fields[field], cg[field][1: ,:-1,1: ], new_fields[field])
-                np.add(new_fields[field], cg[field][1: ,1: ,:-1], new_fields[field])
-                np.add(new_fields[field], cg[field][:-1,1: ,:-1], new_fields[field])
-                np.add(new_fields[field], cg[field][1: ,:-1,:-1], new_fields[field])
-                np.add(new_fields[field], cg[field][:-1,:-1,1: ], new_fields[field])
-                np.add(new_fields[field], cg[field][:-1,:-1,:-1], new_fields[field])
-                np.multiply(new_fields[field], 0.125, new_fields[field])
+                src = cg[field].in_units(new_fields[field].units).d
+                dest = new_fields[field].d
+                np.add(dest, src[1: ,1: ,1: ], dest)
+                np.add(dest, src[:-1,1: ,1: ], dest)
+                np.add(dest, src[1: ,:-1,1: ], dest)
+                np.add(dest, src[1: ,1: ,:-1], dest)
+                np.add(dest, src[:-1,1: ,:-1], dest)
+                np.add(dest, src[1: ,:-1,:-1], dest)
+                np.add(dest, src[:-1,:-1,1: ], dest)
+                np.add(dest, src[:-1,:-1,:-1], dest)
+                np.multiply(dest, 0.125, dest)
 
         if _old_api:
             return new_fields[fields[0]]

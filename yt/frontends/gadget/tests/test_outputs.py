@@ -5,7 +5,8 @@ import shutil
 import tempfile
 
 import yt
-from yt.testing import requires_file
+from yt.testing import requires_file, \
+    ParticleSelectionComparison
 from yt.utilities.answer_testing.framework import \
     data_dir_load, \
     requires_ds, \
@@ -44,11 +45,15 @@ def test_gadget_binary():
     curdir = os.getcwd()
     tmpdir = tempfile.mkdtemp()
     for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
-        fake_snap = fake_gadget_binary(
-            header_spec=header_spec,
-            endian=endian,
-            fmt=fmt
-        )
+        try:
+            fake_snap = fake_gadget_binary(
+                header_spec=header_spec,
+                endian=endian,
+                fmt=fmt
+            )
+        except FileNotFoundError:
+            # sometimes this happens for mysterious reasons
+            pass
         ds = yt.load(fake_snap, header_spec=header_spec)
         assert isinstance(ds, GadgetDataset)
         ds.field_list
@@ -106,6 +111,16 @@ def test_multifile_read():
     """
     assert isinstance(data_dir_load(snap_33), GadgetDataset)
     assert isinstance(data_dir_load(snap_33_dir), GadgetDataset)
+
+@requires_file(snap_33)
+def test_particle_subselection():
+    #This checks that we correctly subselect from a dataset, first by making
+    #sure we get all the particles, then by comparing manual selections against
+    #them.
+    ds = data_dir_load(snap_33)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
+
 
 @requires_ds(BE_Gadget)
 def test_bigendian_field_access():

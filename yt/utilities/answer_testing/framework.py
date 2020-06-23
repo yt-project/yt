@@ -1,3 +1,7 @@
+"""
+Title: framework.py
+Purpose: Contains answer tests that are used by yt's various frontends
+"""
 import logging
 import numpy as np
 import os
@@ -48,6 +52,7 @@ _latest = ytcfg.get("yt", "gold_standard_filename")
 _latest_local = ytcfg.get("yt", "local_standard_filename")
 _url_path = ytcfg.get("yt", "answer_tests_url")
 
+
 class AnswerTesting(Plugin):
     name = "answer-testing"
     _my_version = None
@@ -74,7 +79,7 @@ class AnswerTesting(Plugin):
         if version is None:
             try:
                 version = get_yt_version()
-            except:
+            except Exception:
                 version = "UNKNOWN%s" % (time.time())
         self._my_version = version
         return self._my_version
@@ -152,7 +157,8 @@ class AnswerTesting(Plugin):
         run_big_data = options.big_data
 
     def finalize(self, result=None):
-        if self.store_results is False: return
+        if not self.store_results:
+            return
         self.storage.dump(self.result_storage)
 
     def help(self):
@@ -181,7 +187,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
             for this_try in range(3):
                 try:
                     data = resp.read()
-                except:
+                except Exception:
                     time.sleep(0.01)
                 else:
                     # We were succesful
@@ -331,7 +337,7 @@ class AnswerTestingTest(object):
         elif isinstance(ds_fn, Dataset):
             self.ds = ds_fn
         else:
-            self.ds = data_dir_load(ds_fn)
+            self.ds = data_dir_load(ds_fn, kwargs = {'unit_system': 'code'})
 
     def __call__(self):
         if AnswerTestingTest.result_storage is None:
@@ -431,6 +437,9 @@ class AnswerTestingTest(object):
             oname = "_".join((str(s) for s in obj_type))
         args = [self._type_name, str(self.ds), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
+        suffix = getattr(self, "suffix", None)
+        if suffix:
+            args.append(suffix)
         return "_".join(args).replace('.', '_')
 
 class FieldValuesTest(AnswerTestingTest):
@@ -458,14 +467,23 @@ class FieldValuesTest(AnswerTestingTest):
         avg = obj.quantities.weighted_average_quantity(
             field, weight=weight_field)
         mi, ma = obj.quantities.extrema(self.field)
-        return np.array([avg, mi, ma])
+        return [avg, mi, ma]
 
     def compare(self, new_result, old_result):
         err_msg = "Field values for %s not equal." % (self.field,)
+        if hasattr(new_result, "d"):
+            new_result = new_result.d
+        if hasattr(old_result, "d"):
+            old_result = old_result.d
         if self.decimals is None:
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
         else:
+            # What we do here is check if the old_result has units; if not, we
+            # assume they will be the same as the units of new_result.
+            if isinstance(old_result, np.ndarray) and not hasattr(old_result, "in_units"):
+                # coerce it here to the same units
+                old_result = old_result * new_result[0].uq
             assert_allclose_units(new_result, old_result, 10.**(-self.decimals),
                                   err_msg=err_msg, verbose=True)
 
@@ -486,6 +504,10 @@ class AllFieldValuesTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         err_msg = "All field values for %s not equal." % self.field
+        if hasattr(new_result, "d"):
+            new_result = new_result.d
+        if hasattr(old_result, "d"):
+            old_result = old_result.d
         if self.decimals is None:
             assert_equal(new_result, old_result,
                          err_msg=err_msg, verbose=True)
@@ -498,7 +520,7 @@ class ProjectionValuesTest(AnswerTestingTest):
     _attrs = ("field", "axis", "weight_field")
 
     def __init__(self, ds_fn, axis, field, weight_field = None,
-                 obj_type = None, decimals = None):
+                 obj_type = None, decimals = 10):
         super(ProjectionValuesTest, self).__init__(ds_fn)
         self.axis = axis
         self.field = field
@@ -535,9 +557,16 @@ class ProjectionValuesTest(AnswerTestingTest):
         for k in new_result:
             err_msg = "%s values of %s (%s weighted) projection (axis %s) not equal." % \
               (k, self.field, self.weight_field, self.axis)
-            if k == 'weight_field' and self.weight_field is None:
+            if k == 'weight_field':
+                # Our weight_field can vary between unit systems, whereas we
+                # can do a unitful comparison for the other fields.  So we do
+                # not do the test here.
                 continue
             nres, ores = new_result[k][nind], old_result[k][oind]
+            if hasattr(nres, "d"):
+                nres = nres.d
+            if hasattr(ores, "d"):
+                ores = ores.d
             if self.decimals is None:
                 assert_equal(nres, ores, err_msg=err_msg)
             else:
@@ -555,6 +584,13 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         self.field = field
         self.weight_field = weight_field
         self.obj_type = obj_type
+
+    def _get_frb(self, obj):
+        proj = self.ds.proj(self.field, self.axis,
+                              weight_field=self.weight_field,
+                              data_source = obj)
+        frb = proj.to_frb((1.0, 'unitary'), 256)
+        return proj, frb
 
     def run(self):
         if self.obj_type is not None:
@@ -579,7 +615,16 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         for k in new_result:
             assert (k in old_result)
         for k in new_result:
-            assert_rel_equal(new_result[k], old_result[k], 10)
+            # weight_field does not have units, so we do not directly compare them
+            if k == "weight_field_sum": continue
+            assert_allclose_units(new_result[k], old_result[k], 1e-10)
+
+class PixelizedParticleProjectionValuesTest(PixelizedProjectionValuesTest):
+
+    def _get_frb(self, obj):
+        proj_plot = particle_plots.ParticleProjectionPlot(self.ds, self.axis, [self.field],
+                                                          weight_field = self.weight_field)
+        return proj_plot.data_source, proj_plot.frb
 
 class GridValuesTest(AnswerTestingTest):
     _type_name = "GridValues"
@@ -601,6 +646,10 @@ class GridValuesTest(AnswerTestingTest):
         for k in new_result:
             assert (k in old_result)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             assert_equal(new_result[k], old_result[k])
 
 class VerifySimulationSameTest(AnswerTestingTest):
@@ -638,6 +687,10 @@ class GridHierarchyTest(AnswerTestingTest):
 
     def compare(self, new_result, old_result):
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             assert_equal(new_result[k], old_result[k])
 
 class ParentageRelationshipsTest(AnswerTestingTest):
@@ -823,6 +876,10 @@ class GenericArrayTest(AnswerTestingTest):
                                           err_msg="Number of outputs not equal.",
                                           verbose=True)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             if self.decimals is None:
                 assert_almost_equal(new_result[k], old_result[k])
             else:
@@ -884,9 +941,9 @@ class AxialPixelizationTest(AnswerTestingTest):
             yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
             pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
             pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
-            # Wipe out all NaNs
-            pix_x[np.isnan(pix_x)] = 0.0
-            pix_y[np.isnan(pix_y)] = 0.0
+            # Wipe out invalid values (fillers)
+            pix_x[~np.isfinite(pix_x)] = 0.0
+            pix_y[~np.isfinite(pix_y)] = 0.0
             rv['%s_x' % axis] = pix_x
             rv['%s_y' % axis] = pix_y
         return rv
@@ -896,6 +953,10 @@ class AxialPixelizationTest(AnswerTestingTest):
                                           err_msg="Number of outputs not equal.",
                                           verbose=True)
         for k in new_result:
+            if hasattr(new_result[k], "d"):
+                new_result[k] = new_result[k].d
+            if hasattr(old_result[k], "d"):
+                old_result[k] = old_result[k].d
             if self.decimals is None:
                 assert_almost_equal(new_result[k], old_result[k])
             else:
@@ -908,7 +969,7 @@ def requires_sim(sim_fn, sim_type, big_data = False, file_check = False):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data is False and big_data is True:
+    if not run_big_data and big_data:
         return ffalse
     elif not can_run_sim(sim_fn, sim_type, file_check):
         return ffalse
@@ -930,7 +991,7 @@ def requires_ds(ds_fn, big_data = False, file_check = False):
         return lambda: None
     def ftrue(func):
         return func
-    if run_big_data is False and big_data is True:
+    if not run_big_data and big_data:
         return ffalse
     elif not can_run_ds(ds_fn, file_check):
         return ffalse
@@ -950,8 +1011,7 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                     yield ProjectionValuesTest(
                         ds_fn, axis, field, weight_field,
                         dobj_name)
-                yield FieldValuesTest(
-                        ds_fn, field, dobj_name)
+                yield FieldValuesTest(ds_fn, field, dobj_name)
 
 def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
     if not can_run_ds(ds_fn):
@@ -969,29 +1029,37 @@ def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                         dobj_name)
 
 
-def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+def _particle_answers(ds, ds_str_repr, ds_nparticles, fields, proj_test_class):
     if not can_run_ds(ds):
         return
     assert_equal(str(ds), ds_str_repr)
     dso = [None, ("sphere", ("c", (0.1, 'unitary')))]
     dd = ds.all_data()
-    assert_equal(dd["particle_position"].shape, (ds_nparticles, 3))
+    # this needs to explicitly be "all"
+    assert_equal(dd["all", "particle_position"].shape,
+                 (ds_nparticles, 3))
     tot = sum(dd[ptype, "particle_position"].shape[0]
               for ptype in ds.particle_types_raw)
     assert_equal(tot, ds_nparticles)
     for dobj_name in dso:
         for field, weight_field in fields.items():
-            if field[0] in ds.particle_types:
-                particle_type = True
-            else:
-                particle_type = False
+            particle_type = field[0] in ds.particle_types
             for axis in [0, 1, 2]:
-                if particle_type is False:
-                    yield PixelizedProjectionValuesTest(
+                if not particle_type:
+                    yield proj_test_class(
                         ds, axis, field, weight_field,
                         dobj_name)
             yield FieldValuesTest(ds, field, dobj_name,
                                   particle_type=particle_type)
+
+
+def nbody_answer(ds, ds_str_repr, ds_nparticles, fields):
+    return _particle_answers(ds, ds_str_repr, ds_nparticles, fields,
+        PixelizedParticleProjectionValuesTest)
+
+def sph_answer(ds, ds_str_repr, ds_nparticles, fields):
+    return _particle_answers(ds, ds_str_repr, ds_nparticles, fields,
+        PixelizedProjectionValuesTest)
 
 def create_obj(ds, obj_type):
     # obj_type should be tuple of

@@ -347,7 +347,7 @@ class ProfilePlot(object):
         return ret
 
     def _setup_plots(self):
-        if self._plot_valid is True:
+        if self._plot_valid:
             return
         for f in self.axes:
             self.axes[f].cla()
@@ -774,15 +774,15 @@ class ProfilePlot(object):
 
         Parameters
         ----------
-        xpos: float
+        xpos : float
           Position on plot in x-coordinates.
-        ypos: float
+        ypos : float
           Position on plot in y-coordinates.
-        text: str
+        text : str
           The text to insert onto the plot.
-        field: str or tuple
+        field : str or tuple
           The name of the field to add text to.
-        text_kwargs: dict
+        text_kwargs : dict
           Dictionary of text keyword arguments to be passed to matplotlib
 
         >>>  import yt
@@ -863,7 +863,7 @@ class PhasePlot(ImagePlotContainer):
     fractional : If True the profile values are divided by the sum of all 
         the profile data such that the profile represents a probability 
         distribution function.
-    fontsize: int
+    fontsize : int
         Font size for all text in the plot.
         Default: 18.
     figure_size : int
@@ -1001,6 +1001,10 @@ class PhasePlot(ImagePlotContainer):
             self._recreate_profile()
         return self._profile
 
+    @property
+    def fields(self):
+        return list(self.plots.keys())
+
     def _setup_plots(self):
         if self._plot_valid:
             return
@@ -1090,7 +1094,7 @@ class PhasePlot(ImagePlotContainer):
             # x-y axes minorticks
             if f not in self._minorticks:
                 self._minorticks[f] = True
-            if self._minorticks[f] is True:
+            if self._minorticks[f]:
                 self.plots[f].axes.minorticks_on()
             else:
                 self.plots[f].axes.minorticks_off()
@@ -1098,7 +1102,7 @@ class PhasePlot(ImagePlotContainer):
             # colorbar minorticks
             if f not in self._cbar_minorticks:
                 self._cbar_minorticks[f] = True
-            if self._cbar_minorticks[f] is True:
+            if self._cbar_minorticks[f]:
                 if self._field_transform[f] == linear_transform:
                     self.plots[f].cax.minorticks_on()
                 elif MPL_VERSION < LooseVersion("3.0.0"):
@@ -1118,7 +1122,7 @@ class PhasePlot(ImagePlotContainer):
         self._set_font_properties()
 
         # if this is a particle plot with one color only, hide the cbar here
-        if hasattr(self, "use_cbar") and self.use_cbar is False:
+        if hasattr(self, "use_cbar") and not self.use_cbar:
             self.plots[f].hide_colorbar()
 
         self._plot_valid = True
@@ -1168,15 +1172,15 @@ class PhasePlot(ImagePlotContainer):
 
         Parameters
         ----------
-        field: str or tuple
+        field : str or tuple
           The name of the field to add text to. 
-        xpos: float
+        xpos : float
           Position on plot in x-coordinates.
-        ypos: float
+        ypos : float
           Position on plot in y-coordinates.
-        text: str
+        text : str
           The text to insert onto the plot.
-        text_kwargs: dict
+        text_kwargs : dict
           Dictionary of text keyword arguments to be passed to matplotlib
 
         >>>  plot.annotate_text(1e-15, 5e4, "Hello YT")
@@ -1282,7 +1286,7 @@ class PhasePlot(ImagePlotContainer):
               demi, bold, heavy, extra bold, or black
 
             See the matplotlib font manager API documentation for more details.
-            http://matplotlib.org/api/font_manager_api.html
+            https://matplotlib.org/api/font_manager_api.html
 
         Notes
         -----

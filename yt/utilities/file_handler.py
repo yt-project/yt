@@ -9,7 +9,7 @@ def valid_hdf5_signature(fn):
         with open(fn, 'rb') as f:
             header = f.read(8)
             return header == signature
-    except:
+    except Exception:
         return False
 
 
@@ -24,7 +24,7 @@ class HDF5FileHandler(object):
     handle = None
 
     def __init__(self, filename):
-        self.handle = h5py.File(filename, 'r')
+        self.handle = h5py.File(filename, mode='r')
 
     def __getitem__(self, key):
         return self.handle[key]
@@ -81,7 +81,7 @@ def valid_netcdf_classic_signature(filename):
         with open(filename, 'rb') as f:
             header = f.read(4)
             return (header == signature_v1 or header == signature_v2)
-    except:
+    except Exception:
         return False
 
 

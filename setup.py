@@ -73,7 +73,7 @@ if os.path.exists('MANIFEST'):
 with open('README.md') as file:
     long_description = file.read()
 
-if check_for_openmp() is True:
+if check_for_openmp():
     omp_args = ['-fopenmp']
 else:
     omp_args = None
@@ -106,7 +106,8 @@ cython_extensions = [
               include_dirs=["yt/utilities/lib/",
                             "yt/utilities/lib/ewahboolarray"],
               language="c++",
-              libraries=std_libs),
+              libraries=std_libs,
+              extra_compile_args=["-std=c++11"]),
     Extension("yt.geometry.selection_routines",
               ["yt/geometry/selection_routines.pyx"],
               include_dirs=["yt/utilities/lib/"],
@@ -153,7 +154,7 @@ cython_extensions = [
               ],
               libraries=std_libs,
               language="c++",
-              extra_compile_arg=["-std=c++03"]),
+              extra_compile_args=["-std=c++03"]),
     Extension("yt.utilities.lib.cykdtree.utils",
               [
                   "yt/utilities/lib/cykdtree/utils.pyx",
@@ -162,7 +163,7 @@ cython_extensions = [
               depends=["yt/utilities/lib/cykdtree/c_utils.hpp"],
               libraries=std_libs,
               language="c++",
-              extra_compile_arg=["-std=c++03"]),    
+              extra_compile_args=["-std=c++03"]),
     Extension("yt.utilities.lib.fnv_hash",
               ["yt/utilities/lib/fnv_hash.pyx"],
               include_dirs=["yt/utilities/lib/"],
@@ -277,7 +278,7 @@ for ext_name in lib_exts:
 extensions = [
     Extension("yt.frontends.artio._artio_caller",
               ["yt/frontends/artio/_artio_caller.pyx"] +
-              glob.glob("yt/frontends/artio/artio_headers/*.c"),
+              sorted(glob.glob("yt/frontends/artio/artio_headers/*.c")),
               include_dirs=["yt/frontends/artio/artio_headers/",
                             "yt/geometry/",
                             "yt/utilities/lib/"],
@@ -387,7 +388,6 @@ class sdist(_sdist):
         )
         _sdist.run(self)
 
-
 if __name__ == "__main__":
     setup(
         name="yt",
@@ -407,9 +407,11 @@ if __name__ == "__main__":
                      "Programming Language :: Python :: 3.5",
                      "Programming Language :: Python :: 3.6",
                      "Programming Language :: Python :: 3.7",
+                     "Programming Language :: Python :: 3.8",
                      "Topic :: Scientific/Engineering :: Astronomy",
                      "Topic :: Scientific/Engineering :: Physics",
-                     "Topic :: Scientific/Engineering :: Visualization"],
+                     "Topic :: Scientific/Engineering :: Visualization",
+                     "Framework :: Matplotlib"],
         keywords='astronomy astrophysics visualization ' +
         'amr adaptivemeshrefinement',
         entry_points={'console_scripts': [

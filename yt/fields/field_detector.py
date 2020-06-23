@@ -169,10 +169,16 @@ class FieldDetector(defaultdict):
                 raise ValueError
         return np.random.random((self.nd, self.nd, self.nd))
 
+    def mesh_sampling_particle_field(self, *args, **kwargs):
+        pos = args[0]
+        npart = len(pos)
+        return np.random.rand(npart)
+
     def smooth(self, *args, **kwargs):
         tr = np.random.random((self.nd, self.nd, self.nd))
         if kwargs['method'] == "volume_weighted":
             return [tr]
+
         return tr
 
     def particle_operation(self, *args, **kwargs):

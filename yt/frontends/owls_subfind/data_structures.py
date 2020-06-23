@@ -1,7 +1,6 @@
 from collections import defaultdict
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import stat
 import glob
 import os
 
@@ -57,6 +56,9 @@ class OWLSSubfindParticleIndex(ParticleIndex):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
+        self._setup_filenames()
+        self._calculate_particle_index_starts()
+        self._calculate_file_offset_map()
         dsl = []
         units = {}
         for dom in self.data_files:
@@ -73,15 +75,10 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
             
-    def _setup_geometry(self):
-        super(OWLSSubfindParticleIndex, self)._setup_geometry()
-        self._calculate_particle_index_starts()
-        self._calculate_file_offset_map()
-    
 class OWLSSubfindHDF5File(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
-        super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id)
-        with h5py.File(filename, "r") as f:
+    def __init__(self, ds, io, filename, file_id, bounds):
+        super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id, bounds)
+        with h5py.File(filename, mode="r") as f:
             self.header = dict((field, f.attrs[field]) \
                                for field in f.attrs.keys())
     
@@ -108,8 +105,6 @@ class OWLSSubfindDataset(ParticleDataset):
 
         self.dimensionality = 3
         self.refine_by = 2
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
         self.current_time = self.quan(hvals["Time_GYR"], "Gyr")
@@ -207,7 +202,7 @@ class OWLSSubfindDataset(ParticleDataset):
             valid = all(ng in fh["/"] for ng in need_groups) and \
               not any(vg in fh["/"] for vg in veto_groups)
             fh.close()
-        except:
+        except Exception:
             valid = False
             pass
         return valid

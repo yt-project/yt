@@ -67,7 +67,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
     slabs as separate yt fields. Useful for extracting individual 
     lines from a spectral cube and separating them out as different fields. 
 
-    Requires the SpectralCube (http://spectral-cube.readthedocs.org)
+    Requires the SpectralCube (https://spectral-cube.readthedocs.io/en/latest/)
     library.
 
     All keyword arguments will be passed on to the `FITSDataset` constructor.
@@ -126,7 +126,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
 def ds9_region(ds, reg, obj=None, field_parameters=None):
     r"""
     Create a data container from a ds9 region file. Requires the pyregion
-    package (http://leejjoon.github.io/pyregion/) to be installed.
+    package (https://pyregion.readthedocs.io/en/latest/) to be installed.
 
     Parameters
     ----------
@@ -154,9 +154,11 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     else:
         r = pyregion.parse(reg)
     reg_name = reg
-    filter = r.get_filter(header=ds.wcs_2d.to_header())
-    nx = ds.domain_dimensions[ds.lon_axis]
-    ny = ds.domain_dimensions[ds.lat_axis]
+    header = ds.wcs_2d.to_header()
+    # The FITS header only contains WCS-related keywords
+    header["NAXIS1"] = nx = ds.domain_dimensions[ds.lon_axis]
+    header["NAXIS2"] = ny = ds.domain_dimensions[ds.lat_axis]
+    filter = r.get_filter(header=header)
     mask = filter.mask((ny, nx)).transpose()
     if isinstance(ds, EventsFITSDataset):
         prefix = "event_"

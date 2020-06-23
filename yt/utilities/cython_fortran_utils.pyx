@@ -59,7 +59,7 @@ cdef class FortranFile:
 
             if s1 != s2:
                 raise IOError('Sizes do not agree in the header and footer for '
-                              'this record - check header dtype')
+                              'this record - check header dtype. Got %s and %s' % (s1, s2))
 
         return 0
 
@@ -91,8 +91,8 @@ cdef class FortranFile:
         elif dtype == 'l':
             return 8
         else:
-            # Fallback to (slow) struct to compute the size
-            return struct.calcsize(dtype)
+            # Fallback to (slow) numpy-based to compute the size
+            return np.dtype(dtype).itemsize
 
     cpdef np.ndarray read_vector(self, str dtype):
         """Reads a record from the file and return it as numpy array.
@@ -190,8 +190,12 @@ cdef class FortranFile:
         attrs : iterable of iterables
             This object should be an iterable of one of the formats:
             [ (attr_name, count, struct type), ... ].
-            [ ((name1,name2,name3),count, vector type]
-            [ ((name1,name2,name3),count, 'type type type']
+            [ ((name1,name2,name3), count, vector type]
+            [ ((name1,name2,name3), count, 'type type type']
+            [ (attr_name, count, struct type, optional)]
+
+            `optional` : boolean.
+                If True, the attribute can be stored as an empty Fortran record.
 
         Returns
         -------
@@ -212,18 +216,35 @@ cdef class FortranFile:
         cdef dict data
         cdef key
         cdef np.ndarray tmp
+        cdef bint optional
 
         if self._closed:
             raise ValueError("I/O operation on closed file.")
 
         data = {}
 
-        for key, n, dtype in attrs:
+        for a in attrs:
+            if len(a) == 3:
+                key, n, dtype = a
+                optional = False
+            else:
+                key, n, dtype, optional = a
             if n == 1:
-                data[key] = self.read_vector(dtype)[0]
+                tmp = self.read_vector(dtype)
+                if len(tmp) == 0 and optional:
+                    continue
+                elif (len(tmp) == 1) or (n == -1):
+                    data[key] = tmp[0]
+                else:
+                    raise ValueError("Expected a record of length %s, got %s (%s)" % (n, len(tmp), key))
             else:
                 tmp = self.read_vector(dtype)
-                if type(key) == tuple:
+                if (len(tmp) == 0 and optional):
+                    continue
+                elif (len(tmp) != n) and (n != -1):
+                    raise ValueError("Expected a record of length %s, got %s (%s)" % (n, len(tmp), key))
+
+                if isinstance(key, tuple):
                     # There are multiple keys
                     for ikey in range(n):
                         data[key[ikey]] = tmp[ikey]

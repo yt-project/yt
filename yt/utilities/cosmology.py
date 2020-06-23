@@ -21,7 +21,7 @@ class Cosmology(object):
     Create a cosmology calculator to compute cosmological distances and times.
 
     For an explanation of the various cosmological measures, see, for example 
-    Hogg (1999, http://xxx.lanl.gov/abs/astro-ph/9905116).
+    Hogg (1999, https://arxiv.org/abs/astro-ph/9905116).
 
     WARNING: Cosmological distance calculations return values that are either
     in the comoving or proper frame, depending on the specific quantity.  For

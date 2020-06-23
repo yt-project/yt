@@ -2,6 +2,7 @@ import functools
 import itertools
 import numpy as np
 import os
+from stat import ST_CTIME
 import time
 import weakref
 import warnings
@@ -12,6 +13,8 @@ import pickle
 from yt.config import ytcfg
 from yt.fields.derived_field import \
     DerivedField
+from yt.fields.field_type_container import \
+    FieldTypeContainer
 from yt.funcs import \
     mylog, \
     set_intersection, \
@@ -54,6 +57,8 @@ from yt.utilities.minimal_representation import \
 from yt.units.yt_array import \
     YTArray, \
     YTQuantity
+from yt.units import \
+    _wrap_display_ytarray
 from yt.units.unit_systems import create_code_unit_system
 from yt.data_objects.region_expression import \
     RegionExpression
@@ -85,83 +90,6 @@ class RegisteredDataset(type):
         output_type_registry[name] = cls
         mylog.debug("Registering: %s as %s", name, cls)
 
-class FieldTypeContainer(object):
-    def __init__(self, ds):
-        self.ds = weakref.proxy(ds)
-
-    def __getattr__(self, attr):
-        ds = self.__getattribute__('ds')
-        fnc = FieldNameContainer(ds, attr)
-        if len(dir(fnc)) == 0:
-            return self.__getattribute__(attr)
-        return fnc
-
-    _field_types = None
-    @property
-    def field_types(self):
-        if self._field_types is None:
-            self._field_types = set(t for t, n in self.ds.field_info)
-        return self._field_types
-
-    def __dir__(self):
-        return list(self.field_types)
-
-    def __iter__(self):
-        for ft in sorted(list(self.field_types)):
-            fnc = FieldNameContainer(self.ds, ft)
-            if len(dir(fnc)) == 0:
-                yield self.__getattribute__(ft)
-            else:
-                yield fnc
-
-    def __contains__(self, obj):
-        ob = None
-        if isinstance(obj, FieldNameContainer):
-            ob = obj.field_type
-        elif isinstance(obj, str):
-            ob = obj
-
-        return ob in self.field_types
-
-class FieldNameContainer(object):
-    def __init__(self, ds, field_type):
-        self.ds = ds
-        self.field_type = field_type
-
-    def __getattr__(self, attr):
-        ft = self.__getattribute__("field_type")
-        ds = self.__getattribute__("ds")
-        if (ft, attr) not in ds.field_info:
-            return self.__getattribute__(attr)
-        return ds.field_info[ft, attr]
-
-    @property
-    def _field_names(self):
-        return set(
-            (t, n) for t, n in self.ds.field_info if t == self.field_type)
-
-    def __dir__(self):
-        return [f[1] for f in sorted(list(self._field_names))]
-
-    def __iter__(self):
-        for field_name in sorted(self._field_names):
-            yield self.ds.field_info[field_name]
-
-    def __contains__(self, obj):
-        if isinstance(obj, DerivedField):
-            if self.field_type == obj.name[0] and obj.name in self.ds.field_info:
-                # e.g. from a completely different dataset
-                if self.ds.field_info[obj.name] is not obj:
-                    return False
-                return True
-        elif isinstance(obj, tuple):
-            if self.field_type == obj[0] and obj in self.ds.field_info:
-                return True
-        elif isinstance(obj, str):
-            if (self.field_type, obj) in self.ds.field_info:
-                return True
-        return False
-
 class IndexProxy(object):
     # This is a simple proxy for Index objects.  It enables backwards
     # compatibility so that operations like .h.sphere, .h.print_stats and
@@ -182,8 +110,9 @@ class IndexProxy(object):
 
 class MutableAttribute(object):
     """A descriptor for mutable data"""
-    def __init__(self):
+    def __init__(self, display_array = False):
         self.data = weakref.WeakKeyDictionary()
+        self.display_array = display_array
 
     def __get__(self, instance, owner):
         if not instance:
@@ -193,6 +122,14 @@ class MutableAttribute(object):
             ret = ret.copy()
         except AttributeError:
             pass
+        if self.display_array:
+            try:
+                setattr(ret, "_ipython_display_",
+                        functools.partial(_wrap_display_ytarray, ret))
+            # This will error out if the items have yet to be turned into
+            # YTArrays, in which case we just let it go.
+            except AttributeError:
+                pass
         return ret
 
     def __set__(self, instance, value):
@@ -229,6 +166,7 @@ class Dataset(metaclass = RegisteredDataset):
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     _instantiated = False
+    _unique_identifier = None
     _particle_type_counts = None
     _proj_type = 'quad_proj'
     _ionization_label_format = 'roman_numeral'
@@ -249,7 +187,7 @@ class Dataset(metaclass = RegisteredDataset):
             obj = object.__new__(cls)
         elif cache_key not in _cached_datasets:
             obj = object.__new__(cls)
-            if obj._skip_cache is False:
+            if not obj._skip_cache:
                 _cached_datasets[cache_key] = obj
         else:
             obj = _cached_datasets[cache_key]
@@ -291,7 +229,6 @@ class Dataset(metaclass = RegisteredDataset):
         # to get the timing right, do this before the heavy lifting
         self._instantiated = time.time()
 
-        self.min_level = 0
         self.no_cgs_equiv_length = False
 
         if unit_system == 'code':
@@ -322,6 +259,16 @@ class Dataset(metaclass = RegisteredDataset):
         self._set_derived_attrs()
         self._setup_classes()
 
+    @property
+    def unique_identifier(self):
+        if self._unique_identifier is None:
+            self._unique_identifier = int(os.stat(self.parameter_filename)[ST_CTIME])
+        return self._unique_identifier
+
+    @unique_identifier.setter
+    def unique_identifier(self, value):
+        self._unique_identifier = value
+
     def _set_derived_attrs(self):
         if self.domain_left_edge is None or self.domain_right_edge is None:
             self.domain_center = np.zeros(3)
@@ -335,6 +282,8 @@ class Dataset(metaclass = RegisteredDataset):
             n = "domain_%s" % attr
             v = getattr(self, n)
             if not isinstance(v, YTArray) and v is not None:
+                # Note that we don't add on _ipython_display_ here because
+                # everything is stored inside a MutableAttribute.
                 v = self.arr(v, "code_length")
                 setattr(self, n, v)
 
@@ -397,11 +346,11 @@ class Dataset(metaclass = RegisteredDataset):
             self._checksum = m
         return self._checksum
 
-    domain_left_edge = MutableAttribute()
-    domain_right_edge = MutableAttribute()
-    domain_width = MutableAttribute()
-    domain_dimensions = MutableAttribute()
-    domain_center = MutableAttribute()
+    domain_left_edge = MutableAttribute(True)
+    domain_right_edge = MutableAttribute(True)
+    domain_width = MutableAttribute(True)
+    domain_dimensions = MutableAttribute(False)
+    domain_center = MutableAttribute(True)
 
     @property
     def _mrep(self):
@@ -644,10 +593,13 @@ class Dataset(metaclass = RegisteredDataset):
             cls = PolarCoordinateHandler
         elif self.geometry == "spherical":
             cls = SphericalCoordinateHandler
+            self.no_cgs_equiv_length = True
         elif self.geometry == "geographic":
             cls = GeographicCoordinateHandler
+            self.no_cgs_equiv_length = True
         elif self.geometry == "internal_geographic":
             cls = InternalGeographicCoordinateHandler
+            self.no_cgs_equiv_length = True
         elif self.geometry == "spectral_cube":
             cls = SpectralCubeCoordinateHandler
         else:
@@ -723,7 +675,7 @@ class Dataset(metaclass = RegisteredDataset):
         return True
 
     def _setup_filtered_type(self, filter):
-        # Check if the filtered_type of this filter is known, 
+        # Check if the filtered_type of this filter is known,
         # otherwise add it first if it is in the filter_registry
         if filter.filtered_type not in self.known_filters.keys():
             if filter.filtered_type in filter_registry:
@@ -947,12 +899,12 @@ class Dataset(metaclass = RegisteredDataset):
         # but need to check if left_edge or right_edge is a
         # list or other non-array iterable before calculating
         # the center
-        if not isinstance(left_edge, np.ndarray):
-            left_edge = np.array(left_edge)
-        if not isinstance(right_edge, np.ndarray):
-            right_edge = np.array(right_edge)
-        left_edge = left_edge.astype('float64')
-        right_edge = right_edge.astype('float64')
+        if isinstance(left_edge[0], YTQuantity):
+            left_edge = YTArray(left_edge)
+            right_edge = YTArray(right_edge)
+
+        left_edge = np.asanyarray(left_edge, dtype='float64')
+        right_edge = np.asanyarray(right_edge, dtype='float64')
         c = (left_edge + right_edge)/2.0
         return self.region(c, left_edge, right_edge, **kwargs)
 
@@ -979,7 +931,7 @@ class Dataset(metaclass = RegisteredDataset):
     @property
     def particle_type_counts(self):
         self.index
-        if self.particles_exist is False:
+        if not self.particles_exist:
             return {}
 
         # frontends or index implementation can populate this dict while
@@ -1323,6 +1275,50 @@ class Dataset(metaclass = RegisteredDataset):
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
+    def add_mesh_sampling_particle_field(self, sample_field, ptype='all'):
+        """Add a new mesh sampling particle field
+
+        Creates a new particle field which has the value of the
+        *deposit_field* at the location of each particle of type
+        *ptype*.
+
+        Parameters
+        ----------
+
+        sample_field : tuple
+           The field name tuple of the mesh field to be deposited onto
+           the particles. This must be a field name tuple so yt can
+           appropriately infer the correct particle type.
+        ptype : string, default 'all'
+           The particle type onto which the deposition will occur.
+
+        Returns
+        -------
+
+        The field name tuple for the newly created field.
+
+        Examples
+        --------
+        >>> ds = yt.load('output_00080/info_00080.txt')
+        ... ds.add_mesh_sampling_particle_field(('gas', 'density'), ptype='all')
+
+        >>> print('The density at the location of the particle is:')
+        ... print(ds.r['all', 'cell_gas_density'])
+        The density at the location of the particle is:
+        [9.33886124e-30 1.22174333e-28 1.20402333e-28 ... 2.77410331e-30
+         8.79467609e-31 3.50665136e-30] g/cm**3
+
+        >>> len(ds.r['all', 'cell_gas_density']) == len(ds.r['all', 'particle_ones'])
+        True
+
+        """
+        if isinstance(sample_field, tuple):
+            ftype, sample_field = sample_field[0], sample_field[1]
+        else:
+            raise RuntimeError
+
+        return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
+
     def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
                                      weight_field='particle_mass'):
         """Add a new deposited particle field
@@ -1340,7 +1336,7 @@ class Dataset(metaclass = RegisteredDataset):
            This is the "method name" which will be looked up in the
            `particle_deposit` namespace as `methodname_deposit`.  Current
            methods include `simple_smooth`, `sum`, `std`, `cic`, `weighted_mean`,
-           `mesh_id`, and `nearest`.
+           `nearest` and `count`.
         kernel_name : string, default 'cubic'
            This is the name of the smoothing kernel to use. It is only used for
            the `simple_smooth` method and is otherwise ignored. Current
@@ -1362,7 +1358,7 @@ class Dataset(metaclass = RegisteredDataset):
 
         units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
-        name_map = {"sum": "sum", "std":"std", "cic": "cic", "weighted_mean": "avg",
+        name_map = {"sum": "sum", "std": "std", "cic": "cic", "weighted_mean": "avg",
                     "nearest": "nn", "simple_smooth": "ss", "count": "count"}
         field_name = "%s_" + name_map[method] + "_%s"
         field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
@@ -1457,24 +1453,28 @@ class Dataset(metaclass = RegisteredDataset):
 
         Examples
         --------
+
         >>> grad_fields = ds.add_gradient_fields(("gas","temperature"))
         >>> print(grad_fields)
         [('gas', 'temperature_gradient_x'),
          ('gas', 'temperature_gradient_y'),
          ('gas', 'temperature_gradient_z'),
          ('gas', 'temperature_gradient_magnitude')]
+
+        Note that the above example assumes ds.geometry == 'cartesian'. In general, the function
+        will create gradients components along the axes of the dataset coordinate system.
+        For instance, with cylindrical data, one gets 'temperature_gradient_<r,theta,z>'
         """
         self.index
-        if isinstance(input_field, tuple):
-            ftype, input_field = input_field[0], input_field[1]
-        else:
-            raise RuntimeError
+        if not isinstance(input_field, tuple):
+            raise TypeError
+        ftype, input_field = input_field[0], input_field[1]
         units = self.field_info[ftype, input_field].units
         setup_gradient_fields(self.field_info, (ftype, input_field), units)
         # Now we make a list of the fields that were just made, to check them
         # and to return them
         grad_fields = [(ftype,input_field+"_gradient_%s" % suffix)
-                       for suffix in "xyz"]
+                       for suffix in self.coordinates.axis_order]
         grad_fields.append((ftype,input_field+"_gradient_magnitude"))
         deps, _ = self.field_info.check_derived_fields(grad_fields)
         self.field_dependencies.update(deps)
@@ -1485,12 +1485,22 @@ class Dataset(metaclass = RegisteredDataset):
     def max_level(self):
         if self._max_level is None:
             self._max_level = self.index.max_level
-
         return self._max_level
 
     @max_level.setter
     def max_level(self, value):
         self._max_level = value
+
+    _min_level = None
+    @property
+    def min_level(self):
+        if self._min_level is None:
+            self._min_level = self.index.min_level
+        return self._min_level
+
+    @min_level.setter
+    def min_level(self, value):
+        self._min_level = value
 
     def define_unit(self, symbol, value, tex_repr=None, offset=None, prefixable=False):
         """
@@ -1502,7 +1512,7 @@ class Dataset(metaclass = RegisteredDataset):
             The symbol for the new unit.
         value : tuple or ~yt.units.yt_array.YTQuantity
             The definition of the new unit in terms of some other units. For example,
-            one would define a new "mph" unit with (1.0, "mile/hr") 
+            one would define a new "mph" unit with (1.0, "mile/hr")
         tex_repr : string, optional
             The LaTeX representation of the new unit. If one is not supplied, it will
             be generated automatically based on the symbol string.

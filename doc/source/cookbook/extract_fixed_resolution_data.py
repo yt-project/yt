@@ -20,7 +20,7 @@ cube = ds.covering_grid(level,
 
 # Now we open our output file using h5py
 # Note that we open with 'w' (write), which will overwrite existing files!
-f = h5py.File("my_data.h5", "w")
+f = h5py.File("my_data.h5", mode="w")
 
 # We create a dataset at the root, calling it "density"
 f.create_dataset("/density", data=cube["density"])
@@ -29,5 +29,5 @@ f.create_dataset("/density", data=cube["density"])
 f.close()
 
 # If we want to then access this datacube in the h5 file, we can now...
-f = h5py.File("my_data.h5", "r")
+f = h5py.File("my_data.h5", mode="r")
 print(f["density"][()])

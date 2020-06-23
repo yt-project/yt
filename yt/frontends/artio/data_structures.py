@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import stat
 import weakref
 
 from collections import defaultdict
@@ -229,7 +228,7 @@ class ARTIOIndex(Index):
             try:
                 all_data = all(dobj.left_edge == self.ds.domain_left_edge) and\
                     all(dobj.right_edge == self.ds.domain_right_edge)
-            except:
+            except Exception:
                 all_data = False
             base_region = getattr(dobj, "base_region", dobj)
             sfc_start = getattr(dobj, "sfc_start", None)
@@ -357,8 +356,6 @@ class ARTIODataset(Dataset):
         self.parameters["Time"] = 1.  # default unit is 1...
 
         # read header
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         self.num_grid = self._handle.num_grid
         self.domain_dimensions = np.ones(3, dtype='int32') * self.num_grid
@@ -438,7 +435,7 @@ class ARTIODataset(Dataset):
                 self.artio_parameters["length_unit"][0] * abox
 
             if self.artio_parameters["DeltaDC"][0] != 0:
-                mylog.warn("DeltaDC != 0, which implies auni != abox.  Be sure you understand which expansion parameter is appropriate for your use! (Gnedin, Kravtsov, & Rudd 2011)")
+                mylog.warning("DeltaDC != 0, which implies auni != abox.  Be sure you understand which expansion parameter is appropriate for your use! (Gnedin, Kravtsov, & Rudd 2011)")
         else:
             self.cosmological_simulation = False
 

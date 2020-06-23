@@ -1,6 +1,5 @@
 import glob
 import os
-import stat
 
 import numpy as np
 
@@ -92,8 +91,6 @@ class AHFHalosDataset(Dataset):
         self.parameters.update(param)
         self.particle_types = ('halos')
         self.particle_types_raw = ('halos')
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set up geometrical information.
         self.refine_by = 2
@@ -136,7 +133,7 @@ class AHFHalosDataset(Dataset):
                     key = name.strip().split('.')[1]
                     try:
                         val = float(val)
-                    except:
+                    except Exception:
                         val = float.fromhex(val)
                     simu[key] = val
         return simu
@@ -151,8 +148,7 @@ class AHFHalosDataset(Dataset):
                     try:
                         val = float(val)
                         param[key] = val
-                    except:
-                        pass
+                    except Exception: pass
         return param
 
     @property

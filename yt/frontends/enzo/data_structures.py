@@ -5,7 +5,6 @@ import io
 import weakref
 import numpy as np
 import os
-import stat
 import string
 import time
 import re
@@ -369,7 +368,7 @@ class EnzoHierarchy(GridIndex):
                 continue
             gs = self.grids[select_grids > 0]
             g = gs[0]
-            handle = h5py.File(g.filename, "r")
+            handle = h5py.File(g.filename, mode="r")
             node = handle["/Grid%08i/Particles/" % g.id]
             for ptype in (str(p) for p in node):
                 if ptype not in _fields: continue
@@ -564,6 +563,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
             if (i%1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = "Inline_processor_%07i" % (self.grid_procs[i,0])
             grid._prepare_grid()
+            grid._setup_dx()
             grid.proc_num = self.grid_procs[i,0]
             self.grids[i] = grid
         mylog.debug("Prepared")
@@ -820,9 +820,6 @@ class EnzoDataset(Dataset):
             self.unique_identifier = self.parameters["MetaDataDatasetUUID"]
         elif "CurrentTimeIdentifier" in self.parameters:
             self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
-        else:
-            self.unique_identifier = \
-                str(int(os.stat(self.parameter_filename)[stat.ST_CTIME]))
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
             if len(self.domain_dimensions) < 3:

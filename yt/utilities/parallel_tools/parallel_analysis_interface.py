@@ -73,7 +73,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     """
     This method is used inside a script to turn on MPI parallelism, via
     mpi4py.  More information about running yt in parallel can be found
-    here: http://yt-project.org/docs/3.0/analyzing/parallel_computation.html
+    here: https://yt-project.org/docs/3.0/analyzing/parallel_computation.html
 
     Parameters
     ----------
@@ -108,7 +108,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     ytcfg["yt","__global_parallel_size"] = str(communicator.size)
     ytcfg["yt","__parallel"] = "True"
     if exe_name == "embed_enzo" or \
-        ("_parallel" in dir(sys) and sys._parallel is True):
+        ("_parallel" in dir(sys) and sys._parallel):
         ytcfg["yt","inline"] = "True"
     if communicator.rank > 0:
         if ytcfg.getboolean("yt","LogFile"):

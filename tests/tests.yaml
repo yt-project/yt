@@ -1,53 +1,57 @@
 answer_tests:
-  local_arepo_002:
+
+  local_amrvac_004:
+    - yt/frontends/amrvac/tests/test_outputs.py
+    
+  local_arepo_005:
     - yt/frontends/arepo/tests/test_outputs.py
 
-  local_artio_001:
+  local_artio_003:
     - yt/frontends/artio/tests/test_outputs.py
 
-  local_athena_004:
+  local_athena_007:
     - yt/frontends/athena
 
-  local_athena_pp_001:
+  local_athena_pp_003:
     - yt/frontends/athena_pp
 
-  local_chombo_002:
+  local_chombo_004:
     - yt/frontends/chombo/tests/test_outputs.py
 
-  local_enzo_004:
+  local_enzo_006:
     - yt/frontends/enzo
 
-  local_enzo_p_005:
+  local_enzo_p_007:
     - yt/frontends/enzo_p/tests/test_outputs.py
 
-  local_fits_002:
+  local_fits_003:
     - yt/frontends/fits/tests/test_outputs.py
 
-  local_flash_009:
+  local_flash_012:
     - yt/frontends/flash/tests/test_outputs.py
 
-  local_gadget_001:
+  local_gadget_003:
     - yt/frontends/gadget/tests/test_outputs.py
 
-  local_gamer_004:
+  local_gamer_007:
     - yt/frontends/gamer/tests/test_outputs.py
 
   local_gdf_001:
     - yt/frontends/gdf/tests/test_outputs.py
 
-  local_gizmo_002:
+  local_gizmo_004:
     - yt/frontends/gizmo/tests/test_outputs.py
 
-  local_halos_008:
+  local_halos_009:
     - yt/frontends/ahf/tests/test_outputs.py
-    - yt/frontends/owls_subfind/tests/test_outputs.py
+    # - yt/frontends/owls_subfind/tests/test_outputs.py
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_owls_002:
+  local_owls_004:
     - yt/frontends/owls/tests/test_outputs.py
 
-  local_pw_026:
+  local_pw_029:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
@@ -55,14 +59,14 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
     - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
 
-  local_tipsy_002:
+  local_tipsy_005:
     - yt/frontends/tipsy/tests/test_outputs.py
 
-  local_varia_010:
+  local_varia_015:
     - yt/frontends/moab/tests/test_c5.py
     - yt/fields/tests/test_xray_fields.py
 
-  local_unstructured_010:
+  local_unstructured_011:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render_pyembree
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_hex20_render
@@ -80,7 +84,7 @@ answer_tests:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_wedge6_render_pyembree
 
-  local_boxlib_007:
+  local_boxlib_010:
     - yt/frontends/boxlib/tests/test_outputs.py:test_radadvect
     - yt/frontends/boxlib/tests/test_outputs.py:test_radtube
     - yt/frontends/boxlib/tests/test_outputs.py:test_star
@@ -90,7 +94,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_units_override
     - yt/frontends/boxlib/tests/test_outputs.py:test_raw_fields
 
-  local_boxlib_particles_005:
+  local_boxlib_particles_006:
     - yt/frontends/boxlib/tests/test_outputs.py:test_LyA
     - yt/frontends/boxlib/tests/test_outputs.py:test_nyx_particle_io
     - yt/frontends/boxlib/tests/test_outputs.py:test_castro_particle_io
@@ -101,20 +105,25 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_NyxDataset
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
 
-  local_ramses_001:
+  local_ramses_002:
     - yt/frontends/ramses/tests/test_outputs.py
 
-  local_ytdata_004:
-    - yt/frontends/ytdata
+  local_ytdata_007:
+    - yt/frontends/ytdata/tests/test_outputs.py
+    - yt/frontends/ytdata/tests/test_old_outputs.py
 
   local_axialpix_006:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_particle_trajectory_001:
-    - yt/data_objects/tests/test_particle_trajectories.py
+  local_cylindrical_background_002:
+    - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
+
+  #local_particle_trajectory_001:
+  #  - yt/data_objects/tests/test_particle_trajectories.py
 
 other_tests:
   unittests:
      - '--exclude=test_mesh_slices'  # disable randomly failing test
+     - '--exclude=test_load_from_path'  # py2
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'

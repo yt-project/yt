@@ -273,7 +273,7 @@ class LinePlot(PlotContainer):
         return plot
 
     def _setup_plots(self):
-        if self._plot_valid is True:
+        if self._plot_valid:
             return
         for plot in self.plots.values():
             plot.axes.cla()

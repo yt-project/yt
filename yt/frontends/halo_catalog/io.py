@@ -33,7 +33,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
                 data_files.update(obj.data_files)
         pn = "particle_position_%s"
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 units = parse_h5_attr(f[pn % "x"], "units")
                 pos = data_file._get_particle_positions(ptype, f=f)
                 x, y, z = (self.ds.arr(pos[:, i], units)
@@ -63,7 +63,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         pn = "particle_position_%s"
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[pn % "x"], "units")
                     pos = data_file._get_particle_positions(ptype, f=f)
@@ -84,7 +84,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         ind = 0
         if pcount == 0: return None
         ptype = 'halos'
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             if not f.keys(): return None
             units = parse_h5_attr(f["particle_position_x"], "units")
             pos = data_file._get_particle_positions(ptype, f=f)
@@ -109,7 +109,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         return {'halos': nhalos}
 
     def _identify_fields(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             fields = [("halos", field) for field in f
                       if not isinstance(f[field], h5py.Group)]
             units = dict([(("halos", field),
@@ -199,7 +199,7 @@ class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler, IOHandlerHaloCatalogHDF
     _dataset_type = "halo_catalog_halo_hdf5"
 
     def _identify_fields(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             scalar_fields = [("halos", field) for field in f
                         if not isinstance(f[field], h5py.Group)]
             units = dict([(("halos", field),
@@ -225,7 +225,7 @@ class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler, IOHandlerHaloCatalogHDF
             if pcount == 0:
                 continue
             field_end = field_start + end_index - start_index
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
                         field_data = all_data[(ptype, field)]
@@ -239,7 +239,7 @@ class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler, IOHandlerHaloCatalogHDF
         all_data = {}
         if not scalar_fields:
             return all_data
-        with h5py.File(dobj.scalar_data_file.filename, "r") as f:
+        with h5py.File(dobj.scalar_data_file.filename, mode="r") as f:
             for ptype, field_list in sorted(scalar_fields.items()):
                 for field in field_list:
                     data = np.array([f[field][dobj.scalar_index]]).astype("float64")

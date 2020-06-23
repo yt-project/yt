@@ -22,6 +22,11 @@ class GAMERFieldInfo(FieldInfoContainer):
         ( "Engy",     (erg_units, ["total_energy_per_volume"],  None   ) ),
         ( "Pote",     (pot_units, ["gravitational_potential"],  None   ) ),
 
+        # MHD fields on disk (CC=cell-centered)
+        ("CCMagX",    (b_units, [],                             "B_x"  ) ),
+        ("CCMagY",    (b_units, [],                             "B_y"  ) ),
+        ("CCMagZ",    (b_units, [],                             "B_z"  ) ),
+
         # psiDM fields on disk
         ( "Real",     (psi_units, ["psidm_real_part"],          None   ) ),
         ( "Imag",     (psi_units, ["psidm_imaginary_part"],     None   ) ),
@@ -47,6 +52,7 @@ class GAMERFieldInfo(FieldInfoContainer):
 
     # add primitive and other derived variables
     def setup_fluid_fields(self):
+        from yt.fields.magnetic_field import setup_magnetic_field_aliases
         unit_system = self.ds.unit_system
 
         # velocity
@@ -64,6 +70,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         # note that yt internal fields assume
         #    [thermal_energy]          = [energy per mass]
         #    [kinetic_energy]          = [energy per volume]
+        #    [magnetic_energy]         = [energy per volume]
         # and we further adopt
         #    [total_energy]            = [energy per mass]
         #    [total_energy_per_volume] = [energy per volume]
@@ -77,7 +84,11 @@ class GAMERFieldInfo(FieldInfoContainer):
 
         # thermal energy per volume
         def et(data):
-            return data["gamer","Engy"] - ek(data)
+            Et = data["gamer","Engy"] - ek(data)
+            if self.ds.mhd:
+                # magnetic_energy is a yt internal field
+                Et -= data["gas","magnetic_energy"]
+            return Et
 
         # thermal energy per mass (i.e., specific)
         def _thermal_energy(field, data):
@@ -121,6 +132,11 @@ class GAMERFieldInfo(FieldInfoContainer):
                        sampling_type="cell",
                        function = _temperature,
                        units = unit_system["temperature"] )
+
+        # magnetic field aliases --> magnetic_field_x/y/z
+        if self.ds.mhd:
+            setup_magnetic_field_aliases( self, "gamer", ["CCMag%s" % v for v in "XYZ"] )
+
 
     def setup_particle_fields(self, ptype):
         super(GAMERFieldInfo, self).setup_particle_fields(ptype)

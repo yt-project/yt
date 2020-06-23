@@ -92,8 +92,7 @@ class rpdb_cmd(cmd.Cmd):
     def postloop(self):
         try:
             self.proxy.shutdown()
-        except:
-            pass
+        except Exception: pass
 
 __header = \
 """
@@ -107,7 +106,7 @@ def run_rpdb(task = None):
     if task is None:
         try:
             task + int(sys.argv[-1])
-        except: pass
+        except Exception: pass
     port += task
     sp = ServerProxy("http://localhost:%s/" % port)
     try:

@@ -621,7 +621,7 @@ class Camera(ParallelAnalysisInterface):
     def finalize_image(self, image):
         view_pos = self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         image = self.volume.reduce_tree_images(image, view_pos)
-        if self.transfer_function.grey_opacity is False:
+        if not self.transfer_function.grey_opacity:
             image[:,:,3]=1.0
         return image
 
@@ -1270,7 +1270,7 @@ class PerspectiveCamera(Camera):
         view_pos = self.front_center
         image.shape = self.resolution[0], self.resolution[1], 4
         image = self.volume.reduce_tree_images(image, view_pos)
-        if self.transfer_function.grey_opacity is False:
+        if not self.transfer_function.grey_opacity:
             image[:,:,3]=1.0
         return image
 
@@ -2014,7 +2014,7 @@ class SphericalCamera(Camera):
         view_pos = self.front_center
         image.shape = self.resolution[0], self.resolution[1], 4
         image = self.volume.reduce_tree_images(image, view_pos)
-        if self.transfer_function.grey_opacity is False:
+        if not self.transfer_function.grey_opacity:
             image[:,:,3]=1.0
         image = image[1:-1,1:-1,:]
         return image
@@ -2119,7 +2119,7 @@ class StereoSphericalCamera(Camera):
 
         image = sampler.aimage.copy()
         image.shape = self.resolution[0], self.resolution[1], 4
-        if self.transfer_function.grey_opacity is False:
+        if not self.transfer_function.grey_opacity:
             image[:,:,3]=1.0
         image = image[1:-1,1:-1,:]
         return image

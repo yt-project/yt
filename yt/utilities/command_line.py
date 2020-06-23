@@ -79,7 +79,7 @@ def _print_failed_source_update(reinstall=False):
         print("    $ conda update yt")
         print()
         print("to update your yt installation.")
-        if reinstall is True:
+        if reinstall:
             print()
             print("To update all of your packages, you can do:")
             print()
@@ -474,7 +474,7 @@ class YTBugreportCmd(YTCommand):
         print("simply be a misunderstanding that could be cleared up by")
         print("visiting the yt irc channel or getting advice on the email list:")
         print("   http://yt-project.org/irc.html")
-        print("   https://mail.python.org/mm3/archives/list/yt-users@python.org/")
+        print("   https://mail.python.org/archives/list/yt-users@python.org/")
         print()
         summary = input("Press <enter> if you remain firm in your conviction to continue.")
         print()
@@ -485,7 +485,7 @@ class YTBugreportCmd(YTCommand):
         print()
         try:
             current_version = get_yt_version()
-        except:
+        except Exception:
             current_version = "Unavailable"
         summary = input("Summary? ")
         bugtype = "bug"
@@ -507,8 +507,7 @@ class YTBugreportCmd(YTCommand):
             content = open(fn).read()
             try:
                 os.unlink(fn)
-            except:
-                pass
+            except Exception: pass
         else:
             print()
             print("Couldn't find an $EDITOR variable.  So, let's just take")
@@ -1064,11 +1063,11 @@ class YTStatsCmd(YTCommand):
         ds.print_stats()
         vals = {}
         if args.field in ds.derived_field_list:
-            if args.max is True:
+            if args.max:
                 vals['min'] = ds.find_max(args.field)
                 print("Maximum %s: %0.5e at %s" % (args.field,
                     vals['min'][0], vals['min'][1]))
-            if args.min is True:
+            if args.min:
                 vals['max'] = ds.find_min(args.field)
                 print("Minimum %s: %0.5e at %s" % (args.field,
                     vals['max'][0], vals['max'][1]))

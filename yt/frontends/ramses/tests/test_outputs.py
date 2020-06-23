@@ -1,13 +1,15 @@
 from yt.testing import \
     assert_equal, \
     requires_file, \
-    units_override_check
+    units_override_check, \
+    requires_module
 from yt.utilities.answer_testing.framework import \
     requires_ds, \
     data_dir_load, \
     PixelizedProjectionValuesTest, \
     FieldValuesTest, \
     create_obj
+from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.config import ytcfg
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
@@ -22,6 +24,7 @@ output_00080 = "output_00080/info_00080.txt"
 def test_output_00080():
     ds = data_dir_load(output_00080)
     assert_equal(str(ds), "info_00080")
+    assert_equal(ds.particle_type_counts, {'io': 1090895, 'nbody': 0})
     dso = [ None, ("sphere", ("max", (0.1, 'unitary')))]
     for dobj_name in dso:
         for field in _fields:
@@ -36,7 +39,6 @@ def test_output_00080():
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 
-    assert_equal(ds.particle_type_counts, {'io': 1090895})
 
 @requires_file(output_00080)
 def test_RAMSESDataset():
@@ -356,10 +358,10 @@ def test_formation_time():
 
 @requires_file(ramses_new_format)
 def test_cooling_fields():
-    
+
     #Test the field is being loaded correctly
     ds=yt.load(ramses_new_format)
-    
+
     #Derived cooling fields
     assert ('gas','cooling_net') in ds.derived_field_list
     assert ('gas','cooling_total') in ds.derived_field_list
@@ -378,7 +380,7 @@ def test_cooling_fields():
     assert ('gas','heating_primordial_prime') in ds.derived_field_list
     assert ('gas','heating_compton_prime') in ds.derived_field_list
     assert ('gas','mu') in ds.derived_field_list
-    
+
     #Abundances
     assert ('gas','Electron_number_density') in ds.derived_field_list
     assert ('gas','HI_number_density') in ds.derived_field_list
@@ -409,3 +411,53 @@ def test_ramses_mixed_files():
 
     # Access the field
     ds.r[('gas', 'mixed_files')]
+
+ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
+@requires_file(ramses_empty_record)
+def test_ramses_empty_record():
+    # Test that yt can load datasets with empty records
+    ds = yt.load(ramses_empty_record)
+
+    # This should not fail
+    ds.index
+
+    # Access some field
+    ds.r[('gas', 'density')]
+
+@requires_ds(ramses_new_format)
+@requires_module('f90nml')
+def test_namelist_reading():
+    ds = data_dir_load(ramses_new_format)
+    namelist_fname = os.path.join(ds.directory, 'namelist.txt')
+    with open(namelist_fname, 'r') as f:
+        ref = f90nml.read(f)
+
+    nml = ds.parameters['namelist']
+
+    assert nml == ref
+
+@requires_ds(ramses_empty_record)
+@requires_ds(output_00080)
+@requires_module('f90nml')
+def test_namelist_reading_should_not_fail():
+
+    for ds_name in (ramses_empty_record, output_00080):
+        # Test that the reading does not fail for malformed namelist.txt files
+        ds = data_dir_load(ds_name)
+        ds.index  # should work
+
+
+ramses_mhd_128 = "ramses_mhd_128/output_00027/info_00027.txt"
+@requires_file(ramses_mhd_128)
+def test_magnetic_field_aliasing():
+    # Test if RAMSES magnetic fields are correctly aliased to yt magnetic fields and if 
+    # derived magnetic quantities are calculated
+    ds = data_dir_load(ramses_mhd_128)
+    ad=ds.all_data()
+
+    for field in ['magnetic_field_x',
+                  'magnetic_field_magnitude',
+                  'alfven_speed',
+                  'magnetic_field_divergence']:
+        assert ('gas',field) in ds.derived_field_list
+        ad[('gas',field)]

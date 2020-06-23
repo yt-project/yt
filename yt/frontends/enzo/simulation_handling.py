@@ -252,9 +252,9 @@ class EnzoSimulation(SimulationTimeSeries):
         else:
             if initial_time is not None:
                 if isinstance(initial_time, float):
-                    initial_time = self.quan(initial_time, "code_time")
+                    my_initial_time = self.quan(initial_time, "code_time")
                 elif isinstance(initial_time, tuple) and len(initial_time) == 2:
-                    initial_time = self.quan(*initial_time)
+                    my_initial_time = self.quan(*initial_time)
                 elif not isinstance(initial_time, unyt_array):
                     raise RuntimeError(
                         "Error: initial_time must be given as a float or " +
@@ -266,14 +266,13 @@ class EnzoSimulation(SimulationTimeSeries):
 
             if final_time is not None:
                 if isinstance(final_time, float):
-                    final_time = self.quan(final_time, "code_time")
+                    my_final_time = self.quan(final_time, "code_time")
                 elif isinstance(final_time, tuple) and len(final_time) == 2:
-                    final_time = self.quan(*final_time)
+                    my_final_time = self.quan(*final_time)
                 elif not isinstance(final_time, unyt_array):
                     raise RuntimeError(
                         "Error: final_time must be given as a float or " +
                         "tuple of (value, units).")
-                my_final_time = final_time.in_units("s")
             elif final_redshift is not None:
                 my_final_time = self.cosmology.t_from_z(final_redshift)
             else:
@@ -428,7 +427,7 @@ class EnzoSimulation(SimulationTimeSeries):
         Calculate cycle outputs.
         """
 
-        mylog.warn('Calculating cycle outputs.  Dataset times will be unavailable.')
+        mylog.warning('Calculating cycle outputs.  Dataset times will be unavailable.')
 
         if self.stop_cycle is None or \
             'CycleSkipDataDump' not in self.parameters or \
@@ -511,7 +510,7 @@ class EnzoSimulation(SimulationTimeSeries):
                     'StopCycle' in self.parameters):
                 raise NoStoppingCondition(self.parameter_filename)
             if self.final_time is None:
-                mylog.warn(
+                mylog.warning(
                     "Simulation %s has no stop time set, stopping condition " +
                     "will be based only on cycles.",
                     self.parameter_filename)

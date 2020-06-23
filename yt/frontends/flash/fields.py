@@ -23,6 +23,7 @@ pres_units = "code_mass/(code_length*code_time**2)"
 erg_units = "code_mass * (code_length/code_time)**2"
 rho_units = "code_mass / code_length**3"
 
+
 class FLASHFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("velx", ("code_length/code_time", ["velocity_x"], None)),
@@ -110,8 +111,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 ener = data["flash","eint"]+ekin(data)
                 try:
                     ener += data["flash","magp"]/data["flash","dens"]
-                except:
-                    pass
+                except Exception: pass
                 return ener
             self.add_field(("gas","total_energy"),
                            sampling_type="cell",
@@ -128,8 +128,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 eint = data["flash","ener"]-ekin(data)
                 try:
                     eint -= data["flash","magp"]/data["flash","dens"]
-                except:
-                    pass
+                except Exception: pass
                 return eint
             self.add_field(("gas","thermal_energy"),
                            sampling_type="cell",

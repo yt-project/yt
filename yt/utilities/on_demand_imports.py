@@ -479,6 +479,8 @@ _libconf = libconf_imports()
 class yaml_imports(object):
     _name = "yaml"
     _load = None
+    _FullLoader = None
+
     @property
     def load(self):
         if self._load is None:
@@ -488,6 +490,16 @@ class yaml_imports(object):
                 load = NotAModule(self._name)
             self._load = load
         return self._load
+
+    @property
+    def FullLoader(self):
+        if self._FullLoader is None:
+            try:
+                from yaml import FullLoader
+            except ImportError:
+                FullLoader = NotAModule(self._name)
+            self._FullLoader = FullLoader
+        return self._FullLoader
 
 _yaml = yaml_imports()
 
@@ -515,3 +527,19 @@ class miniball_imports(object):
         return self._Miniball
 
 _miniball = miniball_imports()
+
+class f90nml_imports(object):
+    _name = "f90nml"
+    _module = None
+
+    def __init__(self):
+        try:
+            import f90nml as myself
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+_f90nml = f90nml_imports()

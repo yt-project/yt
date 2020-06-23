@@ -234,17 +234,50 @@ def test_phaseplot_set_log():
     # make sure we can set the log-scaling using the tuple without erroring out
     p1.set_log(("gas", "density"), False)
     p2.set_log(("gas", "temperature"), False)
-    assert p1.y_log["gas", "density"] is False
-    assert p2.y_log is False
+    assert not p1.y_log["gas", "density"]
+    assert not p2.y_log
 
     # make sure we can set the log-scaling using a string without erroring out
     p1.set_log("density", True)
     p2.set_log("temperature", True)
-    assert p1.y_log["gas", "density"] is True
-    assert p2.y_log is True
+    assert p1.y_log["gas", "density"]
+    assert p2.y_log
 
     # make sure we can set the log-scaling using a field object
     p1.set_log(ds.fields.gas.density, False)
     p2.set_log(ds.fields.gas.temperature, False)
-    assert p1.y_log["gas", "density"] is False
-    assert p2.y_log is False
+    assert not p1.y_log["gas", "density"]
+    assert not p2.y_log
+
+
+
+def test_phaseplot_showhide_colorbar_axes():
+    fields = ('density', 'temperature')
+    units = ('g/cm**3', 'K',)
+    ds = fake_random_ds(16, fields=fields, units=units)
+    ad = ds.all_data()
+    plot = yt.PhasePlot(ad, ("gas", "density"), ("gas", "temperature"), "cell_mass")
+
+    # make sure we can hide colorbar
+    plot.hide_colorbar()
+    with tempfile.NamedTemporaryFile(suffix='png') as f1:
+        plot.save(f1.name)
+
+    # make sure we can show colorbar
+    plot.show_colorbar()
+    with tempfile.NamedTemporaryFile(suffix='png') as f2:
+        plot.save(f2.name)
+
+    # make sure we can hide axes
+    plot.hide_axes()
+    with tempfile.NamedTemporaryFile(suffix='png') as f3:
+        plot.save(f3.name)
+
+    # make sure we can show axes
+    plot.show_axes()
+    with tempfile.NamedTemporaryFile(suffix='png') as f4:
+        plot.save(f4.name)
+
+
+
+

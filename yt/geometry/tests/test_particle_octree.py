@@ -133,11 +133,12 @@ def FakeBitmap(npart, nfiles, order1, order2,
         posgen = yield_fake_decomp(decomp, npart, nfiles,
                                    left_edge, right_edge, buff=buff, 
                                    distrib=distrib)
+        coll = None
         for i, (pos, hsml) in enumerate(posgen):
-            nsub_mi = reg._refined_index_data_file(
-                pos, hsml, mask, sub_mi1, sub_mi2, i, 0)
-            reg._set_refined_index_data_file(
-                sub_mi1, sub_mi2, i, nsub_mi)
+            nsub_mi, coll = reg._refined_index_data_file(
+                coll, pos, hsml, mask, sub_mi1, sub_mi2, i,
+                0, count_threshold = 1, mask_threshold = 2)
+            reg.bitmasks.append(i, coll)
         # Save if file name provided
         if isinstance(fname, str):
             reg.save_bitmasks(fname)
@@ -175,11 +176,12 @@ def test_bitmap_no_collisions():
     sub_mi2 = np.zeros(max_npart, "uint64")
     posgen = yield_fake_decomp('sliced', npart, nfiles,
                                left_edge, right_edge)
+    coll = None
     for i, (pos, hsml) in enumerate(posgen):
-        nsub_mi = reg._refined_index_data_file(
-            pos, hsml, mask, sub_mi1, sub_mi2, i, 0)
-        reg._set_refined_index_data_file(
-            sub_mi1, sub_mi2, i, nsub_mi)
+        nsub_mi, coll = reg._refined_index_data_file(
+            coll, pos, hsml, mask, sub_mi1, sub_mi2, i,
+                0, count_threshold = 1, mask_threshold = 2)
+        reg.bitmasks.append(i, coll)
         assert_equal(reg.count_refined(i), 0)
     nr, nm = reg.find_collisions_refined()
     assert_equal(nr, 0, "%d collisions" % nr)
@@ -214,10 +216,10 @@ def test_bitmap_collisions():
     sub_mi1 = np.zeros(max_npart, "uint64")
     sub_mi2 = np.zeros(max_npart, "uint64")
     for i in range(nfiles):
-        nsub_mi = reg._refined_index_data_file(
-            pos, hsml, mask, sub_mi1, sub_mi2, i, 0)
-        reg._set_refined_index_data_file(
-            sub_mi1, sub_mi2, i, nsub_mi)
+        nsub_mi, coll = reg._refined_index_data_file(
+            None, pos, hsml, mask, sub_mi1, sub_mi2, i,
+            0, count_threshold = 1, mask_threshold = 2)
+        reg.bitmasks.append(i, coll)
         assert_equal(reg.count_refined(i), ncoll)
     nr, nm = reg.find_collisions_refined()
     assert_equal(nr, 2**(3*(order1+order2)), "%d collisions" % nr)

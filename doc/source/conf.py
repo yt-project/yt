@@ -61,7 +61,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'The yt Project'
-copyright = u'2013-2018, the yt Project'
+copyright = u'2013-2020, the yt Project'
 
 # The version info for the project you're documenting, acts as replacement for
 # |version| and |release|, also used in various other places throughout the
@@ -246,16 +246,21 @@ man_pages = [
 
 
 # Example configuration for intersphinx: refer to the Python standard library.
-intersphinx_mapping = {
-    'http://docs.python.org/': None,
-    'http://ipython.readthedocs.io/en/stable/': None,
-    'http://docs.scipy.org/doc/numpy/': None,
-    'http://matplotlib.org/': None,
-    'http://docs.astropy.org/en/stable': None,
-    'trident': ('http://trident.readthedocs.io/en/latest/', None),
-    'yt_astro_analysis': ('https://yt-astro-analysis.readthedocs.io/en/latest/', None),
-    'yt_attic': ('https://yt-attic.readthedocs.io/en/latest/', None),
-}
+intersphinx_mapping = {'https://docs.python.org/3/': None,
+                       'https://ipython.readthedocs.io/en/stable/': None,
+                       'https://docs.scipy.org/doc/numpy/': None,
+                       'https://matplotlib.org/': None,
+                       'https://docs.astropy.org/en/stable': None,
+                       'https://pandas.pydata.org/pandas-docs/stable': None,
+                       'trident': ('https://trident.readthedocs.io/en/latest/', None),
+                       'yt_astro_analysis': ('https://yt-astro-analysis.readthedocs.io/en/latest/', None),
+                       'yt_attic': ('https://yt-attic.readthedocs.io/en/latest/', None),
+                       }
 
 if not on_rtd:
     autosummary_generate = glob.glob("reference/api/api.rst")
+
+# as of Sphinx/1.6.1 this is the supported way to link custom style sheets
+#   see: https://github.com/ryan-roemer/sphinx-bootstrap-theme#adding-custom-css
+def setup(app):
+    app.add_stylesheet("custom.css")
