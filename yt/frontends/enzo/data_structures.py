@@ -5,7 +5,6 @@ import io
 import weakref
 import numpy as np
 import os
-import stat
 import string
 import time
 import re
@@ -821,9 +820,6 @@ class EnzoDataset(Dataset):
             self.unique_identifier = self.parameters["MetaDataDatasetUUID"]
         elif "CurrentTimeIdentifier" in self.parameters:
             self.unique_identifier = self.parameters["CurrentTimeIdentifier"]
-        else:
-            self.unique_identifier = \
-                str(int(os.stat(self.parameter_filename)[stat.ST_CTIME]))
         if self.dimensionality > 1:
             self.domain_dimensions = self.parameters["TopGridDimensions"]
             if len(self.domain_dimensions) < 3:

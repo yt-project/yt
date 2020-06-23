@@ -331,8 +331,6 @@ class GadgetDataset(SPHDataset):
         self.dimensionality = 3
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # Set standard values
 
         # We may have an overridden bounding box.

@@ -1,7 +1,6 @@
 import glob
 import numpy as np
 import os
-import stat
 import struct
 import weakref
 
@@ -246,8 +245,6 @@ class ARTDataset(Dataset):
         self.periodicity = (True, True, True)
         self.cosmological_simulation = True
         self.parameters = {}
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.parameters.update(constants)
         self.parameters['Time'] = 1.0
         # read the amr header
@@ -499,8 +496,6 @@ class DarkMatterARTDataset(ARTDataset):
         self.periodicity = (True, True, True)
         self.cosmological_simulation = True
         self.parameters = {}
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.parameters.update(constants)
         self.parameters['Time'] = 1.0
         self.file_count = 1

@@ -1,6 +1,5 @@
 import glob
 import os
-import stat
 
 import numpy as np
 
@@ -92,8 +91,6 @@ class AHFHalosDataset(Dataset):
         self.parameters.update(param)
         self.particle_types = ('halos')
         self.particle_types_raw = ('halos')
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set up geometrical information.
         self.refine_by = 2

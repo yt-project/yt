@@ -1,5 +1,4 @@
 import numpy as np
-import stat
 import struct
 import glob
 import os
@@ -122,9 +121,6 @@ class TipsyDataset(SPHDataset):
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
 
-
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Read in parameter file, if available.
         if self._param_file is None:
