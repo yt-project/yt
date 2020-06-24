@@ -270,3 +270,13 @@ def VR_image_comparison(scene):
     image = mpimg.imread(tmpname)
     os.remove(tmpname)
     return image
+
+
+def yt_data_field(ds, field, geometric):
+    if geometric:
+        obj = ds.all_data()
+    else:
+        obj = ds.data
+    num_e = obj[field].size
+    avg = obj[field].mean()
+    return np.array([num_e, avg])
