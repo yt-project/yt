@@ -730,7 +730,7 @@ def requires_file(req_file):
     def ftrue(func):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
-            return func
+            return func(*args, **kwargs)
         return true_wrapper
     if os.path.exists(req_file):
         return ftrue
