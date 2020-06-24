@@ -36,17 +36,9 @@ from .fields import \
     AdaptaHOPFieldInfo
 
 
-class AdaptaHOPFile(HaloCatalogFile):
-    pass
-
-
-class AdaptaHOPParticleIndex(HaloCatalogParticleIndex):
-    pass
-
-
 class AdaptaHOPDataset(Dataset):
-    _index_class = AdaptaHOPParticleIndex
-    _file_class = AdaptaHOPFile
+    _index_class = HaloCatalogParticleIndex
+    _file_class = HaloCatalogFile
     _field_info_class = AdaptaHOPFieldInfo
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm
