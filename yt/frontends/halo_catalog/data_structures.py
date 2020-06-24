@@ -21,12 +21,14 @@ class HaloCatalogParticleIndex(ParticleIndex):
         cls = self.dataset._file_class
         if ndoms > 1:
             self.data_files = \
-              [cls(self.dataset, self.io, template % {'num':i}, i)
+              [cls(self.dataset, self.io, template % {'num':i}, i, range=None)
                for i in range(ndoms)]
         else:
             self.data_files = \
               [cls(self.dataset, self.io,
-                   self.dataset.parameter_filename, 0)]
+                   self.dataset.parameter_filename, 0, range=None)]
+        self.total_particles = sum(
+            sum(d.total_particles.values()) for d in self.data_files)
 
 class HaloCatalogFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id, range):
