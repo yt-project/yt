@@ -19,17 +19,18 @@ import pkg_resources
 
 
 def _get_cpu_count():
-    if platform.system() != "Windows":
-        cpu_count = os.cpu_count()
-        try:
-            user_max_cores = int(os.getenv('MAX_BUILD_CORES', cpu_count))
-        except ValueError as e:
-            print ("MAX_BUILD_CORES needs to be set to an integer.")
-            raise e
-        max_cores = min(cpu_count, user_max_cores)
-        return max_cores
-    return 0
+    if platform.system() == "Windows":
+        return 0
 
+    cpu_count = os.cpu_count()
+    try:
+        user_max_cores = int(os.getenv('MAX_BUILD_CORES', cpu_count))
+    except ValueError:
+        raise ValueError(
+            "MAX_BUILD_CORES must be set to an integer. " +
+            "See above for original error.")
+    max_cores = min(cpu_count, user_max_cores)
+    return max_cores
 
 def _compile(
     self, sources, output_dir=None, macros=None, include_dirs=None,
