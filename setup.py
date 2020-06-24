@@ -24,7 +24,7 @@ def _get_cpu_count():
         try:
             user_max_cores = int(os.getenv('MAX_BUILD_CORES', cpu_count))
         except ValueError as e:
-            # print useful error message
+            print ("MAX_BUILD_CORES needs to be set to an integer.")
             raise e
         max_cores = min(cpu_count, user_max_cores)
         return max_cores
