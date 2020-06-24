@@ -33,7 +33,7 @@ from yt.utilities.lib.fp_utils cimport (
 from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
 
 from cpython.exc cimport PyErr_CheckSignals
-from cython.parallel cimport prange
+from cython.parallel cimport parallel, prange
 from libc.stdlib cimport free, malloc
 from vec3_ops cimport cross, dot, subtract
 
@@ -993,22 +993,21 @@ def pixelize_sph_kernel_projection(
 
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
-    cdef np.int64_t xi, yi, x0, x1, y0, y1
+    cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
     cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, px, py
     cdef np.float64_t period_x, period_y
     cdef int index, i, j, ii, jj
     cdef np.float64_t[:] _weight_field
-    cdef int xiter[2]
-    cdef int yiter[2]
-    cdef np.float64_t xiterv[2]
-    cdef np.float64_t yiterv[2]
+    cdef int * xiter
+    cdef int * yiter
+    cdef np.float64_t * xiterv
+    cdef np.float64_t * yiterv
+    cdef np.float64_t * local_buf
 
     if weight_field is not None:
         _weight_field = weight_field
 
-    xiter[0] = yiter[0] = 0
-    xiterv[0] = yiterv[0] = 0.0
     if period is not None:
         period_x = period[0]
         period_y = period[1]
@@ -1031,9 +1030,33 @@ def pixelize_sph_kernel_projection(
         kernel_tables[kernel_name] = SPHKernelInterpolationTable(kernel_name)
     cdef SPHKernelInterpolationTable itab = kernel_tables[kernel_name]
 
-    with nogil:
+    with nogil, parallel():
         # loop through every particle
-        for j in range(0, posx.shape[0]):
+        # NOTE: this loop can be quite time consuming. However it is easily
+        # parallelizable in multiple ways, such as:
+        #   1) use multiple cores to process individual particles (the outer loop)
+        #   2) use multiple cores to process individual pixels for a given particle
+        #      (the inner loops)
+        # Depending on the ratio of particles' "sphere of influnce" (a.k.a. the smoothing
+        # length) to the physical width of the pixels, different parallelization
+        # strategies may yield different speed-ups. Strategy #1 works better in the case
+        # of lots of itty bitty particles. Strategy #2 works well when we have a
+        # not-very-large-number of reasonably large-compared-to-pixels particles. We
+        # currently employ #1 as its workload is more even and consistent, even though it
+        # comes with a price of an additional, per thread memory for storing the
+        # intermediate results.
+
+        local_buff = <np.float64_t *> malloc(sizeof(np.float64_t) * xsize * ysize)
+        xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        yiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        xiter = <int *> malloc(sizeof(int) * 2)
+        yiter = <int *> malloc(sizeof(int) * 2)
+        xiter[0] = yiter[0] = 0
+        xiterv[0] = yiterv[0] = 0.0
+        for i in range(xsize * ysize):
+            local_buff[i] = 0.0
+
+        for j in prange(0, posx.shape[0], schedule="dynamic"):
             if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
@@ -1107,7 +1130,17 @@ def pixelize_sph_kernel_projection(
         
                             # see equation 32 of the SPLASH paper
                             # now we just use the kernel projection
-                            buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
+                            local_buff[xi + yi*xsize] +=  prefactor_j * itab.interpolate(q_ij2)
+
+        with gil:
+            for xxi in range(xsize):
+                for yyi in range(ysize):
+                    buff[xxi, yyi] += local_buff[xxi + yyi*xsize]
+        free(local_buff)
+        free(xiterv)
+        free(yiterv)
+        free(xiter)
+        free(yiter)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1290,18 +1323,17 @@ def pixelize_sph_kernel_slice(
     # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
-    cdef np.int64_t xi, yi, x0, x1, y0, y1
+    cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
     cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j, px, py
     cdef int index, i, j, ii, jj
     cdef np.float64_t period_x, period_y
-    cdef int xiter[2]
-    cdef int yiter[2]
-    cdef np.float64_t xiterv[2]
-    cdef np.float64_t yiterv[2]
+    cdef int * xiter
+    cdef int * yiter
+    cdef np.float64_t * xiterv
+    cdef np.float64_t * yiterv
+    cdef np.float64_t * local_buf
 
-    xiter[0] = yiter[0] = 0
-    xiterv[0] = yiterv[0] = 0.0
     if period is not None:
         period_x = period[0]
         period_y = period[1]
@@ -1320,8 +1352,19 @@ def pixelize_sph_kernel_slice(
 
     kernel_func = get_kernel_func(kernel_name)
 
-    with nogil:
-        for j in range(0, posx.shape[0]):
+    with nogil, parallel():
+        # NOTE see note in pixelize_sph_kernel_projection
+        local_buff = <np.float64_t *> malloc(sizeof(np.float64_t) * xsize * ysize)
+        xiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        yiterv = <np.float64_t *> malloc(sizeof(np.float64_t) * 2)
+        xiter = <int *> malloc(sizeof(int) * 2)
+        yiter = <int *> malloc(sizeof(int) * 2)
+        xiter[0] = yiter[0] = 0
+        xiterv[0] = yiterv[0] = 0.0
+        for i in range(xsize * ysize):
+            local_buff[i] = 0.0
+
+        for j in prange(0, posx.shape[0], schedule="dynamic"):
             if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
@@ -1392,7 +1435,17 @@ def pixelize_sph_kernel_slice(
                                 continue
         
                             # see equations 6, 9, and 11 of the SPLASH paper
-                            buff[xi, yi] += prefactor_j * kernel_func(q_ij)
+                            local_buff[xi + yi*xsize] += prefactor_j * kernel_func(q_ij)
+
+        with gil:
+            for xxi in range(xsize):
+                for yyi in range(ysize):
+                    buff[xxi, yyi] += local_buff[xxi + yyi*xsize]
+        free(local_buff)
+        free(xiterv)
+        free(yiterv)
+        free(xiter)
+        free(yiter)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1447,6 +1500,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     kernel_func = get_kernel_func(kernel_name)
 
     with nogil:
+        # TODO make this parallel without using too much memory
         for j in range(0, posx.shape[0]):
             if j % 50000 == 0:
                 with gil:
