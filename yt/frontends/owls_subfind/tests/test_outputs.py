@@ -31,6 +31,6 @@ def test_fields_g1():
     for field in _fields:
         yield FieldValuesTest(g1, field, particle_type=True)
 
-@requires_file(g1)
-def test_OWLSSubfindDataset():
-    assert isinstance(data_dir_load(g1), OWLSSubfindDataset)
+#@requires_file(g1)
+#def test_OWLSSubfindDataset():
+#    assert isinstance(data_dir_load(g1), OWLSSubfindDataset)
