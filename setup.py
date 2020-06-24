@@ -22,7 +22,7 @@ def _get_cpu_count():
     if platform.system() != "Windows":
         cpu_count = os.cpu_count()
         try:
-            user_max_cores = int(os.getenv('MAX_BUILD_CORES'), cpu_count)
+            user_max_cores = int(os.getenv('MAX_BUILD_CORES', cpu_count))
         except ValueError as e:
             # print useful error message
             raise e
