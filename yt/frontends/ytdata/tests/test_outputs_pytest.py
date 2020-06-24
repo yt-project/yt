@@ -37,7 +37,7 @@ from yt.visualization.plot_window import \
 from yt.visualization.profile_plotter import \
     ProfilePlot, \
     PhasePlot
-import yt.utilities.answer_testing.framework as fw
+from yt.utilities.answer_testing.answer_tests import yt_data_field
 from yt.utilities.answer_testing import utils
 
 # Test data
@@ -49,22 +49,21 @@ enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 #============================================
 @pytest.mark.answer_test
 @pytest.mark.usefixtures('temp_dir', 'answer_file')
-class TestYTData(fw.AnswerTest):
+class TestYTData:
     #-----
     # test_datacontainer_data
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_datacontainer_data(self, field, ds_enzotiny):
-        ds = ds_enzotiny
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_datacontainer_data(self, field, ds):
         sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
         fn = sphere.save_as_dataset(fields=["density", "particle_mass"])
         full_fn = os.path.join(os.getcwd(), fn)
         sphere_ds = load(full_fn)
         utils.compare_unit_attributes(ds, sphere_ds)
         assert isinstance(sphere_ds, YTDataContainerDataset)
-        ytft_hd = self.yt_field_test(sphere_ds, field, True)
-        self.hashes.update({'yt_field_test' : ytft_hd})
+        ytft = yt_data_field(sphere_ds, field, True)
+        self.hashes.update({'yt_data_field' : ytft})
         cr = ds.cut_region(sphere, ['obj["temperature"] > 1e4'])
         fn = cr.save_as_dataset(fields=["temperature"])
         full_fn = os.path.join(os.getcwd(), fn)
@@ -76,25 +75,23 @@ class TestYTData(fw.AnswerTest):
     # test_covering_grid_datacontainer_data
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_covering_grid_datacontainer_data(self, field, ds_enzotiny):
-        ds = ds_enzotiny
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_covering_grid_datacontainer_data(self, field, ds):
         cg = ds.covering_grid(level=0, left_edge=[0.25]*3, dims=[16]*3)
         fn = cg.save_as_dataset(fields=["density", "particle_mass"])
         full_fn = os.path.join(os.getcwd(), fn)
         cg_ds = load(full_fn)
         utils.compare_unit_attributes(ds, cg_ds)
         assert isinstance(cg_ds, YTGridDataset)
-        ytft_hd = self.yt_field_test(cg_ds, field, True)
-        self.hashes.update({'yt_field_test' :  ytft_hd})
+        ytft= yt_data_field(cg_ds, field, True)
+        self.hashes.update({'yt_data_field' :  ytft})
 
     #-----
     # test_arbitrary_grid_datacontainer_data
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_arbitrary_grid_datacontainer_data(self, field, ds_enzotiny):
-        ds = ds_enzotiny
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_arbitrary_grid_datacontainer_data(self, field, ds):
         ag = ds.arbitrary_grid(left_edge=[0.25]*3, right_edge=[0.75]*3,
                                dims=[16]*3)
         fn = ag.save_as_dataset(fields=["density", "particle_mass"])
@@ -102,16 +99,15 @@ class TestYTData(fw.AnswerTest):
         ag_ds = load(full_fn)
         utils.compare_unit_attributes(ds, ag_ds)
         assert isinstance(ag_ds, YTGridDataset)
-        ytft_hd = self.yt_field_test(ag_ds, field, True)
-        self.hashes.update({'yt_field_test' : ytft_hd})
+        ytft= yt_data_field(ag_ds, field, True)
+        self.hashes.update({'yt_data_field' : ytft})
 
     #-----
     # test_frb_datacontainer_data
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_frb_datacontainer_data(self, field, ds_enzotiny):
-        ds = ds_enzotiny
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_frb_datacontainer_data(self, field, ds):
         my_proj = ds.proj("density", "x", weight_field="density")
         frb = my_proj.to_frb(1.0, (800, 800))
         fn = frb.save_as_dataset(fields=["density"])
@@ -119,32 +115,30 @@ class TestYTData(fw.AnswerTest):
         assert_array_equal(frb["density"], frb_ds.data["density"])
         utils.compare_unit_attributes(ds, frb_ds)
         assert isinstance(frb_ds, YTGridDataset)
-        ytft_hd = self.yt_field_test(frb_ds, field, False)
-        self.hashes.update({'yt_field_test' : ytft_hd})
+        ytft= yt_data_field(frb_ds, field, False)
+        self.hashes.update({'yt_data_field' : ytft})
 
     #-----
     # test_spatial_data
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_spatial_data(self, field, ds_enzotiny):
-        ds = ds_enzotiny
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_spatial_data(self, field, ds):
         proj = ds.proj("density", "x", weight_field="density")
         fn = proj.save_as_dataset()
         full_fn = os.path.join(os.getcwd(), fn)
         proj_ds = load(full_fn)
         utils.compare_unit_attributes(ds, proj_ds)
         assert isinstance(proj_ds, YTSpatialPlotDataset)
-        ytft_hd = self.yt_field_test(proj_ds, field, False)
-        self.hashes.update({'yt_field_test' : ytft_hd})
+        ytft = yt_data_field(proj_ds, field, False)
+        self.hashes.update({'yt_data_field' : ytft})
 
     #-----
     # test_profile_data
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_profile_data1(self, field, ds_enzotiny):
-        ds = ds_enzotiny
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_profile_data1(self, field, ds):
         ad = ds.all_data()
         profile_1d = create_profile(ad, "density", "temperature",
                                     weight_field="cell_mass")
@@ -160,16 +154,15 @@ class TestYTData(fw.AnswerTest):
         p1 = ProfilePlot(prof_1d_ds.data, "density", "temperature",
                          weight_field="cell_mass")
         p1.save()
-        ytft_hd = self.yt_field_test(prof_1d_ds, field, False)
-        self.hashes.update({'yt_field_test' : ytft_hd})
+        ytft = yt_data_field(prof_1d_ds, field, False)
+        self.hashes.update({'yt_data_field' : ytft})
 
     #-----
     # test_profile_data2
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_profile_data2(self, field, ds_enzotiny):
-        ds = ds_enzotiny
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_profile_data2(self, field, ds):
         ad = ds.all_data()
         profile_2d = create_profile(ad, ["density", "temperature"],
                                    "cell_mass", weight_field=None,
@@ -182,16 +175,15 @@ class TestYTData(fw.AnswerTest):
         p2 = PhasePlot(prof_2d_ds.data, "density", "temperature",
                        "cell_mass", weight_field=None)
         p2.save()
-        ytft_hd = self.yt_field_test(prof_2d_ds, field, False)
-        self.hashes.update({'yt_field_test' : ytft_hd})
+        ytft = yt_data_field(prof_2d_ds, field, False)
+        self.hashes.update({'yt_data_field' : ytft})
 
     #-----
     # test_nonspatial_data1
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
-    def test_nonspatial_data1(self, field, ds_enzotiny):
-        ds = ds_enzotiny
+    @pytest.mark.parametrize('ds', [enzotiny], indirect=True)
+    def test_nonspatial_data1(self, field, ds):
         region = ds.box([0.25]*3, [0.75]*3)
         sphere = ds.sphere(ds.domain_center, (10, "Mpc"))
         my_data = {}
@@ -203,14 +195,13 @@ class TestYTData(fw.AnswerTest):
         array_ds = load(full_fn)
         utils.compare_unit_attributes(ds, array_ds)
         assert isinstance(array_ds, YTNonspatialDataset)
-        ytft_hd = self.yt_field_test(array_ds, field, False)
-        self.hashes.update({'yt_field_test' : ytft_hd})
+        ytft = yt_data_field(array_ds, field, False)
+        self.hashes.update({'yt_data_field' : ytft})
     
     #-----
     # test_nonspatial_data2
     #-----
     @pytest.mark.usefixtures('hashing')
-    @utils.requires_ds(enzotiny)
     def test_nonspatial_data2(self, field):
         my_data = {"density": YTArray(np.linspace(1.,20.,10), "g/cm**3")}
         fake_ds = {"current_time": YTQuantity(10, "Myr")}
@@ -219,8 +210,8 @@ class TestYTData(fw.AnswerTest):
         full_fn = os.path.join(os.getcwd(), fn)
         new_ds = load(full_fn)
         assert isinstance(new_ds, YTNonspatialDataset)
-        ytft_hd = self.yt_field_test(new_ds, field, False)
-        self.hashes.update({'yt_field_test' : ytft_hd})
+        ytft = yt_data_field(new_ds, field, False)
+        self.hashes.update({'yt_data_field' : ytft})
 
     #-----
     # test_plot_data
