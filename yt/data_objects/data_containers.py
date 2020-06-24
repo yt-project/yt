@@ -1,5 +1,6 @@
 import itertools
 import uuid
+from distutils.version import LooseVersion
 
 import numpy as np
 import weakref
@@ -269,10 +270,14 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
     def _ipython_key_completions_(self):
         # to keep in sync with yt.data_objects.region_expression.RegionExpression
+        from IPython import __version__ as IPY_VERSION
+
         keys = self.ds.field_list + self.ds.derived_field_list
-        ftypes = list(set(k[0] for k in keys))
+        if LooseVersion(IPY_VERSION) >= LooseVersion("8.0.0"):
+            return keys
+
         fnames = list(set(k[1] for k in keys))
-        return ftypes + fnames
+        return fnames
 
     def __setitem__(self, key, val):
         """

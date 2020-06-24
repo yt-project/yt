@@ -1,3 +1,4 @@
+from distutils.version import LooseVersion
 import weakref
 
 from yt.funcs import obj_length
@@ -65,10 +66,14 @@ class RegionExpression(object):
 
     def _ipython_key_completions_(self):
         # to keep in sync with yt.data_objects.data_containers.YTDataContainer
-        keys = self.ds.field_list + self.ds.derived_field_list
-        ftypes = list(set(k[0] for k in keys))
+        from IPython import __version__ as IPY_VERSION
+
+        keys = self.ds.field_list + self.ds.derived_field_list        
+        if LooseVersion(IPY_VERSION) >= LooseVersion("8.0.0"):
+            return keys
+
         fnames = list(set(k[1] for k in keys))
-        return ftypes + fnames
+        return fnames
 
     def _spec_to_value(self, input):
         if isinstance(input, tuple):
