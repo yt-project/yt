@@ -1,6 +1,5 @@
 import itertools
 import uuid
-from distutils.version import LooseVersion
 
 import numpy as np
 import weakref
@@ -74,6 +73,14 @@ def sanitize_weight_field(ds, field, weight):
     else:
         weight_field = weight
     return weight_field
+
+def _get_ipython_key_completion(ds):
+    # tuple-completion (ftype, fname) was added in IPython 8.0.0
+    # with earlier versions, completion works with fname only
+    # this implementation should work transparently with all IPython versions
+    tuple_keys = ds.field_list + ds.derived_field_list
+    fnames = list(set(k[1] for k in tuple_keys))
+    return tuple_keys + fnames
 
 class RegisteredDataContainer(type):
     def __init__(cls, name, b, d):
@@ -269,15 +276,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         return rv
 
     def _ipython_key_completions_(self):
-        # to keep in sync with yt.data_objects.region_expression.RegionExpression
-        from IPython import __version__ as IPY_VERSION
-
-        keys = self.ds.field_list + self.ds.derived_field_list
-        if LooseVersion(IPY_VERSION) >= LooseVersion("8.0.0"):
-            return keys
-
-        fnames = list(set(k[1] for k in keys))
-        return fnames
+        return _get_ipython_key_completion(self.ds)
 
     def __setitem__(self, key, val):
         """

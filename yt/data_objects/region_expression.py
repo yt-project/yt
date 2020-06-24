@@ -1,10 +1,10 @@
-from distutils.version import LooseVersion
 import weakref
 
 from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError
 from yt.visualization.line_plot import LineBuffer
+from .data_containers import _get_ipython_key_completion
 
 class RegionExpression(object):
     _all_data = None
@@ -65,15 +65,7 @@ class RegionExpression(object):
             return self._create_region(item)
 
     def _ipython_key_completions_(self):
-        # to keep in sync with yt.data_objects.data_containers.YTDataContainer
-        from IPython import __version__ as IPY_VERSION
-
-        keys = self.ds.field_list + self.ds.derived_field_list        
-        if LooseVersion(IPY_VERSION) >= LooseVersion("8.0.0"):
-            return keys
-
-        fnames = list(set(k[1] for k in keys))
-        return fnames
+        return _get_ipython_key_completion(self.ds)
 
     def _spec_to_value(self, input):
         if isinstance(input, tuple):
