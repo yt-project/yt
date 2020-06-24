@@ -1,10 +1,8 @@
-import numpy as np
 import os.path
 import yt
 from yt.config import ytcfg
 from yt.testing import \
     assert_equal, requires_file, assert_raises
-from yt.utilities.exceptions import YTUnitOperationError
 
 G30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
