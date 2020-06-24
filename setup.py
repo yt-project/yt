@@ -20,7 +20,9 @@ import pkg_resources
 
 def _get_cpu_count():
     if platform.system() != "Windows":
-        return os.cpu_count()
+        cpu_count = os.cpu_count()
+        max_cores = min(cpu_count, int(os.getenv('MAX_BUILD_CORES', cpu_count)))
+        return max_cores
     return 0
 
 
