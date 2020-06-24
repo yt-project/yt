@@ -21,7 +21,12 @@ import pkg_resources
 def _get_cpu_count():
     if platform.system() != "Windows":
         cpu_count = os.cpu_count()
-        max_cores = min(cpu_count, int(os.getenv('MAX_BUILD_CORES', cpu_count)))
+        try:
+            user_max_cores = int(os.getenv('MAX_BUILD_CORES'), cpu_count)
+        except ValueError as e:
+            # print useful error message
+            raise e
+        max_cores = min(cpu_count, user_max_cores)
         return max_cores
     return 0
 
