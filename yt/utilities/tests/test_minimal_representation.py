@@ -1,6 +1,5 @@
 import numpy as np
 import os.path
-from unyt.exceptions import UnitOperationError
 import yt
 from yt.config import ytcfg
 from yt.testing import \
