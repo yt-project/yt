@@ -1,5 +1,6 @@
 import numpy as np
 import os.path
+from unyt.exceptions import UnitOperationError
 import yt
 from yt.config import ytcfg
 from yt.testing import \
@@ -37,11 +38,13 @@ def test_store():
 
     def fail_for_different_method():
         proj2_c = ds.proj(field, "z", data_source=sp, method="mip")
-        return np.equal(proj2[field], proj2_c[field]).all()
-    assert_raises(YTUnitOperationError, fail_for_different_method)
+        assert_equal(proj2[field], proj2_c[field])
+    # A note here: a unyt.exceptions.UnitOperationError is raised
+    # and caught by numpy, which reraises a ValueError
+    assert_raises(ValueError, fail_for_different_method)
 
     def fail_for_different_source():
         sp = ds.sphere(ds.domain_center, (2, 'kpc'))
         proj2_c = ds.proj(field, "z", data_source=sp, method="integrate")
-        return assert_equal(proj2_c[field], proj2[field])
+        assert_equal(proj2_c[field], proj2[field])
     assert_raises(AssertionError, fail_for_different_source)
