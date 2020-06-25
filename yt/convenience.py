@@ -52,7 +52,7 @@ def load(*args ,**kwargs):
     if not any(valid_file):
         try:
             from yt.data_objects.time_series import DatasetSeries
-            ts = DatasetSeries.from_filenames(*args, **kwargs)
+            ts = DatasetSeries(*args, **kwargs)
             return ts
         except (TypeError, YTOutputNotIdentified):
             pass

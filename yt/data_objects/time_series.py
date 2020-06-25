@@ -4,6 +4,7 @@ import glob
 import numpy as np
 import os
 import weakref
+import warnings
 
 from functools import wraps
 
@@ -21,7 +22,8 @@ from yt.data_objects.particle_trajectories import \
 from yt.funcs import \
     iterable, \
     ensure_list, \
-    mylog
+    mylog, \
+    VisibleDeprecationWarning
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import \
     YTException, \
@@ -364,19 +366,11 @@ class DatasetSeries(object):
         ...     SlicePlot(ds, "x", "Density").save()
 
         """
-        
-        if isinstance(filenames, str):
-            filenames = get_filenames_from_glob_pattern(filenames)
-
-        # This will crash with a less informative error if filenames is not
-        # iterable, but the plural keyword should give users a clue...
-        for fn in filenames:
-            if not isinstance(fn, str):
-                raise YTOutputNotIdentified("DataSeries accepts a list of "
-                                            "strings, but "
-                                            "received {0}".format(fn))
-        obj = cls(filenames[:], parallel = parallel,
-                  setup_function = setup_function, **kwargs)
+        warnings.warn(
+            VisibleDeprecationWarning(
+                "DatasetSeries.from_filenames() is deprecated and will be removed in a future version of yt. Use DatasetSeries() directly."
+            ))
+        obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
         return obj
 
     @classmethod
