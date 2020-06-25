@@ -103,8 +103,3 @@ def test_ARTDataset():
 def test_units_override():
     units_override_check(d9p)
 
-@requires_file(d9p)
-def test_particle_selection():
-    ds = data_dir_load(d9p)
-    psc = ParticleSelectionComparison(ds)
-    psc.run_defaults()
