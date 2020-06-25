@@ -230,7 +230,7 @@ cython_extensions = [
               ["yt/utilities/lib/ewah_bool_wrap.pyx"],
               include_dirs=["yt/utilities/lib/",
                             "yt/utilities/lib/ewahboolarray"],
-              language="c++"),
+              language="c++", extra_compile_args=["-std=c++11"]),
     Extension("yt.utilities.lib.image_samplers",
               ["yt/utilities/lib/image_samplers.pyx",
                "yt/utilities/lib/fixed_interpolator.c"],
