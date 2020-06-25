@@ -4,7 +4,6 @@ import glob
 import numpy as np
 import os
 import weakref
-import warnings
 
 from functools import wraps
 
@@ -23,7 +22,7 @@ from yt.funcs import \
     iterable, \
     ensure_list, \
     mylog, \
-    VisibleDeprecationWarning
+    issue_deprecation_warning
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import \
     YTException, \
@@ -366,10 +365,10 @@ class DatasetSeries(object):
         ...     SlicePlot(ds, "x", "Density").save()
 
         """
-        warnings.warn(
-            VisibleDeprecationWarning(
-                "DatasetSeries.from_filenames() is deprecated and will be removed in a future version of yt. Use DatasetSeries() directly."
-            ))
+        issue_deprecation_warning(
+                "DatasetSeries.from_filenames() is deprecated and will be removed "
+                "in a future version of yt. Use DatasetSeries() directly."
+        )
         obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
         return obj
 
