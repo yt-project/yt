@@ -16,8 +16,7 @@ _tng59_bbox = [[45135.0, 51343.0], [51844.0, 56184.0], [60555.0, 63451.0]]
 @requires_file(bullet_h5)
 def test_arepo_hdf5_selection():
     ds = data_dir_load(bullet_h5)
-    assert isinstance(data_dir_load(bullet_h5),
-                      ArepoHDF5Dataset)
+    assert isinstance(ds, ArepoHDF5Dataset)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
 
@@ -72,8 +71,7 @@ def test_index_override():
     os.close(tmpfd)
     ds = data_dir_load(tng59_h5, kwargs = {'index_filename': tmpname,
                                            'bounding_box': _tng59_bbox})
-    assert isinstance(data_dir_load(tng59_h5),
-                      ArepoHDF5Dataset)
+    assert isinstance(ds, ArepoHDF5Dataset)
     ds.index
     assert len(open(tmpname, "r").read()) == 0
 
