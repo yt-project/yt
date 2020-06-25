@@ -71,7 +71,8 @@ def test_validation():
     assert_raises(YTIllDefinedAMR, load_grids)
 
 
-def test_2665():
+def test_load_despite_rounding_errors_during_grid_construction():
+    # from GH issue 2665
     grid_data = [
     dict(left_edge =[0.0, 0.0, 0.0],
          right_edge=[0.045,0.045,0.045],
