@@ -890,7 +890,12 @@ def load_amr_grids(grid_data, domain_dimensions,
             cell_edges = np.linspace(domain_left_edge[iax],
                                      domain_right_edge[iax],
                                      dims[iax], endpoint=False)
-            if set(grid_left_edges[idx, iax]) - set(cell_edges):
+
+            # check that every value in cell_edges closely approximates
+            # a member of grid_left_edges[idx, iax]
+            # (account for rounding errors up to machine precision)
+            diffs = [min(np.abs(cell_edges-ss)) for ss in grid_left_edges[idx, iax]]
+            if max(diffs) > 1e-17:
                 raise YTIllDefinedAMR(lvl, ax)
 
     if length_unit is None:
