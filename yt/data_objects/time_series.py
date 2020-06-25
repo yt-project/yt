@@ -64,7 +64,7 @@ def get_filenames_from_glob_pattern(pattern):
     # we try to match the pattern from the test data dir
     file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, pattern))
     if not file_list:
-        raise FileNotFoundError("No file matched this pattern '%s'" % pattern)
+        raise FileNotFoundError("No file matched this pattern or pattern(s) {}".format(pattern))
     return sorted(file_list)
 
 attrs = ("refine_by", "dimensionality", "current_time",
