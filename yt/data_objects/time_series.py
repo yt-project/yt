@@ -95,7 +95,7 @@ class DatasetSeries(object):
 
     Parameters
     ----------
-    filenames : list or pattern
+    outputs : list or pattern
         This can either be a list of filenames (such as ["DD0001/DD0001",
         "DD0002/DD0002"]) or a pattern to match, such as
         "DD*/DD*.index").  If it's the former, they will be loaded in
