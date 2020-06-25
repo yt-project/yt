@@ -11,7 +11,7 @@ class YTException(Exception):
 
 # Data access exceptions:
 
-class YTOutputNotIdentified(YTException):
+class YTOutputNotIdentified(YTException, FileNotFoundError):
     def __init__(self, args, kwargs):
         self.args = args
         self.kwargs = kwargs
