@@ -69,3 +69,23 @@ def test_validation():
         load_amr_grids(grid_data, dims, bbox=bbox, periodicity=(0, 0, 0),
                        length_unit=1.0, refine_by=2)
     assert_raises(YTIllDefinedAMR, load_grids)
+
+
+def test_2665():
+    grid_data = [
+    dict(left_edge =[0.0, 0.0, 0.0],
+         right_edge=[0.045,0.045,0.045],
+         level=0,
+         dimensions=[16,16,16]),
+    dict(left_edge =[0.0225, 0.0225, 0.0225],
+         right_edge=[0.045, 0.045, 0.045],
+         level=1,
+         dimensions=[16,16,16])
+    ]
+
+    for g in grid_data:
+        g["density"] = np.random.random(g["dimensions"]) * 2 ** g["level"]
+
+    bbox = np.array([[-0.18,0.18],[-0.18,0.18],[-0.18,0.18]])
+    dimensions = [128,128,128]
+    ds = load_amr_grids(grid_data, dimensions, bbox)
