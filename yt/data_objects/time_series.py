@@ -60,7 +60,9 @@ def get_ds_prop(propname):
 def get_filenames_from_glob_pattern(pattern):
     epattern = os.path.expanduser(pattern)
     data_dir = ytcfg.get("yt", "test_data_dir")
-    file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
+    # if not match if found from the current work dir,
+    # we try to match the pattern from the test data dir
+    file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, pattern))
     if not file_list:
         raise FileNotFoundError("No file matched this pattern '%s'" % pattern)
     return sorted(file_list)
