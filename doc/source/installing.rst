@@ -252,36 +252,6 @@ For both the Anaconda and Miniconda installations, make sure that the Anaconda
 
 which will install stable branch of yt along with all of its dependencies.
 
-.. _nightly-conda-builds:
-
-Nightly Conda Builds
-^^^^^^^^^^^^^^^^^^^^
-
-If you would like to install latest development version of yt, you can download
-it from our custom anaconda channel:
-
-.. code-block:: bash
-
-  $ conda install -c yt-project/label/dev -c conda-forge yt
-
-New packages for development branch are built after every pull request is
-merged. In order to make sure you are running latest version, it's recommended
-to update frequently:
-
-.. code-block:: bash
-
-  $ conda update -c yt-project/label/dev -c conda-forge yt
-
-We recommend trying to install dependencies from conda-forge as indicated above
-since focused individual communities stand a better chance of successfully
-maintaining build recipes. However, if you wish to use the default anaconda
-packages, simply remove ``-c conda-forge`` during conda installation.
-
-Location of our channel can be added to ``.condarc`` to avoid retyping it during
-each *conda* invocation. Please refer to `Conda Manual
-<https://conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#channel-locations-channels>`_
-for detailed instructions.
-
 .. _conda-intel-python:
 
 Using the Intel Distribution for Python from conda
@@ -579,7 +549,7 @@ you installed using ``INST_YT_SOURCE=1``.
 Conda-based installs (``INST_YT_SOURCE=0``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In this case you can either install one of the nightly conda builds (see :ref:`nightly-conda-builds`), or you can follow the instructions above to build yt from source under conda (see
+In this case you can follow the instructions above to build yt from source under conda (see
 :ref:`conda-source-build`).
 
 Source-based installs (``INST_YT_SOURCE=1``)
