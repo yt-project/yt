@@ -77,7 +77,7 @@ def load(fn, *args, **kwargs):
         for c in candidates:
             mylog.error("    Possible: %s", c)
 
-    raise YTOutputNotIdentified([fn, *args], kwargs)
+    raise YTOutputNotIdentified(fn, args, kwargs)
 
 
 def simulation(fn, simulation_type, find_outputs=False):
