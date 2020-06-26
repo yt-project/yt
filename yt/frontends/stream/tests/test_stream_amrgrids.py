@@ -89,4 +89,4 @@ def test_load_despite_rounding_errors_during_grid_construction():
 
     bbox = np.array([[-0.18,0.18],[-0.18,0.18],[-0.18,0.18]])
     dimensions = [128,128,128]
-    ds = load_amr_grids(grid_data, dimensions, bbox)
+    load_amr_grids(grid_data, dimensions, bbox)
