@@ -17,8 +17,7 @@ class YTOutputNotIdentified(YTException):
         self.kwargs = kwargs
 
     def __str__(self):
-        return "Supplied %s %s, but could not load!" % (
-            self.args, self.kwargs)
+        return "Could not determine input format from %s %s" % (self.args, self.kwargs)
 
 class YTSphereTooSmall(YTException):
     def __init__(self, ds, radius, smallest_cell):
