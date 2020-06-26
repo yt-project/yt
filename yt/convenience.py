@@ -33,16 +33,14 @@ def load(fn, *args, **kwargs):
         else:
             raise OSError("No such file or directory: %s" % fn)
 
-    types_to_check = output_type_registry
     candidates = []
-    for n, c in types_to_check.items():
+    for n, c in output_type_registry.items():
         if n is not None and c._is_valid(fn, *args, **kwargs):
-            candidates.append(n)
+            candidates.append(c)
 
-    # convert to classes
-    candidates = [output_type_registry[c] for c in candidates]
     # Find only the lowest subclasses, i.e. most specialised front ends
     candidates = find_lowest_subclasses(candidates)
+
     if len(candidates) == 1:
         return candidates[0](fn, *args, **kwargs)
     if len(candidates) == 0:
