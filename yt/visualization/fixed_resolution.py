@@ -286,7 +286,7 @@ class FixedResolutionBuffer(object):
             These fields will be pixelized and output.
         """
         if fields is None: fields = list(self.data.keys())
-        output = h5py.File(filename, "a")
+        output = h5py.File(filename, mode="a")
         for field in fields:
             output.create_dataset(field,data=self[field])
         output.close()

@@ -1,5 +1,4 @@
 import numpy as np
-import stat
 import struct
 import glob
 import os
@@ -122,9 +121,6 @@ class TipsyDataset(SPHDataset):
         self.refine_by = 2
         self.parameters["HydroMethod"] = "sph"
 
-
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Read in parameter file, if available.
         if self._param_file is None:
@@ -268,7 +264,7 @@ class TipsyDataset(SPHDataset):
             density_unit = self.mass_unit / self.length_unit**3
 
         if not hasattr(self, "time_unit"):
-            self.time_unit = 1.0 / np.sqrt(G * density_unit)
+            self.time_unit = 1.0 / np.sqrt(density_unit * G)
 
     @staticmethod
     def _validate_header(filename):

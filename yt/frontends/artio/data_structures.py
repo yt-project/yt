@@ -1,6 +1,5 @@
 import numpy as np
 import os
-import stat
 import weakref
 
 from collections import defaultdict
@@ -357,8 +356,6 @@ class ARTIODataset(Dataset):
         self.parameters["Time"] = 1.  # default unit is 1...
 
         # read header
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         self.num_grid = self._handle.num_grid
         self.domain_dimensions = np.ones(3, dtype='int32') * self.num_grid

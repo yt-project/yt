@@ -7,7 +7,6 @@ from yt.utilities.on_demand_imports import \
 import io as io
 import numpy as np
 import os
-import stat
 import warnings
 
 from yt.data_objects.grid_patch import \
@@ -100,7 +99,7 @@ class EnzoPGrid(AMRGridPatch):
     @property
     def particle_count(self):
         if self._particle_count is None:
-            with h5py.File(self.filename, "r") as f:
+            with h5py.File(self.filename, mode="r") as f:
                 fnstr = "%s/%s" % \
                   (self.block_name,
                    self.ds.index.io._sep.join(["particle", "%s", "%s"]))
@@ -402,8 +401,6 @@ class EnzoPDataset(Dataset):
         self.periodicity += (False, ) * (3 - self.dimensionality)
         self.gamma = nested_dict_get(self.parameters, ("Field", "gamma"))
 
-        self.unique_identifier = \
-          str(int(os.stat(self.parameter_filename)[stat.ST_CTIME]))
 
     def _set_code_unit_attributes(self):
         if self.cosmological_simulation:

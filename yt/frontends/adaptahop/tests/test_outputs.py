@@ -40,8 +40,9 @@ def test_field_access():
     ds_parent = data_dir_load(r0)
     ds = data_dir_load(r1, kwargs=dict(parent_ds=ds_parent))
 
+    skip_list = ('particle_identities', 'mesh_id')
     fields = [(ptype, field) for (ptype, field) in ds.derived_field_list
-              if (ptype == 'halos') and (field != 'particle_identities')]
+              if (ptype == 'halos') and (field not in skip_list)]
 
     ad = ds.all_data()
     def test_access(ptype, field):

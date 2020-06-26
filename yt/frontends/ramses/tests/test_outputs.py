@@ -424,7 +424,7 @@ def test_ramses_empty_record():
     # Access some field
     ds.r[('gas', 'density')]
 
-@requires_ds(ramses_new_format)
+@requires_file(ramses_new_format)
 @requires_module('f90nml')
 def test_namelist_reading():
     ds = data_dir_load(ramses_new_format)
@@ -436,8 +436,8 @@ def test_namelist_reading():
 
     assert nml == ref
 
-@requires_ds(ramses_empty_record)
-@requires_ds(output_00080)
+@requires_file(ramses_empty_record)
+@requires_file(output_00080)
 @requires_module('f90nml')
 def test_namelist_reading_should_not_fail():
 

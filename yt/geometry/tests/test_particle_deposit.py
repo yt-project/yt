@@ -36,7 +36,7 @@ def test_one_zone_octree_deposit():
 @requires_file(RAMSES)
 @requires_file(ISOGAL)
 def test_mesh_sampling():
-    for fn in [RAMSES, ISOGAL]:
+    for fn in (RAMSES, ISOGAL):
         ds = yt.load(fn)
         ds.add_mesh_sampling_particle_field(('index', 'x'), ptype='all')
         ds.add_mesh_sampling_particle_field(('index', 'dx'), ptype='all')
@@ -53,8 +53,8 @@ def test_mesh_sampling():
 @requires_file(RAMSES)
 @requires_file(ISOGAL)
 def test_mesh_sampling_for_filtered_particles():
-    for fn in [RAMSES, ISOGAL]:
-        ds = yt.load(RAMSES)
+    for fn in (RAMSES, ISOGAL):
+        ds = yt.load(fn)
 
         @yt.particle_filter(requires=['particle_position_x'], filtered_type='io')
         def left(pfilter, data):

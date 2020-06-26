@@ -30,7 +30,7 @@ the plot object.  All of the callbacks listed below are available via
 similar ``annotate_`` functions.
 
 To clear one or more annotations from an existing plot, see the
-:ref:`annotate_clear() function <annotate-clear>`.
+:ref:`clear_annotations() function <clear-annotations>`.
 
 For a brief demonstration of a few of these callbacks in action together,
 see the cookbook recipe: :ref:`annotations-recipe`.
@@ -120,12 +120,12 @@ Available Callbacks
 
 The underlying functions are more thoroughly documented in :ref:`callback-api`.
 
-.. _annotate-clear:
+.. _clear-annotations:
 
 Clear Callbacks (Some or All)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_clear(index=None)
+.. function:: clear_annotations(index=None)
 
     This function will clear previous annotations (callbacks) in the plot.
     If no index is provided, it will clear all annotations to the plot.
@@ -142,7 +142,7 @@ Clear Callbacks (Some or All)
     p.annotate_timestamp()
 
     # Oops, I didn't want any of that.
-    p.annotate_clear()
+    p.clear_annotations()
     p.save()
 
 .. _annotate-list:
@@ -781,7 +781,7 @@ Annotate Triangle Facets Callback
    #setup file path for yt test directory
    filename = os.path.join(yt.config.ytcfg.get("yt", "test_data_dir"),
                            "MoabTest/mcnp_n_impr_fluka.h5m")
-   f = h5py.File(filename, "r")
+   f = h5py.File(filename, mode="r")
    coords = f["/tstt/nodes/coordinates"][:]
    conn = f["/tstt/elements/Tri3/connectivity"][:]
    points = coords[conn-1]

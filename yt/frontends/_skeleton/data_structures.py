@@ -110,8 +110,6 @@ class SkeletonDataset(Dataset):
         # will be converted to YTArray automatically at a later time.
         # This includes the cosmological parameters.
         #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
         #   self.parameters             <= full of code-specific items of use
         #   self.domain_left_edge       <= array of float64
         #   self.domain_right_edge      <= array of float64
@@ -128,6 +126,10 @@ class SkeletonDataset(Dataset):
         #   self.omega_lambda               <= float
         #   self.omega_matter               <= float
         #   self.hubble_constant            <= float
+
+        # optional (has default implementation)
+        #   self.unique_identifier      <= unique identifier for the dataset
+        #                                  being read (e.g., UUID or ST_CTIME) (int)
         pass
 
     @classmethod

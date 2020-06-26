@@ -2,7 +2,6 @@ from collections import defaultdict
 from functools import partial
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import stat
 import os
 import weakref
 
@@ -100,7 +99,7 @@ class GadgetFOFParticleIndex(ParticleIndex):
 
 class GadgetFOFHDF5File(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id, frange):
-        with h5py.File(filename, "r") as f:
+        with h5py.File(filename, mode="r") as f:
             self.header = \
               dict((str(field), val)
                    for field, val in f["Header"].attrs.items())
@@ -120,7 +119,7 @@ class GadgetFOFHDF5File(HaloCatalogFile):
 
         if f is None:
             close = True
-            f = h5py.File(self.filename, "r")
+            f = h5py.File(self.filename, mode="r")
         else:
             close = False
 
@@ -176,15 +175,13 @@ class GadgetFOFDataset(ParticleDataset):
         self.halo = partial(GagdetFOFHaloContainer, ds=self._halos_ds)
 
     def _parse_parameter_file(self):
-        with h5py.File(self.parameter_filename,"r") as f:
+        with h5py.File(self.parameter_filename, mode="r") as f:
             self.parameters = \
               dict((str(field), val)
                    for field, val in f["Header"].attrs.items())
 
         self.dimensionality = 3
         self.refine_by = 2
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
         self.domain_left_edge = np.zeros(3, "float64")
@@ -404,7 +401,7 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
 
             # only open file if it's not already open
             my_f = f if self.data_files[i_scalar].filename == filename \
-              else h5py.File(self.data_files[i_scalar].filename, "r")
+              else h5py.File(self.data_files[i_scalar].filename, mode="r")
 
             for field in fields:
                 data[field][target] = \
@@ -623,7 +620,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         all_id_start = self.index._group_length_sum[:g_scalar].sum(dtype=np.int64)
 
         # Now add the halos in this file that come before.
-        with h5py.File(self.index.data_files[g_scalar].filename, "r") as f:
+        with h5py.File(self.index.data_files[g_scalar].filename, mode="r") as f:
             all_id_start += f["Group"]["GroupLen"][:group_index].sum(dtype=np.int64)
 
         # Add the subhalo offset.

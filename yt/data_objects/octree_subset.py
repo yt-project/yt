@@ -215,8 +215,7 @@ class OctreeSubset(YTSelectionContainer):
         op.initialize(npart)
         mylog.debug("Depositing %s Octs onto %s (%s^3) particles",
                     nocts, positions.shape[0], positions.shape[0]**0.3333333)
-        pos = np.asarray(positions.convert_to_units("code_length"),
-                         dtype="float64")
+        pos = positions.to("code_length").value.astype("float64")
 
         op.process_octree(self.oct_handler, self.domain_ind, pos, None,
             self.domain_id, self._domain_offset, lvlmax=lvlmax)

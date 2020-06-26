@@ -365,7 +365,7 @@ class ParticleTrajectories(object):
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> trajs.write_out_h5("orbit_trajectories")
         """
-        fid = h5py.File(filename, "w")
+        fid = h5py.File(filename, mode="w")
         fid.create_dataset("particle_indices", dtype=np.int64,
                            data=self.indices)
         fid.close()
