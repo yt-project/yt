@@ -894,8 +894,14 @@ def load_amr_grids(grid_data, domain_dimensions,
             # check that every value in cell_edges closely approximates
             # a member of grid_left_edges[idx, iax]
             # (account for rounding errors up to machine precision)
-            diffs = [min(np.abs(cell_edges-ss)) for ss in grid_left_edges[idx, iax]]
-            if max(diffs) > 1e-17:
+            atol = grid_left_edges[idx, iax].min() / 1e3
+            found = np.zeros_like(grid_left_edges[idx, iax], dtype=bool)
+            for i, gle in enumerate(grid_left_edges[idx, iax]):
+                matches = np.isclose(cell_edges, gle, atol=atol, rtol=1e-16)
+                # check for uniqueness
+                found[i] = len(np.nonzero(matches)[0]) == 1
+
+            if any(~found):
                 raise YTIllDefinedAMR(lvl, ax)
 
     if length_unit is None:
