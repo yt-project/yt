@@ -21,6 +21,7 @@ _fields = (
 )
 
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
+dmonly = "DMonly/PMcrd.0100.DAT"
 
 @requires_ds(d9p, big_data=True)
 def test_d9p():
@@ -103,3 +104,8 @@ def test_ARTDataset():
 def test_units_override():
     units_override_check(d9p)
 
+@requires_file(dmonly)
+def test_particle_selection():
+    ds = data_dir_load(dmonly)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
