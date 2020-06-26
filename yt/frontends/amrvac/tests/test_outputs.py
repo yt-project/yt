@@ -107,7 +107,7 @@ def test_khi_cartesian_3D():
 @requires_ds(jet_cylindrical_25D)
 def test_jet_cylindrical_25D():
    ds = data_dir_load(jet_cylindrical_25D)
-   for test in small_patch_amr(ds, ds.field_list):
+   for test in small_patch_amr(ds, _get_fields_to_check(ds)):
        test_jet_cylindrical_25D.__name__ = test.description
        yield test
 
