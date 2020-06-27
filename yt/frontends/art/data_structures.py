@@ -386,11 +386,11 @@ class ARTDataset(Dataset):
 
 class ARTParticleFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
+        super(ARTParticleFile, self).__init__(ds, io, filename, file_id, range=None)
         self.total_particles = {}
         for ptype, count in zip(ds.particle_types_raw, 
                                 ds.parameters['total_particles']):
             self.total_particles[ptype] = count
-        super(ARTParticleFile, self).__init__(ds, io, filename, file_id, range=None)
         with open(filename, "rb") as f:
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
