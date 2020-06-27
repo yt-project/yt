@@ -21,7 +21,7 @@ _fields = (
 )
 
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
-dmonly = "DMonly/PMcrd.0100.DAT"
+dmonly = "DMonly/PMcrs0.0100.DAT"
 
 @requires_ds(d9p, big_data=True)
 def test_d9p():

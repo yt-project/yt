@@ -385,12 +385,12 @@ class ARTDataset(Dataset):
         return False
 
 class ARTParticleFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id):
-        super(ARTParticleFile, self).__init__(ds, io, filename, file_id)
+    def __init__(self, ds, io, filename, file_id, range):
         self.total_particles = {}
         for ptype, count in zip(ds.particle_types_raw, 
                                 ds.parameters['total_particles']):
             self.total_particles[ptype] = count
+        super(ARTParticleFile, self).__init__(ds, io, filename, file_id, range)
         with open(filename, "rb") as f:
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
@@ -632,7 +632,7 @@ class DarkMatterARTDataset(ARTDataset):
             try:
                 seek = 4
                 fh.seek(seek)
-                headerstr = fh.read(45).decode('ascii')  # NOQA
+                headerstr = np.fromfile(fh, count=1, dtype=(str,45))  # NOQA
                 aexpn = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
                 aexp0 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
                 amplt = np.fromfile(fh, count=1, dtype='>f4')  # NOQA

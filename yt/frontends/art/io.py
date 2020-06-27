@@ -178,7 +178,8 @@ class IOHandlerART(BaseIOHandler):
 class IOHandlerDarkMatterART(IOHandlerART):
     _dataset_type = "dm_art"
     def _count_particles(self, data_file):
-        return self.ds.parameters['lspecies'][-1]
+        return {k: self.ds.parameters['lspecies'][i] 
+                for i, k in enumerate(self.ds.particle_types_raw)}
 
     def _initialize_index(self, data_file, regions):
         totcount = 4096**2 #file is always this size
