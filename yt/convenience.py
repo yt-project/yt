@@ -26,9 +26,9 @@ def load(fn, *args, **kwargs):
         return DatasetSeries(fn, *args, **kwargs)
 
     if not (os.path.exists(fn) or fn.startswith("http")):
-        test_path = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
-        if os.path.exists(test_path):
-            fn = test_path
+        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
+        if os.path.exists(alt_fn):
+            fn = alt_fn
         else:
             raise OSError("No such file or directory: %s" % fn)
 
@@ -57,9 +57,9 @@ def simulation(fn, simulation_type, find_outputs=False):
     """
 
     if not os.path.exists(fn):
-        test_path = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
-        if os.path.exists(test_path):
-            fn = test_path
+        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
+        if os.path.exists(alt_fn):
+            fn = alt_fn
         else:
             raise OSError("No such file or directory: %s" % fn)
 
