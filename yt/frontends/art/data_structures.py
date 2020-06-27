@@ -508,7 +508,7 @@ class DarkMatterARTDataset(ARTDataset):
         with open(self._file_particle_header, "rb") as fh:
             seek = 4
             fh.seek(seek)
-            headerstr = np.fromfile(fh, count=1, dtype=(str,45))
+            headerstr = fh.read(45).decode('ascii')
             aexpn = np.fromfile(fh, count=1, dtype='>f4')
             aexp0 = np.fromfile(fh, count=1, dtype='>f4')
             amplt = np.fromfile(fh, count=1, dtype='>f4')
@@ -534,7 +534,7 @@ class DarkMatterARTDataset(ARTDataset):
             lspecies = np.fromfile(fh, count=10, dtype='>i4')
             extras = np.fromfile(fh, count=79, dtype='>f4')
             boxsize = np.fromfile(fh, count=1, dtype='>f4')
-        n = nspecs
+        n = nspecs[0]
         particle_header_vals = {}
         tmp = np.array([headerstr, aexpn, aexp0, amplt, astep, istep,
             partw, tintg, ekin, ekin1, ekin2, au0, aeu0, nrowc, ngridc,
@@ -577,10 +577,11 @@ class DarkMatterARTDataset(ARTDataset):
                         dtype='int64')*2 # NOT ng
 
         # setup standard simulation params yt expects to see
-        self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
-        self.omega_lambda = particle_header_vals['Oml0']
-        self.omega_matter = particle_header_vals['Om0']
-        self.hubble_constant = particle_header_vals['hubble']
+        # Convert to float to please unyt
+        self.current_redshift = float(self.parameters["aexpn"]**-1.0 - 1.0)
+        self.omega_lambda = float(particle_header_vals['Oml0'])
+        self.omega_matter = float(particle_header_vals['Om0'])
+        self.hubble_constant = float(particle_header_vals['hubble'])
         self.min_level = 0
         self.max_level = 0
 #        self.min_level = particle_header_vals['min_level']
@@ -631,7 +632,7 @@ class DarkMatterARTDataset(ARTDataset):
             try:
                 seek = 4
                 fh.seek(seek)
-                headerstr = np.fromfile(fh, count=1, dtype=(str,45))  # NOQA
+                headerstr = fh.read(45).decode('ascii')  # NOQA
                 aexpn = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
                 aexp0 = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
                 amplt = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
