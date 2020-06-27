@@ -5,8 +5,7 @@ from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.utilities.parameter_file_storage import \
     output_type_registry, \
-    simulation_time_series_registry, \
-    EnzoRunDatabase
+    simulation_time_series_registry
 from yt.utilities.exceptions import \
     YTOutputNotIdentified, \
     YTSimulationNotIdentified
@@ -43,22 +42,12 @@ def load(fn, *args, **kwargs):
 
     if len(candidates) == 1:
         return candidates[0](fn, *args, **kwargs)
-    if len(candidates) == 0:
-        if ytcfg.get("yt", "enzo_db") != '' \
-           and len(args) == 0 \
-           and isinstance(fn, str):
-            erdb = EnzoRunDatabase()
-            fn = erdb.find_uuid(fn)
-            n = "EnzoDataset"
-            if n in output_type_registry \
-               and output_type_registry[n]._is_valid(fn):
-                return output_type_registry[n](fn)
-        mylog.error("Couldn't figure out output type for %s", fn)
-        raise YTOutputNotIdentified([fn, *args], kwargs)
 
-    mylog.error("Multiple output type candidates for %s:", fn)
-    for c in candidates:
-        mylog.error("    Possible: %s", c)
+    if len(candidates) > 1:
+        mylog.error("Multiple output type candidates for %s:", fn)
+        for c in candidates:
+            mylog.error("    Possible: %s", c)
+
     raise YTOutputNotIdentified([fn, *args], kwargs)
 
 def simulation(parameter_filename, simulation_type, find_outputs=False):
@@ -86,3 +75,18 @@ def simulation(parameter_filename, simulation_type, find_outputs=False):
 
     return simulation_time_series_registry[simulation_type](parameter_filename,
                                                             find_outputs=find_outputs)
+
+def load_enzo_db(fn):
+    from yt.utilities.parameter_file_storage import EnzoRunDatabase
+    from yt.frontends.enzo import EnzoDataset
+    if not ytcfg.get("yt", "enzo_db"):
+        raise OSError("enzo_db location is not properly setup.")
+
+    erdb = EnzoRunDatabase()
+    fn = os.path.expanduser(fn)
+    fn = erdb.find_uuid(fn)
+
+    if not EnzoDataset._is_valid(fn):
+        raise YTOutputNotIdentified(fn, {})
+
+    return EnzoDataset(fn)

@@ -119,7 +119,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects, enable_parallelism, communication_system
 
 from yt.convenience import \
-    load, simulation
+    load, simulation, load_enzo_db
 
 from yt.utilities.load_sample import load_sample
 
