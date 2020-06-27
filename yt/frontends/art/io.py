@@ -206,7 +206,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
                 field_list.append(pfn)
         return field_list, {}
 
-    def _get_field(self,  field):
+    def _get_field(self, field):
         if field in self.cache.keys() and self.caching:
             mylog.debug("Cached %s", str(field))
             return self.cache[field]
@@ -262,6 +262,13 @@ class IOHandlerDarkMatterART(IOHandlerART):
         else:
             return tr[field]
 
+    def _yield_coordinates(self, data_file):
+        for ptype in self.ds.particle_types_raw:
+            x = self._get_field((ptype, 'particle_position_x'))
+            y = self._get_field((ptype, 'particle_position_y'))
+            z = self._get_field((ptype, 'particle_position_z'))
+
+            yield ptype, np.stack((x, y, z), axis=-1)
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")

@@ -385,19 +385,34 @@ class ARTDataset(Dataset):
         return False
 
 class ARTParticleFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id, range):
+    def __init__(self, ds, io, filename, file_id):
         self.total_particles = {}
         for ptype, count in zip(ds.particle_types_raw, 
                                 ds.parameters['total_particles']):
             self.total_particles[ptype] = count
-        super(ARTParticleFile, self).__init__(ds, io, filename, file_id, range)
+        super(ARTParticleFile, self).__init__(ds, io, filename, file_id, range=None)
         with open(filename, "rb") as f:
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
+class ARTParticleIndex(ParticleIndex):
+    def _setup_filenames(self):
+        # no need for template, all data in one file
+        template = self.dataset.filename_template
+        ndoms = self.dataset.file_count
+        cls = self.dataset._file_class
+        self.data_files = []
+        fi = 0
+        for i in range(int(ndoms)):
+            df = cls(self.dataset, self.io, template % {'num':i}, fi)
+            fi += 1
+            self.data_files.append(df)
+        self.total_particles = sum(
+                sum(d.total_particles.values()) for d in self.data_files)
+
 
 class DarkMatterARTDataset(ARTDataset):
-    _index_class = ParticleIndex
+    _index_class = ARTParticleIndex
     _file_class = ARTParticleFile
     filter_bbox = False
 
