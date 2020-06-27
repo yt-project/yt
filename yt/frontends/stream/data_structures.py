@@ -901,7 +901,7 @@ def load_amr_grids(grid_data, domain_dimensions,
                 # check for uniqueness
                 found[i] = len(np.nonzero(matches)[0]) == 1
 
-            if any(~found):
+            if not found.all():
                 raise YTIllDefinedAMR(lvl, ax)
 
     if length_unit is None:
