@@ -1,3 +1,4 @@
+from copy import deepcopy
 import numpy as np
 from yt.utilities.exceptions import \
     YTIllDefinedAMR, \
@@ -87,6 +88,14 @@ def test_load_despite_rounding_errors_during_grid_construction():
     for g in grid_data:
         g["density"] = np.random.random(g["dimensions"]) * 2 ** g["level"]
 
+    ill_grid_data = deepcopy(grid_data)
+    ill_grid_data[0].update({"left_edge": [1e-1, 0.0, 0.0]})
+
     bbox = np.array([[-0.18,0.18],[-0.18,0.18],[-0.18,0.18]])
     dimensions = [128,128,128]
+
+    # this should not raise any exception
     load_amr_grids(grid_data, dimensions, bbox)
+
+    # but this should
+    assert_raises(YTIllDefinedAMR, load_amr_grids, ill_grid_data, dimensions, bbox)
