@@ -34,9 +34,9 @@ def load(fn, *args, **kwargs):
             raise OSError("No such file or directory: %s" % fn)
 
     candidates = []
-    for n, c in output_type_registry.items():
-        if n is not None and c._is_valid(fn, *args, **kwargs):
-            candidates.append(c)
+    for cls in output_type_registry.values():
+        if cls._is_valid(fn, *args, **kwargs):
+            candidates.append(cls)
 
     # Find only the lowest subclasses, i.e. most specialised front ends
     candidates = find_lowest_subclasses(candidates)
