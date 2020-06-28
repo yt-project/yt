@@ -32,45 +32,23 @@ def load(*args ,**kwargs):
     :class:`yt.data_objects.static_output.Dataset` subclass.
     """
     args = _sanitize_load_args(*args)
-    candidates = []
-    valid_file = []
-    for argno, arg in enumerate(args):
-        if isinstance(arg, str):
-            if os.path.exists(arg):
-                valid_file.append(True)
-            elif arg.startswith("http"):
-                valid_file.append(True)
-            else:
-                if os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"), arg)):
-                    valid_file.append(True)
-                    args[argno] = os.path.join(ytcfg.get("yt", "test_data_dir"), arg)
-                else:
-                    valid_file.append(False)
+
+    if any([wildcard in args[0] for wildcard in "[]?!*"]):
+        from yt.data_objects.time_series import DatasetSeries
+        return DatasetSeries(*args, **kwargs)
+
+    if not (os.path.exists(args[0]) or args[0].startswith("http")):
+        test_path = os.path.join(ytcfg.get("yt", "test_data_dir"), args[0])
+        if os.path.exists(test_path):
+            args[0] = test_path
         else:
-            valid_file.append(False)
+            raise OSError("No such file or directory: %s" % args[0])
+
     types_to_check = output_type_registry
-    if not any(valid_file):
-        try:
-            from yt.data_objects.time_series import DatasetSeries
-            ts = DatasetSeries(*args, **kwargs)
-            return ts
-        except (TypeError, OSError, YTOutputNotIdentified):
-            pass
-        # We check if either the first argument is a dict or list, in which
-        # case we try identifying candidates.
-        if len(args) > 0 and isinstance(args[0], (list, dict)):
-            # This fixes issues where it is assumed the first argument is a
-            # file
-            types_to_check = dict((n, v) for n, v in
-                    output_type_registry.items() if n.startswith("stream_"))
-            # Better way to do this is to override the output_type_registry
-        else:
-            mylog.error("None of the arguments provided to load() is a valid file")
-            mylog.error("Please check that you have used a correct path")
-            raise YTOutputNotIdentified(args, kwargs)
+    candidates = []
     for n, c in types_to_check.items():
-        if n is None: continue
-        if c._is_valid(*args, **kwargs): candidates.append(n)
+        if n is not None and c._is_valid(*args, **kwargs):
+            candidates.append(n)
 
     # convert to classes
     candidates = [output_type_registry[c] for c in candidates]
