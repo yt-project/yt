@@ -13,11 +13,35 @@ from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
 def load(fn, *args, **kwargs):
     """
-    This function attempts to determine the base data type of a filename or
-    other set of arguments by calling
-    :meth:`yt.data_objects.static_output.Dataset._is_valid` until it finds a
-    match, at which point it returns an instance of the appropriate
-    :class:`yt.data_objects.static_output.Dataset` subclass.
+    Load a Dataset or DatasetSeries object.
+    The data format is automatically discovered, and the exact return type is the
+    corresponding subclass of :class:`yt.data_objects.static_output.Dataset`.
+    A :class:`yt.data_objects.time_series.DatasetSeries` is created if the first
+    argument is a pattern.
+
+    Parameters
+    ----------
+    fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
+        A path to the data location. This can be a file name, directory name, a glob
+        pattern, or a url (for data types that support it).
+
+    Additional arguments, if any, are passed down to the return class.
+
+    Returns
+    -------
+    Dataset
+        If fn is a single path, create a Dataset from the appropriate subclass.
+
+    DatasetSeries (Dataset container class)
+        If fn is a glob pattern (i.e. containing wildcards '[]?!*'), create a series.
+
+    Raises
+    ------
+    OSError
+        If fn does not match any existing file or directory.
+
+    YTOutputNotIdentified
+        If fn matches existing file or directory with undetermined format.
     """
     fn = os.path.expanduser(fn)
 
@@ -52,8 +76,26 @@ def load(fn, *args, **kwargs):
 
 def simulation(fn, simulation_type, find_outputs=False):
     """
-    Loads a simulation time series object of the specified
-    simulation type.
+    Load a simulation time series object of the specified simulation type.
+
+    Parameters
+    ----------
+    fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
+        Name of the data file or directory.
+
+    simulation_type : str
+        E.g. 'Enzo'
+
+    find_outputs : bool
+        Defaults to False
+
+    Raises
+    ------
+    OSError
+        If fn is not found.
+
+    YTSimulationNotIdentified
+        If simulation_type is unknown.
     """
 
     if not os.path.exists(fn):
