@@ -301,7 +301,7 @@ def can_run_ds(ds_fn, file_check = False):
     try:
         load(ds_fn)
         return True
-    except YTOutputNotIdentified:
+    except (OSError, YTOutputNotIdentified):
         return False
 
 
@@ -317,7 +317,7 @@ def can_run_sim(sim_fn, sim_type, file_check = False):
         return os.path.isfile(os.path.join(path, sim_fn))
     try:
         simulation(sim_fn, sim_type)
-    except YTOutputNotIdentified:
+    except (OSError, YTOutputNotIdentified):
         return False
     return True 
 
