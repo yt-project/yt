@@ -521,18 +521,18 @@ class GadgetSimulation(SimulationTimeSeries):
         for my_storage, output in parallel_objects(
             potential_outputs, storage=my_outputs
         ):
-            if os.path.exists(output):
-                try:
-                    ds = load(output)
-                    if ds is not None:
-                        my_storage.result = {
-                            "filename": output,
-                            "time": ds.current_time.in_units("s"),
-                        }
-                        if ds.cosmological_simulation:
-                            my_storage.result["redshift"] = ds.current_redshift
-                except YTOutputNotIdentified:
-                    mylog.error("Failed to load %s", output)
+            try:
+                ds = load(output)
+                my_storage.result = {
+                    "filename": output,
+                    "time": ds.current_time.in_units("s"),
+                }
+                if ds.cosmological_simulation:
+                    my_storage.result["redshift"] = ds.current_redshift
+            except OSError:
+                pass
+            except YTOutputNotIdentified:
+                mylog.error("Failed to load %s", output)
         my_outputs = [
             my_output for my_output in my_outputs.values() if my_output is not None
         ]

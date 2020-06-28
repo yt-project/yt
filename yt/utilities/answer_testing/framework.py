@@ -307,7 +307,7 @@ def can_run_ds(ds_fn, file_check=False):
         return os.path.isfile(os.path.join(path, ds_fn)) and result_storage is not None
     try:
         load(ds_fn)
-    except YTOutputNotIdentified:
+    except (OSError, YTOutputNotIdentified):
         if ytcfg.getboolean("yt", "requires_ds_strict"):
             if result_storage is not None:
                 result_storage["tainted"] = True
@@ -327,7 +327,7 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
         return os.path.isfile(os.path.join(path, sim_fn)) and result_storage is not None
     try:
         simulation(sim_fn, sim_type)
-    except YTOutputNotIdentified:
+    except (OSError, YTOutputNotIdentified):
         if ytcfg.getboolean("yt", "requires_ds_strict"):
             if result_storage is not None:
                 result_storage["tainted"] = True
