@@ -12,18 +12,7 @@ from yt.utilities.exceptions import \
     YTSimulationNotIdentified
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 
-def _sanitize_load_args(*args):
-    """Filter out non-pathlike arguments, ensure list form, and expand '~' tokens"""
-    try:
-        # os.PathLike is python >= 3.6
-        path_types = str, os.PathLike
-    except AttributeError:
-        path_types = str,
-
-    return [os.path.expanduser(arg) if isinstance(arg, path_types)
-            else arg for arg in args]
-
-def load(*args ,**kwargs):
+def load(fn, *args, **kwargs):
     """
     This function attempts to determine the base data type of a filename or
     other set of arguments by calling
@@ -31,23 +20,23 @@ def load(*args ,**kwargs):
     match, at which point it returns an instance of the appropriate
     :class:`yt.data_objects.static_output.Dataset` subclass.
     """
-    args = _sanitize_load_args(*args)
+    fn = os.path.expanduser(fn)
 
-    if any([wildcard in args[0] for wildcard in "[]?!*"]):
+    if any([wildcard in fn for wildcard in "[]?!*"]):
         from yt.data_objects.time_series import DatasetSeries
-        return DatasetSeries(*args, **kwargs)
+        return DatasetSeries(fn, *args, **kwargs)
 
-    if not (os.path.exists(args[0]) or args[0].startswith("http")):
-        test_path = os.path.join(ytcfg.get("yt", "test_data_dir"), args[0])
+    if not (os.path.exists(fn) or fn.startswith("http")):
+        test_path = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
         if os.path.exists(test_path):
-            args[0] = test_path
+            fn = test_path
         else:
-            raise OSError("No such file or directory: %s" % args[0])
+            raise OSError("No such file or directory: %s" % fn)
 
     types_to_check = output_type_registry
     candidates = []
     for n, c in types_to_check.items():
-        if n is not None and c._is_valid(*args, **kwargs):
+        if n is not None and c._is_valid(fn, *args, **kwargs):
             candidates.append(n)
 
     # convert to classes
@@ -55,24 +44,24 @@ def load(*args ,**kwargs):
     # Find only the lowest subclasses, i.e. most specialised front ends
     candidates = find_lowest_subclasses(candidates)
     if len(candidates) == 1:
-        return candidates[0](*args, **kwargs)
+        return candidates[0](fn, *args, **kwargs)
     if len(candidates) == 0:
         if ytcfg.get("yt", "enzo_db") != '' \
-           and len(args) == 1 \
-           and isinstance(args[0], str):
+           and len(args) == 0 \
+           and isinstance(fn, str):
             erdb = EnzoRunDatabase()
-            fn = erdb.find_uuid(args[0])
+            fn = erdb.find_uuid(fn)
             n = "EnzoDataset"
             if n in output_type_registry \
                and output_type_registry[n]._is_valid(fn):
                 return output_type_registry[n](fn)
-        mylog.error("Couldn't figure out output type for %s", args[0])
-        raise YTOutputNotIdentified(args, kwargs)
+        mylog.error("Couldn't figure out output type for %s", fn)
+        raise YTOutputNotIdentified([fn, *args], kwargs)
 
-    mylog.error("Multiple output type candidates for %s:", args[0])
+    mylog.error("Multiple output type candidates for %s:", fn)
     for c in candidates:
         mylog.error("    Possible: %s", c)
-    raise YTOutputNotIdentified(args, kwargs)
+    raise YTOutputNotIdentified([fn, *args], kwargs)
 
 def simulation(parameter_filename, simulation_type, find_outputs=False):
     """
