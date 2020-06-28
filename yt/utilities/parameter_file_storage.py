@@ -198,30 +198,3 @@ class ParameterFileStore:
             else:
                 v["last_seen"] = float(v["last_seen"])
         return db
-
-
-class ObjectStorage:
-    pass
-
-
-class EnzoRunDatabase:
-    conn = None
-
-    def __init__(self, path=None):
-        if path is None:
-            path = ytcfg.get("yt", "enzo_db")
-            if len(path) == 0:
-                raise RuntimeError
-        import sqlite3
-
-        self.conn = sqlite3.connect(path)
-
-    def find_uuid(self, u):
-        cursor = self.conn.execute(
-            "select ds_path from enzo_outputs where dset_uuid = '%s'" % (u)
-        )
-        # It's a 'unique key'
-        result = cursor.fetchone()
-        if result is None:
-            return None
-        return result[0]

@@ -6,132 +6,114 @@ from yt.funcs import mylog
 from yt.utilities.exceptions import YTOutputNotIdentified, YTSimulationNotIdentified
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.parameter_file_storage import (
-    EnzoRunDatabase,
     output_type_registry,
     simulation_time_series_registry,
 )
 
 
-def _sanitize_load_args(*args):
-    """Filter out non-pathlike arguments, ensure list form, and expand '~' tokens"""
-    try:
-        # os.PathLike is python >= 3.6
-        path_types = str, os.PathLike
-    except AttributeError:
-        path_types = (str,)
-
-    return [
-        os.path.expanduser(arg) if isinstance(arg, path_types) else arg for arg in args
-    ]
-
-
-def load(*args, **kwargs):
+def load(fn, *args, **kwargs):
     """
-    This function attempts to determine the base data type of a filename or
-    other set of arguments by calling
-    :meth:`yt.data_objects.static_output.Dataset._is_valid` until it finds a
-    match, at which point it returns an instance of the appropriate
-    :class:`yt.data_objects.static_output.Dataset` subclass.
+    Load a Dataset or DatasetSeries object.
+    The data format is automatically discovered, and the exact return type is the
+    corresponding subclass of :class:`yt.data_objects.static_output.Dataset`.
+    A :class:`yt.data_objects.time_series.DatasetSeries` is created if the first
+    argument is a pattern.
+
+    Parameters
+    ----------
+    fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
+        A path to the data location. This can be a file name, directory name, a glob
+        pattern, or a url (for data types that support it).
+
+    Additional arguments, if any, are passed down to the return class.
+
+    Returns
+    -------
+    :class:`yt.data_objects.static_output.Dataset` object
+        If fn is a single path, create a Dataset from the appropriate subclass.
+
+    :class:`yt.data_objects.time_series.DatasetSeries`
+        If fn is a glob pattern (i.e. containing wildcards '[]?!*'), create a series.
+
+    Raises
+    ------
+    OSError
+        If fn does not match any existing file or directory.
+
+    yt.utilities.exceptions.YTOutputNotIdentified
+        If fn matches existing files or directories with undetermined format.
     """
-    args = _sanitize_load_args(*args)
+    fn = os.path.expanduser(fn)
+
+    if any(wildcard in fn for wildcard in "[]?!*"):
+        from yt.data_objects.time_series import DatasetSeries
+
+        return DatasetSeries(fn, *args, **kwargs)
+
+    if not (os.path.exists(fn) or fn.startswith("http")):
+        data_dir = ytcfg.get("yt", "test_data_dir")
+        alt_fn = os.path.join(data_dir, fn)
+        if os.path.exists(alt_fn):
+            fn = alt_fn
+        else:
+            msg = "No such file or directory: %s" % fn
+            if os.path.exists(data_dir):
+                msg += "\n(Also tried %s)" % alt_fn
+            raise OSError(msg)
+
     candidates = []
-    valid_file = []
-    for argno, arg in enumerate(args):
-        if isinstance(arg, str):
-            if os.path.exists(arg):
-                valid_file.append(True)
-            elif arg.startswith("http"):
-                valid_file.append(True)
-            else:
-                if os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"), arg)):
-                    valid_file.append(True)
-                    args[argno] = os.path.join(ytcfg.get("yt", "test_data_dir"), arg)
-                else:
-                    valid_file.append(False)
-        else:
-            valid_file.append(False)
-    types_to_check = output_type_registry
-    if not any(valid_file):
-        try:
-            from yt.data_objects.time_series import DatasetSeries
+    for cls in output_type_registry.values():
+        if cls._is_valid(fn, *args, **kwargs):
+            candidates.append(cls)
 
-            ts = DatasetSeries(*args, **kwargs)
-            return ts
-        except (TypeError, OSError, YTOutputNotIdentified):
-            pass
-        # We check if either the first argument is a dict or list, in which
-        # case we try identifying candidates.
-        if len(args) > 0 and isinstance(args[0], (list, dict)):
-            # This fixes issues where it is assumed the first argument is a
-            # file
-            types_to_check = dict(
-                (n, v)
-                for n, v in output_type_registry.items()
-                if n.startswith("stream_")
-            )
-            # Better way to do this is to override the output_type_registry
-        else:
-            mylog.error("None of the arguments provided to load() is a valid file")
-            mylog.error("Please check that you have used a correct path")
-            raise YTOutputNotIdentified(args, kwargs)
-    for n, c in types_to_check.items():
-        if n is None:
-            continue
-        if c._is_valid(*args, **kwargs):
-            candidates.append(n)
-
-    # convert to classes
-    candidates = [output_type_registry[c] for c in candidates]
     # Find only the lowest subclasses, i.e. most specialised front ends
     candidates = find_lowest_subclasses(candidates)
+
     if len(candidates) == 1:
-        return candidates[0](*args, **kwargs)
-    if len(candidates) == 0:
-        if (
-            ytcfg.get("yt", "enzo_db") != ""
-            and len(args) == 1
-            and isinstance(args[0], str)
-        ):
-            erdb = EnzoRunDatabase()
-            fn = erdb.find_uuid(args[0])
-            n = "EnzoDataset"
-            if n in output_type_registry and output_type_registry[n]._is_valid(fn):
-                return output_type_registry[n](fn)
-        mylog.error("Couldn't figure out output type for %s", args[0])
-        raise YTOutputNotIdentified(args, kwargs)
+        return candidates[0](fn, *args, **kwargs)
 
-    mylog.error("Multiple output type candidates for %s:", args[0])
-    for c in candidates:
-        mylog.error("    Possible: %s", c)
-    raise YTOutputNotIdentified(args, kwargs)
+    if len(candidates) > 1:
+        mylog.error("Multiple output type candidates for %s:", fn)
+        for c in candidates:
+            mylog.error("    Possible: %s", c)
+
+    raise YTOutputNotIdentified([fn, *args], kwargs)
 
 
-def simulation(parameter_filename, simulation_type, find_outputs=False):
+def simulation(fn, simulation_type, find_outputs=False):
     """
-    Loads a simulation time series object of the specified
-    simulation type.
+    Load a simulation time series object of the specified simulation type.
+
+    Parameters
+    ----------
+    fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
+        Name of the data file or directory.
+
+    simulation_type : str
+        E.g. 'Enzo'
+
+    find_outputs : bool
+        Defaults to False
+
+    Raises
+    ------
+    OSError
+        If fn is not found.
+
+    yt.utilities.exceptions.YTSimulationNotIdentified
+        If simulation_type is unknown.
     """
 
-    if simulation_type not in simulation_time_series_registry:
+    if not os.path.exists(fn):
+        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
+        if os.path.exists(alt_fn):
+            fn = alt_fn
+        else:
+            raise OSError("No such file or directory: %s" % fn)
+
+    try:
+        cls = simulation_time_series_registry[simulation_type]
+    except KeyError:
         raise YTSimulationNotIdentified(simulation_type)
 
-    if os.path.exists(parameter_filename):
-        valid_file = True
-    elif os.path.exists(
-        os.path.join(ytcfg.get("yt", "test_data_dir"), parameter_filename)
-    ):
-        parameter_filename = os.path.join(
-            ytcfg.get("yt", "test_data_dir"), parameter_filename
-        )
-        valid_file = True
-    else:
-        valid_file = False
-
-    if not valid_file:
-        raise YTOutputNotIdentified(
-            (parameter_filename, simulation_type), dict(find_outputs=find_outputs)
-        )
-
-    return simulation_time_series_registry[simulation_type](
-        parameter_filename, find_outputs=find_outputs
-    )
+    return cls(fn, find_outputs=find_outputs)
