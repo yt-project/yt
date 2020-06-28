@@ -50,31 +50,25 @@ def load(fn, *args, **kwargs):
 
     raise YTOutputNotIdentified([fn, *args], kwargs)
 
-def simulation(parameter_filename, simulation_type, find_outputs=False):
+def simulation(fn, simulation_type, find_outputs=False):
     """
     Loads a simulation time series object of the specified
     simulation type.
     """
 
-    if simulation_type not in simulation_time_series_registry:
+    if not os.path.exists(fn):
+        test_path = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
+        if os.path.exists(test_path):
+            fn = test_path
+        else:
+            raise OSError("No such file or directory: %s" % fn)
+
+    try:
+        cls = simulation_time_series_registry[simulation_type]
+    except KeyError:
         raise YTSimulationNotIdentified(simulation_type)
 
-    if os.path.exists(parameter_filename):
-        valid_file = True
-    elif os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"),
-                                     parameter_filename)):
-        parameter_filename = os.path.join(ytcfg.get("yt", "test_data_dir"),
-                                          parameter_filename)
-        valid_file = True
-    else:
-        valid_file = False
-
-    if not valid_file:
-        raise YTOutputNotIdentified((parameter_filename, simulation_type),
-                                    dict(find_outputs=find_outputs))
-
-    return simulation_time_series_registry[simulation_type](parameter_filename,
-                                                            find_outputs=find_outputs)
+    return cls(fn, find_outputs=find_outputs)
 
 def load_enzo_db(fn):
     from yt.utilities.parameter_file_storage import EnzoRunDatabase
