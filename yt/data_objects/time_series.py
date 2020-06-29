@@ -57,7 +57,12 @@ def get_ds_prop(propname):
                 dict(eval = _eval, _params = tuple()))
     return cls
 
-def get_filenames_from_glob_pattern(pattern):
+def get_filenames_from_glob_pattern(outputs):
+    """
+    Helper function to DatasetSeries.__new__
+    handle a special case where "outputs" is assumed to be really a pattern string
+    """
+    pattern = outputs
     epattern = os.path.expanduser(pattern)
     data_dir = ytcfg.get("yt", "test_data_dir")
     # if not match if found from the current work dir,
