@@ -92,6 +92,10 @@ class DatasetSeries(object):
     primarily expressed through iteration, but can also be constructed via
     analysis tasks (see :ref:`time-series-analysis`).
 
+    Note that contained datasets are lazily loaded and weakly referenced. This means
+    that in order to perform follow-up operations on data it's best to define handles on
+    these datasets during iteration.
+
     Parameters
     ----------
     outputs : list or pattern
