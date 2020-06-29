@@ -32,7 +32,7 @@ install:
     # Install specified version of numpy and dependencies
     - "conda install --yes -c conda-forge numpy scipy nose pytest setuptools ipython git
     Cython sympy fastcache h5py matplotlib=3.1.3 mock pandas cartopy conda-build pooch pyyaml"
-    - "pip install git+https://github.com/yt-project/unyt@de443dff7671f1e68557306d77582cd117cc94f8#egg=unyt"
+    - "pip install unyt"
     # install yt
     - "pip install -e ."
 
