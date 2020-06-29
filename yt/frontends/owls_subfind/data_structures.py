@@ -1,7 +1,6 @@
 from collections import defaultdict
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import stat
 import glob
 import os
 
@@ -106,8 +105,6 @@ class OWLSSubfindDataset(ParticleDataset):
 
         self.dimensionality = 3
         self.refine_by = 2
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
         self.current_time = self.quan(hvals["Time_GYR"], "Gyr")

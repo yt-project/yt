@@ -44,6 +44,9 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     def _read_chunk_data(self, chunk, fields):
         raise NotImplementedError
 
+    def _yield_coordinates(self, data_file):
+        yield 'halos', self._get_particle_positions()
+
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)

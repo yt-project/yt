@@ -2,7 +2,6 @@ from collections import defaultdict
 from functools import partial
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import stat
 import os
 import weakref
 
@@ -183,8 +182,6 @@ class GadgetFOFDataset(ParticleDataset):
 
         self.dimensionality = 3
         self.refine_by = 2
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
         # Set standard values
         self.domain_left_edge = np.zeros(3, "float64")

@@ -1,6 +1,5 @@
 import os
 import numpy as np
-import stat
 import weakref
 from collections import defaultdict
 from glob import glob
@@ -480,8 +479,6 @@ class RAMSESDataset(Dataset):
         self.parameters["HydroMethod"] = 'ramses'
         self.parameters["Time"] = 1. # default unit is 1...
 
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         # We now execute the same logic Oliver's code does
         rheader = {}
 
@@ -576,7 +573,7 @@ class RAMSESDataset(Dataset):
                     nml = f90nml.read(f)
             except ImportError as e:
                 nml = "An error occurred when reading the namelist: %s" % str(e)
-            except ValueError as e:
+            except (ValueError, StopIteration) as e:
                 mylog.warn("Could not parse `namelist.txt` file as it was malformed: %s" % str(e))
                 return
 

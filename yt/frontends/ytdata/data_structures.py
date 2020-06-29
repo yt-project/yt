@@ -4,7 +4,6 @@ from numbers import \
     Number as numeric_type
 import numpy as np
 import os
-import stat
 import weakref
 
 from .fields import \
@@ -119,8 +118,6 @@ class SavedDataset(Dataset):
 
         for attr in self._con_attrs:
             setattr(self, attr, self.parameters.get(attr))
-        self.unique_identifier = \
-          int(os.stat(self.parameter_filename)[stat.ST_CTIME])
 
     def _with_parameter_file_open(self, f):
         # This allows subclasses to access the parameter file

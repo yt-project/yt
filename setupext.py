@@ -234,9 +234,19 @@ def read_embree_location():
     return rd
 
 def get_cpu_count():
-    if platform.system() != "Windows":
-        return os.cpu_count()
-    return 0
+    if platform.system() == "Windows":
+        return 0
+
+    cpu_count = os.cpu_count()
+    try:
+        user_max_cores = int(os.getenv('MAX_BUILD_CORES', cpu_count))
+    except ValueError as e:
+        raise ValueError(
+            "MAX_BUILD_CORES must be set to an integer. " +
+            "See above for original error.").with_traceback(e.__traceback__)
+    max_cores = min(cpu_count, user_max_cores)
+    return max_cores
+
 
 def install_ccompiler():
     def _compile(

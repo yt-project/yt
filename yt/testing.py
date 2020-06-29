@@ -730,7 +730,7 @@ def requires_file(req_file):
     def ftrue(func):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
-            return func
+            return func(*args, **kwargs)
         return true_wrapper
     if os.path.exists(req_file):
         return ftrue
@@ -1326,7 +1326,11 @@ class ParticleSelectionComparison:
                 obj_results = np.concatenate(obj_results, axis = 0)
             else:
                 obj_results = np.empty((0, 3))
-            assert_equal(sel_pos, obj_results)
+            # Sometimes we get unitary scaling or other floating point noise. 5
+            # NULP should be OK.  This is mostly for stuff like Rockstar, where
+            # the f32->f64 casting happens at different places depending on
+            # which code path we use.
+            assert_array_almost_equal_nulp(sel_pos, obj_results, 5)
 
     def run_defaults(self):
         """

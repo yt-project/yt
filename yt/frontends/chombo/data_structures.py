@@ -4,9 +4,6 @@ import os
 import weakref
 import numpy as np
 
-from stat import \
-    ST_CTIME
-
 from yt.funcs import \
     mylog, \
     setdefaultattr
@@ -282,8 +279,6 @@ class ChomboDataset(Dataset):
 
     def _parse_parameter_file(self):
 
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
         self.dimensionality = self._handle['Chombo_global/'].attrs['SpaceDim']
         self.domain_left_edge = self._calc_left_edge()
         self.domain_right_edge = self._calc_right_edge()
@@ -468,8 +463,6 @@ class PlutoDataset(ChomboDataset):
         pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
         pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
 
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
         self.dimensionality = self._handle['Chombo_global/'].attrs['SpaceDim']
         self.domain_dimensions = self._calc_domain_dimensions()
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
@@ -608,8 +601,6 @@ class Orion2Dataset(ChomboDataset):
         orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
 
         if orion2_ini_file_exists: self._parse_inputs_file('orion2.ini')
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
         self.dimensionality = 3
         self.domain_left_edge = self._calc_left_edge()
         self.domain_right_edge = self._calc_right_edge()
@@ -622,8 +613,6 @@ class Orion2Dataset(ChomboDataset):
         self.fullplotdir = os.path.abspath(self.parameter_filename)
         self.ini_filename = self._localize( \
             self.ini_filename, ini_filename)
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
         lines = open(self.ini_filename).readlines()
         # read the file line by line, storing important parameters
         for lineI, line in enumerate(lines):
