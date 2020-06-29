@@ -64,7 +64,7 @@ def get_filenames_from_glob_pattern(pattern):
     # we try to match the pattern from the test data dir
     file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, pattern))
     if not file_list:
-        raise FileNotFoundError("No file matched this pattern or pattern(s) {}".format(pattern))
+        raise OSError("No match found for pattern : {}".format(pattern))
     return sorted(file_list)
 
 attrs = ("refine_by", "dimensionality", "current_time",
@@ -490,7 +490,7 @@ class SimulationTimeSeries(DatasetSeries, metaclass = RegisteredSimulationTimeSe
         """
 
         if not os.path.exists(parameter_filename):
-            raise IOError(parameter_filename)
+            raise OSError(parameter_filename)
         self.parameter_filename = parameter_filename
         self.basename = os.path.basename(parameter_filename)
         self.directory = os.path.dirname(parameter_filename)

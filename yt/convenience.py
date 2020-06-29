@@ -54,7 +54,7 @@ def load(*args ,**kwargs):
             from yt.data_objects.time_series import DatasetSeries
             ts = DatasetSeries(*args, **kwargs)
             return ts
-        except (TypeError, FileNotFoundError, YTOutputNotIdentified):
+        except (TypeError, OSError, YTOutputNotIdentified):
             pass
         # We check if either the first argument is a dict or list, in which
         # case we try identifying candidates.
