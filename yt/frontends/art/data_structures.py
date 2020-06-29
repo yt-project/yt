@@ -386,7 +386,7 @@ class ARTDataset(Dataset):
 
 class ARTParticleFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
-        super(ARTParticleFile, self).__init__(ds, io, filename, file_id)
+        super(ARTParticleFile, self).__init__(ds, io, filename, file_id, range=None)
         self.total_particles = {}
         for ptype, count in zip(ds.particle_types_raw, 
                                 ds.parameters['total_particles']):
@@ -395,9 +395,24 @@ class ARTParticleFile(ParticleFile):
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
+class ARTParticleIndex(ParticleIndex):
+    def _setup_filenames(self):
+        # no need for template, all data in one file
+        template = self.dataset.filename_template
+        ndoms = self.dataset.file_count
+        cls = self.dataset._file_class
+        self.data_files = []
+        fi = 0
+        for i in range(int(ndoms)):
+            df = cls(self.dataset, self.io, template % {'num':i}, fi)
+            fi += 1
+            self.data_files.append(df)
+        self.total_particles = sum(
+                sum(d.total_particles.values()) for d in self.data_files)
+
 
 class DarkMatterARTDataset(ARTDataset):
-    _index_class = ParticleIndex
+    _index_class = ARTParticleIndex
     _file_class = ARTParticleFile
     filter_bbox = False
 
@@ -508,7 +523,7 @@ class DarkMatterARTDataset(ARTDataset):
         with open(self._file_particle_header, "rb") as fh:
             seek = 4
             fh.seek(seek)
-            headerstr = np.fromfile(fh, count=1, dtype=(str,45))
+            headerstr = fh.read(45).decode('ascii')
             aexpn = np.fromfile(fh, count=1, dtype='>f4')
             aexp0 = np.fromfile(fh, count=1, dtype='>f4')
             amplt = np.fromfile(fh, count=1, dtype='>f4')
@@ -534,7 +549,7 @@ class DarkMatterARTDataset(ARTDataset):
             lspecies = np.fromfile(fh, count=10, dtype='>i4')
             extras = np.fromfile(fh, count=79, dtype='>f4')
             boxsize = np.fromfile(fh, count=1, dtype='>f4')
-        n = nspecs
+        n = nspecs[0]
         particle_header_vals = {}
         tmp = np.array([headerstr, aexpn, aexp0, amplt, astep, istep,
             partw, tintg, ekin, ekin1, ekin2, au0, aeu0, nrowc, ngridc,
@@ -577,10 +592,11 @@ class DarkMatterARTDataset(ARTDataset):
                         dtype='int64')*2 # NOT ng
 
         # setup standard simulation params yt expects to see
-        self.current_redshift = self.parameters["aexpn"]**-1.0 - 1.0
-        self.omega_lambda = particle_header_vals['Oml0']
-        self.omega_matter = particle_header_vals['Om0']
-        self.hubble_constant = particle_header_vals['hubble']
+        # Convert to float to please unyt
+        self.current_redshift = float(self.parameters["aexpn"]**-1.0 - 1.0)
+        self.omega_lambda = float(particle_header_vals['Oml0'])
+        self.omega_matter = float(particle_header_vals['Om0'])
+        self.hubble_constant = float(particle_header_vals['hubble'])
         self.min_level = 0
         self.max_level = 0
 #        self.min_level = particle_header_vals['min_level']
