@@ -95,11 +95,9 @@ class DatasetSeries(object):
     Parameters
     ----------
     outputs : list or pattern
-        This can either be a list of filenames (such as ["DD0001/DD0001",
-        "DD0002/DD0002"]) or a pattern to match, such as
-        "DD*/DD*.index").  If it's the former, they will be loaded in
-        order.  The latter will be identified with the glob module and then
-        sorted.
+        A list of filenames, for instance ["DD0001/DD0001", "DD0002/DD0002"],
+        or a glob pattern (i.e. containing wildcards '[]?!*') such as "DD*/DD*.index".
+        In the latter case, results are sorted automatically.
     parallel : True, False or int
         This parameter governs the behavior when .piter() is called on the
         resultant DatasetSeries object.  If this is set to False, the time
