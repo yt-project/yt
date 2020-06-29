@@ -1,6 +1,6 @@
 domain_context_registry = {}
 
-class DomainContext(object):
+class DomainContext:
     class __metaclass__(type):
         def __init__(cls, name, b, d):
             type.__init__(cls, name, b, d)

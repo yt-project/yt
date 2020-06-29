@@ -7,10 +7,10 @@ Created on Wed Feb 18 18:24:09 2015
 
 from .. hierarchy_inspection import find_lowest_subclasses
 
-class level1(object):
+class level1:
     pass
 
-class level1a(object):
+class level1a:
     pass
 
 class level2(level1):

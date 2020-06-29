@@ -316,7 +316,7 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
     fl = np.ones((nLevel, 6), dtype='int64')
     iocts = np.zeros(nLevel+1, dtype='int64')
     idxa, idxb = 0, 0
-    chunk = long(1e6)  # this is ~111MB for 15 dimensional 64 bit arrays
+    chunk = int(1e6)  # this is ~111MB for 15 dimensional 64 bit arrays
     left = nLevel
     while left > 0:
         this_chunk = min(chunk, left)
@@ -480,7 +480,7 @@ def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
     ioctch = np.zeros(nLevel, dtype='uint8')
     idc = np.zeros(nLevel, dtype='int32')
 
-    chunk = long(1e6)
+    chunk = int(1e6)
     left = nLevel
     width = nhydro_vars+6
     a, b = 0, 0

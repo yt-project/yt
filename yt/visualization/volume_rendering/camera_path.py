@@ -2,7 +2,7 @@ import random
 import numpy as np
 from yt.visualization.volume_rendering.create_spline import create_spline
 
-class Keyframes(object):
+class Keyframes:
     def __init__(self, x, y, z=None, north_vectors=None, up_vectors=None,
                  times=None, niter=50000, init_temp=10.0, alpha=0.999,
                  fixed_start=False):

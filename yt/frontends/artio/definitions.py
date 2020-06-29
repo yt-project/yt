@@ -30,7 +30,7 @@ yt_to_art = {
 art_to_yt = dict(zip(yt_to_art.values(), yt_to_art.keys()))
 
 
-class ARTIOconstants():
+class ARTIOconstants:
     def __init__(self):
         self.yr = 365.25*86400
         self.Myr = 1.0e6*self.yr

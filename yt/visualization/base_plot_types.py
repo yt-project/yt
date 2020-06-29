@@ -35,7 +35,7 @@ backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
 
 _AGG_FORMATS = (".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff")
 
-class CallbackWrapper(object):
+class CallbackWrapper:
     def __init__(self, viewer, window_plot, frb, field, font_properties,
                  font_color):
         self.frb = frb
@@ -62,7 +62,7 @@ class CallbackWrapper(object):
         self.field = field
 
 
-class PlotMPL(object):
+class PlotMPL:
     """A base class for all yt plots made using matplotlib, that is backend independent.
 
     """

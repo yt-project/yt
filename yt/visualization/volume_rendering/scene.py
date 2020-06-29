@@ -27,7 +27,7 @@ from .zbuffer_array import ZBuffer
 import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
 
-class Scene(object):
+class Scene:
 
     """A virtual landscape for a volume rendering.
 

@@ -1644,7 +1644,7 @@ class OffAxisSlicePlot(PWViewerMPL):
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
 
-class OffAxisProjectionDummyDataSource(object):
+class OffAxisProjectionDummyDataSource:
     _type_name = 'proj'
     _key_fields = []
     def __init__(self, center, ds, normal_vector, width, fields,

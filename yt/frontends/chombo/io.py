@@ -33,7 +33,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         self._offsets = {}
         num_comp = self._handle.attrs['num_components']
         level = 0
-        while 1:
+        while True:
             lname = 'level_%i' % level
             if lname not in self._handle: break
             boxes = self._handle['level_0']['boxes'][()]

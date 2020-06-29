@@ -35,7 +35,7 @@ def encode_and_quote(data):
     if data is None:
         return None
 
-    if isinstance(data, unicode):
+    if isinstance(data, str):
         data = data.encode("utf-8")
     return urllib.quote_plus(data)
 
@@ -44,11 +44,11 @@ def _strify(s):
     otherwise return str(s), or None if s is None"""
     if s is None:
         return None
-    if isinstance(s, unicode):
+    if isinstance(s, str):
         return s.encode("utf-8")
     return str(s)
 
-class MultipartParam(object):
+class MultipartParam:
     """Represents a single parameter in a multipart/form-data request
 
     ``name`` is the name of this parameter.
@@ -87,7 +87,7 @@ class MultipartParam(object):
         if filename is None:
             self.filename = None
         else:
-            if isinstance(filename, unicode):
+            if isinstance(filename, str):
                 # Encode with XML entities
                 self.filename = filename.encode("ascii", "xmlcharrefreplace")
             else:
@@ -327,7 +327,7 @@ class multipart_yielder:
     def __iter__(self):
         return self
 
-    def next(self):
+    def __next__(self):
         """generator function to yield multipart/form-data representation
         of parameters"""
         if self.param_iter is not None:

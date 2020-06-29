@@ -13,7 +13,7 @@ from yt.utilities.physical_ratios import \
     HUGE
 from yt.utilities.exceptions import YTTooParallel
 
-class ObjectFindingMixin(object) :
+class ObjectFindingMixin :
 
     def find_ray_grids(self, coord, axis):
         """
@@ -50,7 +50,7 @@ class ObjectFindingMixin(object) :
             # search is smaller than the number of processors being applied to
             # the task, by 
             nproc = ytcfg.getint("yt", "__topcomm_parallel_size")
-            while 1:
+            while True:
                 gi = (self.grid_levels >= self.max_level - finest_levels).ravel()
                 if gi.sum() >= nproc:
                     break

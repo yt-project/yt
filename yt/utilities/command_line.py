@@ -518,7 +518,7 @@ class YTBugreportCmd(YTCommand):
             print("(okay, type now)")
             print()
             lines = []
-            while 1:
+            while True:
                 line = input()
                 if line.strip() == "---": break
                 lines.append(line)
@@ -601,7 +601,7 @@ class YTHubRegisterCmd(YTCommand):
         print()
         print("Please choose a password:")
         print()
-        while 1:
+        while True:
             password1 = getpass.getpass("Password? ")
             password2 = getpass.getpass("Confirm? ")
             if len(password1) == 0: continue

@@ -61,7 +61,7 @@ def preserve_source_parameters(func):
         return tr
     return save_state
 
-class ProfileFieldAccumulator(object):
+class ProfileFieldAccumulator:
     def __init__(self, n_fields, size):
         shape = size + (n_fields,)
         self.values = np.zeros(shape, dtype="float64")

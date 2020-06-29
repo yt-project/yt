@@ -106,7 +106,7 @@ class StreamGrid(AMRGridPatch):
         return [self.index.grids[cid - self._id_offset]
                 for cid in self._children_ids]
 
-class StreamHandler(object):
+class StreamHandler:
     def __init__(self, left_edges, right_edges, dimensions,
                  levels, parent_ids, particle_count, processor_ids,
                  fields, field_units, code_units, io = None,

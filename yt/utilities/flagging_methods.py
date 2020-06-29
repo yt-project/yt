@@ -21,7 +21,7 @@ class OverDensity(FlaggingMethod):
         rho = grid["density"] / (grid.ds.refine_by**grid.Level)
         return (rho > self.over_density)
 
-class FlaggingGrid(object):
+class FlaggingGrid:
     def __init__(self, grid, methods):
         self.grid = grid
         flagged = np.zeros(grid.ActiveDimensions, dtype="bool")
@@ -60,7 +60,7 @@ class FlaggingGrid(object):
 
 
 # Much or most of this is directly translated from Enzo
-class ProtoSubgrid(object):
+class ProtoSubgrid:
 
     def __init__(self, flagged_base, left_index, dimensions, offset = (0,0,0)):
         self.left_index = left_index.copy()

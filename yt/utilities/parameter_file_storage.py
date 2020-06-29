@@ -25,7 +25,7 @@ class UnknownDatasetType(Exception):
     def __repr__(self):
         return "%s" % self.name
 
-class ParameterFileStore(object):
+class ParameterFileStore:
     """
     This class is designed to be a semi-persistent storage for parameter
     files.  By identifying each dataset with a unique hash, objects
@@ -188,10 +188,10 @@ class ParameterFileStore(object):
             else: v['last_seen'] = float(v['last_seen'])
         return db
 
-class ObjectStorage(object):
+class ObjectStorage:
     pass
 
-class EnzoRunDatabase(object):
+class EnzoRunDatabase:
     conn = None
 
     def __init__(self, path = None):

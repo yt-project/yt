@@ -19,7 +19,7 @@ import numpy as np
 import weakref
 import types
 
-class FixedResolutionBuffer(object):
+class FixedResolutionBuffer:
     r"""
     FixedResolutionBuffer(data_source, bounds, buff_size, antialias = True)
 

@@ -35,7 +35,7 @@ from yt.utilities.lib.cosmology_time import \
 
 from .io_utils import read_amr, fill_hydro
 
-class RAMSESDomainFile(object):
+class RAMSESDomainFile:
     _last_mask = None
     _last_selector_id = None
 

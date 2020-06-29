@@ -17,7 +17,7 @@ from yt.visualization.plot_container import \
     linear_transform, \
     invalidate_plot
 
-class LineBuffer(object):
+class LineBuffer:
     r"""
     LineBuffer(ds, start_point, end_point, npoints, label = None)
 

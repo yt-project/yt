@@ -2,7 +2,7 @@ from .parallel_analysis_interface import \
     ProcessorPool
 from abc import abstractmethod
 
-class WorkSplitter(object):
+class WorkSplitter:
     def __init__(self, controller, group1, group2):
         self.group1 = group1
         self.group2 = group2

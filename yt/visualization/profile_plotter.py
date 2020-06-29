@@ -116,7 +116,7 @@ def data_object_or_all_data(data_source):
 
     return data_source
 
-class ProfilePlot(object):
+class ProfilePlot:
     r"""
     Create a 1d profile plot from a data source or from a list 
     of profile objects.

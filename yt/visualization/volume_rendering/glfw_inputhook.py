@@ -66,7 +66,7 @@ def create_inputhook_glfw(mgr, render_loop):
         try:
             t = glfw.GetTime()
             while not stdin_ready():
-                render_loop.next()
+                next(render_loop)
 
                 used_time = glfw.GetTime() - t
                 if used_time > 10.0:

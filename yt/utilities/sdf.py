@@ -1,4 +1,3 @@
-from __future__ import print_function
 from io import StringIO
 import os
 import numpy as np
@@ -139,7 +138,7 @@ def get_keyv(iarr, level):
     np.bitwise_or(i1, i3, i1)
     return i1
 
-class DataStruct(object):
+class DataStruct:
     """docstring for DataStruct"""
 
     _offset = 0
@@ -178,13 +177,12 @@ class DataStruct(object):
 
     def __getitem__(self, key):
         mask = None
-        kt = type(key)
-        if kt == int or kt == np.int64 or kt == np.int32 or kt == np.int:
+        if isinstance(key, (int, np.int, np.integer)):
             if key == -1:
                 key = slice(-1, None)
             else:
                 key = slice(key, key+1)
-        elif type(key) == np.ndarray:
+        elif isinstance(key, np.ndarray):
             mask = key
             key = slice(None, None)
         if not isinstance(key, slice):
@@ -203,7 +201,7 @@ class DataStruct(object):
         else:
             return arr[mask]
 
-class RedirectArray(object):
+class RedirectArray:
     """docstring for RedirectArray"""
     def __init__(self, http_array, key):
         self.http_array = http_array
@@ -539,7 +537,7 @@ def _shift_periodic(pos, left, right, domain_width):
     return
 
 
-class SDFIndex(object):
+class SDFIndex:
 
     """docstring for SDFIndex
 
@@ -1343,4 +1341,3 @@ class SDFIndex(object):
         pbox[0, 1] = pbox[0, 0] + pad[0]
         for k in self.get_bbox(pbox[:,0], pbox[:,1]):
             yield k
-

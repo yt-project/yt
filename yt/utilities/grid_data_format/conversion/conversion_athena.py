@@ -1,5 +1,3 @@
-from __future__ import print_function
-from __future__ import absolute_import
 import numpy as np
 from yt.utilities.grid_data_format.conversion.conversion_abc import Converter
 from yt.utilities.on_demand_imports import _h5py as h5

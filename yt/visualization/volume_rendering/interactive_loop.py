@@ -9,7 +9,7 @@ from .input_events import EventCollection, MouseRotation
 
 from yt import write_bitmap
 
-class EGLRenderingContext(object):
+class EGLRenderingContext:
     '''Rendering context using EGL (experimental)
 
     Parameters
@@ -85,7 +85,7 @@ class EGLRenderingContext(object):
         arr = scene._retrieve_framebuffer()
         write_bitmap(arr, "test.png")
 
-class RenderingContext(object):
+class RenderingContext:
     '''Basic rendering context for IDV using GLFW3, that handles the main window even loop
     
     Parameters

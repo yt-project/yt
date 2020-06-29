@@ -10,7 +10,7 @@ from yt.visualization.volume_rendering.transfer_functions import \
 from io import BytesIO
 
 
-class TransferFunctionHelper(object):
+class TransferFunctionHelper:
     r"""A transfer function helper.
 
     This attempts to help set up a good transfer function by finding

@@ -26,7 +26,7 @@
               2006 Matt Good <matt@matt-good.net>,
               2005 Raphael Slinckx <raphael@slinckx.net>
 """
-from __future__ import print_function
+
 import os
 import sys
 from optparse import OptionParser

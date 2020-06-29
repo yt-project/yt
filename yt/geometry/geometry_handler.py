@@ -258,7 +258,7 @@ def cached_property(func):
         return tr
     return property(cached_func)
 
-class YTDataChunk(object):
+class YTDataChunk:
 
     def __init__(self, dobj, chunk_type, objs, data_size = None,
                  field_type = None, cache = False, fast_index = None):
@@ -395,7 +395,7 @@ class YTDataChunk(object):
         return ci
 
 
-class ChunkDataCache(object):
+class ChunkDataCache:
     def __init__(self, base_iter, preload_fields, geometry_handler,
                  max_length = 256):
         # At some point, max_length should instead become a heuristic function,
@@ -413,9 +413,6 @@ class ChunkDataCache(object):
         return self
 
     def __next__(self):
-        return self.next()
-
-    def next(self):
         if len(self.queue) == 0:
             for i in range(self.max_length):
                 try:

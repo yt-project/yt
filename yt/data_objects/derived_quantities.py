@@ -72,7 +72,7 @@ class DerivedQuantity(ParallelAnalysisInterface, metaclass = RegisteredDerivedQu
     def reduce_intermediate(self, values):
         raise NotImplementedError
 
-class DerivedQuantityCollection(object):
+class DerivedQuantityCollection:
     def __new__(cls, data_source, *args, **kwargs):
         inst = object.__new__(cls)
         inst.data_source = data_source

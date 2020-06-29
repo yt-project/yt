@@ -819,31 +819,30 @@ def quartiles(a, axis=None, out=None, overwrite_input=False):
     """
     if overwrite_input:
         if axis is None:
-            sorted = a.ravel()
-            sorted.sort()
+            a_sorted = sorted(a.ravel())
         else:
             a.sort(axis=axis)
-            sorted = a
+            a_sorted = a
     else:
-        sorted = np.sort(a, axis=axis)
+        a_sorted = np.sort(a, axis=axis)
     if axis is None:
         axis = 0
-    indexer = [slice(None)] * sorted.ndim
-    indices = [int(sorted.shape[axis]/4), int(sorted.shape[axis]*.75)]
+    indexer = [slice(None)] * a_sorted.ndim
+    indices = [int(a_sorted.shape[axis]/4), int(a_sorted.shape[axis]*.75)]
     result = []
     for index in indices:
-        if sorted.shape[axis] % 2 == 1:
+        if a_sorted.shape[axis] % 2 == 1:
             # index with slice to allow mean (below) to work
             indexer[axis] = slice(index, index+1)
         else:
             indexer[axis] = slice(index-1, index+1)
         # special cases for small arrays
-        if sorted.shape[axis] == 2:
+        if a_sorted.shape[axis] == 2:
             # index with slice to allow mean (below) to work
             indexer[axis] = slice(index, index+1)
         # Use mean in odd and even case to coerce data type
         # and check, use out array.
-        result.append(np.mean(sorted[tuple(indexer)], axis=axis, out=out))
+        result.append(np.mean(a_sorted[tuple(indexer)], axis=axis, out=out))
     return np.array(result)
 
 def get_perspective_matrix(fovy, aspect, z_near, z_far):

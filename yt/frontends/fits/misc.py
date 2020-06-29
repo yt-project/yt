@@ -179,7 +179,7 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
             obj.set_field_parameter(k,v)
     return obj.cut_region(["obj['%s'] > 0" % (reg_name)])
 
-class PlotWindowWCS(object):
+class PlotWindowWCS:
     r"""
     Use AstroPy's WCSAxes class to plot celestial coordinates on the axes of a
     on-axis PlotWindow plot. See 

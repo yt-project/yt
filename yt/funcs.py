@@ -314,7 +314,7 @@ def insert_ipython(num_up=1):
 # Our progress bar types and how to get one
 #
 
-class TqdmProgressBar(object):
+class TqdmProgressBar:
     # This is a drop in replacement for pbar
     # called tqdm
     def __init__(self,title, maxval):
@@ -329,7 +329,7 @@ class TqdmProgressBar(object):
     def finish(self):
         self._pbar.close()
 
-class DummyProgressBar(object):
+class DummyProgressBar:
     # This progressbar gets handed if we don't
     # want ANY output
     def __init__(self, *args, **kwargs):
@@ -339,7 +339,7 @@ class DummyProgressBar(object):
     def finish(self, *args, **kwargs):
         return
 
-class ParallelProgressBar(object):
+class ParallelProgressBar:
     # This is just a simple progress bar
     # that prints on start/stop
     def __init__(self, title, maxval):
@@ -350,7 +350,7 @@ class ParallelProgressBar(object):
     def finish(self):
         mylog.info("Finishing '%s'", self.title)
 
-class GUIProgressBar(object):
+class GUIProgressBar:
     def __init__(self, title, maxval):
         import wx
         self.maxval = maxval
@@ -486,7 +486,7 @@ def _rdbeta(key):
 class NoCUDAException(Exception):
     pass
 
-class YTEmptyClass(object):
+class YTEmptyClass:
     pass
 
 def update_hg_or_git(path):
