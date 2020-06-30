@@ -1059,11 +1059,11 @@ def pixelize_sph_kernel_projection(
 
             for xi in range(2):
                 if xiter[xi] == 999: continue
-                px = posx[j] + xiterv[xi]
+                px += xiterv[xi]
                 if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
                 for yi in range(2):
                     if yiter[yi] == 999: continue
-                    py = posy[j] + yiterv[yi]
+                    py += yiterv[yi]
                     if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
 
                     # here we find the pixels which this particle contributes to
