@@ -987,18 +987,31 @@ def pixelize_sph_kernel_projection(
         np.float64_t[:] quantity_to_smooth,
         bounds,
         kernel_name="cubic",
-        weight_field=None):
+        weight_field=None,
+        int check_period = 1,
+        period=None):
 
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
-    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
+    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, px, py
+    cdef np.float64_t period_x, period_y
     cdef int index, i, j
     cdef np.float64_t[:] _weight_field
+    cdef int xiter[2]
+    cdef int yiter[2]
+    cdef np.float64_t xiterv[2]
+    cdef np.float64_t yiterv[2]
 
     if weight_field is not None:
         _weight_field = weight_field
+
+    xiter[0] = yiter[0] = 0
+    xiterv[0] = yiterv[0] = 0.0
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
 
     # we find the x and y range over which we have pixels and we find how many
     # pixels we have in each dimension
@@ -1024,52 +1037,80 @@ def pixelize_sph_kernel_projection(
             if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
+            
+            xiter[1] = yiter[1] = 999
+            
+            px = posx[j]
+            py = posy[j]
 
-            # here we find the pixels which this particle contributes to
-            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
-            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, xsize)
-            x1 = iclip(x1+1, 0, xsize)
+            if check_period == 1:
+                if px - hsml[j] < x_min:
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif px + hsml[j] > x_max:
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if py - hsml[j] < y_min:
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif py + hsml[j] > y_max:
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
 
-            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
-            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, ysize)
-            y1 = iclip(y1+1, 0, ysize)
+            for xi in range(2):
+                if xiter[xi] == 999: continue
+                px = posx[j] + xiterv[xi]
+                if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
+                for yi in range(2):
+                    if yiter[yi] == 999: continue
+                    py = posy[j] + yiterv[yi]
+                    if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
 
-            # we set the smoothing length squared with lower limit of the pixel
-            h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
-            ih_j2 = 1.0/h_j2
-
-            prefactor_j = pmass[j] / pdens[j] / hsml[j]**2
-            if weight_field is None:
-                prefactor_j *= quantity_to_smooth[j]
-            else:
-                prefactor_j *= quantity_to_smooth[j] * _weight_field[j]
-
-            # found pixels we deposit on, loop through those pixels
-            for xi in range(x0, x1):
-                # we use the centre of the pixel to calculate contribution
-                x = (xi + 0.5) * dx + x_min
-
-                posx_diff = posx[j] - x
-                posx_diff = posx_diff * posx_diff
-
-                if posx_diff > h_j2: continue
-
-                for yi in range(y0, y1):
-                    y = (yi + 0.5) * dy + y_min
-
-                    posy_diff = posy[j] - y
-                    posy_diff = posy_diff * posy_diff
-                    if posy_diff > h_j2: continue
-
-                    q_ij2 = (posx_diff + posy_diff) * ih_j2
-                    if q_ij2 >= 1:
-                        continue
-
-                    # see equation 32 of the SPLASH paper
-                    # now we just use the kernel projection
-                    buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
+                    # here we find the pixels which this particle contributes to
+                    x0 = <np.int64_t> ((px - hsml[j] - x_min)*idx)
+                    x1 = <np.int64_t> ((px + hsml[j] - x_min)*idx)
+                    x0 = iclip(x0-1, 0, xsize)
+                    x1 = iclip(x1+1, 0, xsize)
+        
+                    y0 = <np.int64_t> ((py - hsml[j] - y_min)*idy)
+                    y1 = <np.int64_t> ((py + hsml[j] - y_min)*idy)
+                    y0 = iclip(y0-1, 0, ysize)
+                    y1 = iclip(y1+1, 0, ysize)
+        
+                    # we set the smoothing length squared with lower limit of the pixel
+                    h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
+                    ih_j2 = 1.0/h_j2
+        
+                    prefactor_j = pmass[j] / pdens[j] / hsml[j]**2
+                    if weight_field is None:
+                        prefactor_j *= quantity_to_smooth[j]
+                    else:
+                        prefactor_j *= quantity_to_smooth[j] * _weight_field[j]
+        
+                    # found pixels we deposit on, loop through those pixels
+                    for xi in range(x0, x1):
+                        # we use the centre of the pixel to calculate contribution
+                        x = (xi + 0.5) * dx + x_min
+        
+                        posx_diff = px - x
+                        posx_diff = posx_diff * posx_diff
+        
+                        if posx_diff > h_j2: continue
+        
+                        for yi in range(y0, y1):
+                            y = (yi + 0.5) * dy + y_min
+        
+                            posy_diff = py - y
+                            posy_diff = posy_diff * posy_diff
+                            if posy_diff > h_j2: continue
+        
+                            q_ij2 = (posx_diff + posy_diff) * ih_j2
+                            if q_ij2 >= 1:
+                                continue
+        
+                            # see equation 32 of the SPLASH paper
+                            # now we just use the kernel projection
+                            buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1591,7 +1632,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                    quantity_to_smooth,
                                    [rot_bounds_x0, rot_bounds_x1,
                                     rot_bounds_y0, rot_bounds_y1],
-                                    weight_field=weight_field)
+                                    weight_field=weight_field,
+                                   check_period=0)
 
 
 @cython.boundscheck(False)

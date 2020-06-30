@@ -365,7 +365,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
-                            bnds,
+                            bnds, check_period=int(periodic), period=period
                         )
                     # We use code length here, but to get the path length right
                     # we need to multiply by the conversion factor between
@@ -392,7 +392,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
-                            bnds,
+                            bnds, check_period=int(periodic), period=period,
                             weight_field=chunk[weight].in_units(wounits),
                         )
                     mylog.info(
@@ -411,7 +411,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[weight].in_units(wounits),
-                            bnds,
+                            bnds, check_period=int(periodic), period=period,
                         )
                     normalization_2d_utility(buff, weight_buff)
             elif isinstance(data_source, YTSlice):
