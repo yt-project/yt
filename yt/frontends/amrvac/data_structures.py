@@ -450,47 +450,45 @@ class AMRVACDataset(Dataset):
         setdefaultattr(self, "pressure_unit", pressure_unit)
         setdefaultattr(self, "magnetic_unit", magnetic_unit)
 
-    def _override_code_units(self):
-        """Add a check step to the base class' method (Dataset)."""
-        self._check_override_consistency()
-        super(AMRVACDataset, self)._override_code_units()
-
-    def _check_override_consistency(self):
+    @staticmethod
+    def _sanitize_units_override(units_override):
         """Check that keys in units_override are consistent with respect to AMRVAC's internal way to
         set up normalisations factors.
 
         """
-        # frontend specific method
         # YT supports overriding other normalisations, this method ensures consistency between
         # supplied 'units_override' items and those used by AMRVAC.
 
         # AMRVAC's normalisations/units have 3 degrees of freedom.
         # Moreover, if temperature unit is specified then velocity unit will be calculated
         # accordingly, and vice-versa.
-        # Currently we replicate this by allowing a finite set of combinations in units_override
-        if not self.units_override:
-            return
-        overrides = set(self.units_override)
+        # Currently we replicate this by allowing a finite set of combinations in
+        # units_override
+
+        if not units_override:
+            return {}
 
         # there are only three degrees of freedom, so explicitly check for this
-        if len(overrides) > 3:
+        if len(units_override) > 3:
             raise ValueError(
                 "More than 3 degrees of freedom were specified "
-                "in units_override ({} given)".format(len(overrides))
+                "in units_override ({} given)".format(len(units_override))
             )
         # temperature and velocity cannot both be specified
-        if "temperature_unit" in overrides and "velocity_unit" in overrides:
+        if "temperature_unit" in units_override and "velocity_unit" in units_override:
             raise ValueError(
                 "Either temperature or velocity is allowed in units_override, not both."
             )
         # check if provided overrides are allowed
+        suo = set(units_override)
         for allowed_combo in ALLOWED_UNIT_COMBINATIONS:
-            if overrides.issubset(allowed_combo):
+            if suo.issubset(allowed_combo):
                 break
         else:
             raise ValueError(
                 "Combination {} passed to units_override is not consistent with AMRVAC. \n"
-                "Allowed combinations are {}".format(
-                    overrides, ALLOWED_UNIT_COMBINATIONS
-                )
+                "Allowed combinations are {}".format(suo, ALLOWED_UNIT_COMBINATIONS)
             )
+        return super(AMRVACDataset, AMRVACDataset)._sanitize_units_override(
+            units_override
+        )
