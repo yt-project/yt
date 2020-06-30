@@ -21,7 +21,8 @@ from yt.data_objects.particle_trajectories import \
 from yt.funcs import \
     iterable, \
     ensure_list, \
-    mylog
+    mylog, \
+    issue_deprecation_warning
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import \
     YTException, \
@@ -56,16 +57,19 @@ def get_ds_prop(propname):
                 dict(eval = _eval, _params = tuple()))
     return cls
 
-def get_filenames_from_glob_pattern(filenames):
-    file_list = glob.glob(filenames)
-    if len(file_list) == 0:
-        data_dir = ytcfg.get("yt", "test_data_dir")
-        pattern = os.path.join(data_dir, filenames)
-        td_filenames = glob.glob(pattern)
-        if len(td_filenames) > 0:
-            file_list = td_filenames
-        else:
-            raise YTOutputNotIdentified(filenames, {})
+def get_filenames_from_glob_pattern(outputs):
+    """
+    Helper function to DatasetSeries.__new__
+    handle a special case where "outputs" is assumed to be really a pattern string
+    """
+    pattern = outputs
+    epattern = os.path.expanduser(pattern)
+    data_dir = ytcfg.get("yt", "test_data_dir")
+    # if not match if found from the current work dir,
+    # we try to match the pattern from the test data dir
+    file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
+    if not file_list:
+        raise OSError("No match found for pattern : {}".format(pattern))
     return sorted(file_list)
 
 attrs = ("refine_by", "dimensionality", "current_time",
@@ -93,14 +97,16 @@ class DatasetSeries:
     primarily expressed through iteration, but can also be constructed via
     analysis tasks (see :ref:`time-series-analysis`).
 
+    Note that contained datasets are lazily loaded and weakly referenced. This means
+    that in order to perform follow-up operations on data it's best to define handles on
+    these datasets during iteration.
+
     Parameters
     ----------
-    filenames : list or pattern
-        This can either be a list of filenames (such as ["DD0001/DD0001",
-        "DD0002/DD0002"]) or a pattern to match, such as
-        "DD*/DD*.index").  If it's the former, they will be loaded in
-        order.  The latter will be identified with the glob module and then
-        sorted.
+    outputs : list or pattern
+        A list of filenames, for instance ["DD0001/DD0001", "DD0002/DD0002"],
+        or a glob pattern (i.e. containing wildcards '[]?!*') such as "DD*/DD*.index".
+        In the latter case, results are sorted automatically.
     parallel : True, False or int
         This parameter governs the behavior when .piter() is called on the
         resultant DatasetSeries object.  If this is set to False, the time
@@ -368,19 +374,11 @@ class DatasetSeries:
         ...     SlicePlot(ds, "x", "Density").save()
 
         """
-        
-        if isinstance(filenames, str):
-            filenames = get_filenames_from_glob_pattern(filenames)
-
-        # This will crash with a less informative error if filenames is not
-        # iterable, but the plural keyword should give users a clue...
-        for fn in filenames:
-            if not isinstance(fn, str):
-                raise YTOutputNotIdentified("DataSeries accepts a list of "
-                                            "strings, but "
-                                            "received {0}".format(fn))
-        obj = cls(filenames[:], parallel = parallel,
-                  setup_function = setup_function, **kwargs)
+        issue_deprecation_warning(
+                "DatasetSeries.from_filenames() is deprecated and will be removed "
+                "in a future version of yt. Use DatasetSeries() directly."
+        )
+        obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
         return obj
 
     @classmethod
@@ -499,7 +497,7 @@ class SimulationTimeSeries(DatasetSeries, metaclass = RegisteredSimulationTimeSe
         """
 
         if not os.path.exists(parameter_filename):
-            raise IOError(parameter_filename)
+            raise OSError(parameter_filename)
         self.parameter_filename = parameter_filename
         self.basename = os.path.basename(parameter_filename)
         self.directory = os.path.dirname(parameter_filename)
