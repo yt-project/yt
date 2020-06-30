@@ -1362,7 +1362,7 @@ class ParticleSelectionComparison:
                    [0.96, 0.96, 0.96]]
         r = self.ds.quan(0.1, "unitary")
         for center in centers:
-            c = self.ds.arr(center, "unitary")
+            c = self.ds.arr(center, "unitary") + self.ds.domain_left_edge.in_units("unitary")
             if not all(self.ds.periodicity):
                 # filter out the periodic bits for non-periodic datasets
                 if any(c - r < self.ds.domain_left_edge) or \
@@ -1377,17 +1377,20 @@ class ParticleSelectionComparison:
         dd = self.ds.all_data()
         self.compare_dobj_selection(dd)
 
-        reg1 = self.ds.r[ (0.1, 'unitary'):(0.9, 'unitary'),
-                          (0.1, 'unitary'):(0.9, 'unitary'),
-                          (0.1, 'unitary'):(0.9, 'unitary')]
+        # This is in raw numbers, so we can offset for the left edge
+        LE = self.ds.domain_left_edge.in_units("unitary").d
+
+        reg1 = self.ds.r[ (0.1 + LE[0], 'unitary'):(0.9 + LE[0], 'unitary'),
+                          (0.1 + LE[1], 'unitary'):(0.9 + LE[1], 'unitary'),
+                          (0.1 + LE[2], 'unitary'):(0.9 + LE[2], 'unitary')]
         self.compare_dobj_selection(reg1)
 
-        reg2 = self.ds.r[ (0.8, 'unitary'):(0.85, 'unitary'),
-                          (0.8, 'unitary'):(0.85, 'unitary'),
-                          (0.8, 'unitary'):(0.85, 'unitary')]
+        reg2 = self.ds.r[ (0.8 + LE[0], 'unitary'):(0.85 + LE[0], 'unitary'),
+                          (0.8 + LE[1], 'unitary'):(0.85 + LE[1], 'unitary'),
+                          (0.8 + LE[2], 'unitary'):(0.85 + LE[2], 'unitary')]
         self.compare_dobj_selection(reg2)
 
-        reg3 = self.ds.r[ (0.3, 'unitary'):(0.6, 'unitary'),
-                          (0.2, 'unitary'):(0.8, 'unitary'),
-                          (0.0, 'unitary'):(0.1, 'unitary')]
+        reg3 = self.ds.r[ (0.3 + LE[0], 'unitary'):(0.6 + LE[0], 'unitary'),
+                          (0.2 + LE[1], 'unitary'):(0.8 + LE[1], 'unitary'),
+                          (0.0 + LE[2], 'unitary'):(0.1 + LE[2], 'unitary')]
         self.compare_dobj_selection(reg3)
