@@ -149,7 +149,8 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
         si, ei = data_file.start, data_file.end
         pcount = \
           {"Group": data_file.header["Ngroups_ThisFile"],
-           "Subhalo": data_file.header["Nsubgroups_ThisFile"]}
+           "Subhalo": data_file.header["Nsubgroups_ThisFile"],
+           "IDs": data_file.header["Nids_ThisFile"]}
         if None not in (si, ei):
             for ptype in pcount:
                 pcount[ptype] = np.clip(pcount[ptype]-si, 0, ei-si)
