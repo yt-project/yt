@@ -10,6 +10,7 @@ requires = [
   # https://github.com/yt-project/yt/issues/4355
   "Cython>=0.29.33,<3.0",
   "oldest-supported-numpy",
+  "ewah-bool-utils>=1.0.2",
 ]
 
 [project]
@@ -45,6 +46,7 @@ keywords = [
 requires-python = ">=3.8"
 dependencies = [
     "cmyt>=1.1.2",
+    "ewah-bool-utils>=1.0.2",
     "ipywidgets>=8.0.0",
     "matplotlib!=3.4.2,>=3.2", # keep in sync with tests/windows_conda_requirements.txt
     "more-itertools>=8.4",
@@ -204,6 +206,7 @@ mapserver = [
 ]
 minimal = [
     "cmyt==1.1.2",
+    "ewah-bool-utils==1.0.2",
     "ipywidgets==8.0.0",
     "matplotlib==3.2",
     "more-itertools==8.4",
