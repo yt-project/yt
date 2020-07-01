@@ -11,7 +11,7 @@ def test_load_unexisting_data():
         assert_raises(OSError, load, os.path.join(tmpdir, "not_a_file"))
         assert_raises(OSError, simulation, os.path.join(tmpdir, "not_a_file"), "Enzo")
 
-        # this one is an design choice: it is preferable to report the most imoportant
+        # this one is a design choice: it is preferable to report the most important
         # problem in an error message (missing data is worse than a typo in
         # simulation_type), so we make sure the error raised is not YTSimulationNotIdentified
         assert_raises(OSError, simulation, os.path.join(tmpdir, "not_a_file"), "unregistered_simulation_type")
