@@ -5,9 +5,9 @@ from yt.funcs import mylog
 from yt.utilities.cython_fortran_utils import FortranFile
 
 from .io import _read_part_file_descriptor
+from .field_handlers import HandlerMixin
 
 PARTICLE_HANDLERS = set()
-PRESENT_PART_FILES = {}
 
 
 def get_particle_handlers():
@@ -28,18 +28,21 @@ class RAMSESParticleFileHandlerRegistry(type):
         cls = type.__new__(meta, name, bases, class_dict)
         if cls.ptype is not None:
             register_particle_handler(cls)
+
+        cls._unique_registry = {}
         return cls
 
-
-class ParticleFileHandler(metaclass=RAMSESParticleFileHandlerRegistry):
-    """
+class ParticleFileHandler(HandlerMixin, metaclass=RAMSESParticleFileHandlerRegistry):
+    '''
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
 
     To add support to a new particle file, inherit from this class and
     implement all functions containing a `NotImplementedError`.
 
-    See `SinkParticleFileHandler` for an example implementation."""
+    See `SinkParticleFileHandler` for an example implementation.'''
+
+    _file_type = 'particle'
 
     # These properties are static properties
     ptype = None  # The name to give to the particle type
@@ -57,49 +60,8 @@ class ParticleFileHandler(metaclass=RAMSESParticleFileHandlerRegistry):
     )
     local_particle_count = None  # The number of particle in the domain
 
-    def __init__(self, ds, domain):
-        """
-        Initalize an instance of the class. This automatically sets
-        the full path to the file. This is not intended to be
-        overriden in most cases.
-
-        If you need more flexibility, rewrite this function to your
-        need in the inherited class.
-        """
-        self.ds = ds
-        self.domain = domain
-        self.domain_id = domain.domain_id
-        basename = os.path.abspath(ds.root_folder)
-        iout = int(os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1])
-
-        if ds.num_groups > 0:
-            igroup = ((domain.domain_id - 1) // ds.group_size) + 1
-            full_path = os.path.join(
-                basename,
-                "group_{:05d}".format(igroup),
-                self.fname.format(iout=iout, icpu=domain.domain_id),
-            )
-        else:
-            full_path = os.path.join(
-                basename, self.fname.format(iout=iout, icpu=domain.domain_id)
-            )
-
-        if os.path.exists(full_path):
-            self.fname = full_path
-        else:
-            raise FileNotFoundError(
-                "Could not find particle file (type: %s). Tried %s"
-                % (self.ptype, full_path)
-            )
-
-        if self.file_descriptor is not None:
-            if ds.num_groups > 0:
-                # The particle file descriptor is *only* in the first group
-                self.file_descriptor = os.path.join(
-                    basename, "group_00001", self.file_descriptor
-                )
-            else:
-                self.file_descriptor = os.path.join(basename, self.file_descriptor)
+    def __init__(self, domain):
+        self.setup_handler(domain)
 
         # Attempt to read the list of fields from the config file
         if self.config_field and ytcfg.has_section(self.config_field):
@@ -109,59 +71,6 @@ class ParticleFileHandler(metaclass=RAMSESParticleFileHandlerRegistry):
                 field, field_type = (_.strip() for _ in c.split(","))
                 known_fields.append((field, field_type))
             self.known_fields = known_fields
-
-    @property
-    def exists(self):
-        """
-        This function should return True if the *file* the instance
-        exists. It is called for each file of the type found on the
-        disk.
-
-        By default, it just returns whether the file exists. Override
-        it for more complex cases.
-        """
-        return os.path.exists(self.fname)
-
-    @property
-    def has_part_descriptor(self):
-        """
-        This function should return True if a *file descriptor*
-        exists.
-
-        By default, it just returns whether the file exists. Override
-        it for more complex cases.
-        """
-        return os.path.exists(self.file_descriptor)
-
-    @classmethod
-    def any_exist(cls, ds):
-        """
-        This function should return True if the kind of particle
-        represented by the class exists in the dataset. It takes as
-        argument the class itself -not an instance- and a dataset.
-
-        Arguments
-        ---------
-        * ds: a Ramses Dataset
-
-        Note
-        ----
-        This function is usually called once at the initialization of
-        the RAMSES Dataset structure to determine if the particle type
-        (e.g. regular particles) exists.
-        """
-        if (ds.unique_identifier, cls.ptype) in PRESENT_PART_FILES:
-            return PRESENT_PART_FILES[(ds.unique_identifier, cls.ptype)]
-
-        iout = int(os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1])
-
-        fname = os.path.join(
-            os.path.split(ds.parameter_filename)[0], cls.fname.format(iout=iout, icpu=1)
-        )
-        exists = os.path.exists(fname)
-        PRESENT_PART_FILES[(ds.unique_identifier, cls.ptype)] = exists
-
-        return exists
 
     def read_header(self):
         """
@@ -231,8 +140,10 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         self.local_particle_count = hvals["npart"]
         extra_particle_fields = self.ds._extra_particle_fields
 
-        if self.has_part_descriptor:
-            particle_fields = _read_part_file_descriptor(self.file_descriptor)
+        if self.has_descriptor:
+            particle_fields = (
+                _read_part_file_descriptor(self.file_descriptor)
+            )
         else:
             particle_fields = list(self.known_fields)
 
@@ -345,8 +256,10 @@ class SinkParticleFileHandler(ParticleFileHandler):
             self.local_particle_count = hvals["nsink"]
 
         # Read the fields + add the sink properties
-        if self.has_part_descriptor:
-            fields = _read_part_file_descriptor(self.file_descriptor)
+        if self.has_descriptor:
+            fields = (
+                _read_part_file_descriptor(self.file_descriptor)
+            )
         else:
             fields = list(self.known_fields)
 
