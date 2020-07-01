@@ -40,8 +40,8 @@ def load(fn, *args, **kwargs):
     OSError
         If fn does not match any existing file or directory.
 
-    YTOutputNotIdentified
-        If fn matches existing file or directory with undetermined format.
+    yt.utilities.exceptions.YTOutputNotIdentified
+        If fn matches existing files or directories with undetermined format.
     """
     fn = os.path.expanduser(fn)
 
@@ -98,7 +98,7 @@ def simulation(fn, simulation_type, find_outputs=False):
     OSError
         If fn is not found.
 
-    YTSimulationNotIdentified
+    yt.utilities.exceptions.YTSimulationNotIdentified
         If simulation_type is unknown.
     """
 
