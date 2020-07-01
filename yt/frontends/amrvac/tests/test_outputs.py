@@ -3,7 +3,7 @@ import numpy as np  # NOQA
 import yt  # NOQA
 from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid
 from yt.testing import assert_allclose_units, assert_raises, requires_file
-from yt.units import YTQuantity
+from yt.units import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import (
     data_dir_load,
     requires_ds,
@@ -59,8 +59,8 @@ def test_grid_attributes():
     assert ds.index.max_level == 2
     for g in grids:
         assert isinstance(g, AMRVACGrid)
-        assert isinstance(g.LeftEdge, yt.units.yt_array.YTArray)
-        assert isinstance(g.RightEdge, yt.units.yt_array.YTArray)
+        assert isinstance(g.LeftEdge, YTArray)
+        assert isinstance(g.RightEdge, YTArray)
         assert isinstance(g.ActiveDimensions, np.ndarray)
         assert isinstance(g.Level, (np.int32, np.int64, int))
 
