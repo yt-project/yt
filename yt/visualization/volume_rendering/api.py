@@ -11,6 +11,7 @@ from .render_source import (
     OpaqueSource,
     PointSource,
     VolumeSource,
+    create_volume_source,
 )
 from .scene import Scene
 from .transfer_function_helper import TransferFunctionHelper
