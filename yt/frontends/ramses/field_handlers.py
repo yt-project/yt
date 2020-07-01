@@ -19,7 +19,6 @@ def register_field_handler(ph):
     FIELD_HANDLERS.add(ph)
 
 
-PRESENT_FIELD_FILES = {}
 DETECTED_FIELDS = {}
 
 
@@ -33,35 +32,13 @@ class RAMSESFieldFileHandlerRegistry(type):
         cls = type.__new__(meta, name, bases, class_dict)
         if cls.ftype is not None:
             register_field_handler(cls)
+
+        cls._unique_registry = {}
         return cls
 
 
-class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
-    """
-    Abstract class to handle particles in RAMSES. Each instance
-    represents a single file (one domain).
-
-    To add support to a new particle file, inherit from this class and
-    implement all functions containing a `NotImplementedError`.
-
-    See `SinkParticleFileHandler` for an example implementation."""
-
-    # These properties are static properties
-    ftype = None  # The name to give to the field type
-    fname = None  # The name of the file(s)
-    attrs = None  # The attributes of the header
-    known_fields = None  # A list of tuple containing the field name and its type
-    config_field = None  # Name of the config section (if any)
-
-    file_descriptor = None  # The name of the file descriptor (if any)
-
-    # These properties are computed dynamically
-    field_offsets = None  # Mapping from field to offset in file
-    field_types = (
-        None  # Mapping from field to the type of the data (float, integer, ...)
-    )
-
-    def __init__(self, domain):
+class HandlerMixin:
+    def setup_handler(self, domain):
         """
         Initalize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
@@ -70,9 +47,9 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
         If you need more flexibility, rewrite this function to your
         need in the inherited class.
         """
+        self.ds = ds = domain.ds
         self.domain = domain
         self.domain_id = domain.domain_id
-        ds = domain.ds
         basename = os.path.abspath(ds.root_folder)
         iout = int(os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1])
 
@@ -92,17 +69,23 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
             self.fname = full_path
         else:
             raise FileNotFoundError(
-                "Could not find fluid file (type: %s). Tried %s"
-                % (self.ftype, full_path)
+                "Could not find %s file (type: %s). Tried %s"
+                % (self._file_type, self.ftype, full_path)
             )
 
         if self.file_descriptor is not None:
-            self.file_descriptor = os.path.join(basename, self.file_descriptor)
+            if ds.num_groups > 0:
+                # The particle file descriptor is *only* in the first group
+                self.file_descriptor = os.path.join(
+                    basename, "group_00001", self.file_descriptor
+                )
+            else:
+                self.file_descriptor = os.path.join(basename, self.file_descriptor)
 
     @property
     def exists(self):
         """
-        This function should return True if the *file* for the domain
+        This function should return True if the *file* the instance
         exists. It is called for each file of the type found on the
         disk.
 
@@ -112,7 +95,7 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
         return os.path.exists(self.fname)
 
     @property
-    def has_part_descriptor(self):
+    def has_descriptor(self):
         """
         This function should return True if a *file descriptor*
         exists.
@@ -125,9 +108,9 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
     @classmethod
     def any_exist(cls, ds):
         """
-        This function should return True if the kind of field
+        This function should return True if the kind of particle
         represented by the class exists in the dataset. It takes as
-        argument the class itself - not an instance - and a dataset.
+        argument the class itself -not an instance- and a dataset.
 
         Arguments
         ---------
@@ -139,8 +122,8 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
         the RAMSES Dataset structure to determine if the particle type
         (e.g. regular particles) exists.
         """
-        if (ds.unique_identifier, cls.ftype) in PRESENT_FIELD_FILES:
-            return PRESENT_FIELD_FILES[(ds.unique_identifier, cls.ftype)]
+        if ds.unique_identifier in cls._unique_registry:
+            return cls._unique_registry[ds.unique_identifier]
 
         iout = int(os.path.basename(ds.parameter_filename).split(".")[0].split("_")[1])
 
@@ -148,9 +131,40 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
             os.path.split(ds.parameter_filename)[0], cls.fname.format(iout=iout, icpu=1)
         )
         exists = os.path.exists(fname)
-        PRESENT_FIELD_FILES[(ds.unique_identifier, cls.ftype)] = exists
+        cls._unique_registry[ds.unique_identifier] = exists
 
         return exists
+
+
+class FieldFileHandler(HandlerMixin, metaclass=RAMSESFieldFileHandlerRegistry):
+    """
+    Abstract class to handle particles in RAMSES. Each instance
+    represents a single file (one domain).
+
+    To add support to a new particle file, inherit from this class and
+    implement all functions containing a `NotImplementedError`.
+
+    See `SinkParticleFileHandler` for an example implementation."""
+
+    _file_type = "field"
+
+    # These properties are static properties
+    ftype = None  # The name to give to the field type
+    fname = None  # The name of the file(s)
+    attrs = None  # The attributes of the header
+    known_fields = None  # A list of tuple containing the field name and its type
+    config_field = None  # Name of the config section (if any)
+
+    file_descriptor = None  # The name of the file descriptor (if any)
+
+    # These properties are computed dynamically
+    field_offsets = None  # Mapping from field to offset in file
+    field_types = (
+        None  # Mapping from field to the type of the data (float, integer, ...)
+    )
+
+    def __init__(self, domain):
+        self.setup_handler(domain)
 
     @classmethod
     def detect_fields(cls, ds):

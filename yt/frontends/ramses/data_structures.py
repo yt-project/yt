@@ -66,7 +66,7 @@ class RAMSESDomainFile:
 
         # Autodetect particle files
         particle_handlers = [
-            PH(ds, self) for PH in get_particle_handlers() if PH.any_exist(ds)
+            PH(self) for PH in get_particle_handlers() if PH.any_exist(ds)
         ]
         self.particle_handlers = particle_handlers
         for ph in particle_handlers:
