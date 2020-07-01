@@ -29,10 +29,10 @@ def load(fn, *args, **kwargs):
 
     Returns
     -------
-    Dataset
+    :class:`yt.data_objects.static_output.Dataset` object
         If fn is a single path, create a Dataset from the appropriate subclass.
 
-    DatasetSeries (Dataset container class)
+    :class:`yt.data_objects.time_series.DatasetSeries`
         If fn is a glob pattern (i.e. containing wildcards '[]?!*'), create a series.
 
     Raises
