@@ -50,11 +50,15 @@ def load(fn, *args, **kwargs):
         return DatasetSeries(fn, *args, **kwargs)
 
     if not (os.path.exists(fn) or fn.startswith("http")):
-        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
+        data_dir = ytcfg.get("yt", "test_data_dir")
+        alt_fn = os.path.join(data_dir, fn)
         if os.path.exists(alt_fn):
             fn = alt_fn
         else:
-            raise OSError("No such file or directory: %s" % fn)
+            msg = "No such file or directory: %s" % fn
+            if os.path.exists(data_dir):
+                msg += "\n(Also tried %s)" % alt_fn
+            raise OSError(msg)
 
     candidates = []
     for cls in output_type_registry.values():
