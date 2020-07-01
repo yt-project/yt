@@ -45,7 +45,7 @@ def load(fn, *args, **kwargs):
     """
     fn = os.path.expanduser(fn)
 
-    if any([wildcard in fn for wildcard in "[]?!*"]):
+    if any(wildcard in fn for wildcard in "[]?!*"):
         from yt.data_objects.time_series import DatasetSeries
         return DatasetSeries(fn, *args, **kwargs)
 
