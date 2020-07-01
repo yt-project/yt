@@ -4,6 +4,7 @@ from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError
 from yt.visualization.line_plot import LineBuffer
+from .data_containers import _get_ipython_key_completion
 
 class RegionExpression:
     _all_data = None
@@ -59,6 +60,9 @@ class RegionExpression:
             if all(s.start is s.stop is s.step is None for s in item):
                 return self.all_data
             return self._create_region(item)
+
+    def _ipython_key_completions_(self):
+        return _get_ipython_key_completion(self.ds)
 
     def _spec_to_value(self, input):
         if isinstance(input, tuple):
