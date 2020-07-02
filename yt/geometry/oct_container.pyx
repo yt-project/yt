@@ -806,7 +806,8 @@ cdef class OctreeContainer:
                    np.uint8_t[:] cell_inds,
                    np.int64_t[:] file_inds,
                    np.int32_t[:] domains,
-                   dict dest_fields, dict source_fields,
+                   dict dest_fields,
+                   dict source_fields,
                    np.int32_t domain,
                    np.int64_t offset = 0
                    ):
