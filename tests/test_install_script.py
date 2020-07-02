@@ -36,7 +36,7 @@ YT_SOURCE_ONLY_DEPS = [
 ]
 
 DEPENDENCY_IMPORT_TESTS = {
-    'embree': "from yt.utilities.lib import mesh_traversal",
+    'embree': "from yt.utilities.lib.embree_mesh import mesh_traversal",
 }
 
 

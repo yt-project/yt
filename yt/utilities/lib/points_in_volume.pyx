@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Checks for points contained in a volume
 

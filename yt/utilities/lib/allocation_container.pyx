@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 An allocation container and memory pool
 

@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 AMR kD-Tree Cython Tools
 

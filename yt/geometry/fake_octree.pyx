@@ -1,3 +1,5 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Make a fake octree, deposit particle at every leaf
 

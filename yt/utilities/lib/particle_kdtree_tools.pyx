@@ -1,3 +1,4 @@
+# distutils: language = c++
 """
 Cython tools for working with the PyKDTree particle KDTree.
 

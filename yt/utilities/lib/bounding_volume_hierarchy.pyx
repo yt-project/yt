@@ -1,3 +1,7 @@
+# distutils: libraries = STD_LIBS
+# distutils: include_dirs = LIB_DIR
+# distutils: extra_compile_args = OMP_ARGS
+# distutils: extra_link_args = OMP_ARGS
 cimport cython
 import numpy as np
 cimport numpy as np

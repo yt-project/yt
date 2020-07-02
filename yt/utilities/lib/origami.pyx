@@ -1,3 +1,6 @@
+# distutils: sources = yt/utilities/lib/origami_tags.c
+# distutils: include_dirs = LIB_DIR
+# distutils: depends = yt/utilities/lib/origami_tags.h
 """
 This calls the ORIGAMI routines
 

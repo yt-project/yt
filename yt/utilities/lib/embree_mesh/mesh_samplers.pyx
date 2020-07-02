@@ -1,3 +1,7 @@
+# distutils: include_dirs = EMBREE_INC_DIR
+# distutils: library_dirs = EMBREE_LIB_DIR
+# distutils: libraries = EMBREE_LIBS
+# distutils: language = c++
 """
 This file contains functions that sample a surface mesh at the point hit by
 a ray. These can be used with pyembree in the form of "filter feedback functions."
@@ -10,7 +14,7 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
 from pyembree.rtcore cimport Vec3f, Triangle, Vertex
-from yt.utilities.lib.mesh_construction cimport \
+from .mesh_construction cimport \
     MeshDataContainer, \
     Patch, \
     Tet_Patch

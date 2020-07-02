@@ -1,3 +1,6 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
+# distutils: sources = FIXED_INTERP
 """
 Marching cubes implementation
 
