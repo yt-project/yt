@@ -134,6 +134,10 @@ class RAMSESDomainFile:
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
+        # update levelmax
+        self.amr_header["nlevelmax"] = min(
+            self.ds._force_max_level, self.amr_header["nlevelmax"]
+        )
         self.amr_offset = f.tell()
         self.local_oct_count = hvals["numbl"][
             self.ds.min_level :, self.domain_id - 1
@@ -371,7 +375,9 @@ class RAMSESIndex(OctreeIndex):
         total_octs = sum(
             dom.local_oct_count for dom in self.domains  # + dom.ngridbound.sum()
         )
-        self.max_level = max(dom.max_level for dom in self.domains)
+        self.max_level = min(
+            self.ds._force_max_level, max(dom.max_level for dom in self.domains)
+        )
         self.num_grids = total_octs
 
     def _detect_output_fields(self):
@@ -521,6 +527,7 @@ class RAMSESDataset(Dataset):
         extra_particle_fields=None,
         cosmological=None,
         bbox=None,
+        max_level=99999,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -545,6 +552,7 @@ class RAMSESDataset(Dataset):
         self._extra_particle_fields = extra_particle_fields
         self.force_cosmological = cosmological
         self._bbox = bbox
+        self._force_max_level = max_level
 
         # Infer if the output is organized in groups
         root_folder, group_folder = os.path.split(os.path.split(filename)[0])
@@ -723,7 +731,9 @@ class RAMSESDataset(Dataset):
             self.omega_lambda = rheader["omega_l"]
             self.omega_matter = rheader["omega_m"]
             self.hubble_constant = rheader["H0"] / 100.0  # This is H100
-        self.max_level = rheader["levelmax"] - self.min_level - 1
+        self.max_level = (
+            min(self._force_max_level, rheader["levelmax"]) - self.min_level - 1
+        )
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters["time"]
