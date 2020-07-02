@@ -825,8 +825,8 @@ cdef class OctreeContainer:
             dest = dest_fields[key]
             source = source_fields[key]
             count = 0
-            for i in range(levels.shape[0]):
-                if levels[i] != level or domains[i] != domain: continue
+            for i, (lev, dom) in enumerate(zip(levels, domains)):
+                if lev != level or dom != domain: continue
                 count += 1
                 if file_inds[i] < 0:
                     dest[i + offset] = np.nan
