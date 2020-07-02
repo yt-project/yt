@@ -2,6 +2,7 @@ import functools
 import itertools
 import numpy as np
 import os
+from stat import ST_CTIME
 import time
 import weakref
 import warnings
@@ -165,6 +166,7 @@ class Dataset(metaclass = RegisteredDataset):
     derived_field_list = requires_index("derived_field_list")
     fields = requires_index("fields")
     _instantiated = False
+    _unique_identifier = None
     _particle_type_counts = None
     _proj_type = 'quad_proj'
     _ionization_label_format = 'roman_numeral'
@@ -255,6 +257,16 @@ class Dataset(metaclass = RegisteredDataset):
 
         self._set_derived_attrs()
         self._setup_classes()
+
+    @property
+    def unique_identifier(self):
+        if self._unique_identifier is None:
+            self._unique_identifier = int(os.stat(self.parameter_filename)[ST_CTIME])
+        return self._unique_identifier
+
+    @unique_identifier.setter
+    def unique_identifier(self, value):
+        self._unique_identifier = value
 
     def _set_derived_attrs(self):
         if self.domain_left_edge is None or self.domain_right_edge is None:

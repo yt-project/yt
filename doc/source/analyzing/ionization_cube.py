@@ -36,5 +36,5 @@ t2 = time.time()
 print("Completed.  %0.3e" % (t2-t1))
 
 if comm.rank == 0:
-    f = h5py.File("IonizationCube.h5", "w")
+    f = h5py.File("IonizationCube.h5", mode="w")
     f.create_dataset("/z", data=ionized_z)

@@ -24,11 +24,9 @@ from yt.data_objects.data_containers import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogFile
+    HaloCatalogFile, HaloCatalogParticleIndex
 from yt.funcs import \
     setdefaultattr
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.units import Mpc
 
@@ -37,16 +35,10 @@ from .definitions import \
 from .fields import \
     AdaptaHOPFieldInfo
 
-class AdaptaHOPBinaryFile(HaloCatalogFile):
-    def __init__(self, ds, io, filename, file_id):
-        super(AdaptaHOPBinaryFile, self).__init__(ds, io, filename, file_id)
-
-    def _read_particle_positions(self, ptype, f=None):
-        raise NotImplementedError
 
 class AdaptaHOPDataset(Dataset):
-    _index_class = ParticleIndex
-    _file_class = AdaptaHOPBinaryFile
+    _index_class = HaloCatalogParticleIndex
+    _file_class = HaloCatalogFile
     _field_info_class = AdaptaHOPFieldInfo
 
     # AdaptaHOP internally assumes 1Mpc == 3.0824cm

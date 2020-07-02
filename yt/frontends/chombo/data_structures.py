@@ -4,9 +4,6 @@ import os
 import weakref
 import numpy as np
 
-from stat import \
-    ST_CTIME
-
 from yt.funcs import \
     mylog, \
     setdefaultattr
@@ -31,7 +28,7 @@ from .fields import ChomboFieldInfo, Orion2FieldInfo, \
 
 def is_chombo_hdf5(fn):
     try:
-        with h5py.File(fn, 'r') as fileh:
+        with h5py.File(fn, mode='r') as fileh:
             valid = "Chombo_global" in fileh["/"]
     except (KeyError, IOError, ImportError):
         return False
@@ -282,8 +279,6 @@ class ChomboDataset(Dataset):
 
     def _parse_parameter_file(self):
 
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
         self.dimensionality = self._handle['Chombo_global/'].attrs['SpaceDim']
         self.domain_left_edge = self._calc_left_edge()
         self.domain_right_edge = self._calc_right_edge()
@@ -366,7 +361,7 @@ class ChomboDataset(Dataset):
 
         if not (pluto_ini_file_exists or orion2_ini_file_exists):
             try:
-                fileh = h5py.File(args[0],'r')
+                fileh = h5py.File(args[0], mode='r')
                 valid = "Chombo_global" in fileh["/"]
                 # ORION2 simulations should always have this:
                 valid = valid and not ('CeilVA_mass' in fileh.attrs.keys())
@@ -468,8 +463,6 @@ class PlutoDataset(ChomboDataset):
         pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
         pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
 
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
         self.dimensionality = self._handle['Chombo_global/'].attrs['SpaceDim']
         self.domain_dimensions = self._calc_domain_dimensions()
         self.refine_by = self._handle['/level_0'].attrs['ref_ratio']
@@ -608,8 +601,6 @@ class Orion2Dataset(ChomboDataset):
         orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
 
         if orion2_ini_file_exists: self._parse_inputs_file('orion2.ini')
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
         self.dimensionality = 3
         self.domain_left_edge = self._calc_left_edge()
         self.domain_right_edge = self._calc_right_edge()
@@ -622,8 +613,6 @@ class Orion2Dataset(ChomboDataset):
         self.fullplotdir = os.path.abspath(self.parameter_filename)
         self.ini_filename = self._localize( \
             self.ini_filename, ini_filename)
-        self.unique_identifier = \
-                               int(os.stat(self.parameter_filename)[ST_CTIME])
         lines = open(self.ini_filename).readlines()
         # read the file line by line, storing important parameters
         for lineI, line in enumerate(lines):
@@ -674,7 +663,7 @@ class Orion2Dataset(ChomboDataset):
 
         if not pluto_ini_file_exists:
             try:
-                fileh = h5py.File(args[0],'r')
+                fileh = h5py.File(args[0], mode='r')
                 valid = 'CeilVA_mass' in fileh.attrs.keys()
                 valid = "Chombo_global" in fileh["/"] and "Charm_global" not in fileh["/"]
                 valid = valid and 'CeilVA_mass' in fileh.attrs.keys()
@@ -734,7 +723,7 @@ class ChomboPICDataset(ChomboDataset):
             return False
 
         try:
-            fileh = h5py.File(args[0],'r')
+            fileh = h5py.File(args[0], mode='r')
             valid = "Charm_global" in fileh["/"]
             fileh.close()
             return valid

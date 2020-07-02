@@ -209,10 +209,10 @@ def _get_backup_file(ds):
         if communication_system.communicators[-1].size > 1 and \
                 h5py.get_config().mpi:
             mpi4py_communicator = communication_system.communicators[-1].comm
-            f = h5py.File(backup_filename, "r+", driver='mpio', 
+            f = h5py.File(backup_filename, mode="r+", driver='mpio', 
                           comm=mpi4py_communicator)
         else:
-            f = h5py.File(backup_filename, "r+")
+            f = h5py.File(backup_filename, mode="r+")
         yield f
         f.close()
     else:
@@ -251,10 +251,10 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
     if communication_system.communicators[-1].size > 1 and \
             h5py.get_config().mpi:
         mpi4py_communicator = communication_system.communicators[-1].comm
-        f = h5py.File(gdf_path, "w", driver='mpio', 
+        f = h5py.File(gdf_path, mode="w", driver='mpio', 
                       comm=mpi4py_communicator)
     else:
-        f = h5py.File(gdf_path, "w")
+        f = h5py.File(gdf_path, mode="w")
 
     ###
     # "gridded_data_format" group

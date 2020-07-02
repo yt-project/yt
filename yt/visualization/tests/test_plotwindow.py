@@ -1,3 +1,5 @@
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import matplotlib
 import numpy as np
 import os
@@ -473,7 +475,7 @@ def test_set_unit():
 
     slc.set_unit('temperature', 'degF')
 
-    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+    assert str(slc.frb['gas', 'temperature'].units) == '°F'
     assert_array_almost_equal(np.array(slc.frb['gas', 'temperature']),
                               np.array(orig_array)*1.8 - 459.67)
 
@@ -481,7 +483,7 @@ def test_set_unit():
     # new unit
     slc.set_buff_size(1000)
 
-    assert str(slc.frb['gas', 'temperature'].units) == 'degF'
+    assert str(slc.frb['gas', 'temperature'].units) == '°F'
 
     slc.set_buff_size(800)
 

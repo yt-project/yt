@@ -67,7 +67,7 @@ def test_gas_particle_fields():
     ptype = "PartType0"
     derived_fields = []
     # Add species fields
-    for species in ["H", "H_p0", "H_p1"]:
+    for species in ["H_p0", "H_p1"]:
         for suffix in ["density", "fraction", "mass", "number_density"]:
             derived_fields += ["%s_%s" % (species, suffix)]
     for species in metal_elements:
@@ -80,7 +80,7 @@ def test_gas_particle_fields():
     
     ptype = "gas"
     derived_fields = []
-    for species in ["H", "H_p0", "H_p1"]:
+    for species in ["H_p0", "H_p1"]:
         for suffix in ["density", "number_density"]:
             derived_fields += ["%s_%s" % (species, suffix)]
     for species in metal_elements:

@@ -1,5 +1,4 @@
 import numpy as np
-import stat
 import glob
 import os
 
@@ -74,8 +73,6 @@ class RockstarDataset(ParticleDataset):
             hvals.pop("unused")
         self.dimensionality = 3
         self.refine_by = 2
-        self.unique_identifier = \
-            int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
         self.file_count = len(glob.glob(prefix + ".*" + self._suffix))
