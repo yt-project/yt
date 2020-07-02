@@ -399,7 +399,6 @@ def test_cooling_fields():
     check_unit(ds.r[('gas','Electron_number_density')],'cm**(-3)')
 
 
-ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
 @requires_file(ramses_rt)
 def test_ramses_mixed_files():
     # Test that one can use derived fields that depend on different
@@ -462,7 +461,6 @@ def test_magnetic_field_aliasing():
         assert ('gas',field) in ds.derived_field_list
         ad[('gas',field)]
 
-output_00080 = "output_00080/info_00080.txt"
 @requires_file(output_00080)
 def test_field_accession():
     ds = yt.load(output_00080)
