@@ -35,7 +35,7 @@ class OctreeSubset(YTSelectionContainer):
     _con_args = ('base_region', 'domain', 'ds')
     _domain_offset = 0
     _cell_count = -1
-    _block_reorder = None
+    _block_order = 'C'
 
     def __init__(self, base_region, domain, ds, over_refine_factor = 1, num_ghost_zones = 0):
         super(OctreeSubset, self).__init__(ds, None)
@@ -456,8 +456,8 @@ class OctreeSubsetBlockSlicePosition(object):
     def __getitem__(self, key):
         bs = self.block_slice
         rv = bs.octree_subset[key][:,:,:,self.ind].T
-        if bs.octree_subset._block_reorder:
-            rv = rv.copy(order=bs.octree_subset._block_reorder)
+        if bs.octree_subset._block_order:
+            rv = rv.copy(order=bs.octree_subset._block_order)
         return rv
 
     @property

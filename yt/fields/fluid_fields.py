@@ -205,8 +205,10 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
         slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi+1:]
         slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
         def func(field, data):
-            block_reorder = getattr(data, '_block_reorder', None)
-            if block_reorder == 'F':
+            block_order = data._block_order
+            if block_order == 'F':
+                # Fortran-ordering: we need to swap axes here and
+                # reswap below
                 field_data = data[grad_field].swapaxes(0, 2)
             else:
                 field_data = data[grad_field]
@@ -221,7 +223,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
             new_field = data.ds.arr(new_field, field_data.units / dx.units)
             new_field[slice_3d] = f
 
-            if block_reorder == 'F':
+            if block_order == 'F':
                 new_field = new_field.swapaxes(0, 2)
 
             return new_field

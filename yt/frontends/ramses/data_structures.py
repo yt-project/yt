@@ -181,7 +181,7 @@ class RAMSESDomainFile(object):
 class RAMSESDomainSubset(OctreeSubset):
 
     _domain_offset = 1
-    _block_reorder = "F"
+    _block_order = "F"
 
     _base_domain = None
 
