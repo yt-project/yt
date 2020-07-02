@@ -840,13 +840,13 @@ cdef class OctreeContainer:
     def file_index_octs_with_ghost_zones(
             self, SelectorObject selector, int domain_id,
             int num_cells = -1):
-        """Similar as file_index_octs, but return as well the level, cell index,
-        file index and domain of the neighbouring cells.
+        """Similar as file_index_octs, but returns the level, cell index,
+        file index and domain of the neighbouring cells as well.
 
         Arguments
         ---------
         selector : SelectorObject
-            The selector object. It is expected to select all cells for a selected oct.
+            The selector object. It is expected to select all cells for a given oct.
         domain_id : int
             The domain to select. Set to -1 to select all domains.
         num_cells : int, optional
