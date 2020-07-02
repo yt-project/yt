@@ -1,6 +1,7 @@
 # distutils: sources = FIXED_INTERP
 # distutils: include_dirs = LIB_DIR
 # distutils: libraries = STD_LIBS
+# distutils: language = c++
 """
 Image sampler definitions
 

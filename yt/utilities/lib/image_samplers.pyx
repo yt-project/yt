@@ -3,6 +3,7 @@
 # distutils: extra_link_args = OMP_ARGS
 # distutils: libraries = STD_LIBS
 # distutils: sources = FIXED_INTERP
+# distutils: language = c++
 """
 Image sampler definitions
 
