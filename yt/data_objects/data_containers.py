@@ -340,7 +340,11 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                         outputs.append(rv)
                         ind = 0 # Does this work with mesh?
                     with o._activate_cache():
-                        ind += o.select(self.selector, self[field], rv, ind)
+                        ind += o.select(
+                            self.selector,
+                            source=self[field],
+                            dest=rv,
+                            offset=ind)
         else:
             chunks = self.index._chunk(self, "spatial", ngz = ngz)
             for i, chunk in enumerate(chunks):
@@ -355,8 +359,9 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                     data = gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz]
                     ind += wogz.select(
                         self.selector,
-                        data,
-                        rv, ind)
+                        source=data,
+                        dest=rv,
+                        offset=ind)
         if accumulate:
             rv = uconcatenate(outputs)
         return rv
