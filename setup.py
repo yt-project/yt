@@ -56,7 +56,7 @@ cythonize_aliases = {
     ],
     "STD_LIBS": std_libs,
     "OMP_ARGS": omp_args,
-    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.c",
+    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
     "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
 }
 
