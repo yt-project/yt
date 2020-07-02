@@ -66,7 +66,7 @@ FULLSCREEN_QUAD = np.array(
      +1.0, +1.0, 0.0], dtype=np.float32
 )
 
-class IDVCamera(object):
+class IDVCamera:
     '''Camera object used in the Interactive Data Visualization
 
     Parameters
@@ -243,7 +243,7 @@ class TrackballCamera(IDVCamera):
                                                 self.far_plane)
 
 
-class SceneComponent(object):
+class SceneComponent:
     """A class that defines basic OpenGL object
 
     This class contains the largest common set of features that every object in

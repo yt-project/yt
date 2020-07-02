@@ -20,7 +20,7 @@ def warn_h5py(fn):
                            "but h5py is not installed.")
 
 
-class HDF5FileHandler(object):
+class HDF5FileHandler:
     handle = None
 
     def __init__(self, filename):
@@ -98,7 +98,7 @@ def warn_netcdf(fn):
                            "python bindings for netCDF4 are not installed.")
 
 
-class NetCDF4FileHandler(object):
+class NetCDF4FileHandler:
     def __init__(self, filename):
         self.filename = filename
 

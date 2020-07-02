@@ -32,7 +32,7 @@ def TranslationFunc(field_name):
 def NullFunc(field, data):
     raise YTFieldNotFound(field.name)
 
-class DerivedField(object):
+class DerivedField:
     """
     This is the base class used to describe a cell-by-cell derived field.
 
@@ -412,7 +412,7 @@ class DerivedField(object):
         return label
 
 
-class FieldValidator(object):
+class FieldValidator:
     pass
 
 class ValidateParameter(FieldValidator):

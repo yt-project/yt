@@ -175,7 +175,7 @@ Some implementation details
   be replaced with the following wrapper::
 
     from mpi4py import MPI
-    class mpi(object):
+    class mpi:
         rank = MPI.COMM_WORLD.Get_rank()
         @staticmethod
         def bcast(obj=None,root=0):
@@ -191,7 +191,7 @@ Some implementation details
   treat it as if it were -1 (try relative and absolute imports). For
   more information about the level parameter, run ``help(__import__)``.
 """
-from __future__ import print_function
+
 
 import sys
 import imp
@@ -200,13 +200,13 @@ import builtins
 from mpi4py import MPI
 
 
-class mpi(object):
+class mpi:
     rank = MPI.COMM_WORLD.Get_rank()
     @staticmethod
     def bcast(obj=None,root=0):
         return MPI.COMM_WORLD.bcast(obj,root)
 
-class mpi_import(object):
+class mpi_import:
     def __enter__(self):
         imp.acquire_lock()
         __import_hook__.mpi_import = self

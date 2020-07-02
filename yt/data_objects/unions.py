@@ -1,6 +1,6 @@
 from yt.funcs import ensure_list
 
-class Union(object):
+class Union:
     _union_type = ""
     def __init__(self, name, sub_types):
         self.name = name

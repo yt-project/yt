@@ -15,7 +15,7 @@ EAGLE_6 = "EAGLE_6/eagle_0005.hdf5"
 @requires_file(keplerian_ring)
 def test_non_cosmo_dataset():
     ds = load(keplerian_ring)
-    assert(type(ds) == SwiftDataset)
+    assert(type(ds) is SwiftDataset)
 
     field = ('gas', 'density')
     ad = ds.all_data()

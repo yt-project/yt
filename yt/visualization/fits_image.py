@@ -19,7 +19,7 @@ import sys
 from numbers import Number as numeric_type
 
 
-class UnitfulHDU(object):
+class UnitfulHDU:
     def __init__(self, hdu):
         self.hdu = hdu
         self.header = self.hdu.header
@@ -36,7 +36,7 @@ class UnitfulHDU(object):
         return "FITSImage: %s (%s, %s)" % (self.name, im_shape, self.units)
 
 
-class FITSImageData(object):
+class FITSImageData:
 
     def __init__(self, data, fields=None, length_unit=None, width=None,
                  img_ctr=None, wcs=None, current_time=None, time_unit=None,

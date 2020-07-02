@@ -123,7 +123,7 @@ class BoxlibGrid(AMRGridPatch):
              startIndex[2]:endIndex[2]] = tofill
 
 
-class BoxLibParticleHeader(object):
+class BoxLibParticleHeader:
 
     def __init__(self, ds, directory_name, is_checkpoint, 
                  extra_field_names=None):
@@ -220,7 +220,7 @@ class BoxLibParticleHeader(object):
                                             for t in self.known_real_fields])
 
 
-class AMReXParticleHeader(object):
+class AMReXParticleHeader:
 
     def __init__(self, ds, directory_name, is_checkpoint, 
                  extra_field_names=None):
@@ -1405,7 +1405,7 @@ def _read_header(raw_file, field):
     return nghost, all_boxes, all_file_names, all_offsets
 
 
-class WarpXHeader(object):
+class WarpXHeader:
     def __init__(self, header_fn):
         self.data = {}
         with open(header_fn, "r") as f:

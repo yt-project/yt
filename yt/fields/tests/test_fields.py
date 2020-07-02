@@ -61,7 +61,7 @@ def _strip_ftype(field):
     return field[1]
 
 
-class TestFieldAccess(object):
+class TestFieldAccess:
     description = None
 
     def __init__(self, field_name, ds, nprocs):
@@ -405,19 +405,19 @@ def test_ion_field_labels():
     ds = fake_random_ds(16, fields=fields, units=units)
 
     # by default labels should use roman numerals
-    default_labels = {"O_p1_number_density":u"$\\rm{O\ II\ Number\ Density}$",
-                      "O2_p1_number_density":u"$\\rm{O_{2}\ II\ Number\ Density}$",
-                      "CO2_p1_number_density":u"$\\rm{CO_{2}\ II\ Number\ Density}$",
-                      "Co_p1_number_density":u"$\\rm{Co\ II\ Number\ Density}$",
-                      "O2_p2_number_density":u"$\\rm{O_{2}\ III\ Number\ Density}$",
-                      "H2O_p1_number_density":u"$\\rm{H_{2}O\ II\ Number\ Density}$"}
+    default_labels = {"O_p1_number_density":"$\\rm{O\ II\ Number\ Density}$",
+                      "O2_p1_number_density":"$\\rm{O_{2}\ II\ Number\ Density}$",
+                      "CO2_p1_number_density":"$\\rm{CO_{2}\ II\ Number\ Density}$",
+                      "Co_p1_number_density":"$\\rm{Co\ II\ Number\ Density}$",
+                      "O2_p2_number_density":"$\\rm{O_{2}\ III\ Number\ Density}$",
+                      "H2O_p1_number_density":"$\\rm{H_{2}O\ II\ Number\ Density}$"}
 
-    pm_labels = {"O_p1_number_density":u"$\\rm{{O}^{+}\ Number\ Density}$",
-                 "O2_p1_number_density":u"$\\rm{{O_{2}}^{+}\ Number\ Density}$",
-                 "CO2_p1_number_density":u"$\\rm{{CO_{2}}^{+}\ Number\ Density}$",
-                 "Co_p1_number_density":u"$\\rm{{Co}^{+}\ Number\ Density}$",
-                 "O2_p2_number_density":u"$\\rm{{O_{2}}^{++}\ Number\ Density}$",
-                 "H2O_p1_number_density":u"$\\rm{{H_{2}O}^{+}\ Number\ Density}$"}
+    pm_labels = {"O_p1_number_density":"$\\rm{{O}^{+}\ Number\ Density}$",
+                 "O2_p1_number_density":"$\\rm{{O_{2}}^{+}\ Number\ Density}$",
+                 "CO2_p1_number_density":"$\\rm{{CO_{2}}^{+}\ Number\ Density}$",
+                 "Co_p1_number_density":"$\\rm{{Co}^{+}\ Number\ Density}$",
+                 "O2_p2_number_density":"$\\rm{{O_{2}}^{++}\ Number\ Density}$",
+                 "H2O_p1_number_density":"$\\rm{{H_{2}O}^{+}\ Number\ Density}$"}
 
     fobj = ds.fields.stream
 

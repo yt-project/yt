@@ -4,7 +4,7 @@ from unyt.unit_systems import add_constants
 
 add_constants(globals(), registry=default_unit_registry)
 
-class _ConstantContainer(object):
+class _ConstantContainer:
     """A container for physical constants to associate with a dataset.
 
     This object is usually accessed on a Dataset instance via

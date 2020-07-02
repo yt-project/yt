@@ -1,4 +1,3 @@
-from __future__ import division
 from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface

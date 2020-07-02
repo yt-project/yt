@@ -214,8 +214,7 @@ class OctreeSubset(YTSelectionContainer):
         op.initialize(npart)
         mylog.debug("Depositing %s Octs onto %s (%s^3) particles",
                     nocts, positions.shape[0], positions.shape[0]**0.3333333)
-        pos = np.asarray(positions.convert_to_units("code_length"),
-                         dtype="float64")
+        pos = positions.to("code_length").value.astype("float64")
 
         op.process_octree(self.oct_handler, self.domain_ind, pos, None,
             self.domain_id, self._domain_offset, lvlmax=lvlmax)
@@ -446,7 +445,7 @@ class OctreeSubset(YTSelectionContainer):
         mask = selector.select_points(x,y,z, 0.0)
         return mask
 
-class OctreeSubsetBlockSlicePosition(object):
+class OctreeSubsetBlockSlicePosition:
     def __init__(self, ind, block_slice):
         self.ind = ind
         self.block_slice = block_slice
@@ -497,7 +496,7 @@ class OctreeSubsetBlockSlicePosition(object):
         yield self.block_slice.octree_subset._field_parameter_state(
                 field_parameters)
 
-class OctreeSubsetBlockSlice(object):
+class OctreeSubsetBlockSlice:
     def __init__(self, octree_subset):
         self.octree_subset = octree_subset
         # Cache some attributes

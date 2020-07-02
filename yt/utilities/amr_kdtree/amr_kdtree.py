@@ -39,7 +39,7 @@ def _apply_log(data, log_changed, log_new):
     else:
         np.power(10.0, data, data)
 
-class Tree(object):
+class Tree:
     def __init__(self, ds, comm_rank=0, comm_size=1, left=None, right=None,
         min_level=None, max_level=None, data_source=None):
 

@@ -11,7 +11,7 @@ from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid
 from yt.units import YTQuantity
 
 blastwave_spherical_2D = "amrvac/bw_2d0000.dat"
-khi_cartesian_2D = "amrvac/kh_2D0000.dat"
+khi_cartesian_2D = "amrvac/kh_2d0000.dat"
 khi_cartesian_3D = "amrvac/kh_3D0000.dat"
 jet_cylindrical_25D = "amrvac/Jet0003.dat"
 riemann_cartesian_175D = "amrvac/R_1d0005.dat"
@@ -19,6 +19,19 @@ blastwave_cartesian_3D = "amrvac/bw_3d0000.dat"
 blastwave_polar_2D = "amrvac/bw_polar_2D0000.dat"
 blastwave_cylindrical_3D = "amrvac/bw_cylindrical_3D0000.dat"
 rmi_cartesian_dust_2D = "amrvac/Richtmyer_Meshkov_dust_2D/RM2D_dust_Kwok0000.dat"
+
+
+def _get_fields_to_check(ds):
+    fields = ["density", "velocity_magnitude"]
+    raw_fields_labels = [fname for ftype, fname in ds.field_list]
+    if "b1" in raw_fields_labels:
+        fields.append("magnetic_energy_density")
+    if "e" in raw_fields_labels:
+        fields.append("energy_density")
+    if "rhod1" in raw_fields_labels:
+        fields.append("total_dust_density")
+        # note : not hitting dust velocity fields
+    return fields
 
 @requires_file(khi_cartesian_2D)
 def test_AMRVACDataset():
@@ -52,59 +65,66 @@ def test_grid_attributes():
 @requires_ds(blastwave_polar_2D)
 def test_bw_polar_2d():
     ds = data_dir_load(blastwave_polar_2D)
-    for test in small_patch_amr(ds, ds.field_list):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_bw_polar_2d.__name__ = test.description
         yield test
 
 @requires_ds(blastwave_cartesian_3D)
 def test_blastwave_cartesian_3D():
     ds = data_dir_load(blastwave_cartesian_3D)
-    for test in small_patch_amr(ds, ds.field_list):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_blastwave_cartesian_3D.__name__ = test.description
         yield test
 
 @requires_ds(blastwave_spherical_2D)
 def test_blastwave_spherical_2D():
     ds = data_dir_load(blastwave_spherical_2D)
-    for test in small_patch_amr(ds, ds.field_list):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_blastwave_spherical_2D.__name__ = test.description
         yield test
 
 @requires_ds(blastwave_cylindrical_3D)
 def test_blastwave_cylindrical_3D():
     ds = data_dir_load(blastwave_cylindrical_3D)
-    for test in small_patch_amr(ds, ds.field_list):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_blastwave_cylindrical_3D.__name__ = test.description
         yield test
 
 @requires_ds(khi_cartesian_2D)
 def test_khi_cartesian_2D():
     ds = data_dir_load(khi_cartesian_2D)
-    for test in small_patch_amr(ds, ds.field_list):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_khi_cartesian_2D.__name__ = test.description
         yield test
 
 @requires_ds(khi_cartesian_3D)
 def test_khi_cartesian_3D():
     ds = data_dir_load(khi_cartesian_3D)
-    for test in small_patch_amr(ds, ds.field_list):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_khi_cartesian_3D.__name__ = test.description
         yield test
 
 @requires_ds(jet_cylindrical_25D)
 def test_jet_cylindrical_25D():
    ds = data_dir_load(jet_cylindrical_25D)
-   for test in small_patch_amr(ds, ds.field_list):
+   for test in small_patch_amr(ds, _get_fields_to_check(ds)):
        test_jet_cylindrical_25D.__name__ = test.description
        yield test
 
 @requires_ds(riemann_cartesian_175D)
 def test_riemann_cartesian_175D():
     ds = data_dir_load(riemann_cartesian_175D)
-    for test in small_patch_amr(ds, ds.field_list):
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
         test_riemann_cartesian_175D.__name__ = test.description
         yield test
 
+@requires_ds(rmi_cartesian_dust_2D)
+def test_rmi_cartesian_dust_2D():
+    # dataset with dust fields
+    ds = data_dir_load(rmi_cartesian_dust_2D)
+    for test in small_patch_amr(ds, _get_fields_to_check(ds)):
+        test_rmi_cartesian_dust_2D.__name__ = test.description
+        yield test
 
 
 # Tests for units: verify that overriding certain units yields the correct derived units.
@@ -198,19 +218,3 @@ def test_normalisations_vel_and_length():
                      temperature_unit=temperature_unit)
     with assert_raises(ValueError):
         data_dir_load(khi_cartesian_2D, kwargs={'units_override': overrides})
-
-@requires_file(rmi_cartesian_dust_2D)
-def test_dust_fields():
-    # Check all dust fields are correctly setup and can be retrieved
-    ds = data_dir_load(rmi_cartesian_dust_2D)
-    fields = ["total_dust_density", "dust_to_gas_ratio"]
-    for idust in range(1, 5):
-        fields.append("dust%d_density" % idust)
-        for idir, alias in enumerate("xy", start=1):
-            fields += ["dust%d_velocity_%d" % (idust, idir),
-                       "dust%d_velocity_%s" % (idust, alias)]
-
-    ad = ds.all_data()
-    for fieldname in fields:
-        assert ("gas", fieldname) in ds.derived_field_list
-        ad[fieldname]

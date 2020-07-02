@@ -46,7 +46,7 @@ def test_blast_override():
     # see issue #1259
     ds = load(blast, units_override=uo_blast)
     assert_equal(float(ds.magnetic_unit.in_units('gauss')),
-                 5.478674679698131e-07)
+                 5.47867467969813e-07)
 
 uo_stripping = {"time_unit":3.086e14,
                 "length_unit":8.0236e22,
@@ -80,9 +80,9 @@ def test_nprocs():
     prj2 = ds1.proj("density",0)
 
     ds3 = load(sloshing, parameters=uo_sloshing)
-    assert_equal(ds3.length_unit, u.Mpc)
-    assert_equal(ds3.time_unit, u.Myr)
-    assert_equal(ds3.mass_unit, 1e14*u.Msun)
+    assert_equal(ds3.length_unit, 1.0 * u.Mpc)
+    assert_equal(ds3.time_unit, 1.0 * u.Myr)
+    assert_equal(ds3.mass_unit, 1e14 * u.Msun)
 
     assert_equal(sp1.quantities.extrema("pressure"),
                  sp2.quantities.extrema("pressure"))

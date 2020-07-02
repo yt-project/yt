@@ -12,7 +12,7 @@ def test_building_tree():
     '''
     ds = fake_sph_grid_ds()
     octree = ds.octree(n_ref=1)
-    assert(type(octree) == YTOctree)
+    assert(type(octree) is YTOctree)
     assert(octree[('index', 'x')].shape[0] == 456)
 
 def test_saving_loading():

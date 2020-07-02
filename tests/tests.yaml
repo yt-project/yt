@@ -1,55 +1,90 @@
 answer_tests:
 
-  local_amrvac_004:
-    - yt/frontends/amrvac/tests/test_outputs.py
+  local_amrvac_006:
+    - yt/frontends/amrvac/tests/test_outputs.py:test_domain_size
+    - yt/frontends/amrvac/tests/test_outputs.py:test_bw_polar_2d
+    - yt/frontends/amrvac/tests/test_outputs.py:test_blastwave_cartesian_3D
+    - yt/frontends/amrvac/tests/test_outputs.py:test_blastwave_spherical_2D
+    - yt/frontends/amrvac/tests/test_outputs.py:test_blastwave_cylindrical_3D
+    - yt/frontends/amrvac/tests/test_outputs.py:test_khi_cartesian_2D
+    - yt/frontends/amrvac/tests/test_outputs.py:test_khi_cartesian_3D
+    - yt/frontends/amrvac/tests/test_outputs.py:test_jet_cylindrical_25D
+    - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
+    - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
     
   local_arepo_005:
-    - yt/frontends/arepo/tests/test_outputs.py
+    - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
+    - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
+    - yt/frontends/arepo/tests/test_outputs.py:test_index_override
 
   local_artio_003:
-    - yt/frontends/artio/tests/test_outputs.py
+    - yt/frontends/artio/tests/test_outputs.py:test_sizmbhloz
 
   local_athena_007:
-    - yt/frontends/athena
+    - yt/frontends/athena/tests/test_outputs.py:test_cloud
+    - yt/frontends/athena/tests/test_outputs.py:test_blast
+    - yt/frontends/athena/tests/test_outputs.py:test_stripping
 
   local_athena_pp_003:
-    - yt/frontends/athena_pp
+    - yt/frontends/athena_pp/tests/test_outputs.py:test_disk
+    - yt/frontends/athena_pp/tests/test_outputs.py:test_AM06
 
   local_chombo_004:
-    - yt/frontends/chombo/tests/test_outputs.py
+    - yt/frontends/chombo/tests/test_outputs.py:test_gc
+    - yt/frontends/chombo/tests/test_outputs.py:test_tb
+    - yt/frontends/chombo/tests/test_outputs.py:test_iso
+    - yt/frontends/chombo/tests/test_outputs.py:test_zp
+    - yt/frontends/chombo/tests/test_outputs.py:test_kho
 
   local_enzo_006:
-    - yt/frontends/enzo
+    - yt/frontends/enzo/tests/test_outputs.py:test_moving7
+    - yt/frontends/enzo/tests/test_outputs.py:test_galaxy0030
+    - yt/frontends/enzo/tests/test_outputs.py:test_toro1d
+    - yt/frontends/enzo/tests/test_outputs.py:test_kh2d
+    - yt/frontends/enzo/tests/test_outputs.py:test_ecp
+    - yt/frontends/enzo/tests/test_outputs.py:test_nuclei_density_fields
 
   local_enzo_p_007:
-    - yt/frontends/enzo_p/tests/test_outputs.py
+    - yt/frontends/enzo_p/tests/test_outputs.py:test_hello_world
+    - yt/frontends/enzo_p/tests/test_outputs.py:test_particle_fields
 
   local_fits_003:
-    - yt/frontends/fits/tests/test_outputs.py
+    - yt/frontends/fits/tests/test_outputs.py:test_grs
+    - yt/frontends/fits/tests/test_outputs.py:test_velocity_field
+    - yt/frontends/fits/tests/test_outputs.py:test_acis
+    - yt/frontends/fits/tests/test_outputs.py:test_A2052
 
   local_flash_012:
-    - yt/frontends/flash/tests/test_outputs.py
+    - yt/frontends/flash/tests/test_outputs.py:test_sloshing
+    - yt/frontends/flash/tests/test_outputs.py:test_wind_tunnel
+    - yt/frontends/flash/tests/test_outputs.py:test_fid_1to3_b1
 
   local_gadget_003:
-    - yt/frontends/gadget/tests/test_outputs.py
+    - yt/frontends/gadget/tests/test_outputs.py:test_iso_collapse
+    - yt/frontends/gadget/tests/test_outputs.py:test_pid_uniqueness
+    - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
 
   local_gamer_007:
-    - yt/frontends/gamer/tests/test_outputs.py
+    - yt/frontends/gamer/tests/test_outputs.py:test_jet
+    - yt/frontends/gamer/tests/test_outputs.py:test_psiDM
+    - yt/frontends/gamer/tests/test_outputs.py:test_plummer
+    - yt/frontends/gamer/tests/test_outputs.py:test_mhdvortex
 
   local_gdf_001:
-    - yt/frontends/gdf/tests/test_outputs.py
+    - yt/frontends/gdf/tests/test_outputs.py:test_sedov_tunnel
 
   local_gizmo_004:
-    - yt/frontends/gizmo/tests/test_outputs.py
+    - yt/frontends/gizmo/tests/test_outputs.py:test_gizmo_64
 
   local_halos_009:
-    - yt/frontends/ahf/tests/test_outputs.py
+    - yt/frontends/ahf/tests/test_outputs.py:test_fields_ahf_halos
     # - yt/frontends/owls_subfind/tests/test_outputs.py
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
   local_owls_004:
-    - yt/frontends/owls/tests/test_outputs.py
+    - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
+    - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
   local_pw_029:
     - yt/visualization/tests/test_plotwindow.py:test_attributes
@@ -60,7 +95,9 @@ answer_tests:
     - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
 
   local_tipsy_005:
-    - yt/frontends/tipsy/tests/test_outputs.py
+    - yt/frontends/tipsy/tests/test_outputs.py:test_pkdgrav
+    - yt/frontends/tipsy/tests/test_outputs.py:test_gasoline_dmonly
+    - yt/frontends/tipsy/tests/test_outputs.py:test_tipsy_galaxy
 
   local_varia_015:
     - yt/frontends/moab/tests/test_c5.py
@@ -106,7 +143,7 @@ answer_tests:
     - yt/frontends/boxlib/tests/test_outputs.py:test_WarpXDataset
 
   local_ramses_002:
-    - yt/frontends/ramses/tests/test_outputs.py
+    - yt/frontends/ramses/tests/test_outputs.py:test_output_00080
 
   local_ytdata_007:
     - yt/frontends/ytdata/tests/test_outputs.py

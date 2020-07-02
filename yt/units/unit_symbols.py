@@ -4,7 +4,7 @@ from unyt.unit_systems import add_symbols
 
 add_symbols(globals(), registry=default_unit_registry)
 
-class _SymbolContainer(object):
+class _SymbolContainer:
     """A container for units to associate with a dataset.
 
     This object is usually accessed on a Dataset instance via

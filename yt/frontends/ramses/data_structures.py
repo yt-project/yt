@@ -35,7 +35,7 @@ from yt.utilities.lib.cosmology_time import \
 
 from .io_utils import read_amr, fill_hydro
 
-class RAMSESDomainFile(object):
+class RAMSESDomainFile:
     _last_mask = None
     _last_selector_id = None
 
@@ -573,7 +573,7 @@ class RAMSESDataset(Dataset):
                     nml = f90nml.read(f)
             except ImportError as e:
                 nml = "An error occurred when reading the namelist: %s" % str(e)
-            except ValueError as e:
+            except (ValueError, StopIteration) as e:
                 mylog.warn("Could not parse `namelist.txt` file as it was malformed: %s" % str(e))
                 return
 

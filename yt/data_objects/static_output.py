@@ -90,7 +90,7 @@ class RegisteredDataset(type):
         output_type_registry[name] = cls
         mylog.debug("Registering: %s as %s", name, cls)
 
-class IndexProxy(object):
+class IndexProxy:
     # This is a simple proxy for Index objects.  It enables backwards
     # compatibility so that operations like .h.sphere, .h.print_stats and
     # .h.grid_left_edge will correctly pass through to the various dataset or
@@ -108,7 +108,7 @@ class IndexProxy(object):
             return getattr(self.ds.index, name)
         raise AttributeError
 
-class MutableAttribute(object):
+class MutableAttribute:
     """A descriptor for mutable data"""
     def __init__(self, display_array = False):
         self.data = weakref.WeakKeyDictionary()
@@ -1256,7 +1256,7 @@ class Dataset(metaclass = RegisteredDataset):
                                "derived fields, not on-disk fields.")
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
-            mylog.warning("Field %s already exists. To override use " +
+            mylog.error("Field %s already exists. To override use " +
                           "force_override=True.", name)
         if kwargs.setdefault('particle_type', False):
             if sampling_type is not None and sampling_type != "particle":
@@ -1536,7 +1536,7 @@ def _reconstruct_ds(*args, **kwargs):
     return ds
 
 @functools.total_ordering
-class ParticleFile(object):
+class ParticleFile:
     def __init__(self, ds, io, filename, file_id, range = None):
         self.ds = ds
         self.io = weakref.proxy(io)

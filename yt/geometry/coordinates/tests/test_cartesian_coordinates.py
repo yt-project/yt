@@ -13,8 +13,7 @@ def test_cartesian_coordinates():
     # We're going to load up a simple AMR grid and check its volume
     # calculations and path length calculations.
     ds = fake_amr_ds()
-    axes = list(set(ds.coordinates.axis_name.values()))
-    axes.sort()
+    axes = sorted(set(ds.coordinates.axis_name.values()))
     for i, axis in enumerate(axes):
         dd = ds.all_data()
         fi = ("index", axis)

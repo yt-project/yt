@@ -58,7 +58,7 @@ class ParticleIndex(Index):
         for i in range(int(ndoms)):
             start = 0
             end = start + CHUNKSIZE
-            while 1:
+            while True:
                 df = cls(self.dataset, self.io, template % {'num':i}, fi, (start, end))
                 if max(df.total_particles.values()) == 0:
                     break

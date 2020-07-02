@@ -19,10 +19,18 @@ import pkg_resources
 
 
 def _get_cpu_count():
-    if platform.system() != "Windows":
-        return os.cpu_count()
-    return 0
+    if platform.system() == "Windows":
+        return 0
 
+    cpu_count = os.cpu_count()
+    try:
+        user_max_cores = int(os.getenv('MAX_BUILD_CORES', cpu_count))
+    except ValueError as e:
+        raise ValueError(
+            "MAX_BUILD_CORES must be set to an integer. " +
+            "See above for original error.").with_traceback(e.__traceback__)
+    max_cores = min(cpu_count, user_max_cores)
+    return max_cores
 
 def _compile(
     self, sources, output_dir=None, macros=None, include_dirs=None,
@@ -222,7 +230,7 @@ cython_extensions = [
               ["yt/utilities/lib/ewah_bool_wrap.pyx"],
               include_dirs=["yt/utilities/lib/",
                             "yt/utilities/lib/ewahboolarray"],
-              language="c++"),
+              language="c++", extra_compile_args=["-std=c++11"]),
     Extension("yt.utilities.lib.image_samplers",
               ["yt/utilities/lib/image_samplers.pyx",
                "yt/utilities/lib/fixed_interpolator.c"],
@@ -429,7 +437,7 @@ if __name__ == "__main__":
             'sympy>=1.2',
             'numpy>=1.10.4',
             'IPython>=1.0',
-            'unyt>=2.2.2',
+            'unyt>=2.7.2',
         ],
         extras_require = {
             'hub':  ["girder_client"],

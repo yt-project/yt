@@ -82,7 +82,7 @@ def _deserialize_from_h5(g, ds):
     return result
 
 
-class UploaderBar(object):
+class UploaderBar:
     pbar = None
 
     def __init__(self, my_name=""):
@@ -96,7 +96,7 @@ class UploaderBar(object):
             self.pbar.finish()
 
 
-class ContainerClass(object):
+class ContainerClass:
     pass
 
 
@@ -357,7 +357,7 @@ class MinimalNotebook(MinimalRepresentation):
         return (metadata, ("chunks", chunks))
 
 
-class ImageCollection(object):
+class ImageCollection:
 
     def __init__(self, ds, name):
         self.ds = ds

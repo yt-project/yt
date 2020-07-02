@@ -76,7 +76,7 @@ class IOCommunicator(BaseIOHandler):
 
     def wait(self):
         status = MPI.Status()
-        while 1:
+        while True:
             if self.comm.comm.Iprobe(MPI.ANY_SOURCE,
                                 YT_TAG_MESSAGE,
                                 status = status):

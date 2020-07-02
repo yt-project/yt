@@ -4,7 +4,7 @@ from yt.utilities.lib.particle_mesh_operations import \
 from yt.funcs import get_pbar, issue_deprecation_warning
 from yt.units.yt_array import uconcatenate
 
-class ParticleGenerator(object):
+class ParticleGenerator:
 
     def __init__(self, ds, num_particles, field_list, ptype="io"):
         """

@@ -128,7 +128,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
             fields = f[bp + mp]
             for fname in fields.keys():
                 field = fields[fname]
-                if type(field) is h5.Dataset or is_const_component(field):
+                if isinstance(field, h5.Dataset) or is_const_component(field):
                     # Don't consider axes. This appears to be a vector field of single dimensionality
                     ytname = str("_".join([fname.replace("_", "-")]))
                     parsed = parse_unit_dimension(np.asarray(field.attrs["unitDimension"], dtype=np.int))
@@ -169,7 +169,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                             # Symbolically rename position to preserve yt's interpretation of the pfield
                             # particle_position is later derived in setup_absolute_positions in the way yt expects it
                             ytattrib = "positionCoarse"
-                        if type(record) is h5.Dataset or is_const_component(record):
+                        if isinstance(record, h5.Dataset) or is_const_component(record):
                             name = ["particle", ytattrib]
                             self.known_particle_fields += ((str("_".join(name)), (unit, [], None)),)
                         else:

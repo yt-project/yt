@@ -12,7 +12,7 @@ from yt.units.yt_array import YTQuantity
 
 known_shaders = {}
 
-class ShaderProgram(object):
+class ShaderProgram:
     '''
     Wrapper class that compiles and links vertex and fragment shaders
     into a shader program.
