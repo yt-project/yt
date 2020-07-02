@@ -267,10 +267,10 @@ cdef inline int process_node_points(Node* node,
                                     BoundedPriorityQueue queue,
                                     np.float64_t[:, ::1] positions,
                                     np.float64_t* pos,
-                                    int skipidx,
+                                    uint64_t skipidx,
                                     axes_range * axes,
                                     ) nogil except -1:
-    cdef uint64_t i, k
+    cdef uint64_t i, k, stop
     cdef np.float64_t tpos, sq_dist
     for i in range(node.left_idx, node.left_idx + node.children):
         if i == skipidx:
@@ -279,7 +279,8 @@ cdef inline int process_node_points(Node* node,
         sq_dist = 0.0
 
         k = axes.start
-        while k < axes.stop:
+        stop = axes.stop
+        while k < stop:
             tpos = positions[i, k] - pos[k]
             sq_dist += tpos*tpos
             k += axes.step
@@ -342,7 +343,7 @@ cdef inline int cull_node_ball(Node* node,
                                axes_range * axes,
                                ) nogil except -1:
     """Check if the node does not intersect with the ball at all."""
-    cdef int k
+    cdef uint64_t k, stop
     cdef np.float64_t v
     cdef np.float64_t tpos, ndist = 0
     cdef uint32_t leafid
@@ -351,7 +352,8 @@ cdef inline int cull_node_ball(Node* node,
         return True
 
     k = axes.start
-    while k < axes.stop:
+    stop = axes.stop
+    while k < stop:
         v = pos[k]
         if v < node.left_edge[k]:
             tpos = node.left_edge[k] - v
@@ -371,11 +373,11 @@ cdef inline int process_node_points_ball(Node* node,
                                          np.float64_t[:, ::1] positions,
                                          np.float64_t* pos,
                                          np.float64_t r2,
-                                         int skipidx,
+                                         uint64_t skipidx,
                                          axes_range * axes,
                                          ) nogil except -1:
     """Add points from the leaf node within the ball to the neighbor list."""
-    cdef uint64_t i, k, n
+    cdef uint64_t i, k, n, stop
     cdef np.float64_t tpos, sq_dist
     for i in range(node.left_idx, node.left_idx + node.children):
         if i == skipidx:
@@ -384,7 +386,8 @@ cdef inline int process_node_points_ball(Node* node,
         sq_dist = 0.0
 
         k = axes.start
-        while k < axes.stop:
+        stop = axes.stop
+        while k < stop:
             tpos = positions[i, k] - pos[k]
             sq_dist += tpos*tpos
             k += axes.step

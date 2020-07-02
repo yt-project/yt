@@ -816,7 +816,8 @@ cdef class ParticleBitmap:
                                            np.float64_t dds2[3], bool_array &refined_set) except -1:
         cdef int i
         cdef np.uint64_t new_nsub = 0
-        cdef np.uint64_t bounds_l[3], bounds_r[3]
+        cdef np.uint64_t bounds_l[3]
+        cdef np.uint64_t bounds_r[3]
         cdef np.uint64_t miex2, miex2_min, miex2_max
         cdef np.float64_t clip_pos_l[3]
         cdef np.float64_t clip_pos_r[3]
@@ -1274,7 +1275,7 @@ cdef class ParticleBitmap:
                          BoolArrayCollection selector_mask,
                          BoolArrayCollection base_mask = None):
         cdef np.uint64_t total_pcount
-        cdef np.uint64_t i, j, k, n
+        cdef Py_ssize_t i, j, k
         cdef int ind[3]
         cdef np.uint64_t ind64[3]
         cdef ParticleBitmapOctreeContainer octree
@@ -1404,10 +1405,10 @@ cdef class ParticleBitmapSelector:
     cdef np.uint8_t[:] file_mask_p
     cdef np.uint8_t[:] file_mask_g
     # Uncompressed boolean
-    cdef np.uint8_t[:] refined_select_bool
-    cdef np.uint8_t[:] refined_ghosts_bool
-    cdef np.uint8_t[:] coarse_select_bool
-    cdef np.uint8_t[:] coarse_ghosts_bool
+    cdef np.uint8_t[::1] refined_select_bool
+    cdef np.uint8_t[::1] refined_ghosts_bool
+    cdef np.uint8_t[::1] coarse_select_bool
+    cdef np.uint8_t[::1] coarse_ghosts_bool
     cdef SparseUnorderedRefinedBitmask refined_ghosts_list
     cdef BoolArrayColl select_ewah
     cdef BoolArrayColl ghosts_ewah
@@ -1663,7 +1664,7 @@ cdef class ParticleBitmapSelector:
     @cython.cdivision(True)
     @cython.initializedcheck(False)
     cdef void set_files_neighbors_refined(self, np.uint64_t mi1, np.uint64_t mi2):
-        cdef int i, m
+        cdef Py_ssize_t i, m
         cdef np.uint32_t ntot
         cdef np.uint64_t mi1_n, mi2_n
         ntot = morton_neighbors_refined(mi1, mi2,
@@ -1951,7 +1952,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef oct_visitors.AssignDomainInd visitor
         visitor = oct_visitors.AssignDomainInd(self)
         self.visit_all_octs(selector, visitor)
-        assert ((visitor.global_index+1)*visitor.nz == visitor.index)
+        assert ((visitor.global_index + 1)*visitor.nz == <np.int64_t>visitor.index)
         # Copy indexes
         self._ptr_index_base_octs = <np.uint8_t*> malloc(sizeof(np.uint8_t)*self.nocts)
         self._index_base_octs = <np.uint8_t[:self.nocts]> self._ptr_index_base_octs
@@ -2064,7 +2065,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         while end < no:
             beg = end
             index = (indices[beg] >> ((ORDER_MAX - level)*3))
-            while (end < no) and (index == (indices[end] >> ((ORDER_MAX - level)*3))): 
+            while (end < no) and (index == <np.int64_t>(indices[end] >> ((ORDER_MAX - level)*3))):
                 end += 1
             nind = (end - beg)
             # Add oct
@@ -2117,7 +2118,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             # Determine number of octs with this prefix
             beg = end
             index = (indices[beg] >> ((ORDER_MAX - self.level_offset)*3))
-            while (end < no) and (index == (indices[end] >> ((ORDER_MAX - self.level_offset)*3))): 
+            while (end < no) and (index == <np.int64_t>(indices[end] >> ((ORDER_MAX - self.level_offset)*3))):
                 end += 1
             nind = (end - beg)
             # Find root for prefix

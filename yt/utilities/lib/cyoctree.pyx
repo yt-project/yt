@@ -178,7 +178,7 @@ cdef class CyOctree:
         # Give up any excess reserved space
         # NOTE: this doubles the memory usage
         cdef vector[Node] temp
-        cdef int i
+        cdef np.uint64_t i
         temp.reserve(self.nodes.size())
         for i in range(self.nodes.size()):
             temp.push_back(self.nodes[i])
@@ -238,7 +238,7 @@ cdef class CyOctree:
         # Loop through the nodes in serial and process them, i.e, sort the
         # particles and create the children, which will increase the node.size
         # then we iterate through those children
-        cdef int num_nodes_processed = 0
+        cdef np.uint64_t num_nodes_processed = 0
         while num_nodes_processed < self.nodes.size():
             self.process_node(&self.nodes[num_nodes_processed], input_pos,
                               split_arr)
@@ -360,7 +360,8 @@ cdef class CyOctree:
 
     @property
     def cell_positions(self):
-        cdef int i, j, z, k, l, num_leaves
+        cdef np.uint64_t i, z, num_leaves
+        cdef Py_ssize_t j, k, l
 
         # Find all the leaves
         num_leaves = 0

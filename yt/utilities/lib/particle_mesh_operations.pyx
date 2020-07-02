@@ -151,6 +151,8 @@ def NGPDeposit_2(np.float64_t[:] posx,
     y_endpoints = (y_bin_edges[0], y_bin_edges[y_bin_edges.shape[0] - 1])
 
     for n in range(npositions):
+        i1 = -1
+        j1 = -1
 
         xpos = posx[n]
         ypos = posy[n]
@@ -169,7 +171,8 @@ def NGPDeposit_2(np.float64_t[:] posx,
             if (ypos >= y_bin_edges[j]) and (ypos < y_bin_edges[j+1]):
                 j1 = j
                 break
-
+        assert i1 > 0
+        assert j1 > 0
         # Deposit onto field
         field[i1,j1] += mass[n]
 

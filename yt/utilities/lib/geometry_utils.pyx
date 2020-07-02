@@ -168,7 +168,7 @@ def bitwise_addition(np.uint64_t x, np.int64_t y0,
     if (y0 == 0): return x
     cdef int end, p, pstart
     cdef list mstr
-    cdef np.uint64_t m, y, out
+    cdef np.uint64_t m = 0, y, out
     y = np.uint64(np.abs(y0))
     if (y0 > 0):
         func_ls = lsz

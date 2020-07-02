@@ -514,7 +514,8 @@ cdef class ParticleSmoothOperation:
         # Note that we assume that fields[0] == smoothing length in the native
         # units supplied.  We can now iterate over every cell in the block and
         # every particle to find the nearest.  We will use a priority heap.
-        cdef int i, j, k, ntot, nntot, m, nneighbors
+        cdef int i, j, k, ntot, nntot, m
+        cdef np.int64_t nneighbors = 0
         cdef np.float64_t cpos[3]
         cdef np.float64_t opos[3]
         cdef Oct* oct = NULL

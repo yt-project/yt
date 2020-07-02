@@ -25,7 +25,7 @@ cdef extern from "<algorithm>" namespace "std" nogil:
     Iter unique[Iter](Iter first, Iter last)
 
 cdef np.uint64_t FLAG = ~(<np.uint64_t>0)
-cdef np.uint64_t MAX_VECTOR_SIZE = <np.uint64_t>1e7
+cdef ssize_t MAX_VECTOR_SIZE = <ssize_t>1e7
 
 ctypedef cmap[np.uint64_t, ewah_bool_array] ewahmap
 ctypedef cmap[np.uint64_t, ewah_bool_array].iterator ewahmap_it
@@ -34,7 +34,7 @@ ctypedef pair[np.uint64_t, ewah_bool_array] ewahmap_p
 cdef class FileBitmasks:
 
     def __cinit__(self, np.uint32_t nfiles):
-        cdef int i
+        cdef size_t i
         self.nfiles = nfiles
         self.ewah_keys = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
         self.ewah_refn = <ewah_bool_array **>malloc(nfiles*sizeof(ewah_bool_array*))
@@ -45,14 +45,14 @@ cdef class FileBitmasks:
             self.ewah_coll[i] = new ewah_map()
 
     cdef void _reset(self):
-        cdef np.int32_t ifile
+        cdef size_t ifile
         for ifile in range(self.nfiles):
             self.ewah_keys[ifile].reset()
             self.ewah_refn[ifile].reset()
             self.ewah_coll[ifile].clear()
 
     cdef bint _iseq(self, FileBitmasks solf):
-        cdef np.int32_t ifile
+        cdef size_t ifile
         cdef ewah_bool_array* arr1
         cdef ewah_bool_array* arr2
         cdef ewahmap *map1
@@ -148,7 +148,7 @@ cdef class FileBitmasks:
         return nout
 
     cdef tuple _find_collisions_refined(self, BoolArrayCollection coll, bint verbose = 0):
-        cdef np.int32_t ifile
+        cdef ssize_t ifile
         cdef ewah_bool_array iarr, arr_two, arr_swap
         cdef ewah_bool_array* coll_refn
         cdef map[np.uint64_t, ewah_bool_array] map_keys, map_refn
@@ -215,7 +215,7 @@ cdef class FileBitmasks:
     @cython.initializedcheck(False)
     cdef void _set_coarse_array(self, np.uint32_t ifile, np.uint8_t[:] arr):
         cdef ewah_bool_array *ewah_keys = (<ewah_bool_array **> self.ewah_keys)[ifile]
-        cdef np.uint64_t i1
+        cdef ssize_t i1
         for i1 in range(arr.shape[0]):
             if arr[i1] == 1:
                 ewah_keys[0].set(i1)
@@ -227,7 +227,7 @@ cdef class FileBitmasks:
     cdef void _set_refined_array(self, np.uint32_t ifile, np.uint64_t i1, np.uint8_t[:] arr):
         cdef ewah_bool_array *ewah_refn = (<ewah_bool_array **> self.ewah_refn)[ifile]
         cdef ewah_map *ewah_coll = (<ewah_map **> self.ewah_coll)[ifile]
-        cdef np.uint64_t i2
+        cdef ssize_t i2
         for i2 in range(arr.shape[0]):
             if arr[i2] == 1:
                 ewah_refn[0].set(i1)
@@ -712,7 +712,7 @@ cdef class BoolArrayCollection:
     @cython.initializedcheck(False)
     def set_from(self, np.uint64_t[:] ids):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
-        cdef np.uint64_t i
+        cdef ssize_t i
         cdef np.uint64_t last = 0
         for i in range(ids.shape[0]):
             if ids[i] < last:
@@ -742,7 +742,7 @@ cdef class BoolArrayCollection:
     @cython.initializedcheck(False)
     cdef void _set_coarse_array(self, np.uint8_t[:] arr):
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> self.ewah_keys
-        cdef np.uint64_t i1
+        cdef ssize_t i1
         for i1 in range(arr.shape[0]):
             if arr[i1] == 1:
                 ewah_keys[0].set(i1)
@@ -755,7 +755,7 @@ cdef class BoolArrayCollection:
     cdef void _set_refined_array(self, np.uint64_t i1, np.uint8_t[:] arr):
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
-        cdef np.uint64_t i2
+        cdef ssize_t i2
         for i2 in range(arr.shape[0]):
             if arr[i2] == 1:
                 ewah_refn[0].set(i1)
@@ -1308,7 +1308,7 @@ cdef class BoolArrayCollectionUncompressed:
         self.__init__(self.nele1,self.nele2)
 
     cdef void _compress(self, BoolArrayCollection solf):
-        cdef np.uint64_t i
+        cdef ssize_t i
         cdef ewah_bool_array *ewah_keys = <ewah_bool_array *> solf.ewah_keys
         cdef ewah_bool_array *ewah_refn = <ewah_bool_array *> solf.ewah_refn
         cdef bitarrtype *bool_keys = <bitarrtype *> self.ewah_keys
@@ -1349,7 +1349,7 @@ cdef class BoolArrayCollectionUncompressed:
     @cython.initializedcheck(False)
     cdef void _set_coarse_array(self, np.uint8_t[:] arr):
         cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
-        cdef np.uint64_t i1
+        cdef ssize_t i1
         for i1 in range(arr.shape[0]):
             if arr[i1] == 1:
                 ewah_keys[i1] = 1
@@ -1361,7 +1361,7 @@ cdef class BoolArrayCollectionUncompressed:
     cdef void _set_coarse_array_ptr(self, np.uint8_t *arr):
         # TODO: memcpy?
         cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
-        cdef np.uint64_t i1
+        cdef ssize_t i1
         for i1 in range(self.nele1):
             if arr[i1] == 1:
                 ewah_keys[i1] = 1
@@ -1373,7 +1373,7 @@ cdef class BoolArrayCollectionUncompressed:
     cdef void _set_refined_array(self, np.uint64_t i1, np.uint8_t[:] arr):
         cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
-        cdef np.uint64_t i2
+        cdef ssize_t i2
         for i2 in range(arr.shape[0]):
             if arr[i2] == 1:
                 ewah_refn[i1] = 1
@@ -1386,7 +1386,7 @@ cdef class BoolArrayCollectionUncompressed:
     cdef void _set_refined_array_ptr(self, np.uint64_t i1, np.uint8_t *arr):
         cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
         cdef ewah_map *ewah_coll = <ewah_map *> self.ewah_coll
-        cdef np.uint64_t i2
+        cdef ssize_t i2
         cdef ewah_bool_array *barr = &ewah_coll[0][i1]
         for i2 in range(self.nele2):
             if arr[i2] == 1:
@@ -1423,7 +1423,7 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef np.uint64_t _count_total(self):
         cdef bitarrtype *ewah_keys = <bitarrtype *> self.ewah_keys
-        cdef np.uint64_t i
+        cdef ssize_t i
         cdef np.uint64_t out = 0
         for i in range(self.nele1):
             out += ewah_keys[i]
@@ -1431,7 +1431,7 @@ cdef class BoolArrayCollectionUncompressed:
 
     cdef np.uint64_t _count_refined(self):
         cdef bitarrtype *ewah_refn = <bitarrtype *> self.ewah_refn
-        cdef np.uint64_t i
+        cdef ssize_t i
         cdef np.uint64_t out = 0
         for i in range(self.nele1):
             out += ewah_refn[i]
@@ -1446,7 +1446,7 @@ cdef class BoolArrayCollectionUncompressed:
         cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array swap, mi1_ewah1, mi1_ewah2
-        cdef np.uint64_t mi1
+        cdef ssize_t mi1
         # TODO: Check if nele1 is equal?
         # Keys
         for mi1 in range(solf.nele1):
@@ -1479,14 +1479,13 @@ cdef class BoolArrayCollectionUncompressed:
         cdef ewahmap *ewah_coll2 = <ewahmap *> solf.ewah_coll
         cdef ewahmap_it it_map1, it_map2
         cdef ewah_bool_array mi1_ewah1, mi1_ewah2
-        cdef np.uint64_t mi1
+        cdef ssize_t mi1 = 0
         # No intersection
         for mi1 in range(self.nele1):
             if (ewah_keys1[mi1] == 1) and (ewah_keys2[mi1] == 1):
                 break
         if (mi1 < self.nele1):
             return 0
-        mi1 = self.nele1 # This is to get rid of a warning
         # Intersection at refined level
         for mi1 in range(self.nele1):
             if (ewah_refn1[mi1] == 1) and (ewah_refn2[mi1] == 1):
