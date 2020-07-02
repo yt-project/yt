@@ -90,6 +90,20 @@ class GadgetFOFParticleIndex(ParticleIndex):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
+    def _setup_filenames(self):
+        if not hasattr(self, "data_files"):
+            template = self.ds.filename_template
+            ndoms = self.ds.file_count
+            cls = self.ds._file_class
+            self.data_files = [
+                cls(self.ds, self.io, template % {'num':i}, i, frange=None)
+                for i in range(ndoms)
+            ]
+        if not hasattr(self, "total_particles"):
+            self.total_particles = sum(
+                sum(d.total_particles.values()) for d in self.data_files
+            )
+
     def _setup_data_io(self):
         super(GadgetFOFParticleIndex, self)._setup_data_io()
         self._setup_filenames()
@@ -290,21 +304,8 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         self.real_ds = weakref.proxy(ds.real_ds)
         super(GadgetFOFHaloParticleIndex, self).__init__(ds, dataset_type)
 
-    def _setup_geometry(self):
-        self._setup_data_io()
-
-        if self.real_ds._instantiated_index is None:
-            template = self.real_ds.filename_template
-            ndoms = self.real_ds.file_count
-            cls = self.real_ds._file_class
-            self.data_files = \
-              [cls(self.dataset, self.io, template % {'num':i}, i, None)
-               for i in range(ndoms)]
-        else:
-            self.data_files = self.real_ds.index.data_files
-
-        self._calculate_particle_index_starts()
-        self._calculate_particle_count()
+    def _setup_data_io(self):
+        super(GadgetFOFHaloParticleIndex, self)._setup_data_io()
         self._create_halo_id_table()
 
     def _create_halo_id_table(self):

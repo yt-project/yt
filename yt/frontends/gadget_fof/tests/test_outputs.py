@@ -87,8 +87,9 @@ g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
 def test_unbalanced_dataset():
     ds = data_dir_load(g56)
     halo = ds.halo("Group", 0)
-    halo["member_ids"]
-    assert True
+    assert_equal(len(halo["member_ids"]), 33)
+    assert_equal(halo["member_ids"].min().d, 723254.0)
+    assert_equal(halo["member_ids"].max().d, 772662.0)
 
 # fof/subhalo catalog with no member ids in first file
 g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
