@@ -351,7 +351,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
             fields = list(self.known_fields)
 
         for i in range(self.ds.dimensionality * 2 + 1):
-            for j in range(self.ds.max_level, self.ds.min_level):
+            for j in range(self.ds.min_level, self.ds.max_level):
                 fields.append(("particle_prop_%s_%s" % (i, j), "d"))
 
         field_offsets = {}
