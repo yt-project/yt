@@ -162,8 +162,10 @@ class DatasetSeries:
             mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
     def __new__(cls, outputs, *args, **kwargs):
-        if isinstance(outputs, str):
+        try:
             outputs = get_filenames_from_glob_pattern(outputs)
+        except TypeError:
+            pass
         ret = super(DatasetSeries, cls).__new__(cls)
         try:
             ret._pre_outputs = outputs[:]
@@ -202,11 +204,11 @@ class DatasetSeries:
     def __iter__(self):
         # We can make this fancier, but this works
         for o in self._pre_outputs:
-            if isinstance(o, str):
+            try:
                 ds = self._load(o, **self.kwargs)
                 self._setup_function(ds)
                 yield ds
-            else:
+            except TypeError:
                 yield o
 
     def __getitem__(self, key):
@@ -218,9 +220,11 @@ class DatasetSeries:
                 self._pre_outputs[key], parallel=self.parallel, **self.kwargs
             )
         o = self._pre_outputs[key]
-        if isinstance(o, str):
+        try:
             o = self._load(o, **self.kwargs)
             self._setup_function(o)
+        except TypeError:
+            pass
         return o
 
     def __len__(self):
