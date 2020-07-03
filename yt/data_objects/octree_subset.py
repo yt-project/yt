@@ -455,9 +455,9 @@ class OctreeSubsetBlockSlicePosition(object):
 
     def __getitem__(self, key):
         bs = self.block_slice
-        rv = bs.octree_subset[key][:,:,:,self.ind].T
-        if bs.octree_subset._block_order:
-            rv = rv.copy(order=bs.octree_subset._block_order)
+        rv = np.require(
+            bs.octree_subset[key][:,:,:,self.ind].T,
+            requirements=bs.octree_subset._block_order)
         return rv
 
     @property
