@@ -10,10 +10,9 @@ from yt.geometry.particle_geometry_handler import \
 
 class SPHDataset(ParticleDataset):
     default_kernel_name = "cubic"
-    _sph_smoothing_styles = ["scatter", "gather"]
-    _sph_smoothing_style = "scatter"
-    _num_neighbors = 32
-    _use_sph_normalization = True
+    sph_smoothing_style = "scatter"
+    num_neighbors = 32
+    use_sph_normalization = False
 
     def __init__(self, filename, dataset_type=None, file_style=None,
                  units_override=None, unit_system="cgs",
@@ -28,39 +27,6 @@ class SPHDataset(ParticleDataset):
             filename, dataset_type=dataset_type, file_style=file_style,
             units_override=units_override, unit_system=unit_system,
             index_order=index_order, index_filename=index_filename)
-
-    @property
-    def num_neighbors(self):
-        return self._num_neighbors
-
-    @num_neighbors.setter
-    def num_neighbors(self, value):
-        if value < 0:
-            raise ValueError("Negative value not allowed: %s" % value)
-        self._num_neighbors = value
-
-    @property
-    def sph_smoothing_style(self):
-        return self._sph_smoothing_style
-
-    @sph_smoothing_style.setter
-    def sph_smoothing_style(self, value):
-        if value not in self._sph_smoothing_styles:
-            raise ValueError("Smoothing style not implemented: %s, please "
-                             "select one of the following: " % value,
-                             self._sph_smoothing_styles)
-
-        self._sph_smoothing_style = value
-
-    @property
-    def use_sph_normalization(self):
-        return self._use_sph_normalization
-
-    @use_sph_normalization.setter
-    def use_sph_normalization(self, value):
-        if value is not True and value is not False:
-            raise ValueError("SPH normalization needs to be True or False!")
-        self._use_sph_normalization = value
 
 
 class SPHParticleIndex(ParticleIndex):
