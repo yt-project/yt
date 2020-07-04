@@ -2,7 +2,11 @@ import weakref
 
 from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
-from yt.utilities.exceptions import YTDimensionalityError, YTFieldNotParseable
+from yt.utilities.exceptions import (
+    YTDimensionalityError,
+    YTFieldNotFound,
+    YTFieldNotParseable,
+)
 from yt.visualization.line_plot import LineBuffer
 
 from .data_containers import _get_ipython_key_completion
@@ -26,7 +30,7 @@ class RegionExpression:
         # that result in a rectangular prism or a slice.
         try:
             return self.all_data[item]
-        except (TypeError, YTFieldNotParseable):
+        except (TypeError, YTFieldNotFound, YTFieldNotParseable):
             pass
 
         if isinstance(item, slice):
@@ -42,6 +46,22 @@ class RegionExpression:
                 # ds.r[::256j, ::256j, ::256j].  Other cases would be if we do
                 # ds.r[0.1:0.9] where it will be expanded along all dimensions.
                 item = tuple(item for _ in range(self.ds.dimensionality))
+
+        if item is Ellipsis:
+            item = (Ellipsis,)
+
+        # from this point, item is implicitly assumed to be iterable
+        if Ellipsis in item:
+            # expand "..." into the appropriate number of ":"
+            item = list(item)
+            idx = item.index(Ellipsis)
+            item.pop(idx)
+            if Ellipsis in item:
+                # this error mimics numpy's
+                raise IndexError("an index can only have a single ellipsis ('...')")
+            while len(item) < self.ds.dimensionality:
+                item.insert(idx, slice(None))
+
         if len(item) != self.ds.dimensionality:
             # Not the right specification, and we don't want to do anything
             # implicitly.  Note that this happens *after* the implicit expansion
