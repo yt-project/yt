@@ -152,10 +152,7 @@ class DatasetSeries:
         except TypeError:
             pass
         ret = super(DatasetSeries, cls).__new__(cls)
-        try:
-            ret._pre_outputs = outputs[:]
-        except TypeError as e:
-            raise YTUnidentifiedDataType(outputs, *args, **kwargs) from e
+        ret._pre_outputs = outputs[:]
         return ret
 
     def __init__(
