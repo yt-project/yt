@@ -41,8 +41,8 @@ class RegionExpression:
                 # possible use case of this would be where we supply something
                 # like ds.r[::256j] .  This would be expanded, implicitly into
                 # ds.r[::256j, ::256j, ::256j].  Other cases would be if we do
-                # ds.r[0.1:0.9] where it will be expanded along three dimensions.
-                item = (item, item, item)
+                # ds.r[0.1:0.9] where it will be expanded along all dimensions.
+                item = tuple(item for _ in range(self.ds.dimensionality))
         if len(item) != self.ds.dimensionality:
             # Not the right specification, and we don't want to do anything
             # implicitly.  Note that this happens *after* the implicit expansion
