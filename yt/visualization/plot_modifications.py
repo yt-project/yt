@@ -2471,10 +2471,9 @@ class TimestampCallback(PlotCallback):
         if self.time:
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                if plot.ds.unit_system.name.startswith("us"):
-                    # if the unit system name startswith "us", that means it is
-                    # in code units and we should not convert to seconds for
-                    # the plot.
+                if plot.ds.unit_system.name not in ('cgs', 'mks'):
+                    # if the unit system is in code units
+                    # we should not convert to seconds for the plot.
                     self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
                 else:
                     # in the case of non- code units then we

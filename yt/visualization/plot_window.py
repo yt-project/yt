@@ -903,7 +903,7 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-            if self.ds.unit_system.name.startswith("us") or self.ds.no_cgs_equiv_length:
+            if self.ds.unit_system.name not in ('cgs', 'mks') or self.ds.no_cgs_equiv_length:
                 # this should happen only if the dataset was initialized with
                 # argument unit_system="code" or if it's set to have no CGS
                 # equivalent.  This only needs to happen here in the specific
