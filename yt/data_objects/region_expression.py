@@ -2,7 +2,7 @@ import weakref
 
 from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
-from yt.utilities.exceptions import YTDimensionalityError
+from yt.utilities.exceptions import YTDimensionalityError, YTFieldNotParseable
 from yt.visualization.line_plot import LineBuffer
 
 from .data_containers import _get_ipython_key_completion
@@ -24,12 +24,11 @@ class RegionExpression:
         # At first, we will only implement this as accepting a slice that is
         # (optionally) unitful corresponding to a specific set of coordinates
         # that result in a rectangular prism or a slice.
-        if isinstance(item, str):
-            # This is some field; we will instead pass this back to the
-            # all_data object.
+        try:
             return self.all_data[item]
-        if isinstance(item, tuple) and isinstance(item[1], str):
-            return self.all_data[item]
+        except (TypeError, YTFieldNotParseable):
+            pass
+
         if isinstance(item, slice):
             if obj_length(item.start) == 3 and obj_length(item.stop) == 3:
                 # This is for a ray that is not orthogonal to an axis.
