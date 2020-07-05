@@ -72,7 +72,7 @@ def load_sample(name=None, specific_file=None, pbar=True):
 
     # Location of the file to load automatically, registered in the Fido class
     info = fido[fileext]
-    file_lookup = info['load_name']
+    file_lookup = info['load_name'] or "*"
     optional_args = info['load_kwargs']
 
     if specific_file is None:
