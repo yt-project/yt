@@ -432,7 +432,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "mass"].to("code_mass"),
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
-                            bnds,
+                            bnds, check_period=int(periodic), period=period
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
@@ -443,7 +443,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 chunk[ptype, "mass"].to("code_mass"),
                                 chunk[ptype, "density"].to("code_density"),
                                 np.ones(chunk[ptype, "density"].shape[0]),
-                                bnds,
+                                bnds, check_period=int(periodic), period=period
                             )
 
                     if normalize:
