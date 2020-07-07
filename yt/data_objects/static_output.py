@@ -1109,9 +1109,12 @@ class Dataset(abc.ABC):
             self.unit_registry, current_mks_unit=current_mks_unit
         )
         keyname = str(unit_system).lower()
-        if unit_system != "code":
+
+        if unit_system == "code":
+            us.name = keyname  # replace an otherwise random label
+        else:
             us = unit_system_registry[keyname]
-        us.name = keyname
+
         self.unit_system = us
         self.unit_registry.unit_system = self.unit_system
 
