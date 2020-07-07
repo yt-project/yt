@@ -2491,16 +2491,16 @@ class TimestampCallback(PlotCallback):
                         "'time_offset' must be a float, tuple, or" "YTQuantity!"
                     )
                 t -= toffset.in_units(self.time_unit)
-            if isinstance(self.time_unit, Unit):
+            try:
                 # here the time unit will be in brackets on the annotation.
-                # This will most likely be in "code_time".
                 un = self.time_unit.latex_representation()
                 time_unit = r"$\ \ (" + un + r")$"
-            else:
-                # the 'smallest_appropriate_unit' function will return a
-                # string, so we shouldn't need to format it further.
-                time_unit = self.time_unit
-            self.text += self.time_format.format(time=float(t), units=time_unit)
+            except AttributeError:
+                # this should only happen if self.time_unit is "code_time"
+                # in which case we drop the "_" in the time stamp
+                time_unit = str(self.time_unit).replace("_", " ")
+            self.text += self.time_format.format(time=float(t),
+                                                 units=time_unit)
 
         # If time and redshift both shown, do one on top of the other
         if self.time and self.redshift:
