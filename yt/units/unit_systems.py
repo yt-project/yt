@@ -3,11 +3,11 @@ from unyt.unit_systems import *
 
 def create_code_unit_system(unit_registry, current_mks_unit=None):
     code_unit_system = UnitSystem(
-        unit_registry.unit_system_id,
-        "code_length",
-        "code_mass",
-        "code_time",
-        "code_temperature",
+        name="code_{}".format(unit_registry.unit_system_id),
+        length_unit="code_length",
+        mass_unit="code_mass",
+        time_unit="code_time",
+        temperature_unit="code_temperature",
         current_mks_unit=current_mks_unit,
         registry=unit_registry,
     )

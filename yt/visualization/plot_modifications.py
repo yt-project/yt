@@ -2471,7 +2471,7 @@ class TimestampCallback(PlotCallback):
         if self.time:
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                if plot.ds.unit_system.name == "code":
+                if plot.ds.unit_system.name.startswith("code"):
                     # if the unit system is in code units
                     # we should not convert to seconds for the plot.
                     self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
