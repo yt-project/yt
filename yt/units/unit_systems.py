@@ -3,7 +3,7 @@ from unyt.unit_systems import *
 
 def create_code_unit_system(unit_registry, current_mks_unit=None):
     code_unit_system = UnitSystem(
-        name="code_{}".format(unit_registry.unit_system_id),
+        name=unit_registry.unit_system_id,
         length_unit="code_length",
         mass_unit="code_mass",
         time_unit="code_time",
