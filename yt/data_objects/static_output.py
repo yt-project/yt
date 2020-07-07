@@ -1108,8 +1108,10 @@ class Dataset(abc.ABC):
         us = create_code_unit_system(
             self.unit_registry, current_mks_unit=current_mks_unit
         )
+        keyname = str(unit_system).lower()
         if unit_system != "code":
-            us = unit_system_registry[str(unit_system).lower()]
+            us = unit_system_registry[keyname]
+        us.name = keyname
         self.unit_system = us
         self.unit_registry.unit_system = self.unit_system
 
