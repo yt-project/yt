@@ -1347,8 +1347,8 @@ class YTDataContainer:
                     i,
                     getattr(self, i).in_base(unit_system=self.ds.unit_system),
                 )
-            except AttributeError:
-                s += f", {i}={getattr(self, i)}"
+            except (AttributeError, KeyError):
+                s += ", %s=%s" % (i, getattr(self, i))
         return s
 
     @contextmanager
