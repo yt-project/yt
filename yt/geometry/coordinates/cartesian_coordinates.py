@@ -222,7 +222,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
             offset = index.meshes[mesh_id]._index_offset
             ad = self.ds.all_data()
             field_data = ad[field]
-            if field_data.shape[1] == 27:
+
+            # if this is an element field, promote to 2D here
+            if len(field_data.shape) == 1:
+                field_data = np.expand_dims(field_data, 1)
+            # if this is a higher-order element, we demote to 1st order
+            # here, for now.
+            elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning("High order elements not yet supported, " +
                               "dropping to 1st order.")
