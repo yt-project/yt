@@ -182,7 +182,7 @@ class ProfilePlot:
     >>> import yt
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = ds.all_data()
-    >>> plot = ProfilePlot(ad, "density", ["temperature", "velocity_x"],
+    >>> plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
     ...                    weight_field="cell_mass",
     ...                    plot_spec=dict(color='red', linestyle="--"))
     >>> plot.save()
@@ -203,7 +203,7 @@ class ProfilePlot:
     ...     labels.append(ds.current_redshift)
     ...     plot_specs.append(dict(linestyle="--", alpha=0.7))
     >>>
-    >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
+    >>> plot = yt.ProfilePlot.from_profiles(profiles, labels=labels,
     ...                                  plot_specs=plot_specs)
     >>> plot.save()
 
@@ -870,7 +870,7 @@ class PhasePlot(ImagePlotContainer):
     >>> import yt
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = ds.all_data()
-    >>> plot = PhasePlot(ad, "density", "temperature", ["cell_mass"],
+    >>> plot = yt.PhasePlot(ad, "density", "temperature", ["cell_mass"],
     ...                  weight_field=None)
     >>> plot.save()
 
