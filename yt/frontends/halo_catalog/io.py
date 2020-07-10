@@ -40,7 +40,7 @@ class IOHandlerHaloCatalogHDF5(BaseIOHandler):
         with h5py.File(data_file.filename, "r") as f:
             units = parse_h5_attr(f[pn % "x"], "units")
             x, y, z = (
-                self.ds.arr(f[pn % ax].value.astype("float64"), units) for ax in "xyz"
+                self.ds.arr(f[pn % ax][()].astype("float64"), units) for ax in "xyz"
             )
             pos = uvstack([x, y, z]).T
             pos.convert_to_units("code_length")
