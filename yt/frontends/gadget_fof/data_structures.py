@@ -69,6 +69,20 @@ class GadgetFOFParticleIndex(HaloCatalogParticleIndex):
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
 
+    def _setup_filenames(self):
+        if not hasattr(self, "data_files"):
+            template = self.ds.filename_template
+            ndoms = self.ds.file_count
+            cls = self.ds._file_class
+            self.data_files = [
+                cls(self.ds, self.io, template % {'num':i}, i, frange=None)
+                for i in range(ndoms)
+            ]
+        if not hasattr(self, "total_particles"):
+            self.total_particles = sum(
+                sum(d.total_particles.values()) for d in self.data_files
+            )
+
     def _setup_data_io(self):
         super(GadgetFOFParticleIndex, self)._setup_data_io()
         self._setup_filenames()
@@ -269,6 +283,10 @@ class GadgetFOFDataset(ParticleDataset):
 class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex, HaloDatasetParticleIndex):
     _detect_output_fields = HaloDatasetParticleIndex._detect_output_fields
     _setup_data_io = GadgetFOFParticleIndex._setup_data_io
+
+    def _setup_data_io(self):
+        super(GadgetFOFHaloParticleIndex, self)._setup_data_io()
+        self._create_halo_id_table()
 
     def _create_halo_id_table(self):
         """

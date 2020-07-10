@@ -1,3 +1,7 @@
+# distutils: include_dirs = EMBREE_INC_DIR
+# distutils: library_dirs = EMBREE_LIB_DIR
+# distutils: libraries = EMBREE_LIBS
+# distutils: language = c++
 """
 This file contains the MeshSampler classes, which handles casting rays at a
 mesh source using either pyembree or the cython ray caster.
@@ -14,7 +18,7 @@ cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry as rtcg
 cimport pyembree.rtcore_scene as rtcs
-from .image_samplers cimport \
+from yt.utilities.lib.image_samplers cimport \
     ImageSampler
 from cython.parallel import prange, parallel, threadid
 from yt.visualization.image_writer import apply_colormap

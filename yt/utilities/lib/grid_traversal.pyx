@@ -1,3 +1,6 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
+# distutils: sources = FIXED_INTERP
 """
 Simple integrators for the radiative transfer equation
 

@@ -1,3 +1,4 @@
+# distutils: libraries = STD_LIBS
 """
 This file contains coordinate mappings between physical coordinates and those
 defined on unit elements, as well as doing the corresponding intracell

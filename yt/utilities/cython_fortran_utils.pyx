@@ -1,3 +1,4 @@
+# distutils: libraries = STD_LIBS
 cimport numpy as np
 import numpy as np
 import cython

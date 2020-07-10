@@ -1,3 +1,7 @@
+# distutils: include_dirs = EMBREE_INC_DIR
+# distutils: library_dirs = EMBREE_LIB_DIR
+# distutils: libraries = EMBREE_LIBS
+# distutils: language = c++
 """
 This file contains functions used for performing ray-tracing with Embree
 for 2nd-order Lagrange Elements.
@@ -14,7 +18,7 @@ from pyembree.rtcore cimport Vec3f
 cimport numpy as np
 cimport cython
 from libc.math cimport fabs, fmin, fmax, sqrt
-from yt.utilities.lib.mesh_samplers cimport sample_hex20, sample_tet10
+from .mesh_samplers cimport sample_hex20, sample_tet10
 from yt.utilities.lib.bounding_volume_hierarchy cimport BBox
 from yt.utilities.lib.primitives cimport \
     patchSurfaceFunc, \
@@ -26,7 +30,8 @@ from yt.utilities.lib.primitives cimport \
     tet_patchSurfaceDerivU, \
     tet_patchSurfaceDerivV, \
     compute_tet_patch_hit
-from vec3_ops cimport dot, subtract, cross, distance
+from yt.utilities.lib.vec3_ops cimport \
+    dot, subtract, cross, distance
 
 
 @cython.boundscheck(False)

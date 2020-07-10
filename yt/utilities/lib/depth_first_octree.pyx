@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 This is a recursive function to return a depth-first octree
 

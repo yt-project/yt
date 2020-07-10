@@ -8,7 +8,7 @@ from yt.utilities.lib.image_samplers import \
 
 from yt.utilities.on_demand_imports import NotAModule
 try:
-    from yt.utilities.lib import mesh_traversal
+    from yt.utilities.lib.embree_mesh import mesh_traversal
 # Catch ValueError in case size of objects in Cython change
 except (ImportError, ValueError): 
     mesh_traversal = NotAModule("pyembree")
