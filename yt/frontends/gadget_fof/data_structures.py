@@ -1,13 +1,9 @@
-from collections import defaultdict
 from functools import partial
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 import stat
 import os
-import weakref
 
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
 from yt.data_objects.static_output import \
     ParticleDataset
 from yt.frontends.gadget.data_structures import \
@@ -24,8 +20,6 @@ from yt.frontends.halo_catalog.data_structures import \
 from yt.funcs import \
     only_on_root, \
     setdefaultattr
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
 from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.logger import ytLogger as \
