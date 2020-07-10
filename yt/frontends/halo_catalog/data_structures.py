@@ -3,7 +3,6 @@ from functools import partial
 import glob
 from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-import os
 import weakref
 
 from .fields import \
