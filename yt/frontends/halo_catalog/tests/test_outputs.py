@@ -1,11 +1,23 @@
 import numpy as np
 
-from yt.convenience import load as yt_load
-from yt.frontends.halo_catalog.data_structures import HaloCatalogDataset
-from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.testing import TempDirTest, assert_array_equal, requires_module
-from yt.units.yt_array import YTArray, YTQuantity
-
+from yt.convenience import \
+    load as yt_load
+from yt.frontends.halo_catalog.data_structures import \
+    HaloCatalogDataset
+from yt.frontends.ytdata.utilities import \
+    save_as_dataset
+from yt.testing import \
+    assert_allclose_units, \
+    assert_array_equal, \
+    assert_equal, \
+    requires_file, \
+    requires_module, \
+    TempDirTest
+from yt.units.yt_array import \
+    YTArray, \
+    YTQuantity
+from yt.utilities.answer_testing.framework import \
+    data_dir_load
 
 def fake_halo_catalog(data):
     filename = "catalog.0.h5"
@@ -86,3 +98,32 @@ class HaloCatalogTest(TempDirTest):
             f2 = ds.r[field].in_base()
             f2.sort()
             assert_array_equal(f1, f2)
+
+t46 = "tiny_fof_halos/DD0046/DD0046.0.h5"
+@requires_file(t46)
+@requires_module('h5py')
+def test_halo_quantities():
+    ds = data_dir_load(t46)
+    ad = ds.all_data()
+    for i in range(ds.index.total_particles):
+        hid = int(ad['halos', 'particle_identifier'][i])
+        halo = ds.halo('halos', hid)
+        for field in ['mass', 'position', 'velocity']:
+            v1 = ad['halos', 'particle_%s' % field][i]
+            v2 = getattr(halo, field)
+            assert_allclose_units(
+                v1, v2, rtol=1e-15,
+                err_msg='Halo %d %s field mismatch.' % (hid, field))
+
+t46 = "tiny_fof_halos/DD0046/DD0046.0.h5"
+@requires_file(t46)
+@requires_module('h5py')
+def test_halo_particles():
+    ds = data_dir_load(t46)
+    i = ds.r['halos', 'particle_mass'].argmax()
+    hid = int(ds.r['halos', 'particle_identifier'][i])
+    halo = ds.halo('halos', hid)
+    ids = halo['halos', 'member_ids']
+    assert_equal(ids.size, 420)
+    assert_equal(ids.min(), 19478.)
+    assert_equal(ids.max(), 31669.)
