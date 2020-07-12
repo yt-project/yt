@@ -1298,3 +1298,18 @@ def sglob(pattern):
     Return the results of a glob through the sorted() function.
     """
     return sorted(glob.glob(pattern))
+
+def invalidate_exceptions(*known_exceptions):
+    """Create a decorator to wrap a boolean function,
+    such that if any known exception is raised during function call, False is returned.
+    """
+    # this is designed to decorate _is_valid implementations in Dataset children classes
+    known_exceptions = tuple(*ensure_list(known_exceptions))
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            try:
+                return func(*args, **kwargs)
+            except known_exceptions:
+                return False
+        return wrapper
+    return decorator
