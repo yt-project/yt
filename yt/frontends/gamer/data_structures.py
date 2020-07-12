@@ -317,7 +317,6 @@ class GAMERDataset(Dataset):
         try:
             # define a unique way to identify GAMER datasets
             f = HDF5FileHandler(filename)
-            if 'Info' in f['/'].keys() and 'KeyInfo' in f['/Info'].keys():
-                return True
-        except Exception: pass
-        return False
+            return 'Info' in f['/'].keys() and 'KeyInfo' in f['/Info'].keys()
+        except Exception:
+            return False

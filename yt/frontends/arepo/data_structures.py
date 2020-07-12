@@ -35,7 +35,6 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Header', 'Config']
         veto_groups = ['FOF', 'Group', 'Subhalo']
-        valid = True
         try:
             fh = h5py.File(filename, mode='r')
             valid = all(ng in fh["/"] for ng in need_groups) and \
@@ -43,10 +42,9 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
                     ("VORONOI" in fh["/Config"].attrs.keys() or
                      "AMR" in fh["/Config"].attrs.keys())
             fh.close()
-        except:
-            valid = False
-            pass
-        return valid
+            return valid
+        except Exception:
+            return False
 
     def _get_uvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")

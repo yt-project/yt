@@ -284,30 +284,30 @@ def check_fits_valid(filename):
             return fileh
         else:
             fileh.close()
-    except Exception: pass
-    return None
+    except Exception:
+        pass
 
 
 def check_sky_coords(filename, ndim):
-    fileh = check_fits_valid(filename)
-    if fileh is not None:
-        try:
-            if len(fileh) > 1 and fileh[1].name == "EVENTS" and ndim == 2:
-                fileh.close()
-                return True
-            else:
-                header, _ = find_primary_header(fileh)
-                if header["naxis"] < ndim:
-                    return False
-                axis_names = [header.get("ctype%d" % (i + 1), "")
-                              for i in range(header["naxis"])]
-                if len(axis_names) == 3 and axis_names.count("LINEAR") == 2:
-                    return any(a[0] in spec_prefixes for a in axis_names)
-                x = find_axes(axis_names, sky_prefixes + spec_prefixes)
-                fileh.close()
-                return x >= ndim
-        except Exception: pass
-    return False
+    try:
+        fileh = check_fits_valid(filename)
+        if len(fileh) > 1 and fileh[1].name == "EVENTS" and ndim == 2:
+            fileh.close()
+            return True
+
+        header, _ = find_primary_header(fileh)
+        if header["naxis"] < ndim:
+            return False
+
+        axis_names = [header.get("ctype%d" % (i + 1), "")
+                        for i in range(header["naxis"])]
+        if len(axis_names) == 3 and axis_names.count("LINEAR") == 2:
+            return any(a[0] in spec_prefixes for a in axis_names)
+        x = find_axes(axis_names, sky_prefixes + spec_prefixes)
+        fileh.close()
+        return x >= ndim
+    except Exception:
+        return False
 
 
 class FITSDataset(Dataset):
@@ -510,12 +510,12 @@ class FITSDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        fileh = check_fits_valid(filename)
-        if fileh is None:
-            return False
-        else:
+        try:
+            fileh = check_fits_valid(filename)
             fileh.close()
             return True
+        except TypeError:
+            return False
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -592,16 +592,16 @@ class YTFITSDataset(FITSDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        fileh = check_fits_valid(filename)
-        if fileh is None:
-            return False
-        else:
+        try:
+            fileh = check_fits_valid(filename)
             if "WCSNAME" in fileh[0].header:
                 isyt = fileh[0].header["WCSNAME"].strip() == "yt"
             else:
                 isyt = False
             fileh.close()
             return isyt
+        except (TypeError, IOError):
+            return False
 
 
 class SkyDataFITSDataset(FITSDataset):
@@ -849,11 +849,10 @@ class EventsFITSDataset(SkyDataFITSDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        fileh = check_fits_valid(filename)
-        if fileh is not None:
-            try:
-                valid = fileh[1].name == "EVENTS"
-                fileh.close()
-                return valid
-            except Exception: pass
-        return False
+        try:
+            fileh = check_fits_valid(filename)
+            valid = fileh[1].name == "EVENTS"
+            fileh.close()
+            return valid
+        except (TypeError, AttributeError):
+            return False

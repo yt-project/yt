@@ -279,12 +279,11 @@ class GDFDataset(Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         try:
             fileh = h5py.File(filename, mode='r')
-            if "gridded_data_format" in fileh:
-                fileh.close()
-                return True
+            valid = "gridded_data_format" in fileh
             fileh.close()
-        except Exception: pass
-        return False
+            return valid
+        except Exception:
+            return False
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

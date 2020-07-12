@@ -176,7 +176,6 @@ class SwiftDataset(SPHDataset):
             handle = h5py.File(filename, "r")
             valid = handle["Header"].attrs["Code"].decode("utf-8") == "SWIFT"
             handle.close()
-        except (IOError, KeyError, ImportError):
-            valid = False
-
-        return valid
+            return valid
+        except (IOError, KeyError):
+            return False

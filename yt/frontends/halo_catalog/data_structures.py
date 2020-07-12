@@ -116,9 +116,7 @@ class HaloCatalogDataset(SavedDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not filename.endswith(".h5"): return False
+        if not filename.endswith(".h5"):
+            return False
         with h5py.File(filename, mode="r") as f:
-            if "data_type" in f.attrs and \
-              parse_h5_attr(f, "data_type") == "halo_catalog":
-                return True
-        return False
+            return "data_type" in f.attrs and parse_h5_attr(f, "data_type") == "halo_catalog"

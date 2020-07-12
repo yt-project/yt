@@ -422,11 +422,9 @@ class FLASHDataset(Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         try:
             fileh = HDF5FileHandler(filename)
-            if "bounding box" in fileh["/"].keys():
-                return True
-        except (IOError, OSError, ImportError):
-            pass
-        return False
+            return "bounding box" in fileh["/"].keys()
+        except IOError:
+            return False
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -481,12 +479,10 @@ class FLASHParticleDataset(FLASHDataset):
         warn_h5py(filename)
         try:
             fileh = HDF5FileHandler(filename)
-            if "bounding box" not in fileh["/"].keys() \
-                and "localnp" in fileh["/"].keys():
-                return True
-        except (IOError, OSError, ImportError):
-            pass
-        return False
+            return "bounding box" not in fileh["/"].keys() \
+                and "localnp" in fileh["/"].keys()
+        except IOError:
+            return False
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):

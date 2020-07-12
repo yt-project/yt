@@ -372,17 +372,14 @@ class ARTDataset(Dataset):
         """
         f = ("%s" % filename)
         prefix, suffix = filename_pattern['amr']
-        if not os.path.isfile(f):
-            return False
         if not f.endswith(suffix):
             return False
-        with open(f, 'rb') as fh:
-            try:
+        try:
+            with open(f, 'rb') as fh:
                 fpu.read_attrs(fh, amr_header_struct, '>')
-                return True
-            except Exception:
-                return False
-        return False
+            return True
+        except Exception:
+            return False
 
 class ARTParticleFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
@@ -627,14 +624,11 @@ class DarkMatterARTDataset(ARTDataset):
         """
         f = ("%s" % filename)
         prefix, suffix = filename_pattern['particle_data']
-        if not os.path.isfile(f):
-            return False
-        if not f.endswith(suffix):
-            return False
-        if "s0" not in f:
+        if not f.endswith(suffix) or "s0" not in f:
             # ATOMIC.DAT, for instance, passes the other tests, but then dies
             # during _find_files because it can't be split.
             return False
+
         with open(f, 'rb') as fh:
             try:
                 amr_prefix, amr_suffix = filename_pattern['amr']

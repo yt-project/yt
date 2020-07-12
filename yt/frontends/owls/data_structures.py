@@ -51,9 +51,7 @@ class OWLSDataset(GadgetHDF5Dataset):
                 fname = os.path.join(filename, f)
                 if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
                     valid_files.append(fname)
-            if len(valid_files) == 0:
-                valid = False
-            elif len(valid_files) > 1:
+            if len(valid_files) != 1:
                 valid = False
             else:
                 valid_fname = valid_files[0]

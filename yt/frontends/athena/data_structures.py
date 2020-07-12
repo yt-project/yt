@@ -555,11 +555,7 @@ class AthenaDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            if 'vtk' in filename:
-                return True
-        except Exception: pass
-        return False
+        return filename.endswith('vtk')
 
     @property
     def _skip_cache(self):

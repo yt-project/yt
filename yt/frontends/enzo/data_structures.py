@@ -915,9 +915,7 @@ class EnzoDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if ("%s" % (filename)).endswith(".hierarchy"):
-            return True
-        return os.path.exists("%s.hierarchy" % filename)
+        return filename.endswith(".hierarchy") or os.path.exists("%s.hierarchy" % filename)
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):

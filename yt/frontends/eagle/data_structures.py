@@ -44,20 +44,21 @@ class EagleDataset(GadgetHDF5Dataset):
         veto_groups = ['SUBFIND',
                        'PartType0/ChemistryAbundances', 
                        'PartType0/ChemicalAbundances']
-        valid = True
+
         try:
             fileh = h5py.File(filename, mode='r')
             for ng in need_groups:
                 if ng not in fileh["/"]:
                     valid = False
+                    break
             for vg in veto_groups:
                 if vg in fileh["/"]:
-                    valid = False                    
+                    valid = False
+                    break
             fileh.close()
+            return valid
         except Exception:
-            valid = False
-            pass
-        return valid
+            return False
 
 class EagleNetworkDataset(EagleDataset):
     _particle_mass_name = "Mass"
@@ -76,5 +77,5 @@ class EagleNetworkDataset(EagleDataset):
                 fileh.close()
                 return True
             fileh.close()
-        except Exception: pass
-        return False
+        except Exception:
+            return False

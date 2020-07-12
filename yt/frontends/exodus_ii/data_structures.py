@@ -378,11 +378,13 @@ class ExodusIIDataset(Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         warn_netcdf(filename)
         try:
-            from netCDF4 import Dataset
-            filename = filename
+            from netCDF4 import Dataset as netCDF4_DS
             # We use keepweakref here to avoid holding onto the file handle
             # which can interfere with other is_valid calls.
-            with Dataset(filename, keepweakref=True) as f:
+            with netCDF4_DS(filename, keepweakref=True) as f:
                 f.variables['connect1']
             return True
-        except Exception: pass
+        except ImportError:
+            return False
+        except Exception:
+            return False

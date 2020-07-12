@@ -90,6 +90,4 @@ class HTTPStreamDataset(ParticleDataset):
         if requests is None:
             return False
         hreq = requests.get(filename + "/yt_index.json")
-        if hreq.status_code == 200:
-            return True
-        return False
+        return hreq.status_code == 200

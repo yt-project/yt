@@ -196,13 +196,11 @@ class OWLSSubfindDataset(ParticleDataset):
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Constants', 'Header', 'Parameters', 'Units', 'FOF']
         veto_groups = []
-        valid = True
         try:
             fh = h5py.File(filename, mode='r')
             valid = all(ng in fh["/"] for ng in need_groups) and \
               not any(vg in fh["/"] for vg in veto_groups)
             fh.close()
+            return valid
         except Exception:
-            valid = False
-            pass
-        return valid
+            return False

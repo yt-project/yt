@@ -643,7 +643,6 @@ class BoxlibDataset(Dataset):
         # fill our args
         output_dir = filename
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -991,7 +990,6 @@ class OrionDataset(BoxlibDataset):
         # fill our args
         output_dir = filename
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -1002,13 +1000,11 @@ class OrionDataset(BoxlibDataset):
         inputs_filename = os.path.join(
             os.path.dirname(os.path.abspath(output_dir)),
             args['cparam_filename'])
-        if not os.path.exists(inputs_filename):
+        if not os.path.exists(inputs_filename) or os.path.exists(jobinfo_filename):
             return False
-        if os.path.exists(jobinfo_filename):
-            return False
+
         # Now we check for all the others
-        warpx_jobinfo_filename = os.path.join(output_dir, "warpx_job_info")
-        if os.path.exists(warpx_jobinfo_filename):
+        if os.path.exists(os.path.join(output_dir, "warpx_job_info")):
             return False
         lines = open(inputs_filename).readlines()
         if any(("castro." in line for line in lines)): return False
@@ -1063,7 +1059,6 @@ class CastroDataset(BoxlibDataset):
         # fill our args
         output_dir = filename
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -1150,7 +1145,6 @@ class MaestroDataset(BoxlibDataset):
         # fill our args
         output_dir = filename
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -1244,7 +1238,6 @@ class NyxDataset(BoxlibDataset):
         # fill our args
         output_dir = filename
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -1528,7 +1521,6 @@ class WarpXDataset(BoxlibDataset):
         # fill our args
         output_dir = filename
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "warpx_job_info")
         if not os.path.exists(header_filename):

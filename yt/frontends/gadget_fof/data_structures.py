@@ -274,16 +274,14 @@ class GadgetFOFDataset(ParticleDataset):
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Group', 'Header', 'Subhalo']
         veto_groups = ['FOF']
-        valid = True
         try:
             fh = h5py.File(filename, mode='r')
             valid = all(ng in fh["/"] for ng in need_groups) and \
               not any(vg in fh["/"] for vg in veto_groups)
             fh.close()
+            return valid
         except Exception:
-            valid = False
-            pass
-        return valid
+            return False
 
 class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
     def __init__(self, ds, dataset_type):

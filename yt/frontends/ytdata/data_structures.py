@@ -272,16 +272,14 @@ class YTDataContainerDataset(YTDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not filename.endswith(".h5"): return False
+        if not filename.endswith(".h5"):
+            return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
-            if data_type is None:
-                return False
-            if data_type == "yt_data_container" and \
-                cont_type not in _grid_data_containers:
-                return True
-        return False
+        return data_type is not None and \
+            data_type == "yt_data_container" and \
+            cont_type not in _grid_data_containers
 
 class YTDataLightRayDataset(YTDataContainerDataset):
     """Dataset for saved LightRay objects."""
@@ -316,12 +314,11 @@ class YTDataLightRayDataset(YTDataContainerDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not filename.endswith(".h5"): return False
+        if not filename.endswith(".h5"):
+            return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
-            if data_type in ["yt_light_ray"]:
-                return True
-        return False
+        return data_type in ["yt_light_ray"]
 
 class YTSpatialPlotDataset(YTDataContainerDataset):
     """Dataset for saved slices and projections."""
@@ -343,14 +340,13 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not filename.endswith(".h5"): return False
+        if not filename.endswith(".h5"):
+            return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
-            if data_type == "yt_data_container" and \
-                cont_type in ["cutting", "proj", "slice", "quad_proj"]:
-                return True
-        return False
+        return data_type == "yt_data_container" and \
+               cont_type in ["cutting", "proj", "slice", "quad_proj"]
 
 class YTGrid(AMRGridPatch):
     _id_offset = 0
@@ -501,16 +497,13 @@ class YTGridDataset(YTDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not filename.endswith(".h5"): return False
+        if not filename.endswith(".h5"):
+            return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
-            if data_type == "yt_frb":
-                return True
-            if data_type == "yt_data_container" and \
-                cont_type in _grid_data_containers:
-                return True
-        return False
+        return data_type == "yt_frb" or \
+            (data_type == "yt_data_container" and cont_type in _grid_data_containers)
 
 class YTNonspatialGrid(AMRGridPatch):
     _id_offset = 0
@@ -706,12 +699,11 @@ class YTNonspatialDataset(YTGridDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not filename.endswith(".h5"): return False
+        if not filename.endswith(".h5"):
+            return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
-            if data_type == "yt_array_data":
-                return True
-        return False
+        return data_type == "yt_array_data"
 
 class YTProfileDataset(YTNonspatialDataset):
     """Dataset for saved profile objects."""
@@ -812,12 +804,11 @@ class YTProfileDataset(YTNonspatialDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not filename.endswith(".h5"): return False
+        if not filename.endswith(".h5"):
+            return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
-            if data_type == "yt_profile":
-                return True
-        return False
+        return data_type == "yt_profile"
 
 class YTClumpContainer(TreeContainer):
     def __init__(self, clump_id, global_id, parent_id,
@@ -885,11 +876,8 @@ class YTClumpTreeDataset(YTNonspatialDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not filename.endswith(".h5"): return False
+        if not filename.endswith(".h5"):
+            return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
-            if data_type is None:
-                return False
-            if data_type == "yt_clump_tree":
-                return True
-        return False
+        return data_type == "yt_clump_tree"

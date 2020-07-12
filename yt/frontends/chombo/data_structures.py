@@ -352,12 +352,11 @@ class ChomboDataset(Dataset):
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(filename, str): 
-            dir_name = os.path.dirname(os.path.abspath(filename))
-            pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
-            orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
-            pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
-            orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
+        dir_name = os.path.dirname(os.path.abspath(filename))
+        pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
+        orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
+        pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
+        orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
 
         if not (pluto_ini_file_exists or orion2_ini_file_exists):
             try:
@@ -507,17 +506,9 @@ class PlutoDataset(ChomboDataset):
         if not is_chombo_hdf5(filename):
             return False
 
-        pluto_ini_file_exists = False
-
-        if isinstance(filename, str):
-            dir_name = os.path.dirname(os.path.abspath(filename))
-            pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
-            pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
-
-        if pluto_ini_file_exists:
-            return True
-
-        return False
+        dir_name = os.path.dirname(os.path.abspath(filename))
+        pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
+        return os.path.isfile(pluto_ini_filename)
 
 
 class Orion2Hierarchy(ChomboHierarchy):
@@ -648,15 +639,11 @@ class Orion2Dataset(ChomboDataset):
         if not is_chombo_hdf5(filename):
             return False
 
-        pluto_ini_file_exists = False
-        orion2_ini_file_exists = False
-
-        if isinstance(filename, str):
-            dir_name = os.path.dirname(os.path.abspath(filename))
-            pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
-            orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
-            pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
-            orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
+        dir_name = os.path.dirname(os.path.abspath(filename))
+        pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
+        orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
+        pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
+        orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
 
         if orion2_ini_file_exists:
             return True
@@ -706,26 +693,17 @@ class ChomboPICDataset(ChomboDataset):
         if not is_chombo_hdf5(filename):
             return False
 
-        pluto_ini_file_exists = False
-        orion2_ini_file_exists = False
+        dir_name = os.path.dirname(os.path.abspath(filename))
+        pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
+        orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
 
-        if isinstance(filename, str):
-            dir_name = os.path.dirname(os.path.abspath(filename))
-            pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
-            orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
-            pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
-            orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
-
-        if orion2_ini_file_exists:
-            return False
-
-        if pluto_ini_file_exists:
+        if os.path.isfile(pluto_ini_filename) or os.path.isfile(orion2_ini_filename):
             return False
 
         try:
-            fileh = h5py.File(args[0], mode='r')
+            fileh = h5py.File(filename, mode='r')
             valid = "Charm_global" in fileh["/"]
             fileh.close()
             return valid
-        except Exception: pass
-        return False
+        except Exception:
+            return False
