@@ -649,7 +649,7 @@ class BoxlibDataset(Dataset):
         if not os.path.exists(header_filename):
             # We *know* it's not boxlib if Header doesn't exist.
             return False
-        args = inspect.getcallargs(cls.__init__, args, kwargs) # devnote: this could break ?
+        args = inspect.getcallargs(cls.__init__, args, kwargs)
         # This might need to be localized somehow
         if args['cparam_filename'] is None:
             return True  # Treat as generic boxlib data
