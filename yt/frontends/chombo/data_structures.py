@@ -344,16 +344,16 @@ class ChomboDataset(Dataset):
         return R_index - L_index
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
 
-        if not is_chombo_hdf5(args[0]):
+        if not is_chombo_hdf5(filename):
             return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], str): 
-            dir_name = os.path.dirname(os.path.abspath(args[0]))
+        if isinstance(filename, str): 
+            dir_name = os.path.dirname(os.path.abspath(filename))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
@@ -361,7 +361,7 @@ class ChomboDataset(Dataset):
 
         if not (pluto_ini_file_exists or orion2_ini_file_exists):
             try:
-                fileh = h5py.File(args[0], mode='r')
+                fileh = h5py.File(filename, mode='r')
                 valid = "Chombo_global" in fileh["/"]
                 # ORION2 simulations should always have this:
                 valid = valid and not ('CeilVA_mass' in fileh.attrs.keys())
@@ -502,15 +502,15 @@ class PlutoDataset(ChomboDataset):
         self._determine_current_time()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
 
-        if not is_chombo_hdf5(args[0]):
+        if not is_chombo_hdf5(filename):
             return False
 
         pluto_ini_file_exists = False
 
-        if isinstance(args[0], str):
-            dir_name = os.path.dirname(os.path.abspath(args[0]))
+        if isinstance(filename, str):
+            dir_name = os.path.dirname(os.path.abspath(filename))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
 
@@ -643,16 +643,16 @@ class Orion2Dataset(ChomboDataset):
                 self.gamma = np.float64(vals)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
 
-        if not is_chombo_hdf5(args[0]):
+        if not is_chombo_hdf5(filename):
             return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], str):
-            dir_name = os.path.dirname(os.path.abspath(args[0]))
+        if isinstance(filename, str):
+            dir_name = os.path.dirname(os.path.abspath(filename))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
@@ -663,7 +663,7 @@ class Orion2Dataset(ChomboDataset):
 
         if not pluto_ini_file_exists:
             try:
-                fileh = h5py.File(args[0], mode='r')
+                fileh = h5py.File(filename, mode='r')
                 valid = 'CeilVA_mass' in fileh.attrs.keys()
                 valid = "Chombo_global" in fileh["/"] and "Charm_global" not in fileh["/"]
                 valid = valid and 'CeilVA_mass' in fileh.attrs.keys()
@@ -699,18 +699,18 @@ class ChomboPICDataset(ChomboDataset):
             self._field_info_class = ChomboPICFieldInfo2D
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
 
-        warn_h5py(args[0])
+        warn_h5py(filename)
 
-        if not is_chombo_hdf5(args[0]):
+        if not is_chombo_hdf5(filename):
             return False
 
         pluto_ini_file_exists = False
         orion2_ini_file_exists = False
 
-        if isinstance(args[0], str):
-            dir_name = os.path.dirname(os.path.abspath(args[0]))
+        if isinstance(filename, str):
+            dir_name = os.path.dirname(os.path.abspath(filename))
             pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
             orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
             pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)

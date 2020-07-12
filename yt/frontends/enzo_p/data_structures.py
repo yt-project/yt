@@ -441,8 +441,8 @@ class EnzoPDataset(Dataset):
         return self.basename[:-len(self._suffix)]
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        fn = args[0]
+    def _is_valid(cls, filename, *args, **kwargs):
+        fn = filename
         ddir = os.path.dirname(fn)
         if not fn.endswith(cls._suffix):
             return False

@@ -305,8 +305,8 @@ class TipsyDataset(SPHDataset):
         return True, endianswap
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        return TipsyDataset._validate_header(args[0])[0]
+    def _is_valid(self, filename, *args, **kwargs):
+        return TipsyDataset._validate_header(filename)[0]
 
     @property
     @deprecate(replacement='cosmological_simulation')

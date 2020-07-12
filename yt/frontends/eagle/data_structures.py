@@ -38,7 +38,7 @@ class EagleDataset(GadgetHDF5Dataset):
         self._set_owls_eagle_units()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         need_groups = ['Config', 'Constants', 'HashTable', 'Header', 
                        'Parameters', 'RuntimePars', 'Units']
         veto_groups = ['SUBFIND',
@@ -46,7 +46,7 @@ class EagleDataset(GadgetHDF5Dataset):
                        'PartType0/ChemicalAbundances']
         valid = True
         try:
-            fileh = h5py.File(args[0], mode='r')
+            fileh = h5py.File(filename, mode='r')
             for ng in need_groups:
                 if ng not in fileh["/"]:
                     valid = False
@@ -65,9 +65,9 @@ class EagleNetworkDataset(EagleDataset):
     _time_readin = 'Time'
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0], mode='r')
+            fileh = h5py.File(filename, mode='r')
             if "Constants" in fileh["/"].keys() and \
                "Header" in fileh["/"].keys() and \
                "SUBFIND" not in fileh["/"].keys() and \

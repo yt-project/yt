@@ -276,9 +276,9 @@ class GDFDataset(Dataset):
         del self._handle
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0], mode='r')
+            fileh = h5py.File(filename, mode='r')
             if "gridded_data_format" in fileh:
                 fileh.close()
                 return True

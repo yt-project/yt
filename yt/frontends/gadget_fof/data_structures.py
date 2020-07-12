@@ -271,12 +271,12 @@ class GadgetFOFDataset(ParticleDataset):
         return self.basename.split(".", 1)[0]
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         need_groups = ['Group', 'Header', 'Subhalo']
         veto_groups = ['FOF']
         valid = True
         try:
-            fh = h5py.File(args[0], mode='r')
+            fh = h5py.File(filename, mode='r')
             valid = all(ng in fh["/"] for ng in need_groups) and \
               not any(vg in fh["/"] for vg in veto_groups)
             fh.close()

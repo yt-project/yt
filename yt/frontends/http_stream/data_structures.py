@@ -83,13 +83,13 @@ class HTTPStreamDataset(ParticleDataset):
         self.conversion_factors["density"] = density_unit
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].startswith("http://"):
+    def _is_valid(self, filename, *args, **kwargs):
+        if not filename.startswith("http://"):
             return False
         requests = get_requests()
         if requests is None:
             return False
-        hreq = requests.get(args[0] + "/yt_index.json")
+        hreq = requests.get(filename + "/yt_index.json")
         if hreq.status_code == 200:
             return True
         return False

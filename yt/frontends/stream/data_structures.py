@@ -337,7 +337,7 @@ class StreamDataset(Dataset):
             setattr(self, attr, uq)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         return False
 
     @property

@@ -86,9 +86,8 @@ class MoabHex8Dataset(Dataset):
                               = self.cosmological_simulation = 0.0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        fname = args[0]
-        return fname.endswith('.h5m')
+    def _is_valid(self, filename, *args, **kwargs):
+        return filename.endswith('.h5m')
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -172,7 +171,7 @@ class PyneMoabHex8Dataset(Dataset):
                               = self.cosmological_simulation = 0.0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         return False
 
     def __repr__(self):

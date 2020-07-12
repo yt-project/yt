@@ -492,7 +492,7 @@ class GadgetDataset(SPHDataset):
         self.specific_energy_unit = self.quan(*specific_energy_unit)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if 'header_spec' in kwargs:
             header_spec = kwargs['header_spec']
         else:
@@ -500,10 +500,10 @@ class GadgetDataset(SPHDataset):
         # Check to see if passed filename is a directory. If so, use it to get
         # the .0 snapshot file. Make sure there's only one such file, otherwise
         # there's an ambiguity about which file the user wants. Ignore ewah files
-        if os.path.isdir(args[0]):
+        if os.path.isdir(filename):
             valid_files = []
-            for f in os.listdir(args[0]):
-                fname = os.path.join(args[0], f)
+            for f in os.listdir(filename):
+                fname = os.path.join(filename, f)
                 if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
                     valid_files.append(f)
             if len(valid_files) == 0:
@@ -511,9 +511,9 @@ class GadgetDataset(SPHDataset):
             elif len(valid_files) > 1:
                 return False
             else:
-                validated_file = os.path.join(args[0], valid_files[0])
+                validated_file = os.path.join(filename, valid_files[0])
         else:
-            validated_file = args[0]
+            validated_file = filename
         header = GadgetBinaryHeader(validated_file, header_spec)
         return header.validate()
 
@@ -619,12 +619,12 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.specific_energy_unit = self.quan(specific_energy_unit_cgs, '(cm/s)**2')
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         need_groups = ['Header']
         veto_groups = ['FOF', 'Group', 'Subhalo']
         valid = True
         try:
-            fh = h5py.File(args[0], mode='r')
+            fh = h5py.File(filename, mode='r')
             valid = all(ng in fh["/"] for ng in need_groups) and \
                 not any(vg in fh["/"] for vg in veto_groups)
             fh.close()
@@ -633,7 +633,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             pass
 
         try:
-            fh = h5py.File(args[0], mode='r')
+            fh = h5py.File(filename, mode='r')
             valid = fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
             fh.close()
         except (IOError, KeyError, ImportError):

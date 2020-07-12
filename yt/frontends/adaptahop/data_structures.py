@@ -101,8 +101,8 @@ class AdaptaHOPDataset(Dataset):
         self.parameters.update(params)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        fname = os.path.split(args[0])[1]
+    def _is_valid(self, filename, *args, **kwargs):
+        fname = os.path.split(filename)[1]
         if not fname.startswith('tree_bricks') or not re.match('^tree_bricks\d{3}$', fname):
             return False
         return True

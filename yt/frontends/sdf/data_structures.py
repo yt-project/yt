@@ -175,8 +175,8 @@ class SDFDataset(ParticleDataset):
         setdefaultattr(self, 'mass_unit', self.quan(float(factor), unit))
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        sdf_header = kwargs.get('sdf_header', args[0])
+    def _is_valid(cls, filename, *args, **kwargs):
+        sdf_header = kwargs.get('sdf_header', filename)
         if sdf_header.startswith("http"):
             requests = get_requests()
             if requests is None: 

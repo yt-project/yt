@@ -205,13 +205,13 @@ class AMRVACDataset(Dataset):
         self.refine_by = 2
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         """At load time, check whether data is recognized as AMRVAC formatted."""
         # required class method
         validation = False
-        if args[0].endswith(".dat"):
+        if filename.endswith(".dat"):
             try:
-                with open(args[0], mode="rb") as istream:
+                with open(filename, mode="rb") as istream:
                     fmt = "=i"
                     [datfile_version] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
                     if 3 <= datfile_version < 6:

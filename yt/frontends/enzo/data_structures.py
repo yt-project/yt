@@ -914,10 +914,10 @@ class EnzoDataset(Dataset):
         setdefaultattr(self, 'magnetic_unit', self.quan(magnetic_unit, "gauss"))
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        if ("%s" % (args[0])).endswith(".hierarchy"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if ("%s" % (filename)).endswith(".hierarchy"):
             return True
-        return os.path.exists("%s.hierarchy" % args[0])
+        return os.path.exists("%s.hierarchy" % filename)
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -989,7 +989,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         return enzo
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         return False
 
 # These next two functions are taken from

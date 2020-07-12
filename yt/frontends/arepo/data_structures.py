@@ -32,12 +32,12 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         self.gamma = 5./3.
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         need_groups = ['Header', 'Config']
         veto_groups = ['FOF', 'Group', 'Subhalo']
         valid = True
         try:
-            fh = h5py.File(args[0], mode='r')
+            fh = h5py.File(filename, mode='r')
             valid = all(ng in fh["/"] for ng in need_groups) and \
                     not any(vg in fh["/"] for vg in veto_groups) and \
                     ("VORONOI" in fh["/Config"].attrs.keys() or

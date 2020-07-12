@@ -106,9 +106,9 @@ class RockstarDataset(ParticleDataset):
         setdefaultattr(self, 'time_unit', self.length_unit / self.velocity_unit)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".bin"): return False
-        with open(args[0], "rb") as f:
+    def _is_valid(self, filename, *args, **kwargs):
+        if not filename.endswith(".bin"): return False
+        with open(filename, "rb") as f:
             header = fpu.read_cattrs(f, header_dt)
             if header['magic'] == 18077126535843729616:
                 return True

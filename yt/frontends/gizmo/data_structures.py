@@ -13,16 +13,16 @@ class GizmoDataset(GadgetHDF5Dataset):
     _field_info_class = GizmoFieldInfo
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         need_groups = ['Header']
         veto_groups = ['FOF', 'Group', 'Subhalo']
         valid = True
-        valid_fname = args[0]
+        valid_fname = filename
         # If passed arg is a directory, look for the .0 file in that dir
-        if os.path.isdir(args[0]):
+        if os.path.isdir(filename):
             valid_files = []
-            for f in os.listdir(args[0]):
-                fname = os.path.join(args[0], f)
+            for f in os.listdir(filename):
+                fname = os.path.join(filename, f)
                 if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
                     valid_files.append(fname)
             if len(valid_files) == 0:

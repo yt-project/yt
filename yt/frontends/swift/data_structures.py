@@ -164,13 +164,12 @@ class SwiftDataset(SPHDataset):
         return
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         """
         Checks to see if the file is a valid output from SWIFT.
         This requires the file to have the Code attribute set in the
         Header dataset to "SWIFT".
         """
-        filename = args[0]
         valid = True
         # Attempt to open the file, if it's not a hdf5 then this will fail:
         try:

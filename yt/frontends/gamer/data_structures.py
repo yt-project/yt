@@ -313,10 +313,10 @@ class GAMERDataset(Dataset):
         self.geometry = geometry_parameters[parameters.get("Coordinate", 1)]
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         try:
             # define a unique way to identify GAMER datasets
-            f = HDF5FileHandler(args[0])
+            f = HDF5FileHandler(filename)
             if 'Info' in f['/'].keys() and 'KeyInfo' in f['/Info'].keys():
                 return True
         except Exception: pass

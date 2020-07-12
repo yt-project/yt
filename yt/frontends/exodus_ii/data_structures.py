@@ -375,11 +375,11 @@ class ExodusIIDataset(Dataset):
         return mi, ma
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        warn_netcdf(args[0])
+    def _is_valid(self, filename, *args, **kwargs):
+        warn_netcdf(filename)
         try:
             from netCDF4 import Dataset
-            filename = args[0]
+            filename = filename
             # We use keepweakref here to avoid holding onto the file handle
             # which can interfere with other is_valid calls.
             with Dataset(filename, keepweakref=True) as f:

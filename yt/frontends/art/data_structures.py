@@ -365,12 +365,12 @@ class ARTDataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = ("%s" % args[0])
+        f = ("%s" % filename)
         prefix, suffix = filename_pattern['amr']
         if not os.path.isfile(f):
             return False
@@ -620,12 +620,12 @@ class DarkMatterARTDataset(ARTDataset):
         pass
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = ("%s" % args[0])
+        f = ("%s" % filename)
         prefix, suffix = filename_pattern['particle_data']
         if not os.path.isfile(f):
             return False

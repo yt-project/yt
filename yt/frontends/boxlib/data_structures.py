@@ -639,9 +639,9 @@ class BoxlibDataset(Dataset):
         return None
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # fill our args
-        output_dir = args[0]
+        output_dir = filename
         # boxlib datasets are always directories
         if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
@@ -649,7 +649,7 @@ class BoxlibDataset(Dataset):
         if not os.path.exists(header_filename):
             # We *know* it's not boxlib if Header doesn't exist.
             return False
-        args = inspect.getcallargs(cls.__init__, args, kwargs)
+        args = inspect.getcallargs(cls.__init__, args, kwargs) # devnote: this could break ?
         # This might need to be localized somehow
         if args['cparam_filename'] is None:
             return True  # Treat as generic boxlib data
@@ -987,9 +987,9 @@ class OrionDataset(BoxlibDataset):
                                unit_system=unit_system)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # fill our args
-        output_dir = args[0]
+        output_dir = filename
         # boxlib datasets are always directories
         if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
@@ -1059,9 +1059,9 @@ class CastroDataset(BoxlibDataset):
                                             unit_system)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # fill our args
-        output_dir = args[0]
+        output_dir = filename
         # boxlib datasets are always directories
         if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
@@ -1146,9 +1146,9 @@ class MaestroDataset(BoxlibDataset):
                                              unit_system)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # fill our args
-        output_dir = args[0]
+        output_dir = filename
         # boxlib datasets are always directories
         if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
@@ -1240,9 +1240,9 @@ class NyxDataset(BoxlibDataset):
                                          unit_system)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # fill our args
-        output_dir = args[0]
+        output_dir = filename
         # boxlib datasets are always directories
         if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
@@ -1524,9 +1524,9 @@ class WarpXDataset(BoxlibDataset):
                                            unit_system)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # fill our args
-        output_dir = args[0]
+        output_dir = filename
         # boxlib datasets are always directories
         if not os.path.isdir(output_dir): return False
         header_filename = os.path.join(output_dir, "Header")
@@ -1618,5 +1618,5 @@ class AMReXDataset(BoxlibDataset):
             self.particle_types_raw = self.particle_types
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         return False
