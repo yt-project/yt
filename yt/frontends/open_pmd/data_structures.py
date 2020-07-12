@@ -552,7 +552,7 @@ class OpenPMDDataset(Dataset):
                     return True
 
                 return False
-        except IOError:
+        except OSError:
             return False
 
 
@@ -614,6 +614,6 @@ class OpenPMDGroupBasedDataset(Dataset):
                     return True
 
                 return False
-        except IOError:
+        except OSError:
             return False
 

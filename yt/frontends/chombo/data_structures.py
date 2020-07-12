@@ -30,7 +30,7 @@ def is_chombo_hdf5(fn):
     try:
         with h5py.File(fn, mode='r') as fileh:
             valid = "Chombo_global" in fileh["/"]
-    except (KeyError, IOError, ImportError):
+    except (KeyError, OSError, ImportError):
         return False
     return valid
 

@@ -600,7 +600,7 @@ class YTFITSDataset(FITSDataset):
                 isyt = False
             fileh.close()
             return isyt
-        except (TypeError, IOError):
+        except (TypeError, OSError):
             return False
 
 

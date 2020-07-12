@@ -284,7 +284,7 @@ class TipsyDataset(SPHDataset):
             f.seek(0, os.SEEK_SET)
             #Read in the header
             t, n, ndim, ng, nd, ns = struct.unpack("<diiiii", f.read(28))
-        except (IOError, struct.error):
+        except (OSError, struct.error):
             return False, 1
         endianswap = "<"
         #Check Endianness

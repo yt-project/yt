@@ -212,7 +212,7 @@ class GAMERDataset(Dataset):
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
             except Exception:
-                raise IOError(self.particle_filename)
+                raise OSError(self.particle_filename)
 
         # currently GAMER only supports refinement by a factor of 2
         self.refine_by = 2

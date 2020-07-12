@@ -631,5 +631,5 @@ class GadgetHDF5Dataset(GadgetDataset):
             valid = fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
             fh.close()
             return valid
-        except (IOError, KeyError):
+        except (OSError, KeyError):
             return False

@@ -177,5 +177,5 @@ class SwiftDataset(SPHDataset):
             valid = handle["Header"].attrs["Code"].decode("utf-8") == "SWIFT"
             handle.close()
             return valid
-        except (IOError, KeyError):
+        except (OSError, KeyError):
             return False

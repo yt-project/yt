@@ -137,7 +137,7 @@ class EnzoPHierarchy(GridIndex):
         self.directory = os.path.dirname(ds.parameter_filename)
         self.index_filename = ds.parameter_filename
         if os.path.getsize(self.index_filename) == 0:
-            raise IOError(-1,"File empty", self.index_filename)
+            raise OSError(-1,"File empty", self.index_filename)
 
         GridIndex.__init__(self, ds, dataset_type)
         self.dataset.dataset_type = self.dataset_type

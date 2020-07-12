@@ -189,14 +189,14 @@ class FLASHDataset(Dataset):
                 self._particle_handle = HDF5FileHandler(filename.replace('plt_cnt', 'part'))
                 self.particle_filename = filename.replace('plt_cnt', 'part')
                 mylog.info('Particle file found: %s' % self.particle_filename.split('/')[-1])
-            except IOError:
+            except OSError:
                 self._particle_handle = self._handle
         else:
             # particle_filename is specified by user
             try:
                 self._particle_handle = HDF5FileHandler(self.particle_filename)
             except Exception:
-                raise IOError(self.particle_filename)
+                raise OSError(self.particle_filename)
         # Check if the particle file has the same time
         if self._particle_handle != self._handle:
             part_time = self._particle_handle.handle.get('real scalars')[0][1]
@@ -423,7 +423,7 @@ class FLASHDataset(Dataset):
         try:
             fileh = HDF5FileHandler(filename)
             return "bounding box" in fileh["/"].keys()
-        except IOError:
+        except OSError:
             return False
 
     @classmethod
@@ -481,7 +481,7 @@ class FLASHParticleDataset(FLASHDataset):
             fileh = HDF5FileHandler(filename)
             return "bounding box" not in fileh["/"].keys() \
                 and "localnp" in fileh["/"].keys()
-        except IOError:
+        except OSError:
             return False
 
     @classmethod

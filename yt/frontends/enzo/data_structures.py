@@ -164,7 +164,7 @@ class EnzoHierarchy(GridIndex):
         self.index_filename = os.path.abspath(
             "%s.hierarchy" % (ds.parameter_filename))
         if os.path.getsize(self.index_filename) == 0:
-            raise IOError(-1,"File empty", self.index_filename)
+            raise OSError(-1,"File empty", self.index_filename)
         self.directory = os.path.dirname(self.index_filename)
 
         # For some reason, r8 seems to want Float64
@@ -406,7 +406,7 @@ class EnzoHierarchy(GridIndex):
                 try:
                     gf = self.io._read_field_names(grid)
                 except self.io._read_exception:
-                    raise IOError("Grid %s is a bit funky?", grid.id)
+                    raise OSError("Grid %s is a bit funky?", grid.id)
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.dataset.parameters:
