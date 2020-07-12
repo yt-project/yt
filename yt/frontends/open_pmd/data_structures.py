@@ -592,9 +592,9 @@ class OpenPMDGroupBasedDataset(Dataset):
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, filename, *args, **kwargs):
         ret = object.__new__(OpenPMDDatasetSeries)
-        ret.__init__(args[0])
+        ret.__init__(filename)
         return ret
 
     @classmethod
