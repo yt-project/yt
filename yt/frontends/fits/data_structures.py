@@ -514,7 +514,7 @@ class FITSDataset(Dataset):
             fileh = check_fits_valid(filename)
             fileh.close()
             return True
-        except TypeError:
+        except AttributeError:
             return False
 
     @classmethod
