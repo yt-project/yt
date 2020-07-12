@@ -115,7 +115,7 @@ class HaloCatalogDataset(SavedDataset):
         super(HaloCatalogDataset, self)._parse_parameter_file()
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".h5"): return False
         with h5py.File(filename, mode="r") as f:
             if "data_type" in f.attrs and \

@@ -164,7 +164,7 @@ class SwiftDataset(SPHDataset):
         return
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """
         Checks to see if the file is a valid output from SWIFT.
         This requires the file to have the Code attribute set in the

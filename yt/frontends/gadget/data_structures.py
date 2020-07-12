@@ -619,7 +619,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.specific_energy_unit = self.quan(specific_energy_unit_cgs, '(cm/s)**2')
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Header']
         veto_groups = ['FOF', 'Group', 'Subhalo']
         valid = True

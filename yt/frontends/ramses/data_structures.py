@@ -580,7 +580,7 @@ class RAMSESDataset(Dataset):
             self.parameters['namelist'] = nml
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not os.path.basename(filename).startswith("info_"): return False
         fn = filename.replace("info_", "amr_").replace(".txt", ".out00001")
         return os.path.exists(fn)

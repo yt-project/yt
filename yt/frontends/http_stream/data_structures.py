@@ -83,7 +83,7 @@ class HTTPStreamDataset(ParticleDataset):
         self.conversion_factors["density"] = density_unit
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.startswith("http://"):
             return False
         requests = get_requests()

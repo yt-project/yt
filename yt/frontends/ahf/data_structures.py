@@ -113,7 +113,7 @@ class AHFHalosDataset(Dataset):
         self.current_time = cosmo.lookback_time(param['z'], 1e6).in_units('s')
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith('.parameter'):
             return False
         with open(filename, 'r') as f:

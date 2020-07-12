@@ -554,7 +554,7 @@ class AthenaDataset(Dataset):
         self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         try:
             if 'vtk' in filename:
                 return True

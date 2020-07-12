@@ -271,7 +271,7 @@ class GadgetFOFDataset(ParticleDataset):
         return self.basename.split(".", 1)[0]
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Group', 'Header', 'Subhalo']
         veto_groups = ['FOF']
         valid = True

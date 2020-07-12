@@ -344,7 +344,7 @@ class ChomboDataset(Dataset):
         return R_index - L_index
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
 
         if not is_chombo_hdf5(filename):
             return False
@@ -502,7 +502,7 @@ class PlutoDataset(ChomboDataset):
         self._determine_current_time()
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
 
         if not is_chombo_hdf5(filename):
             return False
@@ -643,7 +643,7 @@ class Orion2Dataset(ChomboDataset):
                 self.gamma = np.float64(vals)
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
 
         if not is_chombo_hdf5(filename):
             return False
@@ -699,7 +699,7 @@ class ChomboPICDataset(ChomboDataset):
             self._field_info_class = ChomboPICFieldInfo2D
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
 
         warn_h5py(filename)
 

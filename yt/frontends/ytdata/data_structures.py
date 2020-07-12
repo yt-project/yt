@@ -271,7 +271,7 @@ class YTDataContainerDataset(YTDataset):
         return self._data_obj
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".h5"): return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
@@ -315,7 +315,7 @@ class YTDataLightRayDataset(YTDataContainerDataset):
                   self.parameters[field][i]
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".h5"): return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
@@ -342,7 +342,7 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
                   tuple(self.parameters["weight_field"])
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".h5"): return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
@@ -500,7 +500,7 @@ class YTGridDataset(YTDataset):
                 self.field_info.alias(("gas", field), ("grid", field))
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".h5"): return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
@@ -705,7 +705,7 @@ class YTNonspatialDataset(YTGridDataset):
         mylog.warning("Geometric data selection not available for this dataset type.")
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".h5"): return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
@@ -811,7 +811,7 @@ class YTProfileDataset(YTNonspatialDataset):
         super(YTProfileDataset, self).print_key_parameters()
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".h5"): return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
@@ -884,7 +884,7 @@ class YTClumpTreeDataset(YTNonspatialDataset):
         return self._leaves
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".h5"): return False
         with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")

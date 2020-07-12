@@ -534,7 +534,7 @@ class OpenPMDDataset(Dataset):
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """Checks whether the supplied file can be read by this frontend.
         """
         warn_h5py(filename)
@@ -598,7 +598,7 @@ class OpenPMDGroupBasedDataset(Dataset):
         return ret
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         warn_h5py(filename)
         try:
             with h5.File(filename, "r") as f:

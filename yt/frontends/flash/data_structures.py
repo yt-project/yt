@@ -419,7 +419,7 @@ class FLASHDataset(Dataset):
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         try:
             fileh = HDF5FileHandler(filename)
             if "bounding box" in fileh["/"].keys():
@@ -477,7 +477,7 @@ class FLASHParticleDataset(FLASHDataset):
         self.file_count = 1
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         warn_h5py(filename)
         try:
             fileh = HDF5FileHandler(filename)

@@ -305,7 +305,7 @@ class TipsyDataset(SPHDataset):
         return True, endianswap
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         return TipsyDataset._validate_header(filename)[0]
 
     @property

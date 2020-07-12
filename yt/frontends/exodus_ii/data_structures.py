@@ -375,7 +375,7 @@ class ExodusIIDataset(Dataset):
         return mi, ma
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         warn_netcdf(filename)
         try:
             from netCDF4 import Dataset

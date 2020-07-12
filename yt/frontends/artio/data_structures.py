@@ -461,7 +461,7 @@ class ARTIODataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         from sys import version
         # a valid artio header file starts with a prefix and ends with .art
         if not filename.endswith(".art"):

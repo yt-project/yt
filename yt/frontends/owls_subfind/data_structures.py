@@ -193,7 +193,7 @@ class OWLSSubfindDataset(ParticleDataset):
         setdefaultattr(self, 'time_unit', self.quan(time_unit[0], time_unit[1]))
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Constants', 'Header', 'Parameters', 'Units', 'FOF']
         veto_groups = []
         valid = True

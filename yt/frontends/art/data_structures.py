@@ -365,7 +365,7 @@ class ARTDataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
@@ -620,7 +620,7 @@ class DarkMatterARTDataset(ARTDataset):
         pass
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
