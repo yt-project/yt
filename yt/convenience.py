@@ -76,7 +76,8 @@ def load(fn, *args, **kwargs):
         for c in candidates:
             mylog.error("    Possible: %s", c)
 
-    raise YTOutputNotIdentified([fn, *args], kwargs)
+
+    raise YTOutputNotIdentified(fn, args, kwargs)
 
 def simulation(fn, simulation_type, find_outputs=False):
     """
@@ -127,6 +128,6 @@ def load_enzo_db(fn):
     fn = erdb.find_uuid(fn)
 
     if not EnzoDataset._is_valid(fn):
-        raise YTOutputNotIdentified(fn, {})
+        raise YTOutputNotIdentified(fn)
 
     return EnzoDataset(fn)

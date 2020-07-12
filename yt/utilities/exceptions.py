@@ -12,12 +12,18 @@ class YTException(Exception):
 # Data access exceptions:
 
 class YTOutputNotIdentified(YTException):
-    def __init__(self, args, kwargs):
+    def __init__(self, filename, args=None, kwargs=None):
+        self.filename = filename
         self.args = args
         self.kwargs = kwargs
 
     def __str__(self):
-        return "Could not determine input format from %s %s" % (self.args, self.kwargs)
+        msg = "Could not determine input format from %s" % self.filename
+        if self.args is not None:
+            msg += ", %s" % self.args
+        if self.kwargs is not None:
+            msg += ", %s" % self.kwargs
+        return msg
 
 class YTSphereTooSmall(YTException):
     def __init__(self, ds, radius, smallest_cell):
