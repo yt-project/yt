@@ -5,7 +5,8 @@ import os
 from yt.funcs import \
     ensure_tuple, \
     just_one, \
-    setdefaultattr
+    setdefaultattr, \
+    invalidate_exceptions
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -276,14 +277,10 @@ class GDFDataset(Dataset):
         del self._handle
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            fileh = h5py.File(filename, mode='r')
-            valid = "gridded_data_format" in fileh
-            fileh.close()
-            return valid
-        except Exception:
-            return False
+        with h5py.File(filename, mode='r') as fileh:
+            return "gridded_data_format" in fileh
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]

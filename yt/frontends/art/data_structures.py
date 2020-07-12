@@ -14,7 +14,8 @@ from yt.data_objects.octree_subset import \
     OctreeSubset
 from yt.funcs import \
     mylog, \
-    setdefaultattr
+    setdefaultattr, \
+    invalidate_exceptions
 from yt.geometry.oct_container import \
     ARTOctreeContainer
 from yt.frontends.art.definitions import \
@@ -365,6 +366,7 @@ class ARTDataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
+    @invalidate_exceptions(Exception)
     def _is_valid(cls, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
@@ -374,12 +376,9 @@ class ARTDataset(Dataset):
         prefix, suffix = filename_pattern['amr']
         if not f.endswith(suffix):
             return False
-        try:
-            with open(f, 'rb') as fh:
-                fpu.read_attrs(fh, amr_header_struct, '>')
-            return True
-        except Exception:
-            return False
+        with open(f, 'rb') as fh:
+            fpu.read_attrs(fh, amr_header_struct, '>')
+        return True
 
 class ARTParticleFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):

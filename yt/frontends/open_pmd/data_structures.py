@@ -14,7 +14,7 @@ from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
 from yt.frontends.open_pmd.misc import \
     is_const_component, \
     get_component
-from yt.funcs import setdefaultattr
+from yt.funcs import setdefaultattr, invalidate_exceptions
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, \
     warn_h5py
@@ -534,26 +534,21 @@ class OpenPMDDataset(Dataset):
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         """Checks whether the supplied file can be read by this frontend.
         """
         warn_h5py(filename)
-        try:
-            with h5.File(filename, "r") as f:
-                attrs = list(f["/"].attrs.keys())
-                for i in opmd_required_attributes:
-                    if i not in attrs:
-                        return False
-
-                if StrictVersion(f.attrs["openPMD"].decode()) not in ompd_known_versions:
+        with h5.File(filename, "r") as f:
+            attrs = list(f["/"].attrs.keys())
+            for i in opmd_required_attributes:
+                if i not in attrs:
                     return False
 
-                if f.attrs["iterationEncoding"].decode() == "fileBased":
-                    return True
-
+            if StrictVersion(f.attrs["openPMD"].decode()) not in ompd_known_versions:
                 return False
-        except OSError:
-            return False
+
+            return f.attrs["iterationEncoding"].decode() == "fileBased"
 
 
 
@@ -598,22 +593,16 @@ class OpenPMDGroupBasedDataset(Dataset):
         return ret
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         warn_h5py(filename)
-        try:
-            with h5.File(filename, "r") as f:
-                attrs = list(f["/"].attrs.keys())
-                for i in opmd_required_attributes:
-                    if i not in attrs:
-                        return False
-
-                if StrictVersion(f.attrs["openPMD"].decode()) not in ompd_known_versions:
+        with h5.File(filename, "r") as f:
+            attrs = list(f["/"].attrs.keys())
+            for i in opmd_required_attributes:
+                if i not in attrs:
                     return False
 
-                if f.attrs["iterationEncoding"].decode() == "groupBased":
-                    return True
-
+            if StrictVersion(f.attrs["openPMD"].decode()) not in ompd_known_versions:
                 return False
-        except OSError:
-            return False
 
+            return f.attrs["iterationEncoding"].decode() == "groupBased"

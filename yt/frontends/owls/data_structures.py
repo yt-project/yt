@@ -1,7 +1,7 @@
 import os
 
 from yt.utilities.on_demand_imports import _h5py as h5py
-
+from yt.funcs import invalidate_exceptions
 import yt.units
 from yt.frontends.gadget.data_structures import \
     GadgetHDF5Dataset
@@ -36,6 +36,7 @@ class OWLSDataset(GadgetHDF5Dataset):
 
 
     @classmethod
+    @invalidate_exceptions(Exception)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Constants', 'Header', 'Parameters', 'Units']
         veto_groups = ['SUBFIND', 'FOF',
@@ -55,16 +56,13 @@ class OWLSDataset(GadgetHDF5Dataset):
                 valid = False
             else:
                 valid_fname = valid_files[0]
-        try:
-            fileh = h5py.File(valid_fname, mode='r')
-            for ng in need_groups:
-                if ng not in fileh["/"]:
-                    valid = False
-            for vg in veto_groups:
-                if vg in fileh["/"]:
-                    valid = False                    
-            fileh.close()
-        except Exception:
-            valid = False
-            pass
+
+        fileh = h5py.File(valid_fname, mode='r')
+        for ng in need_groups:
+            if ng not in fileh["/"]:
+                valid = False
+        for vg in veto_groups:
+            if vg in fileh["/"]:
+                valid = False                    
+        fileh.close()
         return valid

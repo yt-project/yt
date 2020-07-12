@@ -12,7 +12,8 @@ from yt.config import ytcfg
 from yt.funcs import \
     ensure_list, \
     mylog, \
-    setdefaultattr
+    setdefaultattr, \
+    invalidate_exceptions
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -509,13 +510,11 @@ class FITSDataset(Dataset):
         self.lon_name = "X"
 
     @classmethod
+    @invalidate_exceptions(AttributeError)
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            fileh = check_fits_valid(filename)
-            fileh.close()
-            return True
-        except AttributeError:
-            return False
+        fileh = check_fits_valid(filename)
+        fileh.close()
+        return True
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -591,17 +590,15 @@ class YTFITSDataset(FITSDataset):
         self.domain_right_edge = domain_right_edge
 
     @classmethod
+    @invalidate_exceptions(TypeError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            fileh = check_fits_valid(filename)
-            if "WCSNAME" in fileh[0].header:
-                isyt = fileh[0].header["WCSNAME"].strip() == "yt"
-            else:
-                isyt = False
-            fileh.close()
-            return isyt
-        except (TypeError, OSError):
-            return False
+        fileh = check_fits_valid(filename)
+        if "WCSNAME" in fileh[0].header:
+            isyt = fileh[0].header["WCSNAME"].strip() == "yt"
+        else:
+            isyt = False
+        fileh.close()
+        return isyt
 
 
 class SkyDataFITSDataset(FITSDataset):
@@ -848,11 +845,9 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.wcs_2d = self.wcs
 
     @classmethod
+    @invalidate_exceptions(TypeError, AttributeError)
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            fileh = check_fits_valid(filename)
-            valid = fileh[1].name == "EVENTS"
-            fileh.close()
-            return valid
-        except (TypeError, AttributeError):
-            return False
+        fileh = check_fits_valid(filename)
+        valid = fileh[1].name == "EVENTS"
+        fileh.close()
+        return valid

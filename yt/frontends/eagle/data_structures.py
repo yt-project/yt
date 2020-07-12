@@ -6,6 +6,7 @@ from yt.frontends.gadget.data_structures import \
 from yt.frontends.owls.fields import \
     OWLSFieldInfo
 import yt.units
+from yt.funcs import invalidate_exceptions
 
 from .fields import \
     EagleNetworkFieldInfo
@@ -38,6 +39,7 @@ class EagleDataset(GadgetHDF5Dataset):
         self._set_owls_eagle_units()
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Config', 'Constants', 'HashTable', 'Header', 
                        'Parameters', 'RuntimePars', 'Units']
@@ -45,20 +47,14 @@ class EagleDataset(GadgetHDF5Dataset):
                        'PartType0/ChemistryAbundances', 
                        'PartType0/ChemicalAbundances']
 
-        try:
-            fileh = h5py.File(filename, mode='r')
+        with h5py.File(filename, mode='r') as fileh:
             for ng in need_groups:
                 if ng not in fileh["/"]:
-                    valid = False
-                    break
+                    return False
             for vg in veto_groups:
                 if vg in fileh["/"]:
-                    valid = False
-                    break
-            fileh.close()
-            return valid
-        except Exception:
-            return False
+                    return False
+        return True
 
 class EagleNetworkDataset(EagleDataset):
     _particle_mass_name = "Mass"
@@ -66,16 +62,11 @@ class EagleNetworkDataset(EagleDataset):
     _time_readin = 'Time'
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            fileh = h5py.File(filename, mode='r')
-            if "Constants" in fileh["/"].keys() and \
-               "Header" in fileh["/"].keys() and \
-               "SUBFIND" not in fileh["/"].keys() and \
-               ("ChemistryAbundances" in fileh["PartType0"].keys()
-                or "ChemicalAbundances" in fileh["PartType0"].keys()):
-                fileh.close()
-                return True
-            fileh.close()
-        except Exception:
-            return False
+        with h5py.File(filename, mode='r') as fileh:
+            return "Constants" in fileh["/"].keys() and \
+                    "Header" in fileh["/"].keys() and \
+                    "SUBFIND" not in fileh["/"].keys() and \
+                    ("ChemistryAbundances" in fileh["PartType0"].keys()
+                    or "ChemicalAbundances" in fileh["PartType0"].keys())

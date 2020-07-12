@@ -445,10 +445,8 @@ class EnzoPDataset(Dataset):
         ddir = os.path.dirname(filename)
         if not filename.endswith(cls._suffix):
             return False
-        try:
-            with open(filename, "r") as f:
-                block, block_file = f.readline().strip().split()
-                get_block_info(block)
-                return os.path.exists(os.path.join(ddir, block_file))
-        except Exception:
-            return False
+
+        with open(filename, "r") as f:
+            block, block_file = f.readline().strip().split()
+            get_block_info(block)
+            return os.path.exists(os.path.join(ddir, block_file))

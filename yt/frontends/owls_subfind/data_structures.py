@@ -9,7 +9,8 @@ from .fields import \
 
 from yt.funcs import \
     only_on_root, \
-    setdefaultattr
+    setdefaultattr, \
+    invalidate_exceptions
 from yt.utilities.exceptions import \
     YTException
 from yt.utilities.logger import ytLogger as \
@@ -193,14 +194,10 @@ class OWLSSubfindDataset(ParticleDataset):
         setdefaultattr(self, 'time_unit', self.quan(time_unit[0], time_unit[1]))
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Constants', 'Header', 'Parameters', 'Units', 'FOF']
         veto_groups = []
-        try:
-            fh = h5py.File(filename, mode='r')
-            valid = all(ng in fh["/"] for ng in need_groups) and \
+        with h5py.File(filename, mode='r') as fh:
+            return all(ng in fh["/"] for ng in need_groups) and \
               not any(vg in fh["/"] for vg in veto_groups)
-            fh.close()
-            return valid
-        except Exception:
-            return False

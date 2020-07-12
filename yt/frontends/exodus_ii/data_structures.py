@@ -1,7 +1,8 @@
 import numpy as np
 
 from yt.funcs import \
-    setdefaultattr
+    setdefaultattr, \
+    invalidate_exceptions
 from yt.geometry.unstructured_mesh_handler import \
     UnstructuredIndex
 from yt.data_objects.unstructured_mesh import \
@@ -375,16 +376,12 @@ class ExodusIIDataset(Dataset):
         return mi, ma
 
     @classmethod
+    @invalidate_exceptions(ModuleNotFoundError, ImportError, KeyError)
     def _is_valid(cls, filename, *args, **kwargs):
         warn_netcdf(filename)
-        try:
-            from netCDF4 import Dataset as netCDF4_DS
-            # We use keepweakref here to avoid holding onto the file handle
-            # which can interfere with other is_valid calls.
-            with netCDF4_DS(filename, keepweakref=True) as f:
-                f.variables['connect1']
-            return True
-        except ImportError:
-            return False
-        except Exception:
-            return False
+        from netCDF4 import Dataset as netCDF4_DS
+        # We use keepweakref here to avoid holding onto the file handle
+        # which can interfere with other is_valid calls.
+        with netCDF4_DS(filename, keepweakref=True) as f:
+            f.variables['connect1']
+        return True

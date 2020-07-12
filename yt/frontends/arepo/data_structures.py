@@ -1,5 +1,5 @@
 from yt.frontends.gadget.api import GadgetHDF5Dataset
-from yt.funcs import mylog
+from yt.funcs import mylog, invalidate_exceptions
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import \
@@ -32,19 +32,16 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         self.gamma = 5./3.
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Header', 'Config']
         veto_groups = ['FOF', 'Group', 'Subhalo']
-        try:
-            fh = h5py.File(filename, mode='r')
+        with h5py.File(filename, mode='r') as fh:
             valid = all(ng in fh["/"] for ng in need_groups) and \
                     not any(vg in fh["/"] for vg in veto_groups) and \
                     ("VORONOI" in fh["/Config"].attrs.keys() or
                      "AMR" in fh["/Config"].attrs.keys())
-            fh.close()
-            return valid
-        except Exception:
-            return False
+        return valid
 
     def _get_uvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")

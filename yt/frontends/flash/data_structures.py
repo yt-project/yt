@@ -10,7 +10,8 @@ from yt.data_objects.static_output import \
     validate_index_order
 from yt.funcs import \
     mylog, \
-    setdefaultattr
+    setdefaultattr, \
+    invalidate_exceptions
 from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.geometry.particle_geometry_handler import \
@@ -419,12 +420,10 @@ class FLASHDataset(Dataset):
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
-        try:
-            fileh = HDF5FileHandler(filename)
-            return "bounding box" in fileh["/"].keys()
-        except OSError:
-            return False
+        fileh = HDF5FileHandler(filename)
+        return "bounding box" in fileh["/"].keys()
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -475,14 +474,12 @@ class FLASHParticleDataset(FLASHDataset):
         self.file_count = 1
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         warn_h5py(filename)
-        try:
-            fileh = HDF5FileHandler(filename)
-            return "bounding box" not in fileh["/"].keys() \
-                and "localnp" in fileh["/"].keys()
-        except OSError:
-            return False
+        fileh = HDF5FileHandler(filename)
+        return "bounding box" not in fileh["/"].keys() \
+            and "localnp" in fileh["/"].keys()
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):

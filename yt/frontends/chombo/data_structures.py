@@ -6,7 +6,8 @@ import numpy as np
 
 from yt.funcs import \
     mylog, \
-    setdefaultattr
+    setdefaultattr, \
+    invalidate_exceptions
 from yt.data_objects.grid_patch import \
     AMRGridPatch
 from yt.geometry.grid_geometry_handler import \
@@ -344,6 +345,7 @@ class ChomboDataset(Dataset):
         return R_index - L_index
 
     @classmethod
+    @invalidate_exceptions(Exception)
     def _is_valid(cls, filename, *args, **kwargs):
 
         if not is_chombo_hdf5(filename):
@@ -359,16 +361,12 @@ class ChomboDataset(Dataset):
         orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
 
         if not (pluto_ini_file_exists or orion2_ini_file_exists):
-            try:
-                fileh = h5py.File(filename, mode='r')
+            with h5py.File(filename, mode='r') as fileh:
                 valid = "Chombo_global" in fileh["/"]
                 # ORION2 simulations should always have this:
                 valid = valid and not ('CeilVA_mass' in fileh.attrs.keys())
                 valid = valid and not ('Charm_global' in fileh.keys())
-                fileh.close()
-                return valid
-            except Exception: pass
-        return False
+            return valid
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -634,6 +632,7 @@ class Orion2Dataset(ChomboDataset):
                 self.gamma = np.float64(vals)
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
 
         if not is_chombo_hdf5(filename):
@@ -642,22 +641,18 @@ class Orion2Dataset(ChomboDataset):
         dir_name = os.path.dirname(os.path.abspath(filename))
         pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
         orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
-        pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
-        orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
 
-        if orion2_ini_file_exists:
+        if os.path.isfile(orion2_ini_filename):
             return True
 
-        if not pluto_ini_file_exists:
-            try:
-                fileh = h5py.File(filename, mode='r')
-                valid = 'CeilVA_mass' in fileh.attrs.keys()
-                valid = "Chombo_global" in fileh["/"] and "Charm_global" not in fileh["/"]
-                valid = valid and 'CeilVA_mass' in fileh.attrs.keys()
-                fileh.close()
-                return valid
-            except Exception: pass
-        return False
+        if os.path.isfile(pluto_ini_filename):
+            return False
+
+        with h5py.File(filename, mode='r') as fileh:
+            valid = 'CeilVA_mass' in fileh.attrs.keys()
+            valid = "Chombo_global" in fileh["/"] and "Charm_global" not in fileh["/"]
+            valid = valid and 'CeilVA_mass' in fileh.attrs.keys()
+        return valid
 
 
 class ChomboPICHierarchy(ChomboHierarchy):
@@ -686,6 +681,7 @@ class ChomboPICDataset(ChomboDataset):
             self._field_info_class = ChomboPICFieldInfo2D
 
     @classmethod
+    @invalidate_exceptions(Exception)
     def _is_valid(cls, filename, *args, **kwargs):
 
         warn_h5py(filename)
@@ -700,10 +696,5 @@ class ChomboPICDataset(ChomboDataset):
         if os.path.isfile(pluto_ini_filename) or os.path.isfile(orion2_ini_filename):
             return False
 
-        try:
-            fileh = h5py.File(filename, mode='r')
-            valid = "Charm_global" in fileh["/"]
-            fileh.close()
-            return valid
-        except Exception:
-            return False
+        with h5py.File(filename, mode='r') as fileh:
+            return "Charm_global" in fileh["/"]

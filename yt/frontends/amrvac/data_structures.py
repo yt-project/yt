@@ -26,7 +26,8 @@ from yt.geometry.grid_geometry_handler import \
    GridIndex
 from yt.funcs import \
     mylog, \
-    setdefaultattr
+    setdefaultattr, \
+    invalidate_exceptions
 from yt.data_objects.static_output import \
    Dataset
 from yt.utilities.physical_constants import \
@@ -205,23 +206,22 @@ class AMRVACDataset(Dataset):
         self.refine_by = 2
 
     @classmethod
+    @invalidate_exceptions(Exception)
     def _is_valid(cls, filename, *args, **kwargs):
         """At load time, check whether data is recognized as AMRVAC formatted."""
         # required class method
-        validation = False
-        if filename.endswith(".dat"):
-            try:
-                with open(filename, mode="rb") as istream:
-                    fmt = "=i"
-                    [datfile_version] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
-                    if 3 <= datfile_version < 6:
-                        fmt = "=ii"
-                        offset_tree, offset_blocks = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
-                        istream.seek(0,2)
-                        file_size = istream.tell()
-                        validation = offset_tree < file_size and offset_blocks < file_size
-            except Exception: pass
-        return validation
+        if not filename.endswith(".dat"):
+            return False
+        with open(filename, mode="rb") as istream:
+            fmt = "=i"
+            [datfile_version] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
+            if datfile_version < 3:
+                return False
+            fmt = "=ii"
+            offset_tree, offset_blocks = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
+            istream.seek(0,2)
+            file_size = istream.tell()
+        return offset_tree < file_size and offset_blocks < file_size
 
     def _parse_geometry(self, geometry_tag):
         """Translate AMRVAC's geometry tag to yt's format.

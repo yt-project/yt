@@ -18,7 +18,8 @@ from yt.frontends.halo_catalog.data_structures import \
     HaloCatalogFile
 from yt.funcs import \
     only_on_root, \
-    setdefaultattr
+    setdefaultattr, \
+    invalidate_exceptions
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.cosmology import \
@@ -271,17 +272,15 @@ class GadgetFOFDataset(ParticleDataset):
         return self.basename.split(".", 1)[0]
 
     @classmethod
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Group', 'Header', 'Subhalo']
         veto_groups = ['FOF']
-        try:
-            fh = h5py.File(filename, mode='r')
+
+        with h5py.File(filename, mode='r') as fh:
             valid = all(ng in fh["/"] for ng in need_groups) and \
-              not any(vg in fh["/"] for vg in veto_groups)
-            fh.close()
-            return valid
-        except Exception:
-            return False
+                not any(vg in fh["/"] for vg in veto_groups)
+        return valid
 
 class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
     def __init__(self, ds, dataset_type):
