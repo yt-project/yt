@@ -682,17 +682,15 @@ class BoxlibDataset(Dataset):
         return None
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # fill our args
-        output_dir = args[0]
-        header_filename = os.path.join(output_dir, "Header")
+        header_filename = os.path.join(filename, "Header")
         # boxlib datasets are always directories, and
         # We *know* it's not boxlib if Header doesn't exist.
         return os.path.exists(header_filename)
 
     @classmethod
-    def _lookup_cparam_filepath(cls, *args, **kwargs):
-        output_dir = args[0]
+    def _lookup_cparam_filepath(cls, output_dir, *args, **kwargs):
         iargs = inspect.getcallargs(cls.__init__, args, kwargs)
         lookup_table = [
             os.path.abspath(os.path.join(p, iargs["cparam_filename"]))
@@ -706,14 +704,13 @@ class BoxlibDataset(Dataset):
         return lookup_table[found.index(True)]
 
     @classmethod
-    def _is_valid_subtype(cls, *args, **kwargs):
+    def _is_valid_subtype(cls, output_dir, *args, **kwargs):
         # this is used by derived classes
-        output_dir = args[0]
 
         if not BoxlibDataset._is_valid(output_dir):
             return False
 
-        cparam_filepath = cls._lookup_cparam_filepath(*args, **kwargs)
+        cparam_filepath = cls._lookup_cparam_filepath(output_dir, *args, **kwargs)
         if cparam_filepath is None:
             return False
 
@@ -1068,8 +1065,8 @@ class OrionDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
+    def _is_valid(cls, filename, *args, **kwargs):
+        return cls._is_valid_subtype(filename, *args, **kwargs)
 
 
 class CastroHierarchy(BoxlibHierarchy):
@@ -1123,8 +1120,8 @@ class CastroDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
+    def _is_valid(cls, filename, *args, **kwargs):
+        return cls._is_valid_subtype(filename, *args, **kwargs)
 
     def _parse_parameter_file(self):
         super(CastroDataset, self)._parse_parameter_file()
@@ -1205,8 +1202,8 @@ class MaestroDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
+    def _is_valid(cls, filename, *args, **kwargs):
+        return cls._is_valid_subtype(filename, *args, **kwargs)
 
     def _parse_parameter_file(self):
         super(MaestroDataset, self)._parse_parameter_file()
@@ -1298,8 +1295,8 @@ class NyxDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
+    def _is_valid(cls, filename, *args, **kwargs):
+        return cls._is_valid_subtype(filename, *args, **kwargs)
 
     def _parse_parameter_file(self):
         super(NyxDataset, self)._parse_parameter_file()
@@ -1579,8 +1576,8 @@ class WarpXDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
+    def _is_valid(cls, filename, *args, **kwargs):
+        return cls._is_valid_subtype(filename, *args, **kwargs)
 
     def _parse_parameter_file(self):
         super(WarpXDataset, self)._parse_parameter_file()
@@ -1666,5 +1663,5 @@ class AMReXDataset(BoxlibDataset):
             self.particle_types_raw = self.particle_types
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         return False

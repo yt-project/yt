@@ -607,12 +607,12 @@ class OpenPMDDataset(Dataset):
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """Checks whether the supplied file can be read by this frontend.
         """
-        warn_h5py(args[0])
+        warn_h5py(filename)
         try:
-            with h5py.File(args[0], mode="r") as f:
+            with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
                 for i in opmd_required_attributes:
                     if i not in attrs:
@@ -669,16 +669,16 @@ class OpenPMDGroupBasedDataset(Dataset):
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, filename, *args, **kwargs):
         ret = object.__new__(OpenPMDDatasetSeries)
-        ret.__init__(args[0])
+        ret.__init__(filename)
         return ret
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        warn_h5py(args[0])
+    def _is_valid(cls, filename, *args, **kwargs):
+        warn_h5py(filename)
         try:
-            with h5py.File(args[0], mode="r") as f:
+            with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
                 for i in opmd_required_attributes:
                     if i not in attrs:
