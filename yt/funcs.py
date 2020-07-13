@@ -1302,6 +1302,30 @@ def sglob(pattern):
 def invalidate_exceptions(*known_exceptions):
     """Create a decorator to wrap a boolean function,
     such that if any known exception is raised during function call, False is returned.
+
+    Example
+    -------
+    In the following example, two things can go wrong during file validation:
+    - the file may be missing (will raise OSError)
+    - the file may not be long enough (will raise IndexError)
+
+    The following implementations are equivalent
+
+    >>> @invalidate_exceptions(OSError, IndexError)
+    ... def _is_valid(filename):
+    ...    with open(filename) as fileh:
+    ...        valid = fileh.readlines()[999] == "myformat"
+    ...    return valid
+
+    ... def _is_valid(filename):
+    ...    try:
+    ...        with open(filename) as fileh:
+    ...            valid = fileh.readlines()[999] == "myformat"
+    ...        return valid
+    ...    except (OSError, IndexError):
+    ...        return False
+
+    
     """
     # this is designed to decorate _is_valid implementations in Dataset children classes
     known_exceptions = tuple(*ensure_list(known_exceptions))

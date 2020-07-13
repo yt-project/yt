@@ -141,4 +141,8 @@ class SkeletonDataset(Dataset):
         # differentiate the frontend from others. Sometimes this means looking
         # for specific fields or attributes in the dataset in addition to
         # looking at the file name or extension.
+        #
+        # Note that you can wrap wrap this method into a try block with the
+        # @invalidate_exceptions decorator (from yt.funcs)
+        # so that False is returned in case any known exception occurs.
         return False
