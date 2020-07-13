@@ -6,7 +6,7 @@ from contextlib import contextmanager
 from yt.funcs import invalidate_exceptions
 
 @invalidate_exceptions(IsADirectoryError)
-def valid_hdf5_signature(fn):
+def is_valid_hdf5(fn):
     signature = b'\x89HDF\r\n\x1a\n'
     with open(fn, 'rb') as f:
         header = f.read(8)
@@ -14,7 +14,7 @@ def valid_hdf5_signature(fn):
 
 
 def warn_h5py(fn):
-    needs_h5py = valid_hdf5_signature(fn)
+    needs_h5py = is_valid_hdf5(fn)
     if needs_h5py and isinstance(h5py.File, NotAModule):
         raise RuntimeError("This appears to be an HDF5 file, "
                            "but h5py is not installed.")
@@ -60,7 +60,7 @@ def find_primary_header(fileh):
     return header, first_image
 
 
-def is_fits_valid(filename):
+def is_valid_fits(filename):
     ext = filename.rsplit(".", 1)[-1]
     if ext.upper() in ("GZ", "FZ"):
         # We don't know for sure that there will be > 1
@@ -100,23 +100,21 @@ class FITSFileHandler(HDF5FileHandler):
         self.handle.close()
 
 
-def valid_netcdf_classic_signature(filename):
+@invalidate_exceptions(IsADirectoryError)
+def is_valid_netcdf(filename):
     signature_v1 = b'CDF\x01'
     signature_v2 = b'CDF\x02'
-    try:
-        with open(filename, 'rb') as f:
-            header = f.read(4)
-            return (header == signature_v1 or header == signature_v2)
-    except Exception:
-        return False
+    with open(filename, 'rb') as f:
+        header = f.read(4)
+        return (header == signature_v1 or header == signature_v2)
 
 
 def warn_netcdf(fn):
     # There are a few variants of the netCDF format.
-    classic = valid_netcdf_classic_signature(fn)
+    classic = is_valid_netcdf(fn)
     # NetCDF-4 Classic files are HDF5 files constrained to the Classic
     # data model used by netCDF-3.
-    netcdf4_classic = valid_hdf5_signature(fn) and fn.endswith(('.nc', '.nc4'))
+    netcdf4_classic = is_valid_hdf5(fn) and fn.endswith(('.nc', '.nc4'))
     needs_netcdf = classic or netcdf4_classic
     from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
     if needs_netcdf and isinstance(netCDF4.Dataset, NotAModule):

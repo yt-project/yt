@@ -25,7 +25,7 @@ from yt.data_objects.static_output import \
 from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import YTQuantity
 from yt.utilities.file_handler import \
-    FITSFileHandler, is_fits_valid, find_primary_header
+    FITSFileHandler, is_valid_fits, find_primary_header
 from yt.utilities.io_handler import \
     io_registry
 from .fields import FITSFieldInfo, \
@@ -260,7 +260,7 @@ class FITSHierarchy(GridIndex):
 
 @invalidate_exceptions(ImportError)
 def is_sky_coords(filename, ndim):
-    if not is_fits_valid(filename):
+    if not is_valid_fits(filename):
         return False
     with _astropy.open(filename) as fileh:
         if len(fileh) > 1 and fileh[1].name == "EVENTS" and ndim == 2:
@@ -479,7 +479,7 @@ class FITSDataset(Dataset):
     @classmethod
     @invalidate_exceptions(ImportError)
     def _is_valid(cls, filename, *args, **kwargs):
-        return is_fits_valid(filename)
+        return is_valid_fits(filename)
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -557,7 +557,7 @@ class YTFITSDataset(FITSDataset):
     @classmethod
     @invalidate_exceptions(ImportError)
     def _is_valid(cls, filename, *args, **kwargs):
-        if not is_fits_valid(filename):
+        if not is_valid_fits(filename):
             return False
         with _astropy.open(filename) as fileh:
             if "WCSNAME" in fileh[0].header:
@@ -813,7 +813,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
     @classmethod
     @invalidate_exceptions(ImportError)
     def _is_valid(cls, filename, *args, **kwargs):
-        if not is_fits_valid(filename):
+        if not is_valid_fits(filename):
             return False
         with _astropy.open(filename) as fileh:
             return fileh[1].name == "EVENTS"
