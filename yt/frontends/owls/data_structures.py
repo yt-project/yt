@@ -36,7 +36,7 @@ class OWLSDataset(GadgetHDF5Dataset):
 
 
     @classmethod
-    @invalidate_exceptions(Exception)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Constants', 'Header', 'Parameters', 'Units']
         veto_groups = ['SUBFIND', 'FOF',
@@ -54,8 +54,7 @@ class OWLSDataset(GadgetHDF5Dataset):
                     valid_files.append(fname)
             if len(valid_files) != 1:
                 valid = False
-            else:
-                valid_fname = valid_files[0]
+            valid_fname = valid_files[0]
 
         fileh = h5py.File(valid_fname, mode='r')
         for ng in need_groups:

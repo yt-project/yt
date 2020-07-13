@@ -13,7 +13,7 @@ class GizmoDataset(GadgetHDF5Dataset):
     _field_info_class = GizmoFieldInfo
 
     @classmethod
-    @invalidate_exceptions(Exception)
+    @invalidate_exceptions(ImportError, OSError, KeyError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Header']
         veto_groups = ['FOF', 'Group', 'Subhalo']

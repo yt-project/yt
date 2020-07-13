@@ -206,7 +206,7 @@ class AMRVACDataset(Dataset):
         self.refine_by = 2
 
     @classmethod
-    @invalidate_exceptions(Exception)
+    @invalidate_exceptions(OSError, TypeError)
     def _is_valid(cls, filename, *args, **kwargs):
         """At load time, check whether data is recognized as AMRVAC formatted."""
         # required class method

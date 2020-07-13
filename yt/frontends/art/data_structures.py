@@ -366,7 +366,7 @@ class ARTDataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    @invalidate_exceptions(Exception)
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
@@ -621,22 +621,19 @@ class DarkMatterARTDataset(ARTDataset):
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = ("%s" % filename)
         prefix, suffix = filename_pattern['particle_data']
-        if not f.endswith(suffix) or "s0" not in f:
+        if not filename.endswith(suffix) or "s0" not in filename:
             # ATOMIC.DAT, for instance, passes the other tests, but then dies
             # during _find_files because it can't be split.
             return False
 
-        with open(f, 'rb') as fh:
-            try:
-                amr_prefix, amr_suffix = filename_pattern['amr']
-                possibles = glob.glob(os.path.dirname(os.path.abspath(f))+"/*")
-                for possible in possibles:
-                    if possible.endswith(amr_suffix):
-                        if os.path.basename(possible).startswith(amr_prefix):
-                            return False
-            except Exception: pass
+        with open(filename, 'rb') as fh:
+            amr_prefix, amr_suffix = filename_pattern['amr']
+            for c in glob.glob(os.path.dirname(os.path.abspath(filename))+"/*"):
+                cname = os.path.basename(c)
+                if cname.endswith(amr_suffix) and cname.startswith(amr_prefix):
+                    return False
+            print("boh")
             try:
                 seek = 4
                 fh.seek(seek)
@@ -667,7 +664,7 @@ class DarkMatterARTDataset(ARTDataset):
                 extras = np.fromfile(fh, count=79, dtype='>f4')  # NOQA
                 boxsize = np.fromfile(fh, count=1, dtype='>f4')  # NOQA
                 return True
-            except Exception:
+            except UnicodeDecodeError:
                 return False
         return False
 
