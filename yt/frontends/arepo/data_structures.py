@@ -32,7 +32,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         self.gamma = 5./3.
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Header', 'Config']
         veto_groups = ['FOF', 'Group', 'Subhalo']

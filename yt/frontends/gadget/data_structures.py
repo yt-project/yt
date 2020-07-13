@@ -15,6 +15,7 @@ from yt.utilities.cosmology import \
     Cosmology
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
+from yt.funcs import invalidate_exceptions
 
 from .definitions import \
     gadget_header_specs, \
@@ -614,22 +615,13 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.specific_energy_unit = self.quan(specific_energy_unit_cgs, '(cm/s)**2')
 
     @classmethod
+    @invalidate_exceptions(ImportError, OSError, KeyError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Header']
         veto_groups = ['FOF', 'Group', 'Subhalo']
         valid = True
-        try:
-            fh = h5py.File(filename, mode='r')
+        with h5py.File(filename, mode='r') as fh:
             valid = all(ng in fh["/"] for ng in need_groups) and \
-                not any(vg in fh["/"] for vg in veto_groups)
-            fh.close()
-        except Exception:
-            valid = False
-
-        try:
-            fh = h5py.File(filename, mode='r')
-            valid = fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
-            fh.close()
-            return valid
-        except (OSError, KeyError):
-            return False
+                    not any(vg in fh["/"] for vg in veto_groups)
+            valid = valid and fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
+        return valid

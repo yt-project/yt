@@ -345,28 +345,25 @@ class ChomboDataset(Dataset):
         return R_index - L_index
 
     @classmethod
-    @invalidate_exceptions(Exception)
+    @invalidate_exceptions(ImportError)
     def _is_valid(cls, filename, *args, **kwargs):
 
         if not is_chombo_hdf5(filename):
             return False
 
-        pluto_ini_file_exists = False
-        orion2_ini_file_exists = False
-
         dir_name = os.path.dirname(os.path.abspath(filename))
         pluto_ini_filename = os.path.join(dir_name, "pluto.ini")
         orion2_ini_filename = os.path.join(dir_name, "orion2.ini")
-        pluto_ini_file_exists = os.path.isfile(pluto_ini_filename)
-        orion2_ini_file_exists = os.path.isfile(orion2_ini_filename)
 
-        if not (pluto_ini_file_exists or orion2_ini_file_exists):
-            with h5py.File(filename, mode='r') as fileh:
-                valid = "Chombo_global" in fileh["/"]
-                # ORION2 simulations should always have this:
-                valid = valid and not ('CeilVA_mass' in fileh.attrs.keys())
-                valid = valid and not ('Charm_global' in fileh.keys())
-            return valid
+        if os.path.isfile(pluto_ini_filename) or os.path.isfile(orion2_ini_filename):
+            return False
+
+        with h5py.File(filename, mode='r') as fileh:
+            valid = "Chombo_global" in fileh["/"]
+            # ORION2 simulations should always have this:
+            valid = valid and not ('CeilVA_mass' in fileh.attrs.keys())
+            valid = valid and not ('Charm_global' in fileh.keys())
+        return valid
 
     @parallel_root_only
     def print_key_parameters(self):

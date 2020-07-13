@@ -376,7 +376,7 @@ class ExodusIIDataset(Dataset):
         return mi, ma
 
     @classmethod
-    @invalidate_exceptions(ModuleNotFoundError, ImportError, KeyError)
+    @invalidate_exceptions(ImportError, OSError, KeyError)
     def _is_valid(cls, filename, *args, **kwargs):
         warn_netcdf(filename)
         from netCDF4 import Dataset as netCDF4_DS

@@ -845,7 +845,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.wcs_2d = self.wcs
 
     @classmethod
-    @invalidate_exceptions(TypeError, AttributeError)
+    @invalidate_exceptions(TypeError, IndexError, AttributeError)
     def _is_valid(cls, filename, *args, **kwargs):
         fileh = check_fits_valid(filename)
         valid = fileh[1].name == "EVENTS"

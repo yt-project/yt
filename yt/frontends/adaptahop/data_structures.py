@@ -102,8 +102,7 @@ class AdaptaHOPDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        fname = os.path.split(filename)[1]
-        return fname.startswith('tree_bricks') and re.match('^tree_bricks\d{3}$', fname)
+        return re.match('^tree_bricks\d{3}$', os.path.split(filename)[1])
 
     def halo(self, halo_id, ptype='DM'):
         """
