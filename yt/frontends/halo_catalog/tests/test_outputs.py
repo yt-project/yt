@@ -3,7 +3,7 @@ import numpy as np
 from yt.convenience import \
     load as yt_load
 from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogDataset
+    YTHaloCatalogDataset
 from yt.frontends.ytdata.utilities import \
     save_as_dataset
 from yt.testing import \
@@ -57,7 +57,7 @@ class HaloCatalogTest(TempDirTest):
         fn = fake_halo_catalog(data)
         ds = yt_load(fn)
 
-        assert isinstance(ds, HaloCatalogDataset)
+        assert isinstance(ds, YTHaloCatalogDataset)
 
         for field in fields:
             f1 = data[field].in_base()
@@ -90,7 +90,7 @@ class HaloCatalogTest(TempDirTest):
         fn = fake_halo_catalog(data)
         ds = yt_load(fn)
 
-        assert isinstance(ds, HaloCatalogDataset)
+        assert isinstance(ds, YTHaloCatalogDataset)
 
         for field in ["particle_mass"]:
             f1 = data[field].in_base()

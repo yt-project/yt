@@ -17,13 +17,15 @@ _particle_fields = (
     ("virial_radius", (r_units, [], "Virial Radius")),
 )
 
-class HaloCatalogFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
+class YTHaloCatalogFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+    )
 
     known_particle_fields = _particle_fields
 
-class HaloCatalogHaloFieldInfo(FieldInfoContainer):
-    known_other_fields = ()
+class YTHaloCatalogHaloFieldInfo(FieldInfoContainer):
+    known_other_fields = (
+    )
 
     known_particle_fields = _particle_fields + \
       (

@@ -1,3 +1,8 @@
-from .data_structures import HaloCatalogDataset
-from .fields import HaloCatalogFieldInfo
-from .io import IOHandlerHaloCatalogHDF5
+from .data_structures import \
+     YTHaloCatalogDataset
+
+from .io import \
+     IOHandlerYTHaloCatalog
+
+from .fields import \
+     YTHaloCatalogFieldInfo
