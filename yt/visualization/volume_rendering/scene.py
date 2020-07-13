@@ -207,7 +207,7 @@ class Scene:
         >>> sc.save(sigma_clip=4.0,render=False)
 
         Altneratively, if you do not need the image array, you can just call
-        save as follows. 
+        save as follows.
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
@@ -229,7 +229,7 @@ class Scene:
     def save(self, fname=None, sigma_clip=None, render=True):
         r"""Saves the most recently rendered image of the Scene to disk.
 
-        Once you have created a scene, this saves that image array to disk with
+        Once you have created a scene, this saves an image array to disk with
         an optional filename. This function calls render() to generate an
         image array, unless the render parameter is set to False, in which case
         the most recently rendered scene is used if it exists.
