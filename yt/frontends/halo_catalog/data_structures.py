@@ -306,8 +306,8 @@ class HaloDatasetParticleIndex(HaloCatalogParticleIndex):
 
 class HaloCatalogHaloParticleIndex(HaloDatasetParticleIndex):
     def _setup_data_io(self):
+        self.total_particles = self.ds.real_ds.index.total_particles
         super(HaloCatalogHaloParticleIndex, self)._setup_data_io()
-        self._setup_filenames()
 
     def _read_halo_particle_field(self, fh, ptype, field, indices):
         return fh[field][indices]
