@@ -1,16 +1,16 @@
+import warnings
 from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.on_demand_imports import _astropy as astropy
 from yt.utilities.on_demand_imports import NotAModule
 from contextlib import contextmanager
+from yt.funcs import invalidate_exceptions
 
-
+@invalidate_exceptions(IsADirectoryError)
 def valid_hdf5_signature(fn):
     signature = b'\x89HDF\r\n\x1a\n'
-    try:
-        with open(fn, 'rb') as f:
-            header = f.read(8)
-            return header == signature
-    except Exception:
-        return False
+    with open(fn, 'rb') as f:
+        header = f.read(8)
+    return header == signature
 
 
 def warn_h5py(fn):
@@ -49,6 +49,32 @@ class HDF5FileHandler:
         if self.handle is not None:
             self.handle.close()
 
+
+def find_primary_header(fileh):
+    # Sometimes the primary hdu doesn't have an image
+    if len(fileh) > 1 and fileh[0].header["naxis"] == 0:
+        first_image = 1
+    else:
+        first_image = 0
+    header = fileh[first_image].header
+    return header, first_image
+
+
+def is_fits_valid(filename):
+    ext = filename.rsplit(".", 1)[-1]
+    if ext.upper() in ("GZ", "FZ"):
+        # We don't know for sure that there will be > 1
+        ext = filename.rsplit(".", 1)[0].rsplit(".", 1)[-1]
+    if ext.upper() not in ("FITS", "FTS"):
+        return False
+
+    with warnings.catch_warnings():
+        warnings.filterwarnings('ignore', category=UserWarning, append=True)
+
+        #try...
+        with astropy.pyfits.open(filename) as fileh:
+            header, _ = find_primary_header(fileh)
+            return header["naxis"] >= 2
 
 class FITSFileHandler(HDF5FileHandler):
     def __init__(self, filename):

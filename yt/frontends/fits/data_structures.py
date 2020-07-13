@@ -25,7 +25,7 @@ from yt.data_objects.static_output import \
 from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import YTQuantity
 from yt.utilities.file_handler import \
-    FITSFileHandler
+    FITSFileHandler, is_fits_valid, find_primary_header
 from yt.utilities.io_handler import \
     io_registry
 from .fields import FITSFieldInfo, \
@@ -37,8 +37,7 @@ from yt.units import dimensions
 from yt.units.unit_lookup_table import \
     default_unit_symbol_lut, \
     unit_prefixes
-from yt.utilities.on_demand_imports import \
-    _astropy, NotAModule
+from yt.utilities.on_demand_imports import _astropy
 
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]
@@ -257,58 +256,26 @@ class FITSHierarchy(GridIndex):
                               cache = cache)
 
 
-def find_primary_header(fileh):
-    # Sometimes the primary hdu doesn't have an image
-    if len(fileh) > 1 and fileh[0].header["naxis"] == 0:
-        first_image = 1
-    else:
-        first_image = 0
-    header = fileh[first_image].header
-    return header, first_image
 
 
-def check_fits_valid(filename):
-    ext = filename.rsplit(".", 1)[-1]
-    if ext.upper() in ("GZ", "FZ"):
-        # We don't know for sure that there will be > 1
-        ext = filename.rsplit(".", 1)[0].rsplit(".", 1)[-1]
-    if ext.upper() not in ("FITS", "FTS"):
-        return None
-    elif isinstance(_astropy.pyfits, NotAModule):
-        raise RuntimeError("This appears to be a FITS file, but AstroPy is not installed.")
-    try:
-        with warnings.catch_warnings():
-            warnings.filterwarnings('ignore', category=UserWarning, append=True)
-            fileh = _astropy.pyfits.open(filename)
-        header, _ = find_primary_header(fileh)
-        if header["naxis"] >= 2:
-            return fileh
-        else:
-            fileh.close()
-    except Exception:
-        pass
-
-
-def check_sky_coords(filename, ndim):
-    try:
-        fileh = check_fits_valid(filename)
+@invalidate_exceptions(ImportError)
+def is_sky_coords(filename, ndim):
+    if not is_fits_valid(filename):
+        return False
+    with _astropy.open(filename) as fileh:
         if len(fileh) > 1 and fileh[1].name == "EVENTS" and ndim == 2:
-            fileh.close()
             return True
 
         header, _ = find_primary_header(fileh)
         if header["naxis"] < ndim:
             return False
 
-        axis_names = [header.get("ctype%d" % (i + 1), "")
-                        for i in range(header["naxis"])]
-        if len(axis_names) == 3 and axis_names.count("LINEAR") == 2:
-            return any(a[0] in spec_prefixes for a in axis_names)
-        x = find_axes(axis_names, sky_prefixes + spec_prefixes)
-        fileh.close()
-        return x >= ndim
-    except Exception:
-        return False
+    axis_names = [header.get("ctype%d" % (i + 1), "")
+                    for i in range(header["naxis"])]
+    if len(axis_names) == 3 and axis_names.count("LINEAR") == 2:
+        return any(a[0] in spec_prefixes for a in axis_names)
+    x = find_axes(axis_names, sky_prefixes + spec_prefixes)
+    return x >= ndim
 
 
 class FITSDataset(Dataset):
@@ -510,11 +477,9 @@ class FITSDataset(Dataset):
         self.lon_name = "X"
 
     @classmethod
-    @invalidate_exceptions(AttributeError)
+    @invalidate_exceptions(ImportError)
     def _is_valid(cls, filename, *args, **kwargs):
-        fileh = check_fits_valid(filename)
-        fileh.close()
-        return True
+        return is_fits_valid(filename)
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -590,15 +555,16 @@ class YTFITSDataset(FITSDataset):
         self.domain_right_edge = domain_right_edge
 
     @classmethod
-    @invalidate_exceptions(TypeError, OSError)
+    @invalidate_exceptions(ImportError)
     def _is_valid(cls, filename, *args, **kwargs):
-        fileh = check_fits_valid(filename)
-        if "WCSNAME" in fileh[0].header:
-            isyt = fileh[0].header["WCSNAME"].strip() == "yt"
-        else:
-            isyt = False
-        fileh.close()
-        return isyt
+        if not is_fits_valid(filename):
+            return False
+        with _astropy.open(filename) as fileh:
+            if "WCSNAME" in fileh[0].header:
+                valid = fileh[0].header["WCSNAME"].strip() == "yt"
+            else:
+                valid = False
+        return valid
 
 
 class SkyDataFITSDataset(FITSDataset):
@@ -661,7 +627,7 @@ class SkyDataFITSDataset(FITSDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        return check_sky_coords(filename, ndim=2)
+        return is_sky_coords(filename, ndim=2)
 
 
 class SpectralCubeFITSHierarchy(FITSHierarchy):
@@ -758,7 +724,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        return check_sky_coords(filename, ndim=3)
+        return is_sky_coords(filename, ndim=3)
 
 
 class EventsFITSHierarchy(FITSHierarchy):
@@ -845,9 +811,9 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.wcs_2d = self.wcs
 
     @classmethod
-    @invalidate_exceptions(TypeError, IndexError, AttributeError)
+    @invalidate_exceptions(ImportError)
     def _is_valid(cls, filename, *args, **kwargs):
-        fileh = check_fits_valid(filename)
-        valid = fileh[1].name == "EVENTS"
-        fileh.close()
-        return valid
+        if not is_fits_valid(filename):
+            return False
+        with _astropy.open(filename) as fileh:
+            return fileh[1].name == "EVENTS"
