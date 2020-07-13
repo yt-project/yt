@@ -117,7 +117,11 @@ class AHFHalosDataset(Dataset):
         if not filename.endswith('.parameter'):
             return False
         with open(filename, 'r') as f:
-            return f.readlines()[11].startswith('AHF')
+            i = 0
+            while i < 11:
+                f.readline()
+                i += 1
+            return f.readline().startswith('AHF')
 
     # Helper methods
 
