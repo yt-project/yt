@@ -43,7 +43,6 @@ class OWLSDataset(GadgetHDF5Dataset):
                        'PartType0/ChemistryAbundances', 
                        'PartType0/ChemicalAbundances',
                        'RuntimePars', 'HashTable']
-        valid = True
         valid_fname = filename
         # If passed arg is a directory, look for the .0 file in that dir
         if os.path.isdir(filename):
@@ -52,16 +51,10 @@ class OWLSDataset(GadgetHDF5Dataset):
                 fname = os.path.join(filename, f)
                 if ('.0' in f) and ('.ewah' not in f) and os.path.isfile(fname):
                     valid_files.append(fname)
-            if len(valid_files) != 1:
-                valid = False
-            valid_fname = valid_files[0]
+            if len(valid_files) == 1:
+                valid_fname = valid_files[0]
 
-        fileh = h5py.File(valid_fname, mode='r')
-        for ng in need_groups:
-            if ng not in fileh["/"]:
-                valid = False
-        for vg in veto_groups:
-            if vg in fileh["/"]:
-                valid = False                    
-        fileh.close()
+        with h5py.File(valid_fname, mode='r') as fileh:
+            valid = all(ng in fileh["/"] for ng in need_groups)
+            valid = valid and not any(vg in fileh["/"] for vg in veto_groups)
         return valid
