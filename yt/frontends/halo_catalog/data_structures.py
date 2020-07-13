@@ -340,7 +340,7 @@ class YTHaloDataset(HaloDataset):
     _file_class = YTHaloCatalogFile
     _field_info_class = YTHaloCatalogHaloFieldInfo
 
-    def __init__(self, ds, dataset_type="ythalocatalog_halo"):
+    def __init__(self, ds, dataset_type="ythalo"):
         super(YTHaloDataset, self).__init__(ds, dataset_type)
 
 class HaloContainer(YTSelectionContainer):

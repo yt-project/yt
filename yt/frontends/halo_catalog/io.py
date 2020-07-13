@@ -166,8 +166,8 @@ class HaloDatasetIOHandler():
             rv[field_f] = rv[field_f][:ind[field_f]]
         return rv
 
-class IOHandlerYTHaloCatalogHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
-    _dataset_type = "ythalocatalog_halo"
+class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
+    _dataset_type = "ythalo"
 
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, mode="r") as f:
