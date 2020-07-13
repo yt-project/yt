@@ -145,4 +145,7 @@ class SkeletonDataset(Dataset):
         # Note that you can wrap wrap this method into a try block with the
         # @invalidate_exceptions decorator (from yt.funcs)
         # so that False is returned in case any known exception occurs.
+        #
+        # It can be safely assumed "filename" matches an existing file or directory
+        # since yt.load() checks for that ahead of format validation.
         return False

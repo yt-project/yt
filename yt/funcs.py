@@ -1306,23 +1306,25 @@ def invalidate_exceptions(*known_exceptions):
     Example
     -------
     In the following example, two things can go wrong during file validation:
-    - the file may be missing (will raise OSError)
+    - h5py may not be installed (will raise ImportError)
     - the file may not be long enough (will raise IndexError)
 
     The following implementations are equivalent
 
-    >>> @invalidate_exceptions(OSError, IndexError)
+    >>> @invalidate_exceptions(ImportError, IndexError)
     ... def _is_valid(filename):
-    ...    with open(filename) as fileh:
+    ...    import h5py
+    ...    with h5py.File(filename, mode="r") as fileh:
     ...        valid = fileh.readlines()[999] == "myformat"
     ...    return valid
 
     ... def _is_valid(filename):
     ...    try:
-    ...        with open(filename) as fileh:
+    ...        import h5py
+    ...        with h5py.File(filename, mode="r") as fileh:
     ...            valid = fileh.readlines()[999] == "myformat"
     ...        return valid
-    ...    except (OSError, IndexError):
+    ...    except (ImportError, IndexError):
     ...        return False
 
     """
