@@ -14,8 +14,8 @@ from yt.utilities.io_handler import \
 from yt.utilities.lib.geometry_utils import compute_morton
 
 
-class IOHandlerHaloCatalogHDF5(BaseIOHandler):
-    _dataset_type = "halocatalog_hdf5"
+class IOHandlerYTHaloCatalog(BaseIOHandler):
+    _dataset_type = "ythalocatalog"
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -170,8 +170,8 @@ class HaloDatasetIOHandler():
             rv[field_f] = rv[field_f][:ind[field_f]]
         return rv
 
-class IOHandlerHaloCatalogHaloHDF5(HaloDatasetIOHandler, IOHandlerHaloCatalogHDF5):
-    _dataset_type = "halo_catalog_halo_hdf5"
+class IOHandlerYTHaloCatalogHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
+    _dataset_type = "ythalocatalog_halo"
 
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, mode="r") as f:

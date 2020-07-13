@@ -6,8 +6,8 @@ import numpy as np
 import weakref
 
 from .fields import \
-    HaloCatalogFieldInfo, \
-    HaloCatalogHaloFieldInfo
+    YTHaloCatalogFieldInfo, \
+    YTHaloCatalogHaloFieldInfo
 
 from yt.data_objects.data_containers import \
     YTSelectionContainer
@@ -24,9 +24,15 @@ from yt.data_objects.static_output import \
     validate_index_order
 
 class HaloCatalogFile(ParticleFile):
-    def __init__(self, ds, io, filename, file_id, range):
+    """
+    Base class for data files of halo catalog datasets.
+
+    This is mainly here to correct for periodicity when
+    reading particle positions.
+    """
+    def __init__(self, ds, io, filename, file_id, frange):
         super(HaloCatalogFile, self).__init__(
-            ds, io, filename, file_id, range)
+            ds, io, filename, file_id, frange)
 
     def _read_particle_positions(self, ptype, f=None):
         raise NotImplementedError
@@ -50,16 +56,19 @@ class HaloCatalogFile(ParticleFile):
 
         return pos
 
-class HaloCatalogHDF5File(HaloCatalogFile):
-    def __init__(self, ds, io, filename, file_id, range):
+class YTHaloCatalogFile(HaloCatalogFile):
+    """
+    Data file class for the YTHaloCatalogDataset.
+    """
+    def __init__(self, ds, io, filename, file_id, frange):
         with h5py.File(filename, mode="r") as f:
             self.header = dict((field, parse_h5_attr(f, field)) \
                                for field in f.attrs.keys())
             pids = f.get('particles/ids')
             self.total_ids = 0 if pids is None else pids.size
             self.group_length_sum = self.total_ids
-        super(HaloCatalogHDF5File, self).__init__(
-            ds, io, filename, file_id, range)
+        super(YTHaloCatalogFile, self).__init__(
+            ds, io, filename, file_id, frange)
 
     def _read_particle_positions(self, ptype, f=None):
         """
@@ -82,25 +91,25 @@ class HaloCatalogHDF5File(HaloCatalogFile):
 
         return pos
 
-class HaloCatalogDataset(SavedDataset):
+class YTHaloCatalogDataset(SavedDataset):
     _index_class = ParticleIndex
-    _file_class = HaloCatalogHDF5File
-    _field_info_class = HaloCatalogFieldInfo
+    _file_class = YTHaloCatalogFile
+    _field_info_class = YTHaloCatalogFieldInfo
     _suffix = ".h5"
     _con_attrs = ("cosmological_simulation",
                   "current_time", "current_redshift",
                   "hubble_constant", "omega_matter", "omega_lambda",
                   "domain_left_edge", "domain_right_edge")
 
-    def __init__(self, filename, dataset_type="halocatalog_hdf5",
+    def __init__(self, filename, dataset_type="ythalocatalog",
                  index_order=None, units_override=None, unit_system="cgs"):
         self.index_order = validate_index_order(index_order)
-        super(HaloCatalogDataset, self).__init__(filename, dataset_type,
+        super(YTHaloCatalogDataset, self).__init__(filename, dataset_type,
                                                  units_override=units_override,
                                                  unit_system=unit_system)
 
     def add_field(self, *args, **kwargs):
-        super(HaloCatalogDataset, self).add_field(*args, **kwargs)
+        super(YTHaloCatalogDataset, self).add_field(*args, **kwargs)
         self._halos_ds.add_field(*args, **kwargs)
 
     @property
@@ -119,8 +128,8 @@ class HaloCatalogDataset(SavedDataset):
         return self._instantiated_halo_ds
 
     def _setup_classes(self):
-        super(HaloCatalogDataset, self)._setup_classes()
-        self.halo = partial(HaloCatalogHaloContainer, ds=self._halos_ds)
+        super(YTHaloCatalogDataset, self)._setup_classes()
+        self.halo = partial(YTHaloCatalogHaloContainer, ds=self._halos_ds)
 
     def _parse_parameter_file(self):
         self.refine_by = 2
@@ -132,7 +141,7 @@ class HaloCatalogDataset(SavedDataset):
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
         self.particle_types = ("halos",)
         self.particle_types_raw = ("halos",)
-        super(HaloCatalogDataset, self)._parse_parameter_file()
+        super(YTHaloCatalogDataset, self)._parse_parameter_file()
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -332,10 +341,10 @@ class HaloDataset(ParticleDataset):
 
 class HaloCatalogHaloDataset(HaloDataset):
     _index_class = HaloCatalogHaloParticleIndex
-    _file_class = HaloCatalogHDF5File
-    _field_info_class = HaloCatalogHaloFieldInfo
+    _file_class = YTHaloCatalogFile
+    _field_info_class = YTHaloCatalogHaloFieldInfo
 
-    def __init__(self, ds, dataset_type="halo_catalog_halo_hdf5"):
+    def __init__(self, ds, dataset_type="ythalocatalog_halo"):
         super(HaloCatalogHaloDataset, self).__init__(ds, dataset_type)
 
 class HaloContainer(YTSelectionContainer):
@@ -478,7 +487,7 @@ class HaloContainer(YTSelectionContainer):
         return "%s_%s_%09d" % \
           (self.ds, self.ptype, self.particle_identifier)
 
-class HaloCatalogHaloContainer(HaloContainer):
+class YTHaloCatalogHaloContainer(HaloContainer):
     def _get_member_fieldnames(self):
         return ['particle_number', 'particle_index_start']
 

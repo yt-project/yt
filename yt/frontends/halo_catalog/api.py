@@ -1,8 +1,8 @@
 from .data_structures import \
-     HaloCatalogDataset
+     YTHaloCatalogDataset
 
 from .io import \
-     IOHandlerHaloCatalogHDF5
+     IOHandlerYTHaloCatalog
 
 from .fields import \
-     HaloCatalogFieldInfo
+     YTHaloCatalogFieldInfo

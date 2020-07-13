@@ -318,10 +318,10 @@ Halo Catalogs
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHaloHDF5
    ~yt.frontends.gadget_fof.fields.GadgetFOFFieldInfo
    ~yt.frontends.gadget_fof.fields.GadgetFOFHaloFieldInfo
-   ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
-   ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
-   ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
-   ~yt.frontends.halo_catalog.io.IOHandlerHaloCatalogHDF5
+   ~yt.frontends.halo_catalog.data_structures.YTHaloCatalogFile
+   ~yt.frontends.halo_catalog.data_structures.YTHaloCatalogDataset
+   ~yt.frontends.halo_catalog.fields.YTHaloCatalogFieldInfo
+   ~yt.frontends.halo_catalog.io.IOHandlerYTHaloCatalog
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindParticleIndex
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindHDF5File
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindDataset
