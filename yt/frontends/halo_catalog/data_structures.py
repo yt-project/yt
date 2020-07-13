@@ -275,27 +275,18 @@ class HaloDatasetParticleIndex(HaloCatalogParticleIndex):
         return fields_to_return, fields_to_generate
 
     def _setup_geometry(self):
-        self._setup_data_io()
-
         if self.real_ds._instantiated_index is None:
-            template = self.real_ds.filename_template
-            ndoms = self.real_ds.file_count
-            cls = self.real_ds._file_class
-            self.data_files = \
-              [cls(self.dataset, self.io, template % {'num':i}, i, None)
-               for i in range(ndoms)]
-        else:
-            self.data_files = self.real_ds.index.data_files
+            self.real_ds.index
+
+        # inherit some things from parent index
+        for attr in ['data_files', 'total_particles']:
+            setattr(self, attr, getattr(self.real_ds.index, attr))
 
         self._calculate_particle_index_starts()
         self._calculate_particle_count()
         self._create_halo_id_table()
 
 class HaloCatalogHaloParticleIndex(HaloDatasetParticleIndex):
-    def _setup_data_io(self):
-        self.total_particles = self.ds.real_ds.index.total_particles
-        super(HaloCatalogHaloParticleIndex, self)._setup_data_io()
-
     def _read_halo_particle_field(self, fh, ptype, field, indices):
         return fh[field][indices]
 
