@@ -3,16 +3,12 @@ from collections import \
 import numpy as np
 
 from yt.funcs import \
-    mylog, \
     parse_h5_attr
 from yt.units.yt_array import \
     uvstack
 from yt.utilities.on_demand_imports import _h5py as h5py
-from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import \
     BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
-
 
 class IOHandlerYTHaloCatalog(BaseIOHandler):
     _dataset_type = "ythalocatalog"
