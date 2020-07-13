@@ -633,7 +633,6 @@ class DarkMatterARTDataset(ARTDataset):
                 cname = os.path.basename(c)
                 if cname.endswith(amr_suffix) and cname.startswith(amr_prefix):
                     return False
-            print("boh")
             try:
                 seek = 4
                 fh.seek(seek)
