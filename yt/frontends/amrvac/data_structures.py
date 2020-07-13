@@ -206,21 +206,18 @@ class AMRVACDataset(Dataset):
         self.refine_by = 2
 
     @classmethod
-    @invalidate_exceptions(OSError, TypeError)
+    @invalidate_exceptions(OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         """At load time, check whether data is recognized as AMRVAC formatted."""
         # required class method
         if not filename.endswith(".dat"):
             return False
-        with open(filename, mode="rb") as istream:
-            fmt = "=i"
-            [datfile_version] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
-            if datfile_version < 3:
-                return False
-            fmt = "=ii"
-            offset_tree, offset_blocks = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
-            istream.seek(0,2)
-            file_size = istream.tell()
+        with open(filename, mode="rb") as fileh:
+            fmt = "=iii"
+            size = struct.calcsize(fmt)
+            _, offset_tree, offset_blocks = struct.unpack(fmt, fileh.read(size))
+            fileh.seek(0, 2)
+            file_size = fileh.tell()
         return offset_tree < file_size and offset_blocks < file_size
 
     def _parse_geometry(self, geometry_tag):
