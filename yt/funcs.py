@@ -1325,7 +1325,6 @@ def invalidate_exceptions(*known_exceptions):
     ...    except (OSError, IndexError):
     ...        return False
 
-    
     """
     # this is designed to decorate _is_valid implementations in Dataset children classes
     known_exceptions = tuple(*ensure_list(known_exceptions))

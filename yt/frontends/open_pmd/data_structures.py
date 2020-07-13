@@ -16,8 +16,7 @@ from yt.frontends.open_pmd.misc import \
     get_component
 from yt.funcs import setdefaultattr, invalidate_exceptions
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.file_handler import HDF5FileHandler, \
-    warn_h5py
+from yt.utilities.file_handler import HDF5FileHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5
 
@@ -534,11 +533,10 @@ class OpenPMDDataset(Dataset):
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         """Checks whether the supplied file can be read by this frontend.
         """
-        warn_h5py(filename)
         with h5.File(filename, "r") as f:
             attrs = list(f["/"].attrs.keys())
             for i in opmd_required_attributes:
@@ -593,9 +591,8 @@ class OpenPMDGroupBasedDataset(Dataset):
         return ret
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
-        warn_h5py(filename)
         with h5.File(filename, "r") as f:
             attrs = list(f["/"].attrs.keys())
             for i in opmd_required_attributes:

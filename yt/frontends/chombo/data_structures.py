@@ -15,8 +15,8 @@ from yt.geometry.grid_geometry_handler import \
 from yt.data_objects.static_output import \
     Dataset
 from yt.utilities.file_handler import \
-    HDF5FileHandler, \
-    warn_h5py
+    HDF5FileHandler
+
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_root_only
 from yt.utilities.lib.misc_utilities import \
@@ -496,6 +496,7 @@ class PlutoDataset(ChomboDataset):
         self._determine_current_time()
 
     @classmethod
+    @invalidate_exceptions(ImportError)
     def _is_valid(cls, filename, *args, **kwargs):
 
         if not is_chombo_hdf5(filename):
@@ -629,7 +630,7 @@ class Orion2Dataset(ChomboDataset):
                 self.gamma = np.float64(vals)
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
 
         if not is_chombo_hdf5(filename):
@@ -678,10 +679,8 @@ class ChomboPICDataset(ChomboDataset):
             self._field_info_class = ChomboPICFieldInfo2D
 
     @classmethod
-    @invalidate_exceptions(Exception)
+    @invalidate_exceptions(ImportError)
     def _is_valid(cls, filename, *args, **kwargs):
-
-        warn_h5py(filename)
 
         if not is_chombo_hdf5(filename):
             return False

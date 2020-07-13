@@ -3,6 +3,7 @@ import os
 # Named imports
 from yt.config import ytcfg
 from yt.funcs import mylog
+from yt.utilities.file_handler import warn_h5py
 from yt.utilities.parameter_file_storage import \
     output_type_registry, \
     simulation_time_series_registry
@@ -42,6 +43,9 @@ def load(fn, *args, **kwargs):
 
     yt.utilities.exceptions.YTOutputNotIdentified
         If fn matches existing files or directories with undetermined format.
+
+    RuntimeError
+        from warn_h5py
     """
     fn = os.path.expanduser(fn)
 
@@ -59,6 +63,8 @@ def load(fn, *args, **kwargs):
             if os.path.exists(data_dir):
                 msg += "\n(Also tried %s)" % alt_fn
             raise OSError(msg)
+
+    warn_h5py(fn)
 
     candidates = []
     for cls in output_type_registry.values():

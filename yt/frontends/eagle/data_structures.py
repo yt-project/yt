@@ -39,7 +39,7 @@ class EagleDataset(GadgetHDF5Dataset):
         self._set_owls_eagle_units()
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Config', 'Constants', 'HashTable', 'Header', 
                        'Parameters', 'RuntimePars', 'Units']
@@ -62,7 +62,7 @@ class EagleNetworkDataset(EagleDataset):
     _time_readin = 'Time'
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         with h5py.File(filename, mode='r') as fileh:
             return "Constants" in fileh["/"].keys() and \

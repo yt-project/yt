@@ -164,7 +164,7 @@ class SwiftDataset(SPHDataset):
         return
 
     @classmethod
-    @invalidate_exceptions(OSError, KeyError)
+    @invalidate_exceptions(ImportError, OSError, KeyError)
     def _is_valid(cls, filename, *args, **kwargs):
         """
         Checks to see if the file is a valid output from SWIFT.

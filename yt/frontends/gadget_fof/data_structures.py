@@ -272,7 +272,7 @@ class GadgetFOFDataset(ParticleDataset):
         return self.basename.split(".", 1)[0]
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ['Group', 'Header', 'Subhalo']
         veto_groups = ['FOF']

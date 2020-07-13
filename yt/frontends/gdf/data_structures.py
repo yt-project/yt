@@ -277,7 +277,7 @@ class GDFDataset(Dataset):
         del self._handle
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         with h5py.File(filename, mode='r') as fileh:
             return "gridded_data_format" in fileh

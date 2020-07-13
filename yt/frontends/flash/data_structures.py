@@ -17,8 +17,7 @@ from yt.geometry.grid_geometry_handler import \
 from yt.geometry.particle_geometry_handler import \
     ParticleIndex
 from yt.utilities.file_handler import \
-    HDF5FileHandler, \
-    warn_h5py
+    HDF5FileHandler
 from yt.utilities.physical_ratios import cm_per_mpc
 from .fields import FLASHFieldInfo
 
@@ -420,7 +419,7 @@ class FLASHDataset(Dataset):
                 self.hubble_constant = self.cosmological_simulation = 0.0
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
         fileh = HDF5FileHandler(filename)
         return "bounding box" in fileh["/"].keys()
@@ -474,9 +473,8 @@ class FLASHParticleDataset(FLASHDataset):
         self.file_count = 1
 
     @classmethod
-    @invalidate_exceptions(OSError)
+    @invalidate_exceptions(ImportError, OSError)
     def _is_valid(cls, filename, *args, **kwargs):
-        warn_h5py(filename)
         fileh = HDF5FileHandler(filename)
         return "bounding box" not in fileh["/"].keys() \
             and "localnp" in fileh["/"].keys()
