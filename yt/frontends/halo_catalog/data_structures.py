@@ -236,13 +236,7 @@ class YTHaloParticleIndex(ParticleIndex):
     def _get_halo_values(self, ptype, identifiers, fields,
                          f=None):
         """
-        Get field values for halos.  IDs are likely to be
-        sequential (or at least monotonic), but not necessarily
-        all within the same file.
-
-        This does not do much to minimize file i/o, but with
-        halos randomly distributed across files, there's not
-        much more we can do.
+        Get field values for halo data containers.
         """
 
         # if a file is already open, don't open it again
