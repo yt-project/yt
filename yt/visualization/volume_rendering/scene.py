@@ -204,6 +204,16 @@ class Scene:
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> im = sc.render()
+        >>> sc.save(sigma_clip=4.0,render=False)
+
+        Altneratively, if you do not need the image array, you can just call
+        save as follows. 
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> # Modify camera, sources, etc...
         >>> sc.save(sigma_clip=4.0)
 
         """
@@ -216,13 +226,13 @@ class Scene:
         self._last_render = bmp
         return bmp
 
-    def save(self, fname=None, sigma_clip=None):
+    def save(self, fname=None, sigma_clip=None, render=True):
         r"""Saves the most recently rendered image of the Scene to disk.
 
-        Once you have created a scene and rendered that scene to an image
-        array, this saves that image array to disk with an optional filename.
-        If an image has not yet been rendered for the current scene object,
-        it forces one and writes it out.
+        Once you have created a scene, this saves that image array to disk with
+        an optional filename. This function calls render() to generate an
+        image array, unless the render parameter is set to False, in which case
+        the most recently rendered scene is used if it exists.
 
         Parameters
         ----------
@@ -239,6 +249,10 @@ class Scene:
             Default: None
 
             floor(vals > std_dev*sigma_clip + mean)
+        render: boolean, optional
+            If True, will always render the scene before saving.
+            If False, will use results of previous render if it exists.
+            Default: True
 
         Returns
         -------
@@ -252,10 +266,11 @@ class Scene:
         >>>
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
-        >>> sc.render()
         >>> sc.save('test.png', sigma_clip=4)
 
-        Or alternatively:
+        When saving multiple images without modifying the scene (camera,
+        sources,etc.), render=False can be used to avoid re-rendering.
+        This is useful for generating images at a range of sigma_clip values:
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
@@ -263,8 +278,8 @@ class Scene:
         >>> sc = yt.create_scene(ds)
         >>> # save with different sigma clipping values
         >>> sc.save('raw.png')
-        >>> sc.save('clipped_2.png', sigma_clip=2)
-        >>> sc.save('clipped_4.png', sigma_clip=4)
+        >>> sc.save('clipped_2.png', sigma_clip=2, render=False)
+        >>> sc.save('clipped_4.png', sigma_clip=4, render=False)
 
         """
         if fname is None:
@@ -287,7 +302,11 @@ class Scene:
             suffix = ".png"
             fname = "%s%s" % (fname, suffix)
 
-        self.render()
+        # in most cases we want to render every time, but in some cases pulling
+        # the previous render is desirable (e.g., if only changing sigma_clip or
+        # saving after a call to sc.show()).
+        if render or hasattr(self,'_last_render') is False:
+            self.render()
 
         mylog.info("Saving render %s", fname)
         # We can render pngs natively but for other formats we defer to
@@ -320,9 +339,9 @@ class Scene:
             ax.imshow(np.rot90(out), origin="lower")
             canvas.print_figure(fname, dpi=100)
 
-    def save_annotated(
-        self, fname=None, label_fmt=None, text_annotate=None, dpi=100, sigma_clip=None
-    ):
+    def save_annotated(self, fname=None, label_fmt=None,
+                       text_annotate=None, dpi=100, sigma_clip=None,
+                       render=True):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
         text.
@@ -360,7 +379,10 @@ class Scene:
            function.
 
            Each item in the main list is a separate string to write.
-
+        render: boolean, optional
+            If True, will always render the scene before saving.
+            If False, will use results of previous render if it exists.
+            Default: True
 
         Returns
         -------
@@ -407,7 +429,8 @@ class Scene:
             suffix = ".png"
             fname = "%s%s" % (fname, suffix)
 
-        self.render()
+        if render or hasattr(self,'_last_render') is False:
+            self.render()
 
         # which transfer function?
         rs = rensources[0]
