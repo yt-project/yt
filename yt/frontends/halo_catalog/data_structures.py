@@ -92,6 +92,12 @@ class YTHaloCatalogFile(HaloCatalogFile):
         return pos
 
 class YTHaloCatalogDataset(SavedDataset):
+    """
+    Dataset class for halo catalogs made with yt.
+
+    This covers yt FoF/HoP halo finders and the halo analysis
+    in yt_astro_analysis.
+    """
     _index_class = ParticleIndex
     _file_class = YTHaloCatalogFile
     _field_info_class = YTHaloCatalogFieldInfo
@@ -124,12 +130,13 @@ class YTHaloCatalogDataset(SavedDataset):
     @property
     def _halos_ds(self):
         if self._instantiated_halo_ds is None:
-            self._instantiated_halo_ds = HaloCatalogHaloDataset(self)
+            self._instantiated_halo_ds = YTHaloDataset(self)
         return self._instantiated_halo_ds
 
     def _setup_classes(self):
         super(YTHaloCatalogDataset, self)._setup_classes()
         self.halo = partial(YTHaloCatalogHaloContainer, ds=self._halos_ds)
+        self.halo.__doc__ = YTHaloCatalogHaloContainer.__doc__
 
     def _parse_parameter_file(self):
         self.refine_by = 2
@@ -152,18 +159,14 @@ class YTHaloCatalogDataset(SavedDataset):
                 return True
         return False
 
-class HaloCatalogParticleIndex(ParticleIndex):
+class YTHaloParticleIndex(ParticleIndex):
     """
-    Base class for halo catalog datasets.
+    Particle index for getting halo particles from YTHaloCatalogDatasets.
     """
 
-    def _calculate_particle_count(self):
-        """
-        Calculate the total number of each type of particle.
-        """
-        self.particle_count = \
-          dict([(ptype, sum([d.total_particles[ptype] for d in self.data_files]))
-                 for ptype in self.ds.particle_types_raw])
+    def __init__(self, ds, dataset_type):
+        self.real_ds = weakref.proxy(ds.real_ds)
+        super(YTHaloParticleIndex, self).__init__(ds, dataset_type)
 
     def _calculate_particle_index_starts(self):
         """
@@ -184,15 +187,6 @@ class HaloCatalogParticleIndex(ParticleIndex):
                                   for data_file in self.data_files]))
                 for ptype in self.ds.particle_types_raw])
 
-class HaloDatasetParticleIndex(HaloCatalogParticleIndex):
-    """
-    Base class for particle index objects that read halo member particles.
-    """
-
-    def __init__(self, ds, dataset_type):
-        self.real_ds = weakref.proxy(ds.real_ds)
-        super(HaloDatasetParticleIndex, self).__init__(ds, dataset_type)
-
     def _create_halo_id_table(self):
         pass
 
@@ -200,10 +194,11 @@ class HaloDatasetParticleIndex(HaloCatalogParticleIndex):
         field_list = []
         scalar_field_list = []
         units = {}
-        found_fields = \
-          dict([(ptype, False)
-                for ptype, pnum in self.particle_count.items()
-                if pnum > 0])
+        pc = dict([(ptype, sum([d.total_particles[ptype]
+                                for d in self.data_files]))
+                    for ptype in self.ds.particle_types_raw])
+        found_fields = dict([(ptype, False) for ptype, pnum in pc.items()
+                             if pnum > 0])
         has_ids = False
 
         for data_file in self.data_files:
@@ -274,6 +269,9 @@ class HaloDatasetParticleIndex(HaloCatalogParticleIndex):
     def _identify_base_chunk(self, dobj):
         pass
 
+    def _read_halo_particle_field(self, fh, ptype, field, indices):
+        return fh[field][indices]
+
     def _read_particle_fields(self, fields, dobj, chunk = None):
         if len(fields) == 0: return {}, []
         fields_to_read, fields_to_generate = self._split_fields(fields)
@@ -283,7 +281,8 @@ class HaloDatasetParticleIndex(HaloCatalogParticleIndex):
             dobj, fields_to_read)
         return fields_to_return, fields_to_generate
 
-    def _setup_geometry(self):
+    def _setup_data_io(self):
+        super(YTHaloParticleIndex, self)._setup_data_io()
         if self.real_ds._instantiated_index is None:
             self.real_ds.index
 
@@ -292,14 +291,13 @@ class HaloDatasetParticleIndex(HaloCatalogParticleIndex):
             setattr(self, attr, getattr(self.real_ds.index, attr))
 
         self._calculate_particle_index_starts()
-        self._calculate_particle_count()
         self._create_halo_id_table()
 
-class HaloCatalogHaloParticleIndex(HaloDatasetParticleIndex):
-    def _read_halo_particle_field(self, fh, ptype, field, indices):
-        return fh[field][indices]
-
 class HaloDataset(ParticleDataset):
+    """
+    Base class for dataset accessing particles from halo catalogs.
+    """
+
     def __init__(self, ds, dataset_type):
         self.real_ds = ds
         for attr in ['filename_template', 'file_count',
@@ -339,84 +337,21 @@ class HaloDataset(ParticleDataset):
     def _setup_classes(self):
         self.objects = []
 
-class HaloCatalogHaloDataset(HaloDataset):
-    _index_class = HaloCatalogHaloParticleIndex
+class YTHaloDataset(HaloDataset):
+    """
+    Dataset used for accessing member particles from YTHaloCatalogDatasets.
+    """
+
+    _index_class = YTHaloParticleIndex
     _file_class = YTHaloCatalogFile
     _field_info_class = YTHaloCatalogHaloFieldInfo
 
     def __init__(self, ds, dataset_type="ythalocatalog_halo"):
-        super(HaloCatalogHaloDataset, self).__init__(ds, dataset_type)
+        super(YTHaloDataset, self).__init__(ds, dataset_type)
 
 class HaloContainer(YTSelectionContainer):
     """
-    Create a data container to get member particles and individual
-    values from halos and subhalos. Halo mass, position, and
-    velocity are set as attributes. Halo IDs are accessible
-    through the field, "member_ids".  Other fields that are one
-    value per halo are accessible as normal.  The field list for
-    halo objects can be seen in `ds.halos_field_list`.
-
-    Parameters
-    ----------
-    ptype : string
-        The type of halo. Possible options can be found by
-        inspecting the value of ds.particle_types_raw.
-    particle_identifier : int or tuple of ints
-        The halo or subhalo id.  If requesting a subhalo, the id
-        can also be given as a tuple of the main halo id and
-        subgroup id, such as (1, 4) for subgroup 4 of halo 1.
-
-    Attributes
-    ----------
-    particle_identifier : int
-        The id of the halo or subhalo.
-    group_identifier : int
-        For subhalos, the id of the enclosing halo.
-    subgroup_identifier : int
-        For subhalos, the relative id of the subhalo within
-        the enclosing halo.
-    particle_number : int
-        Number of particles in the halo.
-    mass : float
-        Halo mass.
-    position : array of floats
-        Halo position.
-    velocity : array of floats
-        Halo velocity.
-
-    Note
-    ----
-    Relevant Fields:
-
-     * particle_number - number of particles
-     * subhalo_number - number of subhalos
-     * group_identifier - id of parent group for subhalos
-
-    Examples
-    --------
-
-    >>> import yt
-    >>> ds = yt.load("gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5")
-    >>>
-    >>> halo = ds.halo("Group", 0)
-    >>> print(halo.mass)
-    13256.5517578 code_mass
-    >>> print(halo.position)
-    [ 16.18603706   6.95965052  12.52694607] code_length
-    >>> print(halo.velocity)
-    [ 6943694.22793569  -762788.90647454  -794749.63819757] cm/s
-    >>> print(halo["Group_R_Crit200"])
-    [ 0.79668683] code_length
-    >>>
-    >>> # particle ids for this halo
-    >>> print(halo["member_ids"])
-    [  723631.   690744.   854212. ...,   608589.   905551.  1147449.] dimensionless
-    >>>
-    >>> # get the first subhalo of this halo
-    >>> subhalo = ds.halo("Subhalo", (0, 0))
-    >>> print(subhalo["member_ids"])
-    [  723631.   690744.   854212. ...,   808362.   956359.  1248821.] dimensionless
-
+    Base class for data containers providing halo particles.
     """
 
     _type_name = "halo"
@@ -461,6 +396,13 @@ class HaloContainer(YTSelectionContainer):
             self._mass = self[self.ptype, "particle_mass"][0]
         return self._mass
 
+    _radius = None
+    @property
+    def radius(self):
+        if self._radius is None:
+            self._radius = self[self.ptype, "virial_radius"][0]
+        return self._radius
+
     _position = None
     @property
     def position(self):
@@ -488,6 +430,48 @@ class HaloContainer(YTSelectionContainer):
           (self.ds, self.ptype, self.particle_identifier)
 
 class YTHaloCatalogHaloContainer(HaloContainer):
+    """
+    Data container for accessing particles from a halo.
+
+    Create a data container to get member particles and individual
+    values from halos and subhalos. Halo mass, radius, position, and
+    velocity are set as attributes. Halo IDs are accessible
+    through the field, "member_ids".  Other fields that are one
+    value per halo are accessible as normal.  The field list for
+    halo objects can be seen in `ds.halos_field_list`.
+
+    Parameters
+    ----------
+    ptype : string
+        The type of halo. Possible options can be found by
+        inspecting the value of ds.particle_types_raw.
+    particle_identifier : int
+        The halo id.
+
+    Examples
+    --------
+
+    >>> import yt
+    >>> ds = yt.load("tiny_fof_halos/DD0046/DD0046.0.h5")
+    >>>
+    >>> halo = ds.halo("halos", 0)
+    >>> print(halo.particle_identifier)
+    0
+    >>> print(halo.mass)
+    8724990744704.453 Msun
+    >>> print (halo.radius)
+    658.8140635766607 kpc
+    >>> print(halo.position)
+    [0.05496909 0.19451951 0.04056824] code_length
+    >>> print(halo.velocity)
+    [7034181.07118151 5323471.09102874 3234522.50495914] cm/s
+    >>> # particle ids for this halo
+    >>> print(halo["member_ids"])
+    [ 1248.   129.   128. 31999. 31969. 31933. 31934.   159. 31903. 31841. ...
+      2241.  2240.  2239.  2177.  2209.  2207.  2208.] dimensionless
+
+    """
+
     def _get_member_fieldnames(self):
         return ['particle_number', 'particle_index_start']
 
