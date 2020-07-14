@@ -1,3 +1,5 @@
+from os import path
+from pathlib import Path
 from copy import deepcopy
 from os import path
 
@@ -9,6 +11,10 @@ test_dir = path.dirname(path.abspath(__file__))
 blast_wave_parfile = path.join(test_dir, "sample_parfiles/bw_3d.par")
 modifier_parfile = path.join(test_dir, "sample_parfiles/tvdlf_scheme.par")
 
+
+@requires_module("f90nml")
+def test_read_pathlike():
+    read_amrvac_namelist(Path(blast_wave_parfile))
 
 @requires_module("f90nml")
 def test_read_one_file():

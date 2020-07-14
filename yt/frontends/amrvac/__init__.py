@@ -1,12 +1,6 @@
-"""
-API for yt.frontends.amrvac
-
-
-
-"""
-
-
+import os
 from yt.utilities.on_demand_imports import _f90nml as f90nml
+from yt.funcs import ensure_list
 
 
 def read_amrvac_namelist(parfiles):
@@ -27,10 +21,7 @@ def read_amrvac_namelist(parfiles):
         A single namelist object. The class inherits from ordereddict.
 
     """
-    # typechecking
-    if isinstance(parfiles, str):
-        parfiles = [parfiles]
-    assert all([isinstance(pf, str) for pf in parfiles])
+    parfiles = [os.path.expanduser(pf) for pf in ensure_list(parfiles)]
 
     # first merge the namelists
     namelists = [f90nml.read(parfile) for parfile in parfiles]
