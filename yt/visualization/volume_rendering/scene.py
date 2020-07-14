@@ -277,7 +277,7 @@ class Scene:
         >>>
         >>> sc = yt.create_scene(ds)
         >>> # save with different sigma clipping values
-        >>> sc.save('raw.png')
+        >>> sc.save('raw.png')  # The initial render call happens here
         >>> sc.save('clipped_2.png', sigma_clip=2, render=False)
         >>> sc.save('clipped_4.png', sigma_clip=4, render=False)
 
