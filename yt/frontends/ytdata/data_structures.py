@@ -72,6 +72,11 @@ class SavedDataset(Dataset):
                     except ValueError:
                         # support older ytdata outputs
                         v = v.astype('str')
+                    except NameError:
+                        # This is the most common error we expect, and it
+                        # results from having the eval do a concatenated decoded
+                        # set of the values.
+                        v = [_.decode('utf8') for _ in v]
                 self.parameters[key] = v
             self._with_parameter_file_open(f)
 
