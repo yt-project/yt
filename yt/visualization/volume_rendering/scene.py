@@ -380,7 +380,7 @@ class Scene:
 
            Each item in the main list is a separate string to write.
         render: boolean, optional
-            If True, will always render the scene before saving.
+            If True, will render the scene before saving.
             If False, will use results of previous render if it exists.
             Default: True
 
