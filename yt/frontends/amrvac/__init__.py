@@ -1,6 +1,7 @@
 import os
-from yt.utilities.on_demand_imports import _f90nml as f90nml
+
 from yt.funcs import ensure_list
+from yt.utilities.on_demand_imports import _f90nml as f90nml
 
 
 def read_amrvac_namelist(parfiles):
