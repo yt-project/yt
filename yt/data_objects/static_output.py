@@ -894,47 +894,41 @@ class Dataset(metaclass=RegisteredDataset):
         obj.__doc__ = base.__doc__
         setattr(self, name, obj)
 
-    def find_max(self, field):
+    def _find_extremum(self, field, ext, source=None, to_array=True):
+        ext = ext.lower()
+        if source is None:
+            source = self.all_data()
+        method = {
+            "min": source.quantities.min_location,
+            "max": source.quantities.max_location,
+        }[ext]
+        val, x1, x2, x3 = method(field)
+        coords = [x1, x2, x3]
+        mylog.info("%s value is %0.5e at %0.16f %0.16f %0.16f", ext, val, *coords)
+        if to_array:
+            # This is a hack to fix the fact that some non-cartesian datasets have
+            # dimensionless quantities, and we can't yet handle that.
+            alt_coords = []
+            for x in coords:
+                alt_coords.append(
+                    self.quan(x.v, "code_length") if x.units.is_dimensionless else x
+                )
+            coords = self.arr(alt_coords, dtype="float64").to("code_length")
+        return val, coords
+
+    def find_max(self, field, source=None, to_array=True):
         """
         Returns (value, location) of the maximum of a given field.
         """
         mylog.debug("Searching for maximum value of %s", field)
-        source = self.all_data()
-        max_val, mx, my, mz = source.quantities.max_location(field)
-        # This is a hack to fix the fact that some non-cartesian datasets have
-        # dimensionless quantities, and we can't yet handle that.
-        if mx.units.is_dimensionless:
-            mx = self.quan(mx.v, "code_length")
-        if my.units.is_dimensionless:
-            my = self.quan(my.v, "code_length")
-        if mz.units.is_dimensionless:
-            mz = self.quan(mz.v, "code_length")
-        center = self.arr([mx, my, mz], dtype="float64").to("code_length")
-        mylog.info(
-            "Max Value is %0.5e at %0.16f %0.16f %0.16f",
-            max_val,
-            center[0],
-            center[1],
-            center[2],
-        )
-        return max_val, center
+        return self._find_extremum(field, "max", source=source, to_array=to_array)
 
-    def find_min(self, field):
+    def find_min(self, field, source=None, to_array=True):
         """
         Returns (value, location) for the minimum of a given field.
         """
         mylog.debug("Searching for minimum value of %s", field)
-        source = self.all_data()
-        min_val, mx, my, mz = source.quantities.min_location(field)
-        center = self.arr([mx, my, mz], dtype="float64").to("code_length")
-        mylog.info(
-            "Min Value is %0.5e at %0.16f %0.16f %0.16f",
-            min_val,
-            center[0],
-            center[1],
-            center[2],
-        )
-        return min_val, center
+        return self._find_extremum(field, "min", source=source, to_array=to_array)
 
     def find_field_values_at_point(self, fields, coords):
         """
