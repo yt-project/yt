@@ -269,7 +269,7 @@ class Scene:
         >>> sc.save('test.png', sigma_clip=4)
 
         When saving multiple images without modifying the scene (camera,
-        sources,etc.), render=False can be used to avoid re-rendering.
+        sources,etc.), render=False can be used to avoid re-rendering when a scene is saved.
         This is useful for generating images at a range of sigma_clip values:
 
         >>> import yt
