@@ -20,11 +20,15 @@ from yt.utilities.answer_testing import utils
 
 
 # Global variables can be added to the pytest namespace
-answer_files = {}
+# if this is not done (i.e., just using answer_files = {}), then
+# the dictionary is empty come pytest configuration time and
+# setting each class' answer_file attribute
+pytest.answer_files = {}
 
 # List of answer files
-answer_file_list = 'tests/tests.yaml'
+answer_file_list = 'tests/tests_pytest.yaml'
 answer_dir = os.path.join(ytcfg.get('yt', 'test_data_dir'), 'answers')
+array_dir = os.path.join(answer_dir, 'raw_arrays')
 
 
 def pytest_addoption(parser):
@@ -34,20 +38,29 @@ def pytest_addoption(parser):
     parser.addoption(
         "--with-answer-testing",
         action="store_true",
-        default=False,
     )
     parser.addoption(
         "--answer-store",
         action="store_true",
-        default=False,
     )
     parser.addoption(
         "--answer-big-data",
         action="store_true",
-        default=False,
     )
     parser.addoption(
-        "--save-answer-arrays",
+        "--answer-raw-arrays",
+        action="store_true",
+    )
+    parser.addoption(
+        "--raw-answer-store",
+        action="store_true",
+    )
+    parser.addoption(
+        "--force-overwrite",
+        action="store_true",
+    )
+    parser.addoption(
+        "--no-hash",
         action="store_true",
     )
 
@@ -61,10 +74,12 @@ def pytest_configure(config):
     # Make sure that the answers dir exists. If not, try to make it
     if not os.path.isdir(answer_dir):
         os.mkdir(answer_dir)
+    if not os.path.isdir(array_dir):
+        os.mkdir(array_dir)
     # Read the list of answer test classes and their associated answer
     # file
     with open(answer_file_list, 'r') as f:
-        answer_files = yaml.safe_load(f)
+        pytest.answer_files = yaml.safe_load(f)
     # Register custom marks for answer tests and big data
     config.addinivalue_line('markers', 'answer_test: Run the answer tests.')
     config.addinivalue_line('markers', 'big_data: Run answer tests that require'
@@ -142,20 +157,59 @@ def answer_file(request):
         >>>     def test1(self):
                     ...
     """
-    if request.cls.__name__ in answer_files:
-        answer_file = answer_files[request.cls.__name__]
-        # Make sure we're not overwriting an existing answer set
-        if os.path.isfile(os.path.join(answer_dir, answer_file)):
-            if request.config.getoption('--answer-store'):
-                raise FileExistsError("Error, attempting to overwrite "
-                    "answer file {}. Either specify a new version or "
-                    "set the `--force-override-answers` option".format(
-                        answer_file
-                    )
-                )
-    else:
-        assert False
+    # See if the class being tested is one we know about
+    try:
+        answer_file, raw_answer_file  = pytest.answer_files[request.cls.__name__]
+        answer_file = os.path.join(answer_dir, answer_file)
+        raw_answer_file = os.path.join(array_dir, raw_answer_file)
+    except KeyError:
+        raise KeyError("Answer file: `{}` not found in list: `{}`.".format(
+            request.config.__name__, answer_file_list))
+    except ValueError:
+        raise ValueError("Either no hashed answer file name or no raw "
+            "answer file name given for: `{}` in: `{}`.".format(
+            request.cls.__name__, answer_file_list))
+    no_hash = request.config.getoption("--no-hash")
+    answer_store = request.config.getoption("--answer-store")
+    answer_raw_arrays = request.config.getoption("--answer-raw-arrays")
+    raw_answer_store = request.config.getoption("--raw-answer-store")
+    force_overwrite = request.config.getoption("--force-overwrite")
+    # If we're saving answers, make sure answer file doesn't already exist
+    # unless force-overwrite is enabled. Only need to check if that type of
+    # answer file is under consideration (e.g., we don't need to check the
+    # hash answer files if the user wants to only save raw answer data)
+    if not no_hash:
+        if answer_store and os.path.isfile(answer_file):
+            if not force_overwrite:
+                raise FileExistsError("Attempting to overwrite existing answer " +
+                "file: `{}`. If you're sure about this, use the `--force-overwrite` " +
+                "option.".format(answer_file))
+        # If we're comparing new and old answers, first make sure that the
+        # file containing the old answers exists so we don't waste time running
+        # all the tests only to find we have nothing to compare to
+        elif not answer_store and not os.path.isfile(answer_file):
+            raise FileNotFoundError("Cannot find `{}` containing gold " +
+                "answers.".format(answer_file))
+    # Now do the same thing as above but for the raw arrays
+    if answer_raw_arrays:
+        if raw_answer_store and os.path.isfile(raw_answer_file):
+            if not force_overwrite:
+                raise FileExistsError("Attempting to overwrite existing answer " +
+                "file: `{}`. If you're sure about this, use the `--force-overwrite` " +
+                "option.".format(raw_answer_file))
+        elif not raw_answer_store and not os.path.isfile(raw_answer_file):
+            raise FileNotFoundError("Cannot find `{}` containing gold " +
+                "answers.".format(raw_answer_file))
+    # If the file exists and we are using the force-overwrite option, then
+    # we need to delete the existing file, otherwise it will get appended
+    # to and this will mess everything up, including with group name conflicts
+    # in h5py when saving raw arrays
+    if not no_hash and answer_store and os.path.isfile(answer_file) and force_overwrite:
+        os.remove(answer_file)
+    if answer_raw_arrays and raw_answer_store and os.path.isfile(raw_answer_file) and force_overwrite:
+        os.remove(raw_answer_file)
     request.cls.answer_file = answer_file
+    request.cls.raw_answer_file = raw_answer_file
 
 
 def _param_list(request):
@@ -163,18 +217,13 @@ def _param_list(request):
     Saves the non-ds, non-fixture function arguments for saving to
     the answer file.
     """
+    # pytest treats parameterized arguments as fixtures, so there's no
+    # clean way to separate them out from other other fixtures (that I
+    # know of), so we do it explicitly
+    blacklist = ['hashing', 'answer_file', 'request']
     test_params = {}
-    func = request.node.function
-    # co_varnames is all of the variable names local to the function
-    # starting with self, then the passed args, then the vars defined
-    # in the function body. This excludes fixture names
-    args = func.__code__.co_varnames[1:func.__code__.co_argcount]
-    # funcargs includes the names and values of all arguments, including
-    # fixtures, so we use args to weed out the fixtures. Need to have
-    # special treatment of the data files loaded in fixtures for the
-    # frontends
     for key, val in request.node.funcargs.items():
-        if key in args and not key.startswith('ds_'):
+        if key not in blacklist and not key.startswith('ds'):
             test_params[key] = val
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
@@ -247,10 +296,21 @@ def hashing(request):
     # Add the function name as the "master" key to the hashes dict
     hashes = {request.node.name : hashes}
     # Either save or compare
-    utils._handle_hashes(answer_dir, request.cls.answer_file, hashes,
-        request.config.getoption('--answer-store'))
-    if request.config.getoption('--save-answer-arrays'):
+    if not request.config.getoption("--no-hash"):
+        utils._handle_hashes(request.cls.answer_file, hashes,
+            request.config.getoption('--answer-store'))
+    if request.config.getoption('--answer-raw-arrays'):
         # answer_file has .yaml appended to it, but here we're saving
         # the arrays as .npy files, so we remove the .yaml extension
-        utils._save_arrays(answer_dir, request.cls.answer_file.split('.')[0],
-            request.cls.hashes, request.config.getoption('--answer-store'))
+        utils._handle_raw_arrays(request.cls.raw_answer_file,
+            request.cls.hashes, request.config.getoption('--raw-answer-store'),
+            request.node.name)
+
+
+@pytest.fixture(scope='class')
+def ds(request):
+    dataset = utils.data_dir_load(request.param)
+    if dataset:
+        return dataset
+    else:
+        pytest.skip(f"Data file: `{request.param}` not found.")

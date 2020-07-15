@@ -1,0 +1,55 @@
+TestEnzo:
+    - enzo_answers_000.yaml
+    - enzo_answers_raw_000.h5
+
+TestEnzoP:
+    - enzo_p_answers_000.yaml
+    - enzo_p_answers_raw_000.h5
+
+TestBoxLib:
+    - boxlib_answers_000.yaml
+    - boxlib_answers_raw_000.h5
+
+TestAthenaPP:
+    - athenapp_answers_000.yaml
+    - athenapp_answers_raw_000.h5
+
+TestAMRVac:
+    - amrvac_answers_000.yaml
+    - amrvac_answers_raw_000.h5
+
+TestChombo:
+    - chombo_answers_000.yaml
+    - chombo_answers_raw_000.h5
+
+TestFits:
+    - fits_answers_000.yaml
+    - fits_answers_raw_000.h5
+
+TestGDF:
+    - gdf_answers_000.yaml
+    - gdf_answers_raw_000.h5
+
+TestFlash:
+    - flash_answers_000.yaml
+    - flash_answers_raw_000.h5
+
+TestAthena:
+    - athena_answers_000.yaml
+    - athena_answers_raw_000.h5
+
+TestGamer:
+    - gamer_answers_000.yaml
+    - gamer_answers_raw_000.h5
+
+TestYTData:
+    - ytdata_answers_000.yaml
+    - ytdata_answers_raw_000.h5
+
+TestArt:
+    - art_answers_000.yaml
+    - art_answers_raw_000.h5
+
+TestAHF:
+    - ahf_answers_000.yaml
+    - ahf_answers_raw_000.h5
