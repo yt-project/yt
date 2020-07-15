@@ -16,6 +16,7 @@ riemann_cartesian_175D = "amrvac/R_1d0005.dat"
 blastwave_cartesian_3D = "amrvac/bw_3d0000.dat"
 blastwave_polar_2D = "amrvac/bw_polar_2D0000.dat"
 blastwave_cylindrical_3D = "amrvac/bw_cylindrical_3D0000.dat"
+rmi_cartesian_dust_2D = "amrvac/Richtmyer_Meshkov_dust_2D/RM2D_dust_Kwok0000.dat"
 
 
 # Tests for units: verify that overriding certain units yields the correct derived units.
@@ -112,6 +113,11 @@ class TestAMRVac:
     @pytest.mark.usefixtures('hashing')
     @pytest.mark.parametrize('ds', [riemann_cartesian_175D], indirect=True)
     def test_riemann_cartesian_175D(self, a, d, w, f, ds):
+        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+
+    @pytest.mark.usefixtures('hashing')
+    @pytest.mark.parametrize('ds', [rmi_cartesian_dust_2D], indirect=True)
+    def test_rmi_cartesian_dust_2D(self, a, d, w, f, ds):
         self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @requires_file(khi_cartesian_2D)
