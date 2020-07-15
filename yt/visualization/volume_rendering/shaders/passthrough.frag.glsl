@@ -8,5 +8,6 @@ uniform sampler2D db_texture;
 
 void main(){
    color = texture(fb_texture, UV);
+   color.a = 1.0;
    gl_FragDepth = texture(db_texture, UV).r;
 }

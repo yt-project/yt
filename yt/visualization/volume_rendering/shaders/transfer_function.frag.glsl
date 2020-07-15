@@ -16,11 +16,14 @@ bool sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
     float tex_sample = texture(ds_tex, tex_curr_pos).r;
  
     if (tf_log > 0.5) {
+       if(tex_sample <= 0.0) return false;
        tex_sample = log(tex_sample);
        tm = log(tm);
        tp = log(tp);
     }
 
+    if(tex_sample < tm) return false;
+    if(tex_sample > tp) return false;
     float tex_sample_norm = (tex_sample - tm)/(tp - tm);
     tf_sample = texture(tf_tex, tex_sample_norm);
     float dt = length(tdelta * dir);

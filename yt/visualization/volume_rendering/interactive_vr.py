@@ -260,7 +260,6 @@ class TrackballCamera(IDVCamera):
             o1 = quaternion_mult(self.orientation, q)
         self.orientation = update_orientation(self.orientation, start_x, start_y, end_x, end_y)
 
-    def _compute_matrices(self):
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
         dp = np.linalg.norm(self.position - self.focus)*rotation_matrix[2]
         self.position = dp + self.focus
@@ -274,6 +273,8 @@ class TrackballCamera(IDVCamera):
                                                 self.aspect_ratio,
                                                 self.near_plane,
                                                 self.far_plane)
+    def _compute_matrices(self):
+        pass
 
 class SceneData(traitlets.HasTraits):
     """A class that defines a collection of GPU-managed data.
@@ -593,8 +594,8 @@ class BlockCollection(SceneData):
                 block.RightEdge -= left_min
                 block.RightEdge /= scale
         for i, block in enumerate(self.data_source.tiles.traverse()):
-            self.min_val = min(self.min_val, np.nanmin(block.my_data[0].min()))
-            self.max_val = max(self.max_val, np.nanmax(block.my_data[0].max()))
+            self.min_val = min(self.min_val, np.nanmin(np.abs(block.my_data[0]).min()))
+            self.max_val = max(self.max_val, np.nanmax(np.abs(block.my_data[0]).max()))
             self.blocks[id(block)] = (i, block)
             vert.append(compute_box_geometry(block.LeftEdge, block.RightEdge))
             dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape
@@ -658,8 +659,8 @@ class BlockCollection(SceneData):
     def _load_textures(self):
         for block_id in sorted(self.blocks):
             vbo_i, block = self.blocks[block_id]
-            n_data = block.my_data[0].copy(order="F").astype("float32").d
-            n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
+            n_data = np.abs(block.my_data[0]).copy(order="F").astype("float32").d
+            #n_data = (n_data - self.min_val) / ((self.max_val - self.min_val))# * self.diagonal)
             data_tex = Texture3D(data = n_data)
             bitmap_tex = Texture3D(data = block.source_mask * 255,
                     min_filter = "nearest", mag_filter = "nearest")
