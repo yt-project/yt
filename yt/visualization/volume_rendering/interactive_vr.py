@@ -660,7 +660,7 @@ class BlockCollection(SceneData):
         for block_id in sorted(self.blocks):
             vbo_i, block = self.blocks[block_id]
             n_data = np.abs(block.my_data[0]).copy(order="F").astype("float32").d
-            #n_data = (n_data - self.min_val) / ((self.max_val - self.min_val))# * self.diagonal)
+            n_data = (n_data - self.min_val) / ((self.max_val - self.min_val))# * self.diagonal)
             data_tex = Texture3D(data = n_data)
             bitmap_tex = Texture3D(data = block.source_mask * 255,
                     min_filter = "nearest", mag_filter = "nearest")
