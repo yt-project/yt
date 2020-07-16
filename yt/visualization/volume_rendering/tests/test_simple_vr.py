@@ -10,6 +10,7 @@ from yt.testing import fake_random_ds
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
 
 
@@ -33,5 +34,5 @@ class SimpleVRTest(TestCase):
 
     def test_simple_vr(self):
         ds = fake_random_ds(32)
-        im, sc = yt.volume_render(ds, fname='test.png', sigma_clip=4.0)
+        im, sc = yt.volume_render(ds, fname="test.png", sigma_clip=4.0)
         return im, sc

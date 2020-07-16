@@ -25,27 +25,28 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         particle_count = defaultdict(int)
         offset_count = 0
         for data_file in self.data_files:
-            data_file.index_start = dict([(ptype, particle_count[ptype]) for
-                                           ptype in data_file.total_particles])
+            data_file.index_start = dict(
+                [(ptype, particle_count[ptype]) for ptype in data_file.total_particles]
+            )
             data_file.offset_start = offset_count
             for ptype in data_file.total_particles:
                 particle_count[ptype] += data_file.total_particles[ptype]
             offset_count += data_file.total_offset
 
     def _calculate_file_offset_map(self):
-        # After the FOF  is performed, a load-balancing step redistributes halos 
-        # and then writes more fields.  Here, for each file, we create a list of 
+        # After the FOF  is performed, a load-balancing step redistributes halos
+        # and then writes more fields.  Here, for each file, we create a list of
         # files which contain the rest of the redistributed particles.
-        ifof = np.array([data_file.total_particles["FOF"]
-                         for data_file in self.data_files])
-        isub = np.array([data_file.total_offset
-                         for data_file in self.data_files])
+        ifof = np.array(
+            [data_file.total_particles["FOF"] for data_file in self.data_files]
+        )
+        isub = np.array([data_file.total_offset for data_file in self.data_files])
         subend = isub.cumsum()
         fofend = ifof.cumsum()
         istart = np.digitize(fofend - ifof, subend - isub) - 1
         iend = np.clip(np.digitize(fofend, subend), 0, ifof.size - 2)
         for i, data_file in enumerate(self.data_files):
-            data_file.offset_files = self.data_files[istart[i]: iend[i] + 1]
+            data_file.offset_files = self.data_files[istart[i] : iend[i] + 1]
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
@@ -59,7 +60,8 @@ class OWLSSubfindParticleIndex(ParticleIndex):
             units.update(_units)
             dom._calculate_offsets(fl)
             for f in fl:
-                if f not in dsl: dsl.append(f)
+                if f not in dsl:
+                    dsl.append(f)
         self.field_list = dsl
         ds = self.dataset
         ds.particle_types = tuple(set(pt for pt, ds in dsl))
@@ -67,27 +69,38 @@ class OWLSSubfindParticleIndex(ParticleIndex):
         # exist.  As in, they are real, in the dataset.
         ds.field_units.update(units)
         ds.particle_types_raw = ds.particle_types
-            
+
+
 class OWLSSubfindHDF5File(ParticleFile):
     def __init__(self, ds, io, filename, file_id, bounds):
         super(OWLSSubfindHDF5File, self).__init__(ds, io, filename, file_id, bounds)
         with h5py.File(filename, mode="r") as f:
-            self.header = dict((field, f.attrs[field]) \
-                               for field in f.attrs.keys())
-    
+            self.header = dict((field, f.attrs[field]) for field in f.attrs.keys())
+
+
 class OWLSSubfindDataset(ParticleDataset):
     _index_class = OWLSSubfindParticleIndex
     _file_class = OWLSSubfindHDF5File
     _field_info_class = OWLSSubfindFieldInfo
     _suffix = ".hdf5"
 
-    def __init__(self, filename, dataset_type="subfind_hdf5",
-                 index_order=None, index_filename=None,
-                 units_override=None, unit_system="cgs"):
+    def __init__(
+        self,
+        filename,
+        dataset_type="subfind_hdf5",
+        index_order=None,
+        index_filename=None,
+        units_override=None,
+        unit_system="cgs",
+    ):
         super(OWLSSubfindDataset, self).__init__(
-            filename, dataset_type, index_order=index_order,
-            index_filename=index_filename, units_override=units_override,
-            unit_system=unit_system)
+            filename,
+            dataset_type,
+            index_order=index_order,
+            index_filename=index_filename,
+            units_override=units_override,
+            unit_system=unit_system,
+        )
 
     def _parse_parameter_file(self):
         handle = h5py.File(self.parameter_filename, mode="r")
@@ -112,9 +125,12 @@ class OWLSSubfindDataset(ParticleDataset):
         self.hubble_constant = hvals["HubbleParam"]
         self.parameters = hvals
         prefix = os.path.abspath(
-            os.path.join(os.path.dirname(self.parameter_filename), 
-                         os.path.basename(self.parameter_filename).split(".", 1)[0]))
-        
+            os.path.join(
+                os.path.dirname(self.parameter_filename),
+                os.path.basename(self.parameter_filename).split(".", 1)[0],
+            )
+        )
+
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
         self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
@@ -122,18 +138,17 @@ class OWLSSubfindDataset(ParticleDataset):
             raise YTException(message="No data files found.", ds=self)
         self.particle_types = ("FOF", "SUBFIND")
         self.particle_types_raw = ("FOF", "SUBFIND")
-        
+
         # To avoid having to open files twice
         self._unit_base = {}
-        self._unit_base.update(
-            (str(k), v) for k, v in handle["/Units"].attrs.items())
+        self._unit_base.update((str(k), v) for k, v in handle["/Units"].attrs.items())
         handle.close()
 
     def _set_code_unit_attributes(self):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
             only_on_root(mylog.info, "Assuming length units are in Mpc/h (comoving)")
-            self._unit_base = dict(length = (1.0, "Mpccm/h"))
+            self._unit_base = dict(length=(1.0, "Mpccm/h"))
         # The other same defaults we will use from the standard Gadget
         # defaults.
         unit_base = self._unit_base or {}
@@ -148,8 +163,7 @@ class OWLSSubfindDataset(ParticleDataset):
         else:
             raise RuntimeError
         length_unit = _fix_unit_ordering(length_unit)
-        setdefaultattr(self, 'length_unit',
-                       self.quan(length_unit[0], length_unit[1]))
+        setdefaultattr(self, "length_unit", self.quan(length_unit[0], length_unit[1]))
 
         if "velocity" in unit_base:
             velocity_unit = unit_base["velocity"]
@@ -158,8 +172,9 @@ class OWLSSubfindDataset(ParticleDataset):
         else:
             velocity_unit = (1e5, "cm/s  * sqrt(a)")
         velocity_unit = _fix_unit_ordering(velocity_unit)
-        setdefaultattr(self, 'velocity_unit',
-                       self.quan(velocity_unit[0], velocity_unit[1]))
+        setdefaultattr(
+            self, "velocity_unit", self.quan(velocity_unit[0], velocity_unit[1])
+        )
 
         # We set hubble_constant = 1.0 for non-cosmology, so this is safe.
         # Default to 1e10 Msun/h if mass is not specified.
@@ -174,7 +189,7 @@ class OWLSSubfindDataset(ParticleDataset):
             # Sane default
             mass_unit = (1.0, "1e10*Msun/h")
         mass_unit = _fix_unit_ordering(mass_unit)
-        setdefaultattr(self, 'mass_unit', self.quan(mass_unit[0], mass_unit[1]))
+        setdefaultattr(self, "mass_unit", self.quan(mass_unit[0], mass_unit[1]))
 
         if "time" in unit_base:
             time_unit = unit_base["time"]
@@ -183,17 +198,18 @@ class OWLSSubfindDataset(ParticleDataset):
         else:
             tu = (self.length_unit / self.velocity_unit).to("yr/h")
             time_unit = (tu.d, tu.units)
-        setdefaultattr(self, 'time_unit', self.quan(time_unit[0], time_unit[1]))
+        setdefaultattr(self, "time_unit", self.quan(time_unit[0], time_unit[1]))
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
-        need_groups = ['Constants', 'Header', 'Parameters', 'Units', 'FOF']
+        need_groups = ["Constants", "Header", "Parameters", "Units", "FOF"]
         veto_groups = []
         valid = True
         try:
-            fh = h5py.File(args[0], mode='r')
-            valid = all(ng in fh["/"] for ng in need_groups) and \
-              not any(vg in fh["/"] for vg in veto_groups)
+            fh = h5py.File(args[0], mode="r")
+            valid = all(ng in fh["/"] for ng in need_groups) and not any(
+                vg in fh["/"] for vg in veto_groups
+            )
             fh.close()
         except Exception:
             valid = False

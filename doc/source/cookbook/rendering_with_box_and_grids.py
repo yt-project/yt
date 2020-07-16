@@ -2,7 +2,7 @@ import yt
 
 # Load the dataset.
 ds = yt.load("Enzo_64/DD0043/data0043")
-sc = yt.create_scene(ds, ('gas', 'density'))
+sc = yt.create_scene(ds, ("gas", "density"))
 
 # You may need to adjust the alpha values to get a rendering with good contrast
 # For annotate_domain, the fourth color value is alpha.

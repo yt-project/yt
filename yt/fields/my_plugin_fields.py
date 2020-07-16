@@ -4,6 +4,7 @@ from .local_fields import LocalFieldInfoContainer
 # Empty FieldInfoContainer
 my_plugins_fields = LocalFieldInfoContainer(None, [], None)
 
+
 @register_field_plugin
 def setup_my_plugins_fields(registry, ftype="gas", slice_info=None):
     # fields end up inside this container when added via add_field in

@@ -125,6 +125,7 @@ _elements = (
     (-1, 0.00054858, "Electron", "El"),
 )
 
+
 class Element:
     def __init__(self, num, weight, name, symbol):
         self.num = num
@@ -134,6 +135,7 @@ class Element:
 
     def __repr__(self):
         return "Element: %s (%s)" % (self.symbol, self.name)
+
 
 class PeriodicTable:
     def __init__(self):
@@ -159,5 +161,6 @@ class PeriodicTable:
         else:
             raise KeyError(key)
         return d[key]
+
 
 periodic_table = PeriodicTable()

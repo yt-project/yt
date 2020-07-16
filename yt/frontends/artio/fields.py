@@ -13,6 +13,7 @@ mom_units = "code_mass / (code_length**2 * code_time)"
 en_units = "code_mass*code_velocity**2/code_length**3"
 p_units = "code_mass / (code_length * code_time**2)"
 
+
 class ARTIOFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("HVAR_GAS_DENSITY", (rho_units, ["density"], None)),
@@ -46,7 +47,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("PID", ("", ["particle_index"], None)),
         ("SPECIES", ("", ["particle_type"], None)),
         ("BIRTH_TIME", ("", [], None)),  # code-units defined as dimensionless to
-                                         # avoid incorrect conversion
+        # avoid incorrect conversion
         ("INITIAL_MASS", ("code_mass", ["initial_mass"], None)),
         ("METALLICITY_SNIa", ("", ["metallicity_snia"], None)),
         ("METALLICITY_SNII", ("", ["metallicity_snii"], None)),
@@ -54,87 +55,117 @@ class ARTIOFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
         unit_system = self.ds.unit_system
+
         def _get_vel(axis):
             def velocity(field, data):
-                return data["momentum_%s" % axis]/data["density"]
+                return data["momentum_%s" % axis] / data["density"]
+
             return velocity
-        for ax in 'xyz':
-            self.add_field(("gas", "velocity_%s" % ax),
-                           sampling_type="cell",
-                           function = _get_vel(ax),
-                           units = unit_system["velocity"])
+
+        for ax in "xyz":
+            self.add_field(
+                ("gas", "velocity_%s" % ax),
+                sampling_type="cell",
+                function=_get_vel(ax),
+                units=unit_system["velocity"],
+            )
 
         def _temperature(field, data):
-            tr = data["thermal_energy"]/data["density"]
+            tr = data["thermal_energy"] / data["density"]
             # We want this to match *exactly* what ARTIO would compute
             # internally.  We therefore use the exact values that are internal
             # to ARTIO, rather than yt's own internal constants.
-            mH  = 1.007825*amu_cgs
-            mHe = 4.002602*amu_cgs
-            Yp    = 0.24
-            XH    = 1.0 - Yp
-            XHe   = 0.25*Yp
-            mb = XH*mH + XHe*mHe
-            wmu   = 4.0/(8.0-5.0*Yp)
+            mH = 1.007825 * amu_cgs
+            mHe = 4.002602 * amu_cgs
+            Yp = 0.24
+            XH = 1.0 - Yp
+            XHe = 0.25 * Yp
+            mb = XH * mH + XHe * mHe
+            wmu = 4.0 / (8.0 - 5.0 * Yp)
             # Note that we have gamma = 5.0/3.0 here
-            tr *= (data["gamma"] - 1.0)
+            tr *= data["gamma"] - 1.0
             tr *= wmu
-            tr *= mb/boltzmann_constant_cgs
+            tr *= mb / boltzmann_constant_cgs
             return tr
+
         # TODO: The conversion factor here needs to be addressed, as previously
         # it was set as:
         # unit_T = unit_v**2.0*mb / constants.k
-        self.add_field(("gas", "temperature"),
-                       sampling_type="cell",
-                       function = _temperature,
-                       units = unit_system["temperature"])
+        self.add_field(
+            ("gas", "temperature"),
+            sampling_type="cell",
+            function=_temperature,
+            units=unit_system["temperature"],
+        )
 
         # Create a metal_density field as sum of existing metal fields.
         flag1 = ("artio", "HVAR_METAL_DENSITY_Ia") in self.field_list
         flag2 = ("artio", "HVAR_METAL_DENSITY_II") in self.field_list
         if flag1 or flag2:
             if flag1 and flag2:
+
                 def _metal_density(field, data):
-                    tr = data['metal_ia_density'].copy()
+                    tr = data["metal_ia_density"].copy()
                     np.add(tr, data["metal_ii_density"], out=tr)
                     return tr
+
             elif flag1 and not flag2:
+
                 def _metal_density(field, data):
                     tr = data["metal_ia_density"]
                     return tr
+
             else:
+
                 def _metal_density(field, data):
                     tr = data["metal_ii_density"]
                     return tr
-            self.add_field(("gas","metal_density"),
-                           sampling_type="cell",
-                           function=_metal_density,
-                           units=unit_system["density"],
-                           take_log=True)
+
+            self.add_field(
+                ("gas", "metal_density"),
+                sampling_type="cell",
+                function=_metal_density,
+                units=unit_system["density"],
+                take_log=True,
+            )
 
     def setup_particle_fields(self, ptype):
         if ptype == "STAR":
-            def _creation_time(field,data):
-                return YTArray(data.ds._handle.tphys_from_tcode_array(data["STAR","BIRTH_TIME"]),"yr")
+
+            def _creation_time(field, data):
+                return YTArray(
+                    data.ds._handle.tphys_from_tcode_array(data["STAR", "BIRTH_TIME"]),
+                    "yr",
+                )
 
             def _age(field, data):
-                return data.ds.current_time - data["STAR","creation_time"]
+                return data.ds.current_time - data["STAR", "creation_time"]
 
-            self.add_field((ptype, "creation_time"),
-                           sampling_type="particle",
-                           function=_creation_time,
-                           units="yr")
-            self.add_field((ptype, "age"),
-                           sampling_type="particle",
-                           function=_age,
-                           units="yr")
+            self.add_field(
+                (ptype, "creation_time"),
+                sampling_type="particle",
+                function=_creation_time,
+                units="yr",
+            )
+            self.add_field(
+                (ptype, "age"), sampling_type="particle", function=_age, units="yr"
+            )
 
             if self.ds.cosmological_simulation:
-                def _creation_redshift(field,data):
-                    return 1.0/data.ds._handle.auni_from_tcode_array(data["STAR","BIRTH_TIME"]) - 1.0
 
-                self.add_field((ptype, "creation_redshift"),
-                               sampling_type="particle",
-                               function=_creation_redshift)
+                def _creation_redshift(field, data):
+                    return (
+                        1.0
+                        / data.ds._handle.auni_from_tcode_array(
+                            data["STAR", "BIRTH_TIME"]
+                        )
+                        - 1.0
+                    )
+
+                self.add_field(
+                    (ptype, "creation_redshift"),
+                    sampling_type="particle",
+                    function=_creation_redshift,
+                )
 
         super(ARTIOFieldInfo, self).setup_particle_fields(ptype)

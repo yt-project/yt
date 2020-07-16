@@ -1,8 +1,10 @@
 import numpy as np
 import yt
 
+
 class SmallRAMSESSuite:
     dsname = "output_00080/info_00080.txt"
+
     def setup(self):
         self.ds = yt.load(self.dsname)
 
@@ -34,7 +36,7 @@ class SmallRAMSESSuite:
         dd = self.ds.all_data()
         dd.quantities.extrema("particle_mass")
         dd.quantities.extrema("particle_velocity_magnitude")
-        dd.quantities.extrema(["particle_velocity_%s" % ax for ax in 'xyz'])
+        dd.quantities.extrema(["particle_velocity_%s" % ax for ax in "xyz"])
 
     def time_gas_quantities(self):
         dd = self.ds.all_data()

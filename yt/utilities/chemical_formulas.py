@@ -17,15 +17,16 @@ class ChemicalFormula:
                 charge = -int(ionization[1:])
             else:
                 raise NotImplementedError
-        elif self.formula_string.startswith('El'):
+        elif self.formula_string.startswith("El"):
             molecule = self.formula_string
             charge = -1
         else:
             molecule = self.formula_string
             charge = 0
         self.charge = charge
-        for element, count in re.findall(r'([A-Z][a-z]*)(\d*)', molecule):
-            if count == '': count = 1
+        for element, count in re.findall(r"([A-Z][a-z]*)(\d*)", molecule):
+            if count == "":
+                count = 1
             self.elements.append((periodic_table[element], int(count)))
         self.weight = sum(n * e.weight for e, n in self.elements)
 
@@ -36,10 +37,9 @@ class ChemicalFormula:
 def compute_mu():
     # Assume full ionization and cosmic abundances
     # This assumes full ionization!
-    muinv = 2.0 * _primordial_mass_fraction["H"] / \
-        ChemicalFormula("H").weight
-    muinv += 3.0 * _primordial_mass_fraction["He"] / \
-        ChemicalFormula("He").weight
-    return 1.0/muinv
+    muinv = 2.0 * _primordial_mass_fraction["H"] / ChemicalFormula("H").weight
+    muinv += 3.0 * _primordial_mass_fraction["He"] / ChemicalFormula("He").weight
+    return 1.0 / muinv
+
 
 default_mu = compute_mu()

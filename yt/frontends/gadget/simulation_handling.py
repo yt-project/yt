@@ -52,58 +52,80 @@ class GadgetSimulation(SimulationTimeSeries):
     def __init__(self, parameter_filename, find_outputs=False):
         self.simulation_type = "particle"
         self.dimensionality = 3
-        SimulationTimeSeries.__init__(self, parameter_filename,
-                                      find_outputs=find_outputs)
+        SimulationTimeSeries.__init__(
+            self, parameter_filename, find_outputs=find_outputs
+        )
 
     def _set_units(self):
         self.unit_registry = UnitRegistry()
         self.time_unit = self.quan(1.0, "s")
         if self.cosmological_simulation:
             # Instantiate Cosmology object for units and time conversions.
-            self.cosmology = \
-              Cosmology(hubble_constant=self.hubble_constant,
-                        omega_matter=self.omega_matter,
-                        omega_lambda=self.omega_lambda,
-                        unit_registry=self.unit_registry)
-            if 'h' in self.unit_registry:
-                self.unit_registry.modify('h', self.hubble_constant)
+            self.cosmology = Cosmology(
+                hubble_constant=self.hubble_constant,
+                omega_matter=self.omega_matter,
+                omega_lambda=self.omega_lambda,
+                unit_registry=self.unit_registry,
+            )
+            if "h" in self.unit_registry:
+                self.unit_registry.modify("h", self.hubble_constant)
             else:
-                self.unit_registry.add('h', self.hubble_constant,
-                                       dimensions.dimensionless)
+                self.unit_registry.add(
+                    "h", self.hubble_constant, dimensions.dimensionless
+                )
             # Comoving lengths
             for my_unit in ["m", "pc", "AU"]:
                 new_unit = "%scm" % my_unit
                 # technically not true, but should be ok
                 self.unit_registry.add(
-                    new_unit, self.unit_registry.lut[my_unit][0],
-                    dimensions.length, "\\rm{%s}/(1+z)" % my_unit,
-                    prefixable=True)
-            self.length_unit = self.quan(self.unit_base["UnitLength_in_cm"],
-                                         "cmcm / h", registry=self.unit_registry)
-            self.mass_unit = self.quan(self.unit_base["UnitMass_in_g"],
-                                         "g / h", registry=self.unit_registry)
+                    new_unit,
+                    self.unit_registry.lut[my_unit][0],
+                    dimensions.length,
+                    "\\rm{%s}/(1+z)" % my_unit,
+                    prefixable=True,
+                )
+            self.length_unit = self.quan(
+                self.unit_base["UnitLength_in_cm"],
+                "cmcm / h",
+                registry=self.unit_registry,
+            )
+            self.mass_unit = self.quan(
+                self.unit_base["UnitMass_in_g"], "g / h", registry=self.unit_registry
+            )
             self.box_size = self.box_size * self.length_unit
             self.domain_left_edge = self.domain_left_edge * self.length_unit
             self.domain_right_edge = self.domain_right_edge * self.length_unit
-            self.unit_registry.add("unitary", float(self.box_size.in_base()),
-                                   self.length_unit.units.dimensions)
+            self.unit_registry.add(
+                "unitary",
+                float(self.box_size.in_base()),
+                self.length_unit.units.dimensions,
+            )
         else:
             # Read time from file for non-cosmological sim
             self.time_unit = self.quan(
-                self.unit_base["UnitLength_in_cm"]/ \
-                    self.unit_base["UnitVelocity_in_cm_per_s"], "s")
+                self.unit_base["UnitLength_in_cm"]
+                / self.unit_base["UnitVelocity_in_cm_per_s"],
+                "s",
+            )
             self.unit_registry.add("code_time", 1.0, dimensions.time)
             self.unit_registry.modify("code_time", self.time_unit)
             # Length
-            self.length_unit = self.quan(
-                self.unit_base["UnitLength_in_cm"],"cm")
+            self.length_unit = self.quan(self.unit_base["UnitLength_in_cm"], "cm")
             self.unit_registry.add("code_length", 1.0, dimensions.length)
             self.unit_registry.modify("code_length", self.length_unit)
 
-    def get_time_series(self, initial_time=None, final_time=None,
-                        initial_redshift=None, final_redshift=None,
-                        times=None, redshifts=None, tolerance=None,
-                        parallel=True, setup_function=None):
+    def get_time_series(
+        self,
+        initial_time=None,
+        final_time=None,
+        initial_redshift=None,
+        final_redshift=None,
+        times=None,
+        redshifts=None,
+        tolerance=None,
+        parallel=True,
+        setup_function=None,
+    ):
 
         """
         Instantiate a DatasetSeries object for a set of outputs.
@@ -188,30 +210,32 @@ class GadgetSimulation(SimulationTimeSeries):
 
         """
 
-        if (initial_redshift is not None or \
-            final_redshift is not None) and \
-            not self.cosmological_simulation:
+        if (
+            initial_redshift is not None or final_redshift is not None
+        ) and not self.cosmological_simulation:
             raise InvalidSimulationTimeSeries(
-                "An initial or final redshift has been given for a " +
-                "noncosmological simulation.")
+                "An initial or final redshift has been given for a "
+                + "noncosmological simulation."
+            )
 
         my_all_outputs = self.all_outputs
         if not my_all_outputs:
-            DatasetSeries.__init__(self, outputs=[], parallel=parallel,
-                                   unit_base=self.unit_base)
+            DatasetSeries.__init__(
+                self, outputs=[], parallel=parallel, unit_base=self.unit_base
+            )
             mylog.info("0 outputs loaded into time series.")
             return
 
         # Apply selection criteria to the set.
         if times is not None:
-            my_outputs = self._get_outputs_by_key("time", times,
-                                                  tolerance=tolerance,
-                                                  outputs=my_all_outputs)
+            my_outputs = self._get_outputs_by_key(
+                "time", times, tolerance=tolerance, outputs=my_all_outputs
+            )
 
         elif redshifts is not None:
-            my_outputs = self._get_outputs_by_key("redshift",
-                                                  redshifts, tolerance=tolerance,
-                                                  outputs=my_all_outputs)
+            my_outputs = self._get_outputs_by_key(
+                "redshift", redshifts, tolerance=tolerance, outputs=my_all_outputs
+            )
 
         else:
             if initial_time is not None:
@@ -221,8 +245,9 @@ class GadgetSimulation(SimulationTimeSeries):
                     initial_time = self.quan(*initial_time)
                 elif not isinstance(initial_time, unyt_array):
                     raise RuntimeError(
-                        "Error: initial_time must be given as a float or " +
-                        "tuple of (value, units).")
+                        "Error: initial_time must be given as a float or "
+                        + "tuple of (value, units)."
+                    )
             elif initial_redshift is not None:
                 my_initial_time = self.cosmology.t_from_z(initial_redshift)
             else:
@@ -235,8 +260,9 @@ class GadgetSimulation(SimulationTimeSeries):
                     final_time = self.quan(*final_time)
                 elif not isinstance(final_time, unyt_array):
                     raise RuntimeError(
-                        "Error: final_time must be given as a float or " +
-                        "tuple of (value, units).")
+                        "Error: final_time must be given as a float or "
+                        + "tuple of (value, units)."
+                    )
                 my_final_time = final_time.in_units("s")
             elif final_redshift is not None:
                 my_final_time = self.cosmology.t_from_z(final_redshift)
@@ -247,20 +273,27 @@ class GadgetSimulation(SimulationTimeSeries):
             my_final_time.convert_to_units("s")
             my_times = np.array([a["time"] for a in my_all_outputs])
             my_indices = np.digitize([my_initial_time, my_final_time], my_times)
-            if my_initial_time == my_times[my_indices[0] - 1]: my_indices[0] -= 1
-            my_outputs = my_all_outputs[my_indices[0]:my_indices[1]]
+            if my_initial_time == my_times[my_indices[0] - 1]:
+                my_indices[0] -= 1
+            my_outputs = my_all_outputs[my_indices[0] : my_indices[1]]
 
         init_outputs = []
         for output in my_outputs:
             if os.path.exists(output["filename"]):
                 init_outputs.append(output["filename"])
         if len(init_outputs) == 0 and len(my_outputs) > 0:
-            mylog.warning("Could not find any datasets.  " +
-                          "Check the value of OutputDir in your parameter file.")
-            
-        DatasetSeries.__init__(self, outputs=init_outputs, parallel=parallel,
-                                setup_function=setup_function,
-                                unit_base=self.unit_base)
+            mylog.warning(
+                "Could not find any datasets.  "
+                + "Check the value of OutputDir in your parameter file."
+            )
+
+        DatasetSeries.__init__(
+            self,
+            outputs=init_outputs,
+            parallel=parallel,
+            setup_function=setup_function,
+            unit_base=self.unit_base,
+        )
         mylog.info("%d outputs loaded into time series.", len(init_outputs))
 
     def _parse_parameter_file(self):
@@ -276,15 +309,18 @@ class GadgetSimulation(SimulationTimeSeries):
         comments = ["%", ";"]
         for line in (l.strip() for l in lines):
             for comment in comments:
-                if comment in line: line = line[0:line.find(comment)]
-            if len(line) < 2: continue
+                if comment in line:
+                    line = line[0 : line.find(comment)]
+            if len(line) < 2:
+                continue
             param, vals = (i.strip() for i in line.split(None, 1))
             # First we try to decipher what type of value it is.
             vals = vals.split()
             # Special case approaching.
-            if "(do" in vals: vals = vals[:1]
+            if "(do" in vals:
+                vals = vals[:1]
             if len(vals) == 0:
-                pcast = str # Assume NULL output
+                pcast = str  # Assume NULL output
             else:
                 v = vals[0]
                 # Figure out if it's castable to floating point:
@@ -312,13 +348,15 @@ class GadgetSimulation(SimulationTimeSeries):
             self.parameters[param] = vals
 
         # Domain dimensions for Gadget datasets are always 2x2x2 for octree
-        self.domain_dimensions = np.array([2,2,2])
+        self.domain_dimensions = np.array([2, 2, 2])
 
         if self.parameters["ComovingIntegrationOn"]:
-            cosmo_attr = {"box_size": "BoxSize",
-                          "omega_lambda": "OmegaLambda",
-                          "omega_matter": "Omega0",
-                          "hubble_constant": "HubbleParam"}
+            cosmo_attr = {
+                "box_size": "BoxSize",
+                "omega_lambda": "OmegaLambda",
+                "omega_matter": "Omega0",
+                "hubble_constant": "HubbleParam",
+            }
             self.initial_redshift = 1.0 / self.parameters["TimeBegin"] - 1.0
             self.final_redshift = 1.0 / self.parameters["TimeMax"] - 1.0
             self.cosmological_simulation = 1
@@ -326,12 +364,13 @@ class GadgetSimulation(SimulationTimeSeries):
                 if v not in self.parameters:
                     raise MissingParameter(self.parameter_filename, v)
                 setattr(self, a, self.parameters[v])
-            self.domain_left_edge = np.array([0., 0., 0.])
-            self.domain_right_edge = np.array([1., 1., 1.]) * self.parameters['BoxSize']
+            self.domain_left_edge = np.array([0.0, 0.0, 0.0])
+            self.domain_right_edge = (
+                np.array([1.0, 1.0, 1.0]) * self.parameters["BoxSize"]
+            )
         else:
             self.cosmological_simulation = 0
-            self.omega_lambda = self.omega_matter = \
-                self.hubble_constant = 0.0
+            self.omega_lambda = self.omega_matter = self.hubble_constant = 0.0
 
     def _find_data_dir(self):
         """
@@ -342,11 +381,12 @@ class GadgetSimulation(SimulationTimeSeries):
         if self.parameters["OutputDir"].startswith("/"):
             data_dir = self.parameters["OutputDir"]
         else:
-            data_dir = os.path.join(self.directory,
-                                    self.parameters["OutputDir"])
+            data_dir = os.path.join(self.directory, self.parameters["OutputDir"])
         if not os.path.exists(data_dir):
-            mylog.info("OutputDir not found at %s, instead using %s." % 
-                       (data_dir, self.directory))
+            mylog.info(
+                "OutputDir not found at %s, instead using %s."
+                % (data_dir, self.directory)
+            )
             data_dir = self.directory
         self.data_dir = data_dir
 
@@ -366,10 +406,9 @@ class GadgetSimulation(SimulationTimeSeries):
             count = "*"
         else:
             count = "%03d" % index
-        filename = "%s_%s%s" % (self.parameters["SnapshotFileBase"],
-                                count, suffix)
+        filename = "%s_%s%s" % (self.parameters["SnapshotFileBase"], count, suffix)
         return os.path.join(self.data_dir, filename)
-                
+
     def _get_all_outputs(self, find_outputs=False):
         """
         Get all potential datasets and combine into a time-sorted list.
@@ -383,39 +422,49 @@ class GadgetSimulation(SimulationTimeSeries):
             self._find_outputs()
         else:
             if self.parameters["OutputListOn"]:
-                a_values = [float(a) for a in 
-                            open(os.path.join(self.data_dir, 
-                                 self.parameters["OutputListFilename"]), 
-                            "r").readlines()]
+                a_values = [
+                    float(a)
+                    for a in open(
+                        os.path.join(
+                            self.data_dir, self.parameters["OutputListFilename"]
+                        ),
+                        "r",
+                    ).readlines()
+                ]
             else:
                 a_values = [float(self.parameters["TimeOfFirstSnapshot"])]
                 time_max = float(self.parameters["TimeMax"])
                 while a_values[-1] < time_max:
                     if self.cosmological_simulation:
                         a_values.append(
-                            a_values[-1] * self.parameters["TimeBetSnapshot"])
+                            a_values[-1] * self.parameters["TimeBetSnapshot"]
+                        )
                     else:
                         a_values.append(
-                            a_values[-1] + self.parameters["TimeBetSnapshot"])
+                            a_values[-1] + self.parameters["TimeBetSnapshot"]
+                        )
                 if a_values[-1] > time_max:
                     a_values[-1] = time_max
 
             if self.cosmological_simulation:
-                self.all_outputs = \
-                  [{"filename": self._snapshot_format(i),
-                    "redshift": (1. / a - 1)}
-                   for i, a in enumerate(a_values)]
-                
+                self.all_outputs = [
+                    {"filename": self._snapshot_format(i), "redshift": (1.0 / a - 1)}
+                    for i, a in enumerate(a_values)
+                ]
+
                 # Calculate times for redshift outputs.
                 for output in self.all_outputs:
                     output["time"] = self.cosmology.t_from_z(output["redshift"])
             else:
-                self.all_outputs = \
-                  [{"filename": self._snapshot_format(i),
-                    "time": self.quan(a, "code_time")}
-                   for i, a in enumerate(a_values)]
+                self.all_outputs = [
+                    {
+                        "filename": self._snapshot_format(i),
+                        "time": self.quan(a, "code_time"),
+                    }
+                    for i, a in enumerate(a_values)
+                ]
 
-            self.all_outputs.sort(key=lambda obj:obj["time"].to_ndarray())
+            self.all_outputs.sort(key=lambda obj: obj["time"].to_ndarray())
 
     def _calculate_simulation_bounds(self):
         """
@@ -434,7 +483,7 @@ class GadgetSimulation(SimulationTimeSeries):
             if "TimeBegin" in self.parameters:
                 self.initial_time = self.quan(self.parameters["TimeBegin"], "code_time")
             else:
-                self.initial_time = self.quan(0., "code_time")
+                self.initial_time = self.quan(0.0, "code_time")
 
             if "TimeMax" in self.parameters:
                 self.final_time = self.quan(self.parameters["TimeMax"], "code_time")
@@ -464,28 +513,32 @@ class GadgetSimulation(SimulationTimeSeries):
         Check a list of files to see if they are valid datasets.
         """
 
-        only_on_root(mylog.info, "Checking %d potential outputs.", 
-                     len(potential_outputs))
+        only_on_root(
+            mylog.info, "Checking %d potential outputs.", len(potential_outputs)
+        )
 
         my_outputs = {}
-        for my_storage, output in parallel_objects(potential_outputs, 
-                                                   storage=my_outputs):
+        for my_storage, output in parallel_objects(
+            potential_outputs, storage=my_outputs
+        ):
             if os.path.exists(output):
                 try:
                     ds = load(output)
                     if ds is not None:
-                        my_storage.result = {"filename": output,
-                                             "time": ds.current_time.in_units("s")}
+                        my_storage.result = {
+                            "filename": output,
+                            "time": ds.current_time.in_units("s"),
+                        }
                         if ds.cosmological_simulation:
                             my_storage.result["redshift"] = ds.current_redshift
                 except YTOutputNotIdentified:
                     mylog.error("Failed to load %s", output)
-        my_outputs = [my_output for my_output in my_outputs.values() \
-                      if my_output is not None]
+        my_outputs = [
+            my_output for my_output in my_outputs.values() if my_output is not None
+        ]
         return my_outputs
 
-    def _write_cosmology_outputs(self, filename, outputs, start_index,
-                                 decimals=3):
+    def _write_cosmology_outputs(self, filename, outputs, start_index, decimals=3):
         r"""
         Write cosmology output parameters for a cosmology splice.
         """
@@ -493,5 +546,5 @@ class GadgetSimulation(SimulationTimeSeries):
         mylog.info("Writing redshift output list to %s.", filename)
         f = open(filename, "w")
         for output in outputs:
-            f.write("%f\n" % (1. / (1. + output["redshift"])))
+            f.write("%f\n" % (1.0 / (1.0 + output["redshift"])))
         f.close()

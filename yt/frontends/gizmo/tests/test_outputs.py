@@ -10,10 +10,10 @@ from yt.utilities.answer_testing.framework import requires_ds, sph_answer
 fields = OrderedDict(
     [
         (("gas", "density"), None),
-        (("gas", "temperature"), ('gas', 'density')),
-        (("gas", "metallicity"), ('gas', 'density')),
-        (("gas", "O_metallicity"), ('gas', 'density')),
-        (('gas', 'velocity_magnitude'), None),
+        (("gas", "temperature"), ("gas", "density")),
+        (("gas", "metallicity"), ("gas", "density")),
+        (("gas", "O_metallicity"), ("gas", "density")),
+        (("gas", "velocity_magnitude"), None),
     ]
 )
 
@@ -26,7 +26,7 @@ gmhd_bbox = [[-400, 400]] * 3
 def test_gizmo_64():
     ds = yt.load(g64)
     assert isinstance(ds, GizmoDataset)
-    for test in sph_answer(ds, 'snap_N64L16_135', 524288, fields):
+    for test in sph_answer(ds, "snap_N64L16_135", 524288, fields):
         test_gizmo_64.__name__ = test.description
         yield test
 
@@ -36,20 +36,20 @@ def test_gizmo_mhd():
     """
     Magnetic fields should be loaded correctly when they are present.
     """
-    ds = yt.load(gmhd, bounding_box=gmhd_bbox, unit_system='code')
+    ds = yt.load(gmhd, bounding_box=gmhd_bbox, unit_system="code")
     ad = ds.all_data()
-    ptype = 'PartType0'
+    ptype = "PartType0"
 
     # Test vector magnetic field
-    fmag = 'particle_magnetic_field'
+    fmag = "particle_magnetic_field"
     f = ad[ptype, fmag]
-    assert str(f.units) == 'code_magnetic'
+    assert str(f.units) == "code_magnetic"
     assert f.shape == (409013, 3)
 
     # Test component magnetic fields
-    for axis in 'xyz':
-        f = ad[ptype, fmag + '_' + axis]
-        assert str(f.units) == 'code_magnetic'
+    for axis in "xyz":
+        f = ad[ptype, fmag + "_" + axis]
+        assert str(f.units) == "code_magnetic"
         assert f.shape == (409013,)
 
 
@@ -73,7 +73,7 @@ def test_gas_particle_fields():
     # Check
     for field in derived_fields:
         assert (ptype, field) in ds.derived_field_list
-    
+
     ptype = "gas"
     derived_fields = []
     for species in ["H_p0", "H_p1"]:
@@ -95,9 +95,6 @@ def test_star_particle_fields():
     ds = yt.load(gmhd, bounding_box=gmhd_bbox)
 
     ptype = "PartType4"
-    derived_fields =[
-        "creation_time",
-        "age"
-    ]
+    derived_fields = ["creation_time", "age"]
     for field in derived_fields:
         assert (ptype, field) in ds.derived_field_list

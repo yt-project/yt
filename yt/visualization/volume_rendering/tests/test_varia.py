@@ -14,12 +14,14 @@ from yt.visualization.volume_rendering.scene import Scene
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
+
 
 class VariousVRTests(TestCase):
     # This toggles using a temporary directory. Turn off to examine images.
     use_tmpdir = True
-    
+
     def setUp(self):
         if self.use_tmpdir:
             self.curdir = os.getcwd()
@@ -30,7 +32,7 @@ class VariousVRTests(TestCase):
             self.curdir, self.tmpdir = None, None
 
         self.ds = fake_random_ds(32)
-    
+
     def tearDown(self):
         if self.use_tmpdir:
             os.chdir(self.curdir)
@@ -47,15 +49,15 @@ class VariousVRTests(TestCase):
         tf = volume_source.transfer_function
         tf.clear()
         tf.grey_opacity = True
-        tf.add_layers(3, colormap='RdBu')
+        tf.add_layers(3, colormap="RdBu")
         sc.render()
 
     def test_multiple_fields(self):
         im, sc = yt.volume_render(self.ds)
 
         volume_source = sc.get_source(0)
-        volume_source.set_field(('gas', 'velocity_x'))
-        volume_source.set_weight_field(('gas', 'density'))
+        volume_source.set_field(("gas", "velocity_x"))
+        volume_source.set_weight_field(("gas", "density"))
         sc.render()
 
     def test_rotation_volume_rendering(self):
@@ -72,7 +74,7 @@ class VariousVRTests(TestCase):
 
     def test_lazy_volume_source_construction(self):
         sc = Scene()
-        source = VolumeSource(self.ds.all_data(), 'density')
+        source = VolumeSource(self.ds.all_data(), "density")
 
         assert source._volume is None
         assert source._transfer_function is None
@@ -96,18 +98,20 @@ class VariousVRTests(TestCase):
 
         ad = self.ds.all_data()
 
-        assert source.transfer_function.x_bounds == \
-            list(np.log10(ad.quantities.extrema('density')))
+        assert source.transfer_function.x_bounds == list(
+            np.log10(ad.quantities.extrema("density"))
+        )
         assert source.tfh.log == source.log_field
 
-        source.set_field('velocity_x')
+        source.set_field("velocity_x")
         source.set_log(False)
 
-        assert source.transfer_function.x_bounds == \
-            list(ad.quantities.extrema('velocity_x'))
+        assert source.transfer_function.x_bounds == list(
+            ad.quantities.extrema("velocity_x")
+        )
         assert source._volume is None
 
-        source.set_field('density')
+        source.set_field("density")
 
         assert source.volume is not None
         assert not source.volume._initialized
@@ -124,15 +128,15 @@ class VariousVRTests(TestCase):
 
         assert source.volume is not None
         assert source.volume._initialized
-        assert source.volume.fields == [('gas', 'density')]
+        assert source.volume.fields == [("gas", "density")]
         assert source.volume.log_fields == [True]
 
-        source.set_field('velocity_x')
+        source.set_field("velocity_x")
         source.set_log(False)
 
         sc.render()
 
         assert source.volume is not None
         assert source.volume._initialized
-        assert source.volume.fields == [('gas', 'velocity_x')]
+        assert source.volume.fields == [("gas", "velocity_x")]
         assert source.volume.log_fields == [False]

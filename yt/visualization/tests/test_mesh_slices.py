@@ -17,14 +17,16 @@ from yt.utilities.lib.mesh_triangulation import triangulate_indices
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
+
 
 def compare(ds, field, idir, test_prefix, test_name, decimals=12, annotate=False):
     def slice_image(filename_prefix):
         sl = yt.SlicePlot(ds, idir, field)
         if annotate:
             sl.annotate_mesh_lines()
-        sl.set_log('all', False)
+        sl.set_log("all", False)
         image_file = sl.save(filename_prefix)
         return image_file
 
@@ -34,13 +36,14 @@ def compare(ds, field, idir, test_prefix, test_name, decimals=12, annotate=False
     test.answer_name = test_name
     return test
 
+
 @attr(ANSWER_TEST_TAG)
 def test_mesh_slices_amr():
     ds = fake_amr_ds()
     for field in ds.field_list:
         prefix = "%s_%s_%s" % (field[0], field[1], 0)
-        yield compare(ds, field, 0, test_prefix=prefix,
-                      test_name="mesh_slices_amr")
+        yield compare(ds, field, 0, test_prefix=prefix, test_name="mesh_slices_amr")
+
 
 @attr(ANSWER_TEST_TAG)
 def test_mesh_slices_tetrahedral():
@@ -52,12 +55,19 @@ def test_mesh_slices_tetrahedral():
     for field in ds.field_list:
         for idir in [0, 1, 2]:
             prefix = "%s_%s_%s" % (field[0], field[1], idir)
-            yield compare(ds, field, idir, test_prefix=prefix,
-                          test_name="mesh_slices_tetrahedral", annotate=True)
+            yield compare(
+                ds,
+                field,
+                idir,
+                test_prefix=prefix,
+                test_name="mesh_slices_tetrahedral",
+                annotate=True,
+            )
 
             sl_obj = ds.slice(idir, ds.domain_center[idir])
             assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
             assert sl_obj[field].shape[0] < ad[field].shape[0]
+
 
 @attr(ANSWER_TEST_TAG)
 def test_mesh_slices_hexahedral():
@@ -69,12 +79,19 @@ def test_mesh_slices_hexahedral():
     for field in ds.field_list:
         for idir in [0, 1, 2]:
             prefix = "%s_%s_%s" % (field[0], field[1], idir)
-            yield compare(ds, field, idir, test_prefix=prefix,
-                          test_name="mesh_slices_hexahedral", annotate=True)
+            yield compare(
+                ds,
+                field,
+                idir,
+                test_prefix=prefix,
+                test_name="mesh_slices_hexahedral",
+                annotate=True,
+            )
 
             sl_obj = ds.slice(idir, ds.domain_center[idir])
             assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
             assert sl_obj[field].shape[0] < ad[field].shape[0]
+
 
 def test_perfect_element_intersection():
     # This test tests mesh line annotation where a z=0 slice

@@ -10,11 +10,10 @@ from yt.utilities.amr_kdtree.api import AMRKDTree
 
 
 def test_amr_kdtree_coverage():
-    return #TESTDISABLED
+    return  # TESTDISABLED
     domain_dims = (32, 32, 32)
     data = np.zeros(domain_dims) + 0.25
-    fo = [ic.CoredSphere(0.05, 0.3, [0.7, 0.4, 0.75],
-                         {"density": (0.25, 100.0)})]
+    fo = [ic.CoredSphere(0.05, 0.3, [0.7, 0.4, 0.75], {"density": (0.25, 100.0)})]
     rc = [fm.flagging_method_registry["overdensity"](8.0)]
     ug = load_uniform_grid({"density": data}, domain_dims, 1.0)
     ds = refine_amr(ug, rc, fo, 5)
@@ -25,7 +24,7 @@ def test_amr_kdtree_coverage():
     assert_equal(volume, np.prod(ds.domain_right_edge - ds.domain_left_edge))
 
     cells = kd.count_cells()
-    true_cells = ds.all_data().quantities['TotalQuantity']('Ones')[0]
+    true_cells = ds.all_data().quantities["TotalQuantity"]("Ones")[0]
     assert_equal(cells, true_cells)
 
     # This largely reproduces the AMRKDTree.tree.check_tree() functionality
@@ -38,14 +37,15 @@ def test_amr_kdtree_coverage():
         gle = grid.LeftEdge
         nle = node.get_left_edge()
         nre = node.get_right_edge()
-        li = np.rint((nle-gle)/dds).astype('int32')
-        ri = np.rint((nre-gle)/dds).astype('int32')
-        dims = (ri - li).astype('int32')
+        li = np.rint((nle - gle) / dds).astype("int32")
+        ri = np.rint((nre - gle) / dds).astype("int32")
+        dims = (ri - li).astype("int32")
         tree_ok *= np.all(grid.LeftEdge <= nle)
         tree_ok *= np.all(grid.RightEdge >= nre)
         tree_ok *= np.all(dims > 0)
 
     assert_equal(True, tree_ok)
+
 
 def test_amr_kdtree_set_fields():
     ds = fake_amr_ds(fields=["density", "pressure"])

@@ -34,10 +34,12 @@ class AnalysisTaskProxy:
 
     def __getitem__(self, key):
         task_cls = analysis_task_registry[key]
+
         @wraps(task_cls.__init__)
         def func(*args, **kwargs):
             task = task_cls(*args, **kwargs)
             return self.time_series.eval(task)
+
         return func
 
     def keys(self):
@@ -46,12 +48,14 @@ class AnalysisTaskProxy:
     def __contains__(self, key):
         return key in analysis_task_registry
 
+
 def get_ds_prop(propname):
     def _eval(params, ds):
         return getattr(ds, propname)
-    cls = type(propname, (AnalysisTask,),
-                dict(eval = _eval, _params = tuple()))
+
+    cls = type(propname, (AnalysisTask,), dict(eval=_eval, _params=tuple()))
     return cls
+
 
 def get_filenames_from_glob_pattern(outputs):
     """
@@ -68,12 +72,23 @@ def get_filenames_from_glob_pattern(outputs):
         raise OSError("No match found for pattern : {}".format(pattern))
     return sorted(file_list)
 
-attrs = ("refine_by", "dimensionality", "current_time",
-         "domain_dimensions", "domain_left_edge",
-         "domain_right_edge", "unique_identifier",
-         "current_redshift", "cosmological_simulation",
-         "omega_matter", "omega_lambda", "omega_radiation",
-         "hubble_constant")
+
+attrs = (
+    "refine_by",
+    "dimensionality",
+    "current_time",
+    "domain_dimensions",
+    "domain_left_edge",
+    "domain_right_edge",
+    "unique_identifier",
+    "current_redshift",
+    "cosmological_simulation",
+    "omega_matter",
+    "omega_lambda",
+    "omega_radiation",
+    "hubble_constant",
+)
+
 
 class TimeSeriesParametersContainer:
     def __init__(self, data_object):
@@ -83,6 +98,7 @@ class TimeSeriesParametersContainer:
         if attr in attrs:
             return self.data_object.eval(get_ds_prop(attr)())
         raise AttributeError(attr)
+
 
 class DatasetSeries:
     r"""The DatasetSeries object is a container of multiple datasets,
@@ -139,6 +155,7 @@ class DatasetSeries:
     ...     SlicePlot(ds, "x", "Density").save()
 
     """
+
     def __new__(cls, outputs, *args, **kwargs):
         if isinstance(outputs, str):
             outputs = get_filenames_from_glob_pattern(outputs)
@@ -149,8 +166,14 @@ class DatasetSeries:
             raise YTOutputNotIdentified(outputs, {})
         return ret
 
-    def __init__(self, outputs, parallel = True, setup_function = None,
-                 mixed_dataset_types = False, **kwargs):
+    def __init__(
+        self,
+        outputs,
+        parallel=True,
+        setup_function=None,
+        mixed_dataset_types=False,
+        **kwargs,
+    ):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
         self._mixed_dataset_types = mixed_dataset_types
         if iterable(outputs) and not isinstance(outputs, str):
@@ -161,8 +184,9 @@ class DatasetSeries:
             setup_function = lambda a: None
         self._setup_function = setup_function
         for type_name in data_object_registry:
-            setattr(self, type_name, functools.partial(
-                DatasetSeriesObject, self, type_name))
+            setattr(
+                self, type_name, functools.partial(DatasetSeriesObject, self, type_name)
+            )
         self.parallel = parallel
         self.kwargs = kwargs
 
@@ -181,9 +205,9 @@ class DatasetSeries:
             if isinstance(key.start, float):
                 return self.get_range(key.start, key.stop)
             # This will return a sliced up object!
-            return DatasetSeries(self._pre_outputs[key],
-                                 parallel=self.parallel,
-                                 **self.kwargs)
+            return DatasetSeries(
+                self._pre_outputs[key], parallel=self.parallel, **self.kwargs
+            )
         o = self._pre_outputs[key]
         if isinstance(o, str):
             o = self._load(o, **self.kwargs)
@@ -197,7 +221,7 @@ class DatasetSeries:
     def outputs(self):
         return self._pre_outputs
 
-    def piter(self, storage = None, dynamic = False):
+    def piter(self, storage=None, dynamic=False):
         r"""Iterate over time series components in parallel.
 
         This allows you to iterate over a time series while dispatching
@@ -286,8 +310,9 @@ class DatasetSeries:
             else:
                 njobs = nsize - 1
 
-        for output in parallel_objects(self._pre_outputs, njobs=njobs,
-                                       storage=storage, dynamic=dynamic):
+        for output in parallel_objects(
+            self._pre_outputs, njobs=njobs, storage=storage, dynamic=dynamic
+        ):
             if storage is not None:
                 sto, output = output
 
@@ -312,9 +337,9 @@ class DatasetSeries:
             for task in tasks:
                 try:
                     style = inspect.getargspec(task.eval)[0][1]
-                    if style == 'ds':
+                    if style == "ds":
                         arg = ds
-                    elif style == 'data_object':
+                    elif style == "data_object":
                         if obj is None:
                             obj = DatasetSeriesObject(self, "all_data")
                         arg = obj.get(ds)
@@ -328,8 +353,7 @@ class DatasetSeries:
         return [v for k, v in sorted(return_values.items())]
 
     @classmethod
-    def from_filenames(cls, filenames, parallel = True, setup_function = None,
-                       **kwargs):
+    def from_filenames(cls, filenames, parallel=True, setup_function=None, **kwargs):
         r"""Create a time series from either a filename pattern or a list of
         filenames.
 
@@ -371,26 +395,26 @@ class DatasetSeries:
 
         """
         issue_deprecation_warning(
-                "DatasetSeries.from_filenames() is deprecated and will be removed "
-                "in a future version of yt. Use DatasetSeries() directly."
+            "DatasetSeries.from_filenames() is deprecated and will be removed "
+            "in a future version of yt. Use DatasetSeries() directly."
         )
         obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
         return obj
 
     @classmethod
-    def from_output_log(cls, output_log,
-                        line_prefix = "DATASET WRITTEN",
-                        parallel = True):
+    def from_output_log(cls, output_log, line_prefix="DATASET WRITTEN", parallel=True):
         filenames = []
         for line in open(output_log):
-            if not line.startswith(line_prefix): continue
-            cut_line = line[len(line_prefix):].strip()
+            if not line.startswith(line_prefix):
+                continue
+            cut_line = line[len(line_prefix) :].strip()
             fn = cut_line.split()[0]
             filenames.append(fn)
-        obj = cls(filenames, parallel = parallel)
+        obj = cls(filenames, parallel=parallel)
         return obj
 
     _dataset_cls = None
+
     def _load(self, output_fn, **kwargs):
         if self._dataset_cls is not None:
             return self._dataset_cls(output_fn, **kwargs)
@@ -400,7 +424,9 @@ class DatasetSeries:
         self._dataset_cls = ds.__class__
         return ds
 
-    def particle_trajectories(self, indices, fields=None, suppress_logging=False, ptype=None):
+    def particle_trajectories(
+        self, indices, fields=None, suppress_logging=False, ptype=None
+    ):
         r"""Create a collection of particle trajectories in time over a series of
         datasets.
 
@@ -440,8 +466,10 @@ class DatasetSeries:
         This function will fail if there are duplicate particle ids or if some of the particle
         disappear.
         """
-        return ParticleTrajectories(self, indices, fields=fields, suppress_logging=suppress_logging,
-                                    ptype=ptype)
+        return ParticleTrajectories(
+            self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype
+        )
+
 
 class TimeSeriesQuantitiesContainer:
     def __init__(self, data_object, quantities):
@@ -449,15 +477,20 @@ class TimeSeriesQuantitiesContainer:
         self.quantities = quantities
 
     def __getitem__(self, key):
-        if key not in self.quantities: raise KeyError(key)
+        if key not in self.quantities:
+            raise KeyError(key)
         q = self.quantities[key]
+
         def run_quantity_wrapper(quantity, quantity_name):
             @wraps(derived_quantity_registry[quantity_name][1])
             def run_quantity(*args, **kwargs):
                 to_run = quantity(*args, **kwargs)
                 return self.data_object.eval(to_run)
+
             return run_quantity
+
         return run_quantity_wrapper(q, key)
+
 
 class DatasetSeriesObject:
     def __init__(self, time_series, data_object_name, *args, **kwargs):
@@ -465,7 +498,12 @@ class DatasetSeriesObject:
         self.data_object_name = data_object_name
         self._args = args
         self._kwargs = kwargs
-        qs = dict([(qn, create_quantity_proxy(qv)) for qn, qv in derived_quantity_registry.items()])
+        qs = dict(
+            [
+                (qn, create_quantity_proxy(qv))
+                for qn, qv in derived_quantity_registry.items()
+            ]
+        )
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
     def eval(self, tasks):
@@ -477,15 +515,17 @@ class DatasetSeriesObject:
         cls = getattr(ds, self.data_object_name)
         return cls(*self._args, **self._kwargs)
 
+
 class RegisteredSimulationTimeSeries(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
-        code_name = name[:name.find('Simulation')]
+        code_name = name[: name.find("Simulation")]
         if code_name:
             simulation_time_series_registry[code_name] = cls
             mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
-class SimulationTimeSeries(DatasetSeries, metaclass = RegisteredSimulationTimeSeries):
+
+class SimulationTimeSeries(DatasetSeries, metaclass=RegisteredSimulationTimeSeries):
     def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.
@@ -510,7 +550,7 @@ class SimulationTimeSeries(DatasetSeries, metaclass = RegisteredSimulationTimeSe
         self._calculate_simulation_bounds()
         # Get all possible datasets.
         self._get_all_outputs(find_outputs=find_outputs)
-        
+
         self.print_key_parameters()
 
     def _set_parameter_defaults(self):
@@ -527,43 +567,48 @@ class SimulationTimeSeries(DatasetSeries, metaclass = RegisteredSimulationTimeSe
 
     def _get_all_outputs(**kwargs):
         pass
-        
+
     def __repr__(self):
         return self.parameter_filename
 
     _arr = None
+
     @property
     def arr(self):
         if self._arr is not None:
             return self._arr
-        self._arr = functools.partial(YTArray, registry = self.unit_registry)
+        self._arr = functools.partial(YTArray, registry=self.unit_registry)
         return self._arr
-    
+
     _quan = None
+
     @property
     def quan(self):
         if self._quan is not None:
             return self._quan
-        self._quan = functools.partial(YTQuantity,
-                registry = self.unit_registry)
+        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
-    
+
     @parallel_root_only
     def print_key_parameters(self):
         """
         Print out some key parameters for the simulation.
         """
         if self.simulation_type == "grid":
-            for a in ["domain_dimensions", "domain_left_edge",
-                      "domain_right_edge"]:
+            for a in ["domain_dimensions", "domain_left_edge", "domain_right_edge"]:
                 self._print_attr(a)
-        for a in ["initial_time", "final_time",
-                  "cosmological_simulation"]:
+        for a in ["initial_time", "final_time", "cosmological_simulation"]:
             self._print_attr(a)
         if getattr(self, "cosmological_simulation", False):
-            for a in ["box_size", "omega_matter", "omega_lambda",
-                      "omega_radiation", "hubble_constant",
-                      "initial_redshift", "final_redshift"]:
+            for a in [
+                "box_size",
+                "omega_matter",
+                "omega_lambda",
+                "omega_radiation",
+                "hubble_constant",
+                "initial_redshift",
+                "final_redshift",
+            ]:
                 self._print_attr(a)
         for a in self.key_parameters:
             self._print_attr(a)
@@ -619,12 +664,13 @@ class SimulationTimeSeries(DatasetSeries, metaclass = RegisteredSimulationTimeSe
         if not outputs:
             return my_outputs
         for value in values:
-            outputs.sort(key=lambda obj:np.abs(value - obj[key]))
-            if (tolerance is None or np.abs(value - outputs[0][key]) <= tolerance) \
-                    and outputs[0] not in my_outputs:
+            outputs.sort(key=lambda obj: np.abs(value - obj[key]))
+            if (
+                tolerance is None or np.abs(value - outputs[0][key]) <= tolerance
+            ) and outputs[0] not in my_outputs:
                 my_outputs.append(outputs[0])
             else:
                 mylog.error("No dataset added for %s = %f.", key, value)
 
-        outputs.sort(key=lambda obj: obj['time'])
+        outputs.sort(key=lambda obj: obj["time"])
         return my_outputs

@@ -8,14 +8,18 @@ from yt.utilities.answer_testing.framework import (
     requires_ds,
 )
 
-_fields = ('particle_position_x', 'particle_position_y',
-           'particle_position_z', 'particle_mass')
+_fields = (
+    "particle_position_x",
+    "particle_position_y",
+    "particle_position_z",
+    "particle_mass",
+)
 
-ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
+ahf_halos = "ahf_halos/snap_N64L16_135.parameter"
 
 
 def load(filename):
-    return data_dir_load(filename, kwargs={'hubble_constant': 0.7})
+    return data_dir_load(filename, kwargs={"hubble_constant": 0.7})
 
 
 @requires_ds(ahf_halos)
@@ -31,6 +35,6 @@ def test_AHFHalosDataset():
     ds = load(ahf_halos)
     assert isinstance(ds, AHFHalosDataset)
     ad = ds.all_data()
-    ad['particle_mass']
+    ad["particle_mass"]
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()

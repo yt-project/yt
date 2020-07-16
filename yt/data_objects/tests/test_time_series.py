@@ -20,6 +20,7 @@ def test_pattern_expansion():
         found2 = get_filenames_from_glob_pattern(Path(pattern))
         assert found2 == found
 
+
 def test_no_match_pattern():
     with tempfile.TemporaryDirectory() as tmpdir:
         pattern = os.path.join(tmpdir, "fake_data_file_*")

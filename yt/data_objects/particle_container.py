@@ -11,16 +11,17 @@ from yt.utilities.exceptions import (
 def _non_indexed(name):
     def _func_non_indexed(self, *args, **kwargs):
         raise YTNonIndexedDataContainer(self)
+
     return _func_non_indexed
+
 
 class ParticleContainer(YTSelectionContainer):
     _spatial = False
-    _type_name = 'particle_container'
+    _type_name = "particle_container"
     _skip_add = True
-    _con_args = ('base_region', 'data_files', 'overlap_files')
+    _con_args = ("base_region", "data_files", "overlap_files")
 
-    def __init__(self, base_region, data_files, overlap_files = [], 
-                 domain_id = -1):
+    def __init__(self, base_region, data_files, overlap_files=[], domain_id=-1):
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.data_files = ensure_list(data_files)
@@ -28,7 +29,7 @@ class ParticleContainer(YTSelectionContainer):
         self.ds = self.data_files[0].ds
         self._last_mask = None
         self._last_selector_id = None
-        self._current_particle_type = 'all'
+        self._current_particle_type = "all"
         # self._current_fluid_type = self.ds.default_fluid_type
         if hasattr(base_region, "base_selector"):
             self.base_selector = base_region.base_selector
@@ -43,13 +44,13 @@ class ParticleContainer(YTSelectionContainer):
             self._octree = base_region._octree
         # To ensure there are not domains if global octree not used
         self.domain_id = -1
-            
+
     @property
     def selector(self):
         raise YTDataSelectorNotImplemented(self.oc_type_name)
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x,y,z)
+        mask = selector.select_points(x, y, z)
         return mask
 
     @contextlib.contextmanager
@@ -63,22 +64,25 @@ class ParticleContainer(YTSelectionContainer):
         self.data_files = old_data_files
         self.overlap_files = old_overlap_files
 
-    def retrieve_ghost_zones(self, ngz, coarse_ghosts = False):
-        gz_oct = self.octree.retrieve_ghost_zones(ngz, coarse_ghosts = coarse_ghosts)
-        gz = ParticleContainer(gz_oct.base_region, gz_oct.data_files,
-                               overlap_files = gz_oct.overlap_files,
-                               selector_mask = gz_oct.selector_mask,
-                               domain_id = gz_oct.domain_id)
+    def retrieve_ghost_zones(self, ngz, coarse_ghosts=False):
+        gz_oct = self.octree.retrieve_ghost_zones(ngz, coarse_ghosts=coarse_ghosts)
+        gz = ParticleContainer(
+            gz_oct.base_region,
+            gz_oct.data_files,
+            overlap_files=gz_oct.overlap_files,
+            selector_mask=gz_oct.selector_mask,
+            domain_id=gz_oct.domain_id,
+        )
         gz._octree = gz_oct
         return gz
 
-    select_blocks = _non_indexed('select_blocks')
-    deposit = _non_indexed('deposit')
-    smooth = _non_indexed('smooth')
-    select_icoords = _non_indexed('select_icoords')
-    select_fcoords = _non_indexed('select_fcoords')
-    select_fwidth = _non_indexed('select_fwidth')
-    select_ires = _non_indexed('select_ires')
-    select = _non_indexed('select')
-    count = _non_indexed('count')
-    count_particles = _non_indexed('count_particles')
+    select_blocks = _non_indexed("select_blocks")
+    deposit = _non_indexed("deposit")
+    smooth = _non_indexed("smooth")
+    select_icoords = _non_indexed("select_icoords")
+    select_fcoords = _non_indexed("select_fcoords")
+    select_fwidth = _non_indexed("select_fwidth")
+    select_ires = _non_indexed("select_ires")
+    select = _non_indexed("select")
+    count = _non_indexed("count")
+    count_particles = _non_indexed("count_particles")

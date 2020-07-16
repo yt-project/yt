@@ -15,20 +15,23 @@ class ExtractConnectedSetsTest(AnswerTestingTest):
         self.num_levels = num_levels
         self.min_val = min_val
         self.max_val = max_val
-    
+
     def run(self):
         n, all_sets = self.data_source.extract_connected_sets(
-            self.field, self.num_levels, self.min_val, self.max_val)
+            self.field, self.num_levels, self.min_val, self.max_val
+        )
         result = []
         for level in all_sets:
             for set_id in all_sets[level]:
-                result.append([all_sets[level][set_id]["cell_mass"].size,
-                               all_sets[level][set_id]["cell_mass"].sum()])
+                result.append(
+                    [
+                        all_sets[level][set_id]["cell_mass"].size,
+                        all_sets[level][set_id]["cell_mass"].sum(),
+                    ]
+                )
         result = np.array(result)
         return result
 
     def compare(self, new_result, old_result):
-        err_msg = "Size and/or mass of connected sets do not agree for %s." % \
-          self.ds_fn
-        assert_equal(new_result, old_result,
-                     err_msg=err_msg, verbose=True)
+        err_msg = "Size and/or mass of connected sets do not agree for %s." % self.ds_fn
+        assert_equal(new_result, old_result, err_msg=err_msg, verbose=True)
