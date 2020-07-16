@@ -78,14 +78,12 @@ install:
 
 jobs:
   include:
-    - stage: Lint
-      python: 3.6
-      script: flake8 yt/
 
     - stage: Lint
       python: 3.6
-      script: isort --check-only -rc yt/
+      script: flake8 yt/
       script: black --check yt/
+      script: isort --check-only -rc yt/
 
     - stage: tests
       name: "Python: 3.6 Minimal Dependency Unit Tests"
