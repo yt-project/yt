@@ -744,10 +744,10 @@ These will respectively print out any ``flake8`` errors or warnings that your ne
 code triggers, and a list of files that are currenlty not compliant with ``black``. Note
 that only a subset of the `full flake8 error and warning list
 <https://flake8.readthedocs.io/en/latest/user/error-codes.html>`_ is run, since we
-explicitly blacklist some of rules that are checked by ``flake8`` by default.
+explicitly blacklist some of the rules that are checked by ``flake8`` by default.
 
 Run black without the ``--check`` flag to automatically update the code to a
-black-compliant form.
+``black``-compliant form.
 
 
 Import ordering
