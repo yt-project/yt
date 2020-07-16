@@ -69,15 +69,16 @@ class ExporterTests(TestCase):
         rhos = [0.5, 0.25]
         trans = [0.5, 1.0]
         for i, r in enumerate(rhos):
+            basename = "my_galaxy_color"
             surf = ds.surface(sp,'density',r)
-            surf.export_obj("my_galaxy_color".format(i),
+            surf.export_obj(basename,
                             transparency=trans[i],
                             color_field='temperature', dist_fac=1.0,
                             plot_index=i, color_field_max=ma,
                             color_field_min=mi)
 
-        assert os.path.exists('my_galaxy_color.obj')
-        assert os.path.exists('my_galaxy_color.mtl')
+            assert os.path.exists('%s.obj' % basename)
+            assert os.path.exists('%s.mtl' % basename)
 
         def _Emissivity(field, data):
             return (data['density']*data['density'] *
@@ -85,15 +86,17 @@ class ExporterTests(TestCase):
         ds.add_field("emissivity", sampling_type='cell', function=_Emissivity,
                      units=r"g**2*sqrt(K)/cm**6")
         for i, r in enumerate(rhos):
+            basename = "my_galaxy_emis"
             surf = ds.surface(sp,'density',r)
-            surf.export_obj("my_galaxy_emis".format(i),
+            surf.export_obj(basename,
                             transparency=trans[i],
                             color_field='temperature',
                             emit_field='emissivity',
                             dist_fac=1.0, plot_index=i)
 
-        assert os.path.exists('my_galaxy_emis.obj')
-        assert os.path.exists('my_galaxy_emis.mtl')
+            basename = "my_galaxy_emis"
+            assert os.path.exists('%s.obj' % basename)
+            assert os.path.exists('%s.mtl' % basename)
 
 def test_correct_output_unit_fake_ds():
     # see issue #1368

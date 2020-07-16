@@ -591,13 +591,13 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
         if distrib == 'uniform':
             pos = fake_decomp_random(npart, nfiles, ifile, DLE, DRE, **kws)
         else:
-            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
+            raise ValueError("Unsupported value {} for input parameter 'distrib'".format(distrib))
     # Each file contains a slab (part of x domain, all of y/z domain)
     elif decomp == 'sliced':
         if distrib == 'uniform':
             pos = fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, **kws)
         else:
-            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
+            raise ValueError("Unsupported value {} for input parameter 'distrib'".format(distrib))
     # Particles are assigned to files based on their location on a
     # Peano-Hilbert curve of order 6
     elif decomp.startswith('hilbert'):
@@ -613,7 +613,7 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
             pos = fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
                               distrib=distrib, fname=fname, **kws)
         else:
-            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
+            raise ValueError("Unsupported value {} for input parameter 'distrib'".format(distrib))
     # Particles are assigned to files based on their location on a
     # Morton ordered Z-curve of order 6
     elif decomp.startswith('morton'):
@@ -624,7 +624,7 @@ def fake_decomp(decomp, npart, nfiles, ifile, DLE, DRE,
         if distrib == 'uniform':
             pos = fake_decomp_morton(npart, nfiles, ifile, DLE, DRE, **kws)
         else:
-            raise ValueError("Unsupported value for input parameter 'distrib'".format(distrib))
+            raise ValueError("Unsupported value {} for input parameter 'distrib'".format(distrib))
     else:
         raise ValueError("Unsupported value {} for input parameter 'decomp'".format(decomp))
     # Save
