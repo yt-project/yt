@@ -27,7 +27,7 @@ from .zbuffer_array import ZBuffer
 import builtins
 from yt.utilities.exceptions import YTNotInsideNotebook
 
-class Scene(object):
+class Scene:
 
     """A virtual landscape for a volume rendering.
 
@@ -121,7 +121,7 @@ class Scene(object):
 
         Parameters
         ----------
-        render_source: an instance of :class:`yt.visualization.volume_rendering.render_source.RenderSource`
+        render_source: :class:`yt.visualization.volume_rendering.render_source.RenderSource`
             A source to contribute to the volume rendering scene.
 
         keyname: string (optional)

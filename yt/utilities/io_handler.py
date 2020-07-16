@@ -34,8 +34,6 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
     _misses = 0
     _hits = 0
 
-    __metaclass__ = RegisteredIOHandler
-
     def __init__(self, ds):
         self.queue = defaultdict(dict)
         self.ds = ds

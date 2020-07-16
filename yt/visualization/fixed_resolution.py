@@ -19,7 +19,7 @@ import numpy as np
 import weakref
 import types
 
-class FixedResolutionBuffer(object):
+class FixedResolutionBuffer:
     r"""
     FixedResolutionBuffer(data_source, bounds, buff_size, antialias = True)
 
@@ -37,7 +37,8 @@ class FixedResolutionBuffer(object):
 
     Parameters
     ----------
-    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj` or :class:`yt.data_objects.selection_data_containers.YTSlice`
+    data_source : :class:`yt.data_objects.construction_data_containers.YTQuadTreeProj`
+                   or :class:`yt.data_objects.selection_data_containers.YTSlice`
         This is the source to be pixelized, which can be a projection, slice or
         cutting plane.
     bounds : sequence of floats

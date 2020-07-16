@@ -16,7 +16,7 @@ from yt.utilities.physical_constants import \
      gravitational_constant_cgs as G, \
      speed_of_light_cgs
 
-class Cosmology(object):
+class Cosmology:
     r"""
     Create a cosmology calculator to compute cosmological distances and times.
 
@@ -624,7 +624,7 @@ def trapezoid_cumulative_integral(f, x):
     fy = f(x)
     return (0.5 * (fy[:-1] + fy[1:]) * np.diff(x)).cumsum()
 
-class InterpTable(object):
+class InterpTable:
     """
     Generate a function to linearly interpolate from provided arrays.
     """

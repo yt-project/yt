@@ -11,7 +11,7 @@ from collections import OrderedDict
 import numpy as np
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-class ParticleTrajectories(object):
+class ParticleTrajectories:
     r"""A collection of particle trajectories in time over a series of
     datasets.
 

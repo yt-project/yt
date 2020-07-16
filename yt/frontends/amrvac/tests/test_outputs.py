@@ -11,7 +11,7 @@ from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid
 from yt.units import YTQuantity
 
 blastwave_spherical_2D = "amrvac/bw_2d0000.dat"
-khi_cartesian_2D = "amrvac/kh_2D0000.dat"
+khi_cartesian_2D = "amrvac/kh_2d0000.dat"
 khi_cartesian_3D = "amrvac/kh_3D0000.dat"
 jet_cylindrical_25D = "amrvac/Jet0003.dat"
 riemann_cartesian_175D = "amrvac/R_1d0005.dat"
@@ -107,7 +107,7 @@ def test_khi_cartesian_3D():
 @requires_ds(jet_cylindrical_25D)
 def test_jet_cylindrical_25D():
    ds = data_dir_load(jet_cylindrical_25D)
-   for test in small_patch_amr(ds, ds.field_list):
+   for test in small_patch_amr(ds, _get_fields_to_check(ds)):
        test_jet_cylindrical_25D.__name__ = test.description
        yield test
 

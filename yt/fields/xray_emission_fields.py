@@ -55,7 +55,7 @@ class ObsoleteDataException(YTException):
         return self.msg
 
 
-class XrayEmissivityIntegrator(object):
+class XrayEmissivityIntegrator:
     r"""Class for making X-ray emissivity fields. Uses hdf5 data tables
     generated from Cloudy and AtomDB/APEC.
 

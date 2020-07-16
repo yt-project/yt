@@ -6,9 +6,8 @@ from yt.frontends.sdf.api import SDFDataset
 from yt.visualization.api import ProjectionPlot
 from yt.testing import requires_module
 
-
 _fields = (('deposit', 'all_cic'))
-slac_scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128/ds14_scivis_0128_e4_dt04_1.0000"
+slac_scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128/ds14_scivis_0128_e4_dt04_1.0000"  # NOQA E501
 ncsa_scivis_data = "http://use.yt/upload/744abba3"
 scivis_data = ncsa_scivis_data
 

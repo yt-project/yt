@@ -60,7 +60,7 @@ def read_attrs(f, attrs,endian='='):
     for a, n, t in attrs:
         for end in '@=<>':
             t = t.replace(end,'')
-        if type(a) == tuple:
+        if isinstance(a, tuple):
             n = len(a)
         s1 = vals.pop(0)
         v = [vals.pop(0) for i in range(n)]
@@ -73,7 +73,7 @@ def read_attrs(f, attrs,endian='='):
                 'end of the record: %s %s', s1, s2)
         if n == 1:
             v = v[0]
-        if type(a)==tuple:
+        if isinstance(a, tuple):
             if len(a) != len(v):
                 raise IOError(
                     'An error occured while reading a Fortran '
@@ -132,11 +132,11 @@ def read_cattrs(f, attrs, endian='='):
     for a, n, t in attrs:
         for end in '@=<>':
             t = t.replace(end,'')
-        if type(a)==tuple:
+        if isinstance(a, tuple):
             n = len(a)
         v = [vals.pop(0) for i in range(n)]
         if n == 1: v = v[0]
-        if type(a)==tuple:
+        if isinstance(a, tuple):
             if len(a) != len(v):
                 raise IOError(
                     'An error occured while reading a Fortran '

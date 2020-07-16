@@ -42,7 +42,7 @@ def pyxize_label(string):
     return result
 
 
-class DualEPS(object):
+class DualEPS:
     def __init__(self, figsize=(12,12)):
         r"""Initializes the DualEPS class to which we can progressively add layers
         of vector graphics and compressed bitmaps.
@@ -703,7 +703,10 @@ class DualEPS(object):
         """
         
         if isinstance(plot, ProfilePlot):
-            raise RuntimeError("When using ProfilePlots you must either set yt_nocbar=True or provide colorbar flags so that the profiles don't have colorbars")
+            raise RuntimeError(
+                "When using ProfilePlots you must either set yt_nocbar=True or provide "
+                "colorbar flags so that the profiles don't have colorbars"
+            )
         _cmap = None
         if field is not None:
             self.field = plot.data_source._determine_fields(field)[0]

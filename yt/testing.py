@@ -14,12 +14,12 @@ from yt.config import ytcfg
 # we import this in a weird way from numpy.testing to avoid triggering
 # flake8 errors from the unused imports. These test functions are imported
 # elsewhere in yt from here so we want them to be imported here.
-from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA
-from numpy.testing import assert_approx_equal, assert_array_almost_equal  # NOQA
-from numpy.testing import assert_equal, assert_array_less  # NOQA
-from numpy.testing import assert_string_equal  # NOQA
-from numpy.testing import assert_array_almost_equal_nulp  # NOQA
-from numpy.testing import assert_allclose, assert_raises  # NOQA
+from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA isort:skip
+from numpy.testing import assert_approx_equal, assert_array_almost_equal  # NOQA isort:skip
+from numpy.testing import assert_equal, assert_array_less  # NOQA isort:skip
+from numpy.testing import assert_string_equal  # NOQA isort:skip
+from numpy.testing import assert_array_almost_equal_nulp  # NOQA isort:skip
+from numpy.testing import assert_allclose, assert_raises  # NOQA isort:skip
 from numpy.random import RandomState
 from yt.convenience import load
 from yt.units.yt_array import YTArray, YTQuantity
@@ -1326,7 +1326,11 @@ class ParticleSelectionComparison:
                 obj_results = np.concatenate(obj_results, axis = 0)
             else:
                 obj_results = np.empty((0, 3))
-            assert_equal(sel_pos, obj_results)
+            # Sometimes we get unitary scaling or other floating point noise. 5
+            # NULP should be OK.  This is mostly for stuff like Rockstar, where
+            # the f32->f64 casting happens at different places depending on
+            # which code path we use.
+            assert_array_almost_equal_nulp(sel_pos, obj_results, 5)
 
     def run_defaults(self):
         """
@@ -1358,7 +1362,7 @@ class ParticleSelectionComparison:
                    [0.96, 0.96, 0.96]]
         r = self.ds.quan(0.1, "unitary")
         for center in centers:
-            c = self.ds.arr(center, "unitary")
+            c = self.ds.arr(center, "unitary") + self.ds.domain_left_edge.in_units("unitary")
             if not all(self.ds.periodicity):
                 # filter out the periodic bits for non-periodic datasets
                 if any(c - r < self.ds.domain_left_edge) or \
@@ -1373,17 +1377,20 @@ class ParticleSelectionComparison:
         dd = self.ds.all_data()
         self.compare_dobj_selection(dd)
 
-        reg1 = self.ds.r[ (0.1, 'unitary'):(0.9, 'unitary'),
-                          (0.1, 'unitary'):(0.9, 'unitary'),
-                          (0.1, 'unitary'):(0.9, 'unitary')]
+        # This is in raw numbers, so we can offset for the left edge
+        LE = self.ds.domain_left_edge.in_units("unitary").d
+
+        reg1 = self.ds.r[ (0.1 + LE[0], 'unitary'):(0.9 + LE[0], 'unitary'),
+                          (0.1 + LE[1], 'unitary'):(0.9 + LE[1], 'unitary'),
+                          (0.1 + LE[2], 'unitary'):(0.9 + LE[2], 'unitary')]
         self.compare_dobj_selection(reg1)
 
-        reg2 = self.ds.r[ (0.8, 'unitary'):(0.85, 'unitary'),
-                          (0.8, 'unitary'):(0.85, 'unitary'),
-                          (0.8, 'unitary'):(0.85, 'unitary')]
+        reg2 = self.ds.r[ (0.8 + LE[0], 'unitary'):(0.85 + LE[0], 'unitary'),
+                          (0.8 + LE[1], 'unitary'):(0.85 + LE[1], 'unitary'),
+                          (0.8 + LE[2], 'unitary'):(0.85 + LE[2], 'unitary')]
         self.compare_dobj_selection(reg2)
 
-        reg3 = self.ds.r[ (0.3, 'unitary'):(0.6, 'unitary'),
-                          (0.2, 'unitary'):(0.8, 'unitary'),
-                          (0.0, 'unitary'):(0.1, 'unitary')]
+        reg3 = self.ds.r[ (0.3 + LE[0], 'unitary'):(0.6 + LE[0], 'unitary'),
+                          (0.2 + LE[1], 'unitary'):(0.8 + LE[1], 'unitary'),
+                          (0.0 + LE[2], 'unitary'):(0.1 + LE[2], 'unitary')]
         self.compare_dobj_selection(reg3)

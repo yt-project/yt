@@ -1,6 +1,6 @@
 answer_tests:
 
-  local_amrvac_005:
+  local_amrvac_006:
     - yt/frontends/amrvac/tests/test_outputs.py:test_domain_size
     - yt/frontends/amrvac/tests/test_outputs.py:test_bw_polar_2d
     - yt/frontends/amrvac/tests/test_outputs.py:test_blastwave_cartesian_3D

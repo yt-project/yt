@@ -435,7 +435,11 @@ class ARTIODataset(Dataset):
                 self.artio_parameters["length_unit"][0] * abox
 
             if self.artio_parameters["DeltaDC"][0] != 0:
-                mylog.warning("DeltaDC != 0, which implies auni != abox.  Be sure you understand which expansion parameter is appropriate for your use! (Gnedin, Kravtsov, & Rudd 2011)")
+                mylog.warning(
+                    "DeltaDC != 0, which implies auni != abox. "
+                    "Be sure you understand which expansion parameter "
+                    "is appropriate for your use! (Gnedin, Kravtsov, & Rudd 2011)"
+                )
         else:
             self.cosmological_simulation = False
 

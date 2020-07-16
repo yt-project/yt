@@ -15,7 +15,7 @@ from yt.utilities.answer_testing.framework import \
     temp_cwd
 
 
-class AssertWrapper(object):
+class AssertWrapper:
     """
     Used to wrap a numpy testing assertion, in order to provide a useful name
     for a given assertion test.
@@ -67,7 +67,7 @@ def standard_small_simulation(ds_fn, fields):
             yield FieldValuesTest(
                     ds_fn, field, dobj_name, decimals=tolerance)
                     
-class ShockTubeTest(object):
+class ShockTubeTest:
     def __init__(self, data_file, solution_file, fields, 
                  left_edges, right_edges, rtol, atol):
         self.solution_file = solution_file

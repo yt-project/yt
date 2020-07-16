@@ -145,7 +145,7 @@ class PlotWindow(ImagePlotContainer):
     Parameters
     ----------
 
-    data_source : subclass of :class:`yt.data_objects.selection_data_containers.YTSelectionContainer2D`
+    data_source : :class:`yt.data_objects.selection_data_containers.YTSelectionContainer2D`
         This is the source to be pixelized, which can be a projection,
         slice, or a cutting plane.
     bounds : sequence of floats
@@ -1644,7 +1644,7 @@ class OffAxisSlicePlot(PWViewerMPL):
             axes_unit = get_axes_unit(width, ds)
         self.set_axes_unit(axes_unit)
 
-class OffAxisProjectionDummyDataSource(object):
+class OffAxisProjectionDummyDataSource:
     _type_name = 'proj'
     _key_fields = []
     def __init__(self, center, ds, normal_vector, width, fields,

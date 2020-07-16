@@ -50,7 +50,8 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                            self.cache[i])
                 else:
                     # Pad accordingly with zeros to make 1D/2D datasets compatible
-                    # These have to be the same shape as the existing axes since that equals the number of particles
+                    # These have to be the same shape as the existing axes since that
+                    # equals the number of particles
                     self.cache[i] = np.zeros(offset)
 
     def _read_particle_selection(self, chunks, selector, fields):

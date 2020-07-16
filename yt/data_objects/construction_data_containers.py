@@ -1073,7 +1073,7 @@ class YTArbitraryGrid(YTCoveringGrid):
 
         return bounds, size
 
-class LevelState(object):
+class LevelState:
     current_dx = None
     current_dims = None
     current_level = None

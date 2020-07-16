@@ -389,8 +389,7 @@ def show_colormaps(subset="all", filename=None):
             raise AttributeError("show_colormaps requires subset attribute "
                                  "to be 'all', 'yt_native', or a list of "
                                  "valid colormap names.")
-    maps = list(set(maps))
-    maps.sort()
+    maps = sorted(set(maps))
     # scale the image size by the number of cmaps
     plt.figure(figsize=(2.*len(maps)/10.,6))
     plt.subplots_adjust(top=0.7,bottom=0.05,left=0.01,right=0.99)

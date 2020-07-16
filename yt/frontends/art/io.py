@@ -178,7 +178,8 @@ class IOHandlerART(BaseIOHandler):
 class IOHandlerDarkMatterART(IOHandlerART):
     _dataset_type = "dm_art"
     def _count_particles(self, data_file):
-        return self.ds.parameters['lspecies'][-1]
+        return {k: self.ds.parameters['lspecies'][i] 
+                for i, k in enumerate(self.ds.particle_types_raw)}
 
     def _initialize_index(self, data_file, regions):
         totcount = 4096**2 #file is always this size
@@ -205,7 +206,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
                 field_list.append(pfn)
         return field_list, {}
 
-    def _get_field(self,  field):
+    def _get_field(self, field):
         if field in self.cache.keys() and self.caching:
             mylog.debug("Cached %s", str(field))
             return self.cache[field]
@@ -261,6 +262,13 @@ class IOHandlerDarkMatterART(IOHandlerART):
         else:
             return tr[field]
 
+    def _yield_coordinates(self, data_file):
+        for ptype in self.ds.particle_types_raw:
+            x = self._get_field((ptype, 'particle_position_x'))
+            y = self._get_field((ptype, 'particle_position_y'))
+            z = self._get_field((ptype, 'particle_position_z'))
+
+            yield ptype, np.stack((x, y, z), axis=-1)
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
@@ -308,7 +316,7 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
     fl = np.ones((nLevel, 6), dtype='int64')
     iocts = np.zeros(nLevel+1, dtype='int64')
     idxa, idxb = 0, 0
-    chunk = long(1e6)  # this is ~111MB for 15 dimensional 64 bit arrays
+    chunk = int(1e6)  # this is ~111MB for 15 dimensional 64 bit arrays
     left = nLevel
     while left > 0:
         this_chunk = min(chunk, left)
@@ -472,7 +480,7 @@ def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
     ioctch = np.zeros(nLevel, dtype='uint8')
     idc = np.zeros(nLevel, dtype='int32')
 
-    chunk = long(1e6)
+    chunk = int(1e6)
     left = nLevel
     width = nhydro_vars+6
     a, b = 0, 0

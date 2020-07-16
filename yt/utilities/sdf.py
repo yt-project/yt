@@ -1,4 +1,3 @@
-from __future__ import print_function
 from io import StringIO
 import os
 import numpy as np
@@ -139,7 +138,7 @@ def get_keyv(iarr, level):
     np.bitwise_or(i1, i3, i1)
     return i1
 
-class DataStruct(object):
+class DataStruct:
     """docstring for DataStruct"""
 
     _offset = 0
@@ -178,13 +177,12 @@ class DataStruct(object):
 
     def __getitem__(self, key):
         mask = None
-        kt = type(key)
-        if kt == int or kt == np.int64 or kt == np.int32 or kt == np.int:
+        if isinstance(key, (int, np.int, np.integer)):
             if key == -1:
                 key = slice(-1, None)
             else:
                 key = slice(key, key+1)
-        elif type(key) == np.ndarray:
+        elif isinstance(key, np.ndarray):
             mask = key
             key = slice(None, None)
         if not isinstance(key, slice):
@@ -203,7 +201,7 @@ class DataStruct(object):
         else:
             return arr[mask]
 
-class RedirectArray(object):
+class RedirectArray:
     """docstring for RedirectArray"""
     def __init__(self, http_array, key):
         self.http_array = http_array
@@ -539,7 +537,7 @@ def _shift_periodic(pos, left, right, domain_width):
     return
 
 
-class SDFIndex(object):
+class SDFIndex:
 
     """docstring for SDFIndex
 
@@ -819,9 +817,12 @@ class SDFIndex(object):
         """
         ileft = np.floor((left - self.rmin) / self.domain_width *  self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
-        if np.any(iright-ileft) > self.domain_dims:
-            mylog.warning("Attempting to get data from bounding box larger than the domain. You may want to check your units.")
-        #iright[iright <= ileft+1] += 1
+        if np.any(iright - ileft) > self.domain_dims:
+            mylog.warning(
+                "Attempting to get data from bounding box larger than the domain. "
+                "You may want to check your units."
+            )
+        # iright[iright <= ileft+1] += 1
 
         return self.get_ibbox(ileft, iright)
 
@@ -884,9 +885,12 @@ class SDFIndex(object):
             combined = 0
             while nexti < num_inds:
                 nextind = inds[nexti]
-                #        print('b: %i l: %i end: %i  next: %i' % ( base, length, base + length, self.indexdata['base'][nextind] ))
-                if combined < 1024 and base + length == self.indexdata['base'][nextind]:
-                    length += self.indexdata['len'][nextind]
+                # print(
+                #    "b: %i l: %i end: %i  next: %i"
+                #    % (base, length, base + length, self.indexdata["base"][nextind])
+                # )
+                if combined < 1024 and base + length == self.indexdata["base"][nextind]:
+                    length += self.indexdata["len"][nextind]
                     i += 1
                     nexti += 1
                     combined += 1
@@ -1119,10 +1123,20 @@ class SDFIndex(object):
         level_buff = 0
         level_lk = self.get_key(cell_iarr + level_buff)
         level_rk = self.get_key(cell_iarr + level_buff) + 1
-        lmax_lk = (level_lk << shift*3)
-        lmax_rk = (((level_rk) << shift*3) -1)
-        #print("Level ", level, np.binary_repr(level_lk, width=self.level*3), np.binary_repr(level_rk, width=self.level*3))
-        #print("Level ", self.level, np.binary_repr(lmax_lk, width=self.level*3), np.binary_repr(lmax_rk, width=self.level*3))
+        lmax_lk = level_lk << shift * 3
+        lmax_rk = ((level_rk) << shift * 3) - 1
+        # print(
+        #    "Level ",
+        #    level,
+        #    np.binary_repr(level_lk, width=self.level * 3),
+        #    np.binary_repr(level_rk, width=self.level * 3),
+        # )
+        # print(
+        #    "Level ",
+        #    self.level,
+        #    np.binary_repr(lmax_lk, width=self.level * 3),
+        #    np.binary_repr(lmax_rk, width=self.level * 3),
+        # )
         return lmax_lk, lmax_rk
 
     def find_max_cell(self):
@@ -1343,4 +1357,3 @@ class SDFIndex(object):
         pbox[0, 1] = pbox[0, 0] + pad[0]
         for k in self.get_bbox(pbox[:,0], pbox[:,1]):
             yield k
-

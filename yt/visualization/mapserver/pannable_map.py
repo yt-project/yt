@@ -24,7 +24,7 @@ def exc_writeout(f):
             raise
     return func
 
-class PannableMapServer(object):
+class PannableMapServer:
     _widget_name = "pannable_map"
     def __init__(self, data, field, takelog, cmap, route_prefix = ""):
         self.data = data

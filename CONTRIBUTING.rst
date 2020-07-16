@@ -747,6 +747,27 @@ error and warning list
 blacklist a large number of the full list of rules that are checked by
 ``flake8`` by default.
 
+Import Formatting
+-----------------
+
+We use ``isort`` to enforce PEP-8 guidelines for import ordering.
+By decreasing priority order:
+FUTURE > STDLIB > THIRD PARTY > FIRST PARTY > EXPLICITLY LOCAL
+
+``isort`` can be installed via ``pip``
+
+.. code-block:: bash
+
+    $ pip install isort
+
+To validate import order, run ``isort`` recursively at the top level
+
+.. code-block:: bash
+
+    $ isort -rc . --check-only
+
+If any error is detected, rerun this without the ``--check-only`` flag to fix them.
+
 Source code style guide
 -----------------------
 

@@ -72,7 +72,7 @@ class DerivedQuantity(ParallelAnalysisInterface, metaclass = RegisteredDerivedQu
     def reduce_intermediate(self, values):
         raise NotImplementedError
 
-class DerivedQuantityCollection(object):
+class DerivedQuantityCollection:
     def __new__(cls, data_source, *args, **kwargs):
         inst = object.__new__(cls)
         inst.data_source = data_source
@@ -449,7 +449,8 @@ class AngularMomentumVector(DerivedQuantity):
     >>> ds = load("FIRE_M12i_ref11/snapshot_600.hdf5")
     >>> _, c = ds.find_max(('gas', 'density'))
     >>> sp = ds.sphere(c, (10, 'kpc'))
-    >>> print(sp.quantities.angular_momentum_vector(use_gas=False, use_particles=True, particle_type='PartType0'))
+    >>> search_args = dict(use_gas=False, use_particles=True, particle_type='PartType0')
+    >>> print(sp.quantities.angular_momentum_vector(**search_args))
 
     """
     def count_values(self, use_gas=True, use_particles=True, particle_type='all'):

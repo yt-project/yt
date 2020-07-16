@@ -53,7 +53,7 @@ def validate_iterable_width(width, ds, unit=None):
             return (ds.quan(width[0], fix_unitary(width[1])),
                     ds.quan(width[0], fix_unitary(width[1])))
 
-class CoordinateHandler(object):
+class CoordinateHandler:
     name = None
 
     def __init__(self, ds, ordering):

@@ -15,7 +15,6 @@ import subprocess
 import numpy as np
 import itertools
 import base64
-import numpy
 import matplotlib
 import getpass
 import glob
@@ -314,7 +313,7 @@ def insert_ipython(num_up=1):
 # Our progress bar types and how to get one
 #
 
-class TqdmProgressBar(object):
+class TqdmProgressBar:
     # This is a drop in replacement for pbar
     # called tqdm
     def __init__(self,title, maxval):
@@ -329,7 +328,7 @@ class TqdmProgressBar(object):
     def finish(self):
         self._pbar.close()
 
-class DummyProgressBar(object):
+class DummyProgressBar:
     # This progressbar gets handed if we don't
     # want ANY output
     def __init__(self, *args, **kwargs):
@@ -339,7 +338,7 @@ class DummyProgressBar(object):
     def finish(self, *args, **kwargs):
         return
 
-class ParallelProgressBar(object):
+class ParallelProgressBar:
     # This is just a simple progress bar
     # that prints on start/stop
     def __init__(self, title, maxval):
@@ -350,7 +349,7 @@ class ParallelProgressBar(object):
     def finish(self):
         mylog.info("Finishing '%s'", self.title)
 
-class GUIProgressBar(object):
+class GUIProgressBar:
     def __init__(self, title, maxval):
         import wx
         self.maxval = maxval
@@ -473,7 +472,10 @@ def paste_traceback_detailed(exc_type, exc, tb):
     print("Traceback pasted to http://paste.yt-project.org/show/%s" % (ret))
     print()
 
-_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"
+
+_ss = "fURbBUUBE0cLXgETJnZgJRMXVhVGUQpQAUBuehQMUhJWRFFRAV1ERAtBXw1dAxMLXT4zXBFfABNN\nC0ZEXw1YUURHCxMXVlFERwxWCQw=\n"  # NOQA 501
+
+
 def _rdbeta(key):
     enc_s = base64.decodestring(_ss)
     dec_s = ''.join([ chr(ord(a) ^ ord(b)) for a, b in zip(enc_s, itertools.cycle(key)) ])
@@ -486,7 +488,7 @@ def _rdbeta(key):
 class NoCUDAException(Exception):
     pass
 
-class YTEmptyClass(object):
+class YTEmptyClass:
     pass
 
 def update_hg_or_git(path):
@@ -652,7 +654,7 @@ def get_yt_version():
 def get_version_stack():
     version_info = {}
     version_info['yt'] = get_yt_version()
-    version_info['numpy'] = numpy.version.version
+    version_info['numpy'] = np.version.version
     version_info['matplotlib'] = matplotlib.__version__
     return version_info
 

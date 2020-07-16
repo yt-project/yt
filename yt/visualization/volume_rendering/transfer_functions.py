@@ -7,7 +7,7 @@ from yt.funcs import \
 from yt.utilities.physical_constants import \
     clight, hcgs, kboltz
 
-class TransferFunction(object):
+class TransferFunction:
     r"""A transfer function governs the transmission of emission and
     absorption through a volume.
 
@@ -221,7 +221,7 @@ class TransferFunction(object):
                 (self.x_bounds[0], self.x_bounds[1], self.nbins, self.features)
         return disp
 
-class MultiVariateTransferFunction(object):
+class MultiVariateTransferFunction:
     r"""This object constructs a set of field tables that allow for
     multiple field variables to control the integration through a volume.
 

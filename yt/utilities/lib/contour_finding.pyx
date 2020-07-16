@@ -1,3 +1,5 @@
+# distutils: libraries = STD_LIBS
+# distutils: include_dirs = LIB_DIR_GEOM
 """
 A two-pass contour finding algorithm
 

@@ -160,7 +160,7 @@ def get_symlog_minorticks(linthresh, vmin, vmax):
 field_transforms = {}
 
 
-class FieldTransform(object):
+class FieldTransform:
     def __init__(self, name, func):
         self.name = name
         self.func = func
@@ -190,7 +190,7 @@ class PlotDictionary(defaultdict):
         self.data_source = data_source
         return defaultdict.__init__(self, default_factory)
 
-class PlotContainer(object):
+class PlotContainer:
     """A container for generic plots"""
     _plot_type = None
     _plot_valid = False

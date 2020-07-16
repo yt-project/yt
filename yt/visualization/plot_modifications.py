@@ -1,4 +1,4 @@
-from __future__ import absolute_import
+
 
 import warnings
 
@@ -1765,7 +1765,7 @@ class ParticleCallback(PlotCallback):
         # we construct a rectangular prism
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        if type(self.data_source)==YTCutRegion:
+        if isinstance(self.data_source, YTCutRegion):
             mylog.warning("Parameter 'width' is ignored in annotate_particles if the "
                           "data_source is a cut_region. "
                           "See https://github.com/yt-project/yt/issues/1933 for further details.")
@@ -2053,7 +2053,8 @@ class TimestampCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
-        Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
+        Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black',
+                     'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
 
     Example
     -------
@@ -2261,7 +2262,8 @@ class ScaleCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
-        Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
+        Defaults: ``{'facecolor': 'black', 'linewidth': 3,
+                     'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
     scale_text_format : string, optional
         This specifies the format of the scalebar value assuming "scale" is the

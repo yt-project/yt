@@ -53,7 +53,7 @@ def rpdb_excepthook(exc_type, exc, tb):
         # let this get out of hand.
         MPI.COMM_WORLD.Barrier()
 
-class pdb_handler(object):
+class pdb_handler:
     def __init__(self, tb):
         self.cin = StringIO()
         sys.stdin = self.cin

@@ -20,11 +20,11 @@
     :license: BSD, see LICENSE for more details.
 """
 # This source code was originally in flask/exthook.py
-import sys
 import os
+import sys
 
 
-class ExtensionImporter(object):
+class ExtensionImporter:
     """This importer redirects imports from this submodule to other locations.
     This makes it possible to transition from the old flaskext.name to the
     newer flask_name without people having a hard time.

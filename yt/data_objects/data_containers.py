@@ -75,6 +75,14 @@ def sanitize_weight_field(ds, field, weight):
         weight_field = weight
     return weight_field
 
+def _get_ipython_key_completion(ds):
+    # tuple-completion (ftype, fname) was added in IPython 8.0.0
+    # with earlier versions, completion works with fname only
+    # this implementation should work transparently with all IPython versions
+    tuple_keys = ds.field_list + ds.derived_field_list
+    fnames = list(set(k[1] for k in tuple_keys))
+    return tuple_keys + fnames
+
 class RegisteredDataContainer(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
@@ -258,14 +266,18 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         # hanging off the dataset to define this unit object.
         # Note that this is less succinct so that we can account for the case
         # when there are, for example, no elements in the object.
-        rv = self.field_data.get(f, None)
-        if rv is None:
+        try:
+            rv = self.field_data[f]
+        except KeyError:
             if isinstance(f, tuple):
                 fi = self.ds._get_field_info(*f)
             elif isinstance(f, bytes):
                 fi = self.ds._get_field_info("unknown", f)
             rv = self.ds.arr(self.field_data[key], fi.units)
         return rv
+
+    def _ipython_key_completions_(self):
+        return _get_ipython_key_completion(self.ds)
 
     def __setitem__(self, key, val):
         """

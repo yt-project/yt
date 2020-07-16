@@ -12,7 +12,7 @@ from yt.units.yt_array import YTQuantity
 
 known_shaders = {}
 
-class ShaderProgram(object):
+class ShaderProgram:
     '''
     Wrapper class that compiles and links vertex and fragment shaders
     into a shader program.
@@ -20,10 +20,12 @@ class ShaderProgram(object):
     Parameters
     ----------
 
-    vertex_shader : string or :class:`yt.visualization.volume_rendering.shader_objects.VertexShader`
+    vertex_shader : string
+                    or :class:`yt.visualization.volume_rendering.shader_objects.VertexShader`
         The vertex shader used in the Interactive Data Visualization pipeline.
 
-    fragment_shader : string or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
+    fragment_shader : string
+                      or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
         The fragment shader used in the Interactive Data Visualization pipeline.
     '''
 

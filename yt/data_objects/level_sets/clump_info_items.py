@@ -8,7 +8,7 @@ clump_info_registry = OperatorRegistry()
 def add_clump_info(name, function):
     clump_info_registry[name] = ClumpInfoCallback(name, function)
 
-class ClumpInfoCallback(object):
+class ClumpInfoCallback:
     r"""
     A ClumpInfoCallback is a function that takes a clump, computes a 
     quantity, and returns a string to be printed out for writing clump info.

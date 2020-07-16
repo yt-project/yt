@@ -1,3 +1,6 @@
+# distutils: include_dirs = LIB_DIR_EWAH
+# distutils: language = c++
+# distutils: libraries = STD_LIBS
 """
 Oct container tuned for Particles
 

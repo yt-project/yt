@@ -15,7 +15,7 @@ event_registry = {}
 GLFWEvent = namedtuple("GLFWEvent", ['window', 'key', 'scancode', 'action',
                        'mods', 'width', 'height'])
 
-class EventCollection(object):
+class EventCollection:
     '''Class handling mouse and keyboard events occurring in IDV
     
     Parameters
@@ -335,7 +335,7 @@ def nplane_further(event_coll, event):
     event_coll.camera.near_plane *= 2.0
     return True
 
-class MouseRotation(object):
+class MouseRotation:
     '''Class translating mouse movements to positions in OpenGL scene's coordinates'''
     def __init__(self):
         self.start = None
@@ -378,7 +378,7 @@ class MouseRotation(object):
         self.start = new_end
         return True
 
-class BlendFuncs(object):
+class BlendFuncs:
     '''Class allowing to switch between different GL blending functions'''
     possibilities = (
         "GL_ZERO", "GL_ONE", "GL_SRC_COLOR", "GL_ONE_MINUS_SRC_COLOR",

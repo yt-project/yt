@@ -58,8 +58,8 @@ class FieldDetector(defaultdict):
             ds.periodicity = (True, True, True)
         self.ds = ds
 
-        class fake_index(object):
-            class fake_io(object):
+        class fake_index:
+            class fake_io:
                 def _read_data_set(io_self, data, field):
                     return self._read_data(field)
                 _read_exception = RuntimeError

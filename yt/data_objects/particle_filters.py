@@ -9,13 +9,13 @@ from yt.utilities.exceptions import YTIllDefinedFilter
 # One to one mapping
 filter_registry = {}
 
-class DummyFieldInfo(object):
+class DummyFieldInfo:
     particle_type = True
     sampling_type = 'particle'
 
 dfi = DummyFieldInfo()
 
-class ParticleFilter(object):
+class ParticleFilter:
     def __init__(self, name, function, requires, filtered_type):
         self.name = name
         self.function = function

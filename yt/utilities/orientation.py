@@ -25,7 +25,7 @@ def _validate_unit_vectors(normal_vector, north_vector):
     return normal_vector, north_vector
 
 
-class Orientation(object):
+class Orientation:
     def __init__(self, normal_vector, north_vector=None, steady_north=False):
         r"""An object that returns a set of basis vectors for orienting
         cameras a data containers.

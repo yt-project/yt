@@ -29,7 +29,8 @@ def off_axis_projection(data_source, center, normal_vector,
 
     Parameters
     ----------
-    data_source : ~yt.data_objects.static_output.Dataset or ~yt.data_objects.data_containers.YTSelectionDataContainer
+    data_source : ~yt.data_objects.static_output.Dataset
+                  or ~yt.data_objects.data_containers.YTSelectionDataContainer
         This is the dataset or data object to volume render.
     center : array_like
         The current 'center' of the view port -- the focal point for the
