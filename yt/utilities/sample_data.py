@@ -24,11 +24,13 @@ from yt.utilities.on_demand_imports import _pooch as pch
 
 _extensions_to_strip = (".tgz", ".tar.gz", ".gz")
 
+
 class Fido:
     r"""
     Container for a pooch object used to fetch remote data that isn't
     already stored locally.
     """
+
     def __init__(self, filename="sample_data_registry.json", cache_dir=None):
         self.filename = filename
         self._registry = json.load(pkg_resources.resource_stream("yt", self.filename))
@@ -39,10 +41,10 @@ class Fido:
                 cache_dir = pch.pooch.os_cache("yt")
         self.fido = pch.pooch.create(
             path=cache_dir,
-            registry={_: self._registry[_]['hash'] for _ in self._registry},
-            urls={_: self._registry[_]['url'] for _ in self._registry},
+            registry={_: self._registry[_]["hash"] for _ in self._registry},
+            urls={_: self._registry[_]["url"] for _ in self._registry},
             env="YT_DATA_DIR",
-            base_url = "https://yt-project.org/data/"
+            base_url="https://yt-project.org/data/",
         )
         # Load the external registry file. It contains data file names,
         # hashes used for validation, and the url for the data file

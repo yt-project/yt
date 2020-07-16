@@ -43,7 +43,8 @@ def load_sample(name=None, specific_file=None, pbar=True):
         keys = []
         for key in fido._registry:
             for ext in sd._extensions_to_strip:
-                if key.endswith(ext): key = key[:-len(ext)]
+                if key.endswith(ext):
+                    key = key[: -len(ext)]
             keys.append(key)
         return keys
 
@@ -54,6 +55,7 @@ def load_sample(name=None, specific_file=None, pbar=True):
     if pbar:
         try:
             import tqdm  # noqa: F401
+
             downloader = pch.pooch.HTTPDownloader(progressbar=True)
         except ImportError:
             mylog.warning("tqdm is not installed, progress bar can not be displayed.")
@@ -74,20 +76,19 @@ def load_sample(name=None, specific_file=None, pbar=True):
 
     # Location of the file to load automatically, registered in the Fido class
     info = fido[fileext]
-    file_lookup = info['load_name']
-    optional_args = info['load_kwargs']
+    file_lookup = info["load_name"]
+    optional_args = info["load_kwargs"]
 
     if specific_file is None:
         # right now work on loading only untarred files. build out h5 later
         mylog.info("Default to loading %s for %s dataset", file_lookup, name)
-        loaded_file = os.path.join(base_path, "%s.untar" %fileext,
-                                   name, file_lookup)
+        loaded_file = os.path.join(base_path, "%s.untar" % fileext, name, file_lookup)
     else:
         mylog.info("Loading %s for %s dataset", specific_file, name)
-        loaded_file = os.path.join(base_path, "%s.untar" %fileext, name,
-                                   specific_file)
+        loaded_file = os.path.join(base_path, "%s.untar" % fileext, name, specific_file)
 
     return load(loaded_file, **optional_args)
+
 
 def _validate_sampledata_name(name):
     """
@@ -109,16 +110,17 @@ def _validate_sampledata_name(name):
     """
 
     if not isinstance(name, str):
-        mylog.error("The argument {} passed to ".format(name) + \
-                    "load_sample() is not a string.")
+        mylog.error(
+            "The argument {} passed to ".format(name) + "load_sample() is not a string."
+        )
 
     # now get the extension if it exists
     base, ext = os.path.splitext(name)
-    if ext == '':
+    if ext == "":
         # Right now we are assuming that any name passed without an explicit
         # extension is packed in a tarball. This logic can be modified later to
         # be more flexible.
-        fileext = "%s.tar.gz" %name
+        fileext = "%s.tar.gz" % name
         basename = name
         extension = "tar"
     elif ext == ".gz":
@@ -133,7 +135,9 @@ def _validate_sampledata_name(name):
         mylog.info(
             """extension of %s for dataset %s is unexpected. the `load_data`
             function  may not work as expected""",
-            ext, name )
+            ext,
+            name,
+        )
         extension = ext
         fileext = name
         basename = base
@@ -146,6 +150,7 @@ def fetch_compressed_file(name, fido, downloader=None):
     """
     fname = fido.fido.fetch(name, processor=pch.pooch.Untar(), downloader=downloader)
     return fname
+
 
 def fetch_noncompressed_file(name, fido, downloader=None):
     """

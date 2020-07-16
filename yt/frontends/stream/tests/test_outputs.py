@@ -17,7 +17,6 @@ from yt.utilities.exceptions import (
 
 
 class TestEmptyLoad(unittest.TestCase):
-
     def setUp(self):
         self.tmpdir = tempfile.mkdtemp()
         self.curdir = os.getcwd()
@@ -38,46 +37,46 @@ class TestEmptyLoad(unittest.TestCase):
         assert_raises(YTOutputNotIdentified, load, "empty_file")
         assert_raises(YTOutputNotIdentified, load, "empty_directory")
 
+
 def test_dimensionless_field_units():
-    Z = np.random.uniform(size=(32,32,32))
-    d = np.random.uniform(size=(32,32,32))
+    Z = np.random.uniform(size=(32, 32, 32))
+    d = np.random.uniform(size=(32, 32, 32))
 
     data = {"density": d, "metallicity": Z}
 
-    ds = load_uniform_grid(data, (32,32,32))
+    ds = load_uniform_grid(data, (32, 32, 32))
 
     dd = ds.all_data()
 
     assert_equal(Z.max(), float(dd["stream", "metallicity"].max()))
 
-def test_inconsistent_field_shape():
 
+def test_inconsistent_field_shape():
     def load_field_field_mismatch():
         d = np.random.uniform(size=(32, 32, 32))
         t = np.random.uniform(size=(32, 64, 32))
         data = {"density": d, "temperature": t}
-        load_uniform_grid(data, (32,32,32))
+        load_uniform_grid(data, (32, 32, 32))
 
-    assert_raises(YTInconsistentGridFieldShape,
-                  load_field_field_mismatch)
+    assert_raises(YTInconsistentGridFieldShape, load_field_field_mismatch)
 
     def load_field_grid_mismatch():
         d = np.random.uniform(size=(32, 32, 32))
         t = np.random.uniform(size=(32, 32, 32))
         data = {"density": d, "temperature": t}
-        load_uniform_grid(data, (32,64,32))
+        load_uniform_grid(data, (32, 64, 32))
 
-    assert_raises(YTInconsistentGridFieldShapeGridDims,
-                  load_field_grid_mismatch)
+    assert_raises(YTInconsistentGridFieldShapeGridDims, load_field_grid_mismatch)
 
     def load_particle_fields_mismatch():
         x = np.random.uniform(size=100)
         y = np.random.uniform(size=100)
         z = np.random.uniform(size=200)
-        data = {"particle_position_x": x,
-                "particle_position_y": y,
-                "particle_position_z": z}
+        data = {
+            "particle_position_x": x,
+            "particle_position_y": y,
+            "particle_position_z": z,
+        }
         load_particles(data)
 
-    assert_raises(YTInconsistentParticleFieldShape,
-                  load_particle_fields_mismatch)
+    assert_raises(YTInconsistentParticleFieldShape, load_particle_fields_mismatch)

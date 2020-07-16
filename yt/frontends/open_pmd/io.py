@@ -43,9 +43,11 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
             for i in np.arange(3):
                 ax = "xyz"[i]
                 if ax in axes:
-                    np.add(get_component(pds, "position/" + ax, index, offset),
-                           get_component(pds, "positionOffset/" + ax, index, offset),
-                           self.cache[i])
+                    np.add(
+                        get_component(pds, "position/" + ax, index, offset),
+                        get_component(pds, "positionOffset/" + ax, index, offset),
+                        self.cache[i],
+                    )
                 else:
                     # Pad accordingly with zeros to make 1D/2D datasets compatible
                     # These have to be the same shape as the existing axes since that equals the number of particles
@@ -111,7 +113,9 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                         continue
                     # read particle coords into cache
                     self._fill_cache(species, grid.pindex, grid.poffset)
-                    mask = selector.select_points(self.cache[0], self.cache[1], self.cache[2], 0.0)
+                    mask = selector.select_points(
+                        self.cache[0], self.cache[1], self.cache[2], 0.0
+                    )
                     if mask is None:
                         continue
                     pds = ds[species]
@@ -119,13 +123,17 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                         component = "/".join(field.split("_")[1:])
                         component = component.replace("positionCoarse", "position")
                         component = component.replace("-", "_")
-                        data = get_component(pds, component, grid.pindex, grid.poffset)[mask]
+                        data = get_component(pds, component, grid.pindex, grid.poffset)[
+                            mask
+                        ]
                         for request_field in rfm[(ptype, field)]:
-                            rv[request_field][ind[request_field]:ind[request_field] + data.shape[0]] = data
+                            rv[request_field][
+                                ind[request_field] : ind[request_field] + data.shape[0]
+                            ] = data
                             ind[request_field] += data.shape[0]
 
         for field in fields:
-            rv[field] = rv[field][:ind[field]]
+            rv[field] = rv[field][: ind[field]]
 
         return rv
 
@@ -165,8 +173,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                 raise RuntimeError
 
         if size is None:
-            size = sum((g.count(selector) for chunk in chunks
-                        for g in chunk.objs))
+            size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
         for field in fields:
             rv[field] = np.empty(size, dtype=np.float64)
             ind[field] = 0
@@ -184,13 +191,15 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                     else:
                         data = get_component(ds, component, grid.findex, grid.foffset)
                     # The following is a modified AMRGridPatch.select(...)
-                    data.shape = mask.shape  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
+                    data.shape = (
+                        mask.shape
+                    )  # Workaround - casts a 2D (x,y) array to 3D (x,y,1)
                     count = grid.count(selector)
-                    rv[field][ind[field]:ind[field] + count] = data[mask]
+                    rv[field][ind[field] : ind[field] + count] = data[mask]
                     ind[field] += count
 
         for field in fields:
-            rv[field] = rv[field][:ind[field]]
+            rv[field] = rv[field][: ind[field]]
             rv[field].flatten()
 
         return rv

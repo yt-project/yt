@@ -10,6 +10,7 @@ from yt.testing import fake_random_ds
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
 
 
@@ -35,7 +36,7 @@ class SigmaClipTest(TestCase):
         ds = fake_random_ds(32)
         sc = yt.create_scene(ds)
         im = sc.render()
-        sc.save('raw.png')
-        sc.save('clip_2.png', sigma_clip=2)
-        sc.save('clip_4.png', sigma_clip=4.0)
+        sc.save("raw.png")
+        sc.save("clip_2.png", sigma_clip=2)
+        sc.save("clip_4.png", sigma_clip=4.0)
         return im, sc

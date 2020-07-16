@@ -9,6 +9,7 @@ from yt.units.unit_object import Unit
 
 def setup():
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
 
 
@@ -29,10 +30,10 @@ def test_slice():
         ds = fake_random_ds(64, nprocs=nprocs)
         dims = ds.domain_dimensions
         xn, yn, zn = ds.domain_dimensions
-        dx = ds.arr(1.0 / (ds.domain_dimensions * 2), 'code_length')
+        dx = ds.arr(1.0 / (ds.domain_dimensions * 2), "code_length")
         xi, yi, zi = ds.domain_left_edge + dx
         xf, yf, zf = ds.domain_right_edge - dx
-        coords = np.mgrid[xi:xf:xn * 1j, yi:yf:yn * 1j, zi:zf:zn * 1j]
+        coords = np.mgrid[xi : xf : xn * 1j, yi : yf : yn * 1j, zi : zf : zn * 1j]
         uc = [np.unique(c) for c in coords]
         slc_pos = 0.5
         # Some simple slice tests with single grids
@@ -49,28 +50,25 @@ def test_slice():
                 assert_equal(np.unique(slc["py"]), uc[yax])
                 assert_equal(np.unique(slc["pdx"]), 0.5 / dims[xax])
                 assert_equal(np.unique(slc["pdy"]), 0.5 / dims[yax])
-                pw = slc.to_pw(fields='density')
+                pw = slc.to_pw(fields="density")
                 for p in pw.plots.values():
-                    tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+                    tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
                     os.close(tmpfd)
                     p.save(name=tmpname)
                     fns.append(tmpname)
-                for width in [(1.0, 'unitary'), 1.0, ds.quan(0.5, 'code_length')]:
-                    frb = slc.to_frb((1.0, 'unitary'), 64)
-                    shifted_frb = shifted_slc.to_frb((1.0, 'unitary'), 64)
-                    for slc_field in ['ones', 'density']:
+                for width in [(1.0, "unitary"), 1.0, ds.quan(0.5, "code_length")]:
+                    frb = slc.to_frb((1.0, "unitary"), 64)
+                    shifted_frb = shifted_slc.to_frb((1.0, "unitary"), 64)
+                    for slc_field in ["ones", "density"]:
                         fi = ds._get_field_info(slc_field)
-                        assert_equal(frb[slc_field].info['data_source'],
-                                     slc.__str__())
-                        assert_equal(frb[slc_field].info['axis'], ax)
-                        assert_equal(frb[slc_field].info['field'], slc_field)
+                        assert_equal(frb[slc_field].info["data_source"], slc.__str__())
+                        assert_equal(frb[slc_field].info["axis"], ax)
+                        assert_equal(frb[slc_field].info["field"], slc_field)
                         assert_equal(frb[slc_field].units, Unit(fi.units))
-                        assert_equal(frb[slc_field].info['xlim'],
-                                     frb.bounds[:2])
-                        assert_equal(frb[slc_field].info['ylim'],
-                                     frb.bounds[2:])
-                        assert_equal(frb[slc_field].info['center'], slc.center)
-                        assert_equal(frb[slc_field].info['coord'], slc_pos)
+                        assert_equal(frb[slc_field].info["xlim"], frb.bounds[:2])
+                        assert_equal(frb[slc_field].info["ylim"], frb.bounds[2:])
+                        assert_equal(frb[slc_field].info["center"], slc.center)
+                        assert_equal(frb[slc_field].info["coord"], slc_pos)
                         assert_equal(frb[slc_field], shifted_frb[slc_field])
             assert_equal(wf, None)
     teardown_func(fns)

@@ -49,10 +49,14 @@ class IOHandlerSwift(IOHandlerSPH):
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
         for key in f.keys():
-            if (not key.startswith("PartType") or "Coordinates" not in f[key]
-                or needed_ptype and key != needed_ptype):
+            if (
+                not key.startswith("PartType")
+                or "Coordinates" not in f[key]
+                or needed_ptype
+                and key != needed_ptype
+            ):
                 continue
-            pos = f[key]["Coordinates"][si:ei,...]
+            pos = f[key]["Coordinates"][si:ei, ...]
             pos = pos.astype("float64", copy=False)
             yield key, pos
         f.close()
@@ -67,7 +71,7 @@ class IOHandlerSwift(IOHandlerSPH):
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
             # we upscale to float64
-            hsml = f[ptype]["SmoothingLength"][si:ei,...]
+            hsml = f[ptype]["SmoothingLength"][si:ei, ...]
             hsml = hsml.astype("float64", copy=False)
             return hsml
 
@@ -87,12 +91,13 @@ class IOHandlerSwift(IOHandlerSPH):
                 g = f["/%s" % ptype]
                 # this should load as float64
                 coords = g["Coordinates"][si:ei]
-                if ptype == 'PartType0':
+                if ptype == "PartType0":
                     hsmls = self._get_smoothing_length(sub_file)
                 else:
                     hsmls = 0.0
                 mask = selector.select_points(
-                    coords[:,0], coords[:,1], coords[:,2], hsmls)
+                    coords[:, 0], coords[:, 1], coords[:, 2], hsmls
+                )
                 del coords
                 if mask is None:
                     continue
@@ -134,15 +139,15 @@ class IOHandlerSwift(IOHandlerSPH):
 
             ptype = str(key)
             for k in g.keys():
-                    kk = k
-                    if str(kk) == mname:
-                        fields.append((ptype, "Mass"))
-                        continue
-                    if not hasattr(g[kk], "shape"):
-                        continue
-                    if len(g[kk].shape) > 1:
-                        self._vector_fields[kk] = g[kk].shape[1]
-                    fields.append((ptype, str(kk)))
+                kk = k
+                if str(kk) == mname:
+                    fields.append((ptype, "Mass"))
+                    continue
+                if not hasattr(g[kk], "shape"):
+                    continue
+                if len(g[kk].shape) > 1:
+                    self._vector_fields[kk] = g[kk].shape[1]
+                fields.append((ptype, str(kk)))
 
         f.close()
         return fields, {}

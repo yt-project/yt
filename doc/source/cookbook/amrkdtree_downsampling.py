@@ -18,18 +18,18 @@ import yt
 from yt.utilities.amr_kdtree.api import AMRKDTree
 
 # Load up a dataset and define the kdtree
-ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-im, sc = yt.volume_render(ds, 'density', fname='v0.png')
-sc.camera.set_width(ds.arr(100, 'kpc'))
+ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+im, sc = yt.volume_render(ds, "density", fname="v0.png")
+sc.camera.set_width(ds.arr(100, "kpc"))
 render_source = sc.get_source()
-kd=render_source.volume
+kd = render_source.volume
 
 # Print out specifics of KD Tree
 print("Total volume of all bricks = %i" % kd.count_volume())
 print("Total number of cells = %i" % kd.count_cells())
 
 new_source = ds.all_data()
-new_source.max_level=3
+new_source.max_level = 3
 kd_low_res = AMRKDTree(ds, data_source=new_source)
 print(kd_low_res.count_volume())
 print(kd_low_res.count_cells())
@@ -38,7 +38,7 @@ print(kd_low_res.count_cells())
 # again.
 
 render_source.set_volume(kd_low_res)
-render_source.set_field('density')
+render_source.set_field("density")
 sc.render()
 sc.save("v1.png", sigma_clip=6.0)
 
@@ -47,8 +47,13 @@ sc.save("v1.png", sigma_clip=6.0)
 
 tf = render_source.transfer_function
 tf.clear()
-tf.add_layers(4, 0.01, col_bounds=[-27.5, -25.5],
-              alpha=np.ones(4, dtype='float64'), colormap='RdBu_r')
+tf.add_layers(
+    4,
+    0.01,
+    col_bounds=[-27.5, -25.5],
+    alpha=np.ones(4, dtype="float64"),
+    colormap="RdBu_r",
+)
 sc.render()
 sc.save("v2.png", sigma_clip=6.0)
 
@@ -62,8 +67,13 @@ sc.save("v3.png", sigma_clip=6.0)
 ## opacity.
 #
 tf.clear()
-tf.add_layers(4, 0.01, col_bounds=[-27.5, -25.5],
-              alpha=10.0 * np.ones(4, dtype='float64'), colormap='RdBu_r')
+tf.add_layers(
+    4,
+    0.01,
+    col_bounds=[-27.5, -25.5],
+    alpha=10.0 * np.ones(4, dtype="float64"),
+    colormap="RdBu_r",
+)
 sc.render()
 sc.save("v4.png", sigma_clip=6.0)
 #

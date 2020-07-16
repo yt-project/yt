@@ -7,9 +7,10 @@ from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
 
 
-def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
-                   cam_focus=None):
-    '''High level wrapper for Interactive Data Visualization
+def _render_opengl(
+    data_source, field=None, window_size=None, cam_position=None, cam_focus=None
+):
+    """High level wrapper for Interactive Data Visualization
     
     Parameters
     ----------
@@ -38,17 +39,23 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     >>> ds = yt.load("Enzo_64/DD0046/DD0046")
     >>> yt.interactive_render(ds)
 
-    '''
+    """
 
     try:
         import cyglfw3  # NOQA
         import OpenGL.GL  # NOQA
     except ImportError:
-        raise ImportError("This functionality requires the cyglfw3 and PyOpenGL "
-                          "packages to be installed.")
+        raise ImportError(
+            "This functionality requires the cyglfw3 and PyOpenGL "
+            "packages to be installed."
+        )
 
-    from .interactive_vr import SceneGraph, BlockCollection, TrackballCamera, \
-        MeshSceneComponent
+    from .interactive_vr import (
+        SceneGraph,
+        BlockCollection,
+        TrackballCamera,
+        MeshSceneComponent,
+    )
     from .interactive_loop import RenderingContext
 
     if isinstance(data_source, Dataset):
@@ -58,9 +65,12 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     if field is None:
         field = dobj.ds.default_field
         if field not in dobj.ds.derived_field_list:
-            raise YTSceneFieldNotFound("""Could not find field '%s' in %s.
-                  Please specify a field in create_scene()""" % (field, dobj.ds))
-        mylog.info('Setting default field to %s' % field.__repr__())
+            raise YTSceneFieldNotFound(
+                """Could not find field '%s' in %s.
+                  Please specify a field in create_scene()"""
+                % (field, dobj.ds)
+            )
+        mylog.info("Setting default field to %s" % field.__repr__())
     if window_size is None:
         window_size = (1024, 1024)
     if cam_position is None:
@@ -68,7 +78,7 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
         if hasattr(dobj.ds.index, "meshes"):
             # unstructured mesh datasets tend to have tight
             # domain boundaries, do some extra padding here.
-            cam_position = 3.0*dobj.ds.domain_right_edge
+            cam_position = 3.0 * dobj.ds.domain_right_edge
     if cam_focus is None:
         cam_focus = dobj.ds.domain_center
 
@@ -86,8 +96,13 @@ def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
     far_plane = np.linalg.norm(cam_focus - cam_position) * 2.0
     near_plane = 0.01 * far_plane
 
-    c = TrackballCamera(position=cam_position, focus=cam_focus, near_plane=near_plane,
-                        far_plane=far_plane, aspect_ratio=aspect_ratio)
+    c = TrackballCamera(
+        position=cam_position,
+        focus=cam_focus,
+        near_plane=near_plane,
+        far_plane=far_plane,
+        aspect_ratio=aspect_ratio,
+    )
     rc.start_loop(scene, c)
 
 

@@ -7,8 +7,8 @@ vel_units = "code_velocity"
 acc_units = "code_velocity / code_time"
 energy_units = "code_velocity**2"
 
-known_species_names = {
-}
+known_species_names = {}
+
 
 class EnzoPFieldInfo(FieldInfoContainer):
     known_other_fields = (
@@ -37,13 +37,13 @@ class EnzoPFieldInfo(FieldInfoContainer):
         ("mass", ("code_mass", ["particle_mass"], None)),
     )
 
-    def __init__(self, ds, field_list, slice_info = None):
-        super(EnzoPFieldInfo, self).__init__(
-            ds, field_list, slice_info=slice_info)
+    def __init__(self, ds, field_list, slice_info=None):
+        super(EnzoPFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
 
-    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64):
+    def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):
         super(EnzoPFieldInfo, self).setup_particle_fields(
-            ptype, ftype=ftype, num_neighbors=num_neighbors)
+            ptype, ftype=ftype, num_neighbors=num_neighbors
+        )
         self.setup_particle_mass_field(ptype)
 
     def setup_particle_mass_field(self, ptype):
@@ -53,8 +53,8 @@ class EnzoPFieldInfo(FieldInfoContainer):
             return
 
         constants = nested_dict_get(
-            self.ds.parameters, ("Particle", ptype, "constants"),
-            default=[])
+            self.ds.parameters, ("Particle", ptype, "constants"), default=[]
+        )
         if not constants:
             names = []
         else:
@@ -70,6 +70,10 @@ class EnzoPFieldInfo(FieldInfoContainer):
 
             def _pmass(field, data):
                 return val * data[ptype, "particle_ones"]
-            self.add_field((ptype, name),
-                            function=_pmass, units="code_mass",
-                            sampling_type="particle")
+
+            self.add_field(
+                (ptype, name),
+                function=_pmass,
+                units="code_mass",
+                sampling_type="particle",
+            )

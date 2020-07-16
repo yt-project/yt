@@ -34,8 +34,7 @@ class OWLSSimulation(GadgetSimulation):
     """
 
     def __init__(self, parameter_filename, find_outputs=False):
-        GadgetSimulation.__init__(self, parameter_filename,
-                                  find_outputs=find_outputs)
+        GadgetSimulation.__init__(self, parameter_filename, find_outputs=find_outputs)
 
     def _snapshot_format(self, index=None):
         """
@@ -46,8 +45,7 @@ class OWLSSimulation(GadgetSimulation):
         if self.parameters["OutputDir"].startswith("/"):
             data_dir = self.parameters["OutputDir"]
         else:
-            data_dir = os.path.join(self.directory,
-                                    self.parameters["OutputDir"])
+            data_dir = os.path.join(self.directory, self.parameters["OutputDir"])
         if self.parameters["NumFilesPerSnapshot"] > 1:
             suffix = ".0"
         else:

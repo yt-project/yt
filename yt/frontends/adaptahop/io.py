@@ -6,13 +6,13 @@ AdaptaHOP data-file handling function
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 from operator import attrgetter
 
@@ -30,8 +30,8 @@ from .definitions import HALO_ATTRIBUTES, HEADER_ATTRIBUTES
 class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     _dataset_type = "adaptahop_binary"
 
-    _offsets = None              # Location of halos in the file
-    _particle_positions = None   # Buffer of halo position
+    _offsets = None  # Location of halos in the file
+    _particle_positions = None  # Buffer of halo position
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -40,21 +40,23 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         raise NotImplementedError
 
     def _yield_coordinates(self, data_file):
-        yield 'halos', self._get_particle_positions()
+        yield "halos", self._get_particle_positions()
 
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
         data_files = set([])
         # Only support halo reading for now.
-        assert(len(ptf) == 1)
-        assert(list(ptf.keys())[0] == "halos")
-        ptype = 'halos'
+        assert len(ptf) == 1
+        assert list(ptf.keys())[0] == "halos"
+        ptype = "halos"
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        for data_file in sorted(data_files,key=attrgetter("filename")):
-            pcount = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
+        for data_file in sorted(data_files, key=attrgetter("filename")):
+            pcount = (
+                data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
+            )
             if pcount == 0:
                 continue
             pos = self._get_particle_positions()
@@ -65,8 +67,8 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         chunks = list(chunks)
         data_files = set([])
         # Only support halo reading for now.
-        assert(len(ptf) == 1)
-        assert(list(ptf.keys())[0] == "halos")
+        assert len(ptf) == 1
+        assert list(ptf.keys())[0] == "halos"
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -80,25 +82,24 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                     yield attr
 
         for data_file in sorted(data_files, key=attrgetter("filename")):
-            pcount = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
+            pcount = (
+                data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
+            )
             if pcount == 0:
                 continue
-            ptype = 'halos'
+            ptype = "halos"
             field_list0 = sorted(ptf[ptype], key=_find_attr_position)
-            field_list_pos = ['raw_position_%s' % k for k in 'xyz']
+            field_list_pos = ["raw_position_%s" % k for k in "xyz"]
             field_list = sorted(
-                set(field_list0 + field_list_pos),
-                key=_find_attr_position
+                set(field_list0 + field_list_pos), key=_find_attr_position
             )
 
             with FortranFile(self.ds.parameter_filename) as fpu:
                 params = fpu.read_attrs(HEADER_ATTRIBUTES)
 
-                todo = _todo_from_attributes(
-                    field_list
-                )
+                todo = _todo_from_attributes(field_list)
 
-                nhalos = params['nhalos'] + params['nsubs']
+                nhalos = params["nhalos"] + params["nsubs"]
                 data = np.zeros((nhalos, len(field_list)))
                 for ihalo in range(nhalos):
                     jj = 0
@@ -114,61 +115,68 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                                 data[ihalo, jj] = v
                                 jj += 1
             ipos = [field_list.index(k) for k in field_list_pos]
-            w = self.ds.domain_width.to('code_length')[0].value /2
+            w = self.ds.domain_width.to("code_length")[0].value / 2
             x, y, z = (data[:, i] + w for i in ipos)
             mask = selector.select_points(x, y, z, 0.0)
             del x, y, z
 
-            if mask is None: continue
+            if mask is None:
+                continue
             for field in field_list0:
                 i = field_list.index(field)
                 yield (ptype, field), data[mask, i]
 
     def _initialize_index(self, data_file, regions):
-        pcount = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
-        morton = np.empty(pcount, dtype='uint64')
-        mylog.debug("Initializing index % 5i (% 7i particles)",
-                    data_file.file_id, pcount)
+        pcount = data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
+        morton = np.empty(pcount, dtype="uint64")
+        mylog.debug(
+            "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
+        )
         if pcount == 0:
             return morton
         ind = 0
 
         pos = self._get_particle_positions()
 
-        if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or \
-            np.any(pos.max(axis=0) > self.ds.domain_right_edge):
-            raise YTDomainOverflow(pos.min(axis=0),
-                                    pos.max(axis=0),
-                                    self.ds.domain_left_edge,
-                                    self.ds.domain_right_edge)
+        if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or np.any(
+            pos.max(axis=0) > self.ds.domain_right_edge
+        ):
+            raise YTDomainOverflow(
+                pos.min(axis=0),
+                pos.max(axis=0),
+                self.ds.domain_left_edge,
+                self.ds.domain_right_edge,
+            )
         regions.add_data_file(pos, data_file.file_id)
-        morton[ind:ind+pos.shape[0]] = compute_morton(
-            pos[:,0], pos[:,1], pos[:,2],
+        morton[ind : ind + pos.shape[0]] = compute_morton(
+            pos[:, 0],
+            pos[:, 1],
+            pos[:, 2],
             data_file.ds.domain_left_edge,
-            data_file.ds.domain_right_edge)
+            data_file.ds.domain_right_edge,
+        )
 
         return morton
 
-
     def _count_particles(self, data_file):
-        nhalos = data_file.ds.parameters['nhalos'] + data_file.ds.parameters['nsubs']
-        return {'halos': nhalos}
+        nhalos = data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
+        return {"halos": nhalos}
 
     def _identify_fields(self, data_file):
         fields = []
         for attr, _1, _2 in HALO_ATTRIBUTES:
             if isinstance(attr, str):
-                fields.append(('halos', attr))
+                fields.append(("halos", attr))
             else:
                 for a in attr:
-                    fields.append(('halos', a))
+                    fields.append(("halos", a))
         return fields, {}
 
-    #-----------------------------------------------------
+    # -----------------------------------------------------
     # Specific to AdaptaHOP
     def _get_particle_positions(self):
         """Read the particles and return them in code_units"""
-        data = getattr(self, '_particle_positions', None)
+        data = getattr(self, "_particle_positions", None)
         if data is not None:
             return data
 
@@ -176,10 +184,15 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
             params = fpu.read_attrs(HEADER_ATTRIBUTES)
 
             todo = _todo_from_attributes(
-                ('particle_identifier',
-                 'raw_position_x', 'raw_position_y', 'raw_position_z'))
+                (
+                    "particle_identifier",
+                    "raw_position_x",
+                    "raw_position_y",
+                    "raw_position_z",
+                )
+            )
 
-            nhalos = params['nhalos'] + params['nsubs']
+            nhalos = params["nhalos"] + params["nsubs"]
             data = np.zeros((nhalos, 3))
             offset_map = np.zeros((nhalos, 2), dtype=int)
             for ihalo in range(nhalos):
@@ -187,7 +200,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                 for it in todo:
                     if isinstance(it, int):
                         fpu.skip(it)
-                    elif it[0][0] != 'particle_identifier':
+                    elif it[0][0] != "particle_identifier":
                         # Small optimisation here: we can read as vector
                         # dt = fpu.read_attrs(it)
                         # data[ihalo, 0] = dt['particle_position_x']
@@ -210,12 +223,12 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
 
     def members(self, ihalo):
         offset = self._offsets[ihalo, 1]
-        todo = _todo_from_attributes(('particle_identities', ))
+        todo = _todo_from_attributes(("particle_identities",))
         with FortranFile(self.ds.parameter_filename) as fpu:
             fpu.seek(offset)
             if isinstance(todo[0], int):
                 fpu.skip(todo.pop(0))
-            members = fpu.read_attrs(todo.pop(0))['particle_identities']
+            members = fpu.read_attrs(todo.pop(0))["particle_identities"]
         return members
 
 
@@ -230,7 +243,7 @@ def _todo_from_attributes(attributes):
 
     for i, (attrs, l, k) in enumerate(HALO_ATTRIBUTES):
         if not isinstance(attrs, tuple):
-            attrs_list = (attrs, )
+            attrs_list = (attrs,)
         else:
             attrs_list = attrs
         ok = False
@@ -241,34 +254,35 @@ def _todo_from_attributes(attributes):
 
         if i == 0:
             if ok:
-                state = 'read'
+                state = "read"
                 todo.append([])
             else:
-                state = 'skip'
+                state = "skip"
 
         if ok:
-            if state == 'skip':
+            if state == "skip":
                 # Switched from skip to read, store skip information and start
                 # new read list
                 todo.append(iskip)
                 todo.append([])
                 iskip = 0
             todo[-1].append((attrs, l, k))
-            state = 'read'
+            state = "read"
         else:
             iskip += 1
-            state = 'skip'
+            state = "skip"
 
-    if state == 'skip' and iskip > 0:
+    if state == "skip" and iskip > 0:
         todo.append(iskip)
 
     return todo
+
 
 def _find_attr_position(key):
     j = 0
     for attrs, l, k in HALO_ATTRIBUTES:
         if not isinstance(attrs, tuple):
-            attrs = (attrs, )
+            attrs = (attrs,)
         for a in attrs:
             if key == a:
                 return j

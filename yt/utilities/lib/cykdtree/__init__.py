@@ -18,7 +18,7 @@ def make_tree(pts, **kwargs):
 
     """
     # Check input
-    if (pts.ndim != 2):
+    if pts.ndim != 2:
         raise ValueError("pts must be a 2D array of ND coordinates")
     T = PyKDTree(pts, **kwargs)
     return T

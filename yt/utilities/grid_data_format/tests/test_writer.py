@@ -15,26 +15,28 @@ TEST_COMMENT = "Testing write_to_gdf"
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
 
 
-@requires_module('h5py')
+@requires_module("h5py")
 def test_write_gdf():
     """Main test suite for write_gdf"""
     tmpdir = tempfile.mkdtemp()
-    tmpfile = os.path.join(tmpdir, 'test_gdf.h5')
+    tmpfile = os.path.join(tmpdir, "test_gdf.h5")
 
     try:
         test_ds = fake_random_ds(64)
-        write_to_gdf(test_ds, tmpfile, data_author=TEST_AUTHOR,
-                     data_comment=TEST_COMMENT)
+        write_to_gdf(
+            test_ds, tmpfile, data_author=TEST_AUTHOR, data_comment=TEST_COMMENT
+        )
         del test_ds
         assert isinstance(load(tmpfile), GDFDataset)
 
-        h5f = h5.File(tmpfile, 'r')
-        gdf = h5f['gridded_data_format'].attrs
-        assert_equal(gdf['data_author'], TEST_AUTHOR)
-        assert_equal(gdf['data_comment'], TEST_COMMENT)
+        h5f = h5.File(tmpfile, "r")
+        gdf = h5f["gridded_data_format"].attrs
+        assert_equal(gdf["data_author"], TEST_AUTHOR)
+        assert_equal(gdf["data_comment"], TEST_COMMENT)
         h5f.close()
 
     finally:

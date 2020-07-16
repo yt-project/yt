@@ -31,25 +31,28 @@ _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
 _dim_finder = [
     re.compile(r"\(\((\d+)\) \((\d+)\) \(\d+\)\)$"),
     re.compile(r"\(\((\d+,\d+)\) \((\d+,\d+)\) \(\d+,\d+\)\)$"),
-    re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$")]
+    re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$"),
+]
 # This is the line that prefixes each set of data for a FAB in the FAB file
 # It is different for different dimensionalities, so we make a list
 _endian_regex = r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), \(([0-9 ]+)\)\)\)"
 _header_pattern = [
-    re.compile(_endian_regex +
-               r"\(\((\d+)\) \((\d+)\) \((\d+)\)\) (\d+)\n"),
-    re.compile(_endian_regex +
-               r"\(\((\d+,\d+)\) \((\d+,\d+)\) \((\d+,\d+)\)\) (\d+)\n"),
-    re.compile(_endian_regex +
-               r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n")]
+    re.compile(_endian_regex + r"\(\((\d+)\) \((\d+)\) \((\d+)\)\) (\d+)\n"),
+    re.compile(
+        _endian_regex + r"\(\((\d+,\d+)\) \((\d+,\d+)\) \((\d+,\d+)\)\) (\d+)\n"
+    ),
+    re.compile(
+        _endian_regex
+        + r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
+    ),
+]
 
 
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
     _offset = -1
 
-    def __init__(self, grid_id, offset, filename=None,
-                 index=None):
+    def __init__(self, grid_id, offset, filename=None, index=None):
         super(BoxlibGrid, self).__init__(grid_id, filename, index)
         self._base_offset = offset
         self._parent_id = []
@@ -66,8 +69,8 @@ class BoxlibGrid(AMRGridPatch):
 
     def _setup_dx(self):
         # has already been read in and stored in index
-        self.dds = self.index.ds.arr(self.index.level_dds[self.Level, :], 'code_length')
-        self.field_data['dx'], self.field_data['dy'], self.field_data['dz'] = self.dds
+        self.dds = self.index.ds.arr(self.index.level_dds[self.Level, :], "code_length")
+        self.field_data["dx"], self.field_data["dy"], self.field_data["dz"] = self.dds
 
     def __repr__(self):
         return "BoxlibGrid_%04i" % (self.id)
@@ -76,13 +79,11 @@ class BoxlibGrid(AMRGridPatch):
     def Parent(self):
         if len(self._parent_id) == 0:
             return None
-        return [self.index.grids[pid - self._id_offset]
-                for pid in self._parent_id]
+        return [self.index.grids[pid - self._id_offset] for pid in self._parent_id]
 
     @property
     def Children(self):
-        return [self.index.grids[cid - self._id_offset]
-                for cid in self._children_ids]
+        return [self.index.grids[cid - self._id_offset] for cid in self._children_ids]
 
     def _get_offset(self, f):
         # This will either seek to the _offset or figure out the correct
@@ -96,8 +97,9 @@ class BoxlibGrid(AMRGridPatch):
     # We override here because we can have varying refinement levels
     def select_ires(self, dobj):
         mask = self._get_selector_mask(dobj.selector)
-        if mask is None: return np.empty(0, dtype='int64')
-        coords = np.empty(self._last_count, dtype='int64')
+        if mask is None:
+            return np.empty(0, dtype="int64")
+        coords = np.empty(self._last_count, dtype="int64")
         coords[:] = self.Level + self.ds.level_offsets[self.Level]
         return coords
 
@@ -108,29 +110,30 @@ class BoxlibGrid(AMRGridPatch):
             raise NotImplementedError
         gi, cgi = self.get_global_startindex(), child.get_global_startindex()
         startIndex = np.maximum(0, cgi // rf - gi)
-        endIndex = np.minimum((cgi + child.ActiveDimensions) // rf - gi,
-                              self.ActiveDimensions)
-        endIndex += (startIndex == endIndex)
-        mask[startIndex[0]:endIndex[0],
-             startIndex[1]:endIndex[1],
-             startIndex[2]:endIndex[2]] = tofill
+        endIndex = np.minimum(
+            (cgi + child.ActiveDimensions) // rf - gi, self.ActiveDimensions
+        )
+        endIndex += startIndex == endIndex
+        mask[
+            startIndex[0] : endIndex[0],
+            startIndex[1] : endIndex[1],
+            startIndex[2] : endIndex[2],
+        ] = tofill
 
 
 class BoxLibParticleHeader:
-
-    def __init__(self, ds, directory_name, is_checkpoint, 
-                 extra_field_names=None):
+    def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
 
         self.particle_type = directory_name
-        header_filename =  ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = ds.output_dir + "/" + directory_name + "/Header"
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
 
-            particle_real_type = self.version_string.split('_')[-1]
-            particle_real_type = self.version_string.split('_')[-1]
-            if particle_real_type == 'double':
+            particle_real_type = self.version_string.split("_")[-1]
+            particle_real_type = self.version_string.split("_")[-1]
+            if particle_real_type == "double":
                 self.real_type = np.float64
-            elif particle_real_type == 'single':
+            elif particle_real_type == "single":
                 self.real_type = np.float32
             else:
                 raise RuntimeError("yt did not recognize particle real type.")
@@ -142,7 +145,7 @@ class BoxLibParticleHeader:
             self.num_int_extra = 0  # this should be written by Boxlib, but isn't
             self.num_real_extra = int(f.readline().strip())
             self.num_int = self.num_int_base + self.num_int_extra
-            self.num_real = self.num_real_base + self.num_real_extra            
+            self.num_real = self.num_real_base + self.num_real_extra
             self.num_particles = int(f.readline().strip())
             self.max_next_id = int(f.readline().strip())
             self.finest_level = int(f.readline().strip())
@@ -156,14 +159,15 @@ class BoxLibParticleHeader:
                 self.num_int_extra = 0
                 self.num_int = 0
 
-            self.grids_per_level = np.zeros(self.num_levels, dtype='int64')
+            self.grids_per_level = np.zeros(self.num_levels, dtype="int64")
             self.data_map = {}
             for level_num in range(self.num_levels):
                 self.grids_per_level[level_num] = int(f.readline().strip())
                 self.data_map[level_num] = {}
-            
-            pfd = namedtuple("ParticleFileDescriptor",
-                             ["file_number", "num_particles", "offset"])
+
+            pfd = namedtuple(
+                "ParticleFileDescriptor", ["file_number", "num_particles", "offset"]
+            )
 
             for level_num in range(self.num_levels):
                 for grid_num in range(self.grids_per_level[level_num]):
@@ -175,61 +179,69 @@ class BoxLibParticleHeader:
     def _generate_particle_fields(self, extra_field_names):
 
         # these are the 'base' integer fields
-        self.known_int_fields = [(self.particle_type, "particle_id"),
-                                 (self.particle_type, "particle_cpu"),
-                                 (self.particle_type, "particle_cell_x"),
-                                 (self.particle_type, "particle_cell_y"),
-                                 (self.particle_type, "particle_cell_z")]
-        self.known_int_fields = self.known_int_fields[0:self.num_int_base]
+        self.known_int_fields = [
+            (self.particle_type, "particle_id"),
+            (self.particle_type, "particle_cpu"),
+            (self.particle_type, "particle_cell_x"),
+            (self.particle_type, "particle_cell_y"),
+            (self.particle_type, "particle_cell_z"),
+        ]
+        self.known_int_fields = self.known_int_fields[0 : self.num_int_base]
 
         # these are extra integer fields
-        extra_int_fields = ["particle_int_comp%d" % i 
-                            for i in range(self.num_int_extra)]
-        self.known_int_fields.extend([(self.particle_type, field) 
-                                      for field in extra_int_fields])
+        extra_int_fields = [
+            "particle_int_comp%d" % i for i in range(self.num_int_extra)
+        ]
+        self.known_int_fields.extend(
+            [(self.particle_type, field) for field in extra_int_fields]
+        )
 
         # these are the base real fields
-        self.known_real_fields = [(self.particle_type, "particle_position_x"),
-                                  (self.particle_type, "particle_position_y"),
-                                  (self.particle_type, "particle_position_z")]
-        self.known_real_fields = self.known_real_fields[0:self.num_real_base]
+        self.known_real_fields = [
+            (self.particle_type, "particle_position_x"),
+            (self.particle_type, "particle_position_y"),
+            (self.particle_type, "particle_position_z"),
+        ]
+        self.known_real_fields = self.known_real_fields[0 : self.num_real_base]
 
         # these are the extras
         if extra_field_names is not None:
-            assert(len(extra_field_names) == self.num_real_extra)
+            assert len(extra_field_names) == self.num_real_extra
         else:
-            extra_field_names = ["particle_real_comp%d" % i 
-                                 for i in range(self.num_real_extra)]
+            extra_field_names = [
+                "particle_real_comp%d" % i for i in range(self.num_real_extra)
+            ]
 
-        self.known_real_fields.extend([(self.particle_type, field) 
-                                       for field in extra_field_names])
+        self.known_real_fields.extend(
+            [(self.particle_type, field) for field in extra_field_names]
+        )
 
         self.known_fields = self.known_int_fields + self.known_real_fields
 
-        self.particle_int_dtype = np.dtype([(t[1], self.int_type) 
-                                            for t in self.known_int_fields])
+        self.particle_int_dtype = np.dtype(
+            [(t[1], self.int_type) for t in self.known_int_fields]
+        )
 
-        self.particle_real_dtype = np.dtype([(t[1], self.real_type) 
-                                            for t in self.known_real_fields])
+        self.particle_real_dtype = np.dtype(
+            [(t[1], self.real_type) for t in self.known_real_fields]
+        )
 
 
 class AMReXParticleHeader:
-
-    def __init__(self, ds, directory_name, is_checkpoint, 
-                 extra_field_names=None):
+    def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
 
         self.particle_type = directory_name
-        header_filename =  ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = ds.output_dir + "/" + directory_name + "/Header"
         self.real_component_names = []
         self.int_component_names = []
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
 
-            particle_real_type = self.version_string.split('_')[-1]
-            particle_real_type = self.version_string.split('_')[-1]
-            if particle_real_type == 'double':
+            particle_real_type = self.version_string.split("_")[-1]
+            particle_real_type = self.version_string.split("_")[-1]
+            if particle_real_type == "double":
                 self.real_type = np.float64
-            elif particle_real_type == 'single':
+            elif particle_real_type == "single":
                 self.real_type = np.float32
             else:
                 raise RuntimeError("yt did not recognize particle real type.")
@@ -257,14 +269,15 @@ class AMReXParticleHeader:
                 self.num_int_extra = 0
                 self.num_int = 0
 
-            self.grids_per_level = np.zeros(self.num_levels, dtype='int64')
+            self.grids_per_level = np.zeros(self.num_levels, dtype="int64")
             self.data_map = {}
             for level_num in range(self.num_levels):
                 self.grids_per_level[level_num] = int(f.readline().strip())
                 self.data_map[level_num] = {}
-            
-            pfd = namedtuple("ParticleFileDescriptor",
-                             ["file_number", "num_particles", "offset"])
+
+            pfd = namedtuple(
+                "ParticleFileDescriptor", ["file_number", "num_particles", "offset"]
+            )
 
             for level_num in range(self.num_levels):
                 for grid_num in range(self.grids_per_level[level_num]):
@@ -276,38 +289,52 @@ class AMReXParticleHeader:
     def _generate_particle_fields(self):
 
         # these are the 'base' integer fields
-        self.known_int_fields = [(self.particle_type, "particle_id"),
-                                 (self.particle_type, "particle_cpu")]
-        self.known_int_fields = self.known_int_fields[0:self.num_int_base]
+        self.known_int_fields = [
+            (self.particle_type, "particle_id"),
+            (self.particle_type, "particle_cpu"),
+        ]
+        self.known_int_fields = self.known_int_fields[0 : self.num_int_base]
 
-        self.known_int_fields.extend([(self.particle_type, "particle_" + field) 
-                                       for field in self.int_component_names])
+        self.known_int_fields.extend(
+            [
+                (self.particle_type, "particle_" + field)
+                for field in self.int_component_names
+            ]
+        )
 
         # these are the base real fields
-        self.known_real_fields = [(self.particle_type, "particle_position_x"),
-                                  (self.particle_type, "particle_position_y"),
-                                  (self.particle_type, "particle_position_z")]
-        self.known_real_fields = self.known_real_fields[0:self.num_real_base]
+        self.known_real_fields = [
+            (self.particle_type, "particle_position_x"),
+            (self.particle_type, "particle_position_y"),
+            (self.particle_type, "particle_position_z"),
+        ]
+        self.known_real_fields = self.known_real_fields[0 : self.num_real_base]
 
-        self.known_real_fields.extend([(self.particle_type, "particle_" + field) 
-                                       for field in self.real_component_names])
+        self.known_real_fields.extend(
+            [
+                (self.particle_type, "particle_" + field)
+                for field in self.real_component_names
+            ]
+        )
 
         self.known_fields = self.known_int_fields + self.known_real_fields
 
-        self.particle_int_dtype = np.dtype([(t[1], self.int_type) 
-                                            for t in self.known_int_fields])
+        self.particle_int_dtype = np.dtype(
+            [(t[1], self.int_type) for t in self.known_int_fields]
+        )
 
-        self.particle_real_dtype = np.dtype([(t[1], self.real_type) 
-                                            for t in self.known_real_fields])
+        self.particle_real_dtype = np.dtype(
+            [(t[1], self.real_type) for t in self.known_real_fields]
+        )
 
 
 class BoxlibHierarchy(GridIndex):
 
     grid = BoxlibGrid
 
-    def __init__(self, ds, dataset_type='boxlib_native'):
+    def __init__(self, ds, dataset_type="boxlib_native"):
         self.dataset_type = dataset_type
-        self.header_filename = os.path.join(ds.output_dir, 'Header')
+        self.header_filename = os.path.join(ds.output_dir, "Header")
         self.directory = ds.output_dir
         self.particle_headers = {}
 
@@ -319,12 +346,12 @@ class BoxlibHierarchy(GridIndex):
         read the global header file for an Boxlib plotfile output.
         """
         self.max_level = self.dataset._max_level
-        header_file = open(self.header_filename, 'r')
+        header_file = open(self.header_filename, "r")
 
         self.dimensionality = self.dataset.dimensionality
-        _our_dim_finder = _dim_finder[self.dimensionality-1]
+        _our_dim_finder = _dim_finder[self.dimensionality - 1]
         DRE = self.dataset.domain_right_edge  # shortcut
-        DLE = self.dataset.domain_left_edge   # shortcut
+        DLE = self.dataset.domain_left_edge  # shortcut
 
         # We can now skip to the point in the file we want to start parsing.
         header_file.seek(self.dataset._header_mesh_start)
@@ -346,15 +373,15 @@ class BoxlibHierarchy(GridIndex):
             # Now we check for dimensionality issues
             if self.dimensionality != 2:
                 raise RuntimeError("yt needs cylindrical to be 2D")
-            self.level_dds[:,2] = 2*np.pi
-            default_zbounds = (0.0, 2*np.pi)
+            self.level_dds[:, 2] = 2 * np.pi
+            default_zbounds = (0.0, 2 * np.pi)
         elif self.ds.geometry == "spherical":
             # BoxLib only supports 1D spherical, so ensure
             # the other dimensions have the right extent.
-            self.level_dds[:,1] = np.pi
-            self.level_dds[:,2] = 2*np.pi
+            self.level_dds[:, 1] = np.pi
+            self.level_dds[:, 2] = 2 * np.pi
             default_ybounds = (0.0, np.pi)
-            default_zbounds = (0.0, 2*np.pi)
+            default_zbounds = (0.0, 2 * np.pi)
         else:
             raise RuntimeError("Unknown BoxLib coordinate system.")
         if int(next(header_file)) != 0:
@@ -367,7 +394,7 @@ class BoxlibHierarchy(GridIndex):
         for level in range(self.max_level + 1):
             vals = next(header_file).split()
             lev, ngrids = int(vals[0]), int(vals[1])
-            assert(lev == level)
+            assert lev == level
             nsteps = int(next(header_file))  # NOQA
             for gi in range(ngrids):
                 xlo, xhi = [float(v) for v in next(header_file).split()]
@@ -382,8 +409,7 @@ class BoxlibHierarchy(GridIndex):
                 self.grid_left_edge[grid_counter + gi, :] = [xlo, ylo, zlo]
                 self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
             # Now we get to the level header filename, which we open and parse.
-            fn = os.path.join(self.dataset.output_dir,
-                              next(header_file).strip())
+            fn = os.path.join(self.dataset.output_dir, next(header_file).strip())
             level_header_file = open(fn + "_H")
             level_dir = os.path.dirname(fn)
             # We skip the first two lines, which contain BoxLib header file
@@ -402,15 +428,15 @@ class BoxlibHierarchy(GridIndex):
             for gi in range(ngrids):
                 # components within it
                 start, stop = _our_dim_finder.match(next(level_header_file)).groups()
-                # fix for non-3d data 
+                # fix for non-3d data
                 # note we append '0' to both ends b/c of the '+1' in dims below
-                start += ',0'*(3-self.dimensionality)
-                stop += ',0'*(3-self.dimensionality)
+                start += ",0" * (3 - self.dimensionality)
+                stop += ",0" * (3 - self.dimensionality)
                 start = np.array(start.split(","), dtype="int64")
                 stop = np.array(stop.split(","), dtype="int64")
                 dims = stop - start + 1
-                self.grid_dimensions[grid_counter + gi,:] = dims
-                self.grid_start_index[grid_counter + gi,:] = start
+                self.grid_dimensions[grid_counter + gi, :] = dims
+                self.grid_start_index[grid_counter + gi, :] = start
             # Now we read two more lines.  The first of these is a close
             # parenthesis.
             next(level_header_file)
@@ -423,11 +449,11 @@ class BoxlibHierarchy(GridIndex):
                 dummy, filename, offset = next(level_header_file).split()
                 filename = os.path.join(level_dir, filename)
                 go = self.grid(grid_counter + gi, int(offset), filename, self)
-                go.Level = self.grid_levels[grid_counter + gi,:] = level
+                go.Level = self.grid_levels[grid_counter + gi, :] = level
                 self.grids.append(go)
             grid_counter += ngrids
             # already read the filenames above...
-        self.float_type = 'float64'
+        self.float_type = "float64"
 
     def _cache_endianness(self, test_grid):
         """
@@ -438,11 +464,12 @@ class BoxlibHierarchy(GridIndex):
         with different endian processors, then you're on your own!
         """
         # open the test file & grab the header
-        with open(os.path.expanduser(test_grid.filename), 'rb') as f:
+        with open(os.path.expanduser(test_grid.filename), "rb") as f:
             header = f.readline().decode("ascii", "ignore")
 
-        bpr, endian, start, stop, centering, nc = \
-            _header_pattern[self.dimensionality-1].search(header).groups()
+        bpr, endian, start, stop, centering, nc = (
+            _header_pattern[self.dimensionality - 1].search(header).groups()
+        )
         # Note that previously we were using a different value for BPR than we
         # use now.  Here is an example set of information directly from BoxLib:
         #  * DOUBLE data
@@ -450,37 +477,43 @@ class BoxlibHierarchy(GridIndex):
         #  * FLOAT data
         #  * FAB ((8, (32 8 23 0 1 9 0 127)),(4, (1 2 3 4)))((0,0) (63,63) (0,0)) 27
         if bpr == endian[0]:
-            dtype = '<f%s' % bpr
+            dtype = "<f%s" % bpr
         elif bpr == endian[-1]:
-            dtype = '>f%s' % bpr
+            dtype = ">f%s" % bpr
         else:
-            raise ValueError("FAB header is neither big nor little endian. Perhaps the file is corrupt?")
+            raise ValueError(
+                "FAB header is neither big nor little endian. Perhaps the file is corrupt?"
+            )
 
         mylog.debug("FAB header suggests dtype of %s", dtype)
         self._dtype = np.dtype(dtype)
 
     def _populate_grid_objects(self):
         mylog.debug("Creating grid objects")
-        self.grids = np.array(self.grids, dtype='object')
+        self.grids = np.array(self.grids, dtype="object")
         self._reconstruct_parent_child()
         for i, grid in enumerate(self.grids):
-            if (i % 1e4) == 0: mylog.debug("Prepared % 7i / % 7i grids", i,
-                                           self.num_grids)
+            if (i % 1e4) == 0:
+                mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid._prepare_grid()
             grid._setup_dx()
         mylog.debug("Done creating grid objects")
 
     def _reconstruct_parent_child(self):
-        if (self.max_level == 0):
+        if self.max_level == 0:
             return
-        mask = np.empty(len(self.grids), dtype='int32')
+        mask = np.empty(len(self.grids), dtype="int32")
         mylog.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
-            get_box_grids_level(self.grid_left_edge[i,:],
-                                self.grid_right_edge[i,:],
-                                self.grid_levels[i] + 1,
-                                self.grid_left_edge, self.grid_right_edge,
-                                self.grid_levels, mask)
+            get_box_grids_level(
+                self.grid_left_edge[i, :],
+                self.grid_right_edge[i, :],
+                self.grid_levels[i] + 1,
+                self.grid_left_edge,
+                self.grid_right_edge,
+                self.grid_levels,
+                mask,
+            )
             ids = np.where(mask.astype("bool"))  # where is a tuple
             grid._children_ids = ids[0] + grid._id_offset
         mylog.debug("Second pass; identifying parents")
@@ -492,7 +525,7 @@ class BoxlibHierarchy(GridIndex):
         # We can get everything from the Header file, but note that we're
         # duplicating some work done elsewhere.  In a future where we don't
         # pre-allocate grid arrays, this becomes unnecessary.
-        header_file = open(self.header_filename, 'r')
+        header_file = open(self.header_filename, "r")
         header_file.seek(self.dataset._header_mesh_start)
         # Skip over the level dxs, geometry and the zero:
         [next(header_file) for i in range(self.dataset._max_level + 3)]
@@ -502,12 +535,13 @@ class BoxlibHierarchy(GridIndex):
         # grids, and then grid time.
         self.num_grids = 0
         for line in header_file:
-            if len(line.split()) != 3: continue
+            if len(line.split()) != 3:
+                continue
             self.num_grids += int(line.split()[1])
 
     def _initialize_grid_arrays(self):
         super(BoxlibHierarchy, self)._initialize_grid_arrays()
-        self.grid_start_index = np.zeros((self.num_grids, 3), 'int64')
+        self.grid_start_index = np.zeros((self.num_grids, 3), "int64")
 
     def _initialize_state_variables(self):
         """override to not re-initialize num_grids in AMRHierarchy.__init__
@@ -519,10 +553,8 @@ class BoxlibHierarchy(GridIndex):
 
     def _detect_output_fields(self):
         # This is all done in _parse_header_file
-        self.field_list = [("boxlib", f) for f in
-                           self.dataset._field_list]
-        self.field_indexes = dict((f[1], i)
-                                  for i, f in enumerate(self.field_list))
+        self.field_list = [("boxlib", f) for f in self.dataset._field_list]
+        self.field_indexes = dict((f[1], i) for i, f in enumerate(self.field_list))
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
         self.field_order = [f for f in self.field_list]
@@ -531,7 +563,7 @@ class BoxlibHierarchy(GridIndex):
         self.io = io_registry[self.dataset_type](self.dataset)
 
     def _determine_particle_output_type(self, directory_name):
-        header_filename =  self.ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = self.ds.output_dir + "/" + directory_name + "/Header"
         with open(header_filename, "r") as f:
             version_string = f.readline().strip()
             if version_string.startswith("Version_Two"):
@@ -541,10 +573,9 @@ class BoxlibHierarchy(GridIndex):
 
     def _read_particles(self, directory_name, is_checkpoint, extra_field_names=None):
         pheader = self._determine_particle_output_type(directory_name)
-        self.particle_headers[directory_name] = pheader(self.ds,
-                                                        directory_name,
-                                                        is_checkpoint,
-                                                        extra_field_names)
+        self.particle_headers[directory_name] = pheader(
+            self.ds, directory_name, is_checkpoint, extra_field_names
+        )
 
         num_parts = self.particle_headers[directory_name].num_particles
         if self.ds._particle_type_counts is None:
@@ -552,9 +583,9 @@ class BoxlibHierarchy(GridIndex):
         self.ds._particle_type_counts[directory_name] = num_parts
 
         base = os.path.join(self.ds.output_dir, directory_name)
-        if (len(glob.glob(os.path.join(base, "Level_?", "DATA_????"))) > 0):
+        if len(glob.glob(os.path.join(base, "Level_?", "DATA_????"))) > 0:
             base_particle_fn = os.path.join(base, "Level_%d", "DATA_%.4d")
-        elif (len(glob.glob(os.path.join(base, "Level_?", "DATA_?????"))) > 0):
+        elif len(glob.glob(os.path.join(base, "Level_?", "DATA_?????"))) > 0:
             base_particle_fn = os.path.join(base, "Level_%d", "DATA_%.5d")
         else:
             return
@@ -564,8 +595,10 @@ class BoxlibHierarchy(GridIndex):
             for pdf in data.values():
                 pdict = self.grids[gid]._pdata
                 pdict[directory_name] = {}
-                pdict[directory_name]["particle_filename"] = base_particle_fn % \
-                                                             (lev, pdf.file_number)
+                pdict[directory_name]["particle_filename"] = base_particle_fn % (
+                    lev,
+                    pdf.file_number,
+                )
                 pdict[directory_name]["offset"] = pdf.offset
                 pdict[directory_name]["NumberOfParticles"] = pdf.num_particles
                 self.grid_particle_count[gid] += pdf.num_particles
@@ -582,6 +615,7 @@ class BoxlibDataset(Dataset):
     This class is a stripped down class that simply reads and parses
     *filename*, without looking at the Boxlib index.
     """
+
     _index_class = BoxlibHierarchy
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
@@ -589,13 +623,16 @@ class BoxlibDataset(Dataset):
     # THIS SHOULD BE FIXED:
     periodicity = (True, True, True)
 
-    def __init__(self, output_dir,
-                 cparam_filename=None,
-                 fparam_filename=None,
-                 dataset_type='boxlib_native',
-                 storage_filename=None,
-                 units_override=None,
-                 unit_system="cgs"):
+    def __init__(
+        self,
+        output_dir,
+        cparam_filename=None,
+        fparam_filename=None,
+        dataset_type="boxlib_native",
+        storage_filename=None,
+        units_override=None,
+        unit_system="cgs",
+    ):
         """
         The paramfile is usually called "inputs"
         and there may be a fortran inputs file usually called "probin"
@@ -609,17 +646,20 @@ class BoxlibDataset(Dataset):
         self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
 
-        Dataset.__init__(self, output_dir, dataset_type,
-                         units_override=units_override,
-                         unit_system=unit_system)
+        Dataset.__init__(
+            self,
+            output_dir,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+        )
 
         # These are still used in a few places.
         if "HydroMethod" not in self.parameters.keys():
-            self.parameters["HydroMethod"] = 'boxlib'
-        self.parameters["Time"] = 1.     # default unit is 1...
+            self.parameters["HydroMethod"] = "boxlib"
+        self.parameters["Time"] = 1.0  # default unit is 1...
         self.parameters["EOSType"] = -1  # default
-        self.parameters["gamma"] = self.parameters.get(
-            "materials.gamma", 1.6667)
+        self.parameters["gamma"] = self.parameters.get("materials.gamma", 1.6667)
 
     def _localize_check(self, fn):
         if fn is None:
@@ -636,7 +676,8 @@ class BoxlibDataset(Dataset):
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
+        if not os.path.isdir(output_dir):
+            return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -644,13 +685,12 @@ class BoxlibDataset(Dataset):
             return False
         args = inspect.getcallargs(cls.__init__, args, kwargs)
         # This might need to be localized somehow
-        if args['cparam_filename'] is None:
+        if args["cparam_filename"] is None:
             return True  # Treat as generic boxlib data
         inputs_filename = os.path.join(
-            os.path.dirname(os.path.abspath(output_dir)),
-            args['cparam_filename'])
-        if not os.path.exists(inputs_filename) and \
-           not os.path.exists(jobinfo_filename):
+            os.path.dirname(os.path.abspath(output_dir)), args["cparam_filename"]
+        )
+        if not os.path.exists(inputs_filename) and not os.path.exists(jobinfo_filename):
             return True  # We have no parameters to go off of
         # If we do have either inputs or jobinfo, we should be deferring to a
         # different frontend.
@@ -663,7 +703,7 @@ class BoxlibDataset(Dataset):
         """
         self._parse_header_file()
         # Let's read the file
-        hfn = os.path.join(self.output_dir, 'Header')
+        hfn = os.path.join(self.output_dir, "Header")
         self.unique_identifier = int(os.stat(hfn)[ST_CTIME])
         # the 'inputs' file is now optional
         self._parse_cparams()
@@ -672,22 +712,23 @@ class BoxlibDataset(Dataset):
     def _parse_cparams(self):
         if self.cparam_filename is None:
             return
-        for line in (line.split("#")[0].strip() for line in
-                     open(self.cparam_filename)):
-            if "=" not in line: continue
-            if len(line) == 0: continue
+        for line in (line.split("#")[0].strip() for line in open(self.cparam_filename)):
+            if "=" not in line:
+                continue
+            if len(line) == 0:
+                continue
             param, vals = [s.strip() for s in line.split("=")]
             if param == "amr.n_cell":
-                vals = self.domain_dimensions = np.array(vals.split(), dtype='int32')
+                vals = self.domain_dimensions = np.array(vals.split(), dtype="int32")
 
                 # For 1D and 2D simulations in BoxLib usually only the relevant dimensions
-                # have a specified number of zones, but yt requires domain_dimensions to 
-                # have three elements, with 1 in the additional slots if we're not in 3D, 
+                # have a specified number of zones, but yt requires domain_dimensions to
+                # have three elements, with 1 in the additional slots if we're not in 3D,
                 # so append them as necessary.
 
-                if (len(vals) == 1):
+                if len(vals) == 1:
                     vals = self.domain_dimensions = np.array([vals[0], 1, 1])
-                elif (len(vals) == 2):
+                elif len(vals) == 2:
                     vals = self.domain_dimensions = np.array([vals[0], vals[1], 1])
             elif param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
@@ -703,13 +744,16 @@ class BoxlibDataset(Dataset):
             self.omega_lambda = self.parameters["comoving_OmL"]
             self.omega_matter = self.parameters["comoving_OmM"]
             self.hubble_constant = self.parameters["comoving_h"]
-            a_file = open(os.path.join(self.output_dir, 'comoving_a'))
+            a_file = open(os.path.join(self.output_dir, "comoving_a"))
             line = a_file.readline().strip()
             a_file.close()
-            self.current_redshift = 1/float(line) - 1
+            self.current_redshift = 1 / float(line) - 1
         else:
-            self.current_redshift = self.omega_lambda = self.omega_matter = \
-                self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = (
+                self.omega_lambda
+            ) = (
+                self.omega_matter
+            ) = self.hubble_constant = self.cosmological_simulation = 0.0
 
     def _parse_fparams(self):
         """
@@ -730,8 +774,7 @@ class BoxlibDataset(Dataset):
             # So we'll try to determine this.
             vals = vals.split()
             if any(_scinot_finder.match(v) for v in vals):
-                vals = [float(v.replace("D", "e").replace("d", "e"))
-                        for v in vals]
+                vals = [float(v.replace("D", "e").replace("d", "e")) for v in vals]
             if len(vals) == 1:
                 vals = vals[0]
             self.parameters[param] = vals
@@ -748,24 +791,24 @@ class BoxlibDataset(Dataset):
         # call readline() if we want to end up with an offset at the very end.
         # Fortunately, elsewhere we don't care about the offset, so we're fine
         # everywhere else using iteration exclusively.
-        header_file = open(os.path.join(self.output_dir, 'Header'))
+        header_file = open(os.path.join(self.output_dir, "Header"))
         self.orion_version = header_file.readline().rstrip()
         n_fields = int(header_file.readline())
 
-        self._field_list = [header_file.readline().strip()
-                            for i in range(n_fields)]
+        self._field_list = [header_file.readline().strip() for i in range(n_fields)]
 
         self.dimensionality = int(header_file.readline())
         self.current_time = float(header_file.readline())
         # This is traditionally a index attribute, so we will set it, but
         # in a slightly hidden variable.
         self._max_level = int(header_file.readline())
-        self.domain_left_edge = np.array(header_file.readline().split(),
-                                         dtype="float64")
-        self.domain_right_edge = np.array(header_file.readline().split(),
-                                          dtype="float64")
-        ref_factors = np.array([int(i) for i in
-                                header_file.readline().split()])
+        self.domain_left_edge = np.array(
+            header_file.readline().split(), dtype="float64"
+        )
+        self.domain_right_edge = np.array(
+            header_file.readline().split(), dtype="float64"
+        )
+        ref_factors = np.array([int(i) for i in header_file.readline().split()])
         if ref_factors.size == 0:
             # We use a default of two, as Nyx doesn't always output this value
             ref_factors = [2] * (self._max_level + 1)
@@ -778,8 +821,10 @@ class BoxlibDataset(Dataset):
             # We want everything to be a multiple of this.
             self.refine_by = min(ref_factors)
             # Check that they're all multiples of the minimum.
-            if not all(float(rf)/self.refine_by ==
-                       int(float(rf)/self.refine_by) for rf in ref_factors):
+            if not all(
+                float(rf) / self.refine_by == int(float(rf) / self.refine_by)
+                for rf in ref_factors
+            ):
                 raise RuntimeError
             base_log = np.log2(self.refine_by)
             self.level_offsets = [0]  # level 0 has to have 0 offset
@@ -806,7 +851,8 @@ class BoxlibDataset(Dataset):
         header_file.readline()
         self._header_mesh_start = header_file.tell()
         # Skip the cell size information per level - we'll get this later
-        for i in range(self._max_level+1): header_file.readline()
+        for i in range(self._max_level + 1):
+            header_file.readline()
         # Get the geometry
         next_line = header_file.readline()
         if len(next_line.split()) == 1:
@@ -829,18 +875,16 @@ class BoxlibDataset(Dataset):
             self._setup2d()
 
     def _set_code_unit_attributes(self):
-        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
-        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
-        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
-        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "cm/s"))
+        setdefaultattr(self, "length_unit", self.quan(1.0, "cm"))
+        setdefaultattr(self, "mass_unit", self.quan(1.0, "g"))
+        setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
+        setdefaultattr(self, "velocity_unit", self.quan(1.0, "cm/s"))
 
     def _setup1d(self):
         # self._index_class = BoxlibHierarchy1D
         # self._fieldinfo_fallback = Orion1DFieldInfo
-        self.domain_left_edge = \
-            np.concatenate([self.domain_left_edge, [0.0, 0.0]])
-        self.domain_right_edge = \
-            np.concatenate([self.domain_right_edge, [1.0, 1.0]])
+        self.domain_left_edge = np.concatenate([self.domain_left_edge, [0.0, 0.0]])
+        self.domain_right_edge = np.concatenate([self.domain_right_edge, [1.0, 1.0]])
         tmp = self.domain_dimensions.tolist()
         tmp.extend((1, 1))
         self.domain_dimensions = np.array(tmp)
@@ -850,10 +894,8 @@ class BoxlibDataset(Dataset):
         self.periodicity = ensure_tuple(tmp)
 
     def _setup2d(self):
-        self.domain_left_edge = \
-            np.concatenate([self.domain_left_edge, [0.0]])
-        self.domain_right_edge = \
-            np.concatenate([self.domain_right_edge, [1.0]])
+        self.domain_left_edge = np.concatenate([self.domain_left_edge, [0.0]])
+        self.domain_right_edge = np.concatenate([self.domain_right_edge, [1.0]])
         if self.geometry == "cylindrical":
             dre = self.domain_right_edge
             dre[2] = 2.0 * np.pi
@@ -867,8 +909,12 @@ class BoxlibDataset(Dataset):
 
     @parallel_root_only
     def print_key_parameters(self):
-        for a in ["current_time", "domain_dimensions", "domain_left_edge",
-                  "domain_right_edge"]:
+        for a in [
+            "current_time",
+            "domain_dimensions",
+            "domain_left_edge",
+            "domain_right_edge",
+        ]:
             if not hasattr(self, a):
                 mylog.error("Missing %s in parameter file definition!", a)
                 continue
@@ -877,22 +923,19 @@ class BoxlibDataset(Dataset):
 
     def relative_refinement(self, l0, l1):
         offset = self.level_offsets[l1] - self.level_offsets[l0]
-        return self.refine_by**(l1-l0 + offset)
+        return self.refine_by ** (l1 - l0 + offset)
 
 
 class OrionHierarchy(BoxlibHierarchy):
-
-    def __init__(self, ds, dataset_type='orion_native'):
+    def __init__(self, ds, dataset_type="orion_native"):
         BoxlibHierarchy.__init__(self, ds, dataset_type)
         self._read_particles()
         # self.io = IOHandlerOrion
 
     def _detect_output_fields(self):
         # This is all done in _parse_header_file
-        self.field_list = [("boxlib", f) for f in
-                           self.dataset._field_list]
-        self.field_indexes = dict((f[1], i)
-                                  for i, f in enumerate(self.field_list))
+        self.field_list = [("boxlib", f) for f in self.dataset._field_list]
+        self.field_indexes = dict((f[1], i) for i, f in enumerate(self.field_list))
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
         self.field_order = [f for f in self.field_list]
@@ -928,21 +971,30 @@ class OrionHierarchy(BoxlibHierarchy):
         """actually reads the orion particle data file itself.
 
         """
-        if not os.path.exists(fn): return
-        with open(fn, 'r') as f:
+        if not os.path.exists(fn):
+            return
+        with open(fn, "r") as f:
             lines = f.readlines()
             self.num_stars = int(lines[0].strip()[0])
             for num, line in enumerate(lines[1:]):
-                particle_position_x = float(line.split(' ')[1])
-                particle_position_y = float(line.split(' ')[2])
-                particle_position_z = float(line.split(' ')[3])
+                particle_position_x = float(line.split(" ")[1])
+                particle_position_y = float(line.split(" ")[2])
+                particle_position_z = float(line.split(" ")[3])
                 coord = [particle_position_x, particle_position_y, particle_position_z]
                 # for each particle, determine which grids contain it
                 # copied from object_finding_mixin.py
                 mask = np.ones(self.num_grids)
                 for i in range(len(coord)):
-                    np.choose(np.greater(self.grid_left_edge.d[:,i],coord[i]), (mask,0), mask)
-                    np.choose(np.greater(self.grid_right_edge.d[:,i],coord[i]), (0,mask), mask)
+                    np.choose(
+                        np.greater(self.grid_left_edge.d[:, i], coord[i]),
+                        (mask, 0),
+                        mask,
+                    )
+                    np.choose(
+                        np.greater(self.grid_right_edge.d[:, i], coord[i]),
+                        (0, mask),
+                        mask,
+                    )
                 ind = np.where(mask == 1)
                 selected_grids = self.grids[ind]
                 # in orion, particles always live on the finest level.
@@ -966,25 +1018,34 @@ class OrionDataset(BoxlibDataset):
 
     _index_class = OrionHierarchy
 
-    def __init__(self, output_dir,
-                 cparam_filename="inputs",
-                 fparam_filename="probin",
-                 dataset_type='orion_native',
-                 storage_filename=None,
-                 units_override=None,
-                 unit_system="cgs"):
+    def __init__(
+        self,
+        output_dir,
+        cparam_filename="inputs",
+        fparam_filename="probin",
+        dataset_type="orion_native",
+        storage_filename=None,
+        units_override=None,
+        unit_system="cgs",
+    ):
 
-        BoxlibDataset.__init__(self, output_dir,
-                               cparam_filename, fparam_filename,
-                               dataset_type, units_override=units_override,
-                               unit_system=unit_system)
+        BoxlibDataset.__init__(
+            self,
+            output_dir,
+            cparam_filename,
+            fparam_filename,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+        )
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
+        if not os.path.isdir(output_dir):
+            return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -993,8 +1054,8 @@ class OrionDataset(BoxlibDataset):
         args = inspect.getcallargs(cls.__init__, args, kwargs)
         # This might need to be localized somehow
         inputs_filename = os.path.join(
-            os.path.dirname(os.path.abspath(output_dir)),
-            args['cparam_filename'])
+            os.path.dirname(os.path.abspath(output_dir)), args["cparam_filename"]
+        )
         if not os.path.exists(inputs_filename):
             return False
         if os.path.exists(jobinfo_filename):
@@ -1004,30 +1065,38 @@ class OrionDataset(BoxlibDataset):
         if os.path.exists(warpx_jobinfo_filename):
             return False
         lines = open(inputs_filename).readlines()
-        if any(("castro." in line for line in lines)): return False
-        if any(("nyx." in line for line in lines)): return False
-        if any(("maestro" in line.lower() for line in lines)): return False
-        if any(("hyp." in line for line in lines)): return True
+        if any(("castro." in line for line in lines)):
+            return False
+        if any(("nyx." in line for line in lines)):
+            return False
+        if any(("maestro" in line.lower() for line in lines)):
+            return False
+        if any(("hyp." in line for line in lines)):
+            return True
         return False
 
 
 class CastroHierarchy(BoxlibHierarchy):
-
-    def __init__(self, ds, dataset_type='castro_native'):
+    def __init__(self, ds, dataset_type="castro_native"):
         super(CastroHierarchy, self).__init__(ds, dataset_type)
 
-        if ("particles" in self.ds.parameters):
+        if "particles" in self.ds.parameters:
 
             # extra beyond the base real fields that all Boxlib
             # particles have, i.e. the xyz positions
-            castro_extra_real_fields = ['particle_velocity_x',
-                                        'particle_velocity_y',
-                                        'particle_velocity_z']
+            castro_extra_real_fields = [
+                "particle_velocity_x",
+                "particle_velocity_y",
+                "particle_velocity_z",
+            ]
 
             is_checkpoint = True
 
-            self._read_particles("Tracer", is_checkpoint, 
-                                 castro_extra_real_fields[0:self.ds.dimensionality])
+            self._read_particles(
+                "Tracer",
+                is_checkpoint,
+                castro_extra_real_fields[0 : self.ds.dimensionality],
+            )
 
 
 class CastroDataset(BoxlibDataset):
@@ -1035,28 +1104,34 @@ class CastroDataset(BoxlibDataset):
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
 
-    def __init__(self, output_dir,
-                 cparam_filename=None,
-                 fparam_filename=None,
-                 dataset_type='boxlib_native',
-                 storage_filename=None,
-                 units_override=None,
-                 unit_system="cgs"):
+    def __init__(
+        self,
+        output_dir,
+        cparam_filename=None,
+        fparam_filename=None,
+        dataset_type="boxlib_native",
+        storage_filename=None,
+        units_override=None,
+        unit_system="cgs",
+    ):
 
-        super(CastroDataset, self).__init__(output_dir,
-                                            cparam_filename,
-                                            fparam_filename,
-                                            dataset_type,
-                                            storage_filename,
-                                            units_override,
-                                            unit_system)
+        super(CastroDataset, self).__init__(
+            output_dir,
+            cparam_filename,
+            fparam_filename,
+            dataset_type,
+            storage_filename,
+            units_override,
+            unit_system,
+        )
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
+        if not os.path.isdir(output_dir):
+            return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -1066,7 +1141,8 @@ class CastroDataset(BoxlibDataset):
             return False
         # Now we check for all the others
         lines = open(jobinfo_filename).readlines()
-        if any(line.startswith("Castro   ") for line in lines): return True
+        if any(line.startswith("Castro   ") for line in lines):
+            return True
         return False
 
     def _parse_parameter_file(self):
@@ -1086,7 +1162,7 @@ class CastroDataset(BoxlibDataset):
                     fields = line.split(":")
                     self.parameters[fields[0]] = fields[1].strip()
                 line = next(f)
-            
+
             # runtime parameters that we overrode follow "Inputs File
             # Parameters"
             # skip the "====..." line
@@ -1097,53 +1173,60 @@ class CastroDataset(BoxlibDataset):
                 p, v = line.strip().split("=")
                 self.parameters[p] = v.strip()
 
-            
         # hydro method is set by the base class -- override it here
         self.parameters["HydroMethod"] = "Castro"
 
         # set the periodicity based on the runtime parameters
         periodicity = [True, True, True]
-        if not self.parameters['-x'] == "interior": periodicity[0] = False
+        if not self.parameters["-x"] == "interior":
+            periodicity[0] = False
         if self.dimensionality >= 2:
-            if not self.parameters['-y'] == "interior": periodicity[1] = False
+            if not self.parameters["-y"] == "interior":
+                periodicity[1] = False
         if self.dimensionality == 3:
-            if not self.parameters['-z'] == "interior": periodicity[2] = False
+            if not self.parameters["-z"] == "interior":
+                periodicity[2] = False
 
         self.periodicity = ensure_tuple(periodicity)
         if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
             # we have particles
-            self.parameters["particles"] = 1 
+            self.parameters["particles"] = 1
             self.particle_types = ("Tracer",)
             self.particle_types_raw = self.particle_types
-
 
 
 class MaestroDataset(BoxlibDataset):
 
     _field_info_class = MaestroFieldInfo
 
-    def __init__(self, output_dir,
-                 cparam_filename=None,
-                 fparam_filename=None,
-                 dataset_type='boxlib_native',
-                 storage_filename=None,
-                 units_override=None,
-                 unit_system="cgs"):
-        
-        super(MaestroDataset, self).__init__(output_dir,
-                                             cparam_filename,
-                                             fparam_filename,
-                                             dataset_type,
-                                             storage_filename,
-                                             units_override,
-                                             unit_system)
+    def __init__(
+        self,
+        output_dir,
+        cparam_filename=None,
+        fparam_filename=None,
+        dataset_type="boxlib_native",
+        storage_filename=None,
+        units_override=None,
+        unit_system="cgs",
+    ):
+
+        super(MaestroDataset, self).__init__(
+            output_dir,
+            cparam_filename,
+            fparam_filename,
+            dataset_type,
+            storage_filename,
+            units_override,
+            unit_system,
+        )
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
+        if not os.path.isdir(output_dir):
+            return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -1153,7 +1236,8 @@ class MaestroDataset(BoxlibDataset):
             return False
         # Now we check the job_info for the mention of maestro
         lines = open(jobinfo_filename).readlines()
-        if any(line.startswith("MAESTRO   ") for line in lines): return True
+        if any(line.startswith("MAESTRO   ") for line in lines):
+            return True
         return False
 
     def _parse_parameter_file(self):
@@ -1180,35 +1264,39 @@ class MaestroDataset(BoxlibDataset):
 
         # set the periodicity based on the integer BC runtime parameters
         periodicity = [True, True, True]
-        if not self.parameters['bcx_lo'] == -1:
+        if not self.parameters["bcx_lo"] == -1:
             periodicity[0] = False
 
-        if not self.parameters['bcy_lo'] == -1:
+        if not self.parameters["bcy_lo"] == -1:
             periodicity[1] = False
 
-        if not self.parameters['bcz_lo'] == -1:
+        if not self.parameters["bcz_lo"] == -1:
             periodicity[2] = False
 
         self.periodicity = ensure_tuple(periodicity)
 
 
 class NyxHierarchy(BoxlibHierarchy):
-
-    def __init__(self, ds, dataset_type='nyx_native'):
+    def __init__(self, ds, dataset_type="nyx_native"):
         super(NyxHierarchy, self).__init__(ds, dataset_type)
 
-        if ("particles" in self.ds.parameters):
+        if "particles" in self.ds.parameters:
             # extra beyond the base real fields that all Boxlib
             # particles have, i.e. the xyz positions
-            nyx_extra_real_fields = ['particle_mass',
-                                     'particle_velocity_x',
-                                     'particle_velocity_y',
-                                     'particle_velocity_z']
+            nyx_extra_real_fields = [
+                "particle_mass",
+                "particle_velocity_x",
+                "particle_velocity_y",
+                "particle_velocity_z",
+            ]
 
             is_checkpoint = False
 
-            self._read_particles("DM", is_checkpoint, 
-                                 nyx_extra_real_fields[0:self.ds.dimensionality+1])
+            self._read_particles(
+                "DM",
+                is_checkpoint,
+                nyx_extra_real_fields[0 : self.ds.dimensionality + 1],
+            )
 
 
 class NyxDataset(BoxlibDataset):
@@ -1216,28 +1304,34 @@ class NyxDataset(BoxlibDataset):
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
 
-    def __init__(self, output_dir,
-                 cparam_filename=None,
-                 fparam_filename=None,
-                 dataset_type='boxlib_native',
-                 storage_filename=None,
-                 units_override=None,
-                 unit_system="cgs"):
+    def __init__(
+        self,
+        output_dir,
+        cparam_filename=None,
+        fparam_filename=None,
+        dataset_type="boxlib_native",
+        storage_filename=None,
+        units_override=None,
+        unit_system="cgs",
+    ):
 
-        super(NyxDataset, self).__init__(output_dir,
-                                         cparam_filename,
-                                         fparam_filename,
-                                         dataset_type,
-                                         storage_filename,
-                                         units_override,
-                                         unit_system)
+        super(NyxDataset, self).__init__(
+            output_dir,
+            cparam_filename,
+            fparam_filename,
+            dataset_type,
+            storage_filename,
+            units_override,
+            unit_system,
+        )
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
+        if not os.path.isdir(output_dir):
+            return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "job_info")
         if not os.path.exists(header_filename):
@@ -1247,8 +1341,10 @@ class NyxDataset(BoxlibDataset):
             return False
         # Now we check the job_info for the mention of maestro
         lines = open(jobinfo_filename).readlines()
-        if any(line.startswith("Nyx  ") for line in lines): return True
-        if any(line.startswith("nyx.") for line in lines): return True
+        if any(line.startswith("Nyx  ") for line in lines):
+            return True
+        if any(line.startswith("nyx.") for line in lines):
+            return True
         return False
 
     def _parse_parameter_file(self):
@@ -1277,7 +1373,6 @@ class NyxDataset(BoxlibDataset):
                 elif "h (comoving)" in line:
                     self.hubble_constant = float(line.split(":")[1])
 
-
         # Read in the `comoving_a` file and parse the value. We should fix this
         # in the new Nyx output format...
         a_file = open(os.path.join(self.output_dir, "comoving_a"))
@@ -1292,16 +1387,18 @@ class NyxDataset(BoxlibDataset):
         self.current_redshift = self.parameters["CosmologyCurrentRedshift"]
         if os.path.isfile(os.path.join(self.output_dir, "DM/Header")):
             # we have particles
-            self.parameters["particles"] = 1 
+            self.parameters["particles"] = 1
             self.particle_types = ("DM",)
             self.particle_types_raw = self.particle_types
 
     def _set_code_unit_attributes(self):
-        setdefaultattr(self, 'mass_unit', self.quan(1.0, "Msun"))
-        setdefaultattr(self, 'time_unit', self.quan(1.0 / 3.08568025e19, "s"))
-        setdefaultattr(self, 'length_unit',
-                       self.quan(1.0 / (1 + self.current_redshift), "Mpc"))
-        setdefaultattr(self, 'velocity_unit', self.length_unit / self.time_unit)
+        setdefaultattr(self, "mass_unit", self.quan(1.0, "Msun"))
+        setdefaultattr(self, "time_unit", self.quan(1.0 / 3.08568025e19, "s"))
+        setdefaultattr(
+            self, "length_unit", self.quan(1.0 / (1 + self.current_redshift), "Mpc")
+        )
+        setdefaultattr(self, "velocity_unit", self.length_unit / self.time_unit)
+
 
 def _guess_pcast(vals):
     # Now we guess some things about the parameter and its type
@@ -1321,7 +1418,7 @@ def _guess_pcast(vals):
         else:
             pcast = int
     if pcast == bool:
-        vals = [value=="T" for value in vals.split()]
+        vals = [value == "T" for value in vals.split()]
     else:
         vals = [pcast(value) for value in vals.split()]
     if len(vals) == 1:
@@ -1341,7 +1438,7 @@ def _string_to_numpy_array(s):
 def _line_to_numpy_arrays(line):
     lo_corner = _string_to_numpy_array(line[0][1:])
     hi_corner = _string_to_numpy_array(line[1][:])
-    node_type = _string_to_numpy_array(line[2][:-1]) 
+    node_type = _string_to_numpy_array(line[2][:-1])
     return lo_corner, hi_corner, node_type
 
 
@@ -1350,7 +1447,7 @@ def _get_active_dimensions(box):
 
 
 def _read_header(raw_file, field):
-    level_files = glob.glob(raw_file + 'Level_*')
+    level_files = glob.glob(raw_file + "Level_*")
     level_files.sort()
 
     all_boxes = []
@@ -1360,7 +1457,7 @@ def _read_header(raw_file, field):
     for level_file in level_files:
         header_file = level_file + "/" + field + "_H"
         with open(header_file, "r") as f:
-        
+
             f.readline()  # version
             f.readline()  # how
             f.readline()  # ncomp
@@ -1372,12 +1469,12 @@ def _read_header(raw_file, field):
                 nghosts = nghost_lines[0][1:-1].split(",")
                 nghost = np.array([int(ng) for ng in nghosts])
             f.readline()  # num boxes
-            
+
             # read boxes
             boxes = []
             for line in f:
                 clean_line = line.strip().split()
-                if clean_line == [')']:
+                if clean_line == [")"]:
                     break
                 lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
                 boxes.append((lo_corner, hi_corner, node_type))
@@ -1403,39 +1500,41 @@ class WarpXHeader:
         self.data = {}
         with open(header_fn, "r") as f:
             self.data["Checkpoint_version"] = int(f.readline().strip().split()[-1])
-            
+
             self.data["num_levels"] = int(f.readline().strip().split()[-1])
-            self.data["istep"]      = [int(num) for num in f.readline().strip().split()]
-            self.data["nsubsteps"]  = [int(num) for num in f.readline().strip().split()]
-            
+            self.data["istep"] = [int(num) for num in f.readline().strip().split()]
+            self.data["nsubsteps"] = [int(num) for num in f.readline().strip().split()]
+
             self.data["t_new"] = [float(num) for num in f.readline().strip().split()]
             self.data["t_old"] = [float(num) for num in f.readline().strip().split()]
-            self.data["dt"]    = [float(num) for num in f.readline().strip().split()]
-            
+            self.data["dt"] = [float(num) for num in f.readline().strip().split()]
+
             self.data["moving_window_x"] = float(f.readline().strip().split()[-1])
 
             #  not all datasets will have is_synchronized
             line = f.readline().strip().split()
-            if (len(line) == 1):                
+            if len(line) == 1:
                 self.data["is_synchronized"] = bool(line[-1])
-                self.data["prob_lo"] = [float(num) for num in f.readline().strip().split()]
+                self.data["prob_lo"] = [
+                    float(num) for num in f.readline().strip().split()
+                ]
             else:
-                self.data["is_synchronized"] = True                
+                self.data["is_synchronized"] = True
                 self.data["prob_lo"] = [float(num) for num in line]
-                            
+
             self.data["prob_hi"] = [float(num) for num in f.readline().strip().split()]
-            
+
             for _ in range(self.data["num_levels"]):
                 num_boxes = int(f.readline().strip().split()[0][1:])
                 for __ in range(num_boxes):
                     f.readline()
                 f.readline()
-                
+
             i = 0
             line = f.readline()
             while line:
                 line = line.strip().split()
-                if (len(line) == 1):
+                if len(line) == 1:
                     line = f.readline()
                     continue
                 self.data["species_%d" % i] = [float(val) for val in line]
@@ -1444,32 +1543,31 @@ class WarpXHeader:
 
 
 class WarpXHierarchy(BoxlibHierarchy):
-
     def __init__(self, ds, dataset_type="boxlib_native"):
         super(WarpXHierarchy, self).__init__(ds, dataset_type)
 
         is_checkpoint = True
         for ptype in self.ds.particle_types:
             self._read_particles(ptype, is_checkpoint)
-        
+
         # Additional WarpX particle information (used to set up species)
         self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
-        
+
         for key, val in self.warpx_header.data.items():
             if key.startswith("species_"):
                 i = int(key.split("_")[-1])
-                charge_name = 'particle%.1d_charge' % i
-                mass_name = 'particle%.1d_mass' % i
+                charge_name = "particle%.1d_charge" % i
+                mass_name = "particle%.1d_mass" % i
                 self.parameters[charge_name] = val[0]
                 self.parameters[mass_name] = val[1]
-                
+
     def _detect_output_fields(self):
         super(WarpXHierarchy, self)._detect_output_fields()
 
         # now detect the optional, non-cell-centered fields
         self.raw_file = self.ds.output_dir + "/raw_fields/"
-        self.raw_fields = _read_raw_field_names(self.raw_file + 'Level_0/')
-        self.field_list += [('raw', f) for f in self.raw_fields]
+        self.raw_fields = _read_raw_field_names(self.raw_file + "Level_0/")
+        self.field_list += [("raw", f) for f in self.raw_fields]
         self.raw_field_map = {}
         self.ds.nodal_flags = {}
         self.raw_field_nghost = {}
@@ -1483,11 +1581,11 @@ class WarpXHierarchy(BoxlibHierarchy):
 def _skip_line(line):
     if len(line) == 0:
         return True
-    if line[0] == '\n':
+    if line[0] == "\n":
         return True
     if line[0] == "=":
         return True
-    if line[0] == ' ':
+    if line[0] == " ":
         return True
 
 
@@ -1496,32 +1594,38 @@ class WarpXDataset(BoxlibDataset):
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
 
-    def __init__(self, output_dir,
-                 cparam_filename=None,
-                 fparam_filename=None,
-                 dataset_type='boxlib_native',
-                 storage_filename=None,
-                 units_override=None,
-                 unit_system="mks"):
+    def __init__(
+        self,
+        output_dir,
+        cparam_filename=None,
+        fparam_filename=None,
+        dataset_type="boxlib_native",
+        storage_filename=None,
+        units_override=None,
+        unit_system="mks",
+    ):
 
         self.default_fluid_type = "mesh"
         self.default_field = ("mesh", "density")
         self.fluid_types = ("mesh", "index", "raw")
 
-        super(WarpXDataset, self).__init__(output_dir,
-                                           cparam_filename,
-                                           fparam_filename,
-                                           dataset_type,
-                                           storage_filename,
-                                           units_override,
-                                           unit_system)
+        super(WarpXDataset, self).__init__(
+            output_dir,
+            cparam_filename,
+            fparam_filename,
+            dataset_type,
+            storage_filename,
+            units_override,
+            unit_system,
+        )
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
-        if not os.path.isdir(output_dir): return False
+        if not os.path.isdir(output_dir):
+            return False
         header_filename = os.path.join(output_dir, "Header")
         jobinfo_filename = os.path.join(output_dir, "warpx_job_info")
         if not os.path.exists(header_filename):
@@ -1544,9 +1648,9 @@ class WarpXDataset(BoxlibDataset):
                 l = line.strip().split("=")
                 if len(l) == 2:
                     self.parameters[l[0].strip()] = l[1].strip()
-                
+
         # set the periodicity based on the integer BC runtime parameters
-        is_periodic = self.parameters['geometry.is_periodic'].split()
+        is_periodic = self.parameters["geometry.is_periodic"].split()
         periodicity = [bool(val) for val in is_periodic]
         for _ in range(self.dimensionality, 3):
             periodicity += [True]  # pad to 3D
@@ -1561,45 +1665,49 @@ class WarpXDataset(BoxlibDataset):
         else:
             self.particle_types = ()
             self.particle_types_raw = ()
-            
+
     def _set_code_unit_attributes(self):
-        setdefaultattr(self, 'length_unit', self.quan(1.0, "m"))
-        setdefaultattr(self, 'mass_unit', self.quan(1.0, "kg"))
-        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
-        setdefaultattr(self, 'velocity_unit', self.quan(1.0, "m/s"))
-        setdefaultattr(self, 'magnetic_unit', self.quan(1.0, "T"))
+        setdefaultattr(self, "length_unit", self.quan(1.0, "m"))
+        setdefaultattr(self, "mass_unit", self.quan(1.0, "kg"))
+        setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
+        setdefaultattr(self, "velocity_unit", self.quan(1.0, "m/s"))
+        setdefaultattr(self, "magnetic_unit", self.quan(1.0, "T"))
 
 
 class AMReXHierarchy(BoxlibHierarchy):
-
     def __init__(self, ds, dataset_type="boxlib_native"):
         super(AMReXHierarchy, self).__init__(ds, dataset_type)
-        
-        if ("particles" in self.ds.parameters):
+
+        if "particles" in self.ds.parameters:
             is_checkpoint = True
             for ptype in self.ds.particle_types:
                 self._read_particles(ptype, is_checkpoint)
 
 
 class AMReXDataset(BoxlibDataset):
-    
+
     _index_class = AMReXHierarchy
 
-    def __init__(self, output_dir,
-                 cparam_filename=None,
-                 fparam_filename=None,
-                 dataset_type='boxlib_native',
-                 storage_filename=None,
-                 units_override=None,
-                 unit_system="cgs"):
+    def __init__(
+        self,
+        output_dir,
+        cparam_filename=None,
+        fparam_filename=None,
+        dataset_type="boxlib_native",
+        storage_filename=None,
+        units_override=None,
+        unit_system="cgs",
+    ):
 
-        super(AMReXDataset, self).__init__(output_dir,
-                                           cparam_filename,
-                                           fparam_filename,
-                                           dataset_type,
-                                           storage_filename,
-                                           units_override,
-                                           unit_system)
+        super(AMReXDataset, self).__init__(
+            output_dir,
+            cparam_filename,
+            fparam_filename,
+            dataset_type,
+            storage_filename,
+            units_override,
+            unit_system,
+        )
 
     def _parse_parameter_file(self):
         super(AMReXDataset, self)._parse_parameter_file()

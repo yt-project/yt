@@ -5,9 +5,9 @@ p_units = "cm"
 v_units = "cm / s"
 r_units = "cm"
 
+
 class HaloCatalogFieldInfo(FieldInfoContainer):
-    known_other_fields = (
-    )
+    known_other_fields = ()
 
     known_particle_fields = (
         ("particle_identifier", ("", [], None)),
@@ -19,4 +19,4 @@ class HaloCatalogFieldInfo(FieldInfoContainer):
         ("particle_velocity_z", (v_units, [], None)),
         ("particle_mass", (m_units, [], "Virial Mass")),
         ("virial_radius", (r_units, [], "Virial Radius")),
-)
+    )

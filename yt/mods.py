@@ -20,7 +20,7 @@ unparsed_args = __startup_tasks.unparsed_args
 if __level >= int(ytcfg_defaults["loglevel"]):
     # This won't get displayed.
     mylog.debug("Turning off NumPy error reporting")
-    np.seterr(all = 'ignore')
+    np.seterr(all="ignore")
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -
 # the primary purpose is to allow people to have a set of functions
@@ -28,5 +28,5 @@ if __level >= int(ytcfg_defaults["loglevel"]):
 # This way, other command-line tools can be used very simply.
 # Unfortunately, for now, I think the easiest and simplest way of doing
 # this is also the most dangerous way.
-if ytcfg.getboolean("yt","loadfieldplugins"):
+if ytcfg.getboolean("yt", "loadfieldplugins"):
     enable_plugins()

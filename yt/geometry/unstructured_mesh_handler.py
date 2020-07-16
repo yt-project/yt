@@ -10,7 +10,8 @@ from yt.utilities.logger import ytLogger as mylog
 
 class UnstructuredIndex(Index):
     """The Index subclass for unstructured and hexahedral mesh datasets. """
-    _unsupported_objects = ('proj', 'covering_grid', 'smoothed_covering_grid')
+
+    _unsupported_objects = ("proj", "covering_grid", "smoothed_covering_grid")
 
     def __init__(self, ds, dataset_type):
         self.dataset_type = dataset_type
@@ -28,10 +29,12 @@ class UnstructuredIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        dx = min(smallest_fwidth(mesh.connectivity_coords,
-                                 mesh.connectivity_indices,
-                                 mesh._index_offset)
-                 for mesh in self.meshes)
+        dx = min(
+            smallest_fwidth(
+                mesh.connectivity_coords, mesh.connectivity_indices, mesh._index_offset
+            )
+            for mesh in self.meshes
+        )
         return dx
 
     def convert(self, unit):
@@ -47,31 +50,33 @@ class UnstructuredIndex(Index):
             dobj.size = self._count_selection(dobj)
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
-    def _count_selection(self, dobj, meshes = None):
-        if meshes is None: meshes = dobj._chunk_info
+    def _count_selection(self, dobj, meshes=None):
+        if meshes is None:
+            meshes = dobj._chunk_info
         count = sum((m.count(dobj.selector) for m in meshes))
         return count
 
-    def _chunk_all(self, dobj, cache = True):
+    def _chunk_all(self, dobj, cache=True):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, dobj.size, cache)
 
-    def _chunk_spatial(self, dobj, ngz, sort = None, preload_fields = None):
+    def _chunk_spatial(self, dobj, ngz, sort=None, preload_fields=None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         # This is where we will perform cutting of the Octree and
         # load-balancing.  That may require a specialized selector object to
         # cut based on some space-filling curve index.
-        for i,og in enumerate(sobjs):
+        for i, og in enumerate(sobjs):
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
                 g = og
             size = self._count_selection(dobj, [og])
-            if size == 0: continue
+            if size == 0:
+                continue
             yield YTDataChunk(dobj, "spatial", [g], size)
 
-    def _chunk_io(self, dobj, cache = True, local_only = False):
+    def _chunk_io(self, dobj, cache=True, local_only=False):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             s = self._count_selection(dobj, oobjs)
-            yield YTDataChunk(dobj, "io", [subset], s, cache = cache)
+            yield YTDataChunk(dobj, "io", [subset], s, cache=cache)
