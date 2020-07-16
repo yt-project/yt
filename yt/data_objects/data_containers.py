@@ -571,7 +571,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         ----------
         fields : list of strings or tuple field names
             This is the list of fields to be exported into
-            the QTable. 
+            the QTable.
 
         Examples
         --------
@@ -755,45 +755,45 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             ----------
             path_to_firefly : string
                 The (ideally) absolute path to the direction containing the index.html
-                file of Firefly. 
+                file of Firefly.
 
             fields_to_include : array_like of strings
-                A list of fields that you want to include in your 
+                A list of fields that you want to include in your
                 Firefly visualization for on-the-fly filtering and
-                colormapping. 
-            
+                colormapping.
+
             default_decimation_factor : integer
                 The factor by which you want to decimate each particle group
                 by (e.g. if there are 1e7 total particles in your simulation
                 you might want to set this to 100 at first). Randomly samples
-                your data like `shuffled_data[::decimation_factor]` so as to 
+                your data like `shuffled_data[::decimation_factor]` so as to
                 not overtax a system. This is adjustable on a per particle group
-                basis by changing the returned reader's 
-                `reader.particleGroup[i].decimation_factor` before calling 
+                basis by changing the returned reader's
+                `reader.particleGroup[i].decimation_factor` before calling
                 `reader.dumpToJSON()`.
-            
+
             velocity_units : string
-                The units that the velocity should be converted to in order to 
-                show streamlines in Firefly. Defaults to km/s. 
-            
+                The units that the velocity should be converted to in order to
+                show streamlines in Firefly. Defaults to km/s.
+
             coordinate_units: string
-                The units that the coordinates should be converted to. Defaults to 
-                kpc. 
-            
+                The units that the coordinates should be converted to. Defaults to
+                kpc.
+
             show_unused_fields: boolean
-                A flag to optionally print the fields that are available, in the 
+                A flag to optionally print the fields that are available, in the
                 dataset but were not explicitly requested to be tracked.
 
             dataset_name: string
-                The name of the subdirectory the JSON files will be stored in 
+                The name of the subdirectory the JSON files will be stored in
                 (and the name that will appear in startup.json and in the dropdown
-                menu at startup). e.g. `yt` -> json files will appear in 
+                menu at startup). e.g. `yt` -> json files will appear in
                 `Firefly/data/yt`.
 
             Returns
             -------
             reader : firefly_api.reader.Reader object
-                A reader object from the firefly_api, configured 
+                A reader object from the firefly_api, configured
                 to output
 
             Examples
@@ -2179,7 +2179,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         Example
         -------
-        
+
         To find the total mass of hot gas with temperature colder than 10^6 K
         in your volume:
 
@@ -2187,7 +2187,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> ad = ds.all_data()
         >>> cr = ad.exclude_above('temperature', 1e6)
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        
+
         """
         if units is None:
             field_cuts = 'obj["' + field + '"] <= ' + str(value)
@@ -2218,10 +2218,10 @@ class YTSelectionContainer3D(YTSelectionContainer):
         -------
         cut_region : YTCutRegion
             The YTCutRegion with the field above the given value masked.
-        
+
         Example
         -------
-        
+
         To find the total mass of hot gas with temperature warmer than 10^6 K
         in your volume:
 
@@ -2300,7 +2300,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         -------
         cut_region : YTCutRegion
             The YTCutRegion with the field equal to the given value included.
-        
+
         Example
         -------
         >>> ds = yt.load("RedshiftOutput0005")
@@ -2321,7 +2321,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         This function will return a YTCutRegion where all of the regions
         whose field are inside the interval from min_value to max_value.
-        
+
         Parameters
         ----------
         field : string
@@ -2333,12 +2333,12 @@ class YTSelectionContainer3D(YTSelectionContainer):
         units : string or None
             The units of the value threshold. None will use the default units
             given in the field.
-        
+
         Returns
         -------
         cut_region : YTCutRegion
             The YTCutRegion with the field inside the given interval excluded.
-        
+
         Example
         -------
         >>> ds = yt.load("RedshiftOutput0005")
@@ -2382,7 +2382,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         This function will return a YTCutRegion where only the regions
         whose field are inside the interval from min_value to max_value are
         included.
-        
+
         Parameters
         ----------
         field : string
@@ -2394,7 +2394,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         units : string or None
             The units of the value threshold. None will use the default units
             given in the field.
-        
+
         Returns
         -------
         cut_region : YTCutRegion
@@ -2459,7 +2459,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         -------
         cut_region : YTCutRegion
             The YTCutRegion with the field outside the given interval excluded.
-        
+
         Example
         -------
         >>> ds = yt.load("RedshiftOutput0005")
@@ -2493,9 +2493,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
         -------
         cut_region : YTCutRegion
             The YTCutRegion with the field outside the given interval excluded.
-    
+
         Example
-        -------        
+        -------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
         >>> cr = ad.exclude_outside('temperature', 1e5, 1e6)
@@ -2524,13 +2524,13 @@ class YTSelectionContainer3D(YTSelectionContainer):
         -------
         cut_region : YTCutRegion
             The YTCutRegion with the field below the given value masked.
-        
+
         Example
         -------
         >>> ds = yt.load("RedshiftOutput0005")
         >>> ad = ds.all_data()
         >>> cr = ad.exclude_below('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun') 
+        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
         if units is None:
             field_cuts = 'obj["' + field + '"] >= ' + str(value)
@@ -2561,7 +2561,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         -------
         cut_region : YTCutRegion
             The YTCutRegion with the NaN entries of the field masked.
-        
+
         Example
         -------
         >>> ds = yt.load("RedshiftOutput0005")
@@ -2595,7 +2595,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         Returns
         -------
         cut_region : YTCutRegion
-            The YTCutRegion with only regions with the field below the given 
+            The YTCutRegion with only regions with the field below the given
             value included.
 
         Example

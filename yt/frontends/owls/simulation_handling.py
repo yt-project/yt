@@ -16,10 +16,10 @@ class OWLSSimulation(GadgetSimulation):
     parameter_filename : str
         The simulation parameter file.
     find_outputs : bool
-        If True, the OutputDir directory is searched for datasets.  
-        Time and redshift information are gathered by temporarily 
-        instantiating each dataset.  This can be used when simulation 
-        data was created in a non-standard way, making it difficult 
+        If True, the OutputDir directory is searched for datasets.
+        Time and redshift information are gathered by temporarily
+        instantiating each dataset.  This can be used when simulation
+        data was created in a non-standard way, making it difficult
         to guess the corresponding time and redshift information.
         Default: False.
 
@@ -38,7 +38,7 @@ class OWLSSimulation(GadgetSimulation):
 
     def _snapshot_format(self, index=None):
         """
-        The snapshot filename for a given index.  Modify this for different 
+        The snapshot filename for a given index.  Modify this for different
         naming conventions.
         """
 

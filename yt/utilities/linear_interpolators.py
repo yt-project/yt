@@ -11,17 +11,17 @@ class UnilinearFieldInterpolator:
         table : array
             The data table over which interpolation is performed.
         boundaries: tuple or array
-            If a tuple, this should specify the upper and lower bounds 
-            for the bins of the data table.  This assumes the bins are 
-            evenly spaced.  If an array, this specifies the bins 
+            If a tuple, this should specify the upper and lower bounds
+            for the bins of the data table.  This assumes the bins are
+            evenly spaced.  If an array, this specifies the bins
             explicitly.
         field_names: str
             Name of the field to be used as input data for interpolation.
         truncate : bool
-            If False, an exception is raised if the input values are 
-            outside the bounds of the table.  If True, extrapolation is 
+            If False, an exception is raised if the input values are
+            outside the bounds of the table.  If True, extrapolation is
             performed.
-        
+
         Examples
         --------
 
@@ -30,7 +30,7 @@ class UnilinearFieldInterpolator:
         interp = UnilinearFieldInterpolator(table_data, (0.0, 1.0), "x",
                                             truncate=True)
         field_data = interp(ad)
-        
+
         """
         self.table = table.astype("float64")
         self.truncate = truncate
@@ -73,26 +73,26 @@ class BilinearFieldInterpolator:
         table : array
             The data table over which interpolation is performed.
         boundaries: tuple
-            Either a tuple of lower and upper bounds for the x and y bins 
-            given as (x0, x1, y0, y1) or a tuple of two arrays containing the 
+            Either a tuple of lower and upper bounds for the x and y bins
+            given as (x0, x1, y0, y1) or a tuple of two arrays containing the
             x and y bins.
         field_names: list
             Names of the fields to be used as input data for interpolation.
         truncate : bool
-            If False, an exception is raised if the input values are 
-            outside the bounds of the table.  If True, extrapolation is 
+            If False, an exception is raised if the input values are
+            outside the bounds of the table.  If True, extrapolation is
             performed.
-        
+
         Examples
         --------
 
         ad = ds.all_data()
         table_data = np.random.random((64, 64))
-        interp = BilinearFieldInterpolator(table_data, (0.0, 1.0, 0.0, 1.0), 
+        interp = BilinearFieldInterpolator(table_data, (0.0, 1.0, 0.0, 1.0),
                                            ["x", "y"],
                                            truncate=True)
         field_data = interp(ad)
-        
+
         """
         self.table = table.astype("float64")
         self.truncate = truncate
@@ -152,27 +152,27 @@ class TrilinearFieldInterpolator:
         table : array
             The data table over which interpolation is performed.
         boundaries: tuple
-            Either a tuple of lower and upper bounds for the x, y, and z bins 
-            given as (x0, x1, y0, y1, z0, z1) or a tuple of three arrays 
+            Either a tuple of lower and upper bounds for the x, y, and z bins
+            given as (x0, x1, y0, y1, z0, z1) or a tuple of three arrays
             containing the x, y, and z bins.
         field_names: list
             Names of the fields to be used as input data for interpolation.
         truncate : bool
-            If False, an exception is raised if the input values are 
-            outside the bounds of the table.  If True, extrapolation is 
+            If False, an exception is raised if the input values are
+            outside the bounds of the table.  If True, extrapolation is
             performed.
-        
+
         Examples
         --------
 
         ad = ds.all_data()
         table_data = np.random.random((64, 64, 64))
-        interp = BilinearFieldInterpolator(table_data, 
-                                           (0.0, 1.0, 0.0, 1.0, 0.0, 1.0), 
+        interp = BilinearFieldInterpolator(table_data,
+                                           (0.0, 1.0, 0.0, 1.0, 0.0, 1.0),
                                            ["x", "y", "z"],
                                            truncate=True)
         field_data = interp(ad)
-        
+
         """
         self.table = table.astype("float64")
         self.truncate = truncate
@@ -247,7 +247,7 @@ class TrilinearFieldInterpolator:
 
 def get_centers(ds, filename, center_cols, radius_col, unit="1"):
     """
-    Return an iterator over EnzoSphere objects generated from the appropriate 
+    Return an iterator over EnzoSphere objects generated from the appropriate
     columns in *filename*.  Optionally specify the *unit* radius is in.
     """
     for line in open(filename):

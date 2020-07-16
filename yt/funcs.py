@@ -932,17 +932,17 @@ def get_image_suffix(name):
 def get_output_filename(name, keyword, suffix):
     r"""Return an appropriate filename for output.
 
-    With a name provided by the user, this will decide how to 
+    With a name provided by the user, this will decide how to
     appropriately name the output file by the following rules:
 
-    1. if name is None, the filename will be the keyword plus 
+    1. if name is None, the filename will be the keyword plus
        the suffix.
-    2. if name ends with "/", assume name is a directory and 
+    2. if name ends with "/", assume name is a directory and
        the file will be named name/(keyword+suffix).  If the
        directory does not exist, first try to create it and
        raise an exception if an error occurs.
     3. if name does not end in the suffix, add the suffix.
-    
+
     Parameters
     ----------
     name : str
@@ -962,7 +962,7 @@ def get_output_filename(name, keyword, suffix):
     my_file.png
     >>> print(get_output_filename("my_file/", "Projection_x", ".png"))
     my_file/Projection_x.png
-    
+
     """
     if name is None:
         name = keyword

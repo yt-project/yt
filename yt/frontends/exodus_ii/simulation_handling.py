@@ -18,7 +18,7 @@ class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries
 
     simulation_directory : str
         The directory that contain the simulation data.
-    
+
     Examples
     --------
     >>> import yt
@@ -63,7 +63,7 @@ class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries
         created with all potential datasets created by the simulation.
 
         Fine-level filtering is currently not implemented.
-        
+
         """
 
         all_outputs = self.all_outputs

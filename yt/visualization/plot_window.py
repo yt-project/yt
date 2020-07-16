@@ -779,7 +779,7 @@ class PlotWindow(ImagePlotContainer):
         self._right_handed = not self._right_handed
 
     def to_fits_data(self, fields=None, other_keys=None, length_unit=None, **kwargs):
-        r"""Export the fields in this PlotWindow instance 
+        r"""Export the fields in this PlotWindow instance
         to a FITSImageData instance.
 
         This will export a set of FITS images of either the fields specified
@@ -788,7 +788,7 @@ class PlotWindow(ImagePlotContainer):
         Parameters
         ----------
         fields : list of strings
-            These fields will be pixelized and output. If "None", the keys of 
+            These fields will be pixelized and output. If "None", the keys of
             the FRB will be used.
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
@@ -1384,8 +1384,8 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of resolution elements 
-         used.  Effectively sets a resolution limit to the image if buff_size is 
+         Size of the buffer to use for the image, i.e. the number of resolution elements
+         used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
 
     Examples
@@ -1600,8 +1600,8 @@ class ProjectionPlot(PWViewerMPL):
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of resolution elements 
-         used.  Effectively sets a resolution limit to the image if buff_size is 
+         Size of the buffer to use for the image, i.e. the number of resolution elements
+         used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
 
     Examples
@@ -1777,8 +1777,8 @@ class OffAxisSlicePlot(PWViewerMPL):
          Object to be used for data selection.  Defaults ds.all_data(), a
          region covering the full domain.
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of resolution elements 
-         used.  Effectively sets a resolution limit to the image if buff_size is 
+         Size of the buffer to use for the image, i.e. the number of resolution elements
+         used.  Effectively sets a resolution limit to the image if buff_size is
          smaller than the finest gridding.
     """
 
@@ -1975,9 +1975,9 @@ class OffAxisProjectionPlot(PWViewerMPL):
          Object to be used for data selection. Defaults to ds.all_data(), a
          region covering the full domain
     buff_size: length 2 sequence
-         Size of the buffer to use for the image, i.e. the number of resolution elements 
-         used.  Effectively sets a resolution limit to the image if buff_size is 
-         smaller than the finest gridding.         
+         Size of the buffer to use for the image, i.e. the number of resolution elements
+         used.  Effectively sets a resolution limit to the image if buff_size is
+         smaller than the finest gridding.
     """
     _plot_type = "OffAxisProjection"
     _frb_generator = OffAxisProjectionFixedResolutionBuffer

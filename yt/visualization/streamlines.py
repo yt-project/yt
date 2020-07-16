@@ -23,7 +23,7 @@ class Streamlines(ParallelAnalysisInterface):
     r"""A collection of streamlines that flow through the volume
 
     The Streamlines object contains a collection of streamlines
-    defined as paths that are parallel to a specified vector field.  
+    defined as paths that are parallel to a specified vector field.
 
     Parameters
     ----------
@@ -43,13 +43,13 @@ class Streamlines(ParallelAnalysisInterface):
     volume : `yt.extensions.volume_rendering.AMRKDTree`, optional
         The volume to be streamlined.  Can be specified for
         finer-grained control, but otherwise will be automatically
-        generated.  At this point it must use the AMRKDTree. 
+        generated.  At this point it must use the AMRKDTree.
         Default: None
     dx : float, optional
         Optionally specify the step size during the integration.
         Default: minimum dx
     length : float, optional
-        Optionally specify the length of integration.  
+        Optionally specify the length of integration.
         Default: np.max(self.ds.domain_right_edge-self.ds.domain_left_edge)
     direction : real, optional
         Specifies the direction of integration.  The magnitude of this
@@ -59,7 +59,7 @@ class Streamlines(ParallelAnalysisInterface):
         filled with the magnitude of the vector field at each point in
         the streamline.  This seems to be a ~10% hit to performance.
         Default: False
-    
+
     Examples
     --------
     >>> import yt
@@ -79,11 +79,11 @@ class Streamlines(ParallelAnalysisInterface):
     >>>
     >>> # Define and construct streamlines
     >>> streamlines = Streamlines(
-            ds,pos, 'velocity_x', 'velocity_y', 'velocity_z', length=1.0) 
+            ds,pos, 'velocity_x', 'velocity_y', 'velocity_z', length=1.0)
     >>> streamlines.integrate_through_volume()
     >>>
     >>> # Make a 3D plot of the streamlines and save it to disk
-    >>> fig=pl.figure() 
+    >>> fig=pl.figure()
     >>> ax = Axes3D(fig)
     >>> for stream in streamlines.streamlines:
     >>>     stream = stream[np.all(stream != 0.0, axis=1)]
@@ -226,7 +226,7 @@ class Streamlines(ParallelAnalysisInterface):
         --------
 
         >>> from yt.visualization.api import Streamlines
-        >>> streamlines = Streamlines(ds, [0.5]*3) 
+        >>> streamlines = Streamlines(ds, [0.5]*3)
         >>> streamlines.integrate_through_volume()
         >>> stream = streamlines.path(0)
         >>> matplotlib.pylab.semilogy(stream['t'], stream['Density'], '-x')

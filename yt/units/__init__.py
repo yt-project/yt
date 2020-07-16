@@ -36,7 +36,7 @@ class UnitContainer:
     Parameters
     ----------
     registry : UnitRegistry instance
-        A unit registry to associate with units and constants accessed 
+        A unit registry to associate with units and constants accessed
         on this object.
 
     Example

@@ -1821,11 +1821,11 @@ def load_octree(
     Parameters
     ----------
     octree_mask : np.ndarray[uint8_t]
-        This is a depth-first refinement mask for an Octree.  It should be 
-        of size n_octs * 8 (but see note about the root oct below), where 
+        This is a depth-first refinement mask for an Octree.  It should be
+        of size n_octs * 8 (but see note about the root oct below), where
         each item is 1 for an oct-cell being refined and 0 for it not being
-        refined.  For over_refine_factors != 1, the children count will 
-        still be 8, so there will stil be n_octs * 8 entries. Note that if 
+        refined.  For over_refine_factors != 1, the children count will
+        still be 8, so there will stil be n_octs * 8 entries. Note that if
         the root oct is not refined, there will be only one entry
         for the root, so the size of the mask will be (n_octs - 1)*8 + 1.
     data : dict
@@ -1849,7 +1849,7 @@ def load_octree(
         Determines whether the data will be treated as periodic along
         each axis
     partial_coverage : boolean
-        Whether or not an oct can be refined cell-by-cell, or whether all 
+        Whether or not an oct can be refined cell-by-cell, or whether all
         8 get refined.
 
     Example

@@ -96,7 +96,7 @@ class ProfileND(ParallelAnalysisInterface):
     def variance(self):
         issue_deprecation_warning(
             """
-profile.variance incorrectly returns the profile standard deviation and has 
+profile.variance incorrectly returns the profile standard deviation and has
 been deprecated, use profile.standard_deviation instead."""
         )
         return self.standard_deviation
@@ -108,7 +108,7 @@ been deprecated, use profile.standard_deviation instead."""
         ----------
         fields : list of field names
             A list of fields to create profile histograms for
-        
+
         """
         fields = self.data_source._determine_fields(fields)
         for f in fields:
@@ -581,12 +581,12 @@ class Profile1D(ProfileND):
         ----------
         fields : list of strings or tuple field names, default None
             If this is supplied, it is the list of fields to be exported into
-            the DataFrame. If not supplied, whatever fields exist in the 
+            the DataFrame. If not supplied, whatever fields exist in the
             profile, along with the bin field, will be exported.
         only_used : boolean, default False
             If True, only the bins which have data will be exported. If False,
             all of the bins will be exported, but the elements for those bins
-            in the data arrays will be filled with NaNs. 
+            in the data arrays will be filled with NaNs.
 
         Returns
         -------
@@ -627,7 +627,7 @@ class Profile1D(ProfileND):
         ----------
         fields : list of strings or tuple field names, default None
             If this is supplied, it is the list of fields to be exported into
-            the DataFrame. If not supplied, whatever fields exist in the 
+            the DataFrame. If not supplied, whatever fields exist in the
             profile, along with the bin field, will be exported.
         only_used : boolean, optional
             If True, only the bins which are used are copied

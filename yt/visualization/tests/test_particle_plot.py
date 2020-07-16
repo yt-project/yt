@@ -89,10 +89,10 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 def test_particle_projection_answers():
     """
 
-    This iterates over the all the plot modification functions in 
-    PROJ_ATTR_ARGS. Each time, it compares the images produced by 
+    This iterates over the all the plot modification functions in
+    PROJ_ATTR_ARGS. Each time, it compares the images produced by
     ParticleProjectionPlot to the gold standard.
-    
+
 
     """
 
@@ -120,7 +120,7 @@ def test_particle_projection_filter():
     """
 
     This tests particle projection plots for filter fields.
-    
+
 
     """
 
@@ -154,8 +154,8 @@ def test_particle_projection_filter():
 def test_particle_phase_answers():
     """
 
-    This iterates over the all the plot modification functions in 
-    PHASE_ATTR_ARGS. Each time, it compares the images produced by 
+    This iterates over the all the plot modification functions in
+    PHASE_ATTR_ARGS. Each time, it compares the images produced by
     ParticlePhasePlot to the gold standard.
 
     """

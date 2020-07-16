@@ -97,7 +97,7 @@ class AMRVACIOHandler(BaseIOHandler):
         -------
         data_dict : dict
             keys are the (ftype, fname) tuples and values are arrays that have been masked using
-            whatever selector method is appropriate. Arrays have dtype float64. 
+            whatever selector method is appropriate. Arrays have dtype float64.
         """
 
         # @Notes from Niels:

@@ -122,21 +122,21 @@ def data_object_or_all_data(data_source):
 
 class ProfilePlot:
     r"""
-    Create a 1d profile plot from a data source or from a list 
+    Create a 1d profile plot from a data source or from a list
     of profile objects.
 
-    Given a data object (all_data, region, sphere, etc.), an x field, 
-    and a y field (or fields), this will create a one-dimensional profile 
+    Given a data object (all_data, region, sphere, etc.), an x field,
+    and a y field (or fields), this will create a one-dimensional profile
     of the average (or total) value of the y field in bins of the x field.
 
-    This can be used to create profiles from given fields or to plot 
-    multiple profiles created from 
+    This can be used to create profiles from given fields or to plot
+    multiple profiles created from
     `yt.data_objects.profiles.create_profile`.
-    
+
     Parameters
     ----------
     data_source : YTSelectionContainer Object
-        The data object to be profiled, such as all_data, region, or 
+        The data object to be profiled, such as all_data, region, or
         sphere. If a dataset is passed in instead, an all_data data object
         is generated internally from the dataset.
     x_field : str
@@ -144,7 +144,7 @@ class ProfilePlot:
     y_fields : str or list
         The field or fields to be profiled.
     weight_field : str
-        The weight field for calculating weighted averages.  If None, 
+        The weight field for calculating weighted averages.  If None,
         the profile values are the sum of the field values within the bin.
         Otherwise, the values are a weighted average.
         Default : "cell_mass".
@@ -152,18 +152,18 @@ class ProfilePlot:
         The number of bins in the profile.
         Default: 64.
     accumulation : bool
-        If True, the profile values for a bin N are the cumulative sum of 
+        If True, the profile values for a bin N are the cumulative sum of
         all the values from bin 0 to N.
         Default: False.
-    fractional : If True the profile values are divided by the sum of all 
-        the profile data such that the profile represents a probability 
+    fractional : If True the profile values are divided by the sum of all
+        the profile data such that the profile represents a probability
         distribution function.
     label : str or list of strings
-        If a string, the label to be put on the line plotted.  If a list, 
+        If a string, the label to be put on the line plotted.  If a list,
         this should be a list of labels for each profile to be overplotted.
         Default: None.
     plot_spec : dict or list of dicts
-        A dictionary or list of dictionaries containing plot keyword 
+        A dictionary or list of dictionaries containing plot keyword
         arguments.  For example, dict(color="red", linestyle=":").
         Default: None.
     x_log : bool
@@ -172,7 +172,7 @@ class ProfilePlot:
         Default: True.
     y_log : dict or bool
         A dictionary containing field:boolean pairs, setting the logarithmic
-        property for that field. May be overridden after instantiation using 
+        property for that field. May be overridden after instantiation using
         set_log
         A single boolean can be passed to signify all fields should use
         logarithmic (True) or linear scaling (False).
@@ -212,7 +212,7 @@ class ProfilePlot:
     >>> plot.save()
 
     Use set_line_property to change line properties of one or all profiles.
-    
+
     """
 
     x_log = None
@@ -481,7 +481,7 @@ class ProfilePlot:
         >>> plot = ProfilePlot.from_profiles(profiles, labels=labels,
         ...                                  plot_specs=plot_specs)
         >>> plot.save()
-        
+
         """
         if labels is not None and len(profiles) != len(labels):
             raise RuntimeError("Profiles list and labels list must be the same size.")
@@ -504,7 +504,7 @@ class ProfilePlot:
         value : str, int, float
             The value to set for the line property.
         index : int
-            The index of the profile in the list of profiles to be 
+            The index of the profile in the list of profiles to be
             changed.  If None, change all plotted lines.
             Default : None.
 
@@ -516,7 +516,7 @@ class ProfilePlot:
 
         Change a single line.
         plot.set_line_property("linewidth", 4, index=0)
-        
+
         """
         if index is None:
             specs = self.plot_spec
@@ -616,7 +616,7 @@ class ProfilePlot:
 
         Parameters
         ----------
-        
+
         xmin : float or None
           The new x minimum.  Defaults to None, which leaves the xmin
           unchanged.
@@ -677,7 +677,7 @@ class ProfilePlot:
         field : string or field tuple
 
         The field that we want to adjust the plot limits for.
-        
+
         ymin : float or None
           The new y minimum.  Defaults to None, which leaves the ymin
           unchanged.
@@ -850,19 +850,19 @@ class ProfilePlot:
 
 class PhasePlot(ImagePlotContainer):
     r"""
-    Create a 2d profile (phase) plot from a data source or from 
-    profile object created with 
+    Create a 2d profile (phase) plot from a data source or from
+    profile object created with
     `yt.data_objects.profiles.create_profile`.
 
-    Given a data object (all_data, region, sphere, etc.), an x field, 
-    y field, and z field (or fields), this will create a two-dimensional 
-    profile of the average (or total) value of the z field in bins of the 
+    Given a data object (all_data, region, sphere, etc.), an x field,
+    y field, and z field (or fields), this will create a two-dimensional
+    profile of the average (or total) value of the z field in bins of the
     x and y fields.
 
     Parameters
     ----------
     data_source : YTSelectionContainer Object
-        The data object to be profiled, such as all_data, region, or 
+        The data object to be profiled, such as all_data, region, or
         sphere. If a dataset is passed in instead, an all_data data object
         is generated internally from the dataset.
     x_field : str
@@ -872,7 +872,7 @@ class PhasePlot(ImagePlotContainer):
     z_fields : str or list
         The field or fields to be profiled.
     weight_field : str
-        The weight field for calculating weighted averages.  If None, 
+        The weight field for calculating weighted averages.  If None,
         the profile values are the sum of the field values within the bin.
         Otherwise, the values are a weighted average.
         Default : "cell_mass".
@@ -883,14 +883,14 @@ class PhasePlot(ImagePlotContainer):
         The number of bins in y field for the profile.
         Default: 128.
     accumulation : bool or list of bools
-        If True, the profile values for a bin n are the cumulative sum of 
-        all the values from bin 0 to n.  If -True, the sum is reversed so 
-        that the value for bin n is the cumulative sum from bin N (total bins) 
+        If True, the profile values for a bin n are the cumulative sum of
+        all the values from bin 0 to n.  If -True, the sum is reversed so
+        that the value for bin n is the cumulative sum from bin N (total bins)
         to n.  A list of values can be given to control the summation in each
         dimension independently.
         Default: False.
-    fractional : If True the profile values are divided by the sum of all 
-        the profile data such that the profile represents a probability 
+    fractional : If True the profile values are divided by the sum of all
+        the profile data such that the profile represents a probability
         distribution function.
     fontsize : int
         Font size for all text in the plot.
@@ -1220,14 +1220,14 @@ class PhasePlot(ImagePlotContainer):
     def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
         r"""
         Allow the user to insert text onto the plot
-        The x-position and y-position must be given as well as the text string. 
+        The x-position and y-position must be given as well as the text string.
         Add *text* tp plot at location *xpos*, *ypos* in plot coordinates
         (see example below).
 
         Parameters
         ----------
         field : str or tuple
-          The name of the field to add text to. 
+          The name of the field to add text to.
         xpos : float
           Position on plot in x-coordinates.
         ypos : float
@@ -1323,7 +1323,7 @@ class PhasePlot(ImagePlotContainer):
         ----------
 
         font_dict : dict
-            A dict of keyword parameters to be passed to 
+            A dict of keyword parameters to be passed to
             :class:`matplotlib.font_manager.FontProperties`.
 
             Possible keys include:
@@ -1331,10 +1331,10 @@ class PhasePlot(ImagePlotContainer):
             * family - The font family. Can be serif, sans-serif, cursive,
               'fantasy', or 'monospace'.
             * style - The font style. Either normal, italic or oblique.
-            * color - A valid color string like 'r', 'g', 'red', 'cobalt', 
+            * color - A valid color string like 'r', 'g', 'red', 'cobalt',
               and 'orange'.
             * variant - Either normal or small-caps.
-            * size - Either a relative value of xx-small, x-small, small, 
+            * size - Either a relative value of xx-small, x-small, small,
               medium, large, x-large, xx-large or an absolute font size, e.g. 12
             * stretch - A numeric value in the range 0-1000 or one of
               ultra-condensed, extra-condensed, condensed, semi-condensed,

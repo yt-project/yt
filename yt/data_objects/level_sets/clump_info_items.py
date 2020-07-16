@@ -11,7 +11,7 @@ def add_clump_info(name, function):
 
 class ClumpInfoCallback:
     r"""
-    A ClumpInfoCallback is a function that takes a clump, computes a 
+    A ClumpInfoCallback is a function that takes a clump, computes a
     quantity, and returns a string to be printed out for writing clump info.
     """
 

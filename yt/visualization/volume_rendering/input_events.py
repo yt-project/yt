@@ -19,7 +19,7 @@ GLFWEvent = namedtuple(
 
 class EventCollection:
     """Class handling mouse and keyboard events occurring in IDV
-    
+
     Parameters
     ----------
     scene : :class:`yt.visualization.volume_rendering.interactive_vr.SceneGraph`
@@ -27,7 +27,7 @@ class EventCollection:
 
     camera : :class:`yt.visualization.volume_rendering.interactive_vr.IDVCamera`
         A current camera object used in the IDV
-    
+
     """
 
     def __init__(self, scene, camera):

@@ -14,7 +14,7 @@ from .color_maps import mcm
 
 
 def scale_image(image, mi=None, ma=None):
-    r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
+    r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled
     from [0,255].
 
     Parameters
@@ -183,7 +183,7 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
         An acceptable colormap.  See either yt.visualization.color_maps or
         https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
     func : function, optional
-        A function to transform the buffer before applying a colormap. 
+        A function to transform the buffer before applying a colormap.
 
     Returns
     -------
@@ -225,7 +225,7 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
         An acceptable colormap.  See either yt.visualization.color_maps or
         https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
     func : function, optional
-        A function to transform the buffer before applying a colormap. 
+        A function to transform the buffer before applying a colormap.
 
     Returns
     -------
@@ -347,10 +347,10 @@ def write_projection(
     xlabel=None,
     ylabel=None,
 ):
-    r"""Write a projection or volume rendering to disk with a variety of 
+    r"""Write a projection or volume rendering to disk with a variety of
     pretty parameters such as limits, title, colorbar, etc.  write_projection
     uses the standard matplotlib interface to create the figure.  N.B. This code
-    only works *after* you have created the projection using the standard 
+    only works *after* you have created the projection using the standard
     framework (i.e. the Camera interface or off_axis_projection).
 
     Accepts an NxM sized array representing the projection itself as well
@@ -359,9 +359,9 @@ def write_projection(
 
     Parameters
     ----------
-    data : array_like 
+    data : array_like
         image array as output by off_axis_projection or camera.snapshot()
-    filename : string 
+    filename : string
         the filename where the data will be saved
     colorbar : boolean
         do you want a colorbar generated to the right of the image?
@@ -370,7 +370,7 @@ def write_projection(
     title : string
         the label at the top of the figure
     limits : 2-element array_like
-        the lower limit and the upper limit to be plotted in the figure 
+        the lower limit and the upper limit to be plotted in the figure
         of the data array
     take_log : boolean
         plot the log of the data array (and take the log of the limits if set)?
@@ -385,9 +385,9 @@ def write_projection(
     --------
 
     >>> image = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
-    >>> write_projection(image, 'test.png', 
-                         colorbar_label="Column Density (cm$^{-2}$)", 
-                         title="Offaxis Projection", limits=(1e-5,1e-3), 
+    >>> write_projection(image, 'test.png',
+                         colorbar_label="Column Density (cm$^{-2}$)",
+                         title="Offaxis Projection", limits=(1e-5,1e-3),
                          take_log=True)
     """
     if cmap_name is None:
@@ -459,16 +459,16 @@ def write_projection(
 def display_in_notebook(image, max_val=None):
     """
     A helper function to display images in an IPython notebook
-    
+
     Must be run from within an IPython notebook, or else it will raise
     a YTNotInsideNotebook exception.
-        
+
     Parameters
     ----------
     image : array_like
         This is an (unscaled) array of floating point values, shape (N,N,3) or
         (N,N,4) to display in the notebook. The first three channels will be
-        scaled automatically.  
+        scaled automatically.
     max_val : float, optional
         The upper limit to clip values of the image.  Only applies to the first
         three channels.

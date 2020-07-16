@@ -600,7 +600,7 @@ class Dataset(metaclass=RegisteredDataset):
     def set_field_label_format(self, format_property, value):
         """
         Set format properties for how fields will be written
-        out. Accepts 
+        out. Accepts
 
         format_property : string indicating what property to set
         value: the value to set for that format_property

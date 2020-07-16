@@ -6,10 +6,10 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
     r"""Export a set of field arrays to a reloadable yt dataset.
 
-    This function can be used to create a yt loadable dataset from a 
-    set of arrays.  The field arrays can either be associated with a 
+    This function can be used to create a yt loadable dataset from a
+    set of arrays.  The field arrays can either be associated with a
     loaded dataset or, if not, a dictionary of dataset attributes can
-    be provided that will be used as metadata for the new dataset.  The 
+    be provided that will be used as metadata for the new dataset.  The
     resulting dataset can be reloaded as a yt dataset.
 
     Parameters
@@ -145,7 +145,7 @@ def _hdf5_yt_array(fh, field, ds=None):
 
     Reads in a dataset from an open hdf5 file or group and uses the
     "units" attribute, if it exists, to apply units.
-    
+
     Parameters
     ----------
     fh : an open hdf5 file or hdf5 group
@@ -159,7 +159,7 @@ def _hdf5_yt_array(fh, field, ds=None):
     Returns
     -------
     A YTArray of the requested field.
-    
+
     """
 
     if ds is None:
@@ -177,9 +177,9 @@ def _hdf5_yt_array(fh, field, ds=None):
 def _yt_array_hdf5(fh, field, data):
     r"""Save a YTArray to an open hdf5 file or group.
 
-    Save a YTArray to an open hdf5 file or group, and save the 
+    Save a YTArray to an open hdf5 file or group, and save the
     units to a "units" attribute.
-    
+
     Parameters
     ----------
     fh : an open hdf5 file or hdf5 group
@@ -193,7 +193,7 @@ def _yt_array_hdf5(fh, field, data):
     -------
     dataset : hdf5 dataset
         The created hdf5 dataset.
-    
+
     """
 
     dataset = fh.create_dataset(str(field), data=data)

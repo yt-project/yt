@@ -15,7 +15,7 @@ class _ConstantContainer:
     Parameters
     ----------
     registry : UnitRegistry instance
-        A unit registry to associate with units constants accessed on 
+        A unit registry to associate with units constants accessed on
         this object.
 
     Example

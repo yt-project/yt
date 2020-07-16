@@ -836,7 +836,7 @@ class DualEPS:
         plot : A yt plot
             yt plot from which the information is taken.
         cb_labels : list of labels for the colorbars. List should be the same
-                    size as the number of colorbars used. Should be passed 
+                    size as the number of colorbars used. Should be passed
                     into this function by either the singleplot or multiplot api.
 
         Examples
@@ -1230,7 +1230,7 @@ def multiplot(
     cb_flags : list of booleans
         Flags for each plot to have a colorbar or not.
     cb_location : list of strings
-        Strings to control the location of the colorbar (left, right, 
+        Strings to control the location of the colorbar (left, right,
         top, bottom)
     cb_labels : list of labels for the colorbars. List should be the same
                 size as the number of colorbars used.
@@ -1244,7 +1244,7 @@ def multiplot(
     >>> cbs.append(return_colormap("kelp", "HI Density", (0,5), False))
     >>> cbs.append(return_colormap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
     >>> cbs.append(return_colormap("Spectral", "Stuff$_x$!", (1,300), True))
-    >>> 
+    >>>
     >>> mp = multiplot(2,2, images=images, margins=(0.1,0.1),
     >>>                titles=["1","2","3","4"],
     >>>                xlabels=["one","two"], ylabels=None, colorbars=cbs,

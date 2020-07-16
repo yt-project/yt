@@ -441,7 +441,7 @@ def test_boolean_ray_region_no_overlap():
     r"""Test to make sure that boolean objects (ray, region, no overlap)
     behave the way we expect.
 
-    Test non-overlapping ray and region. This also checks that the original 
+    Test non-overlapping ray and region. This also checks that the original
     objects don't change as part of constructing the booleans.
     """
     ds = fake_amr_ds()
@@ -492,7 +492,7 @@ def test_boolean_ray_region_overlap():
     r"""Test to make sure that boolean objects (ray, region, overlap)
     behave the way we expect.
 
-    Test overlapping ray and region. This also checks that the original 
+    Test overlapping ray and region. This also checks that the original
     objects don't change as part of constructing the booleans.
     """
     ds = fake_amr_ds()
@@ -728,7 +728,7 @@ def test_boolean_ray_slice_no_overlap():
     r"""Test to make sure that boolean objects (ray, slice, no overlap)
     behave the way we expect.
 
-    Test non-overlapping ray and slice. This also checks that the original 
+    Test non-overlapping ray and slice. This also checks that the original
     regions don't change as part of constructing the booleans.
     """
     ds = fake_amr_ds()

@@ -13,7 +13,7 @@ def add_validator(name, function):
 
 class ClumpValidator:
     r"""
-    A ClumpValidator is a function that takes a clump and returns 
+    A ClumpValidator is a function that takes a clump and returns
     True or False as to whether the clump is valid and shall be kept.
     """
 

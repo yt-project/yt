@@ -326,7 +326,7 @@ class FixedResolutionBuffer:
         output.close()
 
     def to_fits_data(self, fields=None, other_keys=None, length_unit=None, **kwargs):
-        r"""Export the fields in this FixedResolutionBuffer instance 
+        r"""Export the fields in this FixedResolutionBuffer instance
         to a FITSImageData instance.
 
         This will export a set of FITS images of either the fields specified
@@ -335,7 +335,7 @@ class FixedResolutionBuffer:
         Parameters
         ----------
         fields : list of strings
-            These fields will be pixelized and output. If "None", the keys of 
+            These fields will be pixelized and output. If "None", the keys of
             the FRB will be used.
         other_keys : dictionary, optional
             A set of header keys and values to write into the FITS header.
@@ -465,16 +465,16 @@ class FixedResolutionBuffer:
     def save_as_dataset(self, filename=None, fields=None):
         r"""Export a fixed resolution buffer to a reloadable yt dataset.
 
-        This function will take a fixed resolution buffer and output a 
-        dataset containing either the fields presently existing or fields 
+        This function will take a fixed resolution buffer and output a
+        dataset containing either the fields presently existing or fields
         given in the ``fields`` list.  The resulting dataset can be
         reloaded as a yt dataset.
 
         Parameters
         ----------
         filename : str, optional
-            The name of the file to be written.  If None, the name 
-            will be a combination of the original dataset and the type 
+            The name of the file to be written.  If None, the name
+            will be a combination of the original dataset and the type
             of data container.
         fields : list of strings or tuples, optional
             If this is supplied, it is the list of fields to be saved to

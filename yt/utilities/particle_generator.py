@@ -13,7 +13,7 @@ class ParticleGenerator:
         really do anything except allocate memory. Takes a *ds* to serve as the
         basis for determining grids, the number of particles *num_particles*,
         a list of fields, *field_list*, and the particle type *ptype*, which
-        has a default value of "io". 
+        has a default value of "io".
         """
         self.ds = ds
         self.num_particles = num_particles
@@ -110,7 +110,7 @@ class ParticleGenerator:
     def _setup_particles(self, x, y, z, setup_fields=None):
         """
         Assigns grids to particles and sets up particle positions. *setup_fields* is
-        a dict of fields other than the particle positions to set up. 
+        a dict of fields other than the particle positions to set up.
         """
         particle_grids, particle_grid_inds = self.ds.index._find_points(x, y, z)
         idxs = np.argsort(particle_grid_inds)
@@ -181,8 +181,8 @@ class ParticleGenerator:
 
     def apply_to_stream(self, overwrite=False, **kwargs):
         """
-        Apply the particles to a grid-based stream dataset. If particles 
-        already exist, and overwrite=False, do not overwrite them, but add 
+        Apply the particles to a grid-based stream dataset. If particles
+        already exist, and overwrite=False, do not overwrite them, but add
         the new ones to them.
         """
         if "clobber" in kwargs:
@@ -285,13 +285,13 @@ class LatticeParticleGenerator(ParticleGenerator):
         ptype="io",
     ):
         r"""
-        Generate particles in a lattice arrangement. 
+        Generate particles in a lattice arrangement.
 
         Parameters
         ----------
         ds : `Dataset`
             The dataset which will serve as the base for these particles.
-        particles_dims : int, array-like 
+        particles_dims : int, array-like
             The number of particles along each dimension
         particles_left_edge : float, array-like
             The 'left-most' starting positions of the lattice.
@@ -373,7 +373,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
             A list of particle fields
         density_field : string, optional
             A density field which will serve as the distribution function for the
-            particle positions. Theoretically, this could be any 'per-volume' field. 
+            particle positions. Theoretically, this could be any 'per-volume' field.
         ptype : string, optional
             The particle type for these particle fields. Default: "io"
 

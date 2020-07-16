@@ -148,7 +148,7 @@ class IDVCamera:
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
         """Change camera orientation matrix using delta of mouse's cursor position
-        
+
         Parameters
         ----------
 
@@ -178,7 +178,7 @@ class IDVCamera:
 
         Parameters
         ----------
-        
+
         minval: float
             min color limit used for image scaling
         maxval: float
@@ -353,7 +353,7 @@ class BlockCollection(SceneComponent):
 
     def __init__(self, scale=False):
         """Class responsible for converting yt data objects into a set of 3D textures
-        
+
         Parameters
         ----------
 
@@ -570,9 +570,9 @@ class BlockCollection(SceneComponent):
 
 
 class ColorBarSceneComponent(SceneComponent):
-    """ 
+    """
 
-    A class for scene components that apply colorbars using a 1D texture. 
+    A class for scene components that apply colorbars using a 1D texture.
 
     """
 
@@ -680,9 +680,9 @@ class MeshSceneComponent(ColorBarSceneComponent):
 
     def get_mesh_data(self, data_source, field):
         """
-        
+
         This reads the mesh data into a form that can be fed in to OpenGL.
-        
+
         """
 
         # get mesh information

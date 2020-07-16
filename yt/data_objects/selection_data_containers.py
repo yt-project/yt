@@ -119,11 +119,11 @@ class YTOrthoRay(YTSelectionContainer1D):
     >>> oray = ds.ortho_ray(0, (0.2, 0.74))
     >>> print(oray["Density"])
 
-    Note: The low-level data representation for rays are not guaranteed to be 
-    spatially ordered.  In particular, with AMR datasets, higher resolution 
-    data is tagged on to the end of the ray.  If you want this data 
-    represented in a spatially ordered manner, manually sort it by the "t" 
-    field, which is the value of the parametric variable that goes from 0 at 
+    Note: The low-level data representation for rays are not guaranteed to be
+    spatially ordered.  In particular, with AMR datasets, higher resolution
+    data is tagged on to the end of the ray.  If you want this data
+    represented in a spatially ordered manner, manually sort it by the "t"
+    field, which is the value of the parametric variable that goes from 0 at
     the start of the ray to 1 at the end:
 
     >>> my_ray = ds.ortho_ray(...)
@@ -203,11 +203,11 @@ class YTRay(YTSelectionContainer1D):
     >>> ray = ds.ray((0.2, 0.74, 0.11), (0.4, 0.91, 0.31))
     >>> print(ray["Density"], ray["t"], ray["dts"])
 
-    Note: The low-level data representation for rays are not guaranteed to be 
-    spatially ordered.  In particular, with AMR datasets, higher resolution 
-    data is tagged on to the end of the ray.  If you want this data 
-    represented in a spatially ordered manner, manually sort it by the "t" 
-    field, which is the value of the parametric variable that goes from 0 at 
+    Note: The low-level data representation for rays are not guaranteed to be
+    spatially ordered.  In particular, with AMR datasets, higher resolution
+    data is tagged on to the end of the ray.  If you want this data
+    represented in a spatially ordered manner, manually sort it by the "t"
+    field, which is the value of the parametric variable that goes from 0 at
     the start of the ray to 1 at the end:
 
     >>> my_ray = ds.ray(...)
@@ -590,8 +590,8 @@ class YTCuttingPlane(YTSelectionContainer2D):
         variable-resolution 2D object and transforms it into an NxM bitmap that
         can be plotted, examined or processed.  This is a convenience function
         to return an FRB directly from an existing 2D data object.  Unlike the
-        corresponding to_frb function for other YTSelectionContainer2D objects, 
-        this does not accept a 'center' parameter as it is assumed to be 
+        corresponding to_frb function for other YTSelectionContainer2D objects,
+        this does not accept a 'center' parameter as it is assumed to be
         centered at the center of the cutting plane.
 
         Parameters
@@ -651,12 +651,12 @@ class YTDisk(YTSelectionContainer3D):
     center : array_like
         coordinate to which the normal, radius, and height all reference
     normal : array_like
-        the normal vector defining the direction of lengthwise part of the 
+        the normal vector defining the direction of lengthwise part of the
         cylinder
     radius : float
         the radius of the cylinder
     height : float
-        the distance from the midplane of the cylinder to the top and 
+        the distance from the midplane of the cylinder to the top and
         bottom planes
     fields : array of fields, optional
         any fields to be pre-loaded in the cylinder object
@@ -983,7 +983,7 @@ class YTEllipsoid(YTSelectionContainer3D):
         t2 = np.arctan(-r1[2] / r1[0])
         """
         calculate the original e1
-        given the tilt about the x axis when e0 was aligned 
+        given the tilt about the x axis when e0 was aligned
         to x after t1, t2 rotations about z, y
         """
         RX = get_rotation_matrix(-tilt, (1, 0, 0)).transpose()

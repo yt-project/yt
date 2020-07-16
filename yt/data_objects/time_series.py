@@ -266,7 +266,7 @@ class DatasetSeries:
         >>> for ds in ts.piter():
         ...    SlicePlot(ds, "x", "Density").save()
         ...
-        
+
         This demonstrates how one might store results:
 
         >>> def print_time(ds):

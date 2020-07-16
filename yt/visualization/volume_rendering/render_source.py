@@ -1246,9 +1246,9 @@ class CoordinateVectorSource(OpaqueSource):
     Parameters
     ----------
     colors: array-like of shape (3,4), optional
-        The RGBA values to use to draw the x, y, and z vectors. The default is 
+        The RGBA values to use to draw the x, y, and z vectors. The default is
         [[1, 0, 0, alpha], [0, 1, 0, alpha], [0, 0, 1, alpha]]  where ``alpha``
-        is set by the parameter below. If ``colors`` is set then ``alpha`` is 
+        is set by the parameter below. If ``colors`` is set then ``alpha`` is
         ignored.
     alpha : float, optional
         The opacity of the vectors.

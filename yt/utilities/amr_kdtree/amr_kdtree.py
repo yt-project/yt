@@ -160,7 +160,7 @@ class Tree:
 
 
 class AMRKDTree(ParallelAnalysisInterface):
-    r"""A KDTree for AMR data. 
+    r"""A KDTree for AMR data.
 
     Not applicable to particle or octree-based datasets.
 

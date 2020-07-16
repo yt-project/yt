@@ -99,7 +99,7 @@ class EGLRenderingContext:
 
 class RenderingContext:
     """Basic rendering context for IDV using GLFW3, that handles the main window even loop
-    
+
     Parameters
     ----------
     width : int, optional
@@ -111,8 +111,8 @@ class RenderingContext:
         performance reasons it is recommended to use values that are natural
         powers of 2.
     title : str, optional
-        The title of the Interactive Data Visualization window. 
-    
+        The title of the Interactive Data Visualization window.
+
     """
 
     should_quit = False

@@ -11,7 +11,7 @@ def _render_opengl(
     data_source, field=None, window_size=None, cam_position=None, cam_focus=None
 ):
     """High level wrapper for Interactive Data Visualization
-    
+
     Parameters
     ----------
     data_source : :class:`yt.data_objects.data_containers.AMR3DData`,

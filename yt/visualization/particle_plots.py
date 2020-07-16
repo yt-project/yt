@@ -90,7 +90,7 @@ class ParticleProjectionPlot(PWViewerMPL):
          An int corresponding to the axis to slice along (0=x, 1=y, 2=z)
          or the axis name itself
     fields : string, list or None
-         If a string or list, the name of the particle field(s) to be used 
+         If a string or list, the name of the particle field(s) to be used
          one the colorbar. The color shown will correspond to the sum of the
          given field along the line of sight. If None, the particle positions
          will be indicated using a fixed color, instead. Default is None.
@@ -287,14 +287,14 @@ class ParticlePhasePlot(PhasePlot):
     a `yt.data_objects.profiles.ParticleProfile` object.
 
     Given a data object (all_data, region, sphere, etc.), an x field,
-    y field, and z field (or fields), this will create a particle plot 
+    y field, and z field (or fields), this will create a particle plot
     by depositing the particles onto a two-dimensional mesh, using either
     nearest grid point or cloud-in-cell deposition.
 
     Parameters
     ----------
     data_source : YTSelectionContainer Object
-        The data object to be profiled, such as all_data, region, or 
+        The data object to be profiled, such as all_data, region, or
         sphere.
     x_field : str
         The x field for the mesh.
@@ -472,7 +472,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
     depth : A tuple or a float
          A tuple containing the depth to project through and the string
          key of the unit: (width, 'unit').  If set to a float, code units
-         are assumed. Defaults to the entire domain. This argument is only 
+         are assumed. Defaults to the entire domain. This argument is only
          accepted by ``ParticleProjectionPlot``.
     axes_unit : A string
          The name of the unit for the tick labels on the x and y axes.
@@ -510,10 +510,10 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
          This argument is only accepted by ``ParticleProjectionPlot``.
     window_size : float
          The size of the window on the longest axis (in units of inches),
-         including the margins but not the colorbar. This argument is only 
+         including the margins but not the colorbar. This argument is only
          accepted by ``ParticleProjectionPlot``.
     aspect : float
-         The aspect ratio of the plot.  Set to None for 1. This argument is 
+         The aspect ratio of the plot.  Set to None for 1. This argument is
          only accepted by ``ParticleProjectionPlot``.
     x_bins : int
         The number of bins in x field for the mesh. Defaults to 800. This
@@ -522,7 +522,7 @@ def ParticlePlot(ds, x_field, y_field, z_fields=None, color="b", *args, **kwargs
         The number of bins in y field for the mesh. Defaults to 800. This
         argument is only accepted by ``ParticlePhasePlot``.
     deposition : str
-        Either 'ngp' or 'cic'. Controls what type of interpolation will be 
+        Either 'ngp' or 'cic'. Controls what type of interpolation will be
         used to deposit the particle z_fields onto the mesh. Defaults to 'ngp'.
         This argument is only accepted by ``ParticlePhasePlot``.
     figure_size : int

@@ -341,7 +341,7 @@ class ParticleIndex(Index):
     def _initialize_frontend_specific(self):
         """This is for frontend-specific initialization code
 
-        If there are frontend-specific things that need to be set while 
+        If there are frontend-specific things that need to be set while
         creating the index, this function forces these operations to happen
         in cases where we are reloading the index from a sidecar file.
         """

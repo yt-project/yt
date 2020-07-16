@@ -259,7 +259,7 @@ class MultiVariateTransferFunction:
     grey_opacity : bool
         Should opacity be calculated on a channel-by-channel basis, or
         overall?  Useful for opaque renderings. Default: False
- 
+
     """
 
     def __init__(self, grey_opacity=False):

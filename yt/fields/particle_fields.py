@@ -446,7 +446,7 @@ def standard_particle_fields(
     def _relative_particle_velocity(field, data):
         """The vector particle velocities in an arbitrary coordinate system
 
-        Relative to the coordinate system defined by the *bulk_velocity* 
+        Relative to the coordinate system defined by the *bulk_velocity*
         vector field parameter.
 
         Note that the orientation of the x and y axes are arbitrary.

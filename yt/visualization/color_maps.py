@@ -532,17 +532,17 @@ def _extract_lookup_table(cmap_name):
 def show_colormaps(subset="all", filename=None):
     """
     Displays the colormaps available to yt.  Note, most functions can use
-    both the matplotlib and the native yt colormaps; however, there are 
+    both the matplotlib and the native yt colormaps; however, there are
     some special functions existing within image_writer.py (e.g. write_image()
     write_bitmap(), etc.), which cannot access the matplotlib
     colormaps.
 
-    In addition to the colormaps listed, one can access the reverse of each 
+    In addition to the colormaps listed, one can access the reverse of each
     colormap by appending a "_r" to any map.
 
     If you wish to only see certain colormaps, include them in the cmap_list
     attribute.
-    
+
     Parameters
     ----------
 
@@ -551,12 +551,12 @@ def show_colormaps(subset="all", filename=None):
         valid values : "all", "yt_native", or list of cmap names
         default : "all"
 
-        As mentioned above, a few functions can only access yt_native 
+        As mentioned above, a few functions can only access yt_native
         colormaps.  To display only the yt_native colormaps, set this
-        to "yt_native".  
+        to "yt_native".
 
         If you wish to only see a few colormaps side by side, you can
-        include them as a list of colormap names.  
+        include them as a list of colormap names.
         Example: ['algae', 'gist_stern', 'kamae', 'spectral']
 
     filename : string, opt
@@ -611,12 +611,12 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
     """
     This generates a custom colormap based on the colors and spacings you
     provide.  Enter a ctuple_list, which consists of tuples of (color, spacing)
-    to return a colormap appropriate for use in yt.  If you specify a 
+    to return a colormap appropriate for use in yt.  If you specify a
     name, it will automatically be added to the current session as a valid
     colormap.
-    
-    Output colormap is in the format yt expects for adding a colormap to the 
-    current session: a dictionary with the appropriate RGB channels each 
+
+    Output colormap is in the format yt expects for adding a colormap to the
+    current session: a dictionary with the appropriate RGB channels each
     consisting of a 256x3 array :
     First number is the number at which we are defining a color breakpoint
     Second number is the (0..1) number to interpolate to when coming *from below*
@@ -638,13 +638,13 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
         the total of all the intervals will be scaled to the 256 output
         elements.
 
-        If a ctuple_list ends with a color and a non-zero interval, 
-        a white 0-interval would be added to the end to finish the 
-        interpolation.  To avoid finishing with white, specify your own 
+        If a ctuple_list ends with a color and a non-zero interval,
+        a white 0-interval would be added to the end to finish the
+        interpolation.  To avoid finishing with white, specify your own
         zero-interval color at the end.
 
     name: string, optional
-        If you wish this colormap to be added as a valid colormap to the 
+        If you wish this colormap to be added as a valid colormap to the
         current session, specify a name here.  Default: None
 
     interpolation: boolean, optional
@@ -675,10 +675,10 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
     Examples
     --------
 
-    To obtain a colormap that starts at black with equal intervals in green, 
-    blue, red, yellow in that order and interpolation between those colors.  
-    (In reality, it starts at black, takes an interval of 10 to interpolate to 
-    green, then an interval of 10 to interpolate to blue, then an interval of 
+    To obtain a colormap that starts at black with equal intervals in green,
+    blue, red, yellow in that order and interpolation between those colors.
+    (In reality, it starts at black, takes an interval of 10 to interpolate to
+    green, then an interval of 10 to interpolate to blue, then an interval of
     10 to interpolate to red.)
 
     >>> cm = make_colormap([('black', 10), ('green', 10), ('blue', 10),
@@ -691,10 +691,10 @@ def make_colormap(ctuple_list, name=None, interpolate=True):
     ...                ('green', 10), ('blue', 10)], name="steps",
     ...               interpolate=False)
 
-    To add a colormap that looks like the French flag (i.e. equal bands of 
+    To add a colormap that looks like the French flag (i.e. equal bands of
     blue, white, and red) using your own RGB keys, then to display it:
 
-    >>> make_colormap([([0,0,1], 10), ([1,1,1], 10), ([1,0,0], 10)], 
+    >>> make_colormap([([0,0,1], 10), ([1,1,1], 10), ([1,0,0], 10)],
     ...               name='french_flag', interpolate=False)
     >>> show_colormaps(['french_flag'])
 

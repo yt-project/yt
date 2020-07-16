@@ -28,7 +28,7 @@ def stats_run(
             periodic. Defaults to False.
         overwrite (bool, optional): If True, the existing file for this
             set of input parameters if overwritten. Defaults to False.
-        suppress_final_output (bool, optional): If True, the final output 
+        suppress_final_output (bool, optional): If True, the final output
             from spawned MPI processes is suppressed. This is mainly for
             timing purposes. Defaults to False.
         display (bool, optional): If True, display the profile results.
@@ -74,7 +74,7 @@ def time_run(
             periodic. Defaults to False.
         leafsize (int, optional): The maximum number of points that should be
             in any leaf in the tree. Defaults to 10.
-        suppress_final_output (bool, optional): If True, the final output 
+        suppress_final_output (bool, optional): If True, the final output
             from spawned MPI processes is suppressed. This is mainly for
             timing purposes. Defaults to False.
 
@@ -115,7 +115,7 @@ def strong_scaling(
             in any leaf in the tree. Defaults to 10.
         overwrite (bool, optional): If True, the existing file for this
             set of input parameters if overwritten. Defaults to False.
-        suppress_final_output (bool, optional): If True, the final output 
+        suppress_final_output (bool, optional): If True, the final output
             from spawned MPI processes is suppressed. This is mainly for
             timing purposes. Defaults to False.
 
@@ -188,7 +188,7 @@ def weak_scaling(
             in any leaf in the tree. Defaults to 10.
         overwrite (bool, optional): If True, the existing file for this
             set of input parameters if overwritten. Defaults to False.
-        suppress_final_output (bool, optional): If True, the final output 
+        suppress_final_output (bool, optional): If True, the final output
             from spawned MPI processes is suppressed. This is mainly for
             timing purposes. Defaults to False.
 

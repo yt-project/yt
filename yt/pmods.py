@@ -101,7 +101,7 @@ consider this::
         if mpi.rank == 0:
             bar = someFunction()
         bar = mpi.bcast(bar,root=0)
-    
+
     def someFunction():
         import os
         return os.name
@@ -186,7 +186,7 @@ Some implementation details
   process reached the end of the context manager. This was somewhat
   faster than the current implementation, but was prone to deadlock
   when loading modules containing MPI synchronization points.
-  
+
 * The ``level`` parameter to the import hook is not handled correctly; we
   treat it as if it were -1 (try relative and absolute imports). For
   more information about the level parameter, run ``help(__import__)``.

@@ -65,9 +65,9 @@ class XrayEmissivityIntegrator:
     table_type : string
         The type of data to use when computing the emissivity values. If "cloudy",
         a file called "cloudy_emissivity.h5" is used, for photoionized
-        plasmas. If, "apec", a file called "apec_emissivity.h5" is used for 
-        collisionally ionized plasmas. These files contain emissivity tables 
-        for primordial elements and for metals at solar metallicity for the 
+        plasmas. If, "apec", a file called "apec_emissivity.h5" is used for
+        collisionally ionized plasmas. These files contain emissivity tables
+        for primordial elements and for metals at solar metallicity for the
         energy range 0.1 to 100 keV.
     redshift : float, optional
         The cosmological redshift of the source of the field. Default: 0.0.
@@ -171,10 +171,10 @@ def add_xray_emissivity_field(
     metallicity : str or tuple of str or float, optional
         Either the name of a metallicity field or a single floating-point
         number specifying a spatially constant metallicity. Must be in
-        solar units. If set to None, no metals will be assumed. Default: 
+        solar units. If set to None, no metals will be assumed. Default:
         ("gas", "metallicity")
     table_type : string, optional
-        The type of emissivity table to be used when creating the fields. 
+        The type of emissivity table to be used when creating the fields.
         Options are "cloudy" or "apec". Default: "cloudy"
     data_dir : string, optional
         The location to look for the data table in. If not supplied, the file

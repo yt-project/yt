@@ -57,9 +57,9 @@ class FITSImageData:
 
         FITSImageData contains a collection of FITS ImageHDU instances and
         WCS information, along with units for each of the images. FITSImageData
-        instances can be constructed from ImageArrays, NumPy arrays, dicts 
-        of such arrays, FixedResolutionBuffers, and YTCoveringGrids. The latter 
-        two are the most powerful because WCS information can be constructed 
+        instances can be constructed from ImageArrays, NumPy arrays, dicts
+        of such arrays, FixedResolutionBuffers, and YTCoveringGrids. The latter
+        two are the most powerful because WCS information can be constructed
         automatically from their coordinates.
 
         Parameters
@@ -72,16 +72,16 @@ class FITSImageData:
             keys, it will use these for the fields. If *data* is just a
             single array one field name must be specified.
         length_unit : string
-            The units of the WCS coordinates and the length unit of the file. 
+            The units of the WCS coordinates and the length unit of the file.
             Defaults to the length unit of the dataset, if there is one, or
             "cm" if there is not.
         width : float or YTQuantity
             The width of the image. Either a single value or iterable of values.
-            If a float, assumed to be in *units*. Only used if this information 
+            If a float, assumed to be in *units*. Only used if this information
             is not already provided by *data*.
         img_ctr : array_like or YTArray
-            The center coordinates of the image. If a list or NumPy array, 
-            it is assumed to be in *units*. Only used if this information 
+            The center coordinates of the image. If a list or NumPy array,
+            it is assumed to be in *units*. Only used if this information
             is not already provided by *data*.
         wcs : `~astropy.wcs.WCS` instance, optional
             Supply an AstroPy WCS instance. Will override automatic WCS
@@ -101,7 +101,7 @@ class FITSImageData:
         ds : `~yt.static_output.Dataset` instance, optional
             The dataset associated with the image(s), typically used
             to transfer metadata to the header(s). Does not need to be
-            specified if *data* has a dataset as an attribute. 
+            specified if *data* has a dataset as an attribute.
 
         Examples
         --------
@@ -452,7 +452,7 @@ class FITSImageData:
         old_name : string
             The old name of the image.
         new_name : string
-            The new name of the image. 
+            The new name of the image.
         """
         idx = self.fields.index(old_name)
         self.hdulist[idx].name = new_name
@@ -473,9 +473,9 @@ class FITSImageData:
         ----------
         field : string
             The name of the field to convolve.
-        kernel : float, YTQuantity, (value, unit) tuple, or AstroPy Kernel object 
+        kernel : float, YTQuantity, (value, unit) tuple, or AstroPy Kernel object
             The kernel to convolve the image with. If this is an AstroPy Kernel
-            object, the image will be convolved with it. Otherwise, it is 
+            object, the image will be convolved with it. Otherwise, it is
             assumed that the kernel is a Gaussian and that this value is
             the standard deviation. If a float, it is assumed that the units
             are pixels, but a (value, unit) tuple or YTQuantity can be supplied
@@ -507,7 +507,7 @@ class FITSImageData:
     def update_header(self, field, key, value):
         """
         Update the FITS header for *field* with a
-        *key*, *value* pair. If *field* == "all", all 
+        *key*, *value* pair. If *field* == "all", all
         headers will be updated.
         """
         if field == "all":
@@ -594,12 +594,12 @@ class FITSImageData:
     @parallel_root_only
     def writeto(self, fileobj, fields=None, overwrite=False, **kwargs):
         r"""
-        Write all of the fields or a subset of them to a FITS file. 
+        Write all of the fields or a subset of them to a FITS file.
 
         Parameters
         ----------
         fileobj : string
-            The name of the file to write to. 
+            The name of the file to write to.
         fields : list of strings, optional
             The fields to write to the file. If not specified
             all of the fields in the buffer will be written.
@@ -629,8 +629,8 @@ class FITSImageData:
     def to_glue(self, label="yt", data_collection=None):
         """
         Takes the data in the FITSImageData instance and exports it to
-        Glue (http://glueviz.org) for interactive analysis. Optionally 
-        add a *label*. If you are already within the Glue environment, you 
+        Glue (http://glueviz.org) for interactive analysis. Optionally
+        add a *label*. If you are already within the Glue environment, you
         can pass a *data_collection* object, otherwise Glue will be started.
         """
         from glue.core import DataCollection, Data
@@ -655,7 +655,7 @@ class FITSImageData:
     def to_aplpy(self, **kwargs):
         """
         Use APLpy (http://aplpy.github.io) for plotting. Returns an
-        `aplpy.FITSFigure` instance. All keyword arguments are passed 
+        `aplpy.FITSFigure` instance. All keyword arguments are passed
         to the `aplpy.FITSFigure` constructor.
         """
         import aplpy
@@ -684,7 +684,7 @@ class FITSImageData:
     def pop(self, key):
         """
         Remove a field with name *key*
-        and return it as a new FITSImageData 
+        and return it as a new FITSImageData
         instance.
         """
         if key not in self.keys():
@@ -701,7 +701,7 @@ class FITSImageData:
     @classmethod
     def from_file(cls, filename):
         """
-        Generate a FITSImageData instance from one previously written to 
+        Generate a FITSImageData instance from one previously written to
         disk.
 
         Parameters
@@ -715,7 +715,7 @@ class FITSImageData:
     @classmethod
     def from_images(cls, image_list):
         """
-        Generate a new FITSImageData instance from a list of FITSImageData 
+        Generate a new FITSImageData instance from a list of FITSImageData
         instances.
 
         Parameters
@@ -765,7 +765,7 @@ class FITSImageData:
             e.g. (3.0, "arcsec/kpc")
         ctype : list of strings, optional
             The type of the coordinate system to create. Default:
-            A "tangential" projection. 
+            A "tangential" projection.
         crota : 2-element ndarray, optional
             Rotation angles between cartesian coordinates and
             the celestial coordinates.
@@ -776,8 +776,8 @@ class FITSImageData:
         wcsname : string, optional
             The name of the WCS to be stored in the FITS header.
         replace_old_wcs : boolean, optional
-            Whether or not to overwrite the default WCS of the 
-            FITSImageData instance. If false, a second WCS will 
+            Whether or not to overwrite the default WCS of the
+            FITSImageData instance. If false, a second WCS will
             be added to the header. Default: True.
         """
         if ctype is None:
@@ -937,13 +937,13 @@ class FITSSlice(FITSImageData):
         individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
         The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set 
+        left blank, the plot is centered on the middle of the domain. If set
         to 'max' or 'm', the center will be located at the maximum of the
         ('gas', 'density') field. Centering on the max or min of a specific
         field is supported by providing a tuple such as ("min","temperature")
         or ("max","dark_matter_density"). Units can be specified by passing in
         *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code 
+        passing in a YTArray. If a list or unitless array is supplied, code
         units are assumed.
     width : tuple or a float.
         Width can have four different formats to support variable
@@ -1008,13 +1008,13 @@ class FITSProjection(FITSImageData):
         individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
         The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set 
+        left blank, the plot is centered on the middle of the domain. If set
         to 'max' or 'm', the center will be located at the maximum of the
         ('gas', 'density') field. Centering on the max or min of a specific
         field is supported by providing a tuple such as ("min","temperature")
         or ("max","dark_matter_density"). Units can be specified by passing in
         *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code 
+        passing in a YTArray. If a list or unitless array is supplied, code
         units are assumed.
     width : tuple or a float.
         Width can have four different formats to support variable
@@ -1084,13 +1084,13 @@ class FITSOffAxisSlice(FITSImageData):
         individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
         The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set 
+        left blank, the plot is centered on the middle of the domain. If set
         to 'max' or 'm', the center will be located at the maximum of the
         ('gas', 'density') field. Centering on the max or min of a specific
         field is supported by providing a tuple such as ("min","temperature")
         or ("max","dark_matter_density"). Units can be specified by passing in
         *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code 
+        passing in a YTArray. If a list or unitless array is supplied, code
         units are assumed.
     width : tuple or a float.
         Width can have four different formats to support variable
@@ -1162,13 +1162,13 @@ class FITSOffAxisProjection(FITSImageData):
         individual axes. Default: 512
     center : A sequence of floats, a string, or a tuple.
         The coordinate of the center of the image. If set to 'c', 'center' or
-        left blank, the plot is centered on the middle of the domain. If set 
+        left blank, the plot is centered on the middle of the domain. If set
         to 'max' or 'm', the center will be located at the maximum of the
         ('gas', 'density') field. Centering on the max or min of a specific
         field is supported by providing a tuple such as ("min","temperature")
         or ("max","dark_matter_density"). Units can be specified by passing in
         *center* as a tuple containing a coordinate and string unit name or by
-        passing in a YTArray. If a list or unitless array is supplied, code 
+        passing in a YTArray. If a list or unitless array is supplied, code
         units are assumed.
     width : tuple or a float.
         Width can have four different formats to support variable
@@ -1214,7 +1214,7 @@ class FITSOffAxisProjection(FITSImageData):
         This should only be used for uniform resolution grid datasets, as other
         datasets may result in unphysical images.
     data_source : yt.data_objects.data_containers.YTSelectionContainer, optional
-        If specified, this will be the data source used for selecting regions 
+        If specified, this will be the data source used for selecting regions
         to project.
     length_unit : string, optional
         the length units that the coordinates are written in. The default

@@ -16,7 +16,7 @@ class ZBuffer:
     z: MxN image
         The z depth of each pixel in the image. The shape of the image must be
         the same as each RGBA channel in the original image.
-    
+
     Examples
     --------
     >>> import numpy as np

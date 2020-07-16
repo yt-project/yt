@@ -97,7 +97,7 @@ class Clump(TreeContainer):
 
     def add_validator(self, validator, *args, **kwargs):
         """
-        Add a validating function to determine whether the clump should 
+        Add a validating function to determine whether the clump should
         be kept.
         """
         callback = clump_validator_registry.find(validator, *args, **kwargs)
@@ -135,7 +135,7 @@ class Clump(TreeContainer):
 
     def clear_clump_info(self):
         """
-        Clears the clump_info array and passes the instruction to its 
+        Clears the clump_info array and passes the instruction to its
         children.
         """
 
@@ -372,7 +372,7 @@ class Clump(TreeContainer):
 
     def pass_down(self, operation):
         """
-        Performs an operation on a clump with an exec and passes the 
+        Performs an operation on a clump with an exec and passes the
         instruction down to clump children.
         """
 

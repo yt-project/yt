@@ -302,7 +302,7 @@ class PerspectiveLens(Lens):
 class StereoPerspectiveLens(Lens):
     """A lens that includes two sources for perspective rays, for 3D viewing
 
-    The degree of differences between the left and right images is controlled by 
+    The degree of differences between the left and right images is controlled by
     the disparity (the maximum distance between corresponding points in the left
     and right images). By default, the disparity is set to be 3 pixels.
     """

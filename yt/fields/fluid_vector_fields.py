@@ -459,8 +459,8 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
 
     def _shear_criterion(field, data):
         """
-        Divide by c_s to leave shear in units of length**-1, which 
-        can be compared against the inverse of the local cell size (1/dx) 
+        Divide by c_s to leave shear in units of length**-1, which
+        can be compared against the inverse of the local cell size (1/dx)
         to determine if refinement should occur.
         """
         return data[ftype, "shear"] / data[ftype, "sound_speed"]
@@ -485,10 +485,10 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
 
     def _shear_mach(field, data):
         """
-        Dimensionless shear (shear_mach) is defined nearly the same as shear, 
+        Dimensionless shear (shear_mach) is defined nearly the same as shear,
         except that it is scaled by the local dx/dy/dz and the local sound speed.
-        So it results in a unitless quantity that is effectively measuring 
-        shear in mach number.  
+        So it results in a unitless quantity that is effectively measuring
+        shear in mach number.
 
         In order to avoid discontinuities created by multiplying by dx/dy/dz at
         grid refinement boundaries, we also multiply by 2**GridLevel.

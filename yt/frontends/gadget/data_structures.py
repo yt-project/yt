@@ -34,7 +34,7 @@ def _byte_swap_32(x):
 
 class GadgetBinaryHeader:
     """A convenient interface to Gadget binary header.
-    
+
     This is a helper class to facilitate the main dataset and IO classes.
     The main usage is through the GadgetDataset._header attribute. It is also
     used stand-alone in GadgetDataset._is_valid method.
@@ -78,7 +78,7 @@ class GadgetBinaryHeader:
     @property
     def gadget_format(self):
         """Determine Gadget snapshot format and endianness.
-        
+
         The difference between Gadget snapshot format 1 and 2 can be told from
         the first 4 bytes of the file. For format 1, it's the header size. For
         format 2, it's always 8.

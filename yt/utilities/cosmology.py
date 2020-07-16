@@ -17,7 +17,7 @@ class Cosmology:
     r"""
     Create a cosmology calculator to compute cosmological distances and times.
 
-    For an explanation of the various cosmological measures, see, for example 
+    For an explanation of the various cosmological measures, see, for example
     Hogg (1999, https://arxiv.org/abs/astro-ph/9905116).
 
     WARNING: Cosmological distance calculations return values that are either
@@ -32,15 +32,15 @@ class Cosmology:
     hubble_constant : float
         The Hubble parameter at redshift zero in units of 100 km/s/Mpc.
         Default: 0.71.
-    omega_matter : the fraction of the energy density of the Universe in 
+    omega_matter : the fraction of the energy density of the Universe in
         matter at redshift zero.
         Default: 0.27.
-    omega_lambda : the fraction of the energy density of the Universe in 
+    omega_lambda : the fraction of the energy density of the Universe in
         a cosmological constant.
         Default: 0.73.
     omega_radiation : the fraction of the energy density of the Universe in
         relativistic matter at redshift zero.
-    omega_curvature : the fraction of the energy density of the Universe in 
+    omega_curvature : the fraction of the energy density of the Universe in
         curvature.
         Default: 0.0.
     unit_system : :class:`yt.units.unit_systems.UnitSystem`, optional
@@ -56,7 +56,7 @@ class Cosmology:
         Cosmological constant case corresponds to w_0 = -1.
     w_a : float, optional
         See w_0. w_a is the derivative of w(a) evaluated at a = 1. Cosmological
-        constant case corresponds to w_a = 0. Default is None. 
+        constant case corresponds to w_a = 0. Default is None.
 
     Examples
     --------
@@ -110,7 +110,7 @@ class Cosmology:
 
     def hubble_distance(self):
         r"""
-        The distance corresponding to c / h, where c is the speed of light 
+        The distance corresponding to c / h, where c is the speed of light
         and h is the Hubble parameter in units of 1 / time.
         """
         return self.quan(speed_of_light_cgs / self.hubble_constant).in_base(
@@ -119,7 +119,7 @@ class Cosmology:
 
     def comoving_radial_distance(self, z_i, z_f):
         r"""
-        The comoving distance along the line of sight to on object at redshift, 
+        The comoving distance along the line of sight to on object at redshift,
         z_f, viewed at a redshift, z_i.
 
         Parameters
@@ -135,7 +135,7 @@ class Cosmology:
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
         >>> print(co.comoving_radial_distance(0., 1.).in_units("Mpccm"))
-        
+
         """
         return (
             self.hubble_distance() * trapzint(self.inverse_expansion_factor, z_i, z_f)
@@ -143,8 +143,8 @@ class Cosmology:
 
     def comoving_transverse_distance(self, z_i, z_f):
         r"""
-        When multiplied by some angle, the distance between two objects 
-        observed at redshift, z_f, with an angular separation given by that 
+        When multiplied by some angle, the distance between two objects
+        observed at redshift, z_f, with an angular separation given by that
         angle, viewed by an observer at redshift, z_i (Hogg 1999).
 
         Parameters
@@ -160,7 +160,7 @@ class Cosmology:
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
         >>> print(co.comoving_transverse_distance(0., 1.).in_units("Mpccm"))
-        
+
         """
         if self.omega_curvature > 0:
             return (
@@ -187,10 +187,10 @@ class Cosmology:
 
     def comoving_volume(self, z_i, z_f):
         r"""
-        "The comoving volume is the volume measure in which number densities 
-        of non-evolving objects locked into Hubble flow are constant with 
+        "The comoving volume is the volume measure in which number densities
+        of non-evolving objects locked into Hubble flow are constant with
         redshift." -- Hogg (1999)
-        
+
         Parameters
         ----------
         z_i : float
@@ -263,7 +263,7 @@ class Cosmology:
 
     def angular_diameter_distance(self, z_i, z_f):
         r"""
-        Following Hogg (1999), the angular diameter distance is 'the ratio of 
+        Following Hogg (1999), the angular diameter distance is 'the ratio of
         an object's physical transverse size to its angular size in radians.'
 
         Parameters
@@ -279,7 +279,7 @@ class Cosmology:
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
         >>> print(co.angular_diameter_distance(0., 1.).in_units("Mpc"))
-        
+
         """
 
         return (
@@ -289,7 +289,7 @@ class Cosmology:
 
     def angular_scale(self, z_i, z_f):
         r"""
-        The proper transverse distance between two points at redshift z_f 
+        The proper transverse distance between two points at redshift z_f
         observed at redshift z_i per unit of angular separation.
 
         Parameters
@@ -305,7 +305,7 @@ class Cosmology:
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
         >>> print(co.angular_scale(0., 1.).in_units("kpc / arcsec"))
-        
+
         """
 
         scale = self.angular_diameter_distance(z_i, z_f) / self.quan(1, "radian")
@@ -313,7 +313,7 @@ class Cosmology:
 
     def luminosity_distance(self, z_i, z_f):
         r"""
-        The distance that would be inferred from the inverse-square law of 
+        The distance that would be inferred from the inverse-square law of
         light and the measured flux and luminosity of the observed object.
 
         Parameters
@@ -329,7 +329,7 @@ class Cosmology:
         >>> from yt.utilities.cosmology import Cosmology
         >>> co = Cosmology()
         >>> print(co.luminosity_distance(0., 1.).in_units("Mpc"))
-        
+
         """
 
         return (
@@ -339,7 +339,7 @@ class Cosmology:
 
     def lookback_time(self, z_i, z_f):
         r"""
-        The difference in the age of the Universe between the redshift interval 
+        The difference in the age of the Universe between the redshift interval
         z_i to z_f.
 
         Parameters
@@ -401,7 +401,7 @@ class Cosmology:
 
     def critical_density(self, z):
         r"""
-        The density required for closure of the Universe at a given 
+        The density required for closure of the Universe at a given
         redshift in the proper frame.
 
         Parameters
@@ -416,7 +416,7 @@ class Cosmology:
         >>> co = Cosmology()
         >>> print(co.critical_density(0.).in_units("g/cm**3"))
         >>> print(co.critical_density(0).in_units("Msun/Mpc**3"))
-        
+
         """
         return (3.0 * self.hubble_parameter(z) ** 2 / 8.0 / np.pi / G).in_base(
             self.unit_system
@@ -446,12 +446,12 @@ class Cosmology:
 
     def expansion_factor(self, z):
         r"""
-        The ratio between the Hubble parameter at a given redshift and 
+        The ratio between the Hubble parameter at a given redshift and
         redshift zero.
 
-        This is also the primary function integrated to calculate the 
+        This is also the primary function integrated to calculate the
         cosmological distances.
-        
+
         """
 
         # Use non-standard dark energy

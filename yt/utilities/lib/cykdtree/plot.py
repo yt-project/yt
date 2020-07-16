@@ -35,7 +35,7 @@ def _plot2D_root(
         box_kw (:obj:`dict`, optional): Keywords passed directly to
             :class:`matplotlib.collections.LineCollection` for drawing the
             leaf boxes. Defaults to empty dict.
-        
+
         axs (:obj:`matplotlib.pyplot.Axes`, optional): Axes that should be used
             for plotting. Defaults to None and new axes are created.
         subplot_kw (:obj:`dict`, optional): Keywords passed directly to

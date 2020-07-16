@@ -136,10 +136,10 @@ class Camera(ParallelAnalysisInterface):
     >>> tf = vr.ColorTransferFunction((mi-2, ma+2))
     # Sample transfer function with 5 gaussians.  Use new col_bounds keyword.
     >>> tf.add_layers(5,w=0.05, col_bounds = (mi+1,ma), colormap='spectral')
-    
+
     # Create the camera object
     >>> cam = vr.Camera(c, L, W, (N,N), transfer_function=tf, ds=ds)
-    
+
     # Ray cast, and save the image.
     >>> image = cam.snapshot(fn='my_rendering.png')
 
@@ -262,13 +262,13 @@ class Camera(ParallelAnalysisInterface):
     def draw_grids(self, im, alpha=0.3, cmap=None, min_level=None, max_level=None):
         r"""Draws Grids on an existing volume rendering.
 
-        By mapping grid level to a color, draws edges of grids on 
+        By mapping grid level to a color, draws edges of grids on
         a volume rendering using the camera orientation.
 
         Parameters
         ----------
         im: Numpy ndarray
-            Existing image that has the same resolution as the Camera, 
+            Existing image that has the same resolution as the Camera,
             which will be painted by grid lines.
         alpha : float, optional
             The alpha value for the grids being drawn.  Used to control
@@ -282,14 +282,14 @@ class Camera(ParallelAnalysisInterface):
         max_level : int, optional
             Optional parameters to specify the max level grid boxes
             to overplot on the image.
-        
+
         Returns
         -------
         None
 
         Examples
         --------
-        >>> im = cam.snapshot() 
+        >>> im = cam.snapshot()
         >>> cam.add_grids(im)
         >>> write_bitmap(im, 'render_with_grids.png')
 
@@ -423,13 +423,13 @@ class Camera(ParallelAnalysisInterface):
 
     def draw_line(self, im, x0, x1, color=None):
         r"""Draws a line on an existing volume rendering.
-        Given starting and ending positions x0 and x1, draws a line on 
+        Given starting and ending positions x0 and x1, draws a line on
         a volume rendering using the camera orientation.
 
         Parameters
         ----------
         im : ImageArray or 2D ndarray
-            Existing image that has the same resolution as the Camera, 
+            Existing image that has the same resolution as the Camera,
             which will be painted by grid lines.
         x0 : YTArray or ndarray
             Starting coordinate.  If passed in as an ndarray,
@@ -438,7 +438,7 @@ class Camera(ParallelAnalysisInterface):
             Ending coordinate, in simulation coordinates.  If passed in as
             an ndarray, assumed to be in code units.
         color : array like, optional
-            Color of the line (r, g, b, a). Defaults to white. 
+            Color of the line (r, g, b, a). Defaults to white.
 
         Returns
         -------
@@ -446,7 +446,7 @@ class Camera(ParallelAnalysisInterface):
 
         Examples
         --------
-        >>> im = cam.snapshot() 
+        >>> im = cam.snapshot()
         >>> cam.draw_line(im, np.array([0.1,0.2,0.3], np.array([0.5,0.6,0.7)))
         >>> write_bitmap(im, 'render_with_line.png')
 
@@ -481,13 +481,13 @@ class Camera(ParallelAnalysisInterface):
         Parameters
         ----------
         im: Numpy ndarray
-            Existing image that has the same resolution as the Camera, 
+            Existing image that has the same resolution as the Camera,
             which will be painted by grid lines.
         alpha : float, optional
             The alpha value for the wireframe being drawn.  Used to control
             how bright the lines are with respect to the image.
             Default : 0.3
-        
+
         Returns
         -------
         nim: Numpy ndarray
@@ -495,7 +495,7 @@ class Camera(ParallelAnalysisInterface):
 
         Examples
         --------
-        >>> im = cam.snapshot() 
+        >>> im = cam.snapshot()
         >>> nim = cam.draw_domain(im)
         >>> write_bitmap(nim, 'render_with_domain_boundary.png')
 
@@ -522,22 +522,22 @@ class Camera(ParallelAnalysisInterface):
         Parameters
         ----------
         im: Numpy ndarray
-            Existing image that has the same resolution as the Camera, 
+            Existing image that has the same resolution as the Camera,
             which will be painted by grid lines.
         le: Numpy ndarray
-            Left corner of the box 
+            Left corner of the box
         re : Numpy ndarray
-            Right corner of the box 
+            Right corner of the box
         color : array like, optional
-            Color of the box (r, g, b, a). Defaults to white. 
-        
+            Color of the box (r, g, b, a). Defaults to white.
+
         Returns
         -------
         None
 
         Examples
         --------
-        >>> im = cam.snapshot() 
+        >>> im = cam.snapshot()
         >>> cam.draw_box(im, np.array([0.1,0.2,0.3], np.array([0.5,0.6,0.7)))
         >>> write_bitmap(im, 'render_with_box.png')
 
@@ -788,13 +788,13 @@ class Camera(ParallelAnalysisInterface):
         dpi : int, optional
            Dots per inch in the output image (default: 100)
         clear_fig : bool, optional
-           Reset the figure (through pylab.clf()) before drawing.  Setting 
-           this to false can allow us to overlay the image onto an 
+           Reset the figure (through pylab.clf()) before drawing.  Setting
+           this to false can allow us to overlay the image onto an
            existing figure
         label_fmt : str, optional
-           A format specifier (e.g., label_fmt="%.2g") to use in formatting 
-           the data values that label the transfer function colorbar. 
-        
+           A format specifier (e.g., label_fmt="%.2g") to use in formatting
+           the data values that label the transfer function colorbar.
+
         """
         image = image.swapaxes(0, 1)
         ax = self.show_mpl(image, enhance=enhance, clear_fig=clear_fig)
@@ -858,7 +858,7 @@ class Camera(ParallelAnalysisInterface):
             the rendering.  Defaults to 0, which uses the environment variable
             OMP_NUM_THREADS.
         transparent: bool, optional
-            Optionally saves out the 4-channel rgba image, which can appear 
+            Optionally saves out the 4-channel rgba image, which can appear
             empty if the alpha channel is low everywhere. Default: False
 
         Returns
@@ -999,7 +999,7 @@ class Camera(ParallelAnalysisInterface):
         clip_ratio : float, optional
             If supplied, the 'max_val' argument to write_bitmap will be handed
             clip_ratio * image.std()
-            
+
         Examples
         --------
 
@@ -1426,7 +1426,7 @@ class PerspectiveCamera(Camera):
 
     def yaw(self, theta, rot_center):
         r"""Rotate by a given angle about the vertical axis through the
-        point center.  This is accomplished by rotating the 
+        point center.  This is accomplished by rotating the
         focal point and then setting the looking vector to point
         to the center.
 
@@ -1437,7 +1437,7 @@ class PerspectiveCamera(Camera):
         theta : float, in radians
              Angle (in radians) by which to yaw the view.
 
-        center : a tuple (x, y, z) 
+        center : a tuple (x, y, z)
              The point to rotate about
 
         Examples
@@ -2531,8 +2531,8 @@ def off_axis_projection(
         less notable when the transfer function is smooth and
         broad. Default: True
     interpolated : optional, default False
-        If True, the data is first interpolated to vertex-centered data, 
-        then tri-linearly interpolated along the ray. Not suggested for 
+        If True, the data is first interpolated to vertex-centered data,
+        then tri-linearly interpolated along the ray. Not suggested for
         quantitative studies.
     method : string
          The method of projection.  Valid methods are:

@@ -350,13 +350,13 @@ class Scene:
             parameters.  If you supply a dpi, then the image will be scaled
             accordingly (from the default 100 dpi)
         label_fmt : str, optional
-           A format specifier (e.g., label_fmt="%.2g") to use in formatting 
-           the data values that label the transfer function colorbar. 
+           A format specifier (e.g., label_fmt="%.2g") to use in formatting
+           the data values that label the transfer function colorbar.
         text_annotate : list of iterables
            Any text that you wish to display on the image.  This should be an
-           list containing a tuple of coordinates (in normalized figure 
-           coordinates), the text to display, and, optionally, a dictionary of 
-           keyword/value pairs to pass through to the matplotlib text() 
+           list containing a tuple of coordinates (in normalized figure
+           coordinates), the text to display, and, optionally, a dictionary of
+           keyword/value pairs to pass through to the matplotlib text()
            function.
 
            Each item in the main list is a separate string to write.
@@ -370,7 +370,7 @@ class Scene:
         Examples
         --------
 
-        >>> sc.save_annotated("fig.png", 
+        >>> sc.save_annotated("fig.png",
         ...                   text_annotate=[[(0.05, 0.05),
         ...                                   "t = {}".format(ds.current_time.d),
         ...                                   dict(horizontalalignment="left")],
@@ -713,7 +713,7 @@ class Scene:
         r"""
 
         Modifies this scene by drawing the edges of the AMR grids.
-        This adds a new GridSource to the scene that represents the AMR grid 
+        This adds a new GridSource to the scene that represents the AMR grid
         and returns the resulting Scene object.
 
         Parameters
@@ -784,9 +784,9 @@ class Scene:
         Parameters
         ----------
         colors: array-like of shape (3,4), optional
-            The RGBA values to use to draw the x, y, and z vectors. The default 
+            The RGBA values to use to draw the x, y, and z vectors. The default
             is  [[1, 0, 0, alpha], [0, 1, 0, alpha], [0, 0, 1, alpha]] where
-            ``alpha`` is set by the parameter below. If ``colors`` is set then 
+            ``alpha`` is set by the parameter below. If ``colors`` is set then
             ``alpha`` is ignored.
         alpha : float, optional
             The opacity of the vectors.

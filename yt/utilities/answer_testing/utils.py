@@ -138,7 +138,7 @@ def _hash_results(results):
 
 def _hash_dict(data):
     r"""
-    Specifically handles hashing a dictionary object. 
+    Specifically handles hashing a dictionary object.
 
     Parameters
     ----------
@@ -161,7 +161,7 @@ def _hash_dict(data):
 
 def generate_hash(data):
     r"""
-    Actually performs the hash operation. 
+    Actually performs the hash operation.
 
     Parameters
     ----------
@@ -195,7 +195,7 @@ def generate_hash(data):
 
 def _save_result(data, outputFile):
     r"""
-    Saves the test results to the desired answer file. 
+    Saves the test results to the desired answer file.
 
     Parameters
     ----------

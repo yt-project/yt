@@ -69,9 +69,9 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
     r"""
     Given a dictionary of spectral slab centers and a width in
     spectral units, extract data from a spectral cube at these slab
-    centers and return a `FITSDataset` instance containing the different 
-    slabs as separate yt fields. Useful for extracting individual 
-    lines from a spectral cube and separating them out as different fields. 
+    centers and return a `FITSDataset` instance containing the different
+    slabs as separate yt fields. Useful for extracting individual
+    lines from a spectral cube and separating them out as different fields.
 
     Requires the SpectralCube (https://spectral-cube.readthedocs.io/en/latest/)
     library.
@@ -95,7 +95,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
     ...                 'CH3CH2CHO': (218.284256, 'GHz'),
     ...                 'CH3NH2': (218.40956, 'GHz')}
     >>> slab_width = (0.05, "GHz")
-    >>> ds = create_spectral_slabs("intensity_cube.fits", 
+    >>> ds = create_spectral_slabs("intensity_cube.fits",
     ...                            slab_centers, slab_width,
     ...                            nan_mask=0.0)
     """
@@ -195,10 +195,10 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
 class PlotWindowWCS:
     r"""
     Use AstroPy's WCSAxes class to plot celestial coordinates on the axes of a
-    on-axis PlotWindow plot. See 
+    on-axis PlotWindow plot. See
     http://docs.astropy.org/en/stable/visualization/wcsaxes/ for more details
-    on how it works under the hood. This functionality requires a version of 
-    AstroPy >= 1.3. 
+    on how it works under the hood. This functionality requires a version of
+    AstroPy >= 1.3.
 
     Parameters
     ----------
