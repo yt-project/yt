@@ -135,7 +135,7 @@ class RenderingContext(pyglet.window.Window):
     _do_update = True
     def __init__(self, width=1024, height=1024, title="vol_render",
                  always_on_top = False, decorated = True, position = None,
-                 visible = True, scene = None):
+                 visible = True, scene = None, gui = False):
         self.offscreen = not visible
         config = pyglet.gl.Config(major_version = 3, minor_version = 3,
                                   forward_compat = True, double_buffer = True)
@@ -155,19 +155,26 @@ class RenderingContext(pyglet.window.Window):
                                   font_size=36,
                                   x=self.width, y=self.height,
                                   anchor_x='right', anchor_y='top')
+        if gui:
+            gui = SimpleGUI(self)
+        self.gui = gui
 
     def on_draw(self):
-        if not self._do_update: return
-        self._do_update = False
-        self.switch_to()
-        self.clear()
-        if self.scene is not None:
-            print("Rendering %s" % time.time())
-            self.scene.render()
-            if self.image_widget is not None:
-                self.image_widget.value = write_bitmap(
-                        self.scene.image[:,:,:3], None)
-        self.label.draw()
+        if self._do_update:
+            self._do_update = False
+            self.switch_to()
+            self.clear()
+            if self.scene is not None:
+                # This should check if the scene is actually dirty, and only
+                # redraw the FB if it's not; this might need another flag
+                print("Rendering %s" % time.time())
+                self.scene.render()
+                if self.image_widget is not None:
+                    self.image_widget.value = write_bitmap(
+                            self.scene.image[:,:,:3], None)
+            self.label.draw()
+        if self.gui:
+            self.gui.render(self.scene)
 
     def set_position(self, xpos, ypos):
         if xpos < 0 or ypos < 0:
@@ -193,6 +200,9 @@ class RenderingContext(pyglet.window.Window):
         self._do_update = True
 
     def on_mouse_drag(self, x, y, dx, dy, buttons, modifiers):
+        if self.gui and self.gui.mouse_event_handled:
+            self._do_update = True
+            return
         start_x = -1.0 + 2.0 * x / self.width
         end_x = -1.0 + 2.0 * (x + dx) / self.width
         start_y = -1.0 + 2.0 * y / self.height
