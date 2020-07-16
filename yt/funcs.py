@@ -15,7 +15,6 @@ import subprocess
 import numpy as np
 import itertools
 import base64
-import numpy
 import matplotlib
 import getpass
 import glob
@@ -652,7 +651,7 @@ def get_yt_version():
 def get_version_stack():
     version_info = {}
     version_info['yt'] = get_yt_version()
-    version_info['numpy'] = numpy.version.version
+    version_info['numpy'] = np.version.version
     version_info['matplotlib'] = matplotlib.__version__
     return version_info
 
