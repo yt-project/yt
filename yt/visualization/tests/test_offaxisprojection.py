@@ -3,16 +3,17 @@ import shutil
 import tempfile
 import unittest
 
+from yt.testing import (
+    assert_equal,
+    assert_fname,
+    expand_keywords,
+    fake_octree_ds,
+    fake_random_ds,
+)
+from yt.visualization.api import OffAxisProjectionPlot, OffAxisSlicePlot
 from yt.visualization.image_writer import write_projection
-from yt.testing import \
-    assert_equal, \
-    assert_fname, \
-    expand_keywords, \
-    fake_octree_ds, \
-    fake_random_ds
 from yt.visualization.volume_rendering.api import off_axis_projection
-from yt.visualization.api import OffAxisProjectionPlot, \
-    OffAxisSlicePlot
+
 
 class TestOffAxisProjection(unittest.TestCase):
     @classmethod

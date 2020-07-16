@@ -1,24 +1,21 @@
 
-import numpy as np
 import os
 
-from yt.geometry.particle_oct_container import \
-    ParticleOctreeContainer, \
-    ParticleBitmap
-from yt.geometry.oct_container import _ORDER_MAX
-from yt.geometry.selection_routines import RegionSelector
-from yt.testing import \
-    assert_equal, \
-    assert_true, \
-    assert_array_equal
-from yt.units.unit_registry import UnitRegistry
-from yt.units.yt_array import YTArray
-from yt.utilities.lib.geometry_utils import get_morton_indices, \
-    get_morton_points, \
-    get_hilbert_points, \
-    get_hilbert_indices
+import numpy as np
 
 import yt.units.dimensions as dimensions
+from yt.geometry.oct_container import _ORDER_MAX
+from yt.geometry.particle_oct_container import ParticleBitmap, ParticleOctreeContainer
+from yt.geometry.selection_routines import RegionSelector
+from yt.testing import assert_array_equal, assert_equal, assert_true
+from yt.units.unit_registry import UnitRegistry
+from yt.units.yt_array import YTArray
+from yt.utilities.lib.geometry_utils import (
+    get_hilbert_indices,
+    get_hilbert_points,
+    get_morton_indices,
+    get_morton_points,
+)
 
 NPART = 32**3
 DLE = np.array([0.0, 0.0, 0.0])

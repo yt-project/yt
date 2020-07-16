@@ -1,7 +1,6 @@
-from yt import \
-    load
-from yt.testing import \
-    requires_file
+from yt import load
+from yt.testing import requires_file
+
 
 def do_field_type(ft):
     assert (dir(ft) == sorted(dir(ft)))

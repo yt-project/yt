@@ -1,4 +1,5 @@
 import numpy as np
+
 from yt.funcs import mylog
 from yt.utilities.io_handler import BaseIOHandler
 

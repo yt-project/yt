@@ -1,10 +1,12 @@
-from yt.utilities.amr_kdtree.api import AMRKDTree
-import yt.utilities.initial_conditions as ic
-import yt.utilities.flagging_methods as fm
-from yt.frontends.stream.api import load_uniform_grid, refine_amr
-from yt.testing import assert_equal, assert_almost_equal, fake_amr_ds
-import numpy as np
 import itertools
+
+import numpy as np
+
+import yt.utilities.flagging_methods as fm
+import yt.utilities.initial_conditions as ic
+from yt.frontends.stream.api import load_uniform_grid, refine_amr
+from yt.testing import assert_almost_equal, assert_equal, fake_amr_ds
+from yt.utilities.amr_kdtree.api import AMRKDTree
 
 
 def test_amr_kdtree_coverage():

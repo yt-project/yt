@@ -1,42 +1,41 @@
 import numpy as np
 
-from yt.data_objects.data_containers import \
-    YTSelectionContainer0D, YTSelectionContainer1D, \
-    YTSelectionContainer2D, YTSelectionContainer3D, YTSelectionContainer
+from yt.data_objects.data_containers import (
+    YTSelectionContainer,
+    YTSelectionContainer0D,
+    YTSelectionContainer1D,
+    YTSelectionContainer2D,
+    YTSelectionContainer3D,
+)
 from yt.data_objects.static_output import Dataset
-from yt.frontends.sph.data_structures import \
-    SPHDataset
-from yt.funcs import \
-    ensure_list, \
-    iterable, \
-    validate_width_tuple, \
-    fix_length, \
-    fix_axis, \
-    mylog, \
-    validate_3d_array, \
-    validate_float, \
-    validate_iterable, \
-    validate_object, \
-    validate_axis, \
-    validate_center
-from yt.units.yt_array import \
-    udot, \
-    unorm, \
-    YTArray, \
-    YTQuantity
-from yt.utilities.exceptions import \
-    YTSphereTooSmall, \
-    YTIllDefinedCutRegion, \
-    YTEllipsoidOrdering, \
-    YTException
-from yt.utilities.lib.pixelization_routines import \
-    SPHKernelInterpolationTable
-from yt.utilities.minimal_representation import \
-    MinimalSliceData
-from yt.utilities.math_utils import get_rotation_matrix
-from yt.utilities.orientation import Orientation
+from yt.frontends.sph.data_structures import SPHDataset
+from yt.funcs import (
+    ensure_list,
+    fix_axis,
+    fix_length,
+    iterable,
+    mylog,
+    validate_3d_array,
+    validate_axis,
+    validate_center,
+    validate_float,
+    validate_iterable,
+    validate_object,
+    validate_width_tuple,
+)
 from yt.geometry.selection_routines import points_in_cells
-from yt.utilities.on_demand_imports import _scipy, _miniball
+from yt.units.yt_array import YTArray, YTQuantity, udot, unorm
+from yt.utilities.exceptions import (
+    YTEllipsoidOrdering,
+    YTException,
+    YTIllDefinedCutRegion,
+    YTSphereTooSmall,
+)
+from yt.utilities.lib.pixelization_routines import SPHKernelInterpolationTable
+from yt.utilities.math_utils import get_rotation_matrix
+from yt.utilities.minimal_representation import MinimalSliceData
+from yt.utilities.on_demand_imports import _miniball, _scipy
+from yt.utilities.orientation import Orientation
 
 
 class YTPoint(YTSelectionContainer0D):

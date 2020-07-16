@@ -1,25 +1,19 @@
-import numpy as np
-import struct
 import glob
 import os
-
-from yt.frontends.sph.data_structures import \
-    SPHDataset, \
-    SPHParticleIndex
-from yt.funcs import deprecate
-from yt.data_objects.static_output import \
-    ParticleFile
-from yt.utilities.cosmology import \
-    Cosmology
-from yt.utilities.physical_constants import \
-    G
-from yt.utilities.physical_ratios import \
-    cm_per_kpc
-
-from .fields import \
-    TipsyFieldInfo
-
+import struct
 import sys
+
+import numpy as np
+
+from yt.data_objects.static_output import ParticleFile
+from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
+from yt.funcs import deprecate
+from yt.utilities.cosmology import Cosmology
+from yt.utilities.physical_constants import G
+from yt.utilities.physical_ratios import cm_per_kpc
+
+from .fields import TipsyFieldInfo
+
 if sys.version_info > (3,):
     long = int
 

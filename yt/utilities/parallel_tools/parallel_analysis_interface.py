@@ -1,23 +1,21 @@
-from io import StringIO
 import itertools
 import logging
-import numpy as np
-import sys
 import os
+import sys
 import traceback
 from functools import wraps
+from io import StringIO
 
-from yt.funcs import \
-    ensure_list, iterable
+import numpy as np
 
+import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-import yt.utilities.logger
-from yt.utilities.lib.quad_tree import \
-    QuadTree, merge_quadtrees
-from yt.units.yt_array import YTArray
+from yt.funcs import ensure_list, iterable
 from yt.units.unit_registry import UnitRegistry
+from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
+from yt.utilities.lib.quad_tree import QuadTree, merge_quadtrees
 from yt.utilities.logger import ytLogger as mylog
 
 # We default to *no* parallelism unless it gets turned on, in which case this

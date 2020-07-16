@@ -1,5 +1,4 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "code_mass"
 p_units = "code_length"

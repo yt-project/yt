@@ -1,10 +1,8 @@
 import numpy as np
 
-from yt.testing import \
-    fake_random_ds, \
-    assert_rel_equal, \
-    assert_equal
+from yt.testing import assert_equal, assert_rel_equal, fake_random_ds
 from yt.visualization.streamlines import Streamlines
+
 
 def setup():
     from yt.config import ytcfg

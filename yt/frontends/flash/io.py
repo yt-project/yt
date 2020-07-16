@@ -1,11 +1,11 @@
-import numpy as np
 from itertools import groupby
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
+import numpy as np
+
 from yt.geometry.selection_routines import AlwaysSelector
-from yt.utilities.lib.geometry_utils import \
-    compute_morton
+from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.lib.geometry_utils import compute_morton
+
 
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
 def particle_sequences(grids):

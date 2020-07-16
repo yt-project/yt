@@ -1,8 +1,8 @@
 import numpy as np
 
-from yt.utilities.lib.particle_mesh_operations import \
-    CICSample_3
 from yt.testing import assert_allclose
+from yt.utilities.lib.particle_mesh_operations import CICSample_3
+
 
 def setup():
     pass

@@ -1,9 +1,8 @@
 import numpy as np
 
-from yt.testing import \
-    assert_equal, \
-    fake_sph_orientation_ds, fake_sph_grid_ds
 from yt import SlicePlot
+from yt.testing import assert_equal, fake_sph_grid_ds, fake_sph_orientation_ds
+
 
 def test_point():
     ds = fake_sph_orientation_ds()
@@ -322,4 +321,3 @@ def test_covering_grid_gather():
     cg_dens = cg[field].to('g*cm**-3').d
 
     assert_equal(ag_dens, cg_dens)
-

@@ -1,23 +1,16 @@
-import numpy as np
 import uuid
 
-from yt.fields.derived_field import \
-    ValidateSpatial
-from yt.frontends.ytdata.utilities import \
-    save_as_dataset
-from yt.funcs import \
-    issue_deprecation_warning, \
-    get_output_filename, \
-    mylog
-from yt.utilities.tree_container import \
-    TreeContainer
+import numpy as np
 
-from .clump_info_items import \
-    clump_info_registry
-from .clump_validators import \
-    clump_validator_registry
-from .contour_finder import \
-    identify_contours
+from yt.fields.derived_field import ValidateSpatial
+from yt.frontends.ytdata.utilities import save_as_dataset
+from yt.funcs import get_output_filename, issue_deprecation_warning, mylog
+from yt.utilities.tree_container import TreeContainer
+
+from .clump_info_items import clump_info_registry
+from .clump_validators import clump_validator_registry
+from .contour_finder import identify_contours
+
 
 def add_contour_field(ds, contour_key):
     def _contours(field, data):

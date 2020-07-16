@@ -1,5 +1,4 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"

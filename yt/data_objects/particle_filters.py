@@ -1,8 +1,7 @@
 import copy
 from contextlib import contextmanager
 
-from yt.fields.field_info_container import \
-    NullFunc, TranslationFunc
+from yt.fields.field_info_container import NullFunc, TranslationFunc
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTIllDefinedFilter
 

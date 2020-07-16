@@ -1,19 +1,21 @@
-import tempfile
 import os
 import shutil
-from yt.testing import fake_random_ds, requires_module
+import tempfile
+
+from numpy.testing import assert_allclose, assert_equal
+
 from yt.convenience import load
-from numpy.testing import \
-    assert_equal, \
-    assert_allclose
+from yt.testing import fake_random_ds, requires_module
 from yt.utilities.on_demand_imports import _astropy
-from yt.visualization.fits_image import \
-    FITSImageData, FITSProjection, \
-    FITSSlice, FITSOffAxisSlice, \
-    FITSOffAxisProjection, \
-    assert_same_wcs
-from yt.visualization.volume_rendering.off_axis_projection import \
-    off_axis_projection
+from yt.visualization.fits_image import (
+    FITSImageData,
+    FITSOffAxisProjection,
+    FITSOffAxisSlice,
+    FITSProjection,
+    FITSSlice,
+    assert_same_wcs,
+)
+from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 
 
 @requires_module("astropy")

@@ -1,7 +1,8 @@
-from yt.utilities.io_handler import \
-    BaseIOHandler
 import numpy as np
+
 from yt.funcs import mylog
+from yt.utilities.io_handler import BaseIOHandler
+
 from .data_structures import chk23
 
 float_size = {"float":np.dtype(">f4").itemsize,
@@ -108,5 +109,3 @@ def get_read_table_offset(f):
             break
         line = f.readline()
     return read_table_offset
-
-

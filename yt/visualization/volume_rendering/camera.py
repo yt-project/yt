@@ -1,16 +1,16 @@
-from yt.funcs import iterable, ensure_numpy_array
-from yt.utilities.orientation import Orientation
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
-from yt.utilities.math_utils import get_rotation_matrix
-from .utils import data_source_or_all
-from .lens import \
-    lenses, \
-    Lens
-import numpy as np
-from numbers import Number as numeric_type
 import weakref
+from numbers import Number as numeric_type
+
+import numpy as np
+
+from yt.funcs import ensure_numpy_array, iterable
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.math_utils import get_rotation_matrix
+from yt.utilities.orientation import Orientation
+
+from .lens import Lens, lenses
+from .utils import data_source_or_all
+
 
 def _sanitize_camera_property_units(value, scene):
     if iterable(value):

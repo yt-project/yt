@@ -1,11 +1,9 @@
 import numpy as np
 from matplotlib.cm import get_cmap
 
-from yt.funcs import \
-    mylog, ensure_list
+from yt.funcs import ensure_list, mylog
+from yt.utilities.physical_constants import clight, hcgs, kboltz
 
-from yt.utilities.physical_constants import \
-    clight, hcgs, kboltz
 
 class TransferFunction:
     r"""A transfer function governs the transmission of emission and

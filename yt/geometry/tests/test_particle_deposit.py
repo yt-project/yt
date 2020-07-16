@@ -1,14 +1,9 @@
-from yt.utilities.exceptions import \
-    YTBoundsDefinitionError
+from numpy.testing import assert_allclose, assert_array_less, assert_raises
 
-from yt.convenience import \
-    load
-from yt.testing import \
-    fake_random_ds, \
-    requires_file
-from numpy.testing import \
-    assert_raises, assert_array_less, assert_allclose
 import yt
+from yt.convenience import load
+from yt.testing import fake_random_ds, requires_file
+from yt.utilities.exceptions import YTBoundsDefinitionError
 
 
 def test_cic_deposit():

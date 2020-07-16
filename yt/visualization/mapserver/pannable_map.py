@@ -1,14 +1,13 @@
 import os
-import numpy as np
-
 from functools import wraps
 
-from yt.visualization.image_writer import apply_colormap
-from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.utilities.lib.misc_utilities import get_color_bounds
-from yt.utilities.png_writer import write_png_to_string
+import numpy as np
 
 import bottle
+from yt.utilities.lib.misc_utilities import get_color_bounds
+from yt.utilities.png_writer import write_png_to_string
+from yt.visualization.fixed_resolution import FixedResolutionBuffer
+from yt.visualization.image_writer import apply_colormap
 
 local_dir = os.path.dirname(__file__)
 

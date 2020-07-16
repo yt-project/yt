@@ -1,4 +1,4 @@
-from yt.testing import assert_equal, assert_allclose
+from yt.testing import assert_allclose, assert_equal
 from yt.utilities.chemical_formulas import ChemicalFormula, default_mu
 from yt.utilities.periodic_table import periodic_table
 

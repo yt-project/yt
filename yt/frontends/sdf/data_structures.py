@@ -1,24 +1,18 @@
 
-import numpy as np
+import contextlib
 import os
 import sys
-import contextlib
 
+import numpy as np
+
+from yt.data_objects.static_output import ParticleDataset, ParticleFile
+from yt.funcs import get_requests, setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.logger import ytLogger as mylog
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
-from yt.data_objects.static_output import \
-    ParticleDataset, \
-    ParticleFile
-from yt.funcs import \
-    get_requests, \
-    setdefaultattr
-from .fields import \
-    SDFFieldInfo
-from yt.utilities.sdf import \
-    SDFRead,\
-    SDFIndex,\
-    HTTPSDFRead
+from yt.utilities.sdf import HTTPSDFRead, SDFIndex, SDFRead
+
+from .fields import SDFFieldInfo
+
 
 @contextlib.contextmanager
 def safeopen(*args, **kwargs):

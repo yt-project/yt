@@ -1,36 +1,39 @@
 import builtins
+from copy import deepcopy
+
 import numpy as np
 
-from yt.config import \
-    ytcfg
-from yt.funcs import \
-    iterable, mylog, get_pbar, \
-    get_num_threads, ensure_numpy_array
+from yt.config import ytcfg
+from yt.data_objects.api import ImageArray
+from yt.data_objects.data_containers import data_object_registry
+from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, iterable, mylog
 from yt.units.yt_array import YTArray
+from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
-from copy import deepcopy
+from yt.utilities.lib.grid_traversal import (
+    arr_fisheye_vectors,
+    arr_pix2vec_nest,
+    pixelize_healpix,
+)
+from yt.utilities.lib.image_samplers import (
+    InterpolatedProjectionSampler,
+    LightSourceRenderSampler,
+    ProjectionSampler,
+    VolumeRenderSampler,
+)
+from yt.utilities.lib.misc_utilities import lines
+from yt.utilities.lib.partitioned_grid import PartitionedGrid
+from yt.utilities.math_utils import get_rotation_matrix
+from yt.utilities.orientation import Orientation
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+    parallel_objects,
+)
+from yt.visualization.image_writer import apply_colormap, write_bitmap, write_image
+from yt.visualization.volume_rendering.blenders import enhance_rgba
 
 from .transfer_functions import ProjectionTransferFunction
 
-from yt.utilities.lib.grid_traversal import \
-    pixelize_healpix, arr_fisheye_vectors, arr_pix2vec_nest
-from yt.utilities.lib.partitioned_grid import \
-    PartitionedGrid
-from yt.utilities.lib.image_samplers import \
-    ProjectionSampler, VolumeRenderSampler, \
-    LightSourceRenderSampler, InterpolatedProjectionSampler
-from yt.utilities.lib.misc_utilities import \
-    lines
-
-from yt.utilities.math_utils import get_rotation_matrix
-from yt.utilities.orientation import Orientation
-from yt.data_objects.api import ImageArray
-from yt.visualization.image_writer import write_bitmap, write_image, apply_colormap
-from yt.data_objects.data_containers import data_object_registry
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_objects
-from yt.utilities.amr_kdtree.api import AMRKDTree
-from yt.visualization.volume_rendering.blenders import enhance_rgba
 
 def get_corners(le, re):
     return np.array([
@@ -2207,4 +2210,3 @@ def off_axis_projection(ds, center, normal_vector, width, resolution,
                                north_vector=north_vector, method=method)
     image = projcam.snapshot()
     return image[:,:]
-

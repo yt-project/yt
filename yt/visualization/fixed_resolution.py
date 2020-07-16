@@ -1,23 +1,25 @@
-from yt.frontends.ytdata.utilities import \
-    save_as_dataset
-from yt.funcs import \
-    get_output_filename, \
-    mylog, \
-    ensure_list, \
-    deprecate, \
-    issue_deprecation_warning
-from .volume_rendering.api import off_axis_projection
-from .fixed_resolution_filters import apply_filter, filter_registry
-from yt.data_objects.image_array import ImageArray
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder
-from yt.utilities.lib.api import add_points_to_greyscale_image
-from yt.utilities.on_demand_imports import _h5py as h5py
-from yt.frontends.stream.api import load_uniform_grid
+import types
+import weakref
 
 import numpy as np
-import weakref
-import types
+
+from yt.data_objects.image_array import ImageArray
+from yt.frontends.stream.api import load_uniform_grid
+from yt.frontends.ytdata.utilities import save_as_dataset
+from yt.funcs import (
+    deprecate,
+    ensure_list,
+    get_output_filename,
+    issue_deprecation_warning,
+    mylog,
+)
+from yt.utilities.lib.api import add_points_to_greyscale_image
+from yt.utilities.lib.pixelization_routines import pixelize_cylinder
+from yt.utilities.on_demand_imports import _h5py as h5py
+
+from .fixed_resolution_filters import apply_filter, filter_registry
+from .volume_rendering.api import off_axis_projection
+
 
 class FixedResolutionBuffer:
     r"""

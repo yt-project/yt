@@ -1,19 +1,23 @@
 import numpy as np
 
-from yt.fields.derived_field import \
-    ValidateParameter
-from yt.frontends.stream.data_structures import load_particles
-from yt.testing import fake_random_ds, assert_equal, assert_almost_equal, \
-    fake_octree_ds, requires_file, requires_module
 from yt.convenience import load
-from yt.testing import \
-    assert_array_equal
+from yt.fields.derived_field import ValidateParameter
+from yt.frontends.stream.data_structures import load_particles
+from yt.testing import (
+    assert_almost_equal,
+    assert_array_equal,
+    assert_equal,
+    fake_octree_ds,
+    fake_random_ds,
+    requires_file,
+    requires_module,
+)
+from yt.units import kpc
 
 # cylindrical data for covering_grid test
 cyl_2d = "WDMerger_hdf5_chk_1000/WDMerger_hdf5_chk_1000.hdf5"
 cyl_3d = "MHD_Cyl3d_hdf5_plt_cnt_0100/MHD_Cyl3d_hdf5_plt_cnt_0100.hdf5"
 
-from yt.units import kpc
 
 def setup():
     from yt.config import ytcfg

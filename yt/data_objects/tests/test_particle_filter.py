@@ -1,17 +1,16 @@
 
 
-import numpy as np
 import os
 import shutil
 import tempfile
 
+import numpy as np
 from nose.tools import assert_raises
 
 from yt.data_objects.particle_filters import add_particle_filter, particle_filter
 from yt.testing import assert_equal, fake_random_ds, fake_sph_grid_ds
+from yt.utilities.exceptions import YTIllDefinedFilter, YTIllDefinedParticleFilter
 from yt.visualization.plot_window import ProjectionPlot
-from yt.utilities.exceptions import YTIllDefinedFilter, \
-    YTIllDefinedParticleFilter
 
 
 def test_add_particle_filter():

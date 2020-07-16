@@ -1,8 +1,8 @@
 import os.path
+
 import yt
 from yt.config import ytcfg
-from yt.testing import \
-    assert_equal, requires_file, assert_raises
+from yt.testing import assert_equal, assert_raises, requires_file
 
 G30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 

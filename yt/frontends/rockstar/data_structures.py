@@ -1,23 +1,18 @@
-import numpy as np
 import glob
 import os
 
-from .fields import \
-    RockstarFieldInfo
+import numpy as np
 
-from yt.data_objects.static_output import \
-    ParticleDataset
-from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogFile
-from yt.funcs import \
-    setdefaultattr
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
-from yt.utilities.cosmology import Cosmology
 import yt.utilities.fortran_utils as fpu
+from yt.data_objects.static_output import ParticleDataset
+from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
+from yt.funcs import setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
+from yt.utilities.cosmology import Cosmology
 
-from .definitions import \
-    header_dt
+from .definitions import header_dt
+from .fields import RockstarFieldInfo
+
 
 class RockstarBinaryFile(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id, range):

@@ -1,23 +1,21 @@
 import warnings
 import weakref
+
 import numpy as np
 
+import yt.geometry.particle_deposit as particle_deposit
 from yt.config import ytcfg
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
+from yt.data_objects.data_containers import YTSelectionContainer
 from yt.funcs import iterable
 from yt.geometry.selection_routines import convert_mask_to_indices
-import yt.geometry.particle_deposit as particle_deposit
 from yt.units.yt_array import YTArray
-from yt.utilities.exceptions import \
-    YTFieldTypeNotFound, \
-    YTParticleDepositionNotImplemented
-from yt.utilities.lib.interpolators import \
-    ghost_zone_interpolate
-from yt.utilities.lib.mesh_utilities import \
-    clamp_edges
-from yt.utilities.nodal_data_utils import \
-    get_nodal_slices
+from yt.utilities.exceptions import (
+    YTFieldTypeNotFound,
+    YTParticleDepositionNotImplemented,
+)
+from yt.utilities.lib.interpolators import ghost_zone_interpolate
+from yt.utilities.lib.mesh_utilities import clamp_edges
+from yt.utilities.nodal_data_utils import get_nodal_slices
 
 RECONSTRUCT_INDEX = bool(ytcfg.get('yt', 'reconstruct_index'))
 

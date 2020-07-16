@@ -1,9 +1,10 @@
 import warnings
+
 import numpy as np
-from yt.config import \
-    ytcfg
-from yt.visualization.image_writer import write_bitmap, write_image
+
+from yt.config import ytcfg
 from yt.units.yt_array import YTArray
+from yt.visualization.image_writer import write_bitmap, write_image
 
 
 class ImageArray(YTArray):

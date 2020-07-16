@@ -1,24 +1,23 @@
-import os
-import platform
 import contextlib
 import glob
+import os
+import platform
 import shutil
 import subprocess
 import sys
-from sys import platform as _platform
 import tempfile
 from concurrent.futures import ThreadPoolExecutor as Pool
-
 from distutils import log
-from distutils.ccompiler import new_compiler, CCompiler
-from distutils.sysconfig import customize_compiler
+from distutils.ccompiler import CCompiler, new_compiler
 from distutils.errors import CompileError, LinkError
+from distutils.sysconfig import customize_compiler
 from distutils.version import LooseVersion
+from subprocess import PIPE, Popen
+from sys import platform as _platform
+
 from pkg_resources import resource_filename
-from subprocess import Popen, PIPE
 from setuptools.command.build_ext import build_ext as _build_ext
 from setuptools.command.sdist import sdist as _sdist
-
 
 CCODE = """
 #include <omp.h>

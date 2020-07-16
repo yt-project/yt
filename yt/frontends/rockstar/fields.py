@@ -1,5 +1,4 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "Msun / h"                # Msun / h
 p_units = "Mpccm / h"               # Mpc / h comoving

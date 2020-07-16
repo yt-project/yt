@@ -21,8 +21,11 @@ except ImportError:
         bits = random.getrandbits(160)
         return sha.new(str(bits)).hexdigest()
 
-import re, os, mimetypes
+import mimetypes
+import os
+import re
 import urllib
+
 try:
     from email.header import Header
 except ImportError:

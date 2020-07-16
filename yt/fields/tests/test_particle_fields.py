@@ -1,8 +1,5 @@
-from yt.testing import \
-    assert_allclose_units, \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
+from yt.testing import assert_allclose_units, requires_file
+from yt.utilities.answer_testing.framework import data_dir_load
 
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 @requires_file(g30)

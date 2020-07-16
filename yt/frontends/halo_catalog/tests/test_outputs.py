@@ -1,18 +1,11 @@
 import numpy as np
 
-from yt.convenience import \
-    load as yt_load
-from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogDataset
-from yt.frontends.ytdata.utilities import \
-    save_as_dataset
-from yt.testing import \
-    assert_array_equal, \
-    requires_module, \
-    TempDirTest
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
+from yt.convenience import load as yt_load
+from yt.frontends.halo_catalog.data_structures import HaloCatalogDataset
+from yt.frontends.ytdata.utilities import save_as_dataset
+from yt.testing import TempDirTest, assert_array_equal, requires_module
+from yt.units.yt_array import YTArray, YTQuantity
+
 
 def fake_halo_catalog(data):
     filename = "catalog.0.h5"

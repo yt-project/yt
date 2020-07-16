@@ -1,6 +1,7 @@
-from yt.units.unit_registry import default_unit_registry
 from unyt.unit_object import Unit
 from unyt.unit_systems import add_symbols
+
+from yt.units.unit_registry import default_unit_registry
 
 add_symbols(globals(), registry=default_unit_registry)
 
@@ -46,4 +47,3 @@ class _SymbolContainer:
             raise AttributeError(item)
         self._cache[item] = ret
         return ret
-

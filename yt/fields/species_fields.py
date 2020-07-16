@@ -1,19 +1,14 @@
-import numpy as np
 import re
 
-from yt.fields.field_detector import \
-    FieldDetector
-from yt.frontends.sph.data_structures import \
-    ParticleDataset
-from yt.funcs import \
-    issue_deprecation_warning
-from yt.utilities.physical_ratios import \
-    _primordial_mass_fraction
-from yt.utilities.chemical_formulas import \
-    ChemicalFormula
-from .field_plugin_registry import \
-    register_field_plugin
+import numpy as np
 
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.sph.data_structures import ParticleDataset
+from yt.funcs import issue_deprecation_warning
+from yt.utilities.chemical_formulas import ChemicalFormula
+from yt.utilities.physical_ratios import _primordial_mass_fraction
+
+from .field_plugin_registry import register_field_plugin
 
 # See YTEP-0003 for details, but we want to ensure these fields are all
 # populated:

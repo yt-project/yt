@@ -1,7 +1,5 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.utilities.physical_constants import \
-    kboltz, mh
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.utilities.physical_constants import kboltz, mh
 
 b_units = "code_magnetic"
 pres_units = "code_pressure"

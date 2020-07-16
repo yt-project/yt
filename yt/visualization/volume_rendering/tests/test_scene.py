@@ -1,16 +1,16 @@
 import os
-import tempfile
 import shutil
-from yt.testing import \
-    fake_random_ds, \
-    assert_fname, \
-    fake_vr_orientation_test_ds
-from yt.visualization.volume_rendering.api import \
-    create_scene, \
-    volume_render, \
-    VolumeSource
-import numpy as np
+import tempfile
 from unittest import TestCase
+
+import numpy as np
+
+from yt.testing import assert_fname, fake_random_ds, fake_vr_orientation_test_ds
+from yt.visualization.volume_rendering.api import (
+    VolumeSource,
+    create_scene,
+    volume_render,
+)
 
 
 def setup():

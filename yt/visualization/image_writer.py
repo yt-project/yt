@@ -1,18 +1,16 @@
+import builtins
+
 import numpy as np
 
-from yt.config import \
-    ytcfg
-from yt.funcs import \
-    mylog, \
-    get_image_suffix, \
-    get_brewer_cmap
-from yt.units.yt_array import YTQuantity
-from yt.utilities.exceptions import YTNotInsideNotebook
-from .color_maps import mcm
-from . import _colormap_data as cmd
 import yt.utilities.lib.image_utilities as au
 import yt.utilities.png_writer as pw
-import builtins
+from yt.config import ytcfg
+from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
+from yt.units.yt_array import YTQuantity
+from yt.utilities.exceptions import YTNotInsideNotebook
+
+from . import _colormap_data as cmd
+from .color_maps import mcm
 
 
 def scale_image(image, mi=None, ma=None):
@@ -441,4 +439,3 @@ def display_in_notebook(image, max_val=None):
         )
     else:
         raise YTNotInsideNotebook
-

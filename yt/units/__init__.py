@@ -1,6 +1,3 @@
-from yt.units.physical_constants import *
-from yt.units.unit_symbols import *
-from yt.utilities.exceptions import YTArrayTooLargeToDisplay
 from unyt.array import (
     loadtxt,
     savetxt,
@@ -10,22 +7,26 @@ from unyt.array import (
     uhstack,
     uintersect1d,
     unorm,
+    unyt_array,
+    unyt_quantity,
     ustack,
     uunion1d,
     uvstack,
-    unyt_array,
-    unyt_quantity,
 )
 from unyt.unit_object import Unit, define_unit  # NOQA: F401
 from unyt.unit_registry import UnitRegistry  # NOQA: Ffg401
 from unyt.unit_systems import UnitSystem  # NOQA: F401
 
+from yt.units.physical_constants import *
+from yt.units.physical_constants import _ConstantContainer
+from yt.units.unit_symbols import *
+from yt.units.unit_symbols import _SymbolContainer
+from yt.utilities.exceptions import YTArrayTooLargeToDisplay
+
 YTArray = unyt_array
 
 YTQuantity = unyt_quantity
 
-from yt.units.unit_symbols import _SymbolContainer
-from yt.units.physical_constants import _ConstantContainer
 
 class UnitContainer:
     """A container for units and constants to associate with a dataset
@@ -111,4 +112,3 @@ def display_ytarray(arr):
 def _wrap_display_ytarray(arr):
     from IPython.core.display import display
     display(display_ytarray(arr))
-

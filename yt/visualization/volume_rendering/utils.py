@@ -1,12 +1,15 @@
 import numpy as np
-from yt.data_objects.data_containers import \
-    YTSelectionContainer3D
+
+from yt.data_objects.data_containers import YTSelectionContainer3D
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib import bounding_volume_hierarchy
-from yt.utilities.lib.image_samplers import \
-    VolumeRenderSampler, InterpolatedProjectionSampler, ProjectionSampler
-
+from yt.utilities.lib.image_samplers import (
+    InterpolatedProjectionSampler,
+    ProjectionSampler,
+    VolumeRenderSampler,
+)
 from yt.utilities.on_demand_imports import NotAModule
+
 try:
     from yt.utilities.lib.embree_mesh import mesh_traversal
 # Catch ValueError in case size of objects in Cython change
@@ -143,4 +146,3 @@ def ensure_code_unit_params(params):
     if hasattr(bounds[0], 'units'):
         params['bounds'] = tuple(b.in_units('code_length').d for b in bounds)
     return params
-

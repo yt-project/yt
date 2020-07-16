@@ -1,7 +1,9 @@
 import os
 from sys import version_info
-from yt.convenience import _sanitize_load_args
+
 import pytest
+
+from yt.convenience import _sanitize_load_args
 
 PY36 = version_info >= (3, 6)
 

@@ -1,9 +1,7 @@
 import numpy as np
 
-from .derived_field import \
-    ValidateParameter
-from .field_plugin_registry import \
-    register_field_plugin
+from .derived_field import ValidateParameter
+from .field_plugin_registry import register_field_plugin
 
 
 @register_field_plugin

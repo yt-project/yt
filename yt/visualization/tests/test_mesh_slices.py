@@ -2,8 +2,13 @@ import numpy as np
 from nose.plugins.attrib import attr
 
 import yt
-from yt.testing import ANSWER_TEST_TAG, fake_amr_ds, fake_tetrahedral_ds, \
-    fake_hexahedral_ds, small_fake_hexahedral_ds
+from yt.testing import (
+    ANSWER_TEST_TAG,
+    fake_amr_ds,
+    fake_hexahedral_ds,
+    fake_tetrahedral_ds,
+    small_fake_hexahedral_ds,
+)
 from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.mesh_triangulation import triangulate_indices

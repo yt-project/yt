@@ -1,14 +1,9 @@
 from collections import OrderedDict
 
-from yt.testing import \
-    requires_file, \
-    ParticleSelectionComparison
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    sph_answer
-from yt.frontends.owls.api import OWLSDataset
 from yt.data_objects.particle_filters import add_particle_filter
+from yt.frontends.owls.api import OWLSDataset
+from yt.testing import ParticleSelectionComparison, requires_file
+from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 os33 = "snapshot_033/snap_033.0.hdf5"
 
@@ -52,4 +47,3 @@ def test_OWLS_particlefilter():
 
     mask = (ad['PartType0','Temperature'] <= 1e5)
     assert ad['PartType0','Temperature'][mask].shape == ad['gas_cold','Temperature'].shape
-

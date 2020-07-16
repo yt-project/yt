@@ -2,6 +2,7 @@
 
 import numpy as np
 from numpy import array
+
 color_map_luts = {}
 
 

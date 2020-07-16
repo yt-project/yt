@@ -1,13 +1,12 @@
 import contextlib
 
-from yt.data_objects.data_containers import \
-    YTFieldData, \
-    YTSelectionContainer
-from yt.funcs import \
-    ensure_list
-from yt.utilities.exceptions import \
-    YTNonIndexedDataContainer, \
-    YTDataSelectorNotImplemented
+from yt.data_objects.data_containers import YTFieldData, YTSelectionContainer
+from yt.funcs import ensure_list
+from yt.utilities.exceptions import (
+    YTDataSelectorNotImplemented,
+    YTNonIndexedDataContainer,
+)
+
 
 def _non_indexed(name):
     def _func_non_indexed(self, *args, **kwargs):

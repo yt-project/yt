@@ -1,4 +1,4 @@
-import numpy as np    
+import numpy as np
 
 _index_map = np.array([[0, 0, 0, 0, 0, 0, 0, 0],
                       [0, 1, 0, 1, 0, 1, 0, 1],

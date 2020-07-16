@@ -1,29 +1,26 @@
-from yt.funcs import only_on_root
-from yt.utilities.on_demand_imports import _h5py as h5py
-import numpy as np
+import os
 import stat
 import struct
-import os
 
-from yt.data_objects.static_output import \
-    ParticleFile
-from yt.frontends.sph.data_structures import \
-    SPHDataset, \
-    SPHParticleIndex
+import numpy as np
+
+from yt.data_objects.static_output import ParticleFile
+from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
+from yt.funcs import only_on_root
 from yt.utilities.chemical_formulas import default_mu
-from yt.utilities.cosmology import \
-    Cosmology
+from yt.utilities.cosmology import Cosmology
 from yt.utilities.fortran_utils import read_record
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .definitions import \
-    gadget_header_specs, \
-    gadget_field_specs, \
-    gadget_ptype_specs, \
-    SNAP_FORMAT_2_OFFSET
+from .definitions import (
+    SNAP_FORMAT_2_OFFSET,
+    gadget_field_specs,
+    gadget_header_specs,
+    gadget_ptype_specs,
+)
+from .fields import GadgetFieldInfo
 
-from .fields import \
-    GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
     if isinstance(unit[0], str):

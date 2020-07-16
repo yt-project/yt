@@ -11,4 +11,3 @@ class DomainContext:
 
     def __init__(self, ds):
         self.ds = ds
-

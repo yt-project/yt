@@ -1,12 +1,11 @@
-import numpy as np
 import os
 
-from yt.data_objects.static_output import \
-    ParticleDataset
-from yt.funcs import \
-    mylog
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
+import numpy as np
+
+from yt.data_objects.static_output import ParticleDataset
+from yt.funcs import mylog
+from yt.geometry.particle_geometry_handler import ParticleIndex
+
 
 class SPHDataset(ParticleDataset):
     default_kernel_name = "cubic"

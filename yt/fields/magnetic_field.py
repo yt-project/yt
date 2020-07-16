@@ -1,17 +1,12 @@
 import numpy as np
 
+from yt.fields.derived_field import ValidateParameter
 from yt.units import dimensions
 from yt.units.yt_array import ustack
+from yt.utilities.math_utils import get_sph_phi_component, get_sph_theta_component
 
-from yt.fields.derived_field import \
-    ValidateParameter
+from .field_plugin_registry import register_field_plugin
 
-from .field_plugin_registry import \
-    register_field_plugin
-
-from yt.utilities.math_utils import \
-    get_sph_theta_component, \
-    get_sph_phi_component
 
 @register_field_plugin
 def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):

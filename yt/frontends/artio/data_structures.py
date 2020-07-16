@@ -1,34 +1,25 @@
-import numpy as np
 import os
 import weakref
-
 from collections import defaultdict
 
-from yt.frontends.artio._artio_caller import \
-    artio_is_valid, \
-    artio_fileset, \
-    ARTIOSFCRangeHandler
-from yt.frontends.artio import _artio_caller
-from yt.frontends.artio.fields import \
-    ARTIOFieldInfo
+import numpy as np
 
-from yt.funcs import \
-    mylog, \
-    setdefaultattr
-from yt.geometry.geometry_handler import \
-    Index, \
-    YTDataChunk
 import yt.geometry.particle_deposit as particle_deposit
-from yt.data_objects.static_output import \
-    Dataset
-from yt.data_objects.octree_subset import \
-    OctreeSubset
-from yt.data_objects.field_data import \
-    YTFieldData
-from yt.utilities.exceptions import \
-    YTParticleDepositionNotImplemented
-from yt.data_objects.particle_unions import \
-    ParticleUnion
+from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.particle_unions import ParticleUnion
+from yt.data_objects.static_output import Dataset
+from yt.frontends.artio import _artio_caller
+from yt.frontends.artio._artio_caller import (
+    ARTIOSFCRangeHandler,
+    artio_fileset,
+    artio_is_valid,
+)
+from yt.frontends.artio.fields import ARTIOFieldInfo
+from yt.funcs import mylog, setdefaultattr
+from yt.geometry.geometry_handler import Index, YTDataChunk
+from yt.utilities.exceptions import YTParticleDepositionNotImplemented
+
 
 class ARTIOOctreeSubset(OctreeSubset):
     _domain_offset = 0

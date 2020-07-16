@@ -1,14 +1,16 @@
 # This is a part of the experimental Interactive Data Visualization 
 
-import os
-import OpenGL.GL as GL
 import contextlib
+import os
 from collections import OrderedDict
-from yt.utilities.exceptions import \
-    YTInvalidShaderType, \
-    YTUnknownUniformKind, \
-    YTUnknownUniformSize
+
+import OpenGL.GL as GL
 from yt.units.yt_array import YTQuantity
+from yt.utilities.exceptions import (
+    YTInvalidShaderType,
+    YTUnknownUniformKind,
+    YTUnknownUniformSize,
+)
 
 known_shaders = {}
 

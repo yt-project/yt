@@ -1,13 +1,6 @@
-from .data_structures import \
-      GDFGrid, \
-      GDFHierarchy, \
-      GDFDataset
-
-from .fields import \
-      GDFFieldInfo
-add_gdf_field = GDFFieldInfo.add_field
-
-from .io import \
-      IOHandlerGDFHDF5
-
 from . import tests
+from .data_structures import GDFDataset, GDFGrid, GDFHierarchy
+from .fields import GDFFieldInfo
+from .io import IOHandlerGDFHDF5
+
+add_gdf_field = GDFFieldInfo.add_field

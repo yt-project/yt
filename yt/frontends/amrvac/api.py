@@ -13,13 +13,6 @@ API for yt.frontends.amrvac
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from .data_structures import \
-      AMRVACGrid, \
-      AMRVACHierarchy, \
-      AMRVACDataset
-
-from .fields import \
-      AMRVACFieldInfo
-
-from .io import \
-      AMRVACIOHandler
+from .data_structures import AMRVACDataset, AMRVACGrid, AMRVACHierarchy
+from .fields import AMRVACFieldInfo
+from .io import AMRVACIOHandler

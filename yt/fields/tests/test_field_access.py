@@ -1,12 +1,12 @@
-from yt.testing import fake_random_ds, assert_equal
 from yt.data_objects.profiles import create_profile
-from yt.visualization.plot_window import \
-    SlicePlot, \
-    ProjectionPlot, \
-    OffAxisProjectionPlot
-from yt.visualization.profile_plotter import \
-    ProfilePlot, \
-    PhasePlot
+from yt.testing import assert_equal, fake_random_ds
+from yt.visualization.plot_window import (
+    OffAxisProjectionPlot,
+    ProjectionPlot,
+    SlicePlot,
+)
+from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
+
 
 def test_field_access():
     ds = fake_random_ds(16)

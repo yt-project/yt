@@ -1,17 +1,19 @@
 
 import numpy as np
+
 from yt.testing import assert_almost_equal
-from yt.utilities.lib.element_mappings import \
-    test_tetra_sampler, \
-    test_hex_sampler, \
-    test_tri_sampler, \
-    test_quad_sampler, \
-    test_quad2_sampler, \
-    test_hex20_sampler, \
-    test_wedge_sampler, \
-    test_tri2_sampler, \
-    test_tet2_sampler, \
-    test_linear1D_sampler
+from yt.utilities.lib.element_mappings import (
+    test_hex20_sampler,
+    test_hex_sampler,
+    test_linear1D_sampler,
+    test_quad2_sampler,
+    test_quad_sampler,
+    test_tet2_sampler,
+    test_tetra_sampler,
+    test_tri2_sampler,
+    test_tri_sampler,
+    test_wedge_sampler,
+)
 
 
 def check_all_vertices(sampler, vertices, field_values):

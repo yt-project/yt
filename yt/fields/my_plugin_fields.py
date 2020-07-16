@@ -1,8 +1,5 @@
-from .field_plugin_registry import \
-    register_field_plugin
-
-from .local_fields import \
-    LocalFieldInfoContainer
+from .field_plugin_registry import register_field_plugin
+from .local_fields import LocalFieldInfoContainer
 
 # Empty FieldInfoContainer
 my_plugins_fields = LocalFieldInfoContainer(None, [], None)

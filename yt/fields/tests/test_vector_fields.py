@@ -1,12 +1,9 @@
 import numpy as np
 
-from yt.testing import \
-    assert_allclose_units, \
-    fake_random_ds, \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
+from yt.testing import assert_allclose_units, fake_random_ds, requires_file
 from yt.units import cm, s
+from yt.utilities.answer_testing.framework import data_dir_load
+
 
 def random_unit_vector(prng):
     v = prng.random_sample(3)

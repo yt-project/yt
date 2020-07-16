@@ -13,33 +13,28 @@ ytdata frontend tests using enzo_tiny_cosmology
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.data_objects.api import \
-    create_profile
-from yt.frontends.ytdata.api import \
-    YTDataContainerDataset, \
-    YTSpatialPlotDataset, \
-    YTGridDataset, \
-    YTNonspatialDataset, \
-    YTProfileDataset
-from yt.frontends.ytdata.tests.test_outputs import \
-    compare_unit_attributes, \
-    YTDataFieldTest
-from yt.testing import \
-    assert_allclose_units, \
-    assert_array_equal, \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load
-from yt.units.yt_array import \
-    YTArray
-from yt.visualization.profile_plotter import \
-    ProfilePlot, \
-    PhasePlot
-import numpy as np
-import tempfile
 import os
 import shutil
+import tempfile
+
+import numpy as np
+
+from yt.data_objects.api import create_profile
+from yt.frontends.ytdata.api import (
+    YTDataContainerDataset,
+    YTGridDataset,
+    YTNonspatialDataset,
+    YTProfileDataset,
+    YTSpatialPlotDataset,
+)
+from yt.frontends.ytdata.tests.test_outputs import (
+    YTDataFieldTest,
+    compare_unit_attributes,
+)
+from yt.testing import assert_allclose_units, assert_array_equal, requires_file
+from yt.units.yt_array import YTArray
+from yt.utilities.answer_testing.framework import data_dir_load, requires_ds
+from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 ytdata_dir = "ytdata_test"

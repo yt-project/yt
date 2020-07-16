@@ -1,6 +1,6 @@
-from yt.utilities.on_demand_imports import _h5py as h5py
-from yt.utilities.on_demand_imports import NotAModule
 from contextlib import contextmanager
+
+from yt.utilities.on_demand_imports import NotAModule, _h5py as h5py
 
 
 def valid_hdf5_signature(fn):

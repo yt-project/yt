@@ -5,7 +5,8 @@ Created on Wed Feb 18 18:24:09 2015
 @author: stuart
 """
 
-from .. hierarchy_inspection import find_lowest_subclasses
+from ..hierarchy_inspection import find_lowest_subclasses
+
 
 class level1:
     pass

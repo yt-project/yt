@@ -1,9 +1,10 @@
-from yt.data_objects.time_series import get_filenames_from_glob_pattern
-
-from pathlib import Path
 import os
 import tempfile
+from pathlib import Path
+
+from yt.data_objects.time_series import get_filenames_from_glob_pattern
 from yt.testing import assert_raises
+
 
 def test_pattern_expansion():
     file_list = ["fake_data_file_{}".format(str(i).zfill(4)) for i in range(10)]

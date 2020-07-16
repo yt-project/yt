@@ -1,8 +1,8 @@
-import pickle
 import os
+import pickle
 import tempfile
-from yt.testing \
-    import fake_random_ds, assert_equal
+
+from yt.testing import assert_equal, fake_random_ds
 
 
 def setup():

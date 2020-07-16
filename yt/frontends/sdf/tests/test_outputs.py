@@ -1,11 +1,11 @@
-import numpy as np
 import socket
 import urllib
-from yt.testing import assert_equal
-from yt.frontends.sdf.api import SDFDataset
-from yt.visualization.api import ProjectionPlot
-from yt.testing import requires_module
 
+import numpy as np
+
+from yt.frontends.sdf.api import SDFDataset
+from yt.testing import assert_equal, requires_module
+from yt.visualization.api import ProjectionPlot
 
 _fields = (('deposit', 'all_cic'))
 slac_scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128/ds14_scivis_0128_e4_dt04_1.0000"

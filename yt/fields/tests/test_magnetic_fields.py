@@ -1,7 +1,9 @@
 import numpy as np
-from yt.utilities.physical_constants import mu_0
-from yt.testing import assert_almost_equal
+
 from yt.frontends.stream.api import load_uniform_grid
+from yt.testing import assert_almost_equal
+from yt.utilities.physical_constants import mu_0
+
 
 def setup():
     from yt.config import ytcfg

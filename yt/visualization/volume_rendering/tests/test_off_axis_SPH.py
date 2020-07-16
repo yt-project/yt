@@ -1,13 +1,9 @@
-from yt.visualization.volume_rendering import \
-    off_axis_projection as OffAP
-from yt.testing import \
-    fake_sph_orientation_ds, \
-    assert_almost_equal, \
-    requires_module
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_sph_kernel_projection
 import numpy as np
+
+from yt.testing import assert_almost_equal, fake_sph_orientation_ds, requires_module
+from yt.utilities.lib.pixelization_routines import pixelize_sph_kernel_projection
 from yt.utilities.on_demand_imports import _scipy
+from yt.visualization.volume_rendering import off_axis_projection as OffAP
 
 spatial = _scipy.spatial
 ndimage = _scipy.ndimage

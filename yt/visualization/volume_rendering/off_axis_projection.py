@@ -1,17 +1,19 @@
 
-from .scene import Scene
+import numpy as np
+
+from yt.data_objects.api import ImageArray
+from yt.funcs import iterable, mylog
+from yt.units.unit_object import Unit
+from yt.utilities.lib.partitioned_grid import PartitionedGrid
+from yt.utilities.lib.pixelization_routines import (
+    normalization_2d_utility,
+    off_axis_projection_SPH,
+)
+
 from .render_source import VolumeSource
+from .scene import Scene
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
-from yt.funcs import mylog, iterable
-from yt.utilities.lib.partitioned_grid import \
-    PartitionedGrid
-from yt.units.unit_object import Unit
-from yt.data_objects.api import ImageArray
-from yt.utilities.lib.pixelization_routines import \
-    off_axis_projection_SPH, \
-    normalization_2d_utility
-import numpy as np
 
 
 def off_axis_projection(data_source, center, normal_vector,

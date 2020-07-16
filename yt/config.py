@@ -1,6 +1,6 @@
+import configparser
 import os
 import warnings
-import configparser
 
 ytcfg_defaults = dict(
     serialize = 'False',

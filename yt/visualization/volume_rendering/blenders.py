@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def enhance(im, stdval=6.0, just_alpha=True):
     if just_alpha:
         nz = im[im>0.0]
@@ -25,4 +26,3 @@ def enhance_rgba(im, stdval=6.0):
 
     im.rescale(amax=amax, cmax=cmax, inline=True)
     np.clip(im, 0.0, 1.0, im)
-

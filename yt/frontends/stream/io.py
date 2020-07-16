@@ -1,9 +1,9 @@
 import numpy as np
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.exceptions import YTDomainOverflow
+from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.logger import ytLogger as mylog
+
 
 class IOHandlerStream(BaseIOHandler):
 
@@ -286,4 +286,3 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
                 ind += g.select(selector, ds, rv[field], ind) # caches
             rv[field] = rv[field][:ind]
         return rv
-

@@ -1,15 +1,14 @@
 import numpy as np
 
-from yt.testing import \
-    assert_equal, \
-    fake_particle_ds, \
-    fake_sph_orientation_ds
-from yt.frontends.stream.api import load_uniform_grid, \
-    refine_amr, \
-    load_amr_grids, \
-    load_particles
-import yt.utilities.initial_conditions as ic
 import yt.utilities.flagging_methods as fm
+import yt.utilities.initial_conditions as ic
+from yt.frontends.stream.api import (
+    load_amr_grids,
+    load_particles,
+    load_uniform_grid,
+    refine_amr,
+)
+from yt.testing import assert_equal, fake_particle_ds, fake_sph_orientation_ds
 
 # Field information
 

@@ -1,23 +1,19 @@
 import numpy as np
 
-from .derived_field import \
-    ValidateParameter, \
-    ValidateSpatial
+from yt.utilities.lib.geometry_utils import compute_morton
+from yt.utilities.math_utils import (
+    get_cyl_r,
+    get_cyl_theta,
+    get_cyl_z,
+    get_sph_phi,
+    get_sph_r,
+    get_sph_theta,
+)
 
-from .field_functions import \
-    get_periodic_rvec, \
-    get_radius
+from .derived_field import ValidateParameter, ValidateSpatial
+from .field_functions import get_periodic_rvec, get_radius
+from .field_plugin_registry import register_field_plugin
 
-from .field_plugin_registry import \
-    register_field_plugin
-
-from yt.utilities.math_utils import \
-    get_cyl_r, get_cyl_theta, \
-    get_cyl_z, get_sph_r, \
-    get_sph_theta, get_sph_phi
-
-from yt.utilities.lib.geometry_utils import \
-    compute_morton
 
 @register_field_plugin
 def setup_geometric_fields(registry, ftype="gas", slice_info=None):

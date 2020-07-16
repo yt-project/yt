@@ -1,7 +1,6 @@
 from yt.frontends.sph.fields import SPHFieldInfo
-from yt.utilities.physical_constants import mp, kb
-from yt.utilities.physical_ratios import \
-    _primordial_mass_fraction
+from yt.utilities.physical_constants import kb, mp
+from yt.utilities.physical_ratios import _primordial_mass_fraction
 
 
 class GadgetFieldInfo(SPHFieldInfo):

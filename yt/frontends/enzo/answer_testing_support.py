@@ -1,18 +1,19 @@
-import numpy as np
 import os
-
 from functools import wraps
+
+import numpy as np
 
 from yt.config import ytcfg
 from yt.convenience import load
 from yt.testing import assert_allclose
-from yt.utilities.answer_testing.framework import \
-    AnswerTestingTest, \
-    can_run_ds, \
-    FieldValuesTest, \
-    GridValuesTest, \
-    ProjectionValuesTest, \
-    temp_cwd
+from yt.utilities.answer_testing.framework import (
+    AnswerTestingTest,
+    FieldValuesTest,
+    GridValuesTest,
+    ProjectionValuesTest,
+    can_run_ds,
+    temp_cwd,
+)
 
 
 class AssertWrapper:

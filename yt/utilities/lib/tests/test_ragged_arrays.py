@@ -1,10 +1,7 @@
 import numpy as np
 
+from yt.testing import assert_equal, assert_rel_equal
 from yt.utilities.lib.ragged_arrays import index_unop
-from yt.testing import \
-    assert_equal, \
-    assert_rel_equal
-
 
 operations = ((np.sum, "sum"),
               (np.prod, "prod"),

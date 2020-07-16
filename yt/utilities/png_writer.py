@@ -1,6 +1,7 @@
+from io import BytesIO
+
 import matplotlib._png as _png
 
-from io import BytesIO
 
 def call_png_write_png(buffer, width, height, fileobj, dpi):
     _png.write_png(buffer, fileobj, dpi)

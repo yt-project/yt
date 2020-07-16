@@ -1,16 +1,20 @@
 import numpy as np
 
 from yt.testing import assert_array_almost_equal
-from yt.utilities.math_utils import \
-    get_sph_r_component, \
-    get_sph_theta_component, \
-    get_sph_phi_component, \
-    get_cyl_r_component, \
-    get_cyl_z_component, \
-    get_cyl_theta_component, \
-    get_cyl_r, get_cyl_theta, \
-    get_cyl_z, get_sph_r, \
-    get_sph_theta, get_sph_phi
+from yt.utilities.math_utils import (
+    get_cyl_r,
+    get_cyl_r_component,
+    get_cyl_theta,
+    get_cyl_theta_component,
+    get_cyl_z,
+    get_cyl_z_component,
+    get_sph_phi,
+    get_sph_phi_component,
+    get_sph_r,
+    get_sph_r_component,
+    get_sph_theta,
+    get_sph_theta_component,
+)
 
 # Randomly generated coordinates in the domain [[-1,1],[-1,1],-1,1]]
 coords = np.array([[-0.41503037, -0.22102472, -0.55774212],

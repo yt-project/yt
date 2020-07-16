@@ -1,11 +1,5 @@
-from sympy import \
-    symarray, \
-    diff, \
-    ccode, \
-    Matrix, \
-    MatrixSymbol
 import yaml
-
+from sympy import Matrix, MatrixSymbol, ccode, diff, symarray
 
 # define some templates used below
 fun_signature = '''cdef void %s(double* fx,

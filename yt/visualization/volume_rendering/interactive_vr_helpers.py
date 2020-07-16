@@ -1,9 +1,11 @@
 # This part of the experimental Interactive Data Visualization
 
 import numpy as np
-from yt.funcs import mylog
+
 from yt.data_objects.static_output import Dataset
+from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
+
 
 def _render_opengl(data_source, field=None, window_size=None, cam_position=None,
                    cam_focus=None):

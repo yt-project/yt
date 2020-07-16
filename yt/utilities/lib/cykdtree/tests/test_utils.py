@@ -1,7 +1,9 @@
 import numpy as np
 from nose.tools import assert_equal
-from yt.utilities.lib.cykdtree.tests import parametrize, assert_less_equal
+
 from yt.utilities.lib.cykdtree import utils
+from yt.utilities.lib.cykdtree.tests import assert_less_equal, parametrize
+
 
 def test_max_pts():
     pts = np.arange(5*3).reshape((5, 3)).astype('float64')

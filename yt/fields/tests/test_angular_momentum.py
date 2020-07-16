@@ -1,8 +1,7 @@
 import numpy as np
 
-from yt.testing import \
-    assert_allclose_units, \
-    fake_amr_ds
+from yt.testing import assert_allclose_units, fake_amr_ds
+
 
 def test_AM_value():
     ds = fake_amr_ds(fields=("Density", "velocity_x", "velocity_y", "velocity_z"), length_unit=0.5)

@@ -1,5 +1,4 @@
-from yt.utilities.exceptions import \
-    YTModuleRemoved
+from yt.utilities.exceptions import YTModuleRemoved
 
 raise YTModuleRemoved(
     "star_analysis",

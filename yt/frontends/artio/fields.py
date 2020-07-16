@@ -1,11 +1,8 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.units.yt_array import \
-    YTArray
-from yt.utilities.physical_constants import \
-    boltzmann_constant_cgs, \
-    amu_cgs
 import numpy as np
+
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.units.yt_array import YTArray
+from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"

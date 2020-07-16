@@ -1,39 +1,30 @@
 import os
-import numpy as np
 import weakref
 from collections import defaultdict
 from glob import glob
 
-from yt.funcs import \
-    mylog, \
-    setdefaultattr
-from yt.geometry.oct_geometry_handler import \
-    OctreeIndex
-from yt.geometry.geometry_handler import \
-    YTDataChunk
-from yt.data_objects.static_output import \
-    Dataset
-from yt.data_objects.octree_subset import \
-    OctreeSubset
-from yt.data_objects.particle_filters import add_particle_filter
+import numpy as np
 
-from yt.utilities.physical_constants import mp, kb
-from yt.utilities.on_demand_imports import _f90nml as f90nml
-from .definitions import ramses_header, field_aliases, particle_families
-from .fields import \
-    RAMSESFieldInfo, _X
-from .hilbert import get_cpu_list
-from .particle_handlers import get_particle_handlers
-from .field_handlers import get_field_handlers
-from yt.utilities.cython_fortran_utils import FortranFile as fpu
-from yt.geometry.oct_container import \
-    RAMSESOctreeContainer
 from yt.arraytypes import blankRecordArray
+from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.particle_filters import add_particle_filter
+from yt.data_objects.static_output import Dataset
+from yt.funcs import mylog, setdefaultattr
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.oct_container import RAMSESOctreeContainer
+from yt.geometry.oct_geometry_handler import OctreeIndex
+from yt.utilities.cython_fortran_utils import FortranFile as fpu
+from yt.utilities.lib.cosmology_time import friedman
+from yt.utilities.on_demand_imports import _f90nml as f90nml
+from yt.utilities.physical_constants import kb, mp
 
-from yt.utilities.lib.cosmology_time import \
-    friedman
+from .definitions import field_aliases, particle_families, ramses_header
+from .field_handlers import get_field_handlers
+from .fields import _X, RAMSESFieldInfo
+from .hilbert import get_cpu_list
+from .io_utils import fill_hydro, read_amr
+from .particle_handlers import get_particle_handlers
 
-from .io_utils import read_amr, fill_hydro
 
 class RAMSESDomainFile:
     _last_mask = None

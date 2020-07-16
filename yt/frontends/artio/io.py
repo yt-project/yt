@@ -1,7 +1,6 @@
 import numpy as np
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.utilities.io_handler import BaseIOHandler
 
 
 class IOHandlerARTIO(BaseIOHandler):

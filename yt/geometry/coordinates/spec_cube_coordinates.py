@@ -1,7 +1,6 @@
-from .cartesian_coordinates import \
-    CartesianCoordinateHandler
-from .coordinate_handler import \
-    _get_coord_fields
+from .cartesian_coordinates import CartesianCoordinateHandler
+from .coordinate_handler import _get_coord_fields
+
 
 class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
     name = "spectral_cube"
@@ -100,4 +99,3 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
     @property
     def image_axis_name(self):
         return self._image_axis_name
-

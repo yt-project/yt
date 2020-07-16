@@ -1,7 +1,7 @@
 import os
 
-from yt.frontends.gadget.simulation_handling import \
-    GadgetSimulation
+from yt.frontends.gadget.simulation_handling import GadgetSimulation
+
 
 class OWLSSimulation(GadgetSimulation):
     r"""

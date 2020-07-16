@@ -1,7 +1,8 @@
 import os
-from yt.utilities.cython_fortran_utils import FortranFile
-from yt.funcs import mylog
+
 from yt.config import ytcfg
+from yt.funcs import mylog
+from yt.utilities.cython_fortran_utils import FortranFile
 
 from .io import _read_part_file_descriptor
 

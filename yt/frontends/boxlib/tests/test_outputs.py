@@ -1,19 +1,19 @@
-from yt.testing import \
-    assert_equal, \
-    requires_file, \
-    units_override_check
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    small_patch_amr, \
-    data_dir_load, \
-    GridValuesTest
-from yt.frontends.boxlib.api import \
-    OrionDataset, \
-    NyxDataset, \
-    WarpXDataset, \
-    CastroDataset, \
-    MaestroDataset
-import numpy as np    
+import numpy as np
+
+from yt.frontends.boxlib.api import (
+    CastroDataset,
+    MaestroDataset,
+    NyxDataset,
+    OrionDataset,
+    WarpXDataset,
+)
+from yt.testing import assert_equal, requires_file, units_override_check
+from yt.utilities.answer_testing.framework import (
+    GridValuesTest,
+    data_dir_load,
+    requires_ds,
+    small_patch_amr,
+)
 
 # We don't do anything needing ghost zone generation right now, because these
 # are non-periodic datasets.

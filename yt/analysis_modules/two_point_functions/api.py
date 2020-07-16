@@ -1,5 +1,4 @@
-from yt.utilities.exceptions import \
-    YTModuleRemoved
+from yt.utilities.exceptions import YTModuleRemoved
 
 raise YTModuleRemoved(
     "two_point_functions",

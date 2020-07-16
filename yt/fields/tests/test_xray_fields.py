@@ -1,8 +1,11 @@
-from yt.fields.xray_emission_fields import \
-    add_xray_emissivity_field
-from yt.utilities.answer_testing.framework import \
-    requires_ds, can_run_ds, data_dir_load, \
-    ProjectionValuesTest, FieldValuesTest
+from yt.fields.xray_emission_fields import add_xray_emissivity_field
+from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    ProjectionValuesTest,
+    can_run_ds,
+    data_dir_load,
+    requires_ds,
+)
 
 
 def setup():

@@ -14,23 +14,18 @@ AdaptaHOP data-file handling function
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
+from operator import attrgetter
+
 import numpy as np
 
 from yt.funcs import mylog
-
-from yt.utilities.exceptions import \
-    YTDomainOverflow
-
-from yt.utilities.io_handler import \
-    BaseIOHandler
-
-from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.cython_fortran_utils import FortranFile
+from yt.utilities.exceptions import YTDomainOverflow
+from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.lib.geometry_utils import compute_morton
 
-from operator import attrgetter
+from .definitions import HALO_ATTRIBUTES, HEADER_ATTRIBUTES
 
-from .definitions import \
-    HEADER_ATTRIBUTES, HALO_ATTRIBUTES
 
 class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     _dataset_type = "adaptahop_binary"

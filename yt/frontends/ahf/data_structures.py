@@ -3,16 +3,11 @@ import os
 
 import numpy as np
 
-from yt.data_objects.static_output import \
-    Dataset
-from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogFile
-from yt.funcs import \
-    setdefaultattr
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
-from yt.utilities.cosmology import \
-    Cosmology
+from yt.data_objects.static_output import Dataset
+from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
+from yt.funcs import setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
+from yt.utilities.cosmology import Cosmology
 
 from .fields import AHFHalosFieldInfo
 

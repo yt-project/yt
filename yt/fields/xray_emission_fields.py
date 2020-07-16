@@ -1,19 +1,18 @@
-from yt.utilities.on_demand_imports import _h5py as h5py
-import numpy as np
 import os
+
+import numpy as np
 
 from yt.config import ytcfg
 from yt.fields.derived_field import DerivedField
-from yt.funcs import \
-    mylog, \
-    only_on_root, \
-    parse_h5_attr
-from yt.utilities.exceptions import YTFieldNotFound
-from yt.utilities.exceptions import YTException
-from yt.utilities.linear_interpolators import \
-    UnilinearFieldInterpolator, BilinearFieldInterpolator
+from yt.funcs import mylog, only_on_root, parse_h5_attr
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
+from yt.utilities.exceptions import YTException, YTFieldNotFound
+from yt.utilities.linear_interpolators import (
+    BilinearFieldInterpolator,
+    UnilinearFieldInterpolator,
+)
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 data_version = {"cloudy": 2,
                 "apec": 3}

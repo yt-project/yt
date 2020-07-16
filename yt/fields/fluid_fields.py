@@ -1,29 +1,19 @@
 import numpy as np
 
-from yt.units.unit_object import Unit
-
-from .derived_field import \
-    ValidateSpatial, \
-    ValidateParameter
-
-from .field_plugin_registry import \
-    register_field_plugin
-
-from yt.geometry.geometry_handler import \
-    is_curvilinear
-
-from .vector_operations import \
-    create_averaged_field, \
-    create_magnitude_field, \
-    create_vector_fields
-
-from yt.utilities.chemical_formulas import \
-    default_mu
-
-from yt.utilities.lib.misc_utilities import \
-    obtain_relative_velocity_vector
-
 from yt.funcs import mylog
+from yt.geometry.geometry_handler import is_curvilinear
+from yt.units.unit_object import Unit
+from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
+
+from .derived_field import ValidateParameter, ValidateSpatial
+from .field_plugin_registry import register_field_plugin
+from .vector_operations import (
+    create_averaged_field,
+    create_magnitude_field,
+    create_vector_fields,
+)
+
 
 @register_field_plugin
 def setup_fluid_fields(registry, ftype = "gas", slice_info = None):

@@ -1,14 +1,12 @@
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
-from yt.frontends.gadget.data_structures import \
-    GadgetHDF5Dataset
-from yt.frontends.owls.fields import \
-    OWLSFieldInfo
 import yt.units
+from yt.frontends.gadget.data_structures import GadgetHDF5Dataset
+from yt.frontends.owls.fields import OWLSFieldInfo
+from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .fields import \
-    EagleNetworkFieldInfo
+from .fields import EagleNetworkFieldInfo
+
 
 class EagleDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"

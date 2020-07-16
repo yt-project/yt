@@ -1,13 +1,12 @@
 import os
-import numpy as np
 import weakref
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
+import numpy as np
+
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.geometry.grid_geometry_handler import GridIndex
+
 from .fields import SkeletonFieldInfo
 
 

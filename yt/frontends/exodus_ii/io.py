@@ -1,8 +1,7 @@
 import numpy as np
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.utilities.file_handler import \
-    NetCDF4FileHandler
+
+from yt.utilities.file_handler import NetCDF4FileHandler
+from yt.utilities.io_handler import BaseIOHandler
 
 
 class IOHandlerExodusII(BaseIOHandler):

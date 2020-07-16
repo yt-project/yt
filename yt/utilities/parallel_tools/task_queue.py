@@ -1,11 +1,13 @@
 import numpy as np
 
 from yt.funcs import mylog
-from .parallel_analysis_interface import \
-    communication_system, \
-    _get_comm, \
-    parallel_capable, \
-    ResultsStorage
+
+from .parallel_analysis_interface import (
+    ResultsStorage,
+    _get_comm,
+    communication_system,
+    parallel_capable,
+)
 
 messages = dict(
     task = dict(msg = 'next'),

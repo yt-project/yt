@@ -1,19 +1,12 @@
 import numpy as np
 
-from yt.visualization.fixed_resolution import \
-    ParticleImageBuffer
-from yt.funcs import \
-    ensure_list, \
-    fix_axis
+from yt.data_objects.profiles import create_profile
+from yt.funcs import ensure_list, fix_axis
 from yt.units.yt_array import YTArray
-from .plot_window import \
-    get_axes_unit, \
-    get_window_parameters, \
-    PWViewerMPL
-from yt.data_objects.profiles import \
-    create_profile
-from yt.visualization.profile_plotter import \
-    PhasePlot
+from yt.visualization.fixed_resolution import ParticleImageBuffer
+from yt.visualization.profile_plotter import PhasePlot
+
+from .plot_window import PWViewerMPL, get_axes_unit, get_window_parameters
 
 
 class ParticleAxisAlignedDummyDataSource:

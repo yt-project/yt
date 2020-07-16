@@ -1,5 +1,6 @@
 import numpy as np
 
+
 class FluidOperator:
     def apply(self, ds):
         for g in ds.index.grids: self(g)

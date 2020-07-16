@@ -1,24 +1,16 @@
 import os
-import numpy as np
 import weakref
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile, \
-    validate_index_order
-from yt.funcs import \
-    mylog, \
-    setdefaultattr
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
-from yt.utilities.file_handler import \
-    HDF5FileHandler, \
-    warn_h5py
+import numpy as np
+
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
+from yt.funcs import mylog, setdefaultattr
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.geometry.particle_geometry_handler import ParticleIndex
+from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
 from yt.utilities.physical_ratios import cm_per_mpc
+
 from .fields import FLASHFieldInfo
 
 

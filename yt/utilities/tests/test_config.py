@@ -1,6 +1,15 @@
 import contextlib
 import os
 import sys
+import unittest
+from configparser import NoOptionError
+from io import StringIO
+
+import yt.config
+import yt.utilities.command_line
+from yt.config import _OLD_CONFIG_FILE, CONFIG_DIR, CURRENT_CONFIG_FILE, YTConfigParser
+from yt.fields.tests.test_fields_plugins import TEST_PLUGIN_FILE
+
 if sys.version_info.major < 3:
     try:
         import mock
@@ -8,14 +17,6 @@ if sys.version_info.major < 3:
         mock = None
 else:
     import unittest.mock as mock
-import unittest
-import yt.utilities.command_line
-import yt.config
-from yt.config import \
-    CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE, CONFIG_DIR, YTConfigParser
-from io import StringIO
-from configparser import NoOptionError
-from yt.fields.tests.test_fields_plugins import TEST_PLUGIN_FILE
 
 _TEST_PLUGIN = '_test_plugin.py'
 _DUMMY_CFG = ['[yt]', 'loglevel = 49', 'pluginfilename = ' + _TEST_PLUGIN]

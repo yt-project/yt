@@ -1,5 +1,6 @@
-from yt.testing import fake_random_ds, fake_amr_ds, assert_equal
 import numpy as np
+
+from yt.testing import assert_equal, fake_amr_ds, fake_random_ds
 
 
 def setup():

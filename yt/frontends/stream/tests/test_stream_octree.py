@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 OCT_MASK_LIST = [8, 0, 0, 0, 0, 8, 0, 0,
                  0, 0, 0, 0, 0, 0, 0, 0,

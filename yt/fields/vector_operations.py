@@ -1,24 +1,19 @@
 import numpy as np
 
-from .derived_field import \
-    ValidateParameter, \
-    ValidateSpatial, \
-    NeedsParameter
-
-from yt.utilities.math_utils import \
-    get_sph_r_component, \
-    get_sph_theta_component, \
-    get_sph_phi_component, \
-    get_cyl_r_component, \
-    get_cyl_z_component, \
-    get_cyl_theta_component
-
-from yt.funcs import just_one, iterable
-
-from yt.geometry.geometry_handler import \
-    is_curvilinear
-
+from yt.funcs import iterable, just_one
+from yt.geometry.geometry_handler import is_curvilinear
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
+from yt.utilities.math_utils import (
+    get_cyl_r_component,
+    get_cyl_theta_component,
+    get_cyl_z_component,
+    get_sph_phi_component,
+    get_sph_r_component,
+    get_sph_theta_component,
+)
+
+from .derived_field import NeedsParameter, ValidateParameter, ValidateSpatial
+
 
 def get_bulk(data, basename, unit):
     if data.has_field_parameter("bulk_%s" % basename):

@@ -1,10 +1,9 @@
-import numpy as np
 import random
 
-from yt.testing import \
-    assert_equal, assert_raises
-from yt.frontends.stream.api import \
-    load_amr_grids
+import numpy as np
+
+from yt.frontends.stream.api import load_amr_grids
+from yt.testing import assert_equal, assert_raises
 
 
 def setup_test_ds():

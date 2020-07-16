@@ -1,14 +1,16 @@
 import numpy as np
 
-from yt.testing import \
-    fake_random_ds, \
-    assert_array_equal, \
-    assert_array_less, \
-    assert_equal, \
-    assert_raises
-from yt.utilities.lib.misc_utilities import \
-    obtain_position_vector, \
-    obtain_relative_velocity_vector
+from yt.testing import (
+    assert_array_equal,
+    assert_array_less,
+    assert_equal,
+    assert_raises,
+    fake_random_ds,
+)
+from yt.utilities.lib.misc_utilities import (
+    obtain_position_vector,
+    obtain_relative_velocity_vector,
+)
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 

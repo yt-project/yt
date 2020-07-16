@@ -1,17 +1,18 @@
-from yt.testing import \
-    requires_file, \
-    assert_equal, \
-    units_override_check, \
-    assert_almost_equal, \
-    ParticleSelectionComparison
-from yt.units.yt_array import \
-    YTQuantity
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    FieldValuesTest, \
-    PixelizedProjectionValuesTest, \
-    data_dir_load
 from yt.frontends.art.api import ARTDataset
+from yt.testing import (
+    ParticleSelectionComparison,
+    assert_almost_equal,
+    assert_equal,
+    requires_file,
+    units_override_check,
+)
+from yt.units.yt_array import YTQuantity
+from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    PixelizedProjectionValuesTest,
+    data_dir_load,
+    requires_ds,
+)
 
 _fields = (
     ("gas", "density"),

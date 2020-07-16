@@ -1,14 +1,10 @@
 from collections import OrderedDict
 
 import yt
-from yt.testing import \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    sph_answer
 from yt.frontends.gizmo.api import GizmoDataset
 from yt.frontends.gizmo.fields import metal_elements
-
+from yt.testing import requires_file
+from yt.utilities.answer_testing.framework import requires_ds, sph_answer
 
 # This maps from field names to weight field names to use for projections
 fields = OrderedDict(

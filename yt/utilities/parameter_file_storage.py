@@ -3,10 +3,10 @@ import os.path
 from itertools import islice
 
 from yt.config import ytcfg
-from yt.funcs import \
-    mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_simple_proxy
+from yt.funcs import mylog
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    parallel_simple_proxy,
+)
 
 output_type_registry = {}
 simulation_time_series_registry = {}

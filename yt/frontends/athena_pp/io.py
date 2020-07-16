@@ -1,9 +1,10 @@
-import numpy as np
 from itertools import groupby
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
+import numpy as np
+
+from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+
 
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
 def grid_sequences(grids):

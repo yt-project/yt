@@ -1,13 +1,11 @@
-import string
 import re
+import string
+
 import numpy as np
 
-from yt.utilities.physical_constants import \
-    boltzmann_constant_cgs, amu_cgs, c
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.units import YTQuantity
-
+from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs, c
 
 rho_units = "code_mass / code_length**3"
 mom_units = "code_mass / (code_time * code_length**2)"

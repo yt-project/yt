@@ -1,25 +1,35 @@
-import numpy as np
 from functools import wraps
-from yt.config import \
-    ytcfg
-from yt.funcs import mylog, ensure_numpy_array, iterable
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
-from yt.utilities.amr_kdtree.api import AMRKDTree
-from .transfer_function_helper import TransferFunctionHelper
-from .transfer_functions import TransferFunction, \
-    ProjectionTransferFunction, ColorTransferFunction
-from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler, new_mesh_sampler, \
-    new_interpolated_projection_sampler
-from yt.utilities.lib.bounding_volume_hierarchy import BVH
-from yt.visualization.image_writer import apply_colormap
-from yt.data_objects.image_array import ImageArray
-from .zbuffer_array import ZBuffer
-from yt.utilities.lib.misc_utilities import \
-    zlines, zpoints
 
+import numpy as np
+
+from yt.config import ytcfg
+from yt.data_objects.image_array import ImageArray
+from yt.funcs import ensure_numpy_array, iterable, mylog
+from yt.utilities.amr_kdtree.api import AMRKDTree
+from yt.utilities.lib.bounding_volume_hierarchy import BVH
+from yt.utilities.lib.misc_utilities import zlines, zpoints
 from yt.utilities.on_demand_imports import NotAModule
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+)
+from yt.visualization.image_writer import apply_colormap
+
+from .transfer_function_helper import TransferFunctionHelper
+from .transfer_functions import (
+    ColorTransferFunction,
+    ProjectionTransferFunction,
+    TransferFunction,
+)
+from .utils import (
+    data_source_or_all,
+    get_corners,
+    new_interpolated_projection_sampler,
+    new_mesh_sampler,
+    new_projection_sampler,
+    new_volume_render_sampler,
+)
+from .zbuffer_array import ZBuffer
+
 try:
     from yt.utilities.lib.embree_mesh import mesh_traversal
 # Catch ValueError in case size of objects in Cython change

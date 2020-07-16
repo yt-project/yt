@@ -1,7 +1,7 @@
 import numpy as np
 
-from yt.testing import fake_random_ds, assert_equal
 from yt.frontends.stream.data_structures import load_uniform_grid
+from yt.testing import assert_equal, fake_random_ds
 
 
 def test_exclude_above():
@@ -88,4 +88,3 @@ def test_inside_outside():
     only_threes = ad.include_outside('density', 0.9e6, 2.1e6, 'g/m**3')
     assert np.all(only_threes['density'] == 3)
     assert len(only_threes['density']) == 10
- 

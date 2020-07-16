@@ -1,19 +1,15 @@
 import numpy as np
 
-from yt.utilities.on_demand_imports import \
-    _h5py as h5py
-
-from yt.testing import \
-    assert_equal, \
-    requires_file, \
-    assert_array_equal
-from yt.utilities.answer_testing.framework import \
-    create_obj, \
-    data_dir_load, \
-    requires_ds, \
-    PixelizedProjectionValuesTest, \
-    FieldValuesTest
 from yt.frontends.enzo_p.api import EnzoPDataset
+from yt.testing import assert_array_equal, assert_equal, requires_file
+from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    PixelizedProjectionValuesTest,
+    create_obj,
+    data_dir_load,
+    requires_ds,
+)
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 _fields = ("density", "total_energy",
            "velocity_x", "velocity_y")

@@ -1,16 +1,19 @@
 import numpy as np
-from yt.testing import \
-    assert_equal, \
-    requires_file, \
-    units_override_check, \
-    assert_allclose
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    small_patch_amr, \
-    data_dir_load, \
-    GenericArrayTest
-from yt.frontends.athena_pp.api import AthenaPPDataset
+
 from yt.convenience import load
+from yt.frontends.athena_pp.api import AthenaPPDataset
+from yt.testing import (
+    assert_allclose,
+    assert_equal,
+    requires_file,
+    units_override_check,
+)
+from yt.utilities.answer_testing.framework import (
+    GenericArrayTest,
+    data_dir_load,
+    requires_ds,
+    small_patch_amr,
+)
 
 _fields_disk = ("density", "velocity_r")
 

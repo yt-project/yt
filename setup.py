@@ -1,14 +1,17 @@
-import os
 import glob
+import os
 import sys
-from setuptools import setup, find_packages
-from setupext import \
-    check_for_openmp, \
-    check_for_pyembree, \
-    install_ccompiler, \
-    create_build_ext
 from distutils.version import LooseVersion
+
 import pkg_resources
+from setuptools import find_packages, setup
+
+from setupext import (
+    check_for_openmp,
+    check_for_pyembree,
+    create_build_ext,
+    install_ccompiler,
+)
 
 if sys.version_info < (3, 5):
     print("yt currently supports versions newer than Python 3.5")

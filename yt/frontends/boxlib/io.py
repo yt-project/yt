@@ -1,12 +1,13 @@
 import os
-import numpy as np
 from collections import defaultdict
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.funcs import mylog
+import numpy as np
+
 from yt.frontends.chombo.io import parse_orion_sinks
+from yt.funcs import mylog
 from yt.geometry.selection_routines import GridSelector
+from yt.utilities.io_handler import BaseIOHandler
+
 
 def _remove_raw(all_fields, raw_fields):
     centered_fields = set(all_fields)

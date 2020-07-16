@@ -4,6 +4,7 @@ import os.path
 
 from unyt.exceptions import UnitOperationError
 
+
 class YTException(Exception):
     def __init__(self, message = None, ds = None):
         Exception.__init__(self, message)

@@ -21,6 +21,7 @@ import xml.etree.ElementTree as ET
 import nose
 import numpy
 import requests
+
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
 from yt.utilities.command_line import FileStreamer

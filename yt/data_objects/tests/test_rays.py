@@ -1,14 +1,9 @@
 import numpy as np
 
-from yt import \
-    load
-from yt.testing import \
-    fake_random_ds, \
-    assert_equal, \
-    assert_rel_equal, \
-    requires_file
-from yt.units.yt_array import \
-    uconcatenate
+from yt import load
+from yt.testing import assert_equal, assert_rel_equal, fake_random_ds, requires_file
+from yt.units.yt_array import uconcatenate
+
 
 def test_ray():
     for nproc in [1, 2, 4, 8]:

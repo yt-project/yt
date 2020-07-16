@@ -1,18 +1,19 @@
 
 
 import numpy as np
+
 import yt
-
-from yt.testing import \
-    fake_random_ds, \
-    fake_sph_orientation_ds, \
-    fake_particle_ds, \
-    assert_almost_equal, \
-    assert_equal, \
-    assert_rel_equal, \
-    requires_file
-
 from yt import particle_filter
+from yt.testing import (
+    assert_almost_equal,
+    assert_equal,
+    assert_rel_equal,
+    fake_particle_ds,
+    fake_random_ds,
+    fake_sph_orientation_ds,
+    requires_file,
+)
+
 
 def setup():
     from yt.config import ytcfg

@@ -1,7 +1,6 @@
 import numpy as np
 
-from yt.utilities.operator_registry import \
-     OperatorRegistry
+from yt.utilities.operator_registry import OperatorRegistry
 
 clump_info_registry = OperatorRegistry()
 

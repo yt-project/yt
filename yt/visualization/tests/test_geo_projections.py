@@ -1,13 +1,12 @@
+import unittest
+
 from nose.plugins.attrib import attr
 
 import yt
-import unittest
-from yt.testing import \
-    ANSWER_TEST_TAG, \
-    fake_amr_ds, \
-    requires_module
+from yt.testing import ANSWER_TEST_TAG, fake_amr_ds, requires_module
 from yt.utilities.answer_testing.framework import GenericImageTest
-from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
+from yt.visualization.geo_plot_utils import get_mpl_transform, transform_list
+
 
 def setup():
     """Test specific setup."""
@@ -146,4 +145,3 @@ class TestNonGeoProjections(unittest.TestCase):
         assert self.ds.coordinates.data_transform[axis] is None
         assert self.slc._projection is None
         assert self.slc._transform is None
-

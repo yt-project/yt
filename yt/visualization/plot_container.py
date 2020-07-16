@@ -1,33 +1,27 @@
-import builtins
-from yt.funcs import mylog
-from yt.units import YTQuantity
-
 import base64
-import numpy as np
-import matplotlib
+import builtins
 import os
-
 from collections import defaultdict
 from functools import wraps
 
-from yt.config import \
-    ytcfg
-from yt.data_objects.time_series import \
-    DatasetSeries
-from yt.funcs import \
-    get_image_suffix, \
-    iterable, \
-    ensure_dir, \
-    ensure_list, \
-    issue_deprecation_warning
-from yt.units.unit_object import \
-    Unit
-from yt.utilities.definitions import \
-    formatted_length_unit_names
-from yt.utilities.exceptions import \
-    YTNotInsideNotebook
-from yt.visualization.color_maps import \
-    yt_colormaps
+import matplotlib
+import numpy as np
+
+from yt.config import ytcfg
+from yt.data_objects.time_series import DatasetSeries
+from yt.funcs import (
+    ensure_dir,
+    ensure_list,
+    get_image_suffix,
+    issue_deprecation_warning,
+    iterable,
+    mylog,
+)
+from yt.units import YTQuantity
+from yt.units.unit_object import Unit
+from yt.utilities.definitions import formatted_length_unit_names
+from yt.utilities.exceptions import YTNotInsideNotebook
+from yt.visualization.color_maps import yt_colormaps
 
 latex_prefixes = {
     "u": r"\mu",

@@ -2,16 +2,17 @@
 
 import argparse
 import os
-import sys
 import signal
+import sys
 
 from yt.config import ytcfg
-from yt.funcs import \
-    mylog, \
-    signal_print_traceback, \
-    signal_ipython, \
-    paste_traceback, \
-    paste_traceback_detailed
+from yt.funcs import (
+    mylog,
+    paste_traceback,
+    paste_traceback_detailed,
+    signal_ipython,
+    signal_print_traceback,
+)
 from yt.utilities import rpdb
 
 exe_name = os.path.basename(sys.executable)

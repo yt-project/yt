@@ -1,43 +1,29 @@
-import numpy as np
-import numpy.core.defchararray as np_char
 import os
 import time
 import uuid
-import weakref
 import warnings
-
+import weakref
 from collections import defaultdict
 
+import numpy as np
+import numpy.core.defchararray as np_char
+
 from yt.config import ytcfg
-from yt.funcs import \
-    ensure_list, \
-    mylog, \
-    setdefaultattr
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.geometry.geometry_handler import \
-    YTDataChunk
-from yt.data_objects.static_output import \
-    Dataset
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.funcs import ensure_list, issue_deprecation_warning, mylog, setdefaultattr
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.units import dimensions
+from yt.units.unit_lookup_table import default_unit_symbol_lut, unit_prefixes
 from yt.units.unit_object import UnitParseError
 from yt.units.yt_array import YTQuantity
-from yt.utilities.file_handler import \
-    FITSFileHandler
-from yt.utilities.io_handler import \
-    io_registry
-from .fields import FITSFieldInfo, \
-    WCSFITSFieldInfo, YTFITSFieldInfo
-from yt.utilities.decompose import \
-    decompose_array, get_psize
-from yt.funcs import issue_deprecation_warning
-from yt.units import dimensions
-from yt.units.unit_lookup_table import \
-    default_unit_symbol_lut, \
-    unit_prefixes
-from yt.utilities.on_demand_imports import \
-    _astropy, NotAModule
+from yt.utilities.decompose import decompose_array, get_psize
+from yt.utilities.file_handler import FITSFileHandler
+from yt.utilities.io_handler import io_registry
+from yt.utilities.on_demand_imports import NotAModule, _astropy
+
+from .fields import FITSFieldInfo, WCSFITSFieldInfo, YTFITSFieldInfo
 
 lon_prefixes = ["X","RA","GLON","LINEAR"]
 lat_prefixes = ["Y","DEC","GLAT","LINEAR"]

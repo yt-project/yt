@@ -1,6 +1,7 @@
 from yt.testing import fake_random_ds
 from yt.utilities.answer_testing.level_sets_tests import ExtractConnectedSetsTest
 
+
 def test_connected_sets():
     ds = fake_random_ds(16, nprocs=8, particles=16**3)
     data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.], (8, 'kpc'), (1, 'kpc'))

@@ -13,10 +13,10 @@ AMRVAC-specific IO functions
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 import numpy as np
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.geometry.selection_routines import \
-    GridSelector
+
+from yt.geometry.selection_routines import GridSelector
+from yt.utilities.io_handler import BaseIOHandler
+
 from .datfile_utils import get_single_block_field_data
 
 

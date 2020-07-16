@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def hilbert3d(X, bit_length):
     '''Compute the order using Hilbert indexing.
 

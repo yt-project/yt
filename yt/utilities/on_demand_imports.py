@@ -1,5 +1,7 @@
-from pkg_resources import parse_version
 import sys
+
+from pkg_resources import parse_version
+
 
 class NotAModule:
     """

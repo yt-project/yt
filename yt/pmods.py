@@ -193,10 +193,11 @@ Some implementation details
 """
 
 
-import sys
-import imp
-import types
 import builtins
+import imp
+import sys
+import types
+
 from mpi4py import MPI
 
 

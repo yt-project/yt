@@ -1,30 +1,31 @@
 from math import pi
 
-from yt.utilities.physical_ratios import \
-    mass_electron_grams, \
-    amu_grams, \
-    mass_hydrogen_grams, \
-    speed_of_light_cm_per_s, \
-    boltzmann_constant_erg_per_K, \
-    mass_sun_grams, \
-    mass_jupiter_grams, \
-    mass_mercury_grams, \
-    mass_venus_grams, \
-    mass_earth_grams, \
-    mass_mars_grams, \
-    mass_saturn_grams, \
-    mass_uranus_grams, \
-    mass_neptune_grams, \
-    planck_mass_grams, \
-    planck_length_cm, \
-    planck_time_s, \
-    planck_energy_erg, \
-    planck_charge_esu, \
-    planck_temperature_K, \
-    standard_gravity_cm_per_s2, \
-    newton_cgs, \
-    planck_cgs
 from yt.units.yt_array import YTQuantity
+from yt.utilities.physical_ratios import (
+    amu_grams,
+    boltzmann_constant_erg_per_K,
+    mass_earth_grams,
+    mass_electron_grams,
+    mass_hydrogen_grams,
+    mass_jupiter_grams,
+    mass_mars_grams,
+    mass_mercury_grams,
+    mass_neptune_grams,
+    mass_saturn_grams,
+    mass_sun_grams,
+    mass_uranus_grams,
+    mass_venus_grams,
+    newton_cgs,
+    planck_cgs,
+    planck_charge_esu,
+    planck_energy_erg,
+    planck_length_cm,
+    planck_mass_grams,
+    planck_temperature_K,
+    planck_time_s,
+    speed_of_light_cm_per_s,
+    standard_gravity_cm_per_s2,
+)
 
 mass_electron_cgs = YTQuantity(mass_electron_grams, 'g')
 mass_electron = mass_electron_cgs
@@ -137,4 +138,3 @@ eps_0 = (1.0/(clight**2*mu_0)).in_units("C**2/N/m**2")
 # Misc
 standard_gravity_cgs = YTQuantity(standard_gravity_cm_per_s2, "cm/s**2")
 standard_gravity = standard_gravity_cgs
-

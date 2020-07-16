@@ -1,11 +1,13 @@
 import numpy as np
 
-from yt.utilities.physical_ratios import \
-    boltzmann_constant_erg_per_K, \
-    cm_per_mpc, \
-    mass_hydrogen_grams, \
-    newton_cgs, \
-    rho_crit_g_cm3_h2
+from yt.utilities.physical_ratios import (
+    boltzmann_constant_erg_per_K,
+    cm_per_mpc,
+    mass_hydrogen_grams,
+    newton_cgs,
+    rho_crit_g_cm3_h2,
+)
+
 
 def cosmology_get_units(hubble_constant, omega_matter, box_size,
                         initial_redshift, current_redshift):

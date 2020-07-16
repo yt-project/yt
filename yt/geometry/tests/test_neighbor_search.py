@@ -1,11 +1,7 @@
 import numpy as np
 
-from yt.fields.particle_fields import \
-    add_nearest_neighbor_field
-from yt.testing import \
-    fake_particle_ds, \
-    assert_equal, \
-    assert_array_almost_equal
+from yt.fields.particle_fields import add_nearest_neighbor_field
+from yt.testing import assert_array_almost_equal, assert_equal, fake_particle_ds
 
 
 def test_neighbor_search():

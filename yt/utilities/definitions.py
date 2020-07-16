@@ -1,7 +1,17 @@
-from .physical_ratios import \
-   mpc_per_mpc, kpc_per_mpc, pc_per_mpc, au_per_mpc, rsun_per_mpc, \
-   miles_per_mpc, km_per_mpc, cm_per_mpc, sec_per_Gyr, sec_per_Myr, \
-   sec_per_year, sec_per_day
+from .physical_ratios import (
+    au_per_mpc,
+    cm_per_mpc,
+    km_per_mpc,
+    kpc_per_mpc,
+    miles_per_mpc,
+    mpc_per_mpc,
+    pc_per_mpc,
+    rsun_per_mpc,
+    sec_per_day,
+    sec_per_Gyr,
+    sec_per_Myr,
+    sec_per_year,
+)
 
 # The number of levels we expect to have at most
 MAXLEVEL=48

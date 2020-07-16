@@ -1,10 +1,9 @@
 import numpy as np
-from .coordinate_handler import \
-    CoordinateHandler, \
-    _unknown_coord, \
-    _get_coord_fields
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder, pixelize_aitoff
+
+from yt.utilities.lib.pixelization_routines import pixelize_aitoff, pixelize_cylinder
+
+from .coordinate_handler import CoordinateHandler, _get_coord_fields, _unknown_coord
+
 
 class SphericalCoordinateHandler(CoordinateHandler):
     name = "spherical"
@@ -286,4 +285,3 @@ class SphericalCoordinateHandler(CoordinateHandler):
         v2 = dd.quantities.total_quantity("cell_volume")
         print("Actual volume is                   %0.16e" % (v2))
         print("Relative difference: %0.16e" % (np.abs(v2-v1)/(v2+v1)))
-

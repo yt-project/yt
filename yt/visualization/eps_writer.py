@@ -1,16 +1,17 @@
-import pyx
+import matplotlib.pyplot as plt
 import numpy as np
 from matplotlib import cm
-import matplotlib.pyplot as plt
 
-from yt.config import \
-    ytcfg
+import pyx
+from yt.config import ytcfg
+from yt.funcs import issue_deprecation_warning
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
+
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot, ProfilePlot
-from yt.units.yt_array import YTQuantity
-from yt.units.unit_object import Unit
-from yt.funcs import issue_deprecation_warning
+
 
 def convert_frac_to_tex(string):
     frac_pos = string.find(r'\frac')
@@ -1366,4 +1367,3 @@ def return_colormap(cmap=None, label="", range=(0,1), log=False):
     if cmap is None:
         cmap = ytcfg.get("yt", "default_colormap")
     return {'cmap': cmap, 'name': label, 'range': range, 'log': log}
-    

@@ -1,12 +1,12 @@
 import os
 import shutil
 import tempfile
+from unittest import TestCase
 
 import numpy as np
 
-from unittest import TestCase
+from yt.testing import assert_almost_equal, assert_equal, fake_random_ds
 
-from yt.testing import fake_random_ds, assert_almost_equal, assert_equal
 
 def setup():
     from yt.config import ytcfg

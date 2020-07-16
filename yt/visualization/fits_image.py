@@ -1,22 +1,21 @@
-import numpy as np
-from itertools import count
-from yt.fields.derived_field import DerivedField
-from yt.funcs import mylog, iterable, fix_axis, ensure_list, \
-    issue_deprecation_warning
-from yt.visualization.fixed_resolution import FixedResolutionBuffer
-from yt.data_objects.image_array import ImageArray
-from yt.data_objects.construction_data_containers import YTCoveringGrid
-from yt.utilities.on_demand_imports import _astropy
-from yt.units.yt_array import YTQuantity, YTArray
-from yt.units.unit_object import Unit
-from yt.units import dimensions
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_root_only
-from yt.visualization.volume_rendering.off_axis_projection import \
-    off_axis_projection
 import re
 import sys
+from itertools import count
 from numbers import Number as numeric_type
+
+import numpy as np
+
+from yt.data_objects.construction_data_containers import YTCoveringGrid
+from yt.data_objects.image_array import ImageArray
+from yt.fields.derived_field import DerivedField
+from yt.funcs import ensure_list, fix_axis, issue_deprecation_warning, iterable, mylog
+from yt.units import dimensions
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.on_demand_imports import _astropy
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
+from yt.visualization.fixed_resolution import FixedResolutionBuffer
+from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 
 
 class UnitfulHDU:

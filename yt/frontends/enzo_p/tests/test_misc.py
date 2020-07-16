@@ -1,11 +1,13 @@
 import numpy as np
 
-from yt.frontends.enzo_p.misc import \
-    get_block_info, \
-    get_root_blocks, \
-    get_root_block_id, \
-    is_parent, \
-    nested_dict_get
+from yt.frontends.enzo_p.misc import (
+    get_block_info,
+    get_root_block_id,
+    get_root_blocks,
+    is_parent,
+    nested_dict_get,
+)
+
 
 def get_random_block_string(max_n=64, random_state=None, level=None):
     if max_n == 1:

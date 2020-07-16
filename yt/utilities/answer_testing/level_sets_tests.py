@@ -1,9 +1,8 @@
 import numpy as np
 
-from yt.testing import \
-    assert_equal
-from yt.utilities.answer_testing.framework import \
-    AnswerTestingTest
+from yt.testing import assert_equal
+from yt.utilities.answer_testing.framework import AnswerTestingTest
+
 
 class ExtractConnectedSetsTest(AnswerTestingTest):
     _type_name = "ExtractConnectedSets"

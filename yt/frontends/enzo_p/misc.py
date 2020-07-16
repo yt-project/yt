@@ -1,7 +1,7 @@
 import numpy as np
 
-from yt.funcs import \
-    ensure_tuple
+from yt.funcs import ensure_tuple
+
 
 def bdecode(block):
     """

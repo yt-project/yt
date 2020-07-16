@@ -1,6 +1,8 @@
 import numpy as np
+
 from yt.frontends.stream.api import load_uniform_grid
 from yt.testing import assert_allclose
+
 
 def test_magnetic_code_units():
 

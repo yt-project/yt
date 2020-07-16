@@ -1,19 +1,12 @@
 import glob
 import os
-from yt.convenience import \
-    load
-from yt.funcs import \
-    only_on_root
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified
-from yt.utilities.logger import ytLogger as \
-    mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects
-from yt.data_objects.time_series import \
-    DatasetSeries, \
-    RegisteredSimulationTimeSeries
 
+from yt.convenience import load
+from yt.data_objects.time_series import DatasetSeries, RegisteredSimulationTimeSeries
+from yt.funcs import only_on_root
+from yt.utilities.exceptions import YTOutputNotIdentified
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 
 
 class ExodusIISimulation(DatasetSeries, metaclass = RegisteredSimulationTimeSeries):

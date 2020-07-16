@@ -1,17 +1,17 @@
-import matplotlib
-import numpy as np
-
 from distutils.version import LooseVersion
 from io import BytesIO
 
-from yt.funcs import \
-    get_image_suffix, \
-    mylog, \
-    iterable, \
-    get_brewer_cmap, \
-    matplotlib_style_context, \
-    get_interactivity
+import matplotlib
+import numpy as np
 
+from yt.funcs import (
+    get_brewer_cmap,
+    get_image_suffix,
+    get_interactivity,
+    iterable,
+    matplotlib_style_context,
+    mylog,
+)
 
 backend_dict = {'GTK': ['backend_gtk', 'FigureCanvasGTK',
                        'FigureManagerGTK'],

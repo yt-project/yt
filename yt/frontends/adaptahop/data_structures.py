@@ -14,26 +14,24 @@ Data structures for AdaptaHOP frontend.
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-import numpy as np
-import stat
 import os
 import re
+import stat
 
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
-from yt.data_objects.static_output import \
-    Dataset
-from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogFile, HaloCatalogParticleIndex
-from yt.funcs import \
-    setdefaultattr
-from yt.utilities.cython_fortran_utils import FortranFile
+import numpy as np
+
+from yt.data_objects.data_containers import YTSelectionContainer
+from yt.data_objects.static_output import Dataset
+from yt.frontends.halo_catalog.data_structures import (
+    HaloCatalogFile,
+    HaloCatalogParticleIndex,
+)
+from yt.funcs import setdefaultattr
 from yt.units import Mpc
+from yt.utilities.cython_fortran_utils import FortranFile
 
-from .definitions import \
-    HEADER_ATTRIBUTES
-from .fields import \
-    AdaptaHOPFieldInfo
+from .definitions import HEADER_ATTRIBUTES
+from .fields import AdaptaHOPFieldInfo
 
 
 class AdaptaHOPDataset(Dataset):

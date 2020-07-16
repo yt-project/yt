@@ -1,18 +1,14 @@
-from collections import OrderedDict
-from itertools import product
 import os
 import shutil
 import tempfile
+from collections import OrderedDict
+from itertools import product
 
 import yt
-from yt.testing import requires_file, \
-    ParticleSelectionComparison
-from yt.utilities.answer_testing.framework import \
-    data_dir_load, \
-    requires_ds, \
-    sph_answer
-from yt.frontends.gadget.api import GadgetHDF5Dataset, GadgetDataset
+from yt.frontends.gadget.api import GadgetDataset, GadgetHDF5Dataset
 from yt.frontends.gadget.testing import fake_gadget_binary
+from yt.testing import ParticleSelectionComparison, requires_file
+from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"
 isothermal_bin = "IsothermalCollapse/snap_505"
@@ -127,4 +123,3 @@ def test_bigendian_field_access():
     ds = data_dir_load(BE_Gadget)
     data = ds.all_data()
     data['Halo', 'Velocities']
-

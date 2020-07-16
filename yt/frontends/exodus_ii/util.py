@@ -1,9 +1,10 @@
-import numpy as np
-import sys
-import string
-from itertools import takewhile
-from collections import OrderedDict
 import re
+import string
+import sys
+from collections import OrderedDict
+from itertools import takewhile
+
+import numpy as np
 
 _printable = set([ord(_) for _ in string.printable])
 

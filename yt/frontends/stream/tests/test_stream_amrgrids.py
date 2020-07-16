@@ -1,11 +1,9 @@
 import numpy as np
-from yt.utilities.exceptions import \
-    YTIllDefinedAMR, \
-    YTIntDomainOverflow
 
-from yt import load_amr_grids, ProjectionPlot
-
+from yt import ProjectionPlot, load_amr_grids
 from yt.testing import assert_raises
+from yt.utilities.exceptions import YTIllDefinedAMR, YTIntDomainOverflow
+
 
 def test_qt_overflow():
     grid_data = []

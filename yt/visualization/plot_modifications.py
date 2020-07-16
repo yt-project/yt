@@ -1,48 +1,35 @@
 
 
+import re
 import warnings
+from functools import wraps
+from numbers import Number
 
 import matplotlib
 import numpy as np
-import re
 
-from functools import wraps
-
-from numbers import Number
-
-from yt.data_objects.level_sets.clump_handling import \
-    Clump
-from yt.frontends.ytdata.data_structures import \
-    YTClumpContainer
+from yt.data_objects.data_containers import YTDataContainer
+from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_data_containers import YTCutRegion
-from yt.data_objects.data_containers import \
-    YTDataContainer
-from yt.data_objects.static_output import \
-    Dataset
-from yt.funcs import \
-    iterable, \
-    mylog, \
-    validate_width_tuple
-from yt.geometry.geometry_handler import \
-    is_curvilinear
-from yt.units import dimensions
-from yt.units.yt_array import YTQuantity, YTArray, uhstack
-from yt.units.unit_object import Unit
-from yt.visualization.image_writer import apply_colormap
-from yt.utilities.lib.geometry_utils import triangle_plane_intersect
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_off_axis_cartesian, \
-    pixelize_cartesian
-from yt.utilities.lib.line_integral_convolution import \
-    line_integral_convolution_2d
+from yt.data_objects.static_output import Dataset
+from yt.frontends.ytdata.data_structures import YTClumpContainer
+from yt.funcs import iterable, mylog, validate_width_tuple
+from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
+from yt.units import dimensions
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTArray, YTQuantity, uhstack
+from yt.utilities.exceptions import YTDataTypeUnsupported
+from yt.utilities.lib.geometry_utils import triangle_plane_intersect
+from yt.utilities.lib.line_integral_convolution import line_integral_convolution_2d
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
-from yt.utilities.exceptions import \
-    YTDataTypeUnsupported
-from yt.utilities.math_utils import \
-    periodic_ray
-from yt.utilities.on_demand_imports import \
-    NotAModule
+from yt.utilities.lib.pixelization_routines import (
+    pixelize_cartesian,
+    pixelize_off_axis_cartesian,
+)
+from yt.utilities.math_utils import periodic_ray
+from yt.utilities.on_demand_imports import NotAModule
+from yt.visualization.image_writer import apply_colormap
 
 callback_registry = {}
 

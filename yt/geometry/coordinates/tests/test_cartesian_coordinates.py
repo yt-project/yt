@@ -2,9 +2,7 @@
 
 import numpy as np
 
-from yt.testing import \
-    fake_amr_ds, \
-    assert_equal
+from yt.testing import assert_equal, fake_amr_ds
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.

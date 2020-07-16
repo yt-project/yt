@@ -1,20 +1,20 @@
-import numpy as np
 import os
 import shutil
 import tempfile
 import unittest
 
-from yt.frontends.stream.data_structures import load_uniform_grid, \
-    load_particles
-from yt.testing import \
-    assert_equal, \
-    assert_raises
+import numpy as np
+
 from yt.convenience import load
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified, \
-    YTInconsistentGridFieldShape, \
-    YTInconsistentParticleFieldShape, \
-    YTInconsistentGridFieldShapeGridDims
+from yt.frontends.stream.data_structures import load_particles, load_uniform_grid
+from yt.testing import assert_equal, assert_raises
+from yt.utilities.exceptions import (
+    YTInconsistentGridFieldShape,
+    YTInconsistentGridFieldShapeGridDims,
+    YTInconsistentParticleFieldShape,
+    YTOutputNotIdentified,
+)
+
 
 class TestEmptyLoad(unittest.TestCase):
 

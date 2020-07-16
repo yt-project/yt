@@ -1,18 +1,21 @@
 import os
 import pickle
 import weakref
-from yt.utilities.on_demand_imports import _h5py as h5py
+
 import numpy as np
 
 from yt.config import ytcfg
 from yt.funcs import iterable
-from yt.units.yt_array import \
-    YTArray, uconcatenate
+from yt.units.yt_array import YTArray, uconcatenate
+from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_root_only
-from yt.utilities.exceptions import YTFieldNotFound
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+    parallel_root_only,
+)
+
 
 class Index(ParallelAnalysisInterface):
     """The base index class"""

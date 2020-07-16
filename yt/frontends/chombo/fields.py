@@ -1,11 +1,12 @@
 import numpy as np
-from yt.units.unit_object import Unit
-from yt.fields.field_info_container import \
-    FieldInfoContainer, \
-    particle_deposition_functions, \
-    particle_vector_functions, \
-    standard_particle_fields
 
+from yt.fields.field_info_container import (
+    FieldInfoContainer,
+    particle_deposition_functions,
+    particle_vector_functions,
+    standard_particle_fields,
+)
+from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 
 rho_units = "code_mass / code_length**3"

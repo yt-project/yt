@@ -40,4 +40,3 @@ class NeedsConfiguration(ValidationException):
 
 class FieldUnitsError(Exception):
     pass
-

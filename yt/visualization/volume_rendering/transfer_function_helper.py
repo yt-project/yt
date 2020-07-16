@@ -1,13 +1,12 @@
+from distutils.version import LooseVersion
+from io import BytesIO
+
 import matplotlib
 import numpy as np
 
-from distutils.version import LooseVersion
-
-from yt.funcs import mylog
 from yt.data_objects.profiles import create_profile
-from yt.visualization.volume_rendering.transfer_functions import \
-    ColorTransferFunction
-from io import BytesIO
+from yt.funcs import mylog
+from yt.visualization.volume_rendering.transfer_functions import ColorTransferFunction
 
 
 class TransferFunctionHelper:

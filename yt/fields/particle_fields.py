@@ -1,40 +1,30 @@
 import numpy as np
 
-from yt.fields.derived_field import \
-    ValidateParameter, \
-    ValidateSpatial
+from yt.fields.derived_field import ValidateParameter, ValidateSpatial
+from yt.fields.field_detector import FieldDetector
+from yt.funcs import issue_deprecation_warning
+from yt.units.yt_array import uconcatenate, ucross
+from yt.utilities.lib.misc_utilities import (
+    obtain_position_vector,
+    obtain_relative_velocity_vector,
+)
+from yt.utilities.math_utils import (
+    get_cyl_r,
+    get_cyl_r_component,
+    get_cyl_theta,
+    get_cyl_theta_component,
+    get_cyl_z,
+    get_cyl_z_component,
+    get_sph_phi,
+    get_sph_phi_component,
+    get_sph_r_component,
+    get_sph_theta,
+    get_sph_theta_component,
+    modify_reference_frame,
+)
 
-from yt.fields.field_detector import \
-    FieldDetector
-
-from yt.funcs import \
-    issue_deprecation_warning
-
-from yt.units.yt_array import \
-    uconcatenate, \
-    ucross
-
-from yt.utilities.math_utils import \
-    get_sph_r_component, \
-    get_sph_theta_component, \
-    get_sph_phi_component, \
-    get_cyl_r_component, \
-    get_cyl_z_component, \
-    get_cyl_theta_component, \
-    get_cyl_r, get_cyl_theta, \
-    get_cyl_z, \
-    get_sph_theta, get_sph_phi, \
-    modify_reference_frame
-
-from yt.utilities.lib.misc_utilities import \
-    obtain_relative_velocity_vector, \
-    obtain_position_vector
-
-from .vector_operations import \
-    create_magnitude_field
-
-from .field_functions import \
-    get_radius
+from .field_functions import get_radius
+from .vector_operations import create_magnitude_field
 
 sph_whitelist_fields = (
     'density',

@@ -4,6 +4,7 @@ from yt.funcs import mylog
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTException
 
+
 def _aligned(a, b):
     aligned_component = np.abs(np.dot(a, b) / np.linalg.norm(a) / np.linalg.norm(b))
     return np.isclose(aligned_component, 1.0, 1.0e-13)

@@ -1,4 +1,5 @@
-import numpy as np # For modern purposes
+import numpy as np  # For modern purposes
+
 from yt.utilities.lib.misc_utilities import grow_flagging_field
 
 flagging_method_registry = {}

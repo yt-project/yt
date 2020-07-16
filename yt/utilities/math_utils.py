@@ -1,7 +1,8 @@
-import numpy as np
 import math
-from yt.units.yt_array import \
-    YTArray
+
+import numpy as np
+
+from yt.units.yt_array import YTArray
 
 prec_accum = {
     np.int:                 np.int64,

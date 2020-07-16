@@ -1,8 +1,10 @@
-from io import StringIO
 import os
+from io import StringIO
+
 import numpy as np
 
 from yt.funcs import mylog
+
 
 def get_thingking_deps():
     try:

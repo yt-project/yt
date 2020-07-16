@@ -1,20 +1,17 @@
 import functools
+
 import numpy as np
 
-from yt.funcs import \
-    issue_deprecation_warning
+from yt.funcs import issue_deprecation_warning
 from yt.units import dimensions
-from yt.units.unit_registry import \
-    UnitRegistry
-from yt.units.unit_object import \
-    Unit
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
+from yt.units.unit_object import Unit
+from yt.units.unit_registry import UnitRegistry
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.physical_constants import (
+    gravitational_constant_cgs as G,
+    speed_of_light_cgs,
+)
 
-from yt.utilities.physical_constants import \
-     gravitational_constant_cgs as G, \
-     speed_of_light_cgs
 
 class Cosmology:
     r"""

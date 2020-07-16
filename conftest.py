@@ -18,7 +18,6 @@ import yt
 from yt.config import ytcfg
 from yt.utilities.answer_testing import utils
 
-
 # Global variables can be added to the pytest namespace
 answer_files = {}
 

@@ -2,15 +2,16 @@
 Title: answer_tests.py
 Purpose: Contains answer tests that are used by yt's various frontends
 """
+import hashlib
 import os
 import tempfile
 
-import hashlib
 import matplotlib.image as mpimg
 import numpy as np
 
-from . import utils
 import yt.visualization.plot_window as pw
+
+from . import utils
 
 
 def grid_hierarchy(ds):

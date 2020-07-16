@@ -1,9 +1,11 @@
 import os
-import tempfile
 import shutil
+import tempfile
+from unittest import TestCase
+
 import yt
 from yt.testing import fake_random_ds
-from unittest import TestCase
+
 
 def setup():
     """Test specific setup."""

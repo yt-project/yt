@@ -1,62 +1,54 @@
 import itertools
-import uuid
-
 import os
-import numpy as np
-import weakref
 import shelve
-
+import uuid
+import weakref
 from collections import defaultdict
 from contextlib import contextmanager
 
-from yt.fields.derived_field import \
-    DerivedField
-from yt.frontends.ytdata.utilities import \
-    save_as_dataset
-from yt.funcs import \
-    get_output_filename, \
-    mylog, \
-    ensure_list, \
-    fix_axis, \
-    iterable, \
-    validate_width_tuple
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
-import yt.units.dimensions as ytdims
-from unyt.exceptions import \
-    UnitConversionError, \
-    UnitParseError
-from yt.utilities.exceptions import \
-    YTFieldUnitError, \
-    YTFieldUnitParseError, \
-    YTSpatialFieldUnitError, \
-    YTCouldNotGenerateField, \
-    YTFieldNotParseable, \
-    YTFieldNotFound, \
-    YTFieldTypeNotFound, \
-    YTDataSelectorNotImplemented, \
-    YTDimensionalityError, \
-    YTNonIndexedDataContainer, \
-    YTBooleanObjectError, \
-    YTBooleanObjectsWrongDataset, YTException
-from yt.utilities.lib.marching_cubes import \
-    march_cubes_grid, march_cubes_grid_flux
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
-from yt.utilities.parameter_file_storage import \
-    ParameterFileStore
-from yt.utilities.amr_kdtree.api import \
-    AMRKDTree
-from .derived_quantities import DerivedQuantityCollection
-from yt.fields.field_exceptions import \
-    NeedsGridType
+import numpy as np
+from unyt.exceptions import UnitConversionError, UnitParseError
+
 import yt.geometry.selection_routines
-from yt.geometry.selection_routines import \
-    compose_selector
-from yt.units.yt_array import uconcatenate
+import yt.units.dimensions as ytdims
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
+from yt.fields.derived_field import DerivedField
+from yt.fields.field_exceptions import NeedsGridType
+from yt.frontends.ytdata.utilities import save_as_dataset
+from yt.funcs import (
+    ensure_list,
+    fix_axis,
+    get_output_filename,
+    iterable,
+    mylog,
+    validate_width_tuple,
+)
+from yt.geometry.selection_routines import compose_selector
+from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
+from yt.utilities.amr_kdtree.api import AMRKDTree
+from yt.utilities.exceptions import (
+    YTBooleanObjectError,
+    YTBooleanObjectsWrongDataset,
+    YTCouldNotGenerateField,
+    YTDataSelectorNotImplemented,
+    YTDimensionalityError,
+    YTException,
+    YTFieldNotFound,
+    YTFieldNotParseable,
+    YTFieldTypeNotFound,
+    YTFieldUnitError,
+    YTFieldUnitParseError,
+    YTNonIndexedDataContainer,
+    YTSpatialFieldUnitError,
+)
+from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+)
+from yt.utilities.parameter_file_storage import ParameterFileStore
+
+from .derived_quantities import DerivedQuantityCollection
 
 data_object_registry = {}
 

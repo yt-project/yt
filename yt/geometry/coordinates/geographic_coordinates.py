@@ -1,10 +1,9 @@
 import numpy as np
-from .coordinate_handler import \
-    CoordinateHandler, \
-    _unknown_coord, \
-    _get_coord_fields
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_cylinder, pixelize_cartesian
+
+from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
+
+from .coordinate_handler import CoordinateHandler, _get_coord_fields, _unknown_coord
+
 
 class GeographicCoordinateHandler(CoordinateHandler):
     radial_axis = "altitude"
@@ -492,4 +491,3 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
             outermost = factor * self.ds.domain_left_edge[ri] + offset
             width = [outermost, 2.0*outermost]
         return width
-

@@ -44,4 +44,3 @@ orion2enzoDict = {"amr.n_cell": "TopGridDimensions",
                   "comoving_OmM": "CosmologyOmegaMatterNow",
                   "comoving_h": "CosmologyHubbleConstantNow"
                   }
-

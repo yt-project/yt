@@ -2,10 +2,7 @@
 
 import numpy as np
 
-from yt.testing import \
-    fake_amr_ds, \
-    assert_equal, \
-    assert_allclose_units
+from yt.testing import assert_allclose_units, assert_equal, fake_amr_ds
 
 
 def test_object_bbox():

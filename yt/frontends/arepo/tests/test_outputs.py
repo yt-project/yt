@@ -1,12 +1,10 @@
 import os
 import tempfile
 from collections import OrderedDict
-from yt.testing import requires_file, ParticleSelectionComparison
-from yt.utilities.answer_testing.framework import \
-    data_dir_load, \
-    requires_ds, \
-    sph_answer
+
 from yt.frontends.arepo.api import ArepoHDF5Dataset
+from yt.testing import ParticleSelectionComparison, requires_file
+from yt.utilities.answer_testing.framework import data_dir_load, requires_ds, sph_answer
 
 bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
 tng59_h5 = "TNGHalo/halo_59.hdf5"

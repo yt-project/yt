@@ -1,40 +1,44 @@
 import argparse
 import base64
 import getpass
-import numpy as np
-import os
-import sys
-import subprocess
-import tempfile
 import json
+import os
 import pprint
+import subprocess
+import sys
+import tempfile
 import textwrap
-
-from yt.config import ytcfg, CURRENT_CONFIG_FILE
-ytcfg["yt","__command_line"] = "True"
-from yt.startup_tasks import parser, subparsers
-from yt.funcs import \
-    ensure_dir, \
-    ensure_list, \
-    get_hg_or_git_version, \
-    get_yt_version, \
-    mylog, \
-    ensure_dir_exists, \
-    update_hg_or_git, \
-    enable_plugins, \
-    download_file
 import urllib
 import urllib.request
 from urllib.parse import urlparse
-from yt.extern.tqdm import tqdm
+
+import numpy as np
+
+from yt.config import CURRENT_CONFIG_FILE, ytcfg
 from yt.convenience import load
-from yt.visualization.plot_window import \
-    SlicePlot, \
-    ProjectionPlot
-from yt.utilities.metadata import get_metadata
+from yt.extern.tqdm import tqdm
+from yt.funcs import (
+    download_file,
+    enable_plugins,
+    ensure_dir,
+    ensure_dir_exists,
+    ensure_list,
+    get_hg_or_git_version,
+    get_yt_version,
+    mylog,
+    update_hg_or_git,
+)
+from yt.startup_tasks import parser, subparsers
 from yt.utilities.configure import set_config
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified, YTFieldNotParseable, YTCommandRequiresModule
+from yt.utilities.exceptions import (
+    YTCommandRequiresModule,
+    YTFieldNotParseable,
+    YTOutputNotIdentified,
+)
+from yt.utilities.metadata import get_metadata
+from yt.visualization.plot_window import ProjectionPlot, SlicePlot
+
+ytcfg["yt","__command_line"] = "True"
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"

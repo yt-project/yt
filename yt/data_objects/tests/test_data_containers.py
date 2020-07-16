@@ -10,9 +10,15 @@ from numpy.testing import assert_array_equal
 
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.particle_filters import particle_filter
-from yt.testing import assert_equal, fake_random_ds, fake_amr_ds,\
-    fake_particle_ds, requires_module
+from yt.testing import (
+    assert_equal,
+    fake_amr_ds,
+    fake_particle_ds,
+    fake_random_ds,
+    requires_module,
+)
 from yt.utilities.exceptions import YTFieldNotFound
+
 
 class TestDataContainers(unittest.TestCase):
     @classmethod

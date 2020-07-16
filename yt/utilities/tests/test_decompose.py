@@ -1,6 +1,7 @@
-from yt.testing import assert_array_equal, assert_almost_equal
 import numpy as np
+
 import yt.utilities.decompose as dec
+from yt.testing import assert_almost_equal, assert_array_equal
 
 
 def setup():

@@ -1,14 +1,14 @@
-import numpy as np # NOQA
+import numpy as np  # NOQA
 
-import yt # NOQA
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, small_patch_amr
-from yt.testing import requires_file, \
-    assert_allclose_units, \
-    assert_raises
+import yt  # NOQA
 from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid
+from yt.testing import assert_allclose_units, assert_raises, requires_file
 from yt.units import YTQuantity
+from yt.utilities.answer_testing.framework import (
+    data_dir_load,
+    requires_ds,
+    small_patch_amr,
+)
 
 blastwave_spherical_2D = "amrvac/bw_2d0000.dat"
 khi_cartesian_2D = "amrvac/kh_2d0000.dat"

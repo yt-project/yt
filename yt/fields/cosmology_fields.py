@@ -1,10 +1,7 @@
-from .derived_field import \
-    ValidateParameter
-from .field_exceptions import \
-    NeedsConfiguration, \
-    NeedsParameter
-from .field_plugin_registry import \
-    register_field_plugin
+from .derived_field import ValidateParameter
+from .field_exceptions import NeedsConfiguration, NeedsParameter
+from .field_plugin_registry import register_field_plugin
+
 
 @register_field_plugin
 def setup_cosmology_fields(registry, ftype = "gas", slice_info = None):

@@ -1,13 +1,10 @@
 import warnings
 
-from yt.utilities.logger import \
-    ytLogger as mylog
+from yt.utilities.logger import ytLogger as mylog
 
-from .field_plugin_registry import \
-    register_field_plugin
+from .field_info_container import FieldInfoContainer
+from .field_plugin_registry import register_field_plugin
 
-from .field_info_container import \
-    FieldInfoContainer
 
 class LocalFieldInfoContainer(FieldInfoContainer):
     def add_field(self, name, function=None, sampling_type=None, **kwargs):

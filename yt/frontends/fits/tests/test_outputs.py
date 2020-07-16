@@ -1,15 +1,16 @@
-from yt.testing import \
-    assert_equal, \
-    requires_file, \
-    units_override_check
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    small_patch_amr, \
-    data_dir_load
-from ..data_structures import FITSDataset, \
-    SpectralCubeFITSDataset, \
-    SkyDataFITSDataset, \
-    EventsFITSDataset
+from yt.testing import assert_equal, requires_file, units_override_check
+from yt.utilities.answer_testing.framework import (
+    data_dir_load,
+    requires_ds,
+    small_patch_amr,
+)
+
+from ..data_structures import (
+    EventsFITSDataset,
+    FITSDataset,
+    SkyDataFITSDataset,
+    SpectralCubeFITSDataset,
+)
 
 _fields_grs = ("temperature",)
 
@@ -79,4 +80,3 @@ def test_EventsFITSDataset():
 @requires_file(A2052)
 def test_SkyDataFITSDataset():
     assert isinstance(data_dir_load(A2052), SkyDataFITSDataset)
-

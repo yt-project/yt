@@ -27,6 +27,8 @@ import os
 import sys
 import time
 
+from IPython.lib.inputhook import InputHookBase, inputhook_manager
+
 #-----------------------------------------------------------------------------
 # Platform-dependent imports and functions
 #-----------------------------------------------------------------------------
@@ -84,7 +86,6 @@ def create_inputhook_glfw(mgr, render_loop):
         return 0
     return inputhook_glfw
 
-from IPython.lib.inputhook import inputhook_manager, InputHookBase
 
 @inputhook_manager.register('glfw')
 class GLFWInputHook(InputHookBase):

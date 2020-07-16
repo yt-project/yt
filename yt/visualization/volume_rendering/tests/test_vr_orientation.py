@@ -1,15 +1,18 @@
 
 import numpy as np
 from nose.plugins.attrib import attr
+
 from yt.testing import ANSWER_TEST_TAG, fake_vr_orientation_test_ds
-from yt.utilities.answer_testing.framework import \
-    VRImageComparisonTest, \
-    GenericImageTest
-from yt.visualization.volume_rendering.api import \
-    Scene, \
-    VolumeSource, \
-    ColorTransferFunction, \
-    off_axis_projection
+from yt.utilities.answer_testing.framework import (
+    GenericImageTest,
+    VRImageComparisonTest,
+)
+from yt.visualization.volume_rendering.api import (
+    ColorTransferFunction,
+    Scene,
+    VolumeSource,
+    off_axis_projection,
+)
 
 
 @attr(ANSWER_TEST_TAG)

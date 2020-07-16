@@ -1,14 +1,13 @@
 from collections import OrderedDict
 
-from yt.testing import \
-    requires_file, \
-    ParticleSelectionComparison
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    sph_answer, \
-    nbody_answer
 from yt.frontends.tipsy.api import TipsyDataset
+from yt.testing import ParticleSelectionComparison, requires_file
+from yt.utilities.answer_testing.framework import (
+    data_dir_load,
+    nbody_answer,
+    requires_ds,
+    sph_answer,
+)
 
 _fields = OrderedDict(
     [

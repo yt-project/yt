@@ -1,8 +1,6 @@
 import numpy as np
 
-from yt.testing import \
-    fake_random_ds, \
-    assert_equal
+from yt.testing import assert_equal, fake_random_ds
 
 
 def test_ortho_ray():

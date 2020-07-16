@@ -1,17 +1,14 @@
 import numpy as np
 
-from .derived_field import \
-    ValidateParameter
+from yt.utilities.lib.misc_utilities import (
+    obtain_position_vector,
+    obtain_relative_velocity_vector,
+)
 
-from .field_plugin_registry import \
-    register_field_plugin
+from .derived_field import ValidateParameter
+from .field_plugin_registry import register_field_plugin
+from .vector_operations import create_magnitude_field
 
-from .vector_operations import \
-    create_magnitude_field
-
-from yt.utilities.lib.misc_utilities import \
-    obtain_position_vector, \
-    obtain_relative_velocity_vector
 
 @register_field_plugin
 def setup_angular_momentum(registry, ftype = "gas", slice_info = None):

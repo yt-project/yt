@@ -1,20 +1,18 @@
-import numpy as np
 import os
-from yt.utilities.on_demand_imports import \
-    _yaml as yaml
-from yt.testing import \
-     assert_almost_equal, \
-     assert_rel_equal, \
-     assert_equal, \
-     requires_file, \
-     requires_module
-from yt.units.yt_array import \
-     YTArray, \
-     YTQuantity
-from yt.utilities.answer_testing.framework import \
-     data_dir_load
-from yt.utilities.cosmology import \
-     Cosmology
+
+import numpy as np
+
+from yt.testing import (
+    assert_almost_equal,
+    assert_equal,
+    assert_rel_equal,
+    requires_file,
+    requires_module,
+)
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.answer_testing.framework import data_dir_load
+from yt.utilities.cosmology import Cosmology
+from yt.utilities.on_demand_imports import _yaml as yaml
 
 local_dir = os.path.dirname(os.path.abspath(__file__))
 

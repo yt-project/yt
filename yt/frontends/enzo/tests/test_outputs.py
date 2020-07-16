@@ -1,21 +1,22 @@
 import numpy as np
 
-from yt.testing import \
-    assert_almost_equal, \
-    assert_equal, \
-    requires_file, \
-    units_override_check, \
-    assert_array_equal, \
-    assert_allclose_units
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    small_patch_amr, \
-    big_patch_amr, \
-    data_dir_load
-from yt.visualization.plot_window import \
-    SlicePlot
 from yt.frontends.enzo.api import EnzoDataset
 from yt.frontends.enzo.fields import NODAL_FLAGS
+from yt.testing import (
+    assert_allclose_units,
+    assert_almost_equal,
+    assert_array_equal,
+    assert_equal,
+    requires_file,
+    units_override_check,
+)
+from yt.utilities.answer_testing.framework import (
+    big_patch_amr,
+    data_dir_load,
+    requires_ds,
+    small_patch_amr,
+)
+from yt.visualization.plot_window import SlicePlot
 
 _fields = ("temperature", "density", "velocity_magnitude",
            "velocity_divergence")

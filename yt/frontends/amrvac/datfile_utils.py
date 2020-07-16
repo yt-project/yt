@@ -1,4 +1,5 @@
 import struct
+
 import numpy as np
 
 # Size of basic types (in bytes)

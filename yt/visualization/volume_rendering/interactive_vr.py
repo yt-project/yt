@@ -1,23 +1,25 @@
 # This is a part of the experimental Interactive Data Visualization
 
-import OpenGL.GL as GL
+import ctypes
 from collections import OrderedDict
+
 import matplotlib.cm as cm
 import numpy as np
-import ctypes
 
-from yt.config import \
-    ytcfg
-from yt.utilities.math_utils import \
-    get_translate_matrix, \
-    get_scale_matrix, \
-    get_lookat_matrix, \
-    get_perspective_matrix, \
-    quaternion_mult, \
-    quaternion_to_rotation_matrix, \
-    rotation_matrix_to_quaternion
+import OpenGL.GL as GL
+from yt.config import ytcfg
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
-from .shader_objects import known_shaders, ShaderProgram
+from yt.utilities.math_utils import (
+    get_lookat_matrix,
+    get_perspective_matrix,
+    get_scale_matrix,
+    get_translate_matrix,
+    quaternion_mult,
+    quaternion_to_rotation_matrix,
+    rotation_matrix_to_quaternion,
+)
+
+from .shader_objects import ShaderProgram, known_shaders
 
 bbox_vertices = np.array(
       [[ 0.,  0.,  0.,  1.],

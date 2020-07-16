@@ -1,7 +1,9 @@
+from glob import glob
+
 import numpy as np
+
 from yt.utilities.grid_data_format.conversion.conversion_abc import Converter
 from yt.utilities.on_demand_imports import _h5py as h5
-from glob import glob
 
 translation_dict = {}
 translation_dict['density'] = 'density'
@@ -481,4 +483,3 @@ class AthenaConverter(Converter):
 #     fn = '%s.%04i'%(n[0],int(n[1]))
 #     grid = read_grid(fn+'.vtk')
 #     write_to_hdf5(fn+'.gdf',grid)
-    

@@ -1,26 +1,17 @@
-import numpy as np
 import os
 import shutil
 import tempfile
 
+import numpy as np
 
-from yt.data_objects.level_sets.api import \
-    add_clump_info, \
-    Clump, \
-    find_clumps
+from yt.convenience import load
+from yt.data_objects.level_sets.api import Clump, add_clump_info, find_clumps
 from yt.data_objects.level_sets.clump_info_items import clump_info_registry
-from yt.convenience import \
-    load
-from yt.fields.derived_field import \
-    ValidateParameter
-from yt.frontends.stream.api import \
-    load_uniform_grid
-from yt.testing import \
-    assert_array_equal, \
-    assert_equal, \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
+from yt.fields.derived_field import ValidateParameter
+from yt.frontends.stream.api import load_uniform_grid
+from yt.testing import assert_array_equal, assert_equal, requires_file
+from yt.utilities.answer_testing.framework import data_dir_load
+
 
 def test_clump_finding():
     n_c = 8

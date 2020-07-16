@@ -1,7 +1,8 @@
 import numpy as np
-from yt.utilities.logger import ytLogger as mylog
-from yt.geometry.geometry_handler import Index
+
 from yt.fields.field_detector import FieldDetector
+from yt.geometry.geometry_handler import Index
+from yt.utilities.logger import ytLogger as mylog
 
 
 class OctreeIndex(Index):
@@ -99,4 +100,3 @@ class OctreeIndex(Index):
             sampling_type="particle",
             units=units,
             take_log=take_log)
-
