@@ -246,14 +246,16 @@ class OpenPMDHierarchy(GridIndex):
     def _parse_index(self):
         """Fills each grid with appropriate properties (extent, dimensions, ...)
 
-        This calculates the properties of every OpenPMDGrid based on the total number of grids in the simulation.
-        The domain is divided into ``self.num_grids`` (roughly) equally sized chunks along the x-axis.
-        ``grid_levels`` is always equal to 0 since we only have one level of refinement in openPMD.
+        This calculates the properties of every OpenPMDGrid based on the total number of
+        grids in the simulation. The domain is divided into ``self.num_grids`` (roughly)
+        equally sized chunks along the x-axis. ``grid_levels`` is always equal to 0
+        since we only have one level of refinement in openPMD.
 
         Notes
         -----
-        ``self.grid_dimensions`` is rounded to the nearest integer. Grid edges are calculated from this dimension.
-        Grids with dimensions [0, 0, 0] are particle only. The others do not have any particles affiliated with them.
+        ``self.grid_dimensions`` is rounded to the nearest integer. Grid edges are
+        calculated from this dimension. Grids with dimensions [0, 0, 0] are particle
+        only. The others do not have any particles affiliated with them.
         """
         f = self.dataset._handle
         bp = self.dataset.base_path

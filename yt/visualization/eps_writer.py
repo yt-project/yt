@@ -703,7 +703,10 @@ class DualEPS:
         """
         
         if isinstance(plot, ProfilePlot):
-            raise RuntimeError("When using ProfilePlots you must either set yt_nocbar=True or provide colorbar flags so that the profiles don't have colorbars")
+            raise RuntimeError(
+                "When using ProfilePlots you must either set yt_nocbar=True or provide "
+                "colorbar flags so that the profiles don't have colorbars"
+            )
         _cmap = None
         if field is not None:
             self.field = plot.data_source._determine_fields(field)[0]

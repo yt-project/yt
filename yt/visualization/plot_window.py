@@ -145,7 +145,7 @@ class PlotWindow(ImagePlotContainer):
     Parameters
     ----------
 
-    data_source : subclass of :class:`yt.data_objects.selection_data_containers.YTSelectionContainer2D`
+    data_source : :class:`yt.data_objects.selection_data_containers.YTSelectionContainer2D`
         This is the source to be pixelized, which can be a projection,
         slice, or a cutting plane.
     bounds : sequence of floats

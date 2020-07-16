@@ -10,3 +10,26 @@ requires = [
   "numpy==1.18.1; python_version=='3.7' and platform_system!='AIX'",
   "numpy==1.18.4; python_version=='3.8' and platform_system!='AIX'",
 ]
+
+# To be kept consistent with "Code Style" section in CONTRIBUTING.rst
+[tool.black]
+line-length = 88
+target-version = ['py36', 'py37', 'py38']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | yt/extern
+  | yt/frontends/stream/sample_data
+)/
+| yt/visualization/_colormap_data.py
+'''

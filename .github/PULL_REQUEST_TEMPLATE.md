@@ -22,6 +22,7 @@ detail.  Why is this change required?  What problem does it solve?-->
 
 - [ ] pass `flake8 yt/`
 - [ ] pass `isort -rc . --check-only`
+- [ ] pass `black --check yt/`
 - [ ] New features are documented, with docstrings and narrative docs
 - [ ] Adds a test for any bugs fixed. Adds tests for new features.
 

@@ -359,13 +359,19 @@ class RAMSESDataset(Dataset):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
             fields = field_aliases[fields]
-        '''
-        fields: An array of hydro variable fields in order of position in the hydro_XXXXX.outYYYYY file
-                If set to None, will try a default set of fields
-        extra_particle_fields: An array of extra particle variables in order of position in the particle_XXXXX.outYYYYY file.
-        cosmological: If set to None, automatically detect cosmological simulation. If a boolean, force
-                      its value.
-        '''
+        """
+        fields:
+        An array of hydro variable fields in order of position in the
+        hydro_XXXXX.outYYYYY file. If set to None, will try a default set of fields.
+
+        extra_particle_fields:
+        An array of extra particle variables in order of position in the
+        particle_XXXXX.outYYYYY file.
+
+        cosmological:
+        If set to None, automatically detect cosmological simulation.
+        If a boolean, force its value.
+        """
 
         self._fields_in_file = fields
         # By default, extra fields have not triggered a warning

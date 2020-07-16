@@ -190,7 +190,10 @@ class Camera(ParallelAnalysisInterface):
         self.light_dir = None
         self.light_rgba = None
         if self.no_ghost:
-            mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
+            mylog.warning(
+                "no_ghost is currently True (default). "
+                "This may lead to artifacts at grid boundaries."
+            )
 
         if data_source is None:
             data_source = self.ds.all_data()
@@ -1671,7 +1674,10 @@ class MosaicCamera(Camera):
         # self._setup_box_properties(width, center, self.orienter.unit_vectors)
         
         if self.no_ghost:
-            mylog.info('Warning: no_ghost is currently True (default). This may lead to artifacts at grid boundaries.')
+            mylog.warning(
+                "no_ghost is currently True (default). "
+                "This may lead to artifacts at grid boundaries."
+            )
         self.tree_type = tree_type
         self.volume = volume
 

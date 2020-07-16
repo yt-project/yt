@@ -24,7 +24,8 @@ from .fields import FLASHFieldInfo
 
 class FLASHGrid(AMRGridPatch):
     _id_offset = 1
-    #__slots__ = ["_level_id", "stop_index"]
+    # __slots__ = ["_level_id", "stop_index"]
+
     def __init__(self, id, index, level):
         AMRGridPatch.__init__(self, id, filename = index.index_filename,
                               index = index)
