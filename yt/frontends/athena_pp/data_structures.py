@@ -1,28 +1,20 @@
-import numpy as np
 import os
 import weakref
-
-from yt.funcs import \
-    mylog, get_pbar, \
-    ensure_tuple
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
-from yt.geometry.geometry_handler import \
-    YTDataChunk
-from yt.utilities.file_handler import \
-    HDF5FileHandler
-from yt.geometry.unstructured_mesh_handler import \
-    UnstructuredIndex
-from yt.data_objects.unstructured_mesh import \
-    SemiStructuredMesh
 from itertools import chain, product
+
+import numpy as np
+
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.funcs import ensure_tuple, get_pbar, mylog
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
+from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.file_handler import HDF5FileHandler
+
 from .fields import AthenaPPFieldInfo
-from yt.utilities.chemical_formulas import \
-    default_mu
 
 geom_map = {"cartesian": "cartesian",
             "cylindrical": "cylindrical",

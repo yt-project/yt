@@ -1,13 +1,16 @@
-import numpy as np
-
 from collections import defaultdict
 
-from yt.funcs import mylog, get_pbar
-from yt.utilities.lib.contour_finding import \
-    ContourTree, TileContourTree, link_node_contours, \
-    update_joins
-from yt.utilities.lib.partitioned_grid import \
-    PartitionedGrid
+import numpy as np
+
+from yt.funcs import get_pbar, mylog
+from yt.utilities.lib.contour_finding import (
+    ContourTree,
+    TileContourTree,
+    link_node_contours,
+    update_joins,
+)
+from yt.utilities.lib.partitioned_grid import PartitionedGrid
+
 
 def identify_contours(data_source, field, min_val, max_val,
                           cached_fields=None):

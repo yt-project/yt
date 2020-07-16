@@ -1,16 +1,17 @@
-from yt.testing import \
-    assert_equal, \
-    requires_file, \
-    assert_allclose_units, \
-    disable_dataset_cache
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    small_patch_amr, \
-    data_dir_load
-from yt.frontends.athena.api import AthenaDataset
-from yt.convenience import load
-
 import yt.units as u
+from yt.convenience import load
+from yt.frontends.athena.api import AthenaDataset
+from yt.testing import (
+    assert_allclose_units,
+    assert_equal,
+    disable_dataset_cache,
+    requires_file,
+)
+from yt.utilities.answer_testing.framework import (
+    data_dir_load,
+    requires_ds,
+    small_patch_amr,
+)
 
 _fields_cloud = ("scalar[0]", "density", "total_energy")
 

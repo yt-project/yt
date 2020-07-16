@@ -3,6 +3,7 @@ import nose
 from yt.config import ytcfg
 from yt.testing import fake_random_ds, requires_module
 
+
 def setup_func():
     ytcfg["yt", "__withintesting"] = "True"
 

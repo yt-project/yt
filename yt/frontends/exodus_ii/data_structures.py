@@ -1,24 +1,15 @@
 import numpy as np
 
-from yt.funcs import \
-    setdefaultattr
-from yt.geometry.unstructured_mesh_handler import \
-    UnstructuredIndex
-from yt.data_objects.unstructured_mesh import \
-    UnstructuredMesh
-from yt.data_objects.static_output import \
-    Dataset
+from yt.data_objects.static_output import Dataset
 from yt.data_objects.unions import MeshUnion
-from yt.utilities.file_handler import \
-    NetCDF4FileHandler, \
-    warn_netcdf
+from yt.data_objects.unstructured_mesh import UnstructuredMesh
+from yt.funcs import setdefaultattr
+from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
+from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
 from yt.utilities.logger import ytLogger as mylog
-from .fields import \
-    ExodusIIFieldInfo
-from .util import \
-    load_info_records, \
-    sanitize_string, \
-    get_num_pseudo_dims
+
+from .fields import ExodusIIFieldInfo
+from .util import get_num_pseudo_dims, load_info_records, sanitize_string
 
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):

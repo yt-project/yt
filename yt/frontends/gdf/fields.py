@@ -1,5 +1,4 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 # The nice thing about GDF is that for the most part, everything is in CGS,
 # with potentially a scalar modification.

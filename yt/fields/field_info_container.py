@@ -1,27 +1,25 @@
-import numpy as np
-from numbers import Number as numeric_type
 import warnings
+from numbers import Number as numeric_type
+
+import numpy as np
 
 from yt.funcs import mylog, only_on_root
-from yt.geometry.geometry_handler import \
-    is_curvilinear
-from yt.units.unit_object import Unit
+from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
-from .derived_field import \
-    DerivedField, \
-    NullFunc, \
-    TranslationFunc
-from yt.utilities.exceptions import \
-    YTFieldNotFound
-from .field_plugin_registry import \
-    field_plugins
-from .particle_fields import \
-    add_union_field, \
-    particle_deposition_functions, \
-    particle_vector_functions, \
-    particle_scalar_functions, \
-    standard_particle_fields, \
-    sph_whitelist_fields
+from yt.units.unit_object import Unit
+from yt.utilities.exceptions import YTFieldNotFound
+
+from .derived_field import DerivedField, NullFunc, TranslationFunc
+from .field_plugin_registry import field_plugins
+from .particle_fields import (
+    add_union_field,
+    particle_deposition_functions,
+    particle_scalar_functions,
+    particle_vector_functions,
+    sph_whitelist_fields,
+    standard_particle_fields,
+)
+
 
 def tupleize(inp):
     if isinstance(inp, tuple):

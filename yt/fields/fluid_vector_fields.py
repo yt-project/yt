@@ -1,21 +1,12 @@
 import numpy as np
 
-from yt.fields.derived_field import \
-    ValidateSpatial, \
-    ValidateParameter
+from yt.fields.derived_field import ValidateParameter, ValidateSpatial
+from yt.funcs import just_one
+from yt.geometry.geometry_handler import is_curvilinear
 
-from .field_plugin_registry import \
-    register_field_plugin
+from .field_plugin_registry import register_field_plugin
+from .vector_operations import create_magnitude_field, create_squared_field
 
-from yt.funcs import \
-    just_one
-
-from yt.geometry.geometry_handler import \
-    is_curvilinear
-
-from .vector_operations import \
-    create_magnitude_field, \
-    create_squared_field
 
 @register_field_plugin
 def setup_fluid_vector_fields(registry, ftype = "gas", slice_info = None):

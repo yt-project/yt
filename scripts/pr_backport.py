@@ -1,8 +1,9 @@
+import shutil
+import tempfile
+
 import dateutil.parser
 import git
 import requests
-import shutil
-import tempfile
 
 API_URL = 'https://api.github.com/graphql'
 

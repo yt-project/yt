@@ -1,15 +1,18 @@
 import os
-import tempfile
 import shutil
-from yt.testing import fake_random_ds
-from yt.visualization.volume_rendering.api import \
-    Scene, \
-    VolumeSource, \
-    LineSource, \
-    BoxSource
-from yt.data_objects.api import ImageArray
-import numpy as np
+import tempfile
 from unittest import TestCase
+
+import numpy as np
+
+from yt.data_objects.api import ImageArray
+from yt.testing import fake_random_ds
+from yt.visualization.volume_rendering.api import (
+    BoxSource,
+    LineSource,
+    Scene,
+    VolumeSource,
+)
 
 
 def setup():

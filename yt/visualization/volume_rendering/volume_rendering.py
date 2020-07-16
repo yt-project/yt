@@ -1,10 +1,10 @@
 
-from .scene import Scene
-from .render_source import VolumeSource, \
-    MeshSource
-from .utils import data_source_or_all
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
+
+from .render_source import MeshSource, VolumeSource
+from .scene import Scene
+from .utils import data_source_or_all
 
 
 def create_scene(data_source, field=None, lens_type='plane-parallel'):

@@ -1,27 +1,22 @@
 import os
+
 import numpy as np
 
 from yt import units
-from yt.fields.field_detector import \
-    FieldDetector
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.frontends.ramses.io import \
-    convert_ramses_ages
-from yt.funcs import \
-    issue_deprecation_warning
-from yt.utilities.physical_constants import \
-    boltzmann_constant_cgs, \
-    mass_hydrogen_cgs, \
-    mh
-from yt.utilities.linear_interpolators import \
-    BilinearFieldInterpolator
+from yt.fields.field_detector import FieldDetector
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.frontends.ramses.io import convert_ramses_ages
+from yt.funcs import issue_deprecation_warning, mylog
 from yt.utilities.cython_fortran_utils import FortranFile
-from .field_handlers import RTFieldFileHandler
+from yt.utilities.linear_interpolators import BilinearFieldInterpolator
+from yt.utilities.physical_constants import (
+    boltzmann_constant_cgs,
+    mass_hydrogen_cgs,
+    mh,
+    mp,
+)
 
-from yt.utilities.physical_constants import \
-    mp
-from yt.funcs import mylog
+from .field_handlers import RTFieldFileHandler
 
 b_units = "code_magnetic"
 ra_units = "code_length / code_time**2"

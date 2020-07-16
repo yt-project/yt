@@ -3,13 +3,13 @@ Title: sample_data.py
 Purpose: Contains functions used for automatic downloading and loading
             of sample data that is not already present locally.
 """
-import pkg_resources
 import json
 import os
 
-from yt.utilities.on_demand_imports import _pooch as pch
+import pkg_resources
 
 from yt.config import ytcfg
+from yt.utilities.on_demand_imports import _pooch as pch
 
 ## The format of the data registry json:
 ##

@@ -1,10 +1,8 @@
 import numpy as np
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
-
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTDomainOverflow
+from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
 
 CHUNKSIZE = 32**3
@@ -243,4 +241,3 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
 
 class IOHandlerSIndexHTTPSDF(IOHandlerSIndexSDF):
     _dataset_type = "midx_http_sdf_particles"
-

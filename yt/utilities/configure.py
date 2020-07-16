@@ -1,9 +1,10 @@
+import argparse
+import configparser
 import os
 import shutil
 import sys
-import argparse
-from yt.config import CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE, YTConfigParser
-import configparser
+
+from yt.config import _OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, YTConfigParser
 
 CONFIG = YTConfigParser()
 CONFIG.read([CURRENT_CONFIG_FILE])

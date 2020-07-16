@@ -1,21 +1,16 @@
 import os
-import numpy as np
 import weakref
 
-from yt.funcs import \
-    mylog, \
-    setdefaultattr
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
-from yt.utilities.file_handler import \
-    HDF5FileHandler
-from .fields import GAMERFieldInfo
-from .definitions import geometry_parameters
+import numpy as np
 
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.funcs import mylog, setdefaultattr
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.file_handler import HDF5FileHandler
+
+from .definitions import geometry_parameters
+from .fields import GAMERFieldInfo
 
 
 class GAMERGrid(AMRGridPatch):

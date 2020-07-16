@@ -1,10 +1,12 @@
-import numpy as np
 import os
 import weakref
 
-from yt.utilities.logger import ytLogger as mylog
+import numpy as np
+
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.lib.mesh_utilities import smallest_fwidth
+from yt.utilities.logger import ytLogger as mylog
+
 
 class UnstructuredIndex(Index):
     """The Index subclass for unstructured and hexahedral mesh datasets. """

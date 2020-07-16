@@ -1,15 +1,16 @@
 import os
-import numpy as np
-from . import owls_ion_tables as oit
 
-from yt.funcs import \
-    mylog, download_file
+import numpy as np
+
 from yt.config import ytcfg
-from yt.fields.species_fields import \
-    add_species_field_by_fraction, \
-    add_species_field_by_density
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
+from yt.fields.species_fields import (
+    add_species_field_by_density,
+    add_species_field_by_fraction,
+)
+from yt.frontends.sph.fields import SPHFieldInfo
+from yt.funcs import download_file, mylog
+
+from . import owls_ion_tables as oit
 
 
 def _get_ion_mass_frac(ion, ftype, itab, data):

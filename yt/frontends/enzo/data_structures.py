@@ -1,37 +1,24 @@
-from yt.utilities.on_demand_imports import _h5py as h5py
 import io
-import weakref
-import numpy as np
 import os
+import re
 import string
 import time
-import re
-
-from yt.utilities.on_demand_imports import \
-    _libconf as libconf
+import weakref
 from collections import defaultdict
 
-from yt.frontends.enzo.misc import \
-    cosmology_get_units
-from yt.funcs import \
-    ensure_list, \
-    ensure_tuple, \
-    get_pbar, \
-    setdefaultattr
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.geometry.geometry_handler import \
-    YTDataChunk
-from yt.data_objects.static_output import \
-    Dataset
-from yt.fields.field_info_container import \
-    NullFunc
-from yt.utilities.logger import ytLogger as mylog
+import numpy as np
 
-from .fields import \
-    EnzoFieldInfo
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.fields.field_info_container import NullFunc
+from yt.frontends.enzo.misc import cosmology_get_units
+from yt.funcs import ensure_list, ensure_tuple, get_pbar, setdefaultattr
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
+
+from .fields import EnzoFieldInfo
 
 
 class EnzoGrid(AMRGridPatch):

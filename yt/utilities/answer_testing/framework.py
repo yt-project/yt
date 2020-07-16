@@ -2,47 +2,47 @@
 Title: framework.py
 Purpose: Contains answer tests that are used by yt's various frontends
 """
-import logging
-import numpy as np
-import os
-import time
-import hashlib
 import contextlib
-import sys
-import pickle
-import urllib
-import shelve
-import zlib
-import tempfile
 import glob
-
+import hashlib
+import logging
+import os
+import pickle
+import shelve
+import sys
+import tempfile
+import time
+import urllib
+import zlib
 from collections import defaultdict
 
+import matplotlib.image as mpimg
+import numpy as np
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
-from yt.funcs import \
-    get_pbar
-from yt.testing import \
-    assert_equal, \
-    assert_allclose_units, \
-    assert_rel_equal, \
-    assert_almost_equal
-from yt.convenience import load, simulation
+
+import yt.visualization.particle_plots as particle_plots
+import yt.visualization.plot_window as pw
+import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
+from yt.convenience import load, simulation
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
-from yt.utilities.exceptions import \
-    YTNoOldAnswer, \
-    YTCloudError, \
-    YTOutputNotIdentified, \
-    YTNoAnswerNameSpecified
-from yt.utilities.logger import disable_stream_logging
+from yt.funcs import get_pbar
+from yt.testing import (
+    assert_allclose_units,
+    assert_almost_equal,
+    assert_equal,
+    assert_rel_equal,
+)
 from yt.utilities.command_line import get_yt_version
-
-import matplotlib.image as mpimg
-import yt.visualization.plot_window as pw
-import yt.visualization.particle_plots as particle_plots
-import yt.visualization.profile_plotter as profile_plotter
+from yt.utilities.exceptions import (
+    YTCloudError,
+    YTNoAnswerNameSpecified,
+    YTNoOldAnswer,
+    YTOutputNotIdentified,
+)
+from yt.utilities.logger import disable_stream_logging
 
 mylog = logging.getLogger('nose.plugins.answer-testing')
 run_big_data = False

@@ -1,6 +1,5 @@
 import atexit
 import time
-
 from bisect import insort
 from collections import defaultdict
 from datetime import datetime as dt
@@ -8,6 +7,7 @@ from functools import wraps
 
 from yt.config import ytcfg
 from yt.funcs import mylog
+
 
 class PerformanceCounters:
     _shared_state = {}

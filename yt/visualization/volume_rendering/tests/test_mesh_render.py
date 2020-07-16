@@ -1,18 +1,19 @@
 from nose.plugins.attrib import attr
-from yt.testing import \
-    fake_tetrahedral_ds, \
-    fake_hexahedral_ds, \
-    requires_module, ANSWER_TEST_TAG
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    GenericImageTest
-from yt.visualization.volume_rendering.api import \
-    MeshSource, \
-    Scene, \
-    create_scene
-from yt.config import \
-    ytcfg
+
+from yt.config import ytcfg
+from yt.testing import (
+    ANSWER_TEST_TAG,
+    fake_hexahedral_ds,
+    fake_tetrahedral_ds,
+    requires_module,
+)
+from yt.utilities.answer_testing.framework import (
+    GenericImageTest,
+    data_dir_load,
+    requires_ds,
+)
+from yt.visualization.volume_rendering.api import MeshSource, Scene, create_scene
+
 
 def compare(ds, im, test_prefix, test_name=None, decimals=12):
     def mesh_render_image_func(filename_prefix):

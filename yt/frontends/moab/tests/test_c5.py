@@ -1,15 +1,17 @@
 import numpy as np
 
-from yt.testing import \
-    assert_equal, \
-    assert_almost_equal, \
-    requires_file, \
-    units_override_check
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    FieldValuesTest
 from yt.frontends.moab.api import MoabHex8Dataset
+from yt.testing import (
+    assert_almost_equal,
+    assert_equal,
+    requires_file,
+    units_override_check,
+)
+from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    data_dir_load,
+    requires_ds,
+)
 
 _fields = (("moab", "flux"),
           )

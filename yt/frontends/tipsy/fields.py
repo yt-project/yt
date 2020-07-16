@@ -1,5 +1,6 @@
 from yt.frontends.sph.fields import SPHFieldInfo
 
+
 class TipsyFieldInfo(SPHFieldInfo):
     known_particle_fields = SPHFieldInfo.known_particle_fields + \
         (("smoothing_length", ("code_length", [], None)),)

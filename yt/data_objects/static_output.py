@@ -1,76 +1,62 @@
 import functools
 import itertools
-import numpy as np
 import os
-from stat import ST_CTIME
-import time
-import weakref
-import warnings
-
-from collections import defaultdict
 import pickle
+import time
+import warnings
+import weakref
+from collections import defaultdict
+from stat import ST_CTIME
+
+import numpy as np
 
 from yt.config import ytcfg
-from yt.fields.derived_field import \
-    DerivedField
-from yt.fields.field_type_container import \
-    FieldTypeContainer
-from yt.funcs import \
-    mylog, \
-    set_intersection, \
-    ensure_list, \
-    issue_deprecation_warning, \
-    iterable, \
-    setdefaultattr
-from yt.utilities.cosmology import \
-    Cosmology
-from yt.utilities.exceptions import \
-    YTObjectNotImplemented, \
-    YTFieldNotFound, \
-    YTGeometryNotSupported, \
-    YTIllDefinedParticleFilter
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_root_only
-from yt.utilities.parameter_file_storage import \
-    ParameterFileStore, \
-    NoParameterShelf, \
-    output_type_registry
-from yt.units import UnitContainer
+from yt.data_objects.data_containers import data_object_registry
+from yt.data_objects.particle_filters import filter_registry
+from yt.data_objects.particle_unions import ParticleUnion
+from yt.data_objects.region_expression import RegionExpression
+from yt.fields.derived_field import DerivedField, ValidateSpatial
+from yt.fields.field_type_container import FieldTypeContainer
+from yt.fields.fluid_fields import setup_gradient_fields
+from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
+from yt.funcs import (
+    ensure_list,
+    issue_deprecation_warning,
+    iterable,
+    mylog,
+    set_intersection,
+    setdefaultattr,
+)
+from yt.geometry.coordinates.api import (
+    CartesianCoordinateHandler,
+    CoordinateHandler,
+    CylindricalCoordinateHandler,
+    GeographicCoordinateHandler,
+    InternalGeographicCoordinateHandler,
+    PolarCoordinateHandler,
+    SpectralCubeCoordinateHandler,
+    SphericalCoordinateHandler,
+)
+from yt.units import UnitContainer, _wrap_display_ytarray
 from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, define_unit
-from yt.units.unit_systems import unit_system_registry
 from yt.units.unit_registry import UnitRegistry
-from yt.fields.derived_field import \
-    ValidateSpatial
-from yt.fields.fluid_fields import \
-    setup_gradient_fields
-from yt.fields.particle_fields import \
-    DEP_MSG_SMOOTH_FIELD
-from yt.data_objects.particle_filters import \
-    filter_registry
-from yt.data_objects.particle_unions import \
-    ParticleUnion
-from yt.data_objects.data_containers import \
-    data_object_registry
-from yt.utilities.minimal_representation import \
-    MinimalDataset
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
-from yt.units import \
-    _wrap_display_ytarray
-from yt.units.unit_systems import create_code_unit_system
-from yt.data_objects.region_expression import \
-    RegionExpression
-from yt.geometry.coordinates.api import \
-    CoordinateHandler, \
-    CartesianCoordinateHandler, \
-    PolarCoordinateHandler, \
-    CylindricalCoordinateHandler, \
-    SphericalCoordinateHandler, \
-    GeographicCoordinateHandler, \
-    SpectralCubeCoordinateHandler, \
-    InternalGeographicCoordinateHandler
+from yt.units.unit_systems import create_code_unit_system, unit_system_registry
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.cosmology import Cosmology
+from yt.utilities.exceptions import (
+    YTFieldNotFound,
+    YTGeometryNotSupported,
+    YTIllDefinedParticleFilter,
+    YTObjectNotImplemented,
+)
+from yt.utilities.minimal_representation import MinimalDataset
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
+from yt.utilities.parameter_file_storage import (
+    NoParameterShelf,
+    ParameterFileStore,
+    output_type_registry,
+)
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up

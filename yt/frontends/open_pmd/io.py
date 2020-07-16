@@ -2,9 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from yt.frontends.open_pmd.misc import \
-    is_const_component, \
-    get_component
+from yt.frontends.open_pmd.misc import get_component, is_const_component
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 

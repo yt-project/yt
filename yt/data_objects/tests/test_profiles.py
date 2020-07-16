@@ -1,24 +1,23 @@
-import numpy as np
 import os
 import shutil
 import tempfile
 import unittest
-import yt
 
-from yt.utilities.exceptions import \
-    YTProfileDataShape
+import numpy as np
+
+import yt
 from yt.data_objects.particle_filters import add_particle_filter
-from yt.data_objects.profiles import Profile1D, Profile2D, Profile3D,\
-    create_profile
-from yt.testing import \
-    assert_equal, \
-    assert_raises,\
-    assert_rel_equal, \
-    fake_random_ds, \
-    fake_sph_orientation_ds, \
-    requires_module
-from yt.utilities.exceptions import YTIllDefinedProfile
-from yt.visualization.profile_plotter import ProfilePlot, PhasePlot
+from yt.data_objects.profiles import Profile1D, Profile2D, Profile3D, create_profile
+from yt.testing import (
+    assert_equal,
+    assert_raises,
+    assert_rel_equal,
+    fake_random_ds,
+    fake_sph_orientation_ds,
+    requires_module,
+)
+from yt.utilities.exceptions import YTIllDefinedProfile, YTProfileDataShape
+from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
 _fields = ("density", "temperature", "dinosaurs", "tribbles")
 _units = ("g/cm**3", "K", "dyne", "erg")

@@ -1,21 +1,25 @@
-from yt.testing import \
-    assert_equal, \
-    requires_file, \
-    units_override_check, \
-    requires_module
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    PixelizedProjectionValuesTest, \
-    FieldValuesTest, \
-    create_obj
-from yt.utilities.on_demand_imports import _f90nml as f90nml
-from yt.frontends.ramses.api import RAMSESDataset
-from yt.config import ytcfg
-from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 import os
-import yt
+
 import numpy as np
+
+import yt
+from yt.config import ytcfg
+from yt.frontends.ramses.api import RAMSESDataset
+from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
+from yt.testing import (
+    assert_equal,
+    requires_file,
+    requires_module,
+    units_override_check,
+)
+from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    PixelizedProjectionValuesTest,
+    create_obj,
+    data_dir_load,
+    requires_ds,
+)
+from yt.utilities.on_demand_imports import _f90nml as f90nml
 
 _fields = ("temperature", "density", "velocity_magnitude")
 

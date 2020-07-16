@@ -1,5 +1,5 @@
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.utilities.physical_constants import mh, kb
+from yt.utilities.physical_constants import kb, mh
 
 b_units   = "code_magnetic"
 pre_units = "code_mass / (code_length*code_time**2)"

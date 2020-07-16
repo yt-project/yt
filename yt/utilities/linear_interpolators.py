@@ -1,7 +1,8 @@
 import numpy as np
 
-from yt.funcs import mylog
 import yt.utilities.lib.interpolators as lib
+from yt.funcs import mylog
+
 
 class UnilinearFieldInterpolator:
     def __init__(self, table, boundaries, field_names, truncate=False):

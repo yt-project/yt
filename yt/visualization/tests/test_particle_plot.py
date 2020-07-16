@@ -1,31 +1,30 @@
 import os
-import tempfile
 import shutil
+import tempfile
 import unittest
 
 import numpy as np
 
-from yt.data_objects.profiles import create_profile
-from yt.visualization.tests.test_plotwindow import \
-    WIDTH_SPECS, ATTR_ARGS
 from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
-from yt.testing import \
-    fake_particle_ds, \
-    assert_array_almost_equal, \
-    requires_file, \
-    assert_allclose, \
-    assert_fname
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    PlotWindowAttributeTest, \
-    PhasePlotAttributeTest
-from yt.visualization.api import \
-    ParticlePlot, \
-    ParticleProjectionPlot, \
-    ParticlePhasePlot
+from yt.data_objects.profiles import create_profile
+from yt.testing import (
+    assert_allclose,
+    assert_array_almost_equal,
+    assert_fname,
+    fake_particle_ds,
+    requires_file,
+)
 from yt.units.yt_array import YTArray
+from yt.utilities.answer_testing.framework import (
+    PhasePlotAttributeTest,
+    PlotWindowAttributeTest,
+    data_dir_load,
+    requires_ds,
+)
+from yt.visualization.api import ParticlePhasePlot, ParticlePlot, ParticleProjectionPlot
+from yt.visualization.tests.test_plotwindow import ATTR_ARGS, WIDTH_SPECS
+
 
 def setup():
     """Test specific setup."""

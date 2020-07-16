@@ -30,4 +30,3 @@ def test_fill_region():
         for r in range(level + 1):
             for o, i in zip(output_fields, v):
                 assert_equal( o[r::rf,r::rf,r::rf], i)
-

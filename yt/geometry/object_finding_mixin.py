@@ -1,17 +1,12 @@
 import numpy as np
 
 from yt.config import ytcfg
-from yt.funcs import \
-    mylog, ensure_numpy_array, \
-    ensure_list
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_below_level
-from yt.geometry.grid_container import \
-    MatchPointsToGrids, \
-    GridTree
-from yt.utilities.physical_ratios import \
-    HUGE
+from yt.funcs import ensure_list, ensure_numpy_array, mylog
+from yt.geometry.grid_container import GridTree, MatchPointsToGrids
 from yt.utilities.exceptions import YTTooParallel
+from yt.utilities.lib.misc_utilities import get_box_grids_below_level
+from yt.utilities.physical_ratios import HUGE
+
 
 class ObjectFindingMixin :
 

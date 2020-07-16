@@ -6,8 +6,8 @@ import unittest
 import numpy as np
 from nose.tools import assert_raises
 
-from yt import show_colormaps, make_colormap
-from yt.testing import assert_equal, assert_almost_equal, requires_backend
+from yt import make_colormap, show_colormaps
+from yt.testing import assert_almost_equal, assert_equal, requires_backend
 
 
 class TestColorMaps(unittest.TestCase):

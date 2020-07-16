@@ -1,12 +1,13 @@
-from datetime import datetime
 import cProfile
-import pstats
-import time
-from subprocess import Popen, PIPE
-from nose.tools import nottest
-import numpy as np
 import itertools
+import pstats
 import sys
+import time
+from datetime import datetime
+from subprocess import PIPE, Popen
+
+import numpy as np
+from nose.tools import nottest
 
 
 def assert_less_equal(x, y):

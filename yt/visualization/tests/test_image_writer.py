@@ -6,9 +6,14 @@ import unittest
 import numpy as np
 from nose.tools import assert_raises
 
-from yt.testing import fake_random_ds, assert_equal
-from yt.visualization.image_writer import multi_image_composite, splat_points, \
-    write_bitmap, apply_colormap, strip_colormap_data
+from yt.testing import assert_equal, fake_random_ds
+from yt.visualization.image_writer import (
+    apply_colormap,
+    multi_image_composite,
+    splat_points,
+    strip_colormap_data,
+    write_bitmap,
+)
 
 
 class TestImageWriter(unittest.TestCase):

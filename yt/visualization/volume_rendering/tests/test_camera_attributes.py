@@ -1,13 +1,8 @@
 import numpy as np
+
 import yt.units as u
-
-from yt.testing import \
-    assert_almost_equal, \
-    assert_equal, \
-    fake_random_ds
-from yt.visualization.volume_rendering.api import \
-    Scene
-
+from yt.testing import assert_almost_equal, assert_equal, fake_random_ds
+from yt.visualization.volume_rendering.api import Scene
 
 valid_lens_types = [
     'plane-parallel',

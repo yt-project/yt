@@ -1,5 +1,4 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 
 class StreamFieldInfo(FieldInfoContainer):

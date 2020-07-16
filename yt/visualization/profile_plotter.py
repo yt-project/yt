@@ -1,35 +1,30 @@
+import base64
 import builtins
+import os
 from collections import OrderedDict
 from distutils.version import LooseVersion
-import base64
-import os
 from functools import wraps
 
 import matplotlib
 import numpy as np
 
-from .base_plot_types import \
-    PlotMPL, ImagePlotMPL
-from .plot_container import \
-    ImagePlotContainer, \
-    log_transform, linear_transform, get_log_minorticks, \
-    validate_plot, invalidate_plot
-from yt.data_objects.profiles import \
-    create_profile, sanitize_field_tuple_keys
-from yt.data_objects.static_output import \
-    Dataset
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
-from yt.frontends.ytdata.data_structures import \
-    YTProfileDataset
-from yt.utilities.exceptions import \
-    YTNotInsideNotebook
+from yt.data_objects.data_containers import YTSelectionContainer
+from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
+from yt.data_objects.static_output import Dataset
+from yt.frontends.ytdata.data_structures import YTProfileDataset
+from yt.funcs import ensure_list, get_image_suffix, iterable, matplotlib_style_context
+from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
-from yt.funcs import \
-    ensure_list, \
-    get_image_suffix, \
-    matplotlib_style_context, \
-    iterable
+
+from .base_plot_types import ImagePlotMPL, PlotMPL
+from .plot_container import (
+    ImagePlotContainer,
+    get_log_minorticks,
+    invalidate_plot,
+    linear_transform,
+    log_transform,
+    validate_plot,
+)
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 

@@ -1,13 +1,12 @@
 import os.path
-from yt.testing import \
-    assert_equal, \
-    requires_file, \
-    ParticleSelectionComparison
-from yt.utilities.answer_testing.framework import \
-    FieldValuesTest, \
-    requires_ds, \
-    data_dir_load
+
 from yt.frontends.rockstar.api import RockstarDataset
+from yt.testing import ParticleSelectionComparison, assert_equal, requires_file
+from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    data_dir_load,
+    requires_ds,
+)
 
 _fields = ("particle_position_x", "particle_position_y",
            "particle_position_z", "particle_mass")

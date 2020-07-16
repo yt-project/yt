@@ -1,16 +1,13 @@
 import json
-import numpy as np
 import time
 
-from yt.data_objects.static_output import \
-    ParticleDataset, \
-    ParticleFile
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
-from yt.funcs import \
-    get_requests
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
+import numpy as np
+
+from yt.data_objects.static_output import ParticleDataset, ParticleFile
+from yt.frontends.sph.fields import SPHFieldInfo
+from yt.funcs import get_requests
+from yt.geometry.particle_geometry_handler import ParticleIndex
+
 
 class HTTPParticleFile(ParticleFile):
     pass

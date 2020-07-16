@@ -1,62 +1,55 @@
-import numpy as np
-from functools import wraps
 import fileinput
 import io
-from re import finditer
-from tempfile import NamedTemporaryFile, TemporaryFile
 import os
 import sys
 import zipfile
+from functools import wraps
+from re import finditer
+from tempfile import NamedTemporaryFile, TemporaryFile
 
-from yt.config import ytcfg
-from yt.data_objects.data_containers import \
-    YTSelectionContainer1D, \
-    YTSelectionContainer2D, \
-    YTSelectionContainer3D
-from yt.data_objects.field_data import \
-    YTFieldData
-from yt.funcs import \
-    ensure_list, \
-    mylog, \
-    get_memory_usage, \
-    iterable, \
-    only_on_root
-from yt.utilities.exceptions import \
-    YTParticleDepositionNotImplemented, \
-    YTNoAPIKey, \
-    YTTooManyVertices
-from yt.fields.field_exceptions import \
-    NeedsGridType
-from yt.utilities.lib.quad_tree import \
-    QuadTree
-from yt.utilities.lib.interpolators import \
-    ghost_zone_interpolate
-from yt.utilities.lib.misc_utilities import \
-    fill_region, fill_region_float
-from yt.utilities.lib.marching_cubes import \
-    march_cubes_grid, march_cubes_grid_flux
-from yt.utilities.minimal_representation import \
-    MinimalProjectionData
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, parallel_root_only, communication_system
-from yt.units.unit_object import Unit
-from yt.units.yt_array import uconcatenate
+import numpy as np
+
 import yt.geometry.particle_deposit as particle_deposit
-from yt.geometry.coordinates.cartesian_coordinates import all_data
-from yt.utilities.grid_data_format.writer import write_to_gdf
-from yt.fields.field_exceptions import \
-    NeedsOriginalGrid
-from yt.frontends.stream.api import load_uniform_grid
-from yt.frontends.sph.data_structures import ParticleDataset
-from yt.units.yt_array import YTArray
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_sph_kernel_arbitrary_grid, \
-    interpolate_sph_grid_gather, \
-    interpolate_sph_positions_gather, \
-    normalization_3d_utility, \
-    normalization_1d_utility
+from yt.config import ytcfg
+from yt.data_objects.data_containers import (
+    YTSelectionContainer1D,
+    YTSelectionContainer2D,
+    YTSelectionContainer3D,
+)
+from yt.data_objects.field_data import YTFieldData
 from yt.extern.tqdm import tqdm
+from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
+from yt.frontends.sph.data_structures import ParticleDataset
+from yt.frontends.stream.api import load_uniform_grid
+from yt.funcs import ensure_list, get_memory_usage, iterable, mylog, only_on_root
+from yt.geometry.coordinates.cartesian_coordinates import all_data
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTArray, uconcatenate
+from yt.utilities.exceptions import (
+    YTNoAPIKey,
+    YTParticleDepositionNotImplemented,
+    YTTooManyVertices,
+)
+from yt.utilities.grid_data_format.writer import write_to_gdf
 from yt.utilities.lib.cyoctree import CyOctree
+from yt.utilities.lib.interpolators import ghost_zone_interpolate
+from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
+from yt.utilities.lib.misc_utilities import fill_region, fill_region_float
+from yt.utilities.lib.pixelization_routines import (
+    interpolate_sph_grid_gather,
+    interpolate_sph_positions_gather,
+    normalization_1d_utility,
+    normalization_3d_utility,
+    pixelize_sph_kernel_arbitrary_grid,
+)
+from yt.utilities.lib.quad_tree import QuadTree
+from yt.utilities.minimal_representation import MinimalProjectionData
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    communication_system,
+    parallel_objects,
+    parallel_root_only,
+)
+
 
 class YTStreamline(YTSelectionContainer1D):
     """

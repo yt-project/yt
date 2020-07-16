@@ -2,14 +2,9 @@
 
 import numpy as np
 
-from yt.testing import \
-    fake_amr_ds, \
-    assert_equal, \
-    assert_almost_equal, \
-    add_noise_fields
-
-from yt.utilities.answer_testing.framework import GenericImageTest
 from yt import SlicePlot
+from yt.testing import add_noise_fields, assert_almost_equal, assert_equal, fake_amr_ds
+from yt.utilities.answer_testing.framework import GenericImageTest
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.

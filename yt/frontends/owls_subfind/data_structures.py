@@ -1,26 +1,19 @@
-from collections import defaultdict
-from yt.utilities.on_demand_imports import _h5py as h5py
-import numpy as np
 import glob
 import os
+from collections import defaultdict
 
-from .fields import \
-    OWLSSubfindFieldInfo
+import numpy as np
 
-from yt.funcs import \
-    only_on_root, \
-    setdefaultattr
-from yt.utilities.exceptions import \
-    YTException
-from yt.utilities.logger import ytLogger as \
-    mylog
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
-from yt.data_objects.static_output import \
-    ParticleDataset, \
-    ParticleFile
-from yt.frontends.gadget.data_structures import \
-    _fix_unit_ordering
+from yt.data_objects.static_output import ParticleDataset, ParticleFile
+from yt.frontends.gadget.data_structures import _fix_unit_ordering
+from yt.funcs import only_on_root, setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
+from yt.utilities.exceptions import YTException
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5py
+
+from .fields import OWLSSubfindFieldInfo
+
 
 class OWLSSubfindParticleIndex(ParticleIndex):
     def __init__(self, ds, dataset_type):

@@ -1,14 +1,8 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.fields.magnetic_field import \
-    setup_magnetic_field_aliases
-from yt.fields.species_fields import \
-    add_species_field_by_density, \
-    setup_species_fields
-from yt.frontends.gadget.fields import \
-    GadgetFieldInfo
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.fields.magnetic_field import setup_magnetic_field_aliases
+from yt.fields.species_fields import add_species_field_by_density, setup_species_fields
+from yt.frontends.gadget.fields import GadgetFieldInfo
+from yt.frontends.sph.fields import SPHFieldInfo
 
 metal_elements = ["He", "C", "N", "O", "Ne",
                   "Mg", "Si", "S", "Ca", "Fe"]

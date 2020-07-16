@@ -1,15 +1,16 @@
 import numpy as np
-from yt.testing import \
-    assert_almost_equal, \
-    assert_equal
-from yt.utilities.particle_generator import \
-    WithDensityParticleGenerator, \
-    LatticeParticleGenerator, \
-    FromListParticleGenerator
-from yt.frontends.stream.api import load_uniform_grid, refine_amr
-import yt.utilities.initial_conditions as ic
+
 import yt.utilities.flagging_methods as fm
+import yt.utilities.initial_conditions as ic
+from yt.frontends.stream.api import load_uniform_grid, refine_amr
+from yt.testing import assert_almost_equal, assert_equal
 from yt.units.yt_array import uconcatenate
+from yt.utilities.particle_generator import (
+    FromListParticleGenerator,
+    LatticeParticleGenerator,
+    WithDensityParticleGenerator,
+)
+
 
 def test_particle_generator():
     # First generate our dataset
@@ -137,4 +138,3 @@ def test_particle_generator():
     del fields
     del dens
     del temp
-

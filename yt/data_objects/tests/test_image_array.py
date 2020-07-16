@@ -1,13 +1,13 @@
-import numpy as np
 import os
-import tempfile
 import shutil
+import tempfile
 import unittest
 import warnings
+
+import numpy as np
+
 from yt.data_objects.image_array import ImageArray
-from yt.testing import \
-    assert_equal, \
-    requires_module
+from yt.testing import assert_equal, requires_module
 
 
 def setup():

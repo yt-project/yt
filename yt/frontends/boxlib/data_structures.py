@@ -1,34 +1,27 @@
+import glob
 import inspect
 import os
 import re
 from collections import namedtuple
-
 from stat import ST_CTIME
 
 import numpy as np
-import glob
 
-from yt.funcs import \
-    ensure_tuple, \
-    mylog, \
-    setdefaultattr
 from yt.data_objects.grid_patch import AMRGridPatch
-from yt.geometry.grid_geometry_handler import GridIndex
 from yt.data_objects.static_output import Dataset
+from yt.funcs import ensure_tuple, mylog, setdefaultattr
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.io_handler import io_registry
+from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_root_only
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
-from yt.utilities.io_handler import \
-    io_registry
-
-from .fields import \
-    BoxlibFieldInfo, \
-    NyxFieldInfo, \
-    MaestroFieldInfo, \
-    CastroFieldInfo, \
-    WarpXFieldInfo
+from .fields import (
+    BoxlibFieldInfo,
+    CastroFieldInfo,
+    MaestroFieldInfo,
+    NyxFieldInfo,
+    WarpXFieldInfo,
+)
 
 # This is what we use to find scientific notation that might include d's
 # instead of e's.

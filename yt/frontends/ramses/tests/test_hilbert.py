@@ -1,9 +1,9 @@
-from yt.frontends.ramses.hilbert import get_cpu_list, hilbert3d
-from yt.testing import \
-    assert_equal, \
-    requires_file
 import numpy as np
+
 import yt
+from yt.frontends.ramses.hilbert import get_cpu_list, hilbert3d
+from yt.testing import assert_equal, requires_file
+
 
 def test_hilbert3d():
     # 8 different cases, checked against RAMSES' own implementation

@@ -1,8 +1,9 @@
-import os
-from yt.utilities.cython_fortran_utils import FortranFile
 import glob
-from yt.funcs import mylog
+import os
+
 from yt.config import ytcfg
+from yt.funcs import mylog
+from yt.utilities.cython_fortran_utils import FortranFile
 
 from .io import _read_fluid_file_descriptor
 from .io_utils import read_offset

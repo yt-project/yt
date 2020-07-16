@@ -1,14 +1,19 @@
 from collections import defaultdict
+
 import numpy as np
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.utilities.cython_fortran_utils import FortranFile
+from yt.utilities.exceptions import (
+    YTFieldTypeNotFound,
+    YTFileNotParseable,
+    YTParticleOutputFormatNotImplemented,
+)
+from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
-from yt.utilities.cython_fortran_utils import FortranFile
-from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
-    YTFileNotParseable
-from .definitions import VERSION_RE, VAR_DESC_RE
+
+from .definitions import VAR_DESC_RE, VERSION_RE
+
 
 def convert_ramses_ages(ds, conformal_ages):
     tf = ds.t_frw

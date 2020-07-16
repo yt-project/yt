@@ -1,32 +1,28 @@
-from yt.convenience import \
-    load
-from yt.data_objects.api import \
-    create_profile
-from yt.frontends.ytdata.api import \
-    YTDataContainerDataset, \
-    YTSpatialPlotDataset, \
-    YTGridDataset, \
-    YTNonspatialDataset, \
-    YTProfileDataset, \
-    save_as_dataset
-from yt.testing import \
-    assert_array_equal, \
-    assert_allclose_units, \
-    assert_equal
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    AnswerTestingTest
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
-from yt.visualization.profile_plotter import \
-    ProfilePlot, \
-    PhasePlot
-import numpy as np
-import tempfile
 import os
 import shutil
+import tempfile
+
+import numpy as np
+
+from yt.convenience import load
+from yt.data_objects.api import create_profile
+from yt.frontends.ytdata.api import (
+    YTDataContainerDataset,
+    YTGridDataset,
+    YTNonspatialDataset,
+    YTProfileDataset,
+    YTSpatialPlotDataset,
+    save_as_dataset,
+)
+from yt.testing import assert_allclose_units, assert_array_equal, assert_equal
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.answer_testing.framework import (
+    AnswerTestingTest,
+    data_dir_load,
+    requires_ds,
+)
+from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
+
 
 def make_tempdir():
     if int(os.environ.get('GENERATE_YTDATA', 0)):

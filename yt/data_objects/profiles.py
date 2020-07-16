@@ -1,32 +1,32 @@
 import numpy as np
 
-from yt.fields.derived_field import DerivedField
-from yt.frontends.ytdata.utilities import \
-    save_as_dataset
-from yt.funcs import \
-    get_output_filename, \
-    ensure_list, \
-    iterable, \
-    issue_deprecation_warning, \
-    mylog
-from yt.units.yt_array import \
-    array_like_field, \
-    YTQuantity
-from yt.units.unit_object import Unit
 from yt.data_objects.field_data import YTFieldData
-from yt.utilities.exceptions import \
-    YTIllDefinedProfile, \
-    YTIllDefinedBounds, \
-    YTProfileDataShape
-from yt.utilities.lib.misc_utilities import \
-    new_bin_profile1d, \
-    new_bin_profile2d, \
-    new_bin_profile3d
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_objects
-from yt.utilities.lib.particle_mesh_operations import \
-    CICDeposit_2, \
-    NGPDeposit_2
+from yt.fields.derived_field import DerivedField
+from yt.frontends.ytdata.utilities import save_as_dataset
+from yt.funcs import (
+    ensure_list,
+    get_output_filename,
+    issue_deprecation_warning,
+    iterable,
+    mylog,
+)
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTQuantity, array_like_field
+from yt.utilities.exceptions import (
+    YTIllDefinedBounds,
+    YTIllDefinedProfile,
+    YTProfileDataShape,
+)
+from yt.utilities.lib.misc_utilities import (
+    new_bin_profile1d,
+    new_bin_profile2d,
+    new_bin_profile3d,
+)
+from yt.utilities.lib.particle_mesh_operations import CICDeposit_2, NGPDeposit_2
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+    parallel_objects,
+)
 
 
 def _sanitize_min_max_units(amin, amax, finfo, registry):

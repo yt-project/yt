@@ -3,23 +3,20 @@ import inspect
 import re
 import warnings
 
-from yt.funcs import \
-    ensure_list, \
-    VisibleDeprecationWarning
-from .field_exceptions import \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter, \
-    FieldUnitsError
-from .field_detector import \
-    FieldDetector
-from yt.units.unit_object import \
-    Unit
 import yt.units.dimensions as ytdims
-from yt.utilities.exceptions import \
-    YTFieldNotFound
+from yt.funcs import VisibleDeprecationWarning, ensure_list
+from yt.units.unit_object import Unit
+from yt.utilities.exceptions import YTFieldNotFound
+
+from .field_detector import FieldDetector
+from .field_exceptions import (
+    FieldUnitsError,
+    NeedsDataField,
+    NeedsGridType,
+    NeedsOriginalGrid,
+    NeedsParameter,
+    NeedsProperty,
+)
 
 
 def TranslationFunc(field_name):

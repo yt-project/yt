@@ -1,15 +1,8 @@
 import numpy as np
 
-from .definitions import (
-    gadget_field_specs,
-    gadget_ptype_specs,
-)
-from .data_structures import (
-    GadgetBinaryHeader,
-    GadgetDataset,
-)
+from .data_structures import GadgetBinaryHeader, GadgetDataset
+from .definitions import gadget_field_specs, gadget_ptype_specs
 from .io import IOHandlerGadgetBinary
-
 
 vector_fields = dict(IOHandlerGadgetBinary._vector_fields)
 

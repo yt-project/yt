@@ -1,13 +1,11 @@
 import warnings
+
 import numpy as np
 
-from yt.testing import \
-    assert_array_equal, \
-    assert_array_almost_equal, \
-    fake_random_ds
 import yt.utilities.linear_interpolators as lin
-from yt.utilities.lib.interpolators import \
-    ghost_zone_interpolate
+from yt.testing import assert_array_almost_equal, assert_array_equal, fake_random_ds
+from yt.utilities.lib.interpolators import ghost_zone_interpolate
+
 
 def setup():
     pass

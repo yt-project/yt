@@ -1,10 +1,8 @@
-from yt.frontends.owls.fields import \
-    OWLSFieldInfo
+from yt.frontends.eagle.definitions import eaglenetwork_ion_lookup
+from yt.frontends.owls.fields import OWLSFieldInfo
 from yt.units.yt_array import YTQuantity
 from yt.utilities.periodic_table import periodic_table
 
-from yt.frontends.eagle.definitions import \
-    eaglenetwork_ion_lookup
 
 class EagleNetworkFieldInfo(OWLSFieldInfo):
 

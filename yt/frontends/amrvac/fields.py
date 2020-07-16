@@ -12,12 +12,13 @@ AMRVAC-specific fields
 #-----------------------------------------------------------------------------
 
 import functools
+
 import numpy as np
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+
+from yt import mylog
+from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.units import dimensions
-from yt import mylog
 
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are

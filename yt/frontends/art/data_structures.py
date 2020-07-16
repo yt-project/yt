@@ -1,44 +1,37 @@
 import glob
-import numpy as np
 import os
 import struct
 import weakref
 
-from yt.geometry.oct_geometry_handler import \
-    OctreeIndex
-from yt.geometry.geometry_handler import \
-    YTDataChunk
-from yt.data_objects.static_output import \
-    Dataset, ParticleFile
-from yt.data_objects.octree_subset import \
-    OctreeSubset
-from yt.funcs import \
-    mylog, \
-    setdefaultattr
-from yt.geometry.oct_container import \
-    ARTOctreeContainer
-from yt.frontends.art.definitions import \
-    fluid_fields, \
-    particle_fields, \
-    filename_pattern, \
-    particle_header_struct, \
-    amr_header_struct, \
-    dmparticle_header_struct, \
-    constants, \
-    seek_extras
-from yt.frontends.art.fields import ARTFieldInfo
-from yt.data_objects.particle_unions import \
-    ParticleUnion
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
+import numpy as np
 
 import yt.utilities.fortran_utils as fpu
-from yt.frontends.art.io import \
-    _read_art_level_info, \
-    _read_child_level, \
-    _read_root_level, \
-    b2t, \
-    a2b
+from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.particle_unions import ParticleUnion
+from yt.data_objects.static_output import Dataset, ParticleFile
+from yt.frontends.art.definitions import (
+    amr_header_struct,
+    constants,
+    dmparticle_header_struct,
+    filename_pattern,
+    fluid_fields,
+    particle_fields,
+    particle_header_struct,
+    seek_extras,
+)
+from yt.frontends.art.fields import ARTFieldInfo
+from yt.frontends.art.io import (
+    _read_art_level_info,
+    _read_child_level,
+    _read_root_level,
+    a2b,
+    b2t,
+)
+from yt.funcs import mylog, setdefaultattr
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.oct_container import ARTOctreeContainer
+from yt.geometry.oct_geometry_handler import OctreeIndex
+from yt.geometry.particle_geometry_handler import ParticleIndex
 
 
 class ARTIndex(OctreeIndex):

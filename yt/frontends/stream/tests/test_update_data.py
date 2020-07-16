@@ -1,8 +1,8 @@
 import numpy as np
-from yt.testing import \
-    fake_particle_ds, \
-    fake_random_ds
+
 from yt.data_objects.profiles import create_profile
+from yt.testing import fake_particle_ds, fake_random_ds
+
 
 def test_update_data_grid():
     ds = fake_random_ds(64, nprocs=8)

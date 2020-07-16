@@ -1,15 +1,12 @@
 import os
 
+import yt.units
+from yt.frontends.gadget.data_structures import GadgetHDF5Dataset
+from yt.utilities.definitions import sec_conversion
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-import yt.units
-from yt.frontends.gadget.data_structures import \
-    GadgetHDF5Dataset
-from yt.utilities.definitions import \
-    sec_conversion
+from .fields import OWLSFieldInfo
 
-from .fields import \
-    OWLSFieldInfo
 
 class OWLSDataset(GadgetHDF5Dataset):
     _particle_mass_name = "Mass"

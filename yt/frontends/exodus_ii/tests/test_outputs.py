@@ -1,12 +1,9 @@
-from yt.testing import \
-    assert_equal, \
-    assert_array_equal, \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    data_dir_load, \
-    requires_ds, \
-    GenericArrayTest
-
+from yt.testing import assert_array_equal, assert_equal, requires_file
+from yt.utilities.answer_testing.framework import (
+    GenericArrayTest,
+    data_dir_load,
+    requires_ds,
+)
 
 out = "ExodusII/out.e"
 

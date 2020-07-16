@@ -1,6 +1,9 @@
 import random
+
 import numpy as np
+
 from yt.visualization.volume_rendering.create_spline import create_spline
+
 
 class Keyframes:
     def __init__(self, x, y, z=None, north_vectors=None, up_vectors=None,
@@ -313,4 +316,3 @@ class Keyframes:
                       self.path["up_vectors"][i,0], self.path["up_vectors"][i,1],
                       self.path["up_vectors"][i,2]))
         fp.close()
-

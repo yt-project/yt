@@ -1,19 +1,15 @@
 import glob
-import numpy as np
-from numpy.lib.recfunctions import append_fields
 import os
 import struct
 
-from yt.geometry.particle_geometry_handler import \
-    CHUNKSIZE
-from yt.frontends.sph.io import \
-    IOHandlerSPH
-from yt.frontends.tipsy.definitions import \
-    npart_mapping
-from yt.utilities.lib.particle_kdtree_tools import \
-    generate_smoothing_length
-from yt.utilities.logger import ytLogger as \
-    mylog
+import numpy as np
+from numpy.lib.recfunctions import append_fields
+
+from yt.frontends.sph.io import IOHandlerSPH
+from yt.frontends.tipsy.definitions import npart_mapping
+from yt.geometry.particle_geometry_handler import CHUNKSIZE
+from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
+from yt.utilities.logger import ytLogger as mylog
 
 
 class IOHandlerTipsyBinary(IOHandlerSPH):

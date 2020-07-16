@@ -1,16 +1,16 @@
 from itertools import product
-from yt.frontends.open_pmd.data_structures import \
-    OpenPMDDataset
-from yt.testing import \
-    assert_almost_equal, \
-    assert_equal, \
-    assert_array_equal, \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
-from yt.convenience import load
 
 import numpy as np
+
+from yt.convenience import load
+from yt.frontends.open_pmd.data_structures import OpenPMDDataset
+from yt.testing import (
+    assert_almost_equal,
+    assert_array_equal,
+    assert_equal,
+    requires_file,
+)
+from yt.utilities.answer_testing.framework import data_dir_load
 
 twoD = "example-2d/hdf5/data00000100.h5"
 threeD = "example-3d/hdf5/data00000100.h5"
@@ -156,4 +156,3 @@ def test_groupBased_out():
         assert ds.current_time <= 1.6499999999999998e-12 * np.ones_like(ds.current_time)
         assert_almost_equal(ds.domain_right_edge - ds.domain_left_edge,
                             domain_width)
-

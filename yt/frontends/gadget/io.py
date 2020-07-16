@@ -1,14 +1,12 @@
-import numpy as np
 import os
 
-from yt.frontends.sph.io import \
-    IOHandlerSPH
+import numpy as np
+
+from yt.frontends.sph.io import IOHandlerSPH
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .definitions import \
-    gadget_hdf5_ptypes, \
-    SNAP_FORMAT_2_OFFSET
+from .definitions import SNAP_FORMAT_2_OFFSET, gadget_hdf5_ptypes
 
 
 class IOHandlerGadgetHDF5(IOHandlerSPH):

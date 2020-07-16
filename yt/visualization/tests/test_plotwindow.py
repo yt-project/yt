@@ -1,30 +1,43 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
-import matplotlib
-import numpy as np
 import os
 import shutil
 import tempfile
 import unittest
-
+from collections import OrderedDict
 from distutils.version import LooseVersion
+
+import matplotlib
+import numpy as np
 from nose.tools import assert_true
 
-from yt.testing import \
-    requires_file, \
-    fake_random_ds, assert_equal, assert_rel_equal, assert_array_equal, \
-    assert_array_almost_equal, assert_raises, assert_fname
-from yt.utilities.answer_testing.framework import \
-    requires_ds, data_dir_load, PlotWindowAttributeTest
-from yt.utilities.exceptions import \
-    YTInvalidFieldType
-from yt.visualization.api import \
-    SlicePlot, ProjectionPlot, OffAxisSlicePlot, OffAxisProjectionPlot, \
-    plot_2d
-from yt.units.yt_array import YTArray, YTQuantity
-from yt.units import kboltz
 from yt.frontends.stream.api import load_uniform_grid
-from collections import OrderedDict
+from yt.testing import (
+    assert_array_almost_equal,
+    assert_array_equal,
+    assert_equal,
+    assert_fname,
+    assert_raises,
+    assert_rel_equal,
+    fake_random_ds,
+    requires_file,
+)
+from yt.units import kboltz
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.answer_testing.framework import (
+    PlotWindowAttributeTest,
+    data_dir_load,
+    requires_ds,
+)
+from yt.utilities.exceptions import YTInvalidFieldType
+from yt.visualization.api import (
+    OffAxisProjectionPlot,
+    OffAxisSlicePlot,
+    ProjectionPlot,
+    SlicePlot,
+    plot_2d,
+)
+
 
 def setup():
     """Test specific setup."""

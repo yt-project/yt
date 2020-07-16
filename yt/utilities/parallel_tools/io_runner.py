@@ -1,10 +1,12 @@
-import numpy as np
-from yt.utilities.logger import ytLogger as mylog
-from .parallel_analysis_interface import \
-    ProcessorPool, parallel_objects
-from yt.utilities.io_handler import BaseIOHandler
-from contextlib import contextmanager
 import time
+from contextlib import contextmanager
+
+import numpy as np
+
+from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.logger import ytLogger as mylog
+
+from .parallel_analysis_interface import ProcessorPool, parallel_objects
 
 try:
     from .parallel_analysis_interface import MPI
@@ -169,5 +171,3 @@ if __name__ == "__main__":
         return dd.quantities["TotalQuantity"]("CellMassMsun")
     q = io_nodes("DD0087/DD0087", 8, 24, gq)
     mylog.info(q)
-
-

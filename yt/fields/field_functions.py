@@ -1,7 +1,7 @@
 import numpy as np
 
-from yt.utilities.lib.misc_utilities import \
-    obtain_position_vector
+from yt.utilities.lib.misc_utilities import obtain_position_vector
+
 
 def get_radius(data, field_prefix, ftype):
     unit_system = data.ds.unit_system

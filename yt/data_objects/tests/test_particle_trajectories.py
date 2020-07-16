@@ -1,17 +1,15 @@
 import glob
 import os
+
 import numpy as np
-from numpy.testing import \
-    assert_raises
+from numpy.testing import assert_raises
 
 from yt.config import ytcfg
-from yt.data_objects.time_series import DatasetSeries
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    GenericArrayTest
-from yt.testing import fake_particle_ds
-from yt.utilities.exceptions import YTIllDefinedParticleData
 from yt.data_objects.particle_filters import particle_filter
+from yt.data_objects.time_series import DatasetSeries
+from yt.testing import fake_particle_ds
+from yt.utilities.answer_testing.framework import GenericArrayTest, requires_ds
+from yt.utilities.exceptions import YTIllDefinedParticleData
 
 
 def setup():

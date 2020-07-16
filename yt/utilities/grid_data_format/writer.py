@@ -1,15 +1,17 @@
 import os
 import sys
-from yt.utilities.on_demand_imports import _h5py as h5py
-import numpy as np
 from contextlib import contextmanager
 
+import numpy as np
+
 from yt import __version__ as yt_version
-from yt.utilities.exceptions import YTGDFAlreadyExists
 from yt.funcs import ensure_list, issue_deprecation_warning
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, \
-    communication_system
+from yt.utilities.exceptions import YTGDFAlreadyExists
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    communication_system,
+    parallel_objects,
+)
 
 
 def write_to_gdf(ds, gdf_path, fields=None, 

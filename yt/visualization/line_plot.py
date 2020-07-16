@@ -1,21 +1,19 @@
+from collections import defaultdict
+
 import numpy as np
 
-from collections import defaultdict
-from yt.funcs import \
-    iterable, \
-    mylog
-from yt.units.unit_object import \
-    Unit
-from yt.units.yt_array import \
-    YTArray
-from yt.visualization.base_plot_types import \
-    PlotMPL
-from yt.visualization.plot_container import \
-    PlotContainer, \
-    PlotDictionary, \
-    log_transform, \
-    linear_transform, \
-    invalidate_plot
+from yt.funcs import iterable, mylog
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTArray
+from yt.visualization.base_plot_types import PlotMPL
+from yt.visualization.plot_container import (
+    PlotContainer,
+    PlotDictionary,
+    invalidate_plot,
+    linear_transform,
+    log_transform,
+)
+
 
 class LineBuffer:
     r"""

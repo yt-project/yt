@@ -1,75 +1,48 @@
 import os
 import time
-import weakref
-import numpy as np
 import uuid
-from itertools import \
-    chain, \
-    product, \
-    repeat
+import weakref
 from collections import defaultdict
-
+from itertools import chain, product, repeat
 from numbers import Number as numeric_type
 
-from yt.utilities.lib.cykdtree import PyKDTree
-from yt.funcs import \
-    iterable, \
-    ensure_list, \
-    issue_deprecation_warning
-from yt.utilities.io_handler import io_registry
-from yt.data_objects.field_data import \
-    YTFieldData
-from yt.data_objects.particle_unions import \
-    ParticleUnion
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.data_objects.static_output import \
-    ParticleFile
-from yt.frontends.sph.data_structures import \
-    SPHParticleIndex
-from yt.geometry.geometry_handler import \
-    YTDataChunk
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.octree_subset import \
-    OctreeSubset
-from yt.geometry.oct_geometry_handler import \
-    OctreeIndex
-from yt.geometry.oct_container import \
-    OctreeContainer
-from yt.geometry.unstructured_mesh_handler import \
-    UnstructuredIndex
-from yt.data_objects.static_output import \
-    Dataset
-from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
-from yt.utilities.lib.particle_kdtree_tools import \
-    generate_smoothing_length, \
-    estimate_density
-from yt.geometry.grid_container import \
-    GridTree, \
-    MatchPointsToGrids
-from yt.utilities.decompose import \
-    decompose_array, get_psize
-from yt.utilities.exceptions import \
-    YTIllDefinedAMR, \
-    YTInconsistentGridFieldShape, \
-    YTInconsistentParticleFieldShape, \
-    YTInconsistentGridFieldShapeGridDims
-from yt.units.yt_array import \
-    YTQuantity, \
-    uconcatenate
-from yt.utilities.flagging_methods import \
-    FlaggingGrid
-from yt.data_objects.unstructured_mesh import \
-    SemiStructuredMesh, \
-    UnstructuredMesh
-from .fields import \
-    StreamFieldInfo
-from yt.frontends.exodus_ii.util import \
-    get_num_pseudo_dims
+import numpy as np
+
+from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.particle_unions import ParticleUnion
+from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import MeshUnion
+from yt.data_objects.unstructured_mesh import SemiStructuredMesh, UnstructuredMesh
+from yt.frontends.exodus_ii.util import get_num_pseudo_dims
+from yt.frontends.sph.data_structures import SPHParticleIndex
+from yt.funcs import ensure_list, issue_deprecation_warning, iterable
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.grid_container import GridTree, MatchPointsToGrids
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.geometry.oct_container import OctreeContainer
+from yt.geometry.oct_geometry_handler import OctreeIndex
+from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
+from yt.units.yt_array import YTQuantity, uconcatenate
+from yt.utilities.decompose import decompose_array, get_psize
+from yt.utilities.exceptions import (
+    YTIllDefinedAMR,
+    YTInconsistentGridFieldShape,
+    YTInconsistentGridFieldShapeGridDims,
+    YTInconsistentParticleFieldShape,
+)
+from yt.utilities.flagging_methods import FlaggingGrid
+from yt.utilities.io_handler import io_registry
+from yt.utilities.lib.cykdtree import PyKDTree
+from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.lib.particle_kdtree_tools import (
+    estimate_density,
+    generate_smoothing_length,
+)
+from yt.utilities.logger import ytLogger as mylog
+
+from .fields import StreamFieldInfo
 
 
 class StreamGrid(AMRGridPatch):

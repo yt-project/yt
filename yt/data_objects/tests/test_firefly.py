@@ -1,5 +1,7 @@
-from yt.testing import fake_particle_ds, requires_module
 import tempfile
+
+from yt.testing import fake_particle_ds, requires_module
+
 
 @requires_module('firefly_api')
 def test_firefly_JSON_object():
@@ -13,4 +15,3 @@ def test_firefly_JSON_object():
         coordinate_units = 'cm',
         dataset_name='test')
     reader.dumpToJSON()
-

@@ -1,10 +1,9 @@
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
-from yt.geometry.selection_routines import GridSelector
 import numpy as np
 
+from yt.geometry.selection_routines import GridSelector
+from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 _convert_mass = ("particle_mass","mass")
 

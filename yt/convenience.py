@@ -3,14 +3,14 @@ import os
 # Named imports
 from yt.config import ytcfg
 from yt.funcs import mylog
-from yt.utilities.parameter_file_storage import \
-    output_type_registry, \
-    simulation_time_series_registry, \
-    EnzoRunDatabase
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified, \
-    YTSimulationNotIdentified
+from yt.utilities.exceptions import YTOutputNotIdentified, YTSimulationNotIdentified
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
+from yt.utilities.parameter_file_storage import (
+    EnzoRunDatabase,
+    output_type_registry,
+    simulation_time_series_registry,
+)
+
 
 def _sanitize_load_args(*args):
     """Filter out non-pathlike arguments, ensure list form, and expand '~' tokens"""

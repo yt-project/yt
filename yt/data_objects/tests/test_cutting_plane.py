@@ -1,7 +1,8 @@
-from yt.testing import assert_equal, fake_random_ds
-from yt.units.unit_object import Unit
 import os
 import tempfile
+
+from yt.testing import assert_equal, fake_random_ds
+from yt.units.unit_object import Unit
 
 
 def setup():

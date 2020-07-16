@@ -2,9 +2,10 @@ from nose.plugins.attrib import attr
 from nose.tools import assert_raises
 
 import yt
-from yt.testing import assert_equal, fake_random_ds, ANSWER_TEST_TAG
+from yt.testing import ANSWER_TEST_TAG, assert_equal, fake_random_ds
 from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.visualization.line_plot import _validate_point
+
 
 def setup():
     """Test specific setup."""

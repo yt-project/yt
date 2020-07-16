@@ -1,7 +1,8 @@
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
 from yt.funcs import mylog
+from yt.utilities.on_demand_imports import _h5py as h5py
+
 
 def export_rgba(image, fn, h5=True, fits=False, ):
     """

@@ -1,11 +1,8 @@
 import numpy as np
 
-from yt.utilities.lib.misc_utilities import \
-    gravitational_binding_energy
-from yt.utilities.operator_registry import \
-    OperatorRegistry
-from yt.utilities.physical_constants import \
-    gravitational_constant_cgs as G
+from yt.utilities.lib.misc_utilities import gravitational_binding_energy
+from yt.utilities.operator_registry import OperatorRegistry
+from yt.utilities.physical_constants import gravitational_constant_cgs as G
 
 clump_validator_registry = OperatorRegistry()
 

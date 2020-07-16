@@ -28,9 +28,10 @@ Example usage:
 
 
 import http.client as http_client
-import urllib
 import socket
 import sys
+import urllib
+
 
 def request_has_data(req):
     if sys.version_info >= (3,0,0):

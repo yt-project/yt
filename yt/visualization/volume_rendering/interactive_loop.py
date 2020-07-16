@@ -2,12 +2,14 @@
 
 import os
 
-import cyglfw3 as glfw
 import numpy as np
+
+import cyglfw3 as glfw
 import OpenGL.GL as GL
+from yt import write_bitmap
+
 from .input_events import EventCollection, MouseRotation
 
-from yt import write_bitmap
 
 class EGLRenderingContext:
     '''Rendering context using EGL (experimental)

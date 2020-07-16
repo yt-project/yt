@@ -1,9 +1,11 @@
 r"""Routines for tracking the scaling of the triangulation routines."""
-import numpy as np
-import time
-import os
 import cProfile
+import os
 import pstats
+import time
+
+import numpy as np
+
 from yt.utilities.lib.cykdtree.tests import run_test
 
 

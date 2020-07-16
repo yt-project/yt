@@ -1,13 +1,8 @@
 """Tests for non-cartesian ray tracers."""
 import numpy as np
 
-from yt.testing import \
-    assert_true, \
-    amrspace, \
-    assert_less_equal, \
-    assert_equal
-
-from yt.utilities.lib.alt_ray_tracers import cylindrical_ray_trace, _cyl2cart
+from yt.testing import amrspace, assert_equal, assert_less_equal, assert_true
+from yt.utilities.lib.alt_ray_tracers import _cyl2cart, cylindrical_ray_trace
 
 left_grid = right_grid = amr_levels = center_grid = data = None
 

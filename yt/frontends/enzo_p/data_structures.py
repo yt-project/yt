@@ -1,40 +1,28 @@
-from yt.utilities.on_demand_imports import \
-    _h5py as h5py
-from yt.utilities.on_demand_imports import \
-    _libconf as libconf
 import io as io
-import numpy as np
 import os
 import warnings
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.data_objects.static_output import \
-    Dataset
-from yt.fields.field_info_container import \
-    NullFunc
-from yt.frontends.enzo.misc import \
-    cosmology_get_units
-from yt.funcs import \
-    ensure_tuple, \
-    get_pbar, \
-    setdefaultattr
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.utilities.cosmology import \
-    Cosmology
-from yt.utilities.logger import \
-    ytLogger as mylog
+import numpy as np
 
-from yt.frontends.enzo_p.fields import \
-    EnzoPFieldInfo
-from yt.frontends.enzo_p.misc import \
-    get_block_info, \
-    get_child_index, \
-    get_root_blocks, \
-    get_root_block_id, \
-    nested_dict_get, \
-    is_parent
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.fields.field_info_container import NullFunc
+from yt.frontends.enzo.misc import cosmology_get_units
+from yt.frontends.enzo_p.fields import EnzoPFieldInfo
+from yt.frontends.enzo_p.misc import (
+    get_block_info,
+    get_child_index,
+    get_root_block_id,
+    get_root_blocks,
+    is_parent,
+    nested_dict_get,
+)
+from yt.funcs import ensure_tuple, get_pbar, setdefaultattr
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.cosmology import Cosmology
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
+
 
 class EnzoPGrid(AMRGridPatch):
     """

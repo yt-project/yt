@@ -27,7 +27,6 @@ than an older version of poster.
 New in version 0.6."""
 
 
-from . import streaminghttp
-from . import encode
+from . import encode, streaminghttp
 
 version = (0, 8, 1) # Thanks JP!

@@ -1,31 +1,31 @@
 
-import functools
-import numpy as np
-from collections import OrderedDict
-from yt.config import \
-    ytcfg
-from yt.funcs import mylog, get_image_suffix
-from yt.units.dimensions import \
-    length
-from yt.units.unit_registry import \
-    UnitRegistry
-from yt.units.yt_array import \
-    YTQuantity, \
-    YTArray
-from .camera import Camera
-from .render_source import \
-    OpaqueSource, \
-    BoxSource, \
-    CoordinateVectorSource, \
-    GridSource, \
-    RenderSource, \
-    MeshSource, \
-    VolumeSource, \
-    PointSource, \
-    LineSource
-from .zbuffer_array import ZBuffer
 import builtins
+import functools
+from collections import OrderedDict
+
+import numpy as np
+
+from yt.config import ytcfg
+from yt.funcs import get_image_suffix, mylog
+from yt.units.dimensions import length
+from yt.units.unit_registry import UnitRegistry
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
+
+from .camera import Camera
+from .render_source import (
+    BoxSource,
+    CoordinateVectorSource,
+    GridSource,
+    LineSource,
+    MeshSource,
+    OpaqueSource,
+    PointSource,
+    RenderSource,
+    VolumeSource,
+)
+from .zbuffer_array import ZBuffer
+
 
 class Scene:
 

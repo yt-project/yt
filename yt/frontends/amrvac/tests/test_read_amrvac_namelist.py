@@ -1,8 +1,9 @@
-from os import path
 from copy import deepcopy
+from os import path
+
+from yt.frontends.amrvac import read_amrvac_namelist
 from yt.testing import requires_module
 from yt.utilities.on_demand_imports import _f90nml as f90nml
-from yt.frontends.amrvac import read_amrvac_namelist
 
 test_dir = path.dirname(path.abspath(__file__))
 blast_wave_parfile = path.join(test_dir, "sample_parfiles/bw_3d.par")

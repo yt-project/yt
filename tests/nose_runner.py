@@ -1,18 +1,20 @@
-import sys
-import os
-import yaml
 import multiprocessing
-import nose
+import os
+import sys
+from io import StringIO
 
+import nose
+import numpy
+import yaml
 from coverage import Coverage
+
+from yt.config import ytcfg
+from yt.utilities.answer_testing.framework import AnswerTesting
+
 cov = Coverage(config_file=".coveragerc", branch=True, auto_data=True,
                concurrency="multiprocessing")
 cov.start()
 
-from io import StringIO
-from yt.config import ytcfg
-from yt.utilities.answer_testing.framework import AnswerTesting
-import numpy
 numpy.set_printoptions(threshold=5, edgeitems=1, precision=4)
 
 class NoseWorker(multiprocessing.Process):

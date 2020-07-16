@@ -1,22 +1,20 @@
-import numpy as np
 import abc
 import json
-import sys
-from yt.utilities.on_demand_imports import _h5py as h5
 import os
-from uuid import uuid4
-import urllib
 import pickle
+import sys
+import urllib
 from tempfile import TemporaryFile
+from uuid import uuid4
+
+import numpy as np
+
 from yt.config import ytcfg
-from yt.funcs import \
-    iterable, get_pbar, compare_dicts
-from yt.utilities.exceptions import \
-    YTHubRegisterError
+from yt.funcs import compare_dicts, get_pbar, iterable
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import YTHubRegisterError
 from yt.utilities.logger import ytLogger as mylog
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
+from yt.utilities.on_demand_imports import _h5py as h5
 
 if sys.version_info < (3, 0):
     from .poster.streaminghttp import register_openers

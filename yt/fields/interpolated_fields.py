@@ -1,9 +1,9 @@
 from yt.fields.local_fields import add_field
-
-from yt.utilities.linear_interpolators import \
-    UnilinearFieldInterpolator, \
-    BilinearFieldInterpolator, \
-    TrilinearFieldInterpolator
+from yt.utilities.linear_interpolators import (
+    BilinearFieldInterpolator,
+    TrilinearFieldInterpolator,
+    UnilinearFieldInterpolator,
+)
 
 _int_class = {1: UnilinearFieldInterpolator,
               2: BilinearFieldInterpolator,
@@ -29,4 +29,3 @@ def add_interpolated_field(name, units, table_data, axes_data, axes_fields,
               function=_interpolated_field,
               units=units,
               validators=validators, particle_type=particle_type)
-              

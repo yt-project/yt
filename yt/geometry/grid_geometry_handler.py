@@ -1,21 +1,19 @@
-from yt.utilities.on_demand_imports import _h5py as h5py
-import numpy as np
 import weakref
-
 from collections import defaultdict
+
+import numpy as np
 
 from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_detector import FieldDetector
-from yt.funcs import \
-    ensure_list, ensure_numpy_array
-from yt.geometry.geometry_handler import \
-    Index, YTDataChunk, ChunkDataCache
+from yt.funcs import ensure_list, ensure_numpy_array
+from yt.geometry.geometry_handler import ChunkDataCache, Index, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.logger import ytLogger as mylog
-from .grid_container import \
-    GridTree, MatchPointsToGrids
+from yt.utilities.on_demand_imports import _h5py as h5py
+
+from .grid_container import GridTree, MatchPointsToGrids
 
 
 class GridIndex(Index):

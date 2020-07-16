@@ -1,6 +1,8 @@
-from yt.frontends.gadget.api import IOHandlerGadgetHDF5
 import numpy as np
+
+from yt.frontends.gadget.api import IOHandlerGadgetHDF5
 from yt.utilities.on_demand_imports import _h5py as h5py
+
 
 class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
     _dataset_type = "arepo_hdf5"
@@ -30,4 +32,3 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
                                self)._identify_fields(data_file)
         fields.append(("PartType0", "smoothing_length"))
         return fields, _units
-

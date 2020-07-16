@@ -1,12 +1,15 @@
 import numpy as np
-from .coordinate_handler import \
-    CoordinateHandler, \
-    _unknown_coord, \
-    _get_coord_fields, \
-    cylindrical_to_cartesian, \
-    cartesian_to_cylindrical
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_cartesian, pixelize_cylinder
+
+from yt.utilities.lib.pixelization_routines import pixelize_cartesian, pixelize_cylinder
+
+from .coordinate_handler import (
+    CoordinateHandler,
+    _get_coord_fields,
+    _unknown_coord,
+    cartesian_to_cylindrical,
+    cylindrical_to_cartesian,
+)
+
 #
 # Cylindrical fields
 #

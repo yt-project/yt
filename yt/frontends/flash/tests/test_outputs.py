@@ -1,17 +1,20 @@
-import numpy as np
-from yt.testing import \
-    assert_equal, \
-    requires_file, \
-    units_override_check, \
-    ParticleSelectionComparison
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    small_patch_amr, \
-    data_dir_load, \
-    nbody_answer
-from yt.frontends.flash.api import FLASHDataset, \
-    FLASHParticleDataset
 from collections import OrderedDict
+
+import numpy as np
+
+from yt.frontends.flash.api import FLASHDataset, FLASHParticleDataset
+from yt.testing import (
+    ParticleSelectionComparison,
+    assert_equal,
+    requires_file,
+    units_override_check,
+)
+from yt.utilities.answer_testing.framework import (
+    data_dir_load,
+    nbody_answer,
+    requires_ds,
+    small_patch_amr,
+)
 
 _fields = ("temperature", "density", "velocity_magnitude")
 

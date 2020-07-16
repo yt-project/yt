@@ -1,10 +1,12 @@
-from yt.testing import \
-    fake_sph_grid_ds, assert_almost_equal
-from yt.data_objects.construction_data_containers import YTOctree
-import tempfile
 import os
 import shutil
+import tempfile
+
 import numpy as np
+
+from yt.data_objects.construction_data_containers import YTOctree
+from yt.testing import assert_almost_equal, fake_sph_grid_ds
+
 
 def test_building_tree():
     '''

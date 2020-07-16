@@ -1,53 +1,56 @@
-import numpy as np
-import matplotlib
-import types
 import sys
-
+import types
 from collections import defaultdict
 from distutils.version import LooseVersion
 from numbers import Number
 
-from .base_plot_types import \
-    ImagePlotMPL
-from .fixed_resolution import \
-    FixedResolutionBuffer, \
-    OffAxisProjectionFixedResolutionBuffer
-from .plot_modifications import callback_registry
-from .plot_container import \
-    ImagePlotContainer, \
-    log_transform, linear_transform, symlog_transform, \
-    get_log_minorticks, get_symlog_minorticks, \
-    invalidate_data, invalidate_plot, invalidate_figure, \
-    apply_callback
-from .base_plot_types import CallbackWrapper
-
-from yt.data_objects.image_array import \
-    ImageArray
-from yt.frontends.ytdata.data_structures import \
-    YTSpatialPlotDataset
-from yt.funcs import \
-    mylog, iterable, ensure_list, \
-    fix_axis, fix_unitary, obj_length, \
-    issue_deprecation_warning
-from yt.units.unit_object import \
-    Unit
-from yt.units.unit_registry import \
-    UnitParseError
-from yt.units.yt_array import \
-    YTArray, YTQuantity
-from yt.utilities.math_utils import \
-    ortho_find
-from yt.utilities.orientation import \
-    Orientation
-from yt.utilities.exceptions import \
-    YTCannotParseUnitDisplayName, \
-    YTPlotCallbackError, \
-    YTDataTypeUnsupported, \
-    YTInvalidFieldType, \
-    YTUnitNotRecognized
+import matplotlib
+import numpy as np
 from unyt.exceptions import UnitConversionError
 
+from yt.data_objects.image_array import ImageArray
+from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
+from yt.funcs import (
+    ensure_list,
+    fix_axis,
+    fix_unitary,
+    issue_deprecation_warning,
+    iterable,
+    mylog,
+    obj_length,
+)
+from yt.units.unit_object import Unit
+from yt.units.unit_registry import UnitParseError
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import (
+    YTCannotParseUnitDisplayName,
+    YTDataTypeUnsupported,
+    YTInvalidFieldType,
+    YTPlotCallbackError,
+    YTUnitNotRecognized,
+)
+from yt.utilities.math_utils import ortho_find
+from yt.utilities.orientation import Orientation
+
+from .base_plot_types import CallbackWrapper, ImagePlotMPL
+from .fixed_resolution import (
+    FixedResolutionBuffer,
+    OffAxisProjectionFixedResolutionBuffer,
+)
 from .geo_plot_utils import get_mpl_transform
+from .plot_container import (
+    ImagePlotContainer,
+    apply_callback,
+    get_log_minorticks,
+    get_symlog_minorticks,
+    invalidate_data,
+    invalidate_figure,
+    invalidate_plot,
+    linear_transform,
+    log_transform,
+    symlog_transform,
+)
+from .plot_modifications import callback_registry
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
 

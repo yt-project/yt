@@ -1,10 +1,13 @@
 import os
-import tempfile
 import shutil
+import tempfile
+from unittest import TestCase
+
+import numpy as np
+
 from yt.testing import fake_random_ds
 from yt.visualization.volume_rendering.api import Scene, VolumeSource
-import numpy as np
-from unittest import TestCase
+
 
 def setup():
     """Test specific setup."""

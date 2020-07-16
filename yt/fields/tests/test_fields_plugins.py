@@ -1,11 +1,10 @@
 import os
 import sys
 import unittest
+
 import yt
-from yt.config import ytcfg, CONFIG_DIR
-from yt.testing import \
-    assert_raises, \
-    fake_random_ds
+from yt.config import CONFIG_DIR, ytcfg
+from yt.testing import assert_raises, fake_random_ds
 
 TEST_PLUGIN_FILE = '''
 def _myfunc(field, data):

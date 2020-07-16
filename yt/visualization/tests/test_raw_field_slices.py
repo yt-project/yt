@@ -1,8 +1,9 @@
 import yt
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    GenericImageTest
+from yt.utilities.answer_testing.framework import (
+    GenericImageTest,
+    data_dir_load,
+    requires_ds,
+)
 
 
 def setup():
@@ -38,4 +39,3 @@ def test_raw_field_slices():
     ds = data_dir_load(raw_fields)
     for field in _raw_field_names:
         yield compare(ds, field, "answers_raw_%s" % field[1])
-

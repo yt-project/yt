@@ -1,5 +1,6 @@
 import numpy as np
 
+
 def _plot2D_root(seg, pts=None, txt=None, plotfile=None, point_kw={}, box_kw={},
                  axs=None, subplot_kw={}, gridspec_kw={}, fig_kw={}, 
                  save_kw={}, title=None, xlabel='x', ylabel='y', label_kw={}):

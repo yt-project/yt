@@ -1,6 +1,7 @@
 import numpy as np
 
-from yt import load_unstructured_mesh, SlicePlot
+from yt import SlicePlot, load_unstructured_mesh
+
 
 def test_multi_mesh():
     coordsMulti = np.array([[0.0, 0.0],

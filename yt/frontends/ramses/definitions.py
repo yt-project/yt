@@ -1,7 +1,9 @@
 # These functions are RAMSES-specific
+import re
+
 from yt.config import ytcfg
 from yt.funcs import mylog
-import re
+
 
 def ramses_header(hvals):
     header = ( ('ncpu', 1, 'i'),

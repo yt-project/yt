@@ -1,20 +1,21 @@
 import operator
+
 import numpy as np
 
-from yt.funcs import \
-    iterable, \
-    mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
-from yt.utilities.amr_kdtree.amr_kdtools import \
-    receive_and_reduce, \
-    send_to_parent, \
-    scatter_image
+from yt.funcs import iterable, mylog
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.amr_kdtree.amr_kdtools import (
+    receive_and_reduce,
+    scatter_image,
+    send_to_parent,
+)
 from yt.utilities.lib.amr_kdtools import Node
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.math_utils import periodic_position
-from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+)
 
 steps = np.array([[-1, -1, -1], [-1, -1,  0], [-1, -1,  1],
                   [-1,  0, -1], [-1,  0,  0], [-1,  0,  1],

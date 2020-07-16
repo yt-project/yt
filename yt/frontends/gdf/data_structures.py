@@ -1,30 +1,21 @@
-from yt.utilities.on_demand_imports import _h5py as h5py
-import numpy as np
-import weakref
 import os
-from yt.funcs import \
-    ensure_tuple, \
-    just_one, \
-    setdefaultattr
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
-from yt.units.dimensions import \
-    dimensionless as sympy_one
-from yt.units.unit_object import \
-    Unit
-from yt.units.unit_systems import \
-    unit_system_registry
-from yt.utilities.exceptions import \
-    YTGDFUnknownGeometry
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
-from yt.utilities.logger import ytLogger as mylog
-from .fields import GDFFieldInfo
+import weakref
 
+import numpy as np
+
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.funcs import ensure_tuple, just_one, setdefaultattr
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.units.dimensions import dimensionless as sympy_one
+from yt.units.unit_object import Unit
+from yt.units.unit_systems import unit_system_registry
+from yt.utilities.exceptions import YTGDFUnknownGeometry
+from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5py
+
+from .fields import GDFFieldInfo
 
 GEOMETRY_TRANS = {
     0: "cartesian",

@@ -1,5 +1,5 @@
-from unyt.unit_registry import *
 from unyt.dimensions import dimensionless
+from unyt.unit_registry import *
 
 default_unit_registry = UnitRegistry(unit_system='cgs')
 

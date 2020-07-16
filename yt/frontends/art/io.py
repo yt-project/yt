@@ -1,29 +1,26 @@
 
-import numpy as np
 import os
 import os.path
 import sys
-
 from collections import defaultdict
+
+import numpy as np
+
+from yt.frontends.art.definitions import (
+    hydro_struct,
+    particle_fields,
+    particle_star_fields,
+    star_struct,
+)
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.fortran_utils import read_vector, skip
+from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.lib.geometry_utils import compute_morton
+from yt.utilities.logger import ytLogger as mylog
 
 if sys.version_info >= (3,0,0):
     long = int
 
-from yt.frontends.art.definitions import \
-    particle_star_fields, \
-    particle_fields, \
-    star_struct, \
-    hydro_struct
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.lib.geometry_utils import compute_morton
-from yt.utilities.fortran_utils import \
-    read_vector, \
-    skip
-from yt.units.yt_array import \
-    YTQuantity, \
-    YTArray
 
 class IOHandlerART(BaseIOHandler):
     _dataset_type = "art"

@@ -1,12 +1,14 @@
-import numpy as np
-import time
 import tempfile
+import time
+
+import numpy as np
 from nose.tools import assert_raises
+
 import yt.utilities.lib.cykdtree as cykdtree
 from yt.utilities.lib.cykdtree.tests import (
-    parametrize,
     make_points,
     make_points_neighbors,
+    parametrize,
 )
 
 

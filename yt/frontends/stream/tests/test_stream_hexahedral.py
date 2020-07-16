@@ -1,12 +1,10 @@
 import numpy as np
-from yt.frontends.stream.api import \
-    load_hexahedral_mesh
-from yt.frontends.stream.data_structures import \
-    hexahedral_connectivity
-from yt.testing import \
-    assert_almost_equal, \
-    assert_equal
+
 from yt import SlicePlot
+from yt.frontends.stream.api import load_hexahedral_mesh
+from yt.frontends.stream.data_structures import hexahedral_connectivity
+from yt.testing import assert_almost_equal, assert_equal
+
 # Field information
 
 def test_stream_hexahedral() :

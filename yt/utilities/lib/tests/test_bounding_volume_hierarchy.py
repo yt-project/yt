@@ -1,9 +1,9 @@
-import yt
 import numpy as np
-from yt.utilities.lib.bounding_volume_hierarchy import BVH, \
-    test_ray_trace
-from yt.visualization.volume_rendering.api import Camera, Scene
+
+import yt
 from yt.testing import requires_file
+from yt.utilities.lib.bounding_volume_hierarchy import BVH, test_ray_trace
+from yt.visualization.volume_rendering.api import Camera, Scene
 
 
 def get_rays(camera):

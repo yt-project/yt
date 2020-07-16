@@ -1,16 +1,17 @@
 import numpy as np
 
-from yt.frontends.gadget_fof.api import \
-    GadgetFOFDataset
-from yt.testing import \
-    requires_file, \
-    assert_equal, \
-    assert_array_equal, \
-    ParticleSelectionComparison
-from yt.utilities.answer_testing.framework import \
-    FieldValuesTest, \
-    requires_ds, \
-    data_dir_load
+from yt.frontends.gadget_fof.api import GadgetFOFDataset
+from yt.testing import (
+    ParticleSelectionComparison,
+    assert_array_equal,
+    assert_equal,
+    requires_file,
+)
+from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    data_dir_load,
+    requires_ds,
+)
 
 _fields = ("particle_position_x", "particle_position_y",
            "particle_position_z", "particle_velocity_x",

@@ -1,5 +1,4 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 
 class SDFFieldInfo(FieldInfoContainer):
@@ -39,5 +38,3 @@ class SDFFieldInfo(FieldInfoContainer):
             (mnf, ('code_mass', ['particle_mass'], None)),
         )
         super(SDFFieldInfo, self).__init__(ds, field_list)
-
-

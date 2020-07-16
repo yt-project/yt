@@ -15,6 +15,7 @@ API for yt.frontends.amrvac
 
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 
+
 def read_amrvac_namelist(parfiles):
     """Read one or more parfiles, and return a unified f90nml.Namelist object.
 

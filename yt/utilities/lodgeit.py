@@ -30,6 +30,7 @@
 import os
 import sys
 from optparse import OptionParser
+
 if sys.version_info >= (3,0,0):
     unicode = str
 

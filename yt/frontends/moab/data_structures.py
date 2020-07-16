@@ -1,18 +1,17 @@
-from yt.utilities.on_demand_imports import _h5py as h5py
 import os
-import numpy as np
 import weakref
-from yt.data_objects.unstructured_mesh import \
-    SemiStructuredMesh
-from yt.funcs import \
-    setdefaultattr
-from yt.geometry.unstructured_mesh_handler import \
-    UnstructuredIndex
-from yt.data_objects.static_output import \
-    Dataset
+
+import numpy as np
+
+from yt.data_objects.static_output import Dataset
+from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.funcs import setdefaultattr
+from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import HDF5FileHandler
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import MoabFieldInfo, PyneFieldInfo
+
 
 class MoabHex8Mesh(SemiStructuredMesh):
     _connectivity_length = 8
@@ -177,4 +176,3 @@ class PyneMoabHex8Dataset(Dataset):
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
-

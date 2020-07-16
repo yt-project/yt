@@ -1,16 +1,18 @@
 from yt.convenience import load
-from yt.testing import \
-    assert_equal, \
-    assert_allclose_units, \
-    requires_file, \
-    units_override_check
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    data_dir_load, \
-    PixelizedProjectionValuesTest, \
-    FieldValuesTest, \
-    create_obj
 from yt.frontends.artio.api import ARTIODataset
+from yt.testing import (
+    assert_allclose_units,
+    assert_equal,
+    requires_file,
+    units_override_check,
+)
+from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    PixelizedProjectionValuesTest,
+    create_obj,
+    data_dir_load,
+    requires_ds,
+)
 
 _fields = ("temperature", "density", "velocity_magnitude",
            ("deposit", "all_density"), ("deposit", "all_count"))

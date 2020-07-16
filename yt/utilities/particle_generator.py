@@ -1,8 +1,9 @@
 import numpy as np
-from yt.utilities.lib.particle_mesh_operations import \
-    CICSample_3
+
 from yt.funcs import get_pbar, issue_deprecation_warning
 from yt.units.yt_array import uconcatenate
+from yt.utilities.lib.particle_mesh_operations import CICSample_3
+
 
 class ParticleGenerator:
 
@@ -409,4 +410,3 @@ class WithDensityParticleGenerator(ParticleGenerator):
         z = uconcatenate(all_z)
 
         self._setup_particles(x, y, z)
-

@@ -1,7 +1,6 @@
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
 
-
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 def h5rd(fname, path, dtype=None):

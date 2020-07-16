@@ -1,11 +1,12 @@
 import os
 import os.path
-import tempfile
 import shutil
+import tempfile
+
 import numpy as np
+
 import yt
-from yt.testing import \
-    assert_equal
+from yt.testing import assert_equal
 from yt.utilities.lib.api import add_rgba_points_to_image
 
 

@@ -1,18 +1,23 @@
 import os
-import tempfile
 import shutil
+import tempfile
 import unittest
-import yt
+
 from nose.plugins.attrib import attr
+
+import yt
 from yt.data_objects.profiles import create_profile
-from yt.testing import \
-    fake_random_ds, \
-    assert_array_almost_equal, \
-    assert_allclose_units, ANSWER_TEST_TAG
-from yt.visualization.profile_plotter import \
-    ProfilePlot, PhasePlot
-from yt.utilities.answer_testing.framework import \
-    PhasePlotAttributeTest, GenericImageTest
+from yt.testing import (
+    ANSWER_TEST_TAG,
+    assert_allclose_units,
+    assert_array_almost_equal,
+    fake_random_ds,
+)
+from yt.utilities.answer_testing.framework import (
+    GenericImageTest,
+    PhasePlotAttributeTest,
+)
+from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
 ATTR_ARGS = {"annotate_text": [(((5e-29, 5e7), "Hello YT"), {}),
                                (((5e-29, 5e7), "Hello YT"), {'color': 'b'})],
@@ -277,7 +282,3 @@ def test_phaseplot_showhide_colorbar_axes():
     plot.show_axes()
     with tempfile.NamedTemporaryFile(suffix='png') as f4:
         plot.save(f4.name)
-
-
-
-

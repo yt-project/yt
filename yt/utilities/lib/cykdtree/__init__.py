@@ -1,5 +1,6 @@
-from yt.utilities.lib.cykdtree.kdtree import PyKDTree, PyNode  # NOQA
 from yt.utilities.lib.cykdtree import plot  # NOQA
+from yt.utilities.lib.cykdtree.kdtree import PyKDTree, PyNode  # NOQA
+
 
 def make_tree(pts, **kwargs):
     r"""Build a KD-tree for a set of points.

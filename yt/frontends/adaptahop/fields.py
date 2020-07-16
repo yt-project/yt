@@ -14,8 +14,7 @@ AdaptaHOP-specific fields
 # The full license is in the file COPYING.txt, distributed with this software.
 #-----------------------------------------------------------------------------
 
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "1e11 * Msun"
 r_units = "Mpc"

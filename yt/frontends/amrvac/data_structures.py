@@ -15,26 +15,20 @@ AMRVAC data structures
 
 import os
 import stat
-import weakref
 import struct
+import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import \
-   AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-   GridIndex
-from yt.funcs import \
-    mylog, \
-    setdefaultattr
-from yt.data_objects.static_output import \
-   Dataset
-from yt.utilities.physical_constants import \
-    boltzmann_constant_cgs as kb_cgs
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.funcs import mylog, setdefaultattr
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 
-from .fields import AMRVACFieldInfo
-from .datfile_utils import get_header, get_tree_info
 from . import read_amrvac_namelist
+from .datfile_utils import get_header, get_tree_info
+from .fields import AMRVACFieldInfo
 
 ALLOWED_UNIT_COMBINATIONS = [{'numberdensity_unit', 'temperature_unit', 'length_unit'},
                              {'mass_unit', 'temperature_unit', 'length_unit'},

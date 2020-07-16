@@ -1,6 +1,7 @@
 import os
-from yt.utilities.lib.cykdtree.plot import plot2D_serial
+
 from yt.utilities.lib.cykdtree.kdtree import PyKDTree
+from yt.utilities.lib.cykdtree.plot import plot2D_serial
 from yt.utilities.lib.cykdtree.tests import make_points
 
 

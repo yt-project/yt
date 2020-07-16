@@ -1,11 +1,12 @@
 import numpy as np
 
-from yt.utilities.lib.bounded_priority_queue import \
-    validate, \
-    validate_pid, \
-    validate_nblist
-
 from yt.testing import assert_array_equal
+from yt.utilities.lib.bounded_priority_queue import (
+    validate,
+    validate_nblist,
+    validate_pid,
+)
+
 
 # These test functions use utility functions in
 # yt.utilities.lib.bounded_priority_queue

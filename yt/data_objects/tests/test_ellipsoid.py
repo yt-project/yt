@@ -1,8 +1,7 @@
 import numpy as np
 
-from yt.testing import \
-    fake_random_ds, \
-    assert_array_less
+from yt.testing import assert_array_less, fake_random_ds
+
 
 def setup():
     from yt.config import ytcfg

@@ -1,8 +1,8 @@
-from yt.testing import \
-    assert_array_equal, \
-    assert_equal
-import yt
 import numpy as np
+
+import yt
+from yt.testing import assert_array_equal, assert_equal
+
 
 def setup_fake_refby():
     refine_by=np.array([5, 1, 1])

@@ -1,8 +1,8 @@
 import numpy as np
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
+
 
 class IOHandlerFITS(BaseIOHandler):
     _particle_reader = False

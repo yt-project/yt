@@ -1,12 +1,14 @@
-import numpy as np
 import base64
-from yt.fields.derived_field import ValidateSpatial
-from yt.funcs import mylog, issue_deprecation_warning
-from yt.utilities.on_demand_imports import _astropy
-from yt.units.yt_array import YTQuantity, YTArray
+import os
 from io import BytesIO
 
-import os
+import numpy as np
+
+from yt.fields.derived_field import ValidateSpatial
+from yt.funcs import issue_deprecation_warning, mylog
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.on_demand_imports import _astropy
+
 
 def _make_counts(emin, emax):
     def _counts(field, data):

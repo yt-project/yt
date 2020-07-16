@@ -30,4 +30,3 @@ def test_name_validator():
         assert_equal(fileext, expected_answers["fileext"])
         assert_equal(bname, expected_answers["basename"])
         assert_equal(ext, expected_answers["extension"])
-

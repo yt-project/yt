@@ -4,7 +4,9 @@ from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError
 from yt.visualization.line_plot import LineBuffer
+
 from .data_containers import _get_ipython_key_completion
+
 
 class RegionExpression:
     _all_data = None

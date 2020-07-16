@@ -1,5 +1,7 @@
-import numpy as np
 import sys
+
+import numpy as np
+
 
 def create_spline(old_x, old_y, new_x, tension=0.5, sorted=False):
     """
@@ -48,4 +50,3 @@ Outputs:
         result[i] = b0 * old_y[im2[i]] + b1 * old_y[im1[i]] + \
                     b2 * old_y[ind[i]] + b3 * old_y[ip1[i]]
     return result
-    

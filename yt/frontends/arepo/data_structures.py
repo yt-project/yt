@@ -1,11 +1,10 @@
+import numpy as np
+
 from yt.frontends.gadget.api import GadgetHDF5Dataset
 from yt.funcs import mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .fields import \
-    ArepoFieldInfo
-
-import numpy as np
+from .fields import ArepoFieldInfo
 
 
 class ArepoHDF5Dataset(GadgetHDF5Dataset):

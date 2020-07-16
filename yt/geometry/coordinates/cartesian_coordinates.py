@@ -1,24 +1,28 @@
 import numpy as np
-from .coordinate_handler import \
-    CoordinateHandler, \
-    _get_coord_fields, \
-    _get_vert_fields, \
-    cartesian_to_cylindrical, \
-    cylindrical_to_cartesian
-from yt.funcs import mylog
-from yt.units.yt_array import uvstack, YTArray
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_element_mesh, pixelize_off_axis_cartesian, \
-    pixelize_cartesian, \
-    pixelize_cartesian_nodal, \
-    pixelize_sph_kernel_slice, \
-    pixelize_sph_kernel_projection, \
-    pixelize_element_mesh_line, \
-    interpolate_sph_grid_gather, \
-    normalization_2d_utility
+
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.funcs import mylog
+from yt.units.yt_array import YTArray, uconcatenate, uvstack
+from yt.utilities.lib.pixelization_routines import (
+    interpolate_sph_grid_gather,
+    normalization_2d_utility,
+    pixelize_cartesian,
+    pixelize_cartesian_nodal,
+    pixelize_element_mesh,
+    pixelize_element_mesh_line,
+    pixelize_off_axis_cartesian,
+    pixelize_sph_kernel_projection,
+    pixelize_sph_kernel_slice,
+)
 from yt.utilities.nodal_data_utils import get_nodal_data
-from yt.units.yt_array import uconcatenate
+
+from .coordinate_handler import (
+    CoordinateHandler,
+    _get_coord_fields,
+    _get_vert_fields,
+    cartesian_to_cylindrical,
+    cylindrical_to_cartesian,
+)
 
 
 def _sample_ray(ray, npoints, field):

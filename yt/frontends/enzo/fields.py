@@ -1,9 +1,7 @@
 import numpy as np
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.utilities.physical_constants import \
-    me, \
-    mp
+
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.utilities.physical_constants import me, mp
 
 b_units = "code_magnetic"
 e_units = "code_magnetic/c"

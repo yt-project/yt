@@ -1,27 +1,19 @@
-import numpy as np
 import os
 import weakref
 
-from yt.funcs import \
-    mylog, \
-    ensure_tuple, \
-    sglob
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
-from yt.utilities.chemical_formulas import \
-    default_mu
-from yt.utilities.lib.misc_utilities import \
-    get_box_grids_level
-from yt.geometry.geometry_handler import \
-    YTDataChunk
+import numpy as np
+
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.funcs import ensure_tuple, mylog, sglob
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.decompose import decompose_array, get_psize
+from yt.utilities.lib.misc_utilities import get_box_grids_level
 
 from .fields import AthenaFieldInfo
-from yt.utilities.decompose import \
-    decompose_array, get_psize
+
 
 def chk23(strin):
     return strin.encode('utf-8')

@@ -1,13 +1,15 @@
 import cmd
 import pdb
+import signal
 import socket
 import sys
-from io import StringIO
 import traceback
-import signal
-from xmlrpc.server import SimpleXMLRPCServer
+from io import StringIO
 from xmlrpc.client import ServerProxy
+from xmlrpc.server import SimpleXMLRPCServer
+
 from yt.config import ytcfg
+
 
 class PdbXMLRPCServer(SimpleXMLRPCServer):
     """

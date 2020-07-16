@@ -1,4 +1,5 @@
 import re
+
 from .periodic_table import periodic_table
 from .physical_ratios import _primordial_mass_fraction
 

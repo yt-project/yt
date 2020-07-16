@@ -1,5 +1,4 @@
 import sys
-
 from collections import namedtuple
 from functools import update_wrapper
 from threading import RLock

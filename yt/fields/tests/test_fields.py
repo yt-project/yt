@@ -1,29 +1,27 @@
 import numpy as np
 
-from yt import \
-    load
-from yt.testing import \
-    fake_amr_ds, \
-    fake_random_ds, \
-    fake_particle_ds, \
-    assert_almost_equal, \
-    assert_equal, \
-    assert_array_almost_equal_nulp, \
-    assert_array_equal, \
-    assert_raises, \
-    assert_allclose_units, \
-    requires_file
-from yt.utilities.cosmology import \
-    Cosmology
-from yt.frontends.stream.fields import \
-    StreamFieldInfo
-from yt.units.yt_array import \
-    array_like_field, \
-    YTArray, YTQuantity
-from yt.utilities.exceptions import \
-    YTFieldUnitError, \
-    YTFieldUnitParseError, \
-    YTDimensionalityError
+from yt import load
+from yt.frontends.stream.fields import StreamFieldInfo
+from yt.testing import (
+    assert_allclose_units,
+    assert_almost_equal,
+    assert_array_almost_equal_nulp,
+    assert_array_equal,
+    assert_equal,
+    assert_raises,
+    fake_amr_ds,
+    fake_particle_ds,
+    fake_random_ds,
+    requires_file,
+)
+from yt.units.yt_array import YTArray, YTQuantity, array_like_field
+from yt.utilities.cosmology import Cosmology
+from yt.utilities.exceptions import (
+    YTDimensionalityError,
+    YTFieldUnitError,
+    YTFieldUnitParseError,
+)
+
 
 def get_params(ds):
     return dict(
@@ -431,4 +429,3 @@ def test_ion_field_labels():
     for f in fields:
         label = getattr(fobj, f).get_latex_display_name()
         assert_equal(label, pm_labels[f])
-

@@ -1,8 +1,10 @@
-import numpy as np
 from collections import defaultdict
+
+import numpy as np
+
 from yt.units.yt_array import YTArray
-from .field_exceptions import \
-    NeedsGridType
+
+from .field_exceptions import NeedsGridType
 
 fp_units = {
     'bulk_velocity' : 'cm/s',
@@ -279,4 +281,3 @@ class FieldDetector(defaultdict):
         if not self.flat:
             fw.shape = (self.nd, self.nd, self.nd, 3)
         return self.ds.arr(fw, units = "code_length")
-

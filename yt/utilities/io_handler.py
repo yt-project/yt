@@ -1,12 +1,12 @@
+import os
 from collections import defaultdict
 from contextlib import contextmanager
 
-import os
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-from yt.utilities.lru_cache import \
-    local_lru_cache, _make_key
+
 from yt.geometry.selection_routines import GridSelector
+from yt.utilities.lru_cache import _make_key, local_lru_cache
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 io_registry = {}
 

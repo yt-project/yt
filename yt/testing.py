@@ -1,16 +1,24 @@
-import hashlib
-import matplotlib
-import pickle
-import itertools as it
-import numpy as np
 import functools
+import hashlib
 import importlib
+import itertools as it
 import os
+import pickle
 import shutil
 import tempfile
 import unittest
-from yt.funcs import iterable
+
+import matplotlib
+import numpy as np
+from numpy.random import RandomState
+from unyt.exceptions import UnitOperationError
+
+import yt
 from yt.config import ytcfg
+from yt.convenience import load
+from yt.funcs import iterable
+from yt.units.yt_array import YTArray, YTQuantity
+
 # we import this in a weird way from numpy.testing to avoid triggering
 # flake8 errors from the unused imports. These test functions are imported
 # elsewhere in yt from here so we want them to be imported here.
@@ -20,11 +28,6 @@ from numpy.testing import assert_equal, assert_array_less  # NOQA isort:skip
 from numpy.testing import assert_string_equal  # NOQA isort:skip
 from numpy.testing import assert_array_almost_equal_nulp  # NOQA isort:skip
 from numpy.testing import assert_allclose, assert_raises  # NOQA isort:skip
-from numpy.random import RandomState
-from yt.convenience import load
-from yt.units.yt_array import YTArray, YTQuantity
-from unyt.exceptions import UnitOperationError
-import yt
 
 ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase

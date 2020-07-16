@@ -1,10 +1,14 @@
 import numpy as np
+
 from yt.data_objects.construction_data_containers import YTStreamline
 from yt.funcs import get_pbar
 from yt.units.yt_array import YTArray
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_passthrough
 from yt.utilities.amr_kdtree.api import AMRKDTree
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+    parallel_passthrough,
+)
+
 
 def sanitize_length(length, ds):
     # Ensure that lengths passed in with units are returned as code_length

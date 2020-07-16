@@ -1,11 +1,10 @@
 import re
+
 import numpy as np
-from yt.geometry.selection_routines import \
-    GridSelector
-from yt.utilities.logger import \
-    ytLogger as mylog
-from yt.utilities.io_handler import \
-    BaseIOHandler
+
+from yt.geometry.selection_routines import GridSelector
+from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.logger import ytLogger as mylog
 
 
 class IOHandlerChomboHDF5(BaseIOHandler):

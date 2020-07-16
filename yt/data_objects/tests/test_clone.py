@@ -1,7 +1,5 @@
-from yt.testing import \
-    fake_random_ds, \
-    assert_equal, \
-    assert_array_equal
+from yt.testing import assert_array_equal, assert_equal, fake_random_ds
+
 
 def test_clone_sphere():
     # Now we test that we can get different radial velocities based on field

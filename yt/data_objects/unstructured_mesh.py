@@ -1,14 +1,11 @@
 import numpy as np
 
-from yt.funcs import mylog
-from yt.utilities.exceptions import \
-    YTParticleDepositionNotImplemented
-from yt.utilities.lib.mesh_utilities import \
-    fill_fcoords, fill_fwidths
-
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
 import yt.geometry.particle_deposit as particle_deposit
+from yt.data_objects.data_containers import YTSelectionContainer
+from yt.funcs import mylog
+from yt.utilities.exceptions import YTParticleDepositionNotImplemented
+from yt.utilities.lib.mesh_utilities import fill_fcoords, fill_fwidths
+
 
 class UnstructuredMesh(YTSelectionContainer):
     # This is a base class, not meant to be used directly.
@@ -214,4 +211,3 @@ class SemiStructuredMesh(UnstructuredMesh):
         # Note: this likely will not work with vector fields.
         dest[offset:offset+count] = source.flat[mask]
         return count
-

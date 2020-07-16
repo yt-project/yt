@@ -1,28 +1,23 @@
-import tempfile
-import shutil
-from numpy.testing import \
-    assert_raises, \
-    assert_array_equal
-
-from yt.config import \
-    ytcfg
-from yt.testing import \
-    fake_amr_ds, \
-    fake_random_ds, \
-    fake_tetrahedral_ds, \
-    fake_hexahedral_ds, \
-    assert_fname, \
-    requires_file
-import yt.units as u
-from yt.utilities.exceptions import \
-    YTPlotCallbackError, \
-    YTDataTypeUnsupported
-from yt.visualization.api import \
-    SlicePlot, ProjectionPlot, OffAxisSlicePlot
-from yt.convenience import load
-from yt.visualization.plot_container import accepts_all_fields
-
 import contextlib
+import shutil
+import tempfile
+
+from numpy.testing import assert_array_equal, assert_raises
+
+import yt.units as u
+from yt.config import ytcfg
+from yt.convenience import load
+from yt.testing import (
+    assert_fname,
+    fake_amr_ds,
+    fake_hexahedral_ds,
+    fake_random_ds,
+    fake_tetrahedral_ds,
+    requires_file,
+)
+from yt.utilities.exceptions import YTDataTypeUnsupported, YTPlotCallbackError
+from yt.visualization.api import OffAxisSlicePlot, ProjectionPlot, SlicePlot
+from yt.visualization.plot_container import accepts_all_fields
 
 # These are a very simple set of tests that verify that each callback is or is
 # not working.  They only check that it functions without an error; they do not

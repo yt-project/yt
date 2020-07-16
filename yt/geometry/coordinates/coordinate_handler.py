@@ -1,16 +1,12 @@
-import numpy as np
 import weakref
 from numbers import Number
 
-from yt.funcs import \
-    validate_width_tuple, \
-    fix_unitary, \
-    iterable
-from yt.units.yt_array import \
-    YTArray, YTQuantity
-from yt.utilities.exceptions import \
-    YTCoordinateNotImplemented, \
-    YTInvalidWidthError
+import numpy as np
+
+from yt.funcs import fix_unitary, iterable, validate_width_tuple
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
+
 
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented

@@ -1,9 +1,6 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.fields.particle_fields import \
-    add_union_field
-from yt.frontends.enzo_p.misc import \
-    nested_dict_get
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.fields.particle_fields import add_union_field
+from yt.frontends.enzo_p.misc import nested_dict_get
 
 rho_units = "code_mass / code_length**3"
 vel_units = "code_velocity"

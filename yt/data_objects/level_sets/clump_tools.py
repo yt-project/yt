@@ -1,4 +1,5 @@
 import numpy as np
+
 nar = np.array
 
 counter = 0

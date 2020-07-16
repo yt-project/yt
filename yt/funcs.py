@@ -1,34 +1,35 @@
-import errno
-import builtins
-import copy
-import time
-import inspect
-import traceback
-import sys
-import pdb
-import os
-import re
-import contextlib
-import warnings
-import struct
-import subprocess
-import numpy as np
-import itertools
 import base64
-import matplotlib
+import builtins
+import contextlib
+import copy
+import errno
 import getpass
 import glob
-from math import floor, ceil
+import inspect
+import itertools
+import os
+import pdb
+import re
+import struct
+import subprocess
+import sys
+import time
+import traceback
+import urllib.parse
+import urllib.request
+import warnings
+from functools import wraps
+from math import ceil, floor
 from numbers import Number as numeric_type
 
-import urllib.request
-import urllib.parse
-from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.lru_cache import lru_cache
-from yt.utilities.exceptions import YTInvalidWidthError
+import matplotlib
+import numpy as np
+
 from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
-from functools import wraps
+from yt.utilities.exceptions import YTInvalidWidthError
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.lru_cache import lru_cache
 
 # Some functions for handling sequences and other types
 

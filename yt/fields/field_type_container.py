@@ -2,11 +2,12 @@
 A proxy object for field descriptors, usually living as ds.fields.
 """
 
-import weakref
-import textwrap
 import inspect
-from yt.fields.derived_field import \
-    DerivedField
+import textwrap
+import weakref
+
+from yt.fields.derived_field import DerivedField
+
 
 def _fill_values(values):
     value = '<div class="rendered_html jp-RenderedHTMLCommon">' + \

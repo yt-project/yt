@@ -1,15 +1,17 @@
 import os
-import tempfile
 import shutil
-from yt.testing import fake_random_ds
-from yt.visualization.volume_rendering.api import \
-    Scene, \
-    ZBuffer, \
-    VolumeSource, \
-    OpaqueSource
-from yt.testing import assert_almost_equal
-import numpy as np
+import tempfile
 from unittest import TestCase
+
+import numpy as np
+
+from yt.testing import assert_almost_equal, fake_random_ds
+from yt.visualization.volume_rendering.api import (
+    OpaqueSource,
+    Scene,
+    VolumeSource,
+    ZBuffer,
+)
 
 
 def setup():

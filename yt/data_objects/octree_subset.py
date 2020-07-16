@@ -1,21 +1,21 @@
 from contextlib import contextmanager
+
 import numpy as np
 
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
-
+from yt.data_objects.data_containers import YTSelectionContainer
 from yt.funcs import mylog
-from yt.utilities.lib.geometry_utils import compute_morton
-from yt.geometry.particle_oct_container import \
-    ParticleOctreeContainer
-from yt.units.yt_array import YTArray
+from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.units.dimensions import length
-from yt.utilities.exceptions import \
-    YTInvalidPositionArray, \
-    YTFieldTypeNotFound, \
-    YTParticleDepositionNotImplemented
+from yt.units.yt_array import YTArray
+from yt.utilities.exceptions import (
+    YTFieldTypeNotFound,
+    YTInvalidPositionArray,
+    YTParticleDepositionNotImplemented,
+)
+from yt.utilities.lib.geometry_utils import compute_morton
+
 
 def cell_count_cache(func):
     def cc_cache_func(self, dobj):

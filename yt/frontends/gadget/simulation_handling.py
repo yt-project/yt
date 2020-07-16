@@ -1,31 +1,23 @@
-import numpy as np
 import glob
 import os
 
-from unyt import \
-    dimensions, \
-    unyt_array
-from unyt.unit_registry import \
-    UnitRegistry
+import numpy as np
+from unyt import dimensions, unyt_array
+from unyt.unit_registry import UnitRegistry
 
-from yt.convenience import \
-    load
-from yt.funcs import \
-    only_on_root
-from yt.data_objects.time_series import \
-    SimulationTimeSeries, DatasetSeries
-from yt.utilities.cosmology import \
-    Cosmology
-from yt.utilities.exceptions import \
-    InvalidSimulationTimeSeries, \
-    MissingParameter, \
-    NoStoppingCondition
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified
-from yt.utilities.logger import ytLogger as \
-    mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects
+from yt.convenience import load
+from yt.data_objects.time_series import DatasetSeries, SimulationTimeSeries
+from yt.funcs import only_on_root
+from yt.utilities.cosmology import Cosmology
+from yt.utilities.exceptions import (
+    InvalidSimulationTimeSeries,
+    MissingParameter,
+    NoStoppingCondition,
+    YTOutputNotIdentified,
+)
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
+
 
 class GadgetSimulation(SimulationTimeSeries):
     r"""

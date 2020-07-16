@@ -1,6 +1,7 @@
-import struct
-import numpy as np
 import os
+import struct
+
+import numpy as np
 
 # This may not be the correct way to do this.  We should investigate what NumPy
 # does.

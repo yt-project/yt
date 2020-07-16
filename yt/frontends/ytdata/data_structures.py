@@ -1,55 +1,33 @@
-from collections import \
-    defaultdict
-from numbers import \
-    Number as numeric_type
-import numpy as np
 import os
 import weakref
+from collections import defaultdict
+from numbers import Number as numeric_type
 
-from .fields import \
-    YTDataContainerFieldInfo, \
-    YTGridFieldInfo
+import numpy as np
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.data_objects.particle_unions import \
-    ParticleUnion
-from yt.data_objects.profiles import \
-    Profile1DFromDataset, \
-    Profile2DFromDataset, \
-    Profile3DFromDataset
-from yt.data_objects.static_output import \
-    Dataset, \
-    ParticleFile, \
-    validate_index_order
-from yt.funcs import \
-    is_root, \
-    parse_h5_attr
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
-from yt.units import \
-    dimensions
-from yt.units.unit_registry import \
-    UnitRegistry
-from yt.units.yt_array import \
-    uconcatenate, \
-    YTQuantity
-from yt.utilities.logger import \
-    ytLogger as mylog
-from yt.utilities.exceptions import \
-    YTFieldTypeNotFound
-from yt.utilities.on_demand_imports import \
-    _h5py as h5py
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_root_only
-from yt.utilities.tree_container import \
-    TreeContainer
-from yt.fields.field_exceptions import \
-    NeedsGridType
-from yt.data_objects.data_containers import \
-    GenerationInProgress
+from yt.data_objects.data_containers import GenerationInProgress
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.particle_unions import ParticleUnion
+from yt.data_objects.profiles import (
+    Profile1DFromDataset,
+    Profile2DFromDataset,
+    Profile3DFromDataset,
+)
+from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
+from yt.fields.field_exceptions import NeedsGridType
+from yt.funcs import is_root, parse_h5_attr
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.geometry.particle_geometry_handler import ParticleIndex
+from yt.units import dimensions
+from yt.units.unit_registry import UnitRegistry
+from yt.units.yt_array import YTQuantity, uconcatenate
+from yt.utilities.exceptions import YTFieldTypeNotFound
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
+from yt.utilities.tree_container import TreeContainer
+
+from .fields import YTDataContainerFieldInfo, YTGridFieldInfo
 
 _grid_data_containers = ["arbitrary_grid",
                          "covering_grid",

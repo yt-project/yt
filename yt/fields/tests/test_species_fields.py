@@ -1,11 +1,7 @@
-from yt.testing import requires_file, \
-    assert_allclose_units, assert_equal
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
-from yt.utilities.physical_ratios import \
-    _primordial_mass_fraction
-from yt.utilities.chemical_formulas import \
-    ChemicalFormula
+from yt.testing import assert_allclose_units, assert_equal, requires_file
+from yt.utilities.answer_testing.framework import data_dir_load
+from yt.utilities.chemical_formulas import ChemicalFormula
+from yt.utilities.physical_ratios import _primordial_mass_fraction
 
 sloshing = "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100"
 
