@@ -213,7 +213,10 @@ class RenderingContext(pyglet.window.Window):
 
     def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
         # captures mouse scrolling as zoom in/out
-
+        if self.gui and self.gui.mouse_event_handled:
+            self._do_update = True
+            return
+            
         camera = self.scene.camera # current camera
         dPos =  0.1 * (camera.position - camera.focus) / \
                 np.linalg.norm(camera.position - camera.focus)
