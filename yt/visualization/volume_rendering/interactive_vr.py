@@ -316,6 +316,14 @@ class SceneComponent(traitlets.HasTraits):
     cmap_log = traitlets.Bool(True)
     scale = traitlets.CFloat(1.0)
 
+    def render_gui(self, ind, imgui, renderer):
+        imgui.begin("Component {}: {}".format(ind, self.name))
+        self.render_parameters(ind, imgui, renderer)
+        imgui.end()
+
+    def render_parameters(self, ind, imgui, renderer):
+        pass
+
     @traitlets.default("fb")
     def _fb_default(self):
         return Framebuffer()
