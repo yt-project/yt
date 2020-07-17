@@ -204,7 +204,7 @@ class RenderingContext(pyglet.window.Window):
             self._do_update = True
             return
         start_x = -1.0 + 2.0 * x / self.width
-        end_x = -1.0 + 2.0 * (x + dx) / self.width
+        end_x = -1.0 + 2.0 * (x - dx) / self.width
         start_y = -1.0 + 2.0 * y / self.height
         end_y = -1.0 + 2.0 * (y + dy) / self.height
 
@@ -216,7 +216,7 @@ class RenderingContext(pyglet.window.Window):
         if self.gui and self.gui.mouse_event_handled:
             self._do_update = True
             return
-            
+
         camera = self.scene.camera # current camera
         dPos =  0.1 * (camera.position - camera.focus) / \
                 np.linalg.norm(camera.position - camera.focus)
@@ -225,8 +225,7 @@ class RenderingContext(pyglet.window.Window):
         # +1 when scrolling "down", -1 when scrolling "up", so
         # flip it so scrolling "down" zooms out:
         zoom_inout = -1 * scroll_y
-
-        self.scene.camera.position += zoom_inout * dPos
+        self.scene.camera.offsetPosition(zoom_inout*dPos)
         self._do_update = True
 
     def on_key_press(self,symbol,modifiers):
@@ -235,9 +234,9 @@ class RenderingContext(pyglet.window.Window):
         # potential navigation keys
         if symbol in [pyglet.window.key.LEFT,pyglet.window.key.A]:
             pass
-        if symbol == [pyglet.window.key.RIGHT,pyglet.window.key.D]:
+        if symbol in [pyglet.window.key.RIGHT,pyglet.window.key.D]:
             pass
-        if symbol == [pyglet.window.key.UP,pyglet.window.key.W]:
+        if symbol in [pyglet.window.key.UP,pyglet.window.key.W]:
             pass
-        if symbol == [pyglet.window.key.DOWN,pyglet.window.key.S]:
+        if symbol in [pyglet.window.key.DOWN,pyglet.window.key.S]:
             pass
