@@ -41,13 +41,7 @@ def parse_unit_dimension(unit_dimension):
         mylog.error("SI must have 7 base dimensions!")
     unit_dimension = np.asarray(unit_dimension, dtype=np.int)
     dim = []
-    si = ["m",
-          "kg",
-          "s",
-          "A",
-          "C",
-          "mol",
-          "cd"]
+    si = ["m", "kg", "s", "A", "C", "mol", "cd"]
     for i in np.arange(7):
         if unit_dimension[i] != 0:
             dim.append("{}**{}".format(si[i], unit_dimension[i]))

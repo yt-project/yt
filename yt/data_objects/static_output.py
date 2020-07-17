@@ -1,76 +1,62 @@
 import functools
 import itertools
-import numpy as np
 import os
-from stat import ST_CTIME
-import time
-import weakref
-import warnings
-
-from collections import defaultdict
 import pickle
+import time
+import warnings
+import weakref
+from collections import defaultdict
+from stat import ST_CTIME
+
+import numpy as np
 
 from yt.config import ytcfg
-from yt.fields.derived_field import \
-    DerivedField
-from yt.fields.field_type_container import \
-    FieldTypeContainer
-from yt.funcs import \
-    mylog, \
-    set_intersection, \
-    ensure_list, \
-    issue_deprecation_warning, \
-    iterable, \
-    setdefaultattr
-from yt.utilities.cosmology import \
-    Cosmology
-from yt.utilities.exceptions import \
-    YTObjectNotImplemented, \
-    YTFieldNotFound, \
-    YTGeometryNotSupported, \
-    YTIllDefinedParticleFilter
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_root_only
-from yt.utilities.parameter_file_storage import \
-    ParameterFileStore, \
-    NoParameterShelf, \
-    output_type_registry
-from yt.units import UnitContainer
+from yt.data_objects.data_containers import data_object_registry
+from yt.data_objects.particle_filters import filter_registry
+from yt.data_objects.particle_unions import ParticleUnion
+from yt.data_objects.region_expression import RegionExpression
+from yt.fields.derived_field import DerivedField, ValidateSpatial
+from yt.fields.field_type_container import FieldTypeContainer
+from yt.fields.fluid_fields import setup_gradient_fields
+from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
+from yt.funcs import (
+    ensure_list,
+    issue_deprecation_warning,
+    iterable,
+    mylog,
+    set_intersection,
+    setdefaultattr,
+)
+from yt.geometry.coordinates.api import (
+    CartesianCoordinateHandler,
+    CoordinateHandler,
+    CylindricalCoordinateHandler,
+    GeographicCoordinateHandler,
+    InternalGeographicCoordinateHandler,
+    PolarCoordinateHandler,
+    SpectralCubeCoordinateHandler,
+    SphericalCoordinateHandler,
+)
+from yt.units import UnitContainer, _wrap_display_ytarray
 from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, define_unit
-from yt.units.unit_systems import unit_system_registry
 from yt.units.unit_registry import UnitRegistry
-from yt.fields.derived_field import \
-    ValidateSpatial
-from yt.fields.fluid_fields import \
-    setup_gradient_fields
-from yt.fields.particle_fields import \
-    DEP_MSG_SMOOTH_FIELD
-from yt.data_objects.particle_filters import \
-    filter_registry
-from yt.data_objects.particle_unions import \
-    ParticleUnion
-from yt.data_objects.data_containers import \
-    data_object_registry
-from yt.utilities.minimal_representation import \
-    MinimalDataset
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
-from yt.units import \
-    _wrap_display_ytarray
-from yt.units.unit_systems import create_code_unit_system
-from yt.data_objects.region_expression import \
-    RegionExpression
-from yt.geometry.coordinates.api import \
-    CoordinateHandler, \
-    CartesianCoordinateHandler, \
-    PolarCoordinateHandler, \
-    CylindricalCoordinateHandler, \
-    SphericalCoordinateHandler, \
-    GeographicCoordinateHandler, \
-    SpectralCubeCoordinateHandler, \
-    InternalGeographicCoordinateHandler
+from yt.units.unit_systems import create_code_unit_system, unit_system_registry
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.cosmology import Cosmology
+from yt.utilities.exceptions import (
+    YTFieldNotFound,
+    YTGeometryNotSupported,
+    YTIllDefinedParticleFilter,
+    YTObjectNotImplemented,
+)
+from yt.utilities.minimal_representation import MinimalDataset
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
+from yt.utilities.parameter_file_storage import (
+    NoParameterShelf,
+    ParameterFileStore,
+    output_type_registry,
+)
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -79,16 +65,20 @@ from yt.geometry.coordinates.api import \
 _cached_datasets = weakref.WeakValueDictionary()
 _ds_store = ParameterFileStore()
 
+
 def _unsupported_object(ds, obj_name):
     def _raise_unsupp(*args, **kwargs):
         raise YTObjectNotImplemented(ds, obj_name)
+
     return _raise_unsupp
+
 
 class RegisteredDataset(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
         output_type_registry[name] = cls
         mylog.debug("Registering: %s as %s", name, cls)
+
 
 class IndexProxy:
     # This is a simple proxy for Index objects.  It enables backwards
@@ -108,9 +98,11 @@ class IndexProxy:
             return getattr(self.ds.index, name)
         raise AttributeError
 
+
 class MutableAttribute:
     """A descriptor for mutable data"""
-    def __init__(self, display_array = False):
+
+    def __init__(self, display_array=False):
         self.data = weakref.WeakKeyDictionary()
         self.display_array = display_array
 
@@ -124,8 +116,11 @@ class MutableAttribute:
             pass
         if self.display_array:
             try:
-                setattr(ret, "_ipython_display_",
-                        functools.partial(_wrap_display_ytarray, ret))
+                setattr(
+                    ret,
+                    "_ipython_display_",
+                    functools.partial(_wrap_display_ytarray, ret),
+                )
             # This will error out if the items have yet to be turned into
             # YTArrays, in which case we just let it go.
             except AttributeError:
@@ -134,6 +129,7 @@ class MutableAttribute:
 
     def __set__(self, instance, value):
         self.data[instance] = value
+
 
 def requires_index(attr_name):
     @property
@@ -149,12 +145,13 @@ def requires_index(attr_name):
 
     return ireq
 
-class Dataset(metaclass = RegisteredDataset):
+
+class Dataset(metaclass=RegisteredDataset):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
     fluid_types = ("gas", "deposit", "index")
-    particle_types = ("io",) # By default we have an 'all'
+    particle_types = ("io",)  # By default we have an 'all'
     particle_types_raw = ("io",)
     geometry = "cartesian"
     coordinates = None
@@ -168,22 +165,23 @@ class Dataset(metaclass = RegisteredDataset):
     _instantiated = False
     _unique_identifier = None
     _particle_type_counts = None
-    _proj_type = 'quad_proj'
-    _ionization_label_format = 'roman_numeral'
+    _proj_type = "quad_proj"
+    _ionization_label_format = "roman_numeral"
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, str):
             obj = object.__new__(cls)
             # The Stream frontend uses a StreamHandler object to pass metadata
             # to __init__.
-            is_stream = (hasattr(filename, 'get_fields') and
-                         hasattr(filename, 'get_particle_type'))
+            is_stream = hasattr(filename, "get_fields") and hasattr(
+                filename, "get_particle_type"
+            )
             if not is_stream:
                 obj.__init__(filename, *args, **kwargs)
             return obj
         apath = os.path.abspath(filename)
         cache_key = (apath, pickle.dumps(args), pickle.dumps(kwargs))
-        if ytcfg.getboolean("yt","skip_dataset_cache"):
+        if ytcfg.getboolean("yt", "skip_dataset_cache"):
             obj = object.__new__(cls)
         elif cache_key not in _cached_datasets:
             obj = object.__new__(cls)
@@ -193,15 +191,22 @@ class Dataset(metaclass = RegisteredDataset):
             obj = _cached_datasets[cache_key]
         return obj
 
-    def __init__(self, filename, dataset_type=None, file_style=None,
-                 units_override=None, unit_system="cgs"):
+    def __init__(
+        self,
+        filename,
+        dataset_type=None,
+        file_style=None,
+        units_override=None,
+        unit_system="cgs",
+    ):
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
         """
         # We return early and do NOT initialize a second time if this file has
         # already been initialized.
-        if self._instantiated: return
+        if self._instantiated:
+            return
         self.dataset_type = dataset_type
         self.file_style = file_style
         self.conversion_factors = {}
@@ -219,7 +224,7 @@ class Dataset(metaclass = RegisteredDataset):
         self.basename = os.path.basename(filename)
         self.directory = os.path.expanduser(os.path.dirname(filename))
         self.fullpath = os.path.abspath(self.directory)
-        self.backup_filename = self.parameter_filename + '_backup.gdf'
+        self.backup_filename = self.parameter_filename + "_backup.gdf"
         self.read_from_backup = False
         if os.path.exists(self.backup_filename):
             self.read_from_backup = True
@@ -231,11 +236,11 @@ class Dataset(metaclass = RegisteredDataset):
 
         self.no_cgs_equiv_length = False
 
-        if unit_system == 'code':
+        if unit_system == "code":
             # create a fake MKS unit system which we will override later to
             # avoid chicken/egg issue of the unit registry needing a unit system
             # but code units need a unit registry to define the code units on
-            used_unit_system = 'mks'
+            used_unit_system = "mks"
         else:
             used_unit_system = unit_system
 
@@ -294,18 +299,19 @@ class Dataset(metaclass = RegisteredDataset):
         return self.basename
 
     def _hash(self):
-        s = "%s;%s;%s" % (self.basename,
-            self.current_time, self.unique_identifier)
+        s = "%s;%s;%s" % (self.basename, self.current_time, self.unique_identifier)
         try:
             import hashlib
-            return hashlib.md5(s.encode('utf-8')).hexdigest()
+
+            return hashlib.md5(s.encode("utf-8")).hexdigest()
         except ImportError:
             return s.replace(";", "*")
 
     _checksum = None
+
     @property
     def checksum(self):
-        '''
+        """
         Computes md5 sum of a dataset.
 
         Note: Currently this property is unable to determine a complete set of
@@ -313,16 +319,16 @@ class Dataset(metaclass = RegisteredDataset):
         checksum of :py:attr:`~parameter_file` is calculated. In case
         :py:attr:`~parameter_file` is a directory, checksum of all files inside
         the directory is calculated.
-        '''
+        """
         if self._checksum is None:
             try:
                 import hashlib
             except ImportError:
-                self._checksum = 'nohashlib'
+                self._checksum = "nohashlib"
                 return self._checksum
 
-            def generate_file_md5(m, filename, blocksize=2**20):
-                with open(filename , "rb") as f:
+            def generate_file_md5(m, filename, blocksize=2 ** 20):
+                with open(filename, "rb") as f:
                     while True:
                         buf = f.read(blocksize)
                         if not buf:
@@ -338,9 +344,9 @@ class Dataset(metaclass = RegisteredDataset):
             elif os.path.isfile(self.parameter_filename):
                 generate_file_md5(m, self.parameter_filename)
             else:
-                m = 'notafile'
+                m = "notafile"
 
-            if hasattr(m, 'hexdigest'):
+            if hasattr(m, "hexdigest"):
                 m = m.hexdigest()
             self._checksum = m
         return self._checksum
@@ -387,10 +393,12 @@ class Dataset(metaclass = RegisteredDataset):
         return self.parameters[key]
 
     def __iter__(self):
-      for i in self.parameters: yield i
+        for i in self.parameters:
+            yield i
 
-    def get_smallest_appropriate_unit(self, v, quantity='distance',
-                                      return_quantity=False):
+    def get_smallest_appropriate_unit(
+        self, v, quantity="distance", return_quantity=False
+    ):
         """
         Returns the largest whole unit smaller than the YTQuantity passed to
         it as a string.
@@ -405,31 +413,69 @@ class Dataset(metaclass = RegisteredDataset):
         returns this YTQuantity.
         """
         good_u = None
-        if quantity == 'distance':
-            unit_list =['Ppc', 'Tpc', 'Gpc', 'Mpc', 'kpc', 'pc', 'au', 'rsun',
-                        'km', 'cm', 'um', 'nm', 'pm']
-        elif quantity == 'time':
-            unit_list =['Yyr', 'Zyr', 'Eyr', 'Pyr', 'Tyr', 'Gyr', 'Myr', 'kyr',
-                        'yr', 'day', 'hr', 's', 'ms', 'us', 'ns', 'ps', 'fs']
+        if quantity == "distance":
+            unit_list = [
+                "Ppc",
+                "Tpc",
+                "Gpc",
+                "Mpc",
+                "kpc",
+                "pc",
+                "au",
+                "rsun",
+                "km",
+                "cm",
+                "um",
+                "nm",
+                "pm",
+            ]
+        elif quantity == "time":
+            unit_list = [
+                "Yyr",
+                "Zyr",
+                "Eyr",
+                "Pyr",
+                "Tyr",
+                "Gyr",
+                "Myr",
+                "kyr",
+                "yr",
+                "day",
+                "hr",
+                "s",
+                "ms",
+                "us",
+                "ns",
+                "ps",
+                "fs",
+            ]
         else:
-            raise SyntaxError("Specified quantity must be equal to 'distance'"\
-                              "or 'time'.")
+            raise SyntaxError(
+                "Specified quantity must be equal to 'distance'" "or 'time'."
+            )
         for unit in unit_list:
             uq = self.quan(1.0, unit)
             if uq <= v:
                 good_u = unit
                 break
-        if good_u is None and quantity == 'distance': good_u = 'cm'
-        if good_u is None and quantity == 'time': good_u = 's'
+        if good_u is None and quantity == "distance":
+            good_u = "cm"
+        if good_u is None and quantity == "time":
+            good_u = "s"
         if return_quantity:
             unit_index = unit_list.index(good_u)
             # This avoids indexing errors
-            if unit_index == 0: return self.quan(1, unit_list[0])
+            if unit_index == 0:
+                return self.quan(1, unit_list[0])
             # Number of orders of magnitude between unit and next one up
-            OOMs = np.ceil(np.log10(self.quan(1, unit_list[unit_index-1]) /
-                                    self.quan(1, unit_list[unit_index])))
+            OOMs = np.ceil(
+                np.log10(
+                    self.quan(1, unit_list[unit_index - 1])
+                    / self.quan(1, unit_list[unit_index])
+                )
+            )
             # Backwards order of coefficients (e.g. [100, 10, 1])
-            coeffs = 10**np.arange(OOMs)[::-1]
+            coeffs = 10 ** np.arange(OOMs)[::-1]
             for j in coeffs:
                 uq = self.quan(j, good_u)
                 if uq <= v:
@@ -445,42 +491,57 @@ class Dataset(metaclass = RegisteredDataset):
         return key in self.parameters
 
     _instantiated_index = None
+
     @property
     def index(self):
         if self._instantiated_index is None:
             if self._index_class is None:
                 raise RuntimeError("You should not instantiate Dataset.")
             self._instantiated_index = self._index_class(
-                self, dataset_type=self.dataset_type)
+                self, dataset_type=self.dataset_type
+            )
             # Now we do things that we need an instantiated index for
             # ...first off, we create our field_info now.
             oldsettings = np.geterr()
-            np.seterr(all='ignore')
+            np.seterr(all="ignore")
             self.create_field_info()
             np.seterr(**oldsettings)
         return self._instantiated_index
 
     _index_proxy = None
+
     @property
     def h(self):
         if self._index_proxy is None:
             self._index_proxy = IndexProxy(self)
         return self._index_proxy
+
     hierarchy = h
 
     @parallel_root_only
     def print_key_parameters(self):
-        for a in ["current_time", "domain_dimensions", "domain_left_edge",
-                  "domain_right_edge", "cosmological_simulation"]:
+        for a in [
+            "current_time",
+            "domain_dimensions",
+            "domain_left_edge",
+            "domain_right_edge",
+            "cosmological_simulation",
+        ]:
             if not hasattr(self, a):
                 mylog.error("Missing %s in parameter file definition!", a)
                 continue
             v = getattr(self, a)
             mylog.info("Parameters: %-25s = %s", a, v)
-        if hasattr(self, "cosmological_simulation") and \
-           getattr(self, "cosmological_simulation"):
-            for a in ["current_redshift", "omega_lambda", "omega_matter",
-                      "omega_radiation", "hubble_constant"]:
+        if hasattr(self, "cosmological_simulation") and getattr(
+            self, "cosmological_simulation"
+        ):
+            for a in [
+                "current_redshift",
+                "omega_lambda",
+                "omega_matter",
+                "omega_radiation",
+                "hubble_constant",
+            ]:
                 if not hasattr(self, a):
                     mylog.error("Missing %s in parameter file definition!", a)
                     continue
@@ -514,20 +575,19 @@ class Dataset(metaclass = RegisteredDataset):
         if "nbody" not in self.particle_types:
             mylog.debug("Creating Particle Union 'nbody'")
             ptypes = list(self.particle_types_raw)
-            if hasattr(self, '_sph_ptypes'):
+            if hasattr(self, "_sph_ptypes"):
                 for sph_ptype in self._sph_ptypes:
                     if sph_ptype in ptypes:
                         ptypes.remove(sph_ptype)
             if ptypes:
                 nbody_ptypes = []
                 for ptype in ptypes:
-                    if (ptype, 'particle_mass') in self.field_info:
+                    if (ptype, "particle_mass") in self.field_info:
                         nbody_ptypes.append(ptype)
                 pu = ParticleUnion("nbody", nbody_ptypes)
                 nfields = self.add_particle_union(pu)
                 if nfields == 0:
-                    mylog.debug(
-                        "zero common fields, skipping particle union 'nbody'")
+                    mylog.debug("zero common fields, skipping particle union 'nbody'")
         self.field_info.setup_extra_union_fields()
         mylog.debug("Loading field plugins.")
         self.field_info.load_all_plugins(self.default_fluid_type)
@@ -540,27 +600,33 @@ class Dataset(metaclass = RegisteredDataset):
     def set_field_label_format(self, format_property, value):
         """
         Set format properties for how fields will be written
-        out. Accepts 
+        out. Accepts
 
         format_property : string indicating what property to set
         value: the value to set for that format_property
         """
-        available_formats = {"ionization_label":("plus_minus", "roman_numeral")}
+        available_formats = {"ionization_label": ("plus_minus", "roman_numeral")}
         if format_property in available_formats:
             if value in available_formats[format_property]:
                 setattr(self, "_%s_format" % format_property, value)
             else:
-                raise ValueError("{0} not an acceptable value for format_property "
-                        "{1}. Choices are {2}.".format(value, format_property,
-                            available_formats[format_property]))
+                raise ValueError(
+                    "{0} not an acceptable value for format_property "
+                    "{1}. Choices are {2}.".format(
+                        value, format_property, available_formats[format_property]
+                    )
+                )
         else:
-            raise ValueError("{0} not a recognized format_property. Available"
-                             "properties are: {1}".format(format_property,
-                                                         list(available_formats.keys())))
-
+            raise ValueError(
+                "{0} not a recognized format_property. Available"
+                "properties are: {1}".format(
+                    format_property, list(available_formats.keys())
+                )
+            )
 
     def setup_deprecated_fields(self):
         from yt.fields.field_aliases import _field_name_aliases
+
         added = []
         for old_name, new_name in _field_name_aliases:
             try:
@@ -575,7 +641,7 @@ class Dataset(metaclass = RegisteredDataset):
         kwargs = {}
         if isinstance(self.geometry, tuple):
             self.geometry, ordering = self.geometry
-            kwargs['ordering'] = ordering
+            kwargs["ordering"] = ordering
         if isinstance(self.geometry, CoordinateHandler):
             # I kind of dislike this.  The geometry field should always be a
             # string, but the way we're set up with subclassing, we can't
@@ -610,9 +676,7 @@ class Dataset(metaclass = RegisteredDataset):
         f = self.particle_fields_by_type
 
         # find fields common to all particle types in the union
-        fields = set_intersection(
-            [f[s] for s in union if s in self.particle_types_raw]
-        )
+        fields = set_intersection([f[s] for s in union if s in self.particle_types_raw])
 
         if len(fields) == 0:
             # don't create this union if no fields are common to all
@@ -631,11 +695,12 @@ class Dataset(metaclass = RegisteredDataset):
                 self.field_units[union.name, field] = list(units)[0]
         self.particle_types += (union.name,)
         self.particle_unions[union.name] = union
-        fields = [ (union.name, field) for field in fields]
+        fields = [(union.name, field) for field in fields]
         new_fields = [_ for _ in fields if _ not in self.field_list]
         self.field_list.extend(new_fields)
         new_field_info_fields = [
-            _ for _ in fields if _ not in self.field_info.field_list]
+            _ for _ in fields if _ not in self.field_info.field_list
+        ]
         self.field_info.field_list.extend(new_field_info_fields)
         self.index.field_list = sorted(self.field_list)
         # Give ourselves a chance to add them here, first, then...
@@ -680,12 +745,16 @@ class Dataset(metaclass = RegisteredDataset):
             if filter.filtered_type in filter_registry:
                 add_success = self.add_particle_filter(filter.filtered_type)
                 if add_success:
-                    mylog.info("Added filter dependency '%s' for '%s'",
-                       filter.filtered_type, filter.name)
+                    mylog.info(
+                        "Added filter dependency '%s' for '%s'",
+                        filter.filtered_type,
+                        filter.name,
+                    )
 
         if not filter.available(self.derived_field_list):
             raise YTIllDefinedParticleFilter(
-                filter, filter.missing(self.derived_field_list))
+                filter, filter.missing(self.derived_field_list)
+            )
         fi = self.field_info
         fd = self.field_dependencies
         available = False
@@ -693,8 +762,7 @@ class Dataset(metaclass = RegisteredDataset):
             if fn[0] == filter.filtered_type:
                 # Now we can add this
                 available = True
-                self.derived_field_list.append(
-                    (filter.name, fn[1]))
+                self.derived_field_list.append((filter.name, fn[1]))
                 fi[filter.name, fn[1]] = filter.wrap_func(fn, fi[fn])
                 # Now we append the dependencies
                 fd[filter.name, fn[1]] = fd[fn]
@@ -703,11 +771,13 @@ class Dataset(metaclass = RegisteredDataset):
                 self.particle_types += (filter.name,)
             if filter.name not in self.filtered_particle_types:
                 self.filtered_particle_types.append(filter.name)
-            if hasattr(self, '_sph_ptypes'):
+            if hasattr(self, "_sph_ptypes"):
                 if filter.filtered_type == self._sph_ptypes[0]:
-                    mylog.warning("It appears that you are filtering on an SPH field "
-                                  "type. It is recommended to use 'gas' as the "
-                                  "filtered particle type in this case instead.")
+                    mylog.warning(
+                        "It appears that you are filtering on an SPH field "
+                        "type. It is recommended to use 'gas' as the "
+                        "filtered particle type in this case instead."
+                    )
                 if filter.filtered_type in (self._sph_ptypes + ("gas",)):
                     self._sph_ptypes = self._sph_ptypes + (filter.name,)
             new_fields = self._setup_particle_types([filter.name])
@@ -715,16 +785,18 @@ class Dataset(metaclass = RegisteredDataset):
             self.field_dependencies.update(deps)
         return available
 
-    def _setup_particle_types(self, ptypes = None):
+    def _setup_particle_types(self, ptypes=None):
         df = []
-        if ptypes is None: ptypes = self.ds.particle_types_raw
+        if ptypes is None:
+            ptypes = self.ds.particle_types_raw
         for ptype in set(ptypes):
             df += self._setup_particle_type(ptype)
         return df
 
     _last_freq = (None, None)
     _last_finfo = None
-    def _get_field_info(self, ftype, fname = None):
+
+    def _get_field_info(self, ftype, fname=None):
         self.index
         if fname is None:
             if isinstance(ftype, DerivedField):
@@ -748,22 +820,26 @@ class Dataset(metaclass = RegisteredDataset):
             # the type of field it is.  So we look at the field type and
             # determine if we need to change the type.
             fi = self._last_finfo = self.field_info[fname]
-            if fi.sampling_type == "particle" and self._last_freq[0] \
-                not in self.particle_types:
-                    field = "all", field[1]
-            elif not fi.sampling_type == "particle" and self._last_freq[0] \
-                not in self.fluid_types:
-                    field = self.default_fluid_type, field[1]
+            if (
+                fi.sampling_type == "particle"
+                and self._last_freq[0] not in self.particle_types
+            ):
+                field = "all", field[1]
+            elif (
+                not fi.sampling_type == "particle"
+                and self._last_freq[0] not in self.fluid_types
+            ):
+                field = self.default_fluid_type, field[1]
             self._last_freq = field
             return self._last_finfo
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type:
-            if hasattr(self, '_sph_ptype'):
-                to_guess = [self.default_fluid_type, 'all']
+            if hasattr(self, "_sph_ptype"):
+                to_guess = [self.default_fluid_type, "all"]
             else:
-                to_guess = ['all', self.default_fluid_type]
-            to_guess +=  list(self.fluid_types) + list(self.particle_types)
+                to_guess = ["all", self.default_fluid_type]
+            to_guess += list(self.fluid_types) + list(self.particle_types)
             for ftype in to_guess:
                 if (ftype, fname) in self.field_info:
                     self._last_freq = (ftype, fname)
@@ -778,8 +854,7 @@ class Dataset(metaclass = RegisteredDataset):
         self.plots = []
         for name, cls in sorted(data_object_registry.items()):
             if name in self._index_class._unsupported_objects:
-                setattr(self, name,
-                    _unsupported_object(self, name))
+                setattr(self, name, _unsupported_object(self, name))
                 continue
             self._add_object_class(name, cls)
         self.object_types.sort()
@@ -787,10 +862,10 @@ class Dataset(metaclass = RegisteredDataset):
     def _add_object_class(self, name, base):
         # skip projection data objects that don't make sense
         # for this type of data
-        if 'proj' in name and name != self._proj_type:
+        if "proj" in name and name != self._proj_type:
             return
-        elif 'proj' in name:
-            name = 'proj'
+        elif "proj" in name:
+            name = "proj"
         self.object_types.append(name)
         obj = functools.partial(base, ds=weakref.proxy(self))
         obj.__doc__ = base.__doc__
@@ -802,8 +877,7 @@ class Dataset(metaclass = RegisteredDataset):
         """
         mylog.debug("Searching for maximum value of %s", field)
         source = self.all_data()
-        max_val, mx, my, mz = \
-            source.quantities.max_location(field)
+        max_val, mx, my, mz = source.quantities.max_location(field)
         # This is a hack to fix the fact that some non-cartesian datasets have
         # dimensionless quantities, and we can't yet handle that.
         if mx.units.is_dimensionless:
@@ -812,9 +886,14 @@ class Dataset(metaclass = RegisteredDataset):
             my = self.quan(my.v, "code_length")
         if mz.units.is_dimensionless:
             mz = self.quan(mz.v, "code_length")
-        center = self.arr([mx, my, mz], dtype="float64").to('code_length')
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f",
-              max_val, center[0], center[1], center[2])
+        center = self.arr([mx, my, mz], dtype="float64").to("code_length")
+        mylog.info(
+            "Max Value is %0.5e at %0.16f %0.16f %0.16f",
+            max_val,
+            center[0],
+            center[1],
+            center[2],
+        )
         return max_val, center
 
     def find_min(self, field):
@@ -823,11 +902,15 @@ class Dataset(metaclass = RegisteredDataset):
         """
         mylog.debug("Searching for minimum value of %s", field)
         source = self.all_data()
-        min_val, mx, my, mz = \
-            source.quantities.min_location(field)
-        center = self.arr([mx, my, mz], dtype="float64").to('code_length')
-        mylog.info("Min Value is %0.5e at %0.16f %0.16f %0.16f",
-              min_val, center[0], center[1], center[2])
+        min_val, mx, my, mz = source.quantities.min_location(field)
+        center = self.arr([mx, my, mz], dtype="float64").to("code_length")
+        mylog.info(
+            "Min Value is %0.5e at %0.16f %0.16f %0.16f",
+            min_val,
+            center[0],
+            center[1],
+            center[2],
+        )
         return min_val, center
 
     def find_field_values_at_point(self, fields, coords):
@@ -880,10 +963,11 @@ class Dataset(metaclass = RegisteredDataset):
         which covers the entire simulation domain.
         """
         self.index
-        if find_max: c = self.find_max("density")[1]
-        else: c = (self.domain_right_edge + self.domain_left_edge)/2.0
-        return self.region(c,
-            self.domain_left_edge, self.domain_right_edge, **kwargs)
+        if find_max:
+            c = self.find_max("density")[1]
+        else:
+            c = (self.domain_right_edge + self.domain_left_edge) / 2.0
+        return self.region(c, self.domain_left_edge, self.domain_right_edge, **kwargs)
 
     def box(self, left_edge, right_edge, **kwargs):
         """
@@ -902,9 +986,9 @@ class Dataset(metaclass = RegisteredDataset):
             left_edge = YTArray(left_edge)
             right_edge = YTArray(right_edge)
 
-        left_edge = np.asanyarray(left_edge, dtype='float64')
-        right_edge = np.asanyarray(right_edge, dtype='float64')
-        c = (left_edge + right_edge)/2.0
+        left_edge = np.asanyarray(left_edge, dtype="float64")
+        right_edge = np.asanyarray(right_edge, dtype="float64")
+        c = (left_edge + right_edge) / 2.0
         return self.region(c, left_edge, right_edge, **kwargs)
 
     def _setup_particle_type(self, ptype):
@@ -949,31 +1033,33 @@ class Dataset(metaclass = RegisteredDataset):
         return int(o2)
 
     def relative_refinement(self, l0, l1):
-        return self.refine_by**(l1-l0)
+        return self.refine_by ** (l1 - l0)
 
     def _assign_unit_system(self, unit_system):
         if unit_system == "cgs":
             current_mks_unit = None
         else:
-            current_mks_unit = 'A'
-        magnetic_unit = getattr(self, 'magnetic_unit', None)
+            current_mks_unit = "A"
+        magnetic_unit = getattr(self, "magnetic_unit", None)
         if magnetic_unit is not None:
             if unit_system == "mks":
                 if current_mks not in self.magnetic_unit.units.dimensions.free_symbols:
-                    self.magnetic_unit = self.magnetic_unit.to('gauss').to('T')
+                    self.magnetic_unit = self.magnetic_unit.to("gauss").to("T")
                 self.unit_registry.modify("code_magnetic", self.magnetic_unit.value)
             else:
                 # if the magnetic unit is in T, we need to create the code unit
                 # system as an MKS-like system
                 if current_mks in self.magnetic_unit.units.dimensions.free_symbols:
-                    self.magnetic_unit = self.magnetic_unit.to('T').to('gauss')
-                # The following modification ensures that we get the conversion to 
+                    self.magnetic_unit = self.magnetic_unit.to("T").to("gauss")
+                # The following modification ensures that we get the conversion to
                 # cgs correct
-                self.unit_registry.modify("code_magnetic", 
-                                          self.magnetic_unit.value*0.1**0.5)
+                self.unit_registry.modify(
+                    "code_magnetic", self.magnetic_unit.value * 0.1 ** 0.5
+                )
 
         us = create_code_unit_system(
-            self.unit_registry, current_mks_unit=current_mks_unit)
+            self.unit_registry, current_mks_unit=current_mks_unit
+        )
         if unit_system != "code":
             us = unit_system_registry[str(unit_system).lower()]
         self.unit_system = us
@@ -981,25 +1067,28 @@ class Dataset(metaclass = RegisteredDataset):
 
     def _create_unit_registry(self, unit_system):
         import yt.units.dimensions as dimensions
+
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
         # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
         self.unit_registry = UnitRegistry(unit_system=unit_system)
-        self.unit_registry.add("code_length", .01, dimensions.length)
-        self.unit_registry.add("code_mass", .001, dimensions.mass)
-        self.unit_registry.add("code_density", 1000., dimensions.density)
-        self.unit_registry.add("code_specific_energy", 1.0,
-                               dimensions.energy / dimensions.mass)
+        self.unit_registry.add("code_length", 0.01, dimensions.length)
+        self.unit_registry.add("code_mass", 0.001, dimensions.mass)
+        self.unit_registry.add("code_density", 1000.0, dimensions.density)
+        self.unit_registry.add(
+            "code_specific_energy", 1.0, dimensions.energy / dimensions.mass
+        )
         self.unit_registry.add("code_time", 1.0, dimensions.time)
         if unit_system == "mks":
             self.unit_registry.add("code_magnetic", 1.0, dimensions.magnetic_field)
         else:
-            self.unit_registry.add("code_magnetic", 0.1**0.5, dimensions.magnetic_field_cgs)
+            self.unit_registry.add(
+                "code_magnetic", 0.1 ** 0.5, dimensions.magnetic_field_cgs
+            )
         self.unit_registry.add("code_temperature", 1.0, dimensions.temperature)
         self.unit_registry.add("code_pressure", 0.1, dimensions.pressure)
-        self.unit_registry.add("code_velocity", .01, dimensions.velocity)
-        self.unit_registry.add("code_metallicity", 1.0,
-                               dimensions.dimensionless)
+        self.unit_registry.add("code_velocity", 0.01, dimensions.velocity)
+        self.unit_registry.add("code_metallicity", 1.0, dimensions.dimensionless)
         self.unit_registry.add("h", 1.0, dimensions.dimensionless, r"h")
         self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
@@ -1009,6 +1098,7 @@ class Dataset(metaclass = RegisteredDataset):
 
         """
         from yt.units.dimensions import length
+
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.modify("h", self.hubble_constant)
@@ -1017,9 +1107,13 @@ class Dataset(metaclass = RegisteredDataset):
                 new_unit = "%scm" % my_unit
                 my_u = Unit(my_unit, registry=self.unit_registry)
                 self.unit_registry.add(
-                    new_unit, my_u.base_value / (1 + self.current_redshift),
-                    length, "\\rm{%s}/(1+z)" % my_unit, prefixable=True)
-            self.unit_registry.modify('a', 1/(1+self.current_redshift))
+                    new_unit,
+                    my_u.base_value / (1 + self.current_redshift),
+                    length,
+                    "\\rm{%s}/(1+z)" % my_unit,
+                    prefixable=True,
+                )
+            self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
 
         self.set_code_units()
 
@@ -1027,22 +1121,25 @@ class Dataset(metaclass = RegisteredDataset):
             # this dataset is cosmological, add a cosmology object
 
             # Set dynamical dark energy parameters
-            use_dark_factor = getattr(self, 'use_dark_factor', False)
-            w_0 = getattr(self, 'w_0', -1.0)
-            w_a = getattr(self, 'w_a', 0.0)
+            use_dark_factor = getattr(self, "use_dark_factor", False)
+            w_0 = getattr(self, "w_0", -1.0)
+            w_a = getattr(self, "w_a", 0.0)
 
             # many frontends do not set this
             setdefaultattr(self, "omega_radiation", 0.0)
 
-            self.cosmology = \
-                    Cosmology(hubble_constant=self.hubble_constant,
-                              omega_matter=self.omega_matter,
-                              omega_lambda=self.omega_lambda,
-                              omega_radiation=self.omega_radiation,
-                              use_dark_factor = use_dark_factor,
-                              w_0 = w_0, w_a = w_a)
-            self.critical_density = \
-                    self.cosmology.critical_density(self.current_redshift)
+            self.cosmology = Cosmology(
+                hubble_constant=self.hubble_constant,
+                omega_matter=self.omega_matter,
+                omega_lambda=self.omega_lambda,
+                omega_radiation=self.omega_radiation,
+                use_dark_factor=use_dark_factor,
+                w_0=w_0,
+                w_a=w_a,
+            )
+            self.critical_density = self.cosmology.critical_density(
+                self.current_redshift
+            )
             self.scale_factor = 1.0 / (1.0 + self.current_redshift)
 
     def get_unit_from_registry(self, unit_str):
@@ -1069,35 +1166,44 @@ class Dataset(metaclass = RegisteredDataset):
         self.unit_registry.modify("code_length", self.length_unit)
         self.unit_registry.modify("code_mass", self.mass_unit)
         self.unit_registry.modify("code_time", self.time_unit)
-        vel_unit = getattr(
-            self, "velocity_unit", self.length_unit / self.time_unit)
+        vel_unit = getattr(self, "velocity_unit", self.length_unit / self.time_unit)
         pressure_unit = getattr(
-            self, "pressure_unit",
-            self.mass_unit / (self.length_unit * (self.time_unit)**2))
+            self,
+            "pressure_unit",
+            self.mass_unit / (self.length_unit * (self.time_unit) ** 2),
+        )
         temperature_unit = getattr(self, "temperature_unit", 1.0)
-        density_unit = getattr(self, "density_unit", self.mass_unit / self.length_unit**3)
-        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit**2)
+        density_unit = getattr(
+            self, "density_unit", self.mass_unit / self.length_unit ** 3
+        )
+        specific_energy_unit = getattr(self, "specific_energy_unit", vel_unit ** 2)
         self.unit_registry.modify("code_velocity", vel_unit)
         self.unit_registry.modify("code_temperature", temperature_unit)
         self.unit_registry.modify("code_pressure", pressure_unit)
         self.unit_registry.modify("code_density", density_unit)
         self.unit_registry.modify("code_specific_energy", specific_energy_unit)
         # domain_width does not yet exist
-        if (self.domain_left_edge is not None and
-            self.domain_right_edge is not None):
+        if self.domain_left_edge is not None and self.domain_right_edge is not None:
             DW = self.arr(self.domain_right_edge - self.domain_left_edge, "code_length")
-            self.unit_registry.add("unitary", float(DW.max() * DW.units.base_value),
-                                   DW.units.dimensions)
+            self.unit_registry.add(
+                "unitary", float(DW.max() * DW.units.base_value), DW.units.dimensions
+            )
 
     def _override_code_units(self):
         if len(self.units_override) == 0:
             return
         mylog.warning(
             "Overriding code units: Use this option only if you know that the "
-            "dataset doesn't define the units correctly or at all.")
-        for unit, cgs in [("length", "cm"), ("time", "s"), ("mass", "g"),
-                          ("velocity","cm/s"), ("magnetic","gauss"),
-                          ("temperature","K")]:
+            "dataset doesn't define the units correctly or at all."
+        )
+        for unit, cgs in [
+            ("length", "cm"),
+            ("time", "s"),
+            ("mass", "g"),
+            ("velocity", "cm/s"),
+            ("magnetic", "gauss"),
+            ("temperature", "K"),
+        ]:
             val = self.units_override.get("%s_unit" % unit, None)
             if val is not None:
                 if isinstance(val, YTQuantity):
@@ -1109,6 +1215,7 @@ class Dataset(metaclass = RegisteredDataset):
 
     _units = None
     _unit_system_id = None
+
     @property
     def units(self):
         current_uid = self.unit_registry.unit_system_id
@@ -1119,6 +1226,7 @@ class Dataset(metaclass = RegisteredDataset):
         return self._units
 
     _arr = None
+
     @property
     def arr(self):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
@@ -1162,10 +1270,11 @@ class Dataset(metaclass = RegisteredDataset):
 
         if self._arr is not None:
             return self._arr
-        self._arr = functools.partial(YTArray, registry = self.unit_registry)
+        self._arr = functools.partial(YTArray, registry=self.unit_registry)
         return self._arr
 
     _quan = None
+
     @property
     def quan(self):
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
@@ -1250,30 +1359,38 @@ class Dataset(metaclass = RegisteredDataset):
         self.index
         override = kwargs.get("force_override", False)
         if override and name in self.index.field_list:
-            raise RuntimeError("force_override is only meant to be used with "
-                               "derived fields, not on-disk fields.")
+            raise RuntimeError(
+                "force_override is only meant to be used with "
+                "derived fields, not on-disk fields."
+            )
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
-            mylog.error("Field %s already exists. To override use " +
-                          "force_override=True.", name)
-        if kwargs.setdefault('particle_type', False):
+            mylog.error(
+                "Field %s already exists. To override use " + "force_override=True.",
+                name,
+            )
+        if kwargs.setdefault("particle_type", False):
             if sampling_type is not None and sampling_type != "particle":
                 raise RuntimeError(
                     "Clashing definition of 'sampling_type' and "
                     "'particle_type'. Note that 'particle_type' is "
-                    "deprecated. Please just use 'sampling_type'.")
+                    "deprecated. Please just use 'sampling_type'."
+                )
             else:
                 sampling_type = "particle"
         if sampling_type is None:
-            warnings.warn("Because 'sampling_type' not specified, yt will "
-                          "assume a cell 'sampling_type'", stacklevel=2)
+            warnings.warn(
+                "Because 'sampling_type' not specified, yt will "
+                "assume a cell 'sampling_type'",
+                stacklevel=2,
+            )
             sampling_type = "cell"
         self.field_info.add_field(name, sampling_type, function=function, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
 
-    def add_mesh_sampling_particle_field(self, sample_field, ptype='all'):
+    def add_mesh_sampling_particle_field(self, sample_field, ptype="all"):
         """Add a new mesh sampling particle field
 
         Creates a new particle field which has the value of the
@@ -1317,8 +1434,9 @@ class Dataset(metaclass = RegisteredDataset):
 
         return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
 
-    def add_deposited_particle_field(self, deposit_field, method, kernel_name='cubic',
-                                     weight_field='particle_mass'):
+    def add_deposited_particle_field(
+        self, deposit_field, method, kernel_name="cubic", weight_field="particle_mass"
+    ):
         """Add a new deposited particle field
 
         Creates a new deposited field based on the particle *deposit_field*.
@@ -1356,10 +1474,17 @@ class Dataset(metaclass = RegisteredDataset):
 
         units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
-        name_map = {"sum": "sum", "std": "std", "cic": "cic", "weighted_mean": "avg",
-                    "nearest": "nn", "simple_smooth": "ss", "count": "count"}
+        name_map = {
+            "sum": "sum",
+            "std": "std",
+            "cic": "cic",
+            "weighted_mean": "avg",
+            "nearest": "nn",
+            "simple_smooth": "ss",
+            "count": "count",
+        }
         field_name = "%s_" + name_map[method] + "_%s"
-        field_name = field_name % (ptype, deposit_field.replace('particle_', ''))
+        field_name = field_name % (ptype, deposit_field.replace("particle_", ""))
 
         if method == "count":
             field_name = "%s_count" % ptype
@@ -1376,13 +1501,12 @@ class Dataset(metaclass = RegisteredDataset):
             """
             pos = data[ptype, "particle_position"]
             fields = [data[ptype, deposit_field]]
-            if method == 'weighted_mean':
+            if method == "weighted_mean":
                 fields.append(data[ptype, weight_field])
             fields = [np.ascontiguousarray(f) for f in fields]
-            d = data.deposit(pos, fields, method=method,
-                             kernel_name=kernel_name)
+            d = data.deposit(pos, fields, method=method, kernel_name=kernel_name)
             d = data.ds.arr(d, units=units)
-            if method == 'weighted_mean':
+            if method == "weighted_mean":
                 d[np.isnan(d)] = 0.0
             return d
 
@@ -1392,12 +1516,13 @@ class Dataset(metaclass = RegisteredDataset):
             sampling_type="cell",
             units=units,
             take_log=take_log,
-            validators=[ValidateSpatial()])
+            validators=[ValidateSpatial()],
+        )
         return ("deposit", field_name)
 
-    def add_smoothed_particle_field(self, smooth_field,
-                                    method="volume_weighted", nneighbors=64,
-                                    kernel_name="cubic"):
+    def add_smoothed_particle_field(
+        self, smooth_field, method="volume_weighted", nneighbors=64, kernel_name="cubic"
+    ):
         """Add a new smoothed particle field
 
         WARNING: This method is deprecated since yt-4.0.
@@ -1426,9 +1551,7 @@ class Dataset(metaclass = RegisteredDataset):
 
         The field name tuple for the newly created field.
         """
-        issue_deprecation_warning(
-            "This method is deprecated. " + DEP_MSG_SMOOTH_FIELD
-        )
+        issue_deprecation_warning("This method is deprecated. " + DEP_MSG_SMOOTH_FIELD)
 
     def add_gradient_fields(self, input_field):
         """Add gradient fields.
@@ -1471,14 +1594,17 @@ class Dataset(metaclass = RegisteredDataset):
         setup_gradient_fields(self.field_info, (ftype, input_field), units)
         # Now we make a list of the fields that were just made, to check them
         # and to return them
-        grad_fields = [(ftype,input_field+"_gradient_%s" % suffix)
-                       for suffix in self.coordinates.axis_order]
-        grad_fields.append((ftype,input_field+"_gradient_magnitude"))
+        grad_fields = [
+            (ftype, input_field + "_gradient_%s" % suffix)
+            for suffix in self.coordinates.axis_order
+        ]
+        grad_fields.append((ftype, input_field + "_gradient_magnitude"))
         deps, _ = self.field_info.check_derived_fields(grad_fields)
         self.field_dependencies.update(deps)
         return grad_fields
 
     _max_level = None
+
     @property
     def max_level(self):
         if self._max_level is None:
@@ -1490,6 +1616,7 @@ class Dataset(metaclass = RegisteredDataset):
         self._max_level = value
 
     _min_level = None
+
     @property
     def min_level(self):
         if self._min_level is None:
@@ -1525,17 +1652,25 @@ class Dataset(metaclass = RegisteredDataset):
         >>> two_weeks = YTQuantity(14.0, "days")
         >>> ds.define_unit("fortnight", two_weeks)
         """
-        define_unit(symbol, value, tex_repr=tex_repr, offset=offset,
-                    prefixable=prefixable, registry=self.unit_registry)
+        define_unit(
+            symbol,
+            value,
+            tex_repr=tex_repr,
+            offset=offset,
+            prefixable=prefixable,
+            registry=self.unit_registry,
+        )
+
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
     ds = datasets.get_ds_hash(*args)
     return ds
 
+
 @functools.total_ordering
 class ParticleFile:
-    def __init__(self, ds, io, filename, file_id, range = None):
+    def __init__(self, ds, io, filename, file_id, range=None):
         self.ds = ds
         self.io = weakref.proxy(io)
         self.filename = filename
@@ -1571,21 +1706,33 @@ class ParticleFile:
 
     def __hash__(self):
         return hash((self.filename, self.file_id, self.start, self.end))
-        
+
 
 class ParticleDataset(Dataset):
     _unit_base = None
     filter_bbox = False
-    _proj_type = 'particle_proj'
+    _proj_type = "particle_proj"
 
-    def __init__(self, filename, dataset_type=None, file_style=None,
-                 units_override=None, unit_system="cgs",
-                 index_order=None, index_filename=None):
+    def __init__(
+        self,
+        filename,
+        dataset_type=None,
+        file_style=None,
+        units_override=None,
+        unit_system="cgs",
+        index_order=None,
+        index_filename=None,
+    ):
         self.index_order = validate_index_order(index_order)
         self.index_filename = index_filename
         super(ParticleDataset, self).__init__(
-            filename, dataset_type=dataset_type, file_style=file_style,
-            units_override=units_override, unit_system=unit_system)
+            filename,
+            dataset_type=dataset_type,
+            file_style=file_style,
+            units_override=units_override,
+            unit_system=unit_system,
+        )
+
 
 def validate_index_order(index_order):
     if index_order is None:
@@ -1595,8 +1742,9 @@ def validate_index_order(index_order):
     else:
         if len(index_order) != 2:
             raise RuntimeError(
-                'Tried to load a dataset with index_order={}, but '
-                'index_order\nmust be an integer or a two-element tuple of '
-                'integers.'.format(index_order))
+                "Tried to load a dataset with index_order={}, but "
+                "index_order\nmust be an integer or a two-element tuple of "
+                "integers.".format(index_order)
+            )
         index_order = tuple([int(o) for o in index_order])
     return index_order

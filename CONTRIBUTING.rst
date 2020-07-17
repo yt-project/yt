@@ -716,39 +716,42 @@ active PR for which ``feature_1`` is a pointer to the ``HEAD`` commit. A push to
 Coding Style Guide
 ==================
 
-Automatically checking code style
----------------------------------
+Automatically checking and fixing code style
+--------------------------------------------
 
 Below are a list of rules for coding style in yt. Some of these rules are
 suggestions are not explicitly enforced, while some are enforced via automated
-testing. The yt project uses a subset of the rules checked by ``flake8`` to
-verify our code. The ``flake8`` tool is a combination of the ``pyflakes`` and
-``pep8`` tools. To check the coding style of your contributions locally you will
-need to install the ``flake8`` tool from ``pip``:
+testing.
+
+The yt project uses ``flake8`` to report on code correctness (syntax + anti-pattern
+detection), and ``black`` for automated formatting.
+
+To check the coding style of your contributions locally you will need to install those
+tools, which can be done for instance with ``pip``:
 
 .. code-block:: bash
 
-    $ pip install flake8
+    $ pip install tests/lint_requirements.txt
 
-And then navigate to the root of the yt repository and run ``flake8`` on the
-``yt`` subdirectory:
+Then run the checks from the top level of the repository with
 
 .. code-block:: bash
 
-    $ cd yt-git
-    $ flake8 ./yt
+    $ flake8 yt/
+    $ black --check
 
-This will print out any ``flake8`` errors or warnings that your newly added code
-triggers. The errors will be in your newly added code because we have already
-cleaned up the rest of the yt codebase of the errors and warnings detected by
-the `flake8` tool. Note that this will only trigger a subset of the `full flake8
-error and warning list
-<https://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
-blacklist a large number of the full list of rules that are checked by
-``flake8`` by default.
+These will respectively print out any ``flake8`` errors or warnings that your newly added
+code triggers, and a list of files that are currenlty not compliant with ``black``. Note
+that only a subset of the `full flake8 error and warning list
+<https://flake8.readthedocs.io/en/latest/user/error-codes.html>`_ is run, since we
+explicitly blacklist some of the rules that are checked by ``flake8`` by default.
 
-Import Formatting
------------------
+Run black without the ``--check`` flag to automatically update the code to a
+``black``-compliant form.
+
+
+Import ordering
+---------------
 
 We use ``isort`` to enforce PEP-8 guidelines for import ordering.
 By decreasing priority order:
@@ -767,6 +770,20 @@ To validate import order, run ``isort`` recursively at the top level
     $ isort -rc . --check-only
 
 If any error is detected, rerun this without the ``--check-only`` flag to fix them.
+
+Pre-commit hooks
+----------------
+
+If you wish to automate this process you may be interested in using `pre-commit
+<https://pre-commit.com>`_ hooks. They can be installed from the repo's top level with
+
+.. code-block:: bash
+
+    $ pre-commit install
+
+So that ``black``, ``flake8`` and ``isort`` will run and update your changes every time
+you commit new code. This setup is not required so you have the option of checking for
+code style only in the late stage of a branch when we need to validate it for merging.
 
 Source code style guide
 -----------------------
@@ -797,15 +814,11 @@ Source code style guide
    of a docstring.
  * Use only one top-level import per line. Unless there is a good reason not to,
    imports should happen at the top of the file.
- * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use
-   ``is`` or ``is not``.
+ * Never compare with singleton ``True``, ``False``, ``None`` ... using ``==`` or ``!=``,
+   always use ``is`` or ``is not``.
  * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Never compare with None using ``==`` or ``!=``, use ``is None`` or
-   ``is not None``.
  * Use ``statement is not True`` instead of ``not statement is True``
- * Only one statement per line, do not use semicolons to put two or more
-   statements on a single line.
  * Only declare local variables if they will be used later. If you do not use the
    return value of a function, do not store it in a variable.
  * Add tests for new functionality. When fixing a bug, consider adding a test to
@@ -831,14 +844,12 @@ API Style Guide
  * Do not use too many keyword arguments.  If you have a lot of keyword
    arguments, then you are doing too much in ``__init__`` and not enough via
    parameter setting.
- * In function arguments, place spaces before commas.  ``def something(a,b,c)``
-   should be ``def something(a, b, c)``.
  * Don't create a new class to replicate the functionality of an old class --
    replace the old class.  Too many options makes for a confusing user
    experience.
  * Parameter files external to yt are a last resort.
  * The usage of the ``**kwargs`` construction should be avoided.  If they cannot
-   be avoided, they must be explained, even if they are only to be passed on to
+   be avoided, they must be documented, even if they are only to be passed on to
    a nested function.
 
 .. _docstrings:

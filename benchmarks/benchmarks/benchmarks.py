@@ -3,6 +3,7 @@
 import numpy as np
 from yt import YTArray, YTQuantity
 
+
 def time_quantity_init_scalar1():
     3.0 * YTQuantity(1, "m/s")
 
