@@ -76,7 +76,7 @@ class EGLRenderingContext(object):
         self.surface = EGL.eglCreatePbufferSurface(self.display, self.config,
             pbuffer_attribs)
         EGL.eglBindAPI(EGL.EGL_OPENGL_API)
-        
+
         self.context = EGL.eglCreateContext(self.display, self.config,
             EGL.EGL_NO_CONTEXT, None)
 
@@ -108,7 +108,7 @@ class EGLRenderingContext(object):
 
 class RenderingContext(pyglet.window.Window):
     '''Basic rendering context for IDV using GLFW3, that handles the main window even loop
-    
+
     Parameters
     ----------
     width : int, optional
@@ -120,7 +120,7 @@ class RenderingContext(pyglet.window.Window):
         performance reasons it is recommended to use values that are natural
         powers of 2.
     title : str, optional
-        The title of the Interactive Data Visualization window. 
+        The title of the Interactive Data Visualization window.
     always_on_top : bool, optional
         Should this window be created such that it is always on top of other
         windows? (Default: False)
@@ -210,3 +210,31 @@ class RenderingContext(pyglet.window.Window):
 
         self.scene.camera.update_orientation(start_x, start_y, end_x, end_y)
         self._do_update = True
+
+    def on_mouse_scroll(self, x, y, scroll_x, scroll_y):
+        # captures mouse scrolling as zoom in/out
+
+        camera = self.scene.camera # current camera
+        dPos =  0.1 * (camera.position - camera.focus) / \
+                np.linalg.norm(camera.position - camera.focus)
+
+        # wheel scroll comes in the scroll_y parameter with a value +/- 1
+        # +1 when scrolling "down", -1 when scrolling "up", so
+        # flip it so scrolling "down" zooms out:
+        zoom_inout = -1 * scroll_y
+
+        self.scene.camera.position += zoom_inout * dPos
+        self._do_update = True
+
+    def on_key_press(self,symbol,modifiers):
+        # skeleton for capturing key presses!
+
+        # potential navigation keys
+        if symbol in [pyglet.window.key.LEFT,pyglet.window.key.A]:
+            pass
+        if symbol == [pyglet.window.key.RIGHT,pyglet.window.key.D]:
+            pass
+        if symbol == [pyglet.window.key.UP,pyglet.window.key.W]:
+            pass
+        if symbol == [pyglet.window.key.DOWN,pyglet.window.key.S]:
+            pass
