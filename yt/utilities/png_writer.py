@@ -13,8 +13,7 @@ def call_png_write_png(buffer, fileobj, dpi):
     try:
         _png.write_png(buffer, fileobj, dpi)
     except NameError:
-        # I don't get how not to pass the dpi argument atm
-        Image.fromarray(buffer).save(fileobj)
+        Image.fromarray(buffer).save(fileobj, dpi=(dpi, dpi))
 
 
 def write_png(buffer, filename, dpi=100):
