@@ -316,13 +316,8 @@ class SceneComponent(traitlets.HasTraits):
     cmap_log = traitlets.Bool(True)
     scale = traitlets.CFloat(1.0)
 
-    def render_gui(self, ind, imgui, renderer):
-        imgui.begin("Component {}: {}".format(ind, self.name))
-        self.render_parameters(ind, imgui, renderer)
-        imgui.end()
-
-    def render_parameters(self, ind, imgui, renderer):
-        pass
+    def render_gui(self, imgui, renderer):
+        return False
 
     @traitlets.default("fb")
     def _fb_default(self):
@@ -675,6 +670,8 @@ class BlockCollection(SceneData):
             self.texture_objects[vbo_i] = data_tex
             self.bitmap_objects[vbo_i] = bitmap_tex
 
+_cmaps = ["arbre", "viridis", "magma", "doom"]
+
 class BlockRendering(SceneComponent):
     '''
     A class that renders block data.  It may do this in one of several ways,
@@ -693,6 +690,17 @@ class BlockRendering(SceneComponent):
                        "passthrough", "apply_colormap")
 
     priority = 10
+
+    def render_gui(self, imgui, renderer):
+        changed = False
+        _, self.cmap_log = imgui.checkbox("Take log", self.cmap_log)
+        changed = changed or _
+        _, cmap_index = imgui.listbox("Colormap",
+                                      _cmaps.index(self.colormap.colormap_name),
+                                      _cmaps)
+        if _: self.colormap.colormap_name = _cmaps[cmap_index]
+        changed = changed or _
+        return changed
 
     @traitlets.default("transfer_function")
     def _default_transfer_function(self):
@@ -767,6 +775,16 @@ class BlockOutline(SceneAnnotation):
         for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
 
+    def render_gui(self, imgui, renderer):
+        changed = False
+        _, bw = imgui.slider_float("Width", self.box_width, 0.001, 0.250)
+        if _: self.box_width = bw
+        changed = changed or _
+        _, ba = imgui.slider_float("Alpha", self.box_alpha, 0.0, 1.0)
+        if _: self.box_alpha = ba
+        changed = changed or _
+        return changed
+
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
         shader_program._set_uniform("projection",
@@ -791,6 +809,16 @@ class BoxAnnotation(SceneAnnotation):
     def draw(self, scene, program):
         each = self.data.vertex_array.each
         GL.glDrawArrays(GL.GL_TRIANGLES, 0, each)
+
+    def render_gui(self, imgui, renderer):
+        changed = False
+        _, bw = imgui.slider_float("Width", self.box_width, 0.001, 0.250)
+        if _: self.box_width = bw
+        changed = changed or _
+        _, ba = imgui.slider_float("Alpha", self.box_alpha, 0.0, 1.0)
+        if _: self.box_alpha = ba
+        changed = changed or _
+        return changed
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
