@@ -106,8 +106,8 @@ cpdef read_offset(FortranFile f, INT64_t min_level, INT64_t domain_id, INT64_t n
     offset = np.full((ncpu_and_bound, n_levels), -1, dtype=np.int64)
     level_count = np.zeros((ncpu_and_bound, n_levels), dtype=np.int64)
 
-    cdef np.int64_t[:,:] level_count_view = level_count
-    cdef np.int64_t[:,:] offset_view = offset
+    cdef np.int64_t[:, ::1] level_count_view = level_count
+    cdef np.int64_t[:, ::1] offset_view = offset
 
     for ilevel in range(nlevelmax):
         for icpu in range(ncpu_and_bound):
