@@ -8,6 +8,7 @@ try:
 except ImportError:
     from PIL import Image
 
+
 def call_png_write_png(buffer, fileobj, dpi):
     try:
         _png.write_png(buffer, fileobj, dpi)
@@ -19,6 +20,7 @@ def call_png_write_png(buffer, fileobj, dpi):
 def write_png(buffer, filename, dpi=100):
     with open(filename, "wb") as fileobj:
         call_png_write_png(buffer, fileobj, dpi)
+
 
 def write_png_to_string(buffer, dpi=100):
     fileobj = BytesIO()
