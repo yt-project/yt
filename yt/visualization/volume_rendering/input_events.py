@@ -3,11 +3,11 @@
 import random
 from collections import defaultdict, namedtuple
 
+import cyglfw3 as glfw
 import matplotlib.cm as cm
 import numpy as np
-
-import cyglfw3 as glfw
 import OpenGL.GL as GL
+
 from yt.utilities.math_utils import get_orthographic_matrix, get_perspective_matrix
 
 event_registry = {}

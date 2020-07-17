@@ -14,10 +14,10 @@ converter.convert()
 # by to get cgs units.
 
 # code_to_cgs = {'density':1.0e3,
-# 	       'total_energy':1.0e-3,
-# 	       'velocity_x':1.2345,
-# 	       'velocity_y':1.2345,
-# 	       'velocity_z':1.2345}
+#         'total_energy':1.0e-3,
+#         'velocity_x':1.2345,
+#         'velocity_y':1.2345,
+#         'velocity_z':1.2345}
 
 # converter = AthenaDistributedConverter(basename, field_conversions=code_to_cgs)
 # converter.convert()

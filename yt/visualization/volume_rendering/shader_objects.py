@@ -5,6 +5,7 @@ import os
 from collections import OrderedDict
 
 import OpenGL.GL as GL
+
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import (
     YTInvalidShaderType,

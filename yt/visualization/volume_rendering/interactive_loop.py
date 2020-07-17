@@ -2,10 +2,10 @@
 
 import os
 
-import numpy as np
-
 import cyglfw3 as glfw
+import numpy as np
 import OpenGL.GL as GL
+
 from yt import write_bitmap
 
 from .input_events import EventCollection, MouseRotation

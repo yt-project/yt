@@ -5,8 +5,8 @@ from collections import OrderedDict
 
 import matplotlib.cm as cm
 import numpy as np
-
 import OpenGL.GL as GL
+
 from yt.config import ytcfg
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from yt.utilities.math_utils import (
