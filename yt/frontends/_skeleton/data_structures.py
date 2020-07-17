@@ -1,13 +1,12 @@
 import os
-import numpy as np
 import weakref
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
+import numpy as np
+
+from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.geometry.grid_geometry_handler import GridIndex
+
 from .fields import SkeletonFieldInfo
 
 
@@ -16,7 +15,8 @@ class SkeletonGrid(AMRGridPatch):
 
     def __init__(self, id, index, level):
         super(SkeletonGrid, self).__init__(
-            id, filename=index.index_filename, index=index)
+            id, filename=index.index_filename, index=index
+        )
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -28,7 +28,7 @@ class SkeletonGrid(AMRGridPatch):
 class SkeletonHierarchy(GridIndex):
     grid = SkeletonGrid
 
-    def __init__(self, ds, dataset_type='skeleton'):
+    def __init__(self, ds, dataset_type="skeleton"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
@@ -78,12 +78,17 @@ class SkeletonDataset(Dataset):
     _index_class = SkeletonHierarchy
     _field_info_class = SkeletonFieldInfo
 
-    def __init__(self, filename, dataset_type='skeleton',
-                 storage_filename=None,
-                 units_override=None):
-        self.fluid_types += ('skeleton',)
-        super(SkeletonDataset, self).__init__(filename, dataset_type,
-                         units_override=units_override)
+    def __init__(
+        self,
+        filename,
+        dataset_type="skeleton",
+        storage_filename=None,
+        units_override=None,
+    ):
+        self.fluid_types += ("skeleton",)
+        super(SkeletonDataset, self).__init__(
+            filename, dataset_type, units_override=units_override
+        )
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
         # self.refine_by = 2

@@ -3,14 +3,14 @@ import os
 # Named imports
 from yt.config import ytcfg
 from yt.funcs import mylog
-from yt.utilities.parameter_file_storage import \
-    output_type_registry, \
-    simulation_time_series_registry, \
-    EnzoRunDatabase
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified, \
-    YTSimulationNotIdentified
+from yt.utilities.exceptions import YTOutputNotIdentified, YTSimulationNotIdentified
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
+from yt.utilities.parameter_file_storage import (
+    EnzoRunDatabase,
+    output_type_registry,
+    simulation_time_series_registry,
+)
+
 
 def _sanitize_load_args(*args):
     """Filter out non-pathlike arguments, ensure list form, and expand '~' tokens"""
@@ -18,12 +18,14 @@ def _sanitize_load_args(*args):
         # os.PathLike is python >= 3.6
         path_types = str, os.PathLike
     except AttributeError:
-        path_types = str,
+        path_types = (str,)
 
-    return [os.path.expanduser(arg) if isinstance(arg, path_types)
-            else arg for arg in args]
+    return [
+        os.path.expanduser(arg) if isinstance(arg, path_types) else arg for arg in args
+    ]
 
-def load(*args ,**kwargs):
+
+def load(*args, **kwargs):
     """
     This function attempts to determine the base data type of a filename or
     other set of arguments by calling
@@ -52,6 +54,7 @@ def load(*args ,**kwargs):
     if not any(valid_file):
         try:
             from yt.data_objects.time_series import DatasetSeries
+
             ts = DatasetSeries(*args, **kwargs)
             return ts
         except (TypeError, OSError, YTOutputNotIdentified):
@@ -61,16 +64,21 @@ def load(*args ,**kwargs):
         if len(args) > 0 and isinstance(args[0], (list, dict)):
             # This fixes issues where it is assumed the first argument is a
             # file
-            types_to_check = dict((n, v) for n, v in
-                    output_type_registry.items() if n.startswith("stream_"))
+            types_to_check = dict(
+                (n, v)
+                for n, v in output_type_registry.items()
+                if n.startswith("stream_")
+            )
             # Better way to do this is to override the output_type_registry
         else:
             mylog.error("None of the arguments provided to load() is a valid file")
             mylog.error("Please check that you have used a correct path")
             raise YTOutputNotIdentified(args, kwargs)
     for n, c in types_to_check.items():
-        if n is None: continue
-        if c._is_valid(*args, **kwargs): candidates.append(n)
+        if n is None:
+            continue
+        if c._is_valid(*args, **kwargs):
+            candidates.append(n)
 
     # convert to classes
     candidates = [output_type_registry[c] for c in candidates]
@@ -79,14 +87,15 @@ def load(*args ,**kwargs):
     if len(candidates) == 1:
         return candidates[0](*args, **kwargs)
     if len(candidates) == 0:
-        if ytcfg.get("yt", "enzo_db") != '' \
-           and len(args) == 1 \
-           and isinstance(args[0], str):
+        if (
+            ytcfg.get("yt", "enzo_db") != ""
+            and len(args) == 1
+            and isinstance(args[0], str)
+        ):
             erdb = EnzoRunDatabase()
             fn = erdb.find_uuid(args[0])
             n = "EnzoDataset"
-            if n in output_type_registry \
-               and output_type_registry[n]._is_valid(fn):
+            if n in output_type_registry and output_type_registry[n]._is_valid(fn):
                 return output_type_registry[n](fn)
         mylog.error("Couldn't figure out output type for %s", args[0])
         raise YTOutputNotIdentified(args, kwargs)
@@ -95,6 +104,7 @@ def load(*args ,**kwargs):
     for c in candidates:
         mylog.error("    Possible: %s", c)
     raise YTOutputNotIdentified(args, kwargs)
+
 
 def simulation(parameter_filename, simulation_type, find_outputs=False):
     """
@@ -107,17 +117,21 @@ def simulation(parameter_filename, simulation_type, find_outputs=False):
 
     if os.path.exists(parameter_filename):
         valid_file = True
-    elif os.path.exists(os.path.join(ytcfg.get("yt", "test_data_dir"),
-                                     parameter_filename)):
-        parameter_filename = os.path.join(ytcfg.get("yt", "test_data_dir"),
-                                          parameter_filename)
+    elif os.path.exists(
+        os.path.join(ytcfg.get("yt", "test_data_dir"), parameter_filename)
+    ):
+        parameter_filename = os.path.join(
+            ytcfg.get("yt", "test_data_dir"), parameter_filename
+        )
         valid_file = True
     else:
         valid_file = False
 
     if not valid_file:
-        raise YTOutputNotIdentified((parameter_filename, simulation_type),
-                                    dict(find_outputs=find_outputs))
+        raise YTOutputNotIdentified(
+            (parameter_filename, simulation_type), dict(find_outputs=find_outputs)
+        )
 
-    return simulation_time_series_registry[simulation_type](parameter_filename,
-                                                            find_outputs=find_outputs)
+    return simulation_time_series_registry[simulation_type](
+        parameter_filename, find_outputs=find_outputs
+    )

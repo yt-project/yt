@@ -1,6 +1,7 @@
 ### Auto-generated colormap tables, taken from Matplotlib ###
 import numpy as np
 from numpy import array
+
 color_map_luts = {}
 
 

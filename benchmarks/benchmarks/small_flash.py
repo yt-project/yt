@@ -1,8 +1,10 @@
 import numpy as np
 import yt
 
+
 class SmallFlashSuite:
     dsname = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0690"
+
     def setup(self):
         self.ds = yt.load(self.dsname)
 
@@ -21,8 +23,7 @@ class SmallFlashSuite:
         proj = self.ds.proj("density", 0, "density")
 
     def time_ghostzones(self):
-        dd = self.ds.sphere(self.ds.domain_center,
-                            self.ds.domain_width[0] * 0.25)
+        dd = self.ds.sphere(self.ds.domain_center, self.ds.domain_width[0] * 0.25)
         dd["velocity_divergence"]
 
     def time_gas_quantities(self):
