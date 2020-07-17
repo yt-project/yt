@@ -814,15 +814,11 @@ Source code style guide
    of a docstring.
  * Use only one top-level import per line. Unless there is a good reason not to,
    imports should happen at the top of the file.
- * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use
-   ``is`` or ``is not``.
+ * Never compare with singleton ``True``, ``False``, ``None`` ... using ``==`` or ``!=``,
+   always use ``is`` or ``is not``.
  * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Never compare with None using ``==`` or ``!=``, use ``is None`` or
-   ``is not None``.
  * Use ``statement is not True`` instead of ``not statement is True``
- * Only one statement per line, do not use semicolons to put two or more
-   statements on a single line.
  * Only declare local variables if they will be used later. If you do not use the
    return value of a function, do not store it in a variable.
  * Add tests for new functionality. When fixing a bug, consider adding a test to
@@ -848,14 +844,12 @@ API Style Guide
  * Do not use too many keyword arguments.  If you have a lot of keyword
    arguments, then you are doing too much in ``__init__`` and not enough via
    parameter setting.
- * In function arguments, place spaces before commas.  ``def something(a,b,c)``
-   should be ``def something(a, b, c)``.
  * Don't create a new class to replicate the functionality of an old class --
    replace the old class.  Too many options makes for a confusing user
    experience.
  * Parameter files external to yt are a last resort.
  * The usage of the ``**kwargs`` construction should be avoided.  If they cannot
-   be avoided, they must be explained, even if they are only to be passed on to
+   be avoided, they must be documented, even if they are only to be passed on to
    a nested function.
 
 .. _docstrings:
