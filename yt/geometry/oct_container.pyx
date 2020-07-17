@@ -664,13 +664,10 @@ cdef class OctreeContainer:
         cdef np.ndarray[np.int64_t, ndim=1] file_inds
         if num_cells < 0:
             num_cells = selector.count_oct_cells(self, domain_id)
-        levels = np.zeros(num_cells, dtype="uint8")
-        file_inds = np.zeros(num_cells, dtype="int64")
-        cell_inds = np.zeros(num_cells, dtype="uint8")
-        for i in range(num_cells):
-            levels[i] = 255
-            file_inds[i] = -1
-            cell_inds[i] = 8
+        # Initialize variables with dummy values
+        levels = np.full(num_cells, 255, dtype="uint8")
+        file_inds = np.full(num_cells, -1, dtype="int64")
+        cell_inds = np.full(num_cells, 8, dtype="uint8")
         cdef oct_visitors.FillFileIndicesO visitor_o
         cdef oct_visitors.FillFileIndicesR visitor_r
         if self.fill_style == "r":
@@ -735,8 +732,8 @@ cdef class OctreeContainer:
         for key in dest_fields:
             dest = dest_fields[key]
             source = source_fields[key]
-            for i in range(levels.shape[0]):
-                if levels[i] != level: continue
+            for i, lvl in enumerate(levels):
+                if lvl != level: continue
                 if file_inds[i] < 0:
                     dest[i + offset] = np.nan
                 else:
@@ -774,7 +771,7 @@ cdef class OctreeContainer:
         -------
         oct_inds : int64 ndarray (nocts*8, )
             The on-domain index of the octs containing each cell
-        cell_inds : uint8 array (nocts*8, )
+        cell_inds : uint8 ndarray (nocts*8, )
             The index of the cell in its parent oct
 
         Note
@@ -786,8 +783,8 @@ cdef class OctreeContainer:
 
         cdef NeighbourCellIndexVisitor visitor
 
-        cdef np.uint8_t[:] cell_inds
-        cdef np.int64_t[:] oct_inds
+        cdef np.uint8_t[::1] cell_inds
+        cdef np.int64_t[::1] oct_inds
 
         cell_inds = np.full(num_octs*4**3, 8, dtype=np.uint8)
         oct_inds = np.full(num_octs*4**3, -1, dtype=np.int64)

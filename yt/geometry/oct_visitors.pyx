@@ -353,7 +353,9 @@ cdef class StoreIndex(OctVisitor):
 cdef class BaseNeighbourVisitor(OctVisitor):
     def __init__(self, OctreeContainer octree, int domain_id = -1):
         self.octree = octree
-        self.neigh_ind = np.zeros(3, np.int8)
+        self.neigh_ind[0] = 0
+        self.neigh_ind[1] = 0
+        self.neigh_ind[2] = 0
         super(BaseNeighbourVisitor, self).__init__(octree, domain_id)
 
     @cython.boundscheck(False)
@@ -418,6 +420,25 @@ cdef class BaseNeighbourVisitor(OctVisitor):
 
 # Store neighbouring cell index in current cell
 cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
+    # This piece of code is very much optimizable. Here are possible routes to achieve
+    # much better performance:
+
+    # - Work oct by oct, which would reduce the number of neighbor lookup
+    #   from 4³=64 to 3³=27,
+    # - Use faster neighbor lookup method(s). For now, all searches are started from
+    #   the root mesh down to leaf nodes, but we could instead go up the tree from the
+    #   central oct then down to find all neighbors (see e.g.
+    #   https://geidav.wordpress.com/2017/12/02/advanced-octrees-4-finding-neighbor-nodes/).
+    # -  Pre-compute the face-neighbors of all octs.
+
+    # Note that for the last point, algorithms exist that generate the neighbors of all
+    # octs in O(1) time (https://link.springer.com/article/10.1007/s13319-015-0060-9)
+    # during the octree construction.
+    # Another possible solution would be to keep a unordered hash map of all the octs
+    # indexed by their (3-integers) position. With such structure, finding a neighbor
+    # takes O(1) time. This could even come as a replacement of the current
+    # pointer-based octree structure.
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.initializedcheck(False)
@@ -506,4 +527,3 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
                     self.domains[self.index]   = neigh_domain
 
                     self.index += 1
-

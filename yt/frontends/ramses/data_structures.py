@@ -1,7 +1,6 @@
 import os
 import numpy as np
 import weakref
-import warnings
 from collections import defaultdict
 from glob import glob
 
@@ -193,10 +192,15 @@ class RAMSESDomainSubset(OctreeSubset):
 
         if num_ghost_zones > 0:
             if not all(ds.periodicity):
-                warnings.warn('Ghost zones will wrongly assume the domain to be periodic.')
+                mylog.warn('Ghost zones will wrongly assume the domain to be periodic.')
             # Create a base domain *with no self._base_domain.fwidth
             base_domain = RAMSESDomainSubset(ds.all_data(), domain, ds, over_refine_factor)
             self._base_domain = base_domain
+        elif num_ghost_zones < 0:
+            raise RuntimeError(
+                'Cannot initialize a domain subset with a negative number of ghost zones,'
+                ' was called with num_ghost_zones=%s' % num_ghost_zones
+            )
 
     def _fill_no_ghostzones(self, fd, fields, selector, file_handler):
         ndim = self.ds.dimensionality
@@ -214,9 +218,10 @@ class RAMSESDomainSubset(OctreeSubset):
         # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
+        cpu_list = [self.domain_id - 1]
         fill_hydro(fd, file_handler.offset,
                    file_handler.level_count,
-                   [self.domain_id-1],
+                   cpu_list,
                    levels, cell_inds,
                    file_inds, ndim, all_fields, fields, tr,
                    oct_handler)
@@ -240,9 +245,10 @@ class RAMSESDomainSubset(OctreeSubset):
         # Initializing data container
         for field in fields:
             tr[field] = np.zeros(cell_count, 'float64')
+        cpu_list = list(range(ncpu))
         fill_hydro(fd, file_handler.offset,
                    file_handler.level_count,
-                   list(range(ncpu)),
+                   cpu_list,
                    levels, cell_inds,
                    file_inds, ndim, all_fields, fields, tr,
                    oct_handler,
@@ -255,6 +261,9 @@ class RAMSESDomainSubset(OctreeSubset):
         if self._num_ghost_zones > 0:
             fwidth = fwidth.reshape(-1, 8, 3)
             n_oct = fwidth.shape[0]
+            # new_fwidth contains the fwidth of the oct+ghost zones
+            # this is a constant array in each oct, so we simply copy
+            # the oct value using numpy fancy-indexing
             new_fwidth = np.zeros((n_oct, self.nz**3, 3), dtype=fwidth.dtype)
             new_fwidth[:, :, :] = fwidth[:, 0:1, :]
             fwidth = new_fwidth.reshape(-1, 3)
@@ -269,12 +278,12 @@ class RAMSESDomainSubset(OctreeSubset):
         oh = self.oct_handler
 
         indices = oh.fill_index(self.selector).reshape(-1, 8)
-        oinds, cinds = oh.fill_octcellindex_neighbours(self.selector)
+        oct_inds, cell_inds = oh.fill_octcellindex_neighbours(self.selector)
 
-        oinds = oinds.reshape(-1, 64)
-        cinds = cinds.reshape(-1, 64)
+        oct_inds = oct_inds.reshape(-1, 64)
+        cell_inds = cell_inds.reshape(-1, 64)
 
-        inds = indices[oinds, cinds]
+        inds = indices[oct_inds, cell_inds]
 
         fcoords = self.ds.arr(
             oh.fcoords(self.selector)[inds].reshape(-1, 3),

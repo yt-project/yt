@@ -7,7 +7,7 @@ from yt.funcs import \
     fix_unitary, \
     iterable
 from yt.units.yt_array import \
-    YTArray, YTQuantity, unyt_array
+    YTArray, YTQuantity
 from yt.utilities.exceptions import \
     YTCoordinateNotImplemented, \
     YTInvalidWidthError
@@ -213,7 +213,7 @@ class CoordinateHandler:
             width = (w[0], w[1])
         elif iterable(width):
             width = validate_iterable_width(width, self.ds)
-        elif isinstance(width, (YTQuantity, unyt_array)):
+        elif isinstance(width, YTQuantity):
             width = (width, width)
         elif isinstance(width, Number):
             width = (self.ds.quan(width, 'code_length'),
