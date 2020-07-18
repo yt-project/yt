@@ -368,7 +368,6 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                             np.empty(wogz.ires.size, dtype="float64"), units
                         )
                         outputs.append(rv)
-                    data = gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz]
                     ind += wogz.select(
                         self.selector,
                         source=gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
