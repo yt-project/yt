@@ -85,6 +85,9 @@ jobs:
     - stage: Lint
       python: 3.6
       script: isort --check-only -rc yt/
+
+    - stage: Lint
+      python: 3.6
       script: black --check yt/
 
     - stage: tests
