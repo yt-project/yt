@@ -224,7 +224,7 @@ class RAMSESDomainSubset(OctreeSubset):
         oct_handler = self.oct_handler
         all_fields = [f for ft, f in file_handler.field_list]
         fields = [f for ft, f in fields]
-        tr = {}
+        data = {}
         cell_count = selector.count_oct_cells(self.oct_handler, self.domain_id)
 
         levels, cell_inds, file_inds = self.oct_handler.file_index_octs(
@@ -233,7 +233,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
         # Initializing data container
         for field in fields:
-            tr[field] = np.zeros(cell_count, "float64")
+            data[field] = np.zeros(cell_count, "float64")
 
         cpu_list = [self.domain_id - 1]
         fill_hydro(
@@ -247,10 +247,10 @@ class RAMSESDomainSubset(OctreeSubset):
             ndim,
             all_fields,
             fields,
-            tr,
+            data,
             oct_handler,
         )
-        return tr
+        return data
 
     def _fill_with_ghostzones(
         self, fd, fields, selector, file_handler, num_ghost_zones
