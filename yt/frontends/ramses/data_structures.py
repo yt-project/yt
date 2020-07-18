@@ -2,6 +2,7 @@ import os
 import weakref
 from collections import defaultdict
 from glob import glob
+
 import numpy as np
 
 from yt.arraytypes import blankRecordArray
