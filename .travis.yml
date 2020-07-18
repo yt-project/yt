@@ -30,7 +30,7 @@ before_install:
     else
       sudo mkdir -p /usr/local/man
       sudo chown -R "${USER}:admin" /usr/local/man
-      brew update
+      # brew update  # do not update to save build time
       brew install python ccache hdf5 proj geos openmpi netcdf
       brew uninstall gdal postgis numpy
       export PATH=/usr/local/opt/ccache/libexec:$PATH
