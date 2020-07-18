@@ -790,7 +790,6 @@ Source code style guide
 
  * In general, follow PEP-8 guidelines.
    https://www.python.org/dev/peps/pep-0008/
- * We no longer have a copyright blurb in every source file.
  * Classes are ``ConjoinedCapitals``, methods and functions are
    ``lowercase_with_underscores``.
  * Use 4 spaces, not tabs, to represent indentation.
