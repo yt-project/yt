@@ -768,8 +768,8 @@ class PlotWindow(ImagePlotContainer):
             for un in unit_name:
                 try:
                     self.ds.length_unit.in_units(un)
-                except (UnitConversionError, UnitParseError):
-                    raise YTUnitNotRecognized(un)
+                except (UnitConversionError, UnitParseError) as e:
+                    raise YTUnitNotRecognized(un) from e
         self._axes_unit_names = unit_name
         return self
 

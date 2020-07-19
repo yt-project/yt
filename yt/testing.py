@@ -1133,11 +1133,11 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         des = des.in_units(act.units)
-    except UnitOperationError:
+    except UnitOperationError as e:
         raise AssertionError(
             "Units of actual (%s) and desired (%s) do not have "
             "equivalent dimensions" % (act.units, des.units)
-        )
+        ) from e
 
     rt = YTArray(rtol)
     if not rt.units.is_dimensionless:
@@ -1148,11 +1148,11 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         at = at.in_units(act.units)
-    except UnitOperationError:
+    except UnitOperationError as e:
         raise AssertionError(
             "Units of atol (%s) and actual (%s) do not have "
             "equivalent dimensions" % (at.units, act.units)
-        )
+        ) from e
 
     # units have been validated, so we strip units before calling numpy
     # to avoid spurious errors

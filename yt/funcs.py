@@ -41,7 +41,7 @@ def iterable(obj):
     """
     try:
         len(obj)
-    except Exception:
+    except TypeError:
         return False
     return True
 
@@ -1187,7 +1187,7 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
 
     try:
         hasher = getattr(hashlib, algorithm)()
-    except Exception:
+    except AttributeError as e:
         raise NotImplementedError(
             f"'{algorithm}' not available!  Available algorithms: {hashlib.algorithms}"
         )

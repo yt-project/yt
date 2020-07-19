@@ -951,13 +951,13 @@ class StreamlineCallback(PlotCallback):
                 try:
                     linewidth *= mask
                     self.plot_args["linewidth"] = linewidth
-                except ValueError:
+                except ValueError as e:
                     err_msg = (
                         "Error applying display threshold: linewidth"
                         + "must have shape ({}, {}) or be scalar"
                     )
                     err_msg = err_msg.format(nx, ny)
-                    raise ValueError(err_msg)
+                    raise ValueError(err_msg) from e
 
         else:
             field_colors = None
