@@ -29,9 +29,7 @@ from yt.convenience import load, simulation
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
 from yt.funcs import get_pbar
-from yt.funcs import \
-    get_pbar, \
-    issue_deprecation_warning
+from yt.funcs import get_pbar, issue_deprecation_warning
 from yt.testing import (
     assert_allclose_units,
     assert_almost_equal,
@@ -320,9 +318,11 @@ def can_run_ds(ds_fn, file_check=False):
 
 
 def can_run_sim(sim_fn, sim_type, file_check=False):
-    issue_deprecation_warning("This function is no longer used in the " +
-                              "yt project testing framework and is " +
-                              "targeted for deprecation.")
+    issue_deprecation_warning(
+        "This function is no longer used in the "
+        + "yt project testing framework and is "
+        + "targeted for deprecation."
+    )
     result_storage = AnswerTestingTest.result_storage
     if isinstance(sim_fn, SimulationTimeSeries):
         return result_storage is not None
@@ -1090,9 +1090,12 @@ class AxialPixelizationTest(AnswerTestingTest):
 
 
 def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
-    issue_deprecation_warning("This function is no longer used in the " +
-                              "yt project testing framework and is " +
-                              "targeted for deprecation.")
+    issue_deprecation_warning(
+        "This function is no longer used in the "
+        + "yt project testing framework and is "
+        + "targeted for deprecation."
+    )
+
     def ffalse(func):
         return lambda: None
 
