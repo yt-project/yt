@@ -31,9 +31,6 @@ import os
 import sys
 from optparse import OptionParser
 
-if sys.version_info >= (3, 0, 0):
-    unicode = str
-
 SCRIPT_NAME = os.path.basename(sys.argv[0])
 VERSION = "0.3"
 SERVICE_URL = "http://paste.yt-project.org/"
@@ -92,14 +89,14 @@ def load_default_settings():
 def make_utf8(text, encoding):
     """Convert a text to UTF-8, brute-force."""
     try:
-        u = unicode(text, "utf-8")
+        u = str(text, "utf-8")
         uenc = "utf-8"
     except UnicodeError:
         try:
-            u = unicode(text, encoding)
+            u = str(text, encoding)
             uenc = "utf-8"
         except UnicodeError:
-            u = unicode(text, "iso-8859-15", "ignore")
+            u = str(text, "iso-8859-15", "ignore")
             uenc = "iso-8859-15"
     try:
         import chardet
@@ -108,7 +105,7 @@ def make_utf8(text, encoding):
     d = chardet.detect(text)
     if d["encoding"] == uenc:
         return u.encode("utf-8")
-    return unicode(text, d["encoding"], "ignore").encode("utf-8")
+    return str(text, d["encoding"], "ignore").encode("utf-8")
 
 
 def get_xmlrpc_service():

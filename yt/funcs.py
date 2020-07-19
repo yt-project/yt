@@ -18,7 +18,7 @@ import traceback
 import urllib.parse
 import urllib.request
 import warnings
-from functools import wraps
+from functools import lru_cache, wraps
 from math import ceil, floor
 from numbers import Number as numeric_type
 
@@ -29,7 +29,6 @@ from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.lru_cache import lru_cache
 
 # Some functions for handling sequences and other types
 

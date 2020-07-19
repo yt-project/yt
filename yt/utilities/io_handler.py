@@ -1,11 +1,11 @@
 import os
 from collections import defaultdict
 from contextlib import contextmanager
+from functools import _make_key, lru_cache
 
 import numpy as np
 
 from yt.geometry.selection_routines import GridSelector
-from yt.utilities.lru_cache import _make_key, local_lru_cache
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 io_registry = {}
@@ -25,7 +25,7 @@ class RegisteredIOHandler(type):
         if hasattr(cls, "_dataset_type"):
             io_registry[cls._dataset_type] = cls
         if use_caching and hasattr(cls, "_read_obj_field"):
-            cls._read_obj_field = local_lru_cache(
+            cls._read_obj_field = lru_cache(
                 maxsize=use_caching, typed=True, make_key=_make_io_key
             )(cls._read_obj_field)
 
