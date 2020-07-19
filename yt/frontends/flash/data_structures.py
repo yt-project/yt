@@ -59,9 +59,8 @@ class FLASHHierarchy(GridIndex):
             k = srp[i][0]
             if (k.startswith(b"plot_grid_var")):
                 v = srp[i][1].decode("ascii","ignore")[:4]
-                if v!="none":
+                if v != "none":
                     self.field_list.append(("flash",v))
-
 
         if "/particle names" in self._particle_handle:
             self.field_list += [
