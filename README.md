@@ -8,7 +8,8 @@
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
 [![Sponsor our Project](https://img.shields.io/badge/donate-to%20yt-blueviolet)](https://numfocus.salsalabs.org/donate-to-yt/index.html)
-                
+[![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
+
 <a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
 
 yt is an open-source, permissively-licensed python package for analyzing and
@@ -45,13 +46,6 @@ or with pip:
 
 ```
 pip install yt
-```
-
-If you want the latest nightly build, you can manually install from our
-repository:
-
-```
-conda install -c yt-project/label/dev yt
 ```
 
 To get set up with a development version, you want to clone this repository:

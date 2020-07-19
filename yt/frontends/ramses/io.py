@@ -1,14 +1,19 @@
 from collections import defaultdict
+
 import numpy as np
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.utilities.cython_fortran_utils import FortranFile
+from yt.utilities.exceptions import (
+    YTFieldTypeNotFound,
+    YTFileNotParseable,
+    YTParticleOutputFormatNotImplemented,
+)
+from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
-from yt.utilities.cython_fortran_utils import FortranFile
-from yt.utilities.exceptions import YTFieldTypeNotFound, YTParticleOutputFormatNotImplemented, \
-    YTFileNotParseable
-from .definitions import VERSION_RE, VAR_DESC_RE
+
+from .definitions import VAR_DESC_RE, VERSION_RE
+
 
 def convert_ramses_ages(ds, conformal_ages):
     tf = ds.t_frw
@@ -16,28 +21,27 @@ def convert_ramses_ages(ds, conformal_ages):
     tauf = ds.tau_frw
     tsim = ds.time_simu
     h100 = ds.hubble_constant
-    nOver2 = ds.n_frw/2
-    unit_t = ds.parameters['unit_t']
-    t_scale = 1./(h100 * 100 * cm_per_km / cm_per_mpc) / unit_t
+    nOver2 = ds.n_frw / 2
+    unit_t = ds.parameters["unit_t"]
+    t_scale = 1.0 / (h100 * 100 * cm_per_km / cm_per_mpc) / unit_t
 
     # calculate index into lookup table (n_frw elements in
     # lookup table)
-    dage =  1 + (10*conformal_ages/dtau)
-    dage = np.minimum(dage, nOver2 + (dage - nOver2)/10.)
+    dage = 1 + (10 * conformal_ages / dtau)
+    dage = np.minimum(dage, nOver2 + (dage - nOver2) / 10.0)
     iage = np.array(dage, dtype=np.int32)
 
     # linearly interpolate physical times from tf and tauf lookup
     # tables.
-    t = ((tf[iage]*(conformal_ages - tauf[iage - 1]) /
-          (tauf[iage] - tauf[iage - 1])))
-    t = t + ((tf[iage-1]*(conformal_ages - tauf[iage]) /
-              (tauf[iage-1]-tauf[iage])))
-    return (tsim - t)*t_scale
+    t = tf[iage] * (conformal_ages - tauf[iage - 1]) / (tauf[iage] - tauf[iage - 1])
+    t = t + (
+        (tf[iage - 1] * (conformal_ages - tauf[iage]) / (tauf[iage - 1] - tauf[iage]))
+    )
+    return (tsim - t) * t_scale
 
 
-def _ramses_particle_file_handler(fname, foffsets, data_types,
-                                  subset, fields, count):
-    '''General file handler, called by _read_particle_subset
+def _ramses_particle_file_handler(fname, foffsets, data_types, subset, fields, count):
+    """General file handler, called by _read_particle_subset
 
     Parameters
     ----------
@@ -53,7 +57,7 @@ def _ramses_particle_file_handler(fname, foffsets, data_types,
         The fields to read
     count: integer
         The number of elements to count
-    '''
+    """
     tr = {}
     ds = subset.domain.ds
     with FortranFile(fname) as fd:
@@ -90,8 +94,7 @@ class IOHandlerRAMSES(BaseIOHandler):
             # Gather fields by type to minimize i/o operations
             for ft in ftypes:
                 # Get all the fields of the same type
-                field_subs = list(
-                    filter(lambda f: f[0]==ft, fields))
+                field_subs = list(filter(lambda f: f[0] == ft, fields))
 
                 # Loop over subsets
                 for subset in chunk.objs:
@@ -112,8 +115,14 @@ class IOHandlerRAMSES(BaseIOHandler):
                         rv = subset.fill(fd, field_subs, selector, file_handler)
                     for ft, f in field_subs:
                         d = rv.pop(f)
-                        mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s zones)",
-                            f, d.size, d.min(), d.max(), d.size)
+                        mylog.debug(
+                            "Filling %s with %s (%0.3e %0.3e) (%s zones)",
+                            f,
+                            d.size,
+                            d.min(),
+                            d.max(),
+                            d.size,
+                        )
                         tr[(ft, f)].append(d)
         d = {}
         for field in fields:
@@ -123,42 +132,45 @@ class IOHandlerRAMSES(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         pn = "particle_position_%s"
-        fields = [(ptype, "particle_position_%s" % ax)
-                  for ptype, field_list in ptf.items()
-                  for ax in 'xyz']
+        fields = [
+            (ptype, "particle_position_%s" % ax)
+            for ptype, field_list in ptf.items()
+            for ax in "xyz"
+        ]
         for chunk in chunks:
             for subset in chunk.objs:
                 rv = self._read_particle_subset(subset, fields)
                 for ptype in sorted(ptf):
-                    yield ptype, (rv[ptype, pn % 'x'],
-                                  rv[ptype, pn % 'y'],
-                                  rv[ptype, pn % 'z'])
+                    yield ptype, (
+                        rv[ptype, pn % "x"],
+                        rv[ptype, pn % "y"],
+                        rv[ptype, pn % "z"],
+                    )
 
     def _read_particle_fields(self, chunks, ptf, selector):
         pn = "particle_position_%s"
         chunks = list(chunks)
-        fields = [(ptype, fname) for ptype, field_list in ptf.items()
-                                 for fname in field_list]
+        fields = [
+            (ptype, fname) for ptype, field_list in ptf.items() for fname in field_list
+        ]
         for ptype, field_list in sorted(ptf.items()):
-            for ax in 'xyz':
+            for ax in "xyz":
                 if pn % ax not in field_list:
                     fields.append((ptype, pn % ax))
         for chunk in chunks:
             for subset in chunk.objs:
                 rv = self._read_particle_subset(subset, fields)
                 for ptype, field_list in sorted(ptf.items()):
-                    x, y, z = (np.asarray(rv[ptype, pn % ax], "=f8")
-                               for ax in 'xyz')
+                    x, y, z = (np.asarray(rv[ptype, pn % ax], "=f8") for ax in "xyz")
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None:
-                       mask = []
+                        mask = []
                     for field in field_list:
                         data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                         yield (ptype, field), data
 
-
     def _read_particle_subset(self, subset, fields):
-        '''Read the particle files.'''
+        """Read the particle files."""
         tr = {}
 
         # Sequential read depending on particle type
@@ -180,16 +192,19 @@ class IOHandlerRAMSES(BaseIOHandler):
                 raise YTFieldTypeNotFound(ptype)
 
             cosmo = self.ds.cosmological_simulation
-            if (ptype, 'particle_birth_time') in foffsets and cosmo:
-                foffsets[ptype, 'conformal_birth_time'] = \
-                    foffsets[ptype, 'particle_birth_time']
-                data_types[ptype, 'conformal_birth_time'] = \
-                    data_types[ptype, 'particle_birth_time']
+            if (ptype, "particle_birth_time") in foffsets and cosmo:
+                foffsets[ptype, "conformal_birth_time"] = foffsets[
+                    ptype, "particle_birth_time"
+                ]
+                data_types[ptype, "conformal_birth_time"] = data_types[
+                    ptype, "particle_birth_time"
+                ]
 
-            tr.update(_ramses_particle_file_handler(
-                fname, foffsets, data_types, subset, subs_fields,
-                count=count
-            ))
+            tr.update(
+                _ramses_particle_file_handler(
+                    fname, foffsets, data_types, subset, subs_fields, count=count
+                )
+            )
 
         return tr
 
@@ -201,25 +216,25 @@ def _read_part_file_descriptor(fname):
 
     # Mapping
     mapping = [
-        ('position_x', 'particle_position_x'),
-        ('position_y', 'particle_position_y'),
-        ('position_z', 'particle_position_z'),
-        ('velocity_x', 'particle_velocity_x'),
-        ('velocity_y', 'particle_velocity_y'),
-        ('velocity_z', 'particle_velocity_z'),
-        ('mass', 'particle_mass'),
-        ('identity', 'particle_identity'),
-        ('levelp', 'particle_level'),
-        ('family', 'particle_family'),
-        ('tag', 'particle_tag')
+        ("position_x", "particle_position_x"),
+        ("position_y", "particle_position_y"),
+        ("position_z", "particle_position_z"),
+        ("velocity_x", "particle_velocity_x"),
+        ("velocity_y", "particle_velocity_y"),
+        ("velocity_z", "particle_velocity_z"),
+        ("mass", "particle_mass"),
+        ("identity", "particle_identity"),
+        ("levelp", "particle_level"),
+        ("family", "particle_family"),
+        ("tag", "particle_tag"),
     ]
     # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
-    with open(fname, 'r') as f:
+    with open(fname, "r") as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.debug('Reading part file descriptor %s.' % fname)
+        mylog.debug("Reading part file descriptor %s." % fname)
         if not tmp:
             raise YTParticleOutputFormatNotImplemented()
 
@@ -232,7 +247,7 @@ def _read_part_file_descriptor(fname):
             for i, line in enumerate(f.readlines()):
                 tmp = VAR_DESC_RE.match(line)
                 if not tmp:
-                    raise YTFileNotParseable(fname, i+1)
+                    raise YTFileNotParseable(fname, i + 1)
 
                 # ivar = tmp.group(1)
                 varname = tmp.group(2)
@@ -241,13 +256,14 @@ def _read_part_file_descriptor(fname):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = 'particle_%s' % varname
+                    varname = "particle_%s" % varname
 
                 fields.append((varname, dtype))
         else:
             raise YTParticleOutputFormatNotImplemented()
 
     return fields
+
 
 def _read_fluid_file_descriptor(fname):
     """
@@ -256,27 +272,31 @@ def _read_fluid_file_descriptor(fname):
 
     # Mapping
     mapping = [
-        ('density', 'Density'),
-        ('velocity_x', 'x-velocity'),
-        ('velocity_y', 'y-velocity'),
-        ('velocity_z', 'z-velocity'),
-        ('pressure', 'Pressure'),
-        ('metallicity', 'Metallicity'),
+        ("density", "Density"),
+        ("velocity_x", "x-velocity"),
+        ("velocity_y", "y-velocity"),
+        ("velocity_z", "z-velocity"),
+        ("pressure", "Pressure"),
+        ("metallicity", "Metallicity"),
     ]
 
     # Add mapping for magnetic fields
-    mapping += [(key, key) for key in 
-                ('B_{0}_{1}'.format(dim,side) for side in ['left','right'] 
-                 for dim in ['x','y','z'])]  
-
+    mapping += [
+        (key, key)
+        for key in (
+            "B_{0}_{1}".format(dim, side)
+            for side in ["left", "right"]
+            for dim in ["x", "y", "z"]
+        )
+    ]
 
     # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
-    with open(fname, 'r') as f:
+    with open(fname, "r") as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.debug('Reading fluid file descriptor %s.' % fname)
+        mylog.debug("Reading fluid file descriptor %s." % fname)
         if not tmp:
             return []
 
@@ -289,7 +309,7 @@ def _read_fluid_file_descriptor(fname):
             for i, line in enumerate(f.readlines()):
                 tmp = VAR_DESC_RE.match(line)
                 if not tmp:
-                    raise YTFileNotParseable(fname, i+1)
+                    raise YTFileNotParseable(fname, i + 1)
 
                 # ivar = tmp.group(1)
                 varname = tmp.group(2)
@@ -298,11 +318,11 @@ def _read_fluid_file_descriptor(fname):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = 'hydro_%s' % varname
+                    varname = "hydro_%s" % varname
 
                 fields.append((varname, dtype))
         else:
-            mylog.error('Version %s', version)
+            mylog.error("Version %s", version)
             raise YTParticleOutputFormatNotImplemented()
 
     return fields

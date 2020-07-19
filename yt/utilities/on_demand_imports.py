@@ -1,17 +1,21 @@
-from pkg_resources import parse_version
 import sys
 
-class NotAModule(object):
+from pkg_resources import parse_version
+
+
+class NotAModule:
     """
     A class to implement an informative error message that will be outputted if
     someone tries to use an on-demand import without having the requisite
     package installed.
     """
+
     def __init__(self, pkg_name):
         self.pkg_name = pkg_name
         self.error = ImportError(
             "This functionality requires the %s "
-            "package to be installed." % self.pkg_name)
+            "package to be installed." % self.pkg_name
+        )
 
     def __getattr__(self, item):
         raise self.error
@@ -19,11 +23,13 @@ class NotAModule(object):
     def __call__(self, *args, **kwargs):
         raise self.error
 
+
 class NotCartopy(NotAModule):
     """
     A custom class to return error messages dependent on system installation
     for cartopy imports.
     """
+
     def __init__(self, pkg_name):
         self.pkg_name = pkg_name
         if any(s in sys.version for s in ("Anaconda", "Continuum")):
@@ -33,7 +39,8 @@ class NotCartopy(NotAModule):
             # yt-project/yt#1966
             self.error = ImportError(
                 "This functionality requires the %s "
-                "package to be installed." % self.pkg_name)
+                "package to be installed." % self.pkg_name
+            )
         else:
             self.error = ImportError(
                 "This functionality requires the %s "
@@ -42,11 +49,14 @@ class NotCartopy(NotAModule):
                 "and cartopy from source with: \n \n "
                 "pip install --no-binary :all: shapely cartopy \n \n"
                 "For further instruction please refer to the "
-                "yt documentation." % self.pkg_name)
+                "yt documentation." % self.pkg_name
+            )
 
-class netCDF4_imports(object):
+
+class netCDF4_imports:
     _name = "netCDF4"
     _Dataset = None
+
     @property
     def Dataset(self):
         if self._Dataset is None:
@@ -61,14 +71,16 @@ class netCDF4_imports(object):
 _netCDF4 = netCDF4_imports()
 
 
-class astropy_imports(object):
+class astropy_imports:
     _name = "astropy"
     _pyfits = None
+
     @property
     def pyfits(self):
         if self._pyfits is None:
             try:
                 import astropy.io.fits as pyfits
+
                 self.log
             except ImportError:
                 pyfits = NotAModule(self._name)
@@ -76,11 +88,13 @@ class astropy_imports(object):
         return self._pyfits
 
     _pywcs = None
+
     @property
     def pywcs(self):
         if self._pywcs is None:
             try:
                 import astropy.wcs as pywcs
+
                 self.log
             except ImportError:
                 pywcs = NotAModule(self._name)
@@ -88,11 +102,13 @@ class astropy_imports(object):
         return self._pywcs
 
     _log = None
+
     @property
     def log(self):
         if self._log is None:
             try:
                 from astropy import log
+
                 if log.exception_logging_enabled():
                     log.disable_exception_logging()
             except ImportError:
@@ -101,11 +117,13 @@ class astropy_imports(object):
         return self._log
 
     _units = None
+
     @property
     def units(self):
         if self._units is None:
             try:
                 from astropy import units
+
                 self.log
             except ImportError:
                 units = NotAModule(self._name)
@@ -113,11 +131,13 @@ class astropy_imports(object):
         return self._units
 
     _conv = None
+
     @property
     def conv(self):
         if self._conv is None:
             try:
                 import astropy.convolution as conv
+
                 self.log
             except ImportError:
                 conv = NotAModule(self._name)
@@ -125,11 +145,13 @@ class astropy_imports(object):
         return self._conv
 
     _time = None
+
     @property
     def time(self):
         if self._time is None:
             try:
                 import astropy.time as time
+
                 self.log
             except ImportError:
                 time = NotAModule(self._name)
@@ -137,11 +159,13 @@ class astropy_imports(object):
         return self._time
 
     _wcsaxes = None
+
     @property
     def wcsaxes(self):
         if self._wcsaxes is None:
             try:
                 import astropy.visualization.wcsaxes as wcsaxes
+
                 self.log
             except ImportError:
                 wcsaxes = NotAModule(self._name)
@@ -149,23 +173,28 @@ class astropy_imports(object):
         return self._wcsaxes
 
     _version = None
+
     @property
     def __version__(self):
         if self._version is None:
             try:
                 import astropy
+
                 version = astropy.__version__
             except ImportError:
                 version = NotAModule(self._name)
             self._version = version
         return self._version
 
+
 _astropy = astropy_imports()
 
-class cartopy_imports(object):
+
+class cartopy_imports:
     _name = "cartopy"
 
     _crs = None
+
     @property
     def crs(self):
         if self._crs is None:
@@ -177,23 +206,28 @@ class cartopy_imports(object):
         return self._crs
 
     _version = None
+
     @property
     def __version__(self):
         if self._version is None:
             try:
                 import cartopy
+
                 version = cartopy.__version__
             except ImportError:
                 version = NotCartopy(self._name)
             self._version = version
         return self._version
 
+
 _cartopy = cartopy_imports()
 
-class pooch_imports(object):
+
+class pooch_imports:
     _name = "pooch"
 
     _pooch = None
+
     @property
     def pooch(self):
         if self._pooch is None:
@@ -204,11 +238,14 @@ class pooch_imports(object):
             self._pooch = pooch
         return self._pooch
 
+
 _pooch = pooch_imports()
 
-class scipy_imports(object):
+
+class scipy_imports:
     _name = "scipy"
     _integrate = None
+
     @property
     def integrate(self):
         if self._integrate is None:
@@ -220,6 +257,7 @@ class scipy_imports(object):
         return self._integrate
 
     _stats = None
+
     @property
     def stats(self):
         if self._stats is None:
@@ -231,6 +269,7 @@ class scipy_imports(object):
         return self._stats
 
     _optimize = None
+
     @property
     def optimize(self):
         if self._optimize is None:
@@ -242,6 +281,7 @@ class scipy_imports(object):
         return self._optimize
 
     _interpolate = None
+
     @property
     def interpolate(self):
         if self._interpolate is None:
@@ -253,6 +293,7 @@ class scipy_imports(object):
         return self._interpolate
 
     _special = None
+
     @property
     def special(self):
         if self._special is None:
@@ -264,6 +305,7 @@ class scipy_imports(object):
         return self._special
 
     _signal = None
+
     @property
     def signal(self):
         if self._signal is None:
@@ -275,6 +317,7 @@ class scipy_imports(object):
         return self._signal
 
     _spatial = None
+
     @property
     def spatial(self):
         if self._spatial is None:
@@ -286,6 +329,7 @@ class scipy_imports(object):
         return self._spatial
 
     _ndimage = None
+
     @property
     def ndimage(self):
         if self._ndimage is None:
@@ -296,25 +340,30 @@ class scipy_imports(object):
             self._ndimage = ndimage
         return self._ndimage
 
+
 _scipy = scipy_imports()
 
-class h5py_imports(object):
+
+class h5py_imports:
     _name = "h5py"
     _err = None
 
     def __init__(self):
         try:
             import h5py
-            if parse_version(h5py.__version__) < parse_version('2.4.0'):
+
+            if parse_version(h5py.__version__) < parse_version("2.4.0"):
                 self._err = RuntimeError(
-                    'yt requires h5py version 2.4.0 or newer, '
+                    "yt requires h5py version 2.4.0 or newer, "
                     'please update h5py with e.g. "pip install -U h5py" '
-                    'and try again')
+                    "and try again"
+                )
         except ImportError:
             pass
         super(h5py_imports, self).__init__()
 
     _File = None
+
     @property
     def File(self):
         if self._err:
@@ -328,6 +377,7 @@ class h5py_imports(object):
         return self._File
 
     _Group = None
+
     @property
     def Group(self):
         if self._err:
@@ -341,6 +391,7 @@ class h5py_imports(object):
         return self._Group
 
     _Dataset = None
+
     @property
     def Dataset(self):
         if self._err:
@@ -354,6 +405,7 @@ class h5py_imports(object):
         return self._Dataset
 
     ___version__ = None
+
     @property
     def __version__(self):
         if self._err:
@@ -367,6 +419,7 @@ class h5py_imports(object):
         return self.___version__
 
     _get_config = None
+
     @property
     def get_config(self):
         if self._err:
@@ -380,6 +433,7 @@ class h5py_imports(object):
         return self._get_config
 
     _h5f = None
+
     @property
     def h5f(self):
         if self._err:
@@ -393,6 +447,7 @@ class h5py_imports(object):
         return self._h5f
 
     _h5p = None
+
     @property
     def h5p(self):
         if self._err:
@@ -406,6 +461,7 @@ class h5py_imports(object):
         return self._h5p
 
     _h5d = None
+
     @property
     def h5d(self):
         if self._err:
@@ -419,6 +475,7 @@ class h5py_imports(object):
         return self._h5d
 
     _h5s = None
+
     @property
     def h5s(self):
         if self._err:
@@ -432,6 +489,7 @@ class h5py_imports(object):
         return self._h5s
 
     _version = None
+
     @property
     def version(self):
         if self._err:
@@ -444,11 +502,14 @@ class h5py_imports(object):
             self._version = version
         return self._version
 
+
 _h5py = h5py_imports()
 
-class nose_imports(object):
+
+class nose_imports:
     _name = "nose"
     _run = None
+
     @property
     def run(self):
         if self._run is None:
@@ -459,11 +520,14 @@ class nose_imports(object):
             self._run = run
         return self._run
 
+
 _nose = nose_imports()
 
-class libconf_imports(object):
+
+class libconf_imports:
     _name = "libconf"
     _load = None
+
     @property
     def load(self):
         if self._load is None:
@@ -474,9 +538,11 @@ class libconf_imports(object):
             self._load = load
         return self._load
 
+
 _libconf = libconf_imports()
 
-class yaml_imports(object):
+
+class yaml_imports:
     _name = "yaml"
     _load = None
     _FullLoader = None
@@ -501,19 +567,24 @@ class yaml_imports(object):
             self._FullLoader = FullLoader
         return self._FullLoader
 
+
 _yaml = yaml_imports()
+
 
 class NotMiniball(NotAModule):
     def __init__(self, pkg_name):
         super(NotMiniball, self).__init__(pkg_name)
-        str = ("This functionality requires the %s package to be installed. "
-               "Installation instructions can be found at "
-               "https://github.com/weddige/miniball or alternatively you can "
-               "install via `pip install MiniballCpp`.")
+        str = (
+            "This functionality requires the %s package to be installed. "
+            "Installation instructions can be found at "
+            "https://github.com/weddige/miniball or alternatively you can "
+            "install via `pip install MiniballCpp`."
+        )
         self.error = ImportError(str % self.pkg_name)
 
-class miniball_imports(object):
-    _name = 'miniball'
+
+class miniball_imports:
+    _name = "miniball"
     _Miniball = None
 
     @property
@@ -526,7 +597,9 @@ class miniball_imports(object):
             self._Miniball = Miniball
         return self._Miniball
 
+
 _miniball = miniball_imports()
+
 
 class f90nml_imports(object):
     _name = "f90nml"
@@ -535,11 +608,13 @@ class f90nml_imports(object):
     def __init__(self):
         try:
             import f90nml as myself
+
             self._module = myself
         except ImportError:
             self._module = NotAModule(self._name)
 
     def __getattr__(self, attr):
         return getattr(self._module, attr)
+
 
 _f90nml = f90nml_imports()

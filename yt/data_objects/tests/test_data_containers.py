@@ -10,9 +10,15 @@ from numpy.testing import assert_array_equal
 
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.particle_filters import particle_filter
-from yt.testing import assert_equal, fake_random_ds, fake_amr_ds,\
-    fake_particle_ds, requires_module
+from yt.testing import (
+    assert_equal,
+    fake_amr_ds,
+    fake_particle_ds,
+    fake_random_ds,
+    requires_module,
+)
 from yt.utilities.exceptions import YTFieldNotFound
+
 
 class TestDataContainers(unittest.TestCase):
     @classmethod
@@ -30,25 +36,27 @@ class TestDataContainers(unittest.TestCase):
         # Test if ds could be None
         with assert_raises(RuntimeError) as err:
             YTDataContainer(None, None)
-        desired = ('Error: ds must be set either through class'
-                   ' type or parameter to the constructor')
+        desired = (
+            "Error: ds must be set either through class"
+            " type or parameter to the constructor"
+        )
         assert_equal(str(err.exception), desired)
 
         # Test if field_data key exists
         ds = fake_random_ds(5)
         proj = ds.proj("density", 0, data_source=ds.all_data())
-        assert_equal('px' in proj.keys(), True)
-        assert_equal('pz' in proj.keys(), False)
+        assert_equal("px" in proj.keys(), True)
+        assert_equal("pz" in proj.keys(), False)
 
         # Delete the key and check if exits
-        del proj['px']
-        assert_equal('px' in proj.keys(), False)
-        del proj['density']
-        assert_equal('density' in proj.keys(), False)
+        del proj["px"]
+        assert_equal("px" in proj.keys(), False)
+        del proj["density"]
+        assert_equal("density" in proj.keys(), False)
 
         # Delete a non-existent field
         with assert_raises(YTFieldNotFound) as ex:
-            del proj['p_mass']
+            del proj["p_mass"]
         desired = "Could not find field '('stream', 'p_mass')' in UniformGridData."
         assert_equal(str(ex.exception), desired)
 
@@ -61,7 +69,7 @@ class TestDataContainers(unittest.TestCase):
         with open(filename, "r") as file:
             file_row_1 = file.readline()
             file_row_2 = file.readline()
-            file_row_2 = np.array(file_row_2.split('\t'), dtype=np.float64)
+            file_row_2 = np.array(file_row_2.split("\t"), dtype=np.float64)
         sorted_keys = sorted(sp.field_data.keys())
         keys = [str(k) for k in sorted_keys]
         keys = "\t".join(["#"] + keys + ["\n"])
@@ -100,6 +108,7 @@ class TestDataContainers(unittest.TestCase):
     @requires_module("astropy")
     def test_to_astropy_table(self):
         from yt.units.yt_array import YTArray
+
         fields = ["density", "velocity_z"]
         ds = fake_random_ds(6)
         dd = ds.all_data()
@@ -111,21 +120,21 @@ class TestDataContainers(unittest.TestCase):
 
     def test_std(self):
         ds = fake_random_ds(3)
-        ds.all_data().std('density', weight="velocity_z")
+        ds.all_data().std("density", weight="velocity_z")
 
     def test_to_frb(self):
         # Test cylindrical geometry
         fields = ["density", "cell_mass"]
-        ds = fake_amr_ds(fields=fields, geometry="cylindrical", particles=16**3)
+        ds = fake_amr_ds(fields=fields, geometry="cylindrical", particles=16 ** 3)
         dd = ds.all_data()
         proj = ds.proj("density", weight_field="cell_mass", axis=1, data_source=dd)
-        frb = proj.to_frb((1.0, 'unitary'), 64)
-        assert_equal(frb.radius, (1.0, 'unitary'))
+        frb = proj.to_frb((1.0, "unitary"), 64)
+        assert_equal(frb.radius, (1.0, "unitary"))
         assert_equal(frb.buff_size, 64)
 
     def test_extract_isocontours(self):
         # Test isocontour properties for AMRGridData
-        ds = fake_amr_ds(fields=["density", "cell_mass"], particles=16**3)
+        ds = fake_amr_ds(fields=["density", "cell_mass"], particles=16 ** 3)
         dd = ds.all_data()
         q = dd.quantities["WeightedAverageQuantity"]
         rho = q("density", weight="cell_mass")
@@ -138,7 +147,7 @@ class TestDataContainers(unittest.TestCase):
         q = dd.quantities["WeightedAverageQuantity"]
         rho = q("particle_velocity_x", weight="particle_mass")
         with assert_raises(NotImplementedError):
-            dd.extract_isocontours("density", rho, sample_values='x')
+            dd.extract_isocontours("density", rho, sample_values="x")
 
     def test_derived_field(self):
         # Test that derived field on filtered particles do not require
@@ -146,23 +155,26 @@ class TestDataContainers(unittest.TestCase):
         ds = fake_particle_ds()
         dd = ds.all_data()
 
-        @particle_filter(requires=['particle_mass'], filtered_type='io')
+        @particle_filter(requires=["particle_mass"], filtered_type="io")
         def massive(pfilter, data):
-            return data[(pfilter.filtered_type, 'particle_mass')].to('code_mass') > 0.5
+            return data[(pfilter.filtered_type, "particle_mass")].to("code_mass") > 0.5
 
-        ds.add_particle_filter('massive')
+        ds.add_particle_filter("massive")
 
         def fun(field, data):
-            return data[field.name[0], 'particle_mass']
+            return data[field.name[0], "particle_mass"]
 
         # Add the field to the massive particles
-        ds.add_field(('massive', 'test'), function=fun,
-                     sampling_type='particle', units='code_mass')
+        ds.add_field(
+            ("massive", "test"),
+            function=fun,
+            sampling_type="particle",
+            units="code_mass",
+        )
 
-        expected_size = (dd['io', 'particle_mass'].to('code_mass') > 0.5).sum()
+        expected_size = (dd["io", "particle_mass"].to("code_mass") > 0.5).sum()
 
-        fields_to_test = [f for f in ds.derived_field_list
-                          if f[0] == 'massive']
+        fields_to_test = [f for f in ds.derived_field_list if f[0] == "massive"]
 
         def test_this(fname):
             data = dd[fname]

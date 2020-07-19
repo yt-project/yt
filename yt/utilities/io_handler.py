@@ -1,21 +1,23 @@
+import os
 from collections import defaultdict
 from contextlib import contextmanager
 
-import os
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-from yt.utilities.lru_cache import \
-    local_lru_cache, _make_key
+
 from yt.geometry.selection_routines import GridSelector
+from yt.utilities.lru_cache import _make_key, local_lru_cache
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 io_registry = {}
 
 use_caching = 0
 
-def _make_io_key( args, *_args, **kwargs):
+
+def _make_io_key(args, *_args, **kwargs):
     self, obj, field, ctx = args
     # Ignore self because we have a self-specific cache
     return _make_key((obj.id, field), *_args, **kwargs)
+
 
 class RegisteredIOHandler(type):
     def __init__(cls, name, b, d):
@@ -23,18 +25,18 @@ class RegisteredIOHandler(type):
         if hasattr(cls, "_dataset_type"):
             io_registry[cls._dataset_type] = cls
         if use_caching and hasattr(cls, "_read_obj_field"):
-            cls._read_obj_field = local_lru_cache(maxsize=use_caching, 
-                    typed=True, make_key=_make_io_key)(cls._read_obj_field)
+            cls._read_obj_field = local_lru_cache(
+                maxsize=use_caching, typed=True, make_key=_make_io_key
+            )(cls._read_obj_field)
 
-class BaseIOHandler(metaclass = RegisteredIOHandler):
+
+class BaseIOHandler(metaclass=RegisteredIOHandler):
     _vector_fields = ()
     _dataset_type = None
     _particle_reader = False
     _cache_on = False
     _misses = 0
     _hits = 0
-
-    __metaclass__ = RegisteredIOHandler
 
     def __init__(self, ds):
         self.queue = defaultdict(dict)
@@ -71,7 +73,7 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
 
     def _field_in_backup(self, grid, backup_file, field_name):
         if os.path.exists(backup_file):
-            fhandle = h5py.File(backup_file, mode='r')
+            fhandle = h5py.File(backup_file, mode="r")
             g = fhandle["data"]
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
             if field_name in grid_group:
@@ -90,7 +92,7 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
         if not grid.ds.read_from_backup:
             return self._read_data(grid, field)
         elif self._field_in_backup(grid, backup_filename, field):
-            fhandle = h5py.File(backup_filename, mode='r')
+            fhandle = h5py.File(backup_filename, mode="r")
             g = fhandle["data"]
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
             data = grid_group[field][:]
@@ -98,7 +100,7 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
             return data
         else:
             return self._read_data(grid, field)
-                
+
     # Now we define our interface
     def _read_data(self, grid, field):
         pass
@@ -115,7 +117,7 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
             finfo = self.ds.field_info[field]
             nodal_flag = finfo.nodal_flag
             if np.any(nodal_flag):
-                num_nodes = 2**sum(nodal_flag)
+                num_nodes = 2 ** sum(nodal_flag)
                 rv[field] = np.empty((size, num_nodes), dtype="=f8")
                 nodal_fields.append(field)
             else:
@@ -135,7 +137,8 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
         tr = self._read_data_set(grid, field)[tuple(sl)]
-        if tr.dtype == "float32": tr = tr.astype("float64")
+        if tr.dtype == "float32":
+            tr = tr.astype("float64")
         return tr
 
     def _read_field_names(self, grid):
@@ -159,7 +162,7 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type
-        ptf = defaultdict(list)         # ptype -> on-disk fields to read
+        ptf = defaultdict(list)  # ptype -> on-disk fields to read
         fsize = defaultdict(lambda: 0)  # ptype -> size of return value
         psize = defaultdict(lambda: 0)  # ptype -> particle count on disk
         field_maps = defaultdict(list)  # ptype -> fields (including unions)
@@ -194,9 +197,9 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
             if field[1] in self._vector_fields:
                 shape = (fsize[field], self._vector_fields[field[1]])
             elif field[1] in self._array_fields:
-                shape = (fsize[field],)+self._array_fields[field[1]]
+                shape = (fsize[field],) + self._array_fields[field[1]]
             else:
-                shape = (fsize[field], )
+                shape = (fsize[field],)
             rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
         # Now we read.
@@ -204,22 +207,23 @@ class BaseIOHandler(metaclass = RegisteredIOHandler):
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
                 my_ind = ind[field_f]
-                #mylog.debug("Filling %s from %s to %s with %s",
+                # mylog.debug("Filling %s from %s to %s with %s",
                 #    field_f, my_ind, my_ind+vals.shape[0], field_r)
-                rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
+                rv[field_f][my_ind : my_ind + vals.shape[0], ...] = vals
                 ind[field_f] += vals.shape[0]
         # Now we need to truncate all our fields, since we allow for
         # over-estimating.
         for field_f in ind:
-            rv[field_f] = rv[field_f][:ind[field_f]]
+            rv[field_f] = rv[field_f][: ind[field_f]]
         return rv
+
 
 class IOHandlerExtracted(BaseIOHandler):
 
-    _dataset_type = 'extracted'
+    _dataset_type = "extracted"
 
     def _read_data_set(self, grid, field):
-        return (grid.base_grid[field] / grid.base_grid.convert(field))
+        return grid.base_grid[field] / grid.base_grid.convert(field)
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]

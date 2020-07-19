@@ -1,16 +1,15 @@
-from yt.testing import \
-    assert_equal, \
-    requires_file, \
-    units_override_check
-from yt.utilities.answer_testing.framework import \
-    requires_ds, \
-    small_patch_amr, \
-    data_dir_load
 from yt.frontends.gdf.api import GDFDataset
+from yt.testing import assert_equal, requires_file, units_override_check
+from yt.utilities.answer_testing.framework import (
+    data_dir_load,
+    requires_ds,
+    small_patch_amr,
+)
 
 _fields = ("density", "velocity_x")
 
 sedov = "sedov/sedov_tst_0004.h5"
+
 
 @requires_ds(sedov)
 def test_sedov_tunnel():

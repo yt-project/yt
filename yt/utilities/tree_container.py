@@ -1,4 +1,4 @@
-class TreeContainer(object):
+class TreeContainer:
     r"""A recursive data container for things like merger trees and
     clump-finder trees.
 
