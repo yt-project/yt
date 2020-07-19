@@ -252,36 +252,6 @@ For both the Anaconda and Miniconda installations, make sure that the Anaconda
 
 which will install stable branch of yt along with all of its dependencies.
 
-.. _nightly-conda-builds:
-
-Nightly Conda Builds
-^^^^^^^^^^^^^^^^^^^^
-
-If you would like to install latest development version of yt, you can download
-it from our custom anaconda channel:
-
-.. code-block:: bash
-
-  $ conda install -c yt-project/label/dev -c conda-forge yt
-
-New packages for development branch are built after every pull request is
-merged. In order to make sure you are running latest version, it's recommended
-to update frequently:
-
-.. code-block:: bash
-
-  $ conda update -c yt-project/label/dev -c conda-forge yt
-
-We recommend trying to install dependencies from conda-forge as indicated above
-since focused individual communities stand a better chance of successfully
-maintaining build recipes. However, if you wish to use the default anaconda
-packages, simply remove ``-c conda-forge`` during conda installation.
-
-Location of our channel can be added to ``.condarc`` to avoid retyping it during
-each *conda* invocation. Please refer to `Conda Manual
-<https://conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#channel-locations-channels>`_
-for detailed instructions.
-
 .. _conda-intel-python:
 
 Using the Intel Distribution for Python from conda
@@ -373,60 +343,6 @@ most up-to-date source code.
 .. note::
 
   Alternatively, you can replace ``pip install -e .`` with ``conda develop -b .``.
-
-
-Installing Support for the Rockstar Halo Finder
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The easiest way to set rockstar up in a conda-based python environment is to run
-the install script with ``INST_ROCKSTAR=1``.
-
-If you want to do this manually, you will need to follow these
-instructions. First, clone Matt Turk's fork of rockstar and compile it:
-
-.. code-block:: bash
-
-  $ git clone https://github.com/yt-project/rockstar
-  $ cd rockstar
-  $ make lib
-
-Next, copy `librockstar.so` into the `lib` folder of your anaconda installation:
-
-.. code-block:: bash
-
-  $ cp librockstar.so /path/to/anaconda/lib
-
-Finally, you will need to recompile yt to enable the rockstar interface. Clone a
-copy of the yt git repository (see :ref:`conda-source-build`), or navigate
-to a clone that you have already made, and do the following:
-
-.. code-block:: bash
-
-  $ cd /path/to/yt-git
-  $ ./clean.sh
-  $ echo /path/to/rockstar > rockstar.cfg
-  $ pip install -e .
-
-Here ``/path/to/yt-git`` is the path to your clone of the yt git repository
-and ``/path/to/rockstar`` is the path to your clone of Matt Turk's fork of
-rockstar.
-
-Finally, to actually use rockstar, you will need to ensure the folder containing
-`librockstar.so` is in your LD_LIBRARY_PATH:
-
-.. code-block:: bash
-
-  $ export LD_LIBRARY_PATH=/path/to/anaconda/lib
-
-You should now be able to enter a python session and import the rockstar
-interface:
-
-.. code-block:: python
-
-  >>> from yt.analysis_modules.halo_finding.rockstar import rockstar_interface
-
-If this python import fails, then you have not installed rockstar and yt's
-rockstar interface correctly.
 
 .. _windows-installation:
 
@@ -633,7 +549,7 @@ you installed using ``INST_YT_SOURCE=1``.
 Conda-based installs (``INST_YT_SOURCE=0``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In this case you can either install one of the nightly conda builds (see :ref:`nightly-conda-builds`), or you can follow the instructions above to build yt from source under conda (see
+In this case you can follow the instructions above to build yt from source under conda (see
 :ref:`conda-source-build`).
 
 Source-based installs (``INST_YT_SOURCE=1``)

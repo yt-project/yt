@@ -6,19 +6,13 @@ Particle Deposition onto Octs
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
 import numpy as np
 from libc.stdlib cimport malloc, free
 cimport cython
 from libc.math cimport sqrt
+from numpy.math cimport PI as NPY_PI
 
 from yt.utilities.lib.fp_utils cimport *
 from .oct_container cimport Oct, OctreeContainer
@@ -40,6 +34,7 @@ cdef inline int gind(int i, int j, int k, int dims[3]):
 
 cdef inline np.float64_t sph_kernel_cubic(np.float64_t x) nogil:
     cdef np.float64_t kernel
+    # C is 8/pi
     cdef np.float64_t C = 2.5464790894703255
     if x <= 0.5:
         kernel = 1.-6.*x*x*(1.-x)
@@ -117,7 +112,7 @@ cdef inline np.float64_t sph_kernel_dummy(np.float64_t x) nogil:
 # I don't know the way to use a dict in a cdef class.
 # So in order to mimic a registry functionality,
 # I manually created a function to lookup the kernel functions.
-ctypedef np.float64_t (*kernel_func) (np.float64_t)
+ctypedef np.float64_t (*kernel_func) (np.float64_t) nogil
 cdef inline kernel_func get_kernel_func(str kernel_name) nogil:
     with gil:
         if kernel_name == 'cubic':

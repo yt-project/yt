@@ -23,7 +23,8 @@
 
 def setup():
     from ..exthook import ExtensionImporter
-    importer = ExtensionImporter(['yt_%s', 'ytext.%s'], __name__)
+
+    importer = ExtensionImporter(["yt_%s", "ytext.%s"], __name__)
     importer.install()
 
 

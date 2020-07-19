@@ -1,3 +1,6 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
+# distutils: sources = FIXED_INTERP
 """
 Marching cubes implementation
 
@@ -5,13 +8,6 @@ Marching cubes implementation
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
 cimport cython
@@ -342,7 +338,7 @@ def march_cubes_grid_flux(
                                 point[m] = (current.p[n][m]-cell_pos[m])*idds[m]
                             # Now we calculate the value at this point
                             temp = offset_interpolate(dims, point, intdata)
-                            #print "something", temp, point[0], point[1], point[2]
+                            #print("something", temp, point[0], point[1], point[2])
                             wval += temp
                             for m in range(3):
                                 center[m] += temp * point[m]

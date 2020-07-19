@@ -1,24 +1,6 @@
-"""
-SPH fields
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.fields.species_fields import setup_species_fields
 
-
-
-
-"""
-from __future__ import absolute_import
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.fields.species_fields import \
-    setup_species_fields
 
 class SPHFieldInfo(FieldInfoContainer):
     known_other_fields = ()
@@ -47,3 +29,6 @@ class SPHFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype, *args, **kwargs):
         super(SPHFieldInfo, self).setup_particle_fields(ptype, *args, **kwargs)
         setup_species_fields(self, ptype)
+
+    def setup_fluid_index_fields(self):
+        pass

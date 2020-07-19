@@ -1,46 +1,34 @@
-"""
-Utilities to aid testing.
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import hashlib
-import matplotlib
-from yt.extern.six import string_types
-from yt.extern.six.moves import cPickle
-import itertools as it
-import numpy as np
 import functools
+import hashlib
 import importlib
+import itertools as it
 import os
+import pickle
 import shutil
 import tempfile
 import unittest
-from yt.funcs import iterable
+
+import matplotlib
+import numpy as np
+from numpy.random import RandomState
+from unyt.exceptions import UnitOperationError
+
+import yt
 from yt.config import ytcfg
+from yt.convenience import load
+from yt.funcs import iterable
+from yt.units.yt_array import YTArray, YTQuantity
+
 # we import this in a weird way from numpy.testing to avoid triggering
 # flake8 errors from the unused imports. These test functions are imported
 # elsewhere in yt from here so we want them to be imported here.
-from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA
-from numpy.testing import assert_approx_equal, assert_array_almost_equal  # NOQA
-from numpy.testing import assert_equal, assert_array_less  # NOQA
-from numpy.testing import assert_string_equal  # NOQA
-from numpy.testing import assert_array_almost_equal_nulp  # NOQA
-from numpy.testing import assert_allclose, assert_raises  # NOQA
-from numpy.random import RandomState
-from yt.convenience import load
-from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTUnitOperationError
-import yt
+from numpy.testing import assert_array_equal, assert_almost_equal  # NOQA isort:skip
+from numpy.testing import assert_equal, assert_array_less  # NOQA isort:skip
+from numpy.testing import assert_string_equal  # NOQA isort:skip
+from numpy.testing import assert_array_almost_equal_nulp  # NOQA isort:skip
+from numpy.testing import assert_allclose, assert_raises  # NOQA isort:skip
+from numpy.testing import assert_approx_equal  # NOQA isort:skip
+from numpy.testing import assert_array_almost_equal  # NOQA isort:skip
 
 ANSWER_TEST_TAG = "answer_test"
 # Expose assert_true and assert_less_equal from unittest.TestCase
@@ -49,25 +37,27 @@ ANSWER_TEST_TAG = "answer_test"
 class _Dummy(unittest.TestCase):
     def nop():
         pass
-_t = _Dummy('nop')
-
-assert_true = getattr(_t, 'assertTrue')
-assert_less_equal = getattr(_t, 'assertLessEqual')
 
 
-def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
+_t = _Dummy("nop")
+
+assert_true = getattr(_t, "assertTrue")
+assert_less_equal = getattr(_t, "assertLessEqual")
+
+
+def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
     # We have nan checks in here because occasionally we have fields that get
     # weighted without non-zero weights.  I'm looking at you, particle fields!
     if isinstance(a1, np.ndarray):
-        assert(a1.size == a2.size)
+        assert a1.size == a2.size
         # Mask out NaNs
-        assert((np.isnan(a1) == np.isnan(a2)).all())
+        assert (np.isnan(a1) == np.isnan(a2)).all()
         a1[np.isnan(a1)] = 1.0
         a2[np.isnan(a2)] = 1.0
         # Mask out 0
         ind1 = np.array(np.abs(a1) < np.finfo(a1.dtype).eps)
         ind2 = np.array(np.abs(a2) < np.finfo(a2.dtype).eps)
-        assert((ind1 == ind2).all())
+        assert (ind1 == ind2).all()
         a1[ind1] = 1.0
         a2[ind2] = 1.0
     elif np.any(np.isnan(a1)) and np.any(np.isnan(a2)):
@@ -75,8 +65,10 @@ def assert_rel_equal(a1, a2, decimals, err_msg='', verbose=True):
     if not isinstance(a1, np.ndarray) and a1 == a2 == 0.0:
         # NANS!
         a1 = a2 = 1.0
-    return assert_almost_equal(np.array(a1)/np.array(a2), 1.0, decimals, err_msg=err_msg,
-                               verbose=verbose)
+    return assert_almost_equal(
+        np.array(a1) / np.array(a2), 1.0, decimals, err_msg=err_msg, verbose=verbose
+    )
+
 
 def amrspace(extent, levels=7, cells=8):
     """Creates two numpy arrays representing the left and right bounds of
@@ -123,78 +115,103 @@ def amrspace(extent, levels=7, cells=8):
      [ 1.     1.5    0.   ]]
 
     """
-    extent = np.asarray(extent, dtype='f8')
+    extent = np.asarray(extent, dtype="f8")
     dextent = extent[1::2] - extent[::2]
     ndims = len(dextent)
 
     if isinstance(levels, int):
         minlvl = maxlvl = levels
-        levels = np.array([levels]*ndims, dtype='int32')
+        levels = np.array([levels] * ndims, dtype="int32")
     else:
-        levels = np.asarray(levels, dtype='int32')
+        levels = np.asarray(levels, dtype="int32")
         minlvl = levels.min()
         maxlvl = levels.max()
         if minlvl != maxlvl and (minlvl != 0 or set([minlvl, maxlvl]) != set(levels)):
             raise ValueError("all levels must have the same value or zero.")
-    dims_zero = (levels == 0)
+    dims_zero = levels == 0
     dims_nonzero = ~dims_zero
     ndims_nonzero = dims_nonzero.sum()
 
-    npoints = (cells**ndims_nonzero - 1)*maxlvl + 1
-    left = np.empty((npoints, ndims), dtype='float64')
-    right = np.empty((npoints, ndims), dtype='float64')
-    level = np.empty(npoints, dtype='int32')
+    npoints = (cells ** ndims_nonzero - 1) * maxlvl + 1
+    left = np.empty((npoints, ndims), dtype="float64")
+    right = np.empty((npoints, ndims), dtype="float64")
+    level = np.empty(npoints, dtype="int32")
 
     # fill zero dims
-    left[:,dims_zero] = extent[::2][dims_zero]
-    right[:,dims_zero] = extent[1::2][dims_zero]
+    left[:, dims_zero] = extent[::2][dims_zero]
+    right[:, dims_zero] = extent[1::2][dims_zero]
 
     # fill non-zero dims
     dcell = 1.0 / cells
-    left_slice =  tuple([slice(extent[2*n], extent[2*n+1], extent[2*n+1]) if \
-        dims_zero[n] else slice(0.0,1.0,dcell) for n in range(ndims)])
-    right_slice = tuple([slice(extent[2*n+1], extent[2*n], -extent[2*n+1]) if \
-        dims_zero[n] else slice(dcell,1.0+dcell,dcell) for n in range(ndims)])
+    left_slice = tuple(
+        [
+            slice(extent[2 * n], extent[2 * n + 1], extent[2 * n + 1])
+            if dims_zero[n]
+            else slice(0.0, 1.0, dcell)
+            for n in range(ndims)
+        ]
+    )
+    right_slice = tuple(
+        [
+            slice(extent[2 * n + 1], extent[2 * n], -extent[2 * n + 1])
+            if dims_zero[n]
+            else slice(dcell, 1.0 + dcell, dcell)
+            for n in range(ndims)
+        ]
+    )
     left_norm_grid = np.reshape(np.mgrid[left_slice].T.flat[ndims:], (-1, ndims))
-    lng_zero = left_norm_grid[:,dims_zero]
-    lng_nonzero = left_norm_grid[:,dims_nonzero]
+    lng_zero = left_norm_grid[:, dims_zero]
+    lng_nonzero = left_norm_grid[:, dims_nonzero]
 
     right_norm_grid = np.reshape(np.mgrid[right_slice].T.flat[ndims:], (-1, ndims))
-    rng_zero = right_norm_grid[:,dims_zero]
-    rng_nonzero = right_norm_grid[:,dims_nonzero]
+    rng_zero = right_norm_grid[:, dims_zero]
+    rng_nonzero = right_norm_grid[:, dims_nonzero]
 
     level[0] = maxlvl
-    left[0,:] = extent[::2]
-    right[0,dims_zero] = extent[1::2][dims_zero]
-    right[0,dims_nonzero] = (dcell**maxlvl)*dextent[dims_nonzero] + extent[::2][dims_nonzero]
+    left[0, :] = extent[::2]
+    right[0, dims_zero] = extent[1::2][dims_zero]
+    right[0, dims_nonzero] = (dcell ** maxlvl) * dextent[dims_nonzero] + extent[::2][
+        dims_nonzero
+    ]
     for i, lvl in enumerate(range(maxlvl, 0, -1)):
-        start = (cells**ndims_nonzero - 1)*i + 1
-        stop = (cells**ndims_nonzero - 1)*(i+1) + 1
-        dsize = dcell**(lvl-1) * dextent[dims_nonzero]
+        start = (cells ** ndims_nonzero - 1) * i + 1
+        stop = (cells ** ndims_nonzero - 1) * (i + 1) + 1
+        dsize = dcell ** (lvl - 1) * dextent[dims_nonzero]
         level[start:stop] = lvl
-        left[start:stop,dims_zero] = lng_zero
-        left[start:stop,dims_nonzero] = lng_nonzero*dsize + extent[::2][dims_nonzero]
-        right[start:stop,dims_zero] = rng_zero
-        right[start:stop,dims_nonzero] = rng_nonzero*dsize + extent[::2][dims_nonzero]
+        left[start:stop, dims_zero] = lng_zero
+        left[start:stop, dims_nonzero] = lng_nonzero * dsize + extent[::2][dims_nonzero]
+        right[start:stop, dims_zero] = rng_zero
+        right[start:stop, dims_nonzero] = (
+            rng_nonzero * dsize + extent[::2][dims_nonzero]
+        )
 
     return left, right, level
 
+
 def fake_random_ds(
-        ndims, peak_value = 1.0,
-        fields = ("density", "velocity_x", "velocity_y", "velocity_z"),
-        units = ('g/cm**3', 'cm/s', 'cm/s', 'cm/s'),
-        particle_fields=None, particle_field_units=None,
-        negative = False, nprocs = 1, particles = 0, length_unit=1.0,
-        unit_system="cgs", bbox=None):
+    ndims,
+    peak_value=1.0,
+    fields=("density", "velocity_x", "velocity_y", "velocity_z"),
+    units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+    particle_fields=None,
+    particle_field_units=None,
+    negative=False,
+    nprocs=1,
+    particles=0,
+    length_unit=1.0,
+    unit_system="cgs",
+    bbox=None,
+):
     from yt.frontends.stream.api import load_uniform_grid
-    prng = RandomState(0x4d3d3d3)
+
+    prng = RandomState(0x4D3D3D3)
     if not iterable(ndims):
         ndims = [ndims, ndims, ndims]
     else:
-        assert(len(ndims) == 3)
+        assert len(ndims) == 3
     if not iterable(negative):
         negative = [negative for f in fields]
-    assert(len(fields) == len(negative))
+    assert len(fields) == len(negative)
     offsets = []
     for n in negative:
         if n:
@@ -210,36 +227,44 @@ def fake_random_ds(
     if particles:
         if particle_fields is not None:
             for field, unit in zip(particle_fields, particle_field_units):
-                if field in ('particle_position', 'particle_velocity'):
-                    data['io', field] = (
-                        prng.random_sample((int(particles), 3)), unit)
+                if field in ("particle_position", "particle_velocity"):
+                    data["io", field] = (prng.random_sample((int(particles), 3)), unit)
                 else:
-                    data['io', field] = (
-                        prng.random_sample(size=int(particles)), unit)
+                    data["io", field] = (prng.random_sample(size=int(particles)), unit)
         else:
-            for f in ('particle_position_%s' % ax for ax in 'xyz'):
-                data['io', f] = (prng.random_sample(size=particles), 'code_length')
-            for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
-                data['io', f] = (prng.random_sample(size=particles) - 0.5, 'cm/s')
-            data['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
-    ug = load_uniform_grid(data, ndims, length_unit=length_unit, nprocs=nprocs,
-                           unit_system=unit_system, bbox=bbox)
+            for f in ("particle_position_%s" % ax for ax in "xyz"):
+                data["io", f] = (prng.random_sample(size=particles), "code_length")
+            for f in ("particle_velocity_%s" % ax for ax in "xyz"):
+                data["io", f] = (prng.random_sample(size=particles) - 0.5, "cm/s")
+            data["io", "particle_mass"] = (prng.random_sample(particles), "g")
+    ug = load_uniform_grid(
+        data,
+        ndims,
+        length_unit=length_unit,
+        nprocs=nprocs,
+        unit_system=unit_system,
+        bbox=bbox,
+    )
     return ug
+
 
 _geom_transforms = {
     # These are the bounds we want.  Cartesian we just assume goes 0 .. 1.
-    'cartesian'  : ( (0.0, 0.0, 0.0), (1.0, 1.0, 1.0) ),
-    'spherical'  : ( (0.0, 0.0, 0.0), (1.0, np.pi, 2*np.pi) ),
-    'cylindrical': ( (0.0, 0.0, 0.0), (1.0, 1.0, 2.0*np.pi) ), # rzt
-    'polar'      : ( (0.0, 0.0, 0.0), (1.0, 2.0*np.pi, 1.0) ), # rtz
-    'geographic' : ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlonalt
-    'internal_geographic' :
-                   ( (-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0) ), # latlondep
+    "cartesian": ((0.0, 0.0, 0.0), (1.0, 1.0, 1.0)),
+    "spherical": ((0.0, 0.0, 0.0), (1.0, np.pi, 2 * np.pi)),
+    "cylindrical": ((0.0, 0.0, 0.0), (1.0, 1.0, 2.0 * np.pi)),  # rzt
+    "polar": ((0.0, 0.0, 0.0), (1.0, 2.0 * np.pi, 1.0)),  # rtz
+    "geographic": ((-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0)),  # latlonalt
+    "internal_geographic": ((-90.0, -180.0, 0.0), (90.0, 180.0, 1000.0)),  # latlondep
 }
 
-def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0, length_unit=None):
+
+def fake_amr_ds(
+    fields=("Density",), geometry="cartesian", particles=0, length_unit=None
+):
     from yt.frontends.stream.api import load_amr_grids
-    prng = RandomState(0x4d3d3d3)
+
+    prng = RandomState(0x4D3D3D3)
     LE, RE = _geom_transforms[geometry]
     LE = np.array(LE)
     RE = np.array(RE)
@@ -248,43 +273,49 @@ def fake_amr_ds(fields = ("Density",), geometry = "cartesian", particles=0, leng
         level, left_edge, right_edge, dims = gspec
         left_edge = left_edge * (RE - LE) + LE
         right_edge = right_edge * (RE - LE) + LE
-        gdata = dict(level = level,
-                     left_edge = left_edge,
-                     right_edge = right_edge,
-                     dimensions = dims)
+        gdata = dict(
+            level=level, left_edge=left_edge, right_edge=right_edge, dimensions=dims
+        )
         for f in fields:
             gdata[f] = prng.random_sample(dims)
         if particles:
-            for i, f in enumerate('particle_position_%s' % ax for ax in 'xyz'):
+            for i, f in enumerate("particle_position_%s" % ax for ax in "xyz"):
                 pdata = prng.random_sample(particles)
-                pdata /= (right_edge[i] - left_edge[i])
+                pdata /= right_edge[i] - left_edge[i]
                 pdata += left_edge[i]
-                gdata['io', f] = (pdata, 'code_length')
-            for f in ('particle_velocity_%s' % ax for ax in 'xyz'):
-                gdata['io', f] = (prng.random_sample(particles) - 0.5, 'cm/s')
-            gdata['io', 'particle_mass'] = (prng.random_sample(particles), 'g')
+                gdata["io", f] = (pdata, "code_length")
+            for f in ("particle_velocity_%s" % ax for ax in "xyz"):
+                gdata["io", f] = (prng.random_sample(particles) - 0.5, "cm/s")
+            gdata["io", "particle_mass"] = (prng.random_sample(particles), "g")
         data.append(gdata)
     bbox = np.array([LE, RE]).T
-    return load_amr_grids(data, [32, 32, 32], geometry=geometry, bbox=bbox, length_unit=length_unit)
+    return load_amr_grids(
+        data, [32, 32, 32], geometry=geometry, bbox=bbox, length_unit=length_unit
+    )
+
 
 def fake_particle_ds(
-        fields = ("particle_position_x",
-                  "particle_position_y",
-                  "particle_position_z",
-                  "particle_mass",
-                  "particle_velocity_x",
-                  "particle_velocity_y",
-                  "particle_velocity_z"),
-        units = ('cm', 'cm', 'cm', 'g', 'cm/s', 'cm/s', 'cm/s'),
-        negative = (False, False, False, False, True, True, True),
-        npart = 16**3, length_unit=1.0, data=None,
-        over_refine_factor = 1):
+    fields=(
+        "particle_position_x",
+        "particle_position_y",
+        "particle_position_z",
+        "particle_mass",
+        "particle_velocity_x",
+        "particle_velocity_y",
+        "particle_velocity_z",
+    ),
+    units=("cm", "cm", "cm", "g", "cm/s", "cm/s", "cm/s"),
+    negative=(False, False, False, False, True, True, True),
+    npart=16 ** 3,
+    length_unit=1.0,
+    data=None,
+):
     from yt.frontends.stream.api import load_particles
 
-    prng = RandomState(0x4d3d3d3)
+    prng = RandomState(0x4D3D3D3)
     if not iterable(negative):
         negative = [negative for f in fields]
-    assert(len(fields) == len(negative))
+    assert len(fields) == len(negative)
     offsets = []
     for n in negative:
         if n:
@@ -299,83 +330,87 @@ def fake_particle_ds(
         if "position" in field:
             v = prng.normal(loc=0.5, scale=0.25, size=npart)
             np.clip(v, 0.0, 1.0, v)
-        v = (prng.random_sample(npart) - offset)
+        v = prng.random_sample(npart) - offset
         data[field] = (v, u)
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
-    ds = load_particles(data, 1.0, bbox=bbox, over_refine_factor = over_refine_factor)
+    ds = load_particles(data, 1.0, bbox=bbox)
     return ds
 
 
 def fake_tetrahedral_ds():
     from yt.frontends.stream.api import load_unstructured_mesh
-    from yt.frontends.stream.sample_data.tetrahedral_mesh import \
-        _connectivity, _coordinates
+    from yt.frontends.stream.sample_data.tetrahedral_mesh import (
+        _connectivity,
+        _coordinates,
+    )
 
-    prng = RandomState(0x4d3d3d3)
+    prng = RandomState(0x4D3D3D3)
 
     # the distance from the origin
     node_data = {}
-    dist = np.sum(_coordinates**2, 1)
-    node_data[('connect1', 'test')] = dist[_connectivity]
+    dist = np.sum(_coordinates ** 2, 1)
+    node_data[("connect1", "test")] = dist[_connectivity]
 
     # each element gets a random number
     elem_data = {}
-    elem_data[('connect1', 'elem')] = prng.rand(_connectivity.shape[0])
+    elem_data[("connect1", "elem")] = prng.rand(_connectivity.shape[0])
 
-    ds = load_unstructured_mesh(_connectivity,
-                                _coordinates,
-                                node_data=node_data,
-                                elem_data=elem_data)
+    ds = load_unstructured_mesh(
+        _connectivity, _coordinates, node_data=node_data, elem_data=elem_data
+    )
     return ds
 
 
 def fake_hexahedral_ds():
     from yt.frontends.stream.api import load_unstructured_mesh
-    from yt.frontends.stream.sample_data.hexahedral_mesh import \
-        _connectivity, _coordinates
+    from yt.frontends.stream.sample_data.hexahedral_mesh import (
+        _connectivity,
+        _coordinates,
+    )
 
-    prng = RandomState(0x4d3d3d3)
+    prng = RandomState(0x4D3D3D3)
     # the distance from the origin
     node_data = {}
-    dist = np.sum(_coordinates**2, 1)
-    node_data[('connect1', 'test')] = dist[_connectivity-1]
+    dist = np.sum(_coordinates ** 2, 1)
+    node_data[("connect1", "test")] = dist[_connectivity - 1]
 
     # each element gets a random number
     elem_data = {}
-    elem_data[('connect1', 'elem')] = prng.rand(_connectivity.shape[0])
+    elem_data[("connect1", "elem")] = prng.rand(_connectivity.shape[0])
 
-    ds = load_unstructured_mesh(_connectivity-1,
-                                _coordinates,
-                                node_data=node_data,
-                                elem_data=elem_data)
+    ds = load_unstructured_mesh(
+        _connectivity - 1, _coordinates, node_data=node_data, elem_data=elem_data
+    )
     return ds
+
 
 def small_fake_hexahedral_ds():
     from yt.frontends.stream.api import load_unstructured_mesh
 
-    _coordinates = np.array([[-1., -1., -1.],
-                              [ 0., -1., -1.],
-                              [ -0.,  0., -1.],
-                              [-1.,  -0., -1.],
-                              [-1., -1.,  0.],
-                              [ -0., -1.,  0.],
-                              [ -0.,  0.,  -0.],
-                              [-1.,  0.,  -0.]])
+    _coordinates = np.array(
+        [
+            [-1.0, -1.0, -1.0],
+            [0.0, -1.0, -1.0],
+            [-0.0, 0.0, -1.0],
+            [-1.0, -0.0, -1.0],
+            [-1.0, -1.0, 0.0],
+            [-0.0, -1.0, 0.0],
+            [-0.0, 0.0, -0.0],
+            [-1.0, 0.0, -0.0],
+        ]
+    )
     _connectivity = np.array([[1, 2, 3, 4, 5, 6, 7, 8]])
 
     # the distance from the origin
     node_data = {}
-    dist = np.sum(_coordinates**2, 1)
-    node_data[('connect1', 'test')] = dist[_connectivity-1]
+    dist = np.sum(_coordinates ** 2, 1)
+    node_data[("connect1", "test")] = dist[_connectivity - 1]
 
-    ds = load_unstructured_mesh(_connectivity-1,
-                                _coordinates,
-                                node_data=node_data)
+    ds = load_unstructured_mesh(_connectivity - 1, _coordinates, node_data=node_data)
     return ds
 
 
-
-def fake_vr_orientation_test_ds(N = 96, scale=1):
+def fake_vr_orientation_test_ds(N=96, scale=1):
     """
     create a toy dataset that puts a sphere at (0,0,0), a single cube
     on +x, two cubes on +y, and three cubes on +z in a domain from
@@ -402,62 +437,146 @@ def fake_vr_orientation_test_ds(N = 96, scale=1):
     xmin = ymin = zmin = -1.0 * scale
     xmax = ymax = zmax = 1.0 * scale
 
-    dcoord = (xmax - xmin)/N
+    dcoord = (xmax - xmin) / N
 
-    arr = np.zeros((N,N,N), dtype=np.float64)
-    arr[:,:,:] = 1.e-4
+    arr = np.zeros((N, N, N), dtype=np.float64)
+    arr[:, :, :] = 1.0e-4
 
-    bbox = np.array([ [xmin, xmax], [ymin, ymax], [zmin, zmax] ])
+    bbox = np.array([[xmin, xmax], [ymin, ymax], [zmin, zmax]])
 
     # coordinates -- in the notation data[i, j, k]
-    x = (np.arange(N) + 0.5)*dcoord + xmin
-    y = (np.arange(N) + 0.5)*dcoord + ymin
-    z = (np.arange(N) + 0.5)*dcoord + zmin
+    x = (np.arange(N) + 0.5) * dcoord + xmin
+    y = (np.arange(N) + 0.5) * dcoord + ymin
+    z = (np.arange(N) + 0.5) * dcoord + zmin
 
     x3d, y3d, z3d = np.meshgrid(x, y, z, indexing="ij")
 
     # sphere at the origin
-    c = np.array( [0.5*(xmin + xmax), 0.5*(ymin + ymax), 0.5*(zmin + zmax) ] )
-    r = np.sqrt((x3d - c[0])**2 + (y3d - c[1])**2 + (z3d - c[2])**2)
+    c = np.array([0.5 * (xmin + xmax), 0.5 * (ymin + ymax), 0.5 * (zmin + zmax)])
+    r = np.sqrt((x3d - c[0]) ** 2 + (y3d - c[1]) ** 2 + (z3d - c[2]) ** 2)
     arr[r < 0.05] = 1.0
 
-    arr[abs(x3d - xmin) < 2*dcoord] = 0.3
-    arr[abs(y3d - ymin) < 2*dcoord] = 0.3
-    arr[abs(z3d - zmin) < 2*dcoord] = 0.3
+    arr[abs(x3d - xmin) < 2 * dcoord] = 0.3
+    arr[abs(y3d - ymin) < 2 * dcoord] = 0.3
+    arr[abs(z3d - zmin) < 2 * dcoord] = 0.3
 
     # single cube on +x
     xc = 0.75 * scale
     dx = 0.05 * scale
-    idx = np.logical_and(np.logical_and(x3d > xc-dx, x3d < xc+dx),
-                         np.logical_and(np.logical_and(y3d > -dx, y3d < dx),
-                                        np.logical_and(z3d > -dx, z3d < dx)) )
+    idx = np.logical_and(
+        np.logical_and(x3d > xc - dx, x3d < xc + dx),
+        np.logical_and(
+            np.logical_and(y3d > -dx, y3d < dx), np.logical_and(z3d > -dx, z3d < dx)
+        ),
+    )
     arr[idx] = 1.0
 
     # two cubes on +y
     dy = 0.05 * scale
     for yc in [0.65 * scale, 0.85 * scale]:
-        idx = np.logical_and(np.logical_and(y3d > yc-dy, y3d < yc+dy),
-                             np.logical_and(np.logical_and(x3d > -dy, x3d < dy),
-                                            np.logical_and(z3d > -dy, z3d < dy)) )
+        idx = np.logical_and(
+            np.logical_and(y3d > yc - dy, y3d < yc + dy),
+            np.logical_and(
+                np.logical_and(x3d > -dy, x3d < dy), np.logical_and(z3d > -dy, z3d < dy)
+            ),
+        )
         arr[idx] = 0.8
 
     # three cubes on +z
     dz = 0.05 * scale
     for zc in [0.5 * scale, 0.7 * scale, 0.9 * scale]:
-        idx = np.logical_and(np.logical_and(z3d > zc-dz, z3d < zc+dz),
-                             np.logical_and(np.logical_and(x3d > -dz, x3d < dz),
-                                            np.logical_and(y3d > -dz, y3d < dz)) )
+        idx = np.logical_and(
+            np.logical_and(z3d > zc - dz, z3d < zc + dz),
+            np.logical_and(
+                np.logical_and(x3d > -dz, x3d < dz), np.logical_and(y3d > -dz, y3d < dz)
+            ),
+        )
         arr[idx] = 0.6
 
-    data = dict(density = (arr, "g/cm**3"))
+    data = dict(density=(arr, "g/cm**3"))
     ds = load_uniform_grid(data, arr.shape, bbox=bbox)
     return ds
 
 
-def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
+def fake_sph_orientation_ds():
+    """Returns an in-memory SPH dataset useful for testing
+
+    This dataset should have one particle at the origin, one more particle
+    along the x axis, two along y, and three along z. All particles will
+    have non-overlapping smoothing regions with a radius of 0.25, masses of 1,
+    and densities of 1, and zero velocity.
+    """
+    from yt import load_particles
+
+    npart = 7
+
+    # one particle at the origin, one particle along x-axis, two along y,
+    # three along z
+    data = {
+        "particle_position_x": (np.array([0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0]), "cm"),
+        "particle_position_y": (np.array([0.0, 0.0, 1.0, 2.0, 0.0, 0.0, 0.0]), "cm"),
+        "particle_position_z": (np.array([0.0, 0.0, 0.0, 0.0, 1.0, 2.0, 3.0]), "cm"),
+        "particle_mass": (np.ones(npart), "g"),
+        "particle_velocity_x": (np.zeros(npart), "cm/s"),
+        "particle_velocity_y": (np.zeros(npart), "cm/s"),
+        "particle_velocity_z": (np.zeros(npart), "cm/s"),
+        "smoothing_length": (0.25 * np.ones(npart), "cm"),
+        "density": (np.ones(npart), "g/cm**3"),
+        "temperature": (np.ones(npart), "K"),
+    }
+
+    bbox = np.array([[-4, 4], [-4, 4], [-4, 4]])
+
+    return load_particles(data=data, length_unit=1.0, bbox=bbox)
+
+
+def fake_sph_grid_ds(hsml_factor=1.0):
+    """Returns an in-memory SPH dataset useful for testing
+
+    This dataset should have 27 particles with the particles arranged uniformly
+    on a 3D grid. The bottom left corner is (0.5,0.5,0.5) and the top right
+    corner is (2.5,2.5,2.5). All particles will have non-overlapping smoothing
+    regions with a radius of 0.05, masses of 1, and densities of 1, and zero
+    velocity.
+    """
+    from yt import load_particles
+
+    npart = 27
+
+    x = np.empty(npart)
+    y = np.empty(npart)
+    z = np.empty(npart)
+
+    tot = 0
+    for i in range(0, 3):
+        for j in range(0, 3):
+            for k in range(0, 3):
+                x[tot] = i + 0.5
+                y[tot] = j + 0.5
+                z[tot] = k + 0.5
+                tot += 1
+
+    data = {
+        "particle_position_x": (x, "cm"),
+        "particle_position_y": (y, "cm"),
+        "particle_position_z": (z, "cm"),
+        "particle_mass": (np.ones(npart), "g"),
+        "particle_velocity_x": (np.zeros(npart), "cm/s"),
+        "particle_velocity_y": (np.zeros(npart), "cm/s"),
+        "particle_velocity_z": (np.zeros(npart), "cm/s"),
+        "smoothing_length": (0.05 * np.ones(npart) * hsml_factor, "cm"),
+        "density": (np.ones(npart), "g/cm**3"),
+        "temperature": (np.ones(npart), "K"),
+    }
+
+    bbox = np.array([[0, 3], [0, 3], [0, 3]])
+
+    return load_particles(data=data, length_unit=1.0, bbox=bbox)
+
+
+def construct_octree_mask(prng=RandomState(0x1D3D3D3), refined=None):
     # Implementation taken from url:
     # http://docs.hyperion-rt.org/en/stable/advanced/indepth_oct.html
-
 
     if refined in (None, True):
         refined = [True]
@@ -479,35 +598,59 @@ def construct_octree_mask(prng=RandomState(0x1d3d3d3), refined=None):
             construct_octree_mask(prng, refined)
     return refined
 
-def fake_octree_ds(prng=RandomState(0x1d3d3d3), refined=None, quantities=None,
-                   bbox=None, sim_time=0.0, length_unit=None, mass_unit=None,
-                   time_unit=None, velocity_unit=None, magnetic_unit=None,
-                   periodicity=(True, True, True), over_refine_factor=1,
-                   partial_coverage=1, unit_system="cgs"):
+
+def fake_octree_ds(
+    prng=RandomState(0x1D3D3D3),
+    refined=None,
+    quantities=None,
+    bbox=None,
+    sim_time=0.0,
+    length_unit=None,
+    mass_unit=None,
+    time_unit=None,
+    velocity_unit=None,
+    magnetic_unit=None,
+    periodicity=(True, True, True),
+    over_refine_factor=1,
+    partial_coverage=1,
+    unit_system="cgs",
+):
     from yt.frontends.stream.api import load_octree
-    octree_mask = np.asarray(construct_octree_mask(prng=prng, refined=refined),
-                             dtype=np.uint8)
+
+    octree_mask = np.asarray(
+        construct_octree_mask(prng=prng, refined=refined), dtype=np.uint8
+    )
     particles = np.sum(np.invert(octree_mask))
 
     if quantities is None:
         quantities = {}
-        quantities[('gas', 'density')] = prng.random_sample((particles, 1))
-        quantities[('gas', 'velocity_x')] = prng.random_sample((particles, 1))
-        quantities[('gas', 'velocity_y')] = prng.random_sample((particles, 1))
-        quantities[('gas', 'velocity_z')] = prng.random_sample((particles, 1))
+        quantities[("gas", "density")] = prng.random_sample((particles, 1))
+        quantities[("gas", "velocity_x")] = prng.random_sample((particles, 1))
+        quantities[("gas", "velocity_y")] = prng.random_sample((particles, 1))
+        quantities[("gas", "velocity_z")] = prng.random_sample((particles, 1))
 
-    ds = load_octree(octree_mask=octree_mask, data=quantities, bbox=bbox,
-                     sim_time=sim_time, length_unit=length_unit,
-                     mass_unit=mass_unit, time_unit=time_unit,
-                     velocity_unit=velocity_unit, magnetic_unit=magnetic_unit,
-                     periodicity=periodicity, partial_coverage=partial_coverage,
-                     over_refine_factor=over_refine_factor,
-                     unit_system=unit_system)
+    ds = load_octree(
+        octree_mask=octree_mask,
+        data=quantities,
+        bbox=bbox,
+        sim_time=sim_time,
+        length_unit=length_unit,
+        mass_unit=mass_unit,
+        time_unit=time_unit,
+        velocity_unit=velocity_unit,
+        magnetic_unit=magnetic_unit,
+        periodicity=periodicity,
+        partial_coverage=partial_coverage,
+        over_refine_factor=over_refine_factor,
+        unit_system=unit_system,
+    )
     return ds
+
 
 def add_noise_fields(ds):
     """Add 4 classes of noise fields to a dataset"""
-    prng = RandomState(0x4d3d3d3)
+    prng = RandomState(0x4D3D3D3)
+
     def _binary_noise(field, data):
         """random binary data"""
         res = prng.random_integers(0, 1, data.size).astype("float64")
@@ -519,7 +662,7 @@ def add_noise_fields(ds):
 
     def _negative_noise(field, data):
         """random negative data"""
-        return - prng.random_sample(data.size)
+        return -prng.random_sample(data.size)
 
     def _even_noise(field, data):
         """random data with mixed signs"""
@@ -573,14 +716,14 @@ def expand_keywords(keywords, full=False):
     >>> keywords['dpi'] = (50, 100, 200)
     >>> keywords['cmap'] = ('arbre', 'kelp')
     >>> list_of_kwargs = expand_keywords(keywords)
-    >>> print list_of_kwargs
+    >>> print(list_of_kwargs)
 
     array([{'cmap': 'arbre', 'dpi': 50},
            {'cmap': 'kelp', 'dpi': 100},
            {'cmap': 'arbre', 'dpi': 200}], dtype=object)
 
     >>> list_of_kwargs = expand_keywords(keywords, full=True)
-    >>> print list_of_kwargs
+    >>> print(list_of_kwargs)
 
     array([{'cmap': 'arbre', 'dpi': 50},
            {'cmap': 'arbre', 'dpi': 100},
@@ -596,8 +739,12 @@ def expand_keywords(keywords, full=False):
     # if we want every possible combination of keywords, use iter magic
     if full:
         keys = sorted(keywords)
-        list_of_kwarg_dicts = np.array([dict(zip(keys, prod)) for prod in \
-                              it.product(*(keywords[key] for key in keys))])
+        list_of_kwarg_dicts = np.array(
+            [
+                dict(zip(keys, prod))
+                for prod in it.product(*(keywords[key] for key in keys))
+            ]
+        )
 
     # if we just want to probe each keyword, but not necessarily every
     # combination
@@ -605,7 +752,7 @@ def expand_keywords(keywords, full=False):
         # Determine the maximum number of values any of the keywords has
         num_lists = 0
         for val in keywords.values():
-            if isinstance(val, string_types):
+            if isinstance(val, str):
                 num_lists = max(1.0, num_lists)
             else:
                 num_lists = max(len(val), num_lists)
@@ -622,7 +769,7 @@ def expand_keywords(keywords, full=False):
             list_of_kwarg_dicts[i] = {}
             for key in keywords.keys():
                 # if it's a string, use it (there's only one)
-                if isinstance(keywords[key], string_types):
+                if isinstance(keywords[key], str):
                     list_of_kwarg_dicts[i][key] = keywords[key]
                 # if there are more options, use the i'th val
                 elif i < len(keywords[key]):
@@ -633,6 +780,7 @@ def expand_keywords(keywords, full=False):
 
     return list_of_kwarg_dicts
 
+
 def requires_module(module):
     """
     Decorator that takes a module name as an argument and tries to import it.
@@ -641,16 +789,21 @@ def requires_module(module):
     being imported will not fail if the module is not installed on the testing
     platform.
     """
+
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
             return None
+
         return false_wrapper
+
     def ftrue(func):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
             return func(*args, **kwargs)
+
         return true_wrapper
+
     try:
         importlib.import_module(module)
     except ImportError:
@@ -658,42 +811,50 @@ def requires_module(module):
     else:
         return ftrue
 
+
 def requires_file(req_file):
     path = ytcfg.get("yt", "test_data_dir")
+
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
             return None
+
         return false_wrapper
+
     def ftrue(func):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
-            return func
+            return func(*args, **kwargs)
+
         return true_wrapper
+
     if os.path.exists(req_file):
         return ftrue
     else:
-        if os.path.exists(os.path.join(path,req_file)):
+        if os.path.exists(os.path.join(path, req_file)):
             return ftrue
         else:
             return ffalse
+
 
 def disable_dataset_cache(func):
     @functools.wraps(func)
     def newfunc(*args, **kwargs):
         restore_cfg_state = False
         if ytcfg.get("yt", "skip_dataset_cache") == "False":
-            ytcfg["yt","skip_dataset_cache"] = "True"
+            ytcfg["yt", "skip_dataset_cache"] = "True"
         rv = func(*args, **kwargs)
         if restore_cfg_state:
-            ytcfg["yt","skip_dataset_cache"] = "False"
+            ytcfg["yt", "skip_dataset_cache"] = "False"
         return rv
+
     return newfunc
+
 
 @disable_dataset_cache
 def units_override_check(fn):
-    units_list = ["length","time","mass","velocity",
-                  "magnetic","temperature"]
+    units_list = ["length", "time", "mass", "velocity", "magnetic", "temperature"]
     ds1 = load(fn)
     units_override = {}
     attrs1 = []
@@ -705,217 +866,74 @@ def units_override_check(fn):
             units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
     del ds1
     ds2 = load(fn, units_override=units_override)
-    assert(len(ds2.units_override) > 0)
+    assert len(ds2.units_override) > 0
     for u in units_list:
         unit_attr = getattr(ds2, "%s_unit" % u, None)
         if unit_attr is not None:
             attrs2.append(unit_attr)
     assert_equal(attrs1, attrs2)
 
+
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.
 _amr_grid_index = [
- [ 0,
-  [0.0,0.0,0.0],
-  [1.0,1.0,1.0],
-  [32,32,32],
- ],
- [ 1,
-  [0.25,0.21875,0.25],
-  [0.5,0.5,0.5],
-  [16,18,16],
- ],
- [ 1,
-  [0.5,0.21875,0.25],
-  [0.75,0.5,0.5],
-  [16,18,16],
- ],
- [ 1,
-  [0.21875,0.5,0.25],
-  [0.5,0.75,0.5],
-  [18,16,16],
- ],
- [ 1,
-  [0.5,0.5,0.25],
-  [0.75,0.75,0.5],
-  [16,16,16],
- ],
- [ 1,
-  [0.25,0.25,0.5],
-  [0.5,0.5,0.75],
-  [16,16,16],
- ],
- [ 1,
-  [0.5,0.25,0.5],
-  [0.75,0.5,0.75],
-  [16,16,16],
- ],
- [ 1,
-  [0.25,0.5,0.5],
-  [0.5,0.75,0.75],
-  [16,16,16],
- ],
- [ 1,
-  [0.5,0.5,0.5],
-  [0.75,0.75,0.75],
-  [16,16,16],
- ],
- [ 2,
-  [0.5,0.5,0.5],
-  [0.71875,0.71875,0.71875],
-  [28,28,28],
- ],
- [ 3,
-  [0.5,0.5,0.5],
-  [0.6640625,0.65625,0.6796875],
-  [42,40,46],
- ],
- [ 4,
-  [0.5,0.5,0.5],
-  [0.59765625,0.6015625,0.6015625],
-  [50,52,52],
- ],
- [ 2,
-  [0.28125,0.5,0.5],
-  [0.5,0.734375,0.71875],
-  [28,30,28],
- ],
- [ 3,
-  [0.3359375,0.5,0.5],
-  [0.5,0.671875,0.6640625],
-  [42,44,42],
- ],
- [ 4,
-  [0.40625,0.5,0.5],
-  [0.5,0.59765625,0.59765625],
-  [48,50,50],
- ],
- [ 2,
-  [0.5,0.28125,0.5],
-  [0.71875,0.5,0.71875],
-  [28,28,28],
- ],
- [ 3,
-  [0.5,0.3359375,0.5],
-  [0.671875,0.5,0.6640625],
-  [44,42,42],
- ],
- [ 4,
-  [0.5,0.40625,0.5],
-  [0.6015625,0.5,0.59765625],
-  [52,48,50],
- ],
- [ 2,
-  [0.28125,0.28125,0.5],
-  [0.5,0.5,0.71875],
-  [28,28,28],
- ],
- [ 3,
-  [0.3359375,0.3359375,0.5],
-  [0.5,0.5,0.671875],
-  [42,42,44],
- ],
- [ 4,
-  [0.46484375,0.37890625,0.50390625],
-  [0.4765625,0.390625,0.515625],
-  [6,6,6],
- ],
- [ 4,
-  [0.40625,0.40625,0.5],
-  [0.5,0.5,0.59765625],
-  [48,48,50],
- ],
- [ 2,
-  [0.5,0.5,0.28125],
-  [0.71875,0.71875,0.5],
-  [28,28,28],
- ],
- [ 3,
-  [0.5,0.5,0.3359375],
-  [0.6796875,0.6953125,0.5],
-  [46,50,42],
- ],
- [ 4,
-  [0.5,0.5,0.40234375],
-  [0.59375,0.6015625,0.5],
-  [48,52,50],
- ],
- [ 2,
-  [0.265625,0.5,0.28125],
-  [0.5,0.71875,0.5],
-  [30,28,28],
- ],
- [ 3,
-  [0.3359375,0.5,0.328125],
-  [0.5,0.65625,0.5],
-  [42,40,44],
- ],
- [ 4,
-  [0.40234375,0.5,0.40625],
-  [0.5,0.60546875,0.5],
-  [50,54,48],
- ],
- [ 2,
-  [0.5,0.265625,0.28125],
-  [0.71875,0.5,0.5],
-  [28,30,28],
- ],
- [ 3,
-  [0.5,0.3203125,0.328125],
-  [0.6640625,0.5,0.5],
-  [42,46,44],
- ],
- [ 4,
-  [0.5,0.3984375,0.40625],
-  [0.546875,0.5,0.5],
-  [24,52,48],
- ],
- [ 4,
-  [0.546875,0.41796875,0.4453125],
-  [0.5625,0.4375,0.5],
-  [8,10,28],
- ],
- [ 4,
-  [0.546875,0.453125,0.41796875],
-  [0.5546875,0.48046875,0.4375],
-  [4,14,10],
- ],
- [ 4,
-  [0.546875,0.4375,0.4375],
-  [0.609375,0.5,0.5],
-  [32,32,32],
- ],
- [ 4,
-  [0.546875,0.4921875,0.41796875],
-  [0.56640625,0.5,0.4375],
-  [10,4,10],
- ],
- [ 4,
-  [0.546875,0.48046875,0.41796875],
-  [0.5703125,0.4921875,0.4375],
-  [12,6,10],
- ],
- [ 4,
-  [0.55859375,0.46875,0.43359375],
-  [0.5703125,0.48046875,0.4375],
-  [6,6,2],
- ],
- [ 2,
-  [0.265625,0.28125,0.28125],
-  [0.5,0.5,0.5],
-  [30,28,28],
- ],
- [ 3,
-  [0.328125,0.3359375,0.328125],
-  [0.5,0.5,0.5],
-  [44,42,44],
- ],
- [ 4,
-  [0.4140625,0.40625,0.40625],
-  [0.5,0.5,0.5],
-  [44,48,48],
- ],
+    [0, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [32, 32, 32],],
+    [1, [0.25, 0.21875, 0.25], [0.5, 0.5, 0.5], [16, 18, 16],],
+    [1, [0.5, 0.21875, 0.25], [0.75, 0.5, 0.5], [16, 18, 16],],
+    [1, [0.21875, 0.5, 0.25], [0.5, 0.75, 0.5], [18, 16, 16],],
+    [1, [0.5, 0.5, 0.25], [0.75, 0.75, 0.5], [16, 16, 16],],
+    [1, [0.25, 0.25, 0.5], [0.5, 0.5, 0.75], [16, 16, 16],],
+    [1, [0.5, 0.25, 0.5], [0.75, 0.5, 0.75], [16, 16, 16],],
+    [1, [0.25, 0.5, 0.5], [0.5, 0.75, 0.75], [16, 16, 16],],
+    [1, [0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [16, 16, 16],],
+    [2, [0.5, 0.5, 0.5], [0.71875, 0.71875, 0.71875], [28, 28, 28],],
+    [3, [0.5, 0.5, 0.5], [0.6640625, 0.65625, 0.6796875], [42, 40, 46],],
+    [4, [0.5, 0.5, 0.5], [0.59765625, 0.6015625, 0.6015625], [50, 52, 52],],
+    [2, [0.28125, 0.5, 0.5], [0.5, 0.734375, 0.71875], [28, 30, 28],],
+    [3, [0.3359375, 0.5, 0.5], [0.5, 0.671875, 0.6640625], [42, 44, 42],],
+    [4, [0.40625, 0.5, 0.5], [0.5, 0.59765625, 0.59765625], [48, 50, 50],],
+    [2, [0.5, 0.28125, 0.5], [0.71875, 0.5, 0.71875], [28, 28, 28],],
+    [3, [0.5, 0.3359375, 0.5], [0.671875, 0.5, 0.6640625], [44, 42, 42],],
+    [4, [0.5, 0.40625, 0.5], [0.6015625, 0.5, 0.59765625], [52, 48, 50],],
+    [2, [0.28125, 0.28125, 0.5], [0.5, 0.5, 0.71875], [28, 28, 28],],
+    [3, [0.3359375, 0.3359375, 0.5], [0.5, 0.5, 0.671875], [42, 42, 44],],
+    [
+        4,
+        [0.46484375, 0.37890625, 0.50390625],
+        [0.4765625, 0.390625, 0.515625],
+        [6, 6, 6],
+    ],
+    [4, [0.40625, 0.40625, 0.5], [0.5, 0.5, 0.59765625], [48, 48, 50],],
+    [2, [0.5, 0.5, 0.28125], [0.71875, 0.71875, 0.5], [28, 28, 28],],
+    [3, [0.5, 0.5, 0.3359375], [0.6796875, 0.6953125, 0.5], [46, 50, 42],],
+    [4, [0.5, 0.5, 0.40234375], [0.59375, 0.6015625, 0.5], [48, 52, 50],],
+    [2, [0.265625, 0.5, 0.28125], [0.5, 0.71875, 0.5], [30, 28, 28],],
+    [3, [0.3359375, 0.5, 0.328125], [0.5, 0.65625, 0.5], [42, 40, 44],],
+    [4, [0.40234375, 0.5, 0.40625], [0.5, 0.60546875, 0.5], [50, 54, 48],],
+    [2, [0.5, 0.265625, 0.28125], [0.71875, 0.5, 0.5], [28, 30, 28],],
+    [3, [0.5, 0.3203125, 0.328125], [0.6640625, 0.5, 0.5], [42, 46, 44],],
+    [4, [0.5, 0.3984375, 0.40625], [0.546875, 0.5, 0.5], [24, 52, 48],],
+    [4, [0.546875, 0.41796875, 0.4453125], [0.5625, 0.4375, 0.5], [8, 10, 28],],
+    [
+        4,
+        [0.546875, 0.453125, 0.41796875],
+        [0.5546875, 0.48046875, 0.4375],
+        [4, 14, 10],
+    ],
+    [4, [0.546875, 0.4375, 0.4375], [0.609375, 0.5, 0.5], [32, 32, 32],],
+    [4, [0.546875, 0.4921875, 0.41796875], [0.56640625, 0.5, 0.4375], [10, 4, 10],],
+    [
+        4,
+        [0.546875, 0.48046875, 0.41796875],
+        [0.5703125, 0.4921875, 0.4375],
+        [12, 6, 10],
+    ],
+    [4, [0.55859375, 0.46875, 0.43359375], [0.5703125, 0.48046875, 0.4375], [6, 6, 2],],
+    [2, [0.265625, 0.28125, 0.28125], [0.5, 0.5, 0.5], [30, 28, 28],],
+    [3, [0.328125, 0.3359375, 0.328125], [0.5, 0.5, 0.5], [44, 42, 44],],
+    [4, [0.4140625, 0.40625, 0.40625], [0.5, 0.5, 0.5], [44, 48, 48],],
 ]
+
 
 def check_results(func):
     r"""This is a decorator for a function to verify that the (numpy ndarray)
@@ -958,6 +976,7 @@ def check_results(func):
     >>> field_checker(ds.all_data(), 'density', result_basename='density')
 
     """
+
     def compute_results(func):
         @functools.wraps(func)
         def _func(*args, **kwargs):
@@ -976,10 +995,13 @@ def check_results(func):
             ha = hashlib.md5(_rv.tostring()).hexdigest()
             fn = "func_results_ref_%s.cpkl" % (name)
             with open(fn, "wb") as f:
-                cPickle.dump( (mi, ma, st, su, si, ha), f)
+                pickle.dump((mi, ma, st, su, si, ha), f)
             return rv
+
         return _func
+
     from yt.mods import unparsed_args
+
     if "--answer-reference" in unparsed_args:
         return compute_results(func)
 
@@ -993,18 +1015,20 @@ def check_results(func):
                 _rv = rv.ndarray_view()
             else:
                 _rv = rv
-            vals = (_rv.min(),
-                    _rv.max(),
-                    _rv.std(dtype="float64"),
-                    _rv.sum(dtype="float64"),
-                    _rv.size,
-                    hashlib.md5(_rv.tostring()).hexdigest() )
+            vals = (
+                _rv.min(),
+                _rv.max(),
+                _rv.std(dtype="float64"),
+                _rv.sum(dtype="float64"),
+                _rv.size,
+                hashlib.md5(_rv.tostring()).hexdigest(),
+            )
             fn = "func_results_ref_%s.cpkl" % (name)
             if not os.path.exists(fn):
                 print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
-                ref = cPickle.load(f)
+                ref = pickle.load(f)
             print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
@@ -1013,38 +1037,48 @@ def check_results(func):
             assert_equal(vals[4], ref[4])
             print("Hashes equal: %s" % (vals[-1] == ref[-1]))
             return rv
+
         return _func
+
     return compare_results(func)
+
 
 def periodicity_cases(ds):
     # This is a generator that yields things near the corners.  It's good for
     # getting different places to check periodicity.
-    yield (ds.domain_left_edge + ds.domain_right_edge)/2.0
+    yield (ds.domain_left_edge + ds.domain_right_edge) / 2.0
     dx = ds.domain_width / ds.domain_dimensions
     # We start one dx in, and only go to one in as well.
     for i in (1, ds.domain_dimensions[0] - 2):
         for j in (1, ds.domain_dimensions[1] - 2):
             for k in (1, ds.domain_dimensions[2] - 2):
-                center = dx * np.array([i,j,k]) + ds.domain_left_edge
+                center = dx * np.array([i, j, k]) + ds.domain_left_edge
                 yield center
 
-def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
-             call_pdb=False, module=None):
+
+def run_nose(
+    verbose=False,
+    run_answer_tests=False,
+    answer_big_data=False,
+    call_pdb=False,
+    module=None,
+):
     from yt.utilities.on_demand_imports import _nose
     import sys
     from yt.utilities.logger import ytLogger as mylog
+
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)
     nose_argv = sys.argv
-    nose_argv += ['--exclude=answer_testing','--detailed-errors', '--exe']
+    nose_argv += ["--exclude=answer_testing", "--detailed-errors", "--exe"]
     if call_pdb:
         nose_argv += ["--pdb", "--pdb-failures"]
     if verbose:
-        nose_argv.append('-v')
+        nose_argv.append("-v")
     if run_answer_tests:
-        nose_argv.append('--with-answer-testing')
+        nose_argv.append("--with-answer-testing")
     if answer_big_data:
-        nose_argv.append('--answer-big-data')
+        nose_argv.append("--answer-big-data")
     if module:
         nose_argv.append(module)
     initial_dir = os.getcwd()
@@ -1063,13 +1097,14 @@ def run_nose(verbose=False, run_answer_tests=False, answer_big_data=False,
 
         $ nosetests
             """
-            )
+        )
     os.chdir(yt_dir)
     try:
         _nose.run(argv=nose_argv)
     finally:
         os.chdir(initial_dir)
         mylog.setLevel(orig_level)
+
 
 def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
     """Raise an error if two objects are not equal up to desired tolerance
@@ -1103,23 +1138,26 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         des = des.in_units(act.units)
-    except YTUnitOperationError:
-        raise AssertionError("Units of actual (%s) and desired (%s) do not have "
-                             "equivalent dimensions" % (act.units, des.units))
+    except UnitOperationError:
+        raise AssertionError(
+            "Units of actual (%s) and desired (%s) do not have "
+            "equivalent dimensions" % (act.units, des.units)
+        )
 
     rt = YTArray(rtol)
     if not rt.units.is_dimensionless:
-        raise AssertionError("Units of rtol (%s) are not "
-                             "dimensionless" % rt.units)
+        raise AssertionError("Units of rtol (%s) are not " "dimensionless" % rt.units)
 
     if not isinstance(atol, YTArray):
         at = YTQuantity(atol, des.units)
 
     try:
         at = at.in_units(act.units)
-    except YTUnitOperationError:
-        raise AssertionError("Units of atol (%s) and actual (%s) do not have "
-                             "equivalent dimensions" % (at.units, act.units))
+    except UnitOperationError:
+        raise AssertionError(
+            "Units of atol (%s) and actual (%s) do not have "
+            "equivalent dimensions" % (at.units, act.units)
+        )
 
     # units have been validated, so we strip units before calling numpy
     # to avoid spurious errors
@@ -1130,35 +1168,38 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     return assert_allclose(act, des, rt, at, **kwargs)
 
+
 def assert_fname(fname):
     """Function that checks file type using libmagic"""
     if fname is None:
         return
 
-    with open(fname, 'rb') as fimg:
+    with open(fname, "rb") as fimg:
         data = fimg.read()
-    image_type = ''
+    image_type = ""
 
     # see http://www.w3.org/TR/PNG/#5PNG-file-signature
-    if data.startswith(b'\211PNG\r\n\032\n'):
-        image_type = '.png'
+    if data.startswith(b"\211PNG\r\n\032\n"):
+        image_type = ".png"
     # see http://www.mathguide.de/info/tools/media-types/image/jpeg
-    elif data.startswith(b'\377\330'):
-        image_type = '.jpeg'
-    elif data.startswith(b'%!PS-Adobe'):
+    elif data.startswith(b"\377\330"):
+        image_type = ".jpeg"
+    elif data.startswith(b"%!PS-Adobe"):
         data_str = data.decode("utf-8", "ignore")
-        if 'EPSF' in data_str[:data_str.index('\n')]:
-            image_type = '.eps'
+        if "EPSF" in data_str[: data_str.index("\n")]:
+            image_type = ".eps"
         else:
-            image_type = '.ps'
-    elif data.startswith(b'%PDF'):
-        image_type = '.pdf'
+            image_type = ".ps"
+    elif data.startswith(b"%PDF"):
+        image_type = ".pdf"
 
     extension = os.path.splitext(fname)[1]
 
-    assert image_type == extension, \
-        ("Expected an image of type '%s' but '%s' is an image of type '%s'" %
-         (extension, fname, image_type))
+    assert image_type == extension, (
+        "Expected an image of type '%s' but '%s' is an image of type '%s'"
+        % (extension, fname, image_type)
+    )
+
 
 def requires_backend(backend):
     """ Decorator to check for a specified matplotlib backend.
@@ -1179,6 +1220,7 @@ def requires_backend(backend):
 
     """
     import pytest
+
     def ffalse(func):
         # returning a lambda : None causes an error when using pytest. Having
         # a function (skip) that returns None does work, but pytest marks the
@@ -1187,13 +1229,16 @@ def requires_backend(backend):
         # needed since None is no longer returned, so we check for the skip
         # exception in the xfail case for that test
         def skip(*args, **kwargs):
-            msg = "`{}` backend not found, skipping: `{}`".format(backend, func.__name__)
+            msg = "`{}` backend not found, skipping: `{}`".format(
+                backend, func.__name__
+            )
             print(msg)
             pytest.skip(msg)
+
         if yt._called_from_pytest:
             return skip
         else:
-            return lambda : None
+            return lambda: None
 
     def ftrue(func):
         return func
@@ -1201,6 +1246,7 @@ def requires_backend(backend):
     if backend.lower() == matplotlib.get_backend().lower():
         return ftrue
     return ffalse
+
 
 class TempDirTest(unittest.TestCase):
     """
@@ -1216,3 +1262,134 @@ class TempDirTest(unittest.TestCase):
     def tearDown(self):
         os.chdir(self.curdir)
         shutil.rmtree(self.tmpdir)
+
+
+class ParticleSelectionComparison:
+    """
+    This is a test helper class that takes a particle dataset, caches the
+    particles it has on disk (manually reading them using lower-level IO
+    routines) and then received a data object that it compares against manually
+    running the data object's selection routines.  All supplied data objects
+    must be created from the input dataset.
+    """
+
+    def __init__(self, ds):
+        self.ds = ds
+        # Construct an index so that we get all the data_files
+        ds.index
+        particles = {}
+        # hsml is the smoothing length we use for radial selection
+        hsml = {}
+        for data_file in ds.index.data_files:
+            for ptype, pos_arr in ds.index.io._yield_coordinates(data_file):
+                particles.setdefault(ptype, []).append(pos_arr)
+                if ptype in getattr(ds, "_sph_ptypes", ()):
+                    hsml.setdefault(ptype, []).append(
+                        ds.index.io._get_smoothing_length(
+                            data_file, pos_arr.dtype, pos_arr.shape
+                        )
+                    )
+        for ptype in particles:
+            particles[ptype] = np.concatenate(particles[ptype])
+            if ptype in hsml:
+                hsml[ptype] = np.concatenate(hsml[ptype])
+        self.particles = particles
+        self.hsml = hsml
+
+    def compare_dobj_selection(self, dobj):
+        for ptype in sorted(self.particles):
+            x, y, z = self.particles[ptype].T
+            # Set our radii to zero for now, I guess?
+            radii = self.hsml.get(ptype, 0.0)
+            sel_index = dobj.selector.select_points(x, y, z, radii)
+            if sel_index is None:
+                sel_pos = np.empty((0, 3))
+            else:
+                sel_pos = self.particles[ptype][sel_index, :]
+
+            obj_results = []
+            for chunk in dobj.chunks([], "io"):
+                obj_results.append(chunk[ptype, "particle_position"])
+            if any(_.size > 0 for _ in obj_results):
+                obj_results = np.concatenate(obj_results, axis=0)
+            else:
+                obj_results = np.empty((0, 3))
+            # Sometimes we get unitary scaling or other floating point noise. 5
+            # NULP should be OK.  This is mostly for stuff like Rockstar, where
+            # the f32->f64 casting happens at different places depending on
+            # which code path we use.
+            assert_array_almost_equal_nulp(sel_pos, obj_results, 5)
+
+    def run_defaults(self):
+        """
+        This runs lots of samples that touch different types of wraparounds.
+
+        Specifically, it does:
+
+            * sphere in center with radius 0.1 unitary
+            * sphere in center with radius 0.2 unitary
+            * sphere in each of the eight corners of the domain with radius 0.1 unitary
+            * sphere in center with radius 0.5 unitary
+            * box that covers 0.1 .. 0.9
+            * box from 0.8 .. 0.85
+            * box from 0.3..0.6, 0.2..0.8, 0.0..0.1
+        """
+        sp1 = self.ds.sphere("c", (0.1, "unitary"))
+        self.compare_dobj_selection(sp1)
+
+        sp2 = self.ds.sphere("c", (0.2, "unitary"))
+        self.compare_dobj_selection(sp2)
+
+        centers = [
+            [0.04, 0.5, 0.5],
+            [0.5, 0.04, 0.5],
+            [0.5, 0.5, 0.04],
+            [0.04, 0.04, 0.04],
+            [0.96, 0.5, 0.5],
+            [0.5, 0.96, 0.5],
+            [0.5, 0.5, 0.96],
+            [0.96, 0.96, 0.96],
+        ]
+        r = self.ds.quan(0.1, "unitary")
+        for center in centers:
+            c = self.ds.arr(center, "unitary") + self.ds.domain_left_edge.in_units(
+                "unitary"
+            )
+            if not all(self.ds.periodicity):
+                # filter out the periodic bits for non-periodic datasets
+                if any(c - r < self.ds.domain_left_edge) or any(
+                    c + r > self.ds.domain_right_edge
+                ):
+                    continue
+            sp = self.ds.sphere(c, (0.1, "unitary"))
+            self.compare_dobj_selection(sp)
+
+        sp = self.ds.sphere("c", (0.5, "unitary"))
+        self.compare_dobj_selection(sp)
+
+        dd = self.ds.all_data()
+        self.compare_dobj_selection(dd)
+
+        # This is in raw numbers, so we can offset for the left edge
+        LE = self.ds.domain_left_edge.in_units("unitary").d
+
+        reg1 = self.ds.r[
+            (0.1 + LE[0], "unitary") : (0.9 + LE[0], "unitary"),
+            (0.1 + LE[1], "unitary") : (0.9 + LE[1], "unitary"),
+            (0.1 + LE[2], "unitary") : (0.9 + LE[2], "unitary"),
+        ]
+        self.compare_dobj_selection(reg1)
+
+        reg2 = self.ds.r[
+            (0.8 + LE[0], "unitary") : (0.85 + LE[0], "unitary"),
+            (0.8 + LE[1], "unitary") : (0.85 + LE[1], "unitary"),
+            (0.8 + LE[2], "unitary") : (0.85 + LE[2], "unitary"),
+        ]
+        self.compare_dobj_selection(reg2)
+
+        reg3 = self.ds.r[
+            (0.3 + LE[0], "unitary") : (0.6 + LE[0], "unitary"),
+            (0.2 + LE[1], "unitary") : (0.8 + LE[1], "unitary"),
+            (0.0 + LE[2], "unitary") : (0.1 + LE[2], "unitary"),
+        ]
+        self.compare_dobj_selection(reg3)

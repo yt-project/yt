@@ -6,13 +6,6 @@ Oct visitor definitions file
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
 
@@ -72,6 +65,16 @@ cdef class MaskOcts(OctVisitor):
 cdef class IndexOcts(OctVisitor):
     cdef np.int64_t[:] oct_index
 
+cdef class MaskedIndexOcts(OctVisitor):
+    cdef np.int64_t[:] oct_index
+    cdef np.uint8_t[:] oct_mask
+
+cdef class IndexMaskMapOcts(OctVisitor):
+    cdef np.int64_t[:] oct_index
+    cdef np.uint8_t[:] oct_mask
+    cdef np.int64_t[:] map_domain_ind
+    cdef np.uint64_t map_index
+
 cdef class ICoordsOcts(OctVisitor):
     cdef np.int64_t[:,:] icoords
 
@@ -91,6 +94,11 @@ cdef class CopyArrayI64(OctVisitor):
 cdef class CopyArrayF64(OctVisitor):
     cdef np.float64_t[:,:,:,:,:] source
     cdef np.float64_t[:,:] dest
+
+cdef class CopyFileIndArrayI8(OctVisitor):
+    cdef np.int64_t root
+    cdef np.uint8_t[:] source
+    cdef np.uint8_t[:] dest
 
 cdef class IdentifyOcts(OctVisitor):
     cdef np.uint8_t[:] domain_mask
@@ -119,6 +127,10 @@ cdef class LoadOctree(OctVisitor):
     cdef Oct* octs
     cdef np.uint64_t *nocts
     cdef np.uint64_t *nfinest
+
+cdef class MortonIndexOcts(OctVisitor):
+    cdef np.uint8_t[:] level_arr
+    cdef np.uint64_t[:] morton_ind
 
 cdef inline int cind(int i, int j, int k) nogil:
     # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.

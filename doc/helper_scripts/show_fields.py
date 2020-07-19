@@ -1,10 +1,8 @@
 import inspect
 from yt.testing import fake_random_ds
 import numpy as np
-from yt.utilities.cosmology import \
-     Cosmology
-from yt.frontends.stream.fields import \
-    StreamFieldInfo
+from yt.utilities.cosmology import Cosmology
+from yt.frontends.stream.fields import StreamFieldInfo
 from yt.frontends.api import _frontends
 from yt.fields.derived_field import NullFunc
 import yt.frontends as frontends_module
@@ -16,14 +14,16 @@ fields, units = [], []
 for fname, (code_units, aliases, dn) in StreamFieldInfo.known_other_fields:
     fields.append(("gas", fname))
     units.append(code_units)
-base_ds = fake_random_ds(4, fields = fields, units = units)
+base_ds = fake_random_ds(4, fields=fields, units=units)
 base_ds.index
 base_ds.cosmological_simulation = 1
 base_ds.cosmology = Cosmology()
 
 from yt.config import ytcfg
-ytcfg["yt","__withintesting"] = "True"
-np.seterr(all = 'ignore')
+
+ytcfg["yt", "__withintesting"] = "True"
+np.seterr(all="ignore")
+
 
 def _strip_ftype(field):
     if not isinstance(field, tuple):
@@ -33,7 +33,7 @@ def _strip_ftype(field):
     return field[1]
 
 
-np.random.seed(int(0x4d3d3d3))
+np.random.seed(int(0x4D3D3D3))
 units = [base_ds._get_field_info(*f).units for f in fields]
 fields = [_strip_ftype(f) for f in fields]
 ds = fake_random_ds(16, fields=fields, units=units, particles=1)
@@ -41,22 +41,29 @@ ds.parameters["HydroMethod"] = "streaming"
 ds.parameters["EOSType"] = 1.0
 ds.parameters["EOSSoundSpeed"] = 1.0
 ds.conversion_factors["Time"] = 1.0
-ds.conversion_factors.update( dict((f, 1.0) for f in fields) )
-ds.gamma = 5.0/3.0
+ds.conversion_factors.update(dict((f, 1.0) for f in fields))
+ds.gamma = 5.0 / 3.0
 ds.current_redshift = 0.0001
 ds.cosmological_simulation = 1
 ds.hubble_constant = 0.7
 ds.omega_matter = 0.27
 ds.omega_lambda = 0.73
-ds.cosmology = Cosmology(hubble_constant=ds.hubble_constant,
-                         omega_matter=ds.omega_matter,
-                         omega_lambda=ds.omega_lambda,
-                         unit_registry=ds.unit_registry)
+ds.cosmology = Cosmology(
+    hubble_constant=ds.hubble_constant,
+    omega_matter=ds.omega_matter,
+    omega_lambda=ds.omega_lambda,
+    unit_registry=ds.unit_registry,
+)
 for my_unit in ["m", "pc", "AU", "au"]:
     new_unit = "%scm" % my_unit
-    ds.unit_registry.add(new_unit, base_ds.unit_registry.lut[my_unit][0],
-                         dimensions.length, "\\rm{%s}/(1+z)" % my_unit)
-
+    my_u = Unit(my_unit, registry=ds.unit_registry)
+    ds.unit_registry.add(
+        new_unit,
+        my_u.base_value,
+        dimensions.length,
+        "\\rm{%s}/(1+z)" % my_unit,
+        prefixable=True,
+    )
 
 
 header = r"""
@@ -119,12 +126,14 @@ print(header)
 
 seen = []
 
+
 def fix_units(units, in_cgs=False):
     unit_object = Unit(units, registry=ds.unit_registry)
     if in_cgs:
         unit_object = unit_object.get_cgs_equivalent()
     latex = unit_object.latex_representation()
-    return latex.replace('\ ', '~')
+    return latex.replace("\ ", "~")
+
 
 def print_all_fields(fl):
     for fn in sorted(fl):
@@ -136,14 +145,26 @@ def print_all_fields(fl):
         print()
         if len(df.units) > 0:
             # Most universal fields are in CGS except for these special fields
-            if df.name[1] in ['particle_position', 'particle_position_x', \
-                         'particle_position_y', 'particle_position_z', \
-                         'entropy', 'kT', 'metallicity', 'dx', 'dy', 'dz',\
-                         'cell_volume', 'x', 'y', 'z']:
+            if df.name[1] in [
+                "particle_position",
+                "particle_position_x",
+                "particle_position_y",
+                "particle_position_z",
+                "entropy",
+                "kT",
+                "metallicity",
+                "dx",
+                "dy",
+                "dz",
+                "cell_volume",
+                "x",
+                "y",
+                "z",
+            ]:
                 print("   * Units: :math:`%s`" % fix_units(df.units))
             else:
                 print("   * Units: :math:`%s`" % fix_units(df.units, in_cgs=True))
-        print("   * Particle Type: %s" % (df.particle_type))
+        print("   * Sampling Method: %s" % (df.sampling_type))
         print()
         print("**Field Source**")
         print()
@@ -165,6 +186,7 @@ print_all_fields(ds.field_info)
 
 class FieldInfo:
     """ a simple container to hold the information about fields """
+
     def __init__(self, ftype, field, ptype):
         name = field[0]
         self.units = ""
@@ -178,7 +200,7 @@ class FieldInfo:
             self.dname = ":math:`{}`".format(field[1][2])
 
         if ftype is not "particle_type":
-            ftype = "'"+ftype+"'"
+            ftype = "'" + ftype + "'"
         self.name = "(%s, '%s')" % (ftype, name)
         self.ptype = ptype
 
@@ -193,8 +215,8 @@ for frontend in current_frontends:
     if frontend == "gadget":
         # Drop duplicate entry for GadgetHDF5, add special case for FieldInfo
         # entry
-        dataset_names = ['GadgetDataset']
-        field_info_names = ['GadgetFieldInfo']
+        dataset_names = ["GadgetDataset"]
+        field_info_names = ["GadgetFieldInfo"]
     elif frontend == "boxlib":
         field_info_names = []
         for d in dataset_names:
@@ -206,8 +228,9 @@ for frontend in current_frontends:
                 field_info_names.append("BoxlibFieldInfo")
     elif frontend == "chombo":
         # remove low dimensional field info containers for ChomboPIC
-        field_info_names = [f for f in field_info_names if '1D' not in f
-                            and '2D' not in f]
+        field_info_names = [
+            f for f in field_info_names if "1D" not in f and "2D" not in f
+        ]
 
     for dset_name, fi_name in zip(dataset_names, field_info_names):
         fi = getattr(this_f, fi_name)
@@ -219,7 +242,7 @@ for frontend in current_frontends:
             known_other_fields = []
         if hasattr(fi, "known_particle_fields"):
             known_particle_fields = fi.known_particle_fields
-            if 'Tipsy' in fi_name:
+            if "Tipsy" in fi_name:
                 known_particle_fields += tuple(fi.aux_particle_fields.values())
             nfields += len(known_particle_fields)
         else:
@@ -252,27 +275,50 @@ for frontend in current_frontends:
                 len_disp = max(len_disp, len(f.dname))
 
             fstr = "{nm:{nw}}  {un:{uw}}  {al:{aw}}  {pt:{pw}}  {dp:{dw}}"
-            header = fstr.format(nm="field name", nw=len_name,
-                                 un="units", uw=len_units,
-                                 al="aliases", aw=len_aliases,
-                                 pt="particle?", pw=len_part,
-                                 dp="display name", dw=len_disp)
+            header = fstr.format(
+                nm="field name",
+                nw=len_name,
+                un="units",
+                uw=len_units,
+                al="aliases",
+                aw=len_aliases,
+                pt="particle?",
+                pw=len_part,
+                dp="display name",
+                dw=len_disp,
+            )
 
-            div = fstr.format(nm="="*len_name, nw=len_name,
-                              un="="*len_units, uw=len_units,
-                              al="="*len_aliases, aw=len_aliases,
-                              pt="="*len_part, pw=len_part,
-                              dp="="*len_disp, dw=len_disp)
+            div = fstr.format(
+                nm="=" * len_name,
+                nw=len_name,
+                un="=" * len_units,
+                uw=len_units,
+                al="=" * len_aliases,
+                aw=len_aliases,
+                pt="=" * len_part,
+                pw=len_part,
+                dp="=" * len_disp,
+                dw=len_disp,
+            )
             print(div)
             print(header)
             print(div)
 
             for f in field_stuff:
-                print(fstr.format(nm=f.name, nw=len_name,
-                                  un=f.units, uw=len_units,
-                                  al=f.aliases, aw=len_aliases,
-                                  pt=f.ptype, pw=len_part,
-                                  dp=f.dname, dw=len_disp))
+                print(
+                    fstr.format(
+                        nm=f.name,
+                        nw=len_name,
+                        un=f.units,
+                        uw=len_units,
+                        al=f.aliases,
+                        aw=len_aliases,
+                        pt=f.ptype,
+                        pw=len_part,
+                        dp=f.dname,
+                        dw=len_disp,
+                    )
+                )
 
             print(div)
             print("")

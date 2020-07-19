@@ -1,3 +1,8 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: extra_compile_args = OMP_ARGS
+# distutils: extra_link_args = OMP_ARGS
+# distutils: libraries = STD_LIBS
+# distutils: sources = FIXED_INTERP
 """
 Image sampler definitions
 
@@ -5,13 +10,6 @@ Image sampler definitions
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np

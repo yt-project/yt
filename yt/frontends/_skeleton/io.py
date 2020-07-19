@@ -1,25 +1,9 @@
-"""
-Skeleton-specific IO functions
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.utilities.io_handler import BaseIOHandler
 
 
 class SkeletonIOHandler(BaseIOHandler):
     _particle_reader = False
-    _dataset_type = 'skeleton'
+    _dataset_type = "skeleton"
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).

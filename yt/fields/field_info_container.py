@@ -1,52 +1,36 @@
-"""
-The basic field info container resides here.  These classes, code specific and
-universal, are the means by which we access fields across YT, both derived and
-native.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import numpy as np
+import warnings
 from numbers import Number as numeric_type
 
-from yt.extern.six import string_types
+import numpy as np
+
 from yt.funcs import mylog, only_on_root
-from yt.geometry.geometry_handler import \
-    is_curvilinear
-from yt.units.unit_object import Unit
+from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
-from .derived_field import \
-    DerivedField, \
-    NullFunc, \
-    TranslationFunc
-from yt.utilities.exceptions import \
-    YTFieldNotFound
-from .field_plugin_registry import \
-    field_plugins
-from .particle_fields import \
-    add_union_field, \
-    particle_deposition_functions, \
-    particle_vector_functions, \
-    particle_scalar_functions, \
-    standard_particle_fields, \
-    add_volume_weighted_smoothed_field, \
-    sph_whitelist_fields
+from yt.units.unit_object import Unit
+from yt.utilities.exceptions import YTFieldNotFound
+
+from .derived_field import DerivedField, NullFunc, TranslationFunc
+from .field_plugin_registry import field_plugins
+from .particle_fields import (
+    add_union_field,
+    particle_deposition_functions,
+    particle_scalar_functions,
+    particle_vector_functions,
+    sph_whitelist_fields,
+    standard_particle_fields,
+)
+
 
 def tupleize(inp):
     if isinstance(inp, tuple):
         return inp
     # prepending with a '?' ensures that the sort order is the same in py2 and
     # py3, since names of field types shouldn't begin with punctuation
-    return ('?', inp, )
+    return (
+        "?",
+        inp,
+    )
+
 
 class FieldInfoContainer(dict):
     """
@@ -56,12 +40,13 @@ class FieldInfoContainer(dict):
     of a given field.
 
     """
+
     fallback = None
     known_other_fields = ()
     known_particle_fields = ()
     extra_union_fields = ()
 
-    def __init__(self, ds, field_list, slice_info = None):
+    def __init__(self, ds, field_list, slice_info=None):
         self._show_field_errors = []
         self.ds = ds
         # Now we start setting things up.
@@ -80,38 +65,48 @@ class FieldInfoContainer(dict):
 
     def setup_fluid_index_fields(self):
         # Now we get all our index types and set up aliases to them
-        if self.ds is None: return
+        if self.ds is None:
+            return
         index_fields = set([f for _, f in self if _ == "index"])
         for ftype in self.ds.fluid_types:
-            if ftype in ("index", "deposit"): continue
+            if ftype in ("index", "deposit"):
+                continue
             for f in index_fields:
-                if (ftype, f) in self: continue
+                if (ftype, f) in self:
+                    continue
                 self.alias((ftype, f), ("index", f))
 
-    def setup_particle_fields(self, ptype, ftype='gas', num_neighbors=64):
-        skip_output_units = ("code_length")
+    def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):
+        skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
             output_units = units
-            if (f in aliases or ptype not in self.ds.particle_types_raw) and \
-                units not in skip_output_units:
-                u = Unit(units, registry = self.ds.unit_registry)
+            if (
+                f in aliases or ptype not in self.ds.particle_types_raw
+            ) and units not in skip_output_units:
+                u = Unit(units, registry=self.ds.unit_registry)
                 if u.dimensions is not dimensionless:
                     output_units = str(self.ds.unit_system[u.dimensions])
             if (ptype, f) not in self.field_list:
                 continue
-            self.add_output_field((ptype, f), sampling_type="particle",
-                units = units, display_name = dn, 
-                output_units = output_units)
+            self.add_output_field(
+                (ptype, f),
+                sampling_type="particle",
+                units=units,
+                display_name=dn,
+                output_units=output_units,
+            )
             for alias in aliases:
-                self.alias((ptype, alias), (ptype, f), units = output_units)
+                self.alias((ptype, alias), (ptype, f), units=output_units)
 
         # We'll either have particle_position or particle_position_[xyz]
-        if (ptype, "particle_position") in self.field_list or \
-           (ptype, "particle_position") in self.field_aliases:
-            particle_scalar_functions(ptype,
-                   "particle_position", "particle_velocity",
-                   self)
+        if (ptype, "particle_position") in self.field_list or (
+            ptype,
+            "particle_position",
+        ) in self.field_aliases:
+            particle_scalar_functions(
+                ptype, "particle_position", "particle_velocity", self
+            )
         else:
             # We need to check to make sure that there's a "known field" that
             # overlaps with one of the vector fields.  For instance, if we are
@@ -120,60 +115,64 @@ class FieldInfoContainer(dict):
             # "known" vector field that the frontend creates.  So the easiest
             # thing to do is to simply remove the on-disk field (which doesn't
             # exist) and replace it with a derived field.
-            if (ptype, "particle_position") in self and \
-                 self[ptype, "particle_position"]._function == NullFunc:
+            if (ptype, "particle_position") in self and self[
+                ptype, "particle_position"
+            ]._function == NullFunc:
                 self.pop((ptype, "particle_position"))
-            particle_vector_functions(ptype,
-                    ["particle_position_%s" % ax for ax in 'xyz'],
-                    ["particle_velocity_%s" % ax for ax in 'xyz'],
-                    self)
-        particle_deposition_functions(ptype, "particle_position",
-            "particle_mass", self)
+            particle_vector_functions(
+                ptype,
+                ["particle_position_%s" % ax for ax in "xyz"],
+                ["particle_velocity_%s" % ax for ax in "xyz"],
+                self,
+            )
+        particle_deposition_functions(ptype, "particle_position", "particle_mass", self)
         standard_particle_fields(self, ptype)
         # Now we check for any leftover particle fields
         for field in sorted(self.field_list):
-            if field in self: continue
+            if field in self:
+                continue
             if not isinstance(field, tuple):
                 raise RuntimeError
             if field[0] not in self.ds.particle_types:
                 continue
-            self.add_output_field(field, sampling_type="particle",
-                                  units = self.ds.field_units.get(field, ""))
-        self.setup_smoothed_fields(ptype, 
-                                   num_neighbors=num_neighbors,
-                                   ftype=ftype)
+            self.add_output_field(
+                field,
+                sampling_type="particle",
+                units=self.ds.field_units.get(field, ""),
+            )
+        self.setup_smoothed_fields(ptype, num_neighbors=num_neighbors, ftype=ftype)
 
     def setup_extra_union_fields(self, ptype="all"):
         if ptype != "all":
-            raise RuntimeError("setup_extra_union_fields is currently" + 
-                               "only enabled for particle type \"all\".")
+            raise RuntimeError(
+                "setup_extra_union_fields is currently"
+                + 'only enabled for particle type "all".'
+            )
         for units, field in self.extra_union_fields:
             add_union_field(self, ptype, field, units)
 
-    def setup_smoothed_fields(self, ptype, num_neighbors = 64, ftype = "gas"):
+    def setup_smoothed_fields(self, ptype, num_neighbors=64, ftype="gas"):
         # We can in principle compute this, but it is not yet implemented.
-        if (ptype, "density") not in self:
+        if (ptype, "density") not in self or not hasattr(self.ds, "_sph_ptypes"):
             return
-        if (ptype, "smoothing_length") in self:
-            sml_name = "smoothing_length"
-        else:
-            sml_name = None
         new_aliases = []
         for ptype2, alias_name in list(self):
             if ptype2 != ptype:
                 continue
             if alias_name not in sph_whitelist_fields:
-                continue
-            fn = add_volume_weighted_smoothed_field(
-                ptype, "particle_position", "particle_mass",
-                sml_name, "density", alias_name, self,
-                num_neighbors)
-            if 'particle_' in alias_name:
-                alias_name = alias_name.replace('particle_', '')
-            new_aliases.append(((ftype, alias_name), fn[0]))
-        for alias, source in new_aliases:
-            #print "Aliasing %s => %s" % (alias, source)
-            self.alias(alias, source)
+                if alias_name.startswith("particle_"):
+                    pass
+                else:
+                    continue
+            uni_alias_name = alias_name
+            if "particle_position_" in alias_name:
+                uni_alias_name = alias_name.replace("particle_position_", "")
+            elif "particle_" in alias_name:
+                uni_alias_name = alias_name.replace("particle_", "")
+            new_aliases.append(((ftype, uni_alias_name), (ptype, alias_name),))
+            new_aliases.append(((ptype, uni_alias_name), (ptype, alias_name),))
+            for alias, source in new_aliases:
+                self.alias(alias, source)
 
     # Collect the names for all aliases if geometry is curvilinear
     def get_aliases_gallery(self):
@@ -189,40 +188,48 @@ class FieldInfoContainer(dict):
                     aliases_gallery.append(alias)
         return aliases_gallery
 
-    def setup_fluid_aliases(self, ftype='gas'):
+    def setup_fluid_aliases(self, ftype="gas"):
         known_other_fields = dict(self.known_other_fields)
 
-        # For non-Cartesian geometry, convert alias of vector fields to 
+        # For non-Cartesian geometry, convert alias of vector fields to
         # curvilinear coordinates
         aliases_gallery = self.get_aliases_gallery()
-            
+
         for field in sorted(self.field_list):
             if not isinstance(field, tuple):
                 raise RuntimeError
             if field[0] in self.ds.particle_types:
                 continue
-            args = known_other_fields.get(
-                field[1], ("", [], None))
+            args = known_other_fields.get(field[1], ("", [], None))
             units, aliases, display_name = args
             # We allow field_units to override this.  First we check if the
             # field *name* is in there, then the field *tuple*.
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
-            if not isinstance(units, string_types) and args[0] != "":
+            if not isinstance(units, str) and args[0] != "":
                 units = "((%s)*%s)" % (args[0], units)
-            if isinstance(units, (numeric_type, np.number, np.ndarray)) and \
-                args[0] == "" and units != 1.0:
-                mylog.warning("Cannot interpret units: %s * %s, " +
-                              "setting to dimensionless.", units, args[0])
+            if (
+                isinstance(units, (numeric_type, np.number, np.ndarray))
+                and args[0] == ""
+                and units != 1.0
+            ):
+                mylog.warning(
+                    "Cannot interpret units: %s * %s, " + "setting to dimensionless.",
+                    units,
+                    args[0],
+                )
                 units = ""
             elif units == 1.0:
                 units = ""
-            self.add_output_field(field, sampling_type="cell", units = units,
-                                  display_name = display_name)
+            self.add_output_field(
+                field, sampling_type="cell", units=units, display_name=display_name
+            )
             axis_names = self.ds.coordinates.axis_order
             for alias in aliases:
-                if self.curvilinear: # For non-Cartesian geometry, convert vector aliases
-                    
+                if (
+                    self.curvilinear
+                ):  # For non-Cartesian geometry, convert vector aliases
+
                     if alias[-2:] not in ["_x", "_y", "_z"]:
                         to_convert = False
                     else:
@@ -232,11 +239,11 @@ class FieldInfoContainer(dict):
                                 break
                         to_convert = True
                     if to_convert:
-                        if alias[-2:]=="_x":
+                        if alias[-2:] == "_x":
                             alias = "%s_%s" % (alias[:-2], axis_names[0])
-                        elif alias[-2:]=="_y":
+                        elif alias[-2:] == "_y":
                             alias = "%s_%s" % (alias[:-2], axis_names[1])
-                        elif alias[-2:]=="_z":
+                        elif alias[-2:] == "_z":
                             alias = "%s_%s" % (alias[:-2], axis_names[2])
                 self.alias((ftype, alias), field)
 
@@ -276,8 +283,10 @@ class FieldInfoContainer(dict):
         if not override and name in self:
             # See below.
             if function is None:
+
                 def create_function(f):
                     return f
+
                 return create_function
             return
         # add_field can be used in two different ways: it can be called
@@ -286,26 +295,41 @@ class FieldInfoContainer(dict):
         # the derived field and exit. If used as a decorator, function will
         # be None. In that case, we return a function that will be applied
         # to the function that the decorator is applied to.
-        kwargs.setdefault('ds', self.ds)
+        kwargs.setdefault("ds", self.ds)
         if function is None:
+
             def create_function(f):
                 self[name] = DerivedField(name, sampling_type, f, **kwargs)
                 return f
+
             return create_function
 
         if isinstance(name, tuple):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
 
-        if sampling_type == 'particle':
-            ftype = 'all'
+        particle_field = False
+        if sampling_type == "particle":
+            particle_field = True
+
+        if kwargs.get("particle_type", False):
+            warnings.warn(
+                "The particle_type keyword argument of add_field has been "
+                'deprecated. Please set sampling_type="particle" instead.',
+                stacklevel=2,
+            )
+            particle_field = True
+
+        if particle_field:
+            ftype = "all"
         else:
             ftype = self.ds.default_fluid_type
 
         if (ftype, name) not in self:
             tuple_name = (ftype, name)
-            self[tuple_name] = DerivedField(tuple_name, sampling_type, function,
-                                            **kwargs)
+            self[tuple_name] = DerivedField(
+                tuple_name, sampling_type, function, **kwargs
+            )
             self.alias(name, tuple_name)
         else:
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
@@ -314,17 +338,16 @@ class FieldInfoContainer(dict):
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)
-            only_on_root(mylog.debug, "Loaded %s (%s new fields)",
-                         n, len(loaded))
+            only_on_root(mylog.debug, "Loaded %s (%s new fields)", n, len(loaded))
         self.find_dependencies(loaded)
 
-    def load_plugin(self, plugin_name, ftype = "gas", skip_check = False):
+    def load_plugin(self, plugin_name, ftype="gas", skip_check=False):
         if callable(plugin_name):
             f = plugin_name
         else:
             f = field_plugins[plugin_name]
         orig = set(self.items())
-        f(self, ftype, slice_info = self.slice_info)
+        f(self, ftype, slice_info=self.slice_info)
         loaded = [n for n, v in set(self.items()).difference(orig)]
         return loaded
 
@@ -337,31 +360,35 @@ class FieldInfoContainer(dict):
         return loaded, unavailable
 
     def add_output_field(self, name, sampling_type, **kwargs):
-        kwargs.setdefault('ds', self.ds)
+        kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
-    def alias(self, alias_name, original_name, units = None):
-        if original_name not in self: return
+    def alias(self, alias_name, original_name, units=None):
+        if original_name not in self:
+            return
         if units is None:
             # We default to CGS here, but in principle, this can be pluggable
             # as well.
-            u = Unit(self[original_name].units,
-                      registry = self.ds.unit_registry)
+            u = Unit(self[original_name].units, registry=self.ds.unit_registry)
             if u.dimensions is not dimensionless:
                 units = str(self.ds.unit_system[u.dimensions])
             else:
                 units = self[original_name].units
         self.field_aliases[alias_name] = original_name
-        self.add_field(alias_name,
-            function = TranslationFunc(original_name),
-            sampling_type = self[original_name].sampling_type,
-            display_name = self[original_name].display_name,
-            units = units)
+        self.add_field(
+            alias_name,
+            function=TranslationFunc(original_name),
+            sampling_type=self[original_name].sampling_type,
+            display_name=self[original_name].display_name,
+            units=units,
+        )
 
     def has_key(self, key):
         # This gets used a lot
-        if key in self: return True
-        if self.fallback is None: return False
+        if key in self:
+            return True
+        if self.fallback is None:
+            return False
         return key in self.fallback
 
     def __missing__(self, key):
@@ -370,22 +397,25 @@ class FieldInfoContainer(dict):
         return self.fallback[key]
 
     @classmethod
-    def create_with_fallback(cls, fallback, name = ""):
+    def create_with_fallback(cls, fallback, name=""):
         obj = cls()
         obj.fallback = fallback
         obj.name = name
         return obj
 
     def __contains__(self, key):
-        if dict.__contains__(self, key): return True
-        if self.fallback is None: return False
+        if dict.__contains__(self, key):
+            return True
+        if self.fallback is None:
+            return False
         return key in self.fallback
 
     def __iter__(self):
         for f in dict.__iter__(self):
             yield f
         if self.fallback is not None:
-            for f in self.fallback: yield f
+            for f in self.fallback:
+                yield f
 
     def keys(self):
         keys = dict.keys(self)
@@ -393,7 +423,7 @@ class FieldInfoContainer(dict):
             keys += list(self.fallback.keys())
         return keys
 
-    def check_derived_fields(self, fields_to_check = None):
+    def check_derived_fields(self, fields_to_check=None):
         deps = {}
         unavailable = []
         fields_to_check = fields_to_check or list(self.keys())
@@ -402,17 +432,18 @@ class FieldInfoContainer(dict):
                 raise YTFieldNotFound(str(field))
             fi = self[field]
             try:
-                fd = fi.get_dependencies(ds = self.ds)
+                fd = fi.get_dependencies(ds=self.ds)
             except Exception as e:
                 if field in self._show_field_errors:
                     raise
-                if type(e) != YTFieldNotFound:
+                if not isinstance(e, YTFieldNotFound):
                     # if we're doing field tests, raise an error
                     # see yt.fields.tests.test_fields
-                    if hasattr(self.ds, '_field_test_dataset'):
+                    if hasattr(self.ds, "_field_test_dataset"):
                         raise
-                    mylog.debug("Raises %s during field %s detection.",
-                                str(type(e)), field)
+                    mylog.debug(
+                        "Raises %s during field %s detection.", str(type(e)), field
+                    )
                 self.pop(field)
                 continue
             # This next bit checks that we can't somehow generate everything.

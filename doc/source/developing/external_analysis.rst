@@ -395,7 +395,7 @@ import, and then save things out into a file.
 .. code-block:: python
 
    import h5py
-   f = h5py.File("some_file.h5")
+   f = h5py.File("some_file.h5", mode="w")
    f.create_dataset("/data", data=some_data)
 
 This will create ``some_file.h5`` if necessary and add a new dataset

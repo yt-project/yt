@@ -1,3 +1,4 @@
+# distutils: libraries = STD_LIBS
 """
 This file contains coordinate mappings between physical coordinates and those
 defined on unit elements, as well as doing the corresponding intracell
@@ -6,13 +7,6 @@ interpolation on finite element data.
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
 from numpy cimport ndarray
