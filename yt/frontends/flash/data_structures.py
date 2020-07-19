@@ -71,6 +71,15 @@ class FLASHHierarchy(GridIndex):
     def _detect_output_fields(self):
         self.field_list = [("flash", s.decode("ascii","ignore"))
                            for s in self._handle["/unknown names"][:].flat]
+        # add custom/scratch fields:
+        srp = self._handle['/string runtime parameters']
+        for i in range(srp.shape[0]):
+            k = srp[i][0]
+            if (k.startswith(b"plot_grid_var")):
+                v = srp[i][1].decode("ascii","ignore")[:4]
+                if v!="none":
+                    self.field_list.append(("flash",v))
+
         if ("/particle names" in self._particle_handle):
             self.field_list += [("io", "particle_" +
                                     s[0].decode("ascii","ignore").strip())
