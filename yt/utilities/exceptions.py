@@ -594,13 +594,11 @@ class YTInvalidUnitEquivalence(Exception):
 
 
 class YTPlotCallbackError(Exception):
-    def __init__(self, callback, error):
+    def __init__(self, callback):
         self.callback = "annotate_" + callback
-        self.error = error
 
     def __str__(self):
-        msg = "%s callback failed with the following error: %s"
-        return msg % (self.callback, self.error)
+        return "%s callback failed" % self.callback
 
 
 class YTPixelizeError(YTException):
