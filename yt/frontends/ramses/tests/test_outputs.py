@@ -21,7 +21,12 @@ from yt.utilities.answer_testing.framework import (
 )
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 
-_fields = ("temperature", "density", "velocity_magnitude")
+_fields = (
+    "temperature",
+    "density",
+    "velocity_magnitude",
+    "pressure_gradient_magnitude",
+)
 
 output_00080 = "output_00080/info_00080.txt"
 
@@ -465,9 +470,6 @@ def test_cooling_fields():
     check_unit(ds.r[("gas", "Electron_number_density")], "cm**(-3)")
 
 
-ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
-
-
 @requires_file(ramses_rt)
 def test_ramses_mixed_files():
     # Test that one can use derived fields that depend on different
@@ -540,3 +542,22 @@ def test_magnetic_field_aliasing():
     ]:
         assert ("gas", field) in ds.derived_field_list
         ad[("gas", field)]
+
+
+@requires_file(output_00080)
+def test_field_accession():
+    ds = yt.load(output_00080)
+    fields = [
+        ("gas", "density"),  # basic ones
+        ("gas", "pressure"),
+        ("gas", "pressure_gradient_magnitude"),  # requires ghost zones
+    ]
+    # Check accessing gradient works for a variety of spatial domains
+    for reg in (
+        ds.all_data(),
+        ds.sphere([0.1] * 3, 0.01),
+        ds.sphere([0.5] * 3, 0.05),
+        ds.box([0.1] * 3, [0.2] * 3),
+    ):
+        for field in fields:
+            reg[field]

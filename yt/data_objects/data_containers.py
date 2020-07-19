@@ -353,7 +353,9 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                         outputs.append(rv)
                         ind = 0  # Does this work with mesh?
                     with o._activate_cache():
-                        ind += o.select(self.selector, self[field], rv, ind)
+                        ind += o.select(
+                            self.selector, source=self[field], dest=rv, offset=ind
+                        )
         else:
             chunks = self.index._chunk(self, "spatial", ngz=ngz)
             for i, chunk in enumerate(chunks):
@@ -366,15 +368,12 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                             np.empty(wogz.ires.size, dtype="float64"), units
                         )
                         outputs.append(rv)
-                    if gz._type_name == "octree_subset":
-                        raise NotImplementedError
-                    else:
-                        ind += wogz.select(
-                            self.selector,
-                            gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
-                            rv,
-                            ind,
-                        )
+                    ind += wogz.select(
+                        self.selector,
+                        source=gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
+                        dest=rv,
+                        offset=ind,
+                    )
         if accumulate:
             rv = uconcatenate(outputs)
         return rv
