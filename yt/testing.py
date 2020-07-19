@@ -600,7 +600,7 @@ def construct_octree_mask(prng=RandomState(0x1D3D3D3), refined=None):  # noqa B0
 
 
 def fake_octree_ds(
-    prng=RandomState(0x1D3D3D3),  # noqa B008
+    prng=RandomState(0x4D3D3D3),  # noqa B008
     refined=None,
     quantities=None,
     bbox=None,
