@@ -90,7 +90,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
-        chunksize = self.ds.index._chunksize
+        chunksize = self.ds.index.chunksize
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             poff = data_file.field_offsets
             tp = data_file.total_particles
@@ -176,7 +176,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     continue
                 f.seek(poff[ptype])
                 afields = list(set(field_list).intersection(self._aux_fields))
-                count = min(self.ds.index._chunksize, tp[ptype])
+                count = min(self.ds.index.chunksize, tp[ptype])
                 p = np.fromfile(f, self._pdtypes[ptype], count=count)
                 auxdata = []
                 for afield in afields:
@@ -252,7 +252,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     continue
                 stop = ind + count
                 while ind < stop:
-                    c = min(self.ds.index._chunksize, stop - ind)
+                    c = min(self.ds.index.chunksize, stop - ind)
                     pp = np.fromfile(f, dtype=self._pdtypes[ptype], count=c)
                     np.minimum(
                         mi,
@@ -467,10 +467,10 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             for i, ptype in enumerate(self._ptypes):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                elif params[npart_mapping[ptype]] > self.ds.index._chunksize:
+                elif params[npart_mapping[ptype]] > self.ds.index.chunksize:
                     for j in range(i):
                         npart = params[npart_mapping[self._ptypes[j]]]
-                        if npart > self.ds.index._chunksize:
+                        if npart > self.ds.index.chunksize:
                             pos += npart * size
                     pos += data_file.start * size
                 aux_fields_offsets[afield][ptype] = pos

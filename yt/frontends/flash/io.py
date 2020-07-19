@@ -164,7 +164,10 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         self._position_fields = [
             self._particle_fields["particle_pos%s" % ax] for ax in "xyz"
         ]
-        self._chunksize = 32 ** 3
+
+    @property
+    def chunksize(self):
+        return 32 ** 3
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -224,7 +227,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         morton = np.empty(pcount, dtype="uint64")
         ind = 0
         while ind < pcount:
-            npart = min(self._chunksize, pcount - ind)
+            npart = min(self.chunksize, pcount - ind)
             pos = np.empty((npart, 3), dtype="=f8")
             pos[:, 0] = p_fields[ind : ind + npart, px]
             pos[:, 1] = p_fields[ind : ind + npart, py]
@@ -237,7 +240,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
                 data_file.ds.domain_left_edge,
                 data_file.ds.domain_right_edge,
             )
-            ind += self._chunksize
+            ind += self.chunksize
         return morton
 
     _pcount = None
