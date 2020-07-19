@@ -54,13 +54,13 @@ class FLASHHierarchy(GridIndex):
             for s in self._handle["/unknown names"][:].flat
         ]
         # add custom/scratch fields:
-        srp = self._handle['/string runtime parameters']
+        srp = self._handle["/string runtime parameters"]
         for i in range(srp.shape[0]):
             k = srp[i][0]
-            if (k.startswith(b"plot_grid_var")):
-                v = srp[i][1].decode("ascii","ignore")[:4]
+            if k.startswith(b"plot_grid_var"):
+                v = srp[i][1].decode("ascii", "ignore")[:4]
                 if v != "none":
-                    self.field_list.append(("flash",v))
+                    self.field_list.append(("flash", v))
 
         if "/particle names" in self._particle_handle:
             self.field_list += [
