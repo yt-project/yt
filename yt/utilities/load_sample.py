@@ -6,12 +6,14 @@ If not, it will download it.
 
 """
 import os
+
 import yt.utilities.sample_data as sd
-from yt.funcs import mylog
 from yt.convenience import load
+from yt.funcs import mylog
 from yt.utilities.on_demand_imports import _pooch as pch
 
-def load_sample(name=None, specific_file=None):
+
+def load_sample(name=None, specific_file=None, pbar=True):
     """
     Load sample data with yt. Simple wrapper around yt.load to include fetching
     data with pooch.
@@ -32,25 +34,38 @@ def load_sample(name=None, specific_file=None):
         `enzo_cosmology_plus/DD0003/DD0003`, and the argument passed to this
         variable would be `DD0003/DD0003`
 
+    pbar: bool
+        display a progress bar
+
     """
     fido = sd.Fido()
     if name is None:
         keys = []
         for key in fido._registry:
             for ext in sd._extensions_to_strip:
-                if key.endswith(ext): key = key[:-len(ext)]
+                if key.endswith(ext):
+                    key = key[: -len(ext)]
             keys.append(key)
         return keys
 
     base_path = fido.fido.path
     fileext, name, extension = _validate_sampledata_name(name)
 
+    downloader = None
+    if pbar:
+        try:
+            import tqdm  # noqa: F401
+
+            downloader = pch.pooch.HTTPDownloader(progressbar=True)
+        except ImportError:
+            mylog.warning("tqdm is not installed, progress bar can not be displayed.")
+
     if extension == "h5":
-        fname = fetch_noncompressed_file(fileext, fido)
+        fname = fetch_noncompressed_file(fileext, fido, downloader=downloader)
     else:
         # we are going to assume most files that exist on the hub are
         # compressed in .tar folders. Some may not.
-        fname = fetch_compressed_file(fileext, fido)
+        fname = fetch_compressed_file(fileext, fido, downloader=downloader)
 
     # The `folder_path` variable is used here to notify the user where the
     # files have been unpacked to. However, we can't assume this is reliable
@@ -61,20 +76,19 @@ def load_sample(name=None, specific_file=None):
 
     # Location of the file to load automatically, registered in the Fido class
     info = fido[fileext]
-    file_lookup = info['load_name']
-    optional_args = info['load_kwargs']
+    file_lookup = info["load_name"]
+    optional_args = info["load_kwargs"]
 
     if specific_file is None:
         # right now work on loading only untarred files. build out h5 later
         mylog.info("Default to loading %s for %s dataset", file_lookup, name)
-        loaded_file = os.path.join(base_path, "%s.untar" %fileext,
-                                   name, file_lookup)
+        loaded_file = os.path.join(base_path, "%s.untar" % fileext, name, file_lookup)
     else:
         mylog.info("Loading %s for %s dataset", specific_file, name)
-        loaded_file = os.path.join(base_path, "%s.untar" %fileext, name,
-                                   specific_file)
+        loaded_file = os.path.join(base_path, "%s.untar" % fileext, name, specific_file)
 
     return load(loaded_file, **optional_args)
+
 
 def _validate_sampledata_name(name):
     """
@@ -96,16 +110,17 @@ def _validate_sampledata_name(name):
     """
 
     if not isinstance(name, str):
-        mylog.error("The argument {} passed to ".format(name) + \
-                    "load_sample() is not a string.")
+        mylog.error(
+            "The argument {} passed to ".format(name) + "load_sample() is not a string."
+        )
 
     # now get the extension if it exists
     base, ext = os.path.splitext(name)
-    if ext == '':
+    if ext == "":
         # Right now we are assuming that any name passed without an explicit
         # extension is packed in a tarball. This logic can be modified later to
         # be more flexible.
-        fileext = "%s.tar.gz" %name
+        fileext = "%s.tar.gz" % name
         basename = name
         extension = "tar"
     elif ext == ".gz":
@@ -120,24 +135,26 @@ def _validate_sampledata_name(name):
         mylog.info(
             """extension of %s for dataset %s is unexpected. the `load_data`
             function  may not work as expected""",
-            ext, name )
+            ext,
+            name,
+        )
         extension = ext
         fileext = name
         basename = base
     return fileext, basename, extension
 
 
-def fetch_compressed_file(name, fido):
+def fetch_compressed_file(name, fido, downloader=None):
     """
     Load a large compressed file from the data registry
     """
-    fname = fido.fido.fetch(name, processor=pch.pooch.Untar())
+    fname = fido.fido.fetch(name, processor=pch.pooch.Untar(), downloader=downloader)
     return fname
 
-def fetch_noncompressed_file(name, fido):
+
+def fetch_noncompressed_file(name, fido, downloader=None):
     """
     Load an uncompressed file from the data registry
     """
-    fname = fido.fido.fetch(name)
+    fname = fido.fido.fetch(name, downloader=downloader)
     return fname
-

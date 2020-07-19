@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Functions for computing the extent of lenses and whatnot
 

@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 A refine-by-two AMR-specific octree
 

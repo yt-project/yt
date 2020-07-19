@@ -1,83 +1,110 @@
+"""
+yt is a toolkit for analyzing and visualizing volumetric data.
+
+* Website: https://yt-project.org
+* Documentation: https://yt-project.org/doc
+* Data hub: https://girder.hub.yt
+* Contribute: https://github.com/yt-project/yt
+
+"""
 import sys
+
 if sys.version_info[0] < 3:
-    raise Exception("Python 2 no longer supported.  Please install Python 3 for use with yt.")
+    raise Exception(
+        "Python 2 no longer supported.  Please install Python 3 for use with yt."
+    )
 
 __version__ = "4.0.dev0"
 
 # First module imports
-import numpy as np # For modern purposes
-import numpy # In case anyone wishes to use it by name
+import numpy as np  # For modern purposes
+import numpy  # In case anyone wishes to use it by name
 
-from yt.funcs import \
-    iterable, \
-    get_memory_usage, \
-    print_tb, \
-    rootonly, \
-    insert_ipython, \
-    get_pbar, \
-    only_on_root, \
-    is_root, \
-    get_version_stack, \
-    get_yt_supp, \
-    get_yt_version, \
-    parallel_profile, \
-    enable_plugins, \
-    memory_checker, \
-    deprecated_class, \
-    toggle_interactivity
+from yt.funcs import (
+    iterable,
+    get_memory_usage,
+    print_tb,
+    rootonly,
+    insert_ipython,
+    get_pbar,
+    only_on_root,
+    is_root,
+    get_version_stack,
+    get_yt_supp,
+    get_yt_version,
+    parallel_profile,
+    enable_plugins,
+    memory_checker,
+    deprecated_class,
+    toggle_interactivity,
+)
 from yt.utilities.logger import ytLogger as mylog
 
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
 from yt.units.unit_object import define_unit
-from yt.units import \
-    YTArray, \
-    YTQuantity, \
-    uconcatenate, \
-    ucross, \
-    uintersect1d, \
-    uunion1d, \
-    unorm, \
-    udot, \
-    ustack, \
-    uvstack, \
-    uhstack, \
-    loadtxt, \
-    savetxt
+from yt.units import (
+    YTArray,
+    YTQuantity,
+    uconcatenate,
+    ucross,
+    uintersect1d,
+    uunion1d,
+    unorm,
+    udot,
+    ustack,
+    uvstack,
+    uhstack,
+    loadtxt,
+    savetxt,
+    display_ytarray,
+)
 
-from yt.fields.api import \
-    field_plugins, \
-    DerivedField, \
-    FieldDetector, \
-    FieldInfoContainer, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType, \
-    add_field, \
-    derived_field, \
-    add_xray_emissivity_field
+from yt.fields.api import (
+    field_plugins,
+    DerivedField,
+    FieldDetector,
+    FieldInfoContainer,
+    ValidateParameter,
+    ValidateDataField,
+    ValidateProperty,
+    ValidateSpatial,
+    ValidateGridType,
+    add_field,
+    derived_field,
+    add_xray_emissivity_field,
+)
 
-from yt.data_objects.api import \
-    DatasetSeries, ImageArray, \
-    particle_filter, add_particle_filter, \
-    create_profile, Profile1D, Profile2D, Profile3D, \
-    ParticleProfile
+from yt.data_objects.api import (
+    DatasetSeries,
+    ImageArray,
+    particle_filter,
+    add_particle_filter,
+    create_profile,
+    Profile1D,
+    Profile2D,
+    Profile3D,
+    ParticleProfile,
+)
 
 # For backwards compatibility
 TimeSeriesData = deprecated_class(DatasetSeries)
 
 from yt.frontends.api import _frontend_container
+
 frontends = _frontend_container()
 
-from yt.frontends.stream.api import \
-    load_uniform_grid, load_amr_grids, \
-    load_particles, load_hexahedral_mesh, load_octree, \
-    hexahedral_connectivity, load_unstructured_mesh
+from yt.frontends.stream.api import (
+    load_uniform_grid,
+    load_amr_grids,
+    load_particles,
+    load_hexahedral_mesh,
+    load_octree,
+    hexahedral_connectivity,
+    load_unstructured_mesh,
+)
 
-from yt.frontends.ytdata.api import \
-    save_as_dataset
+from yt.frontends.ytdata.api import save_as_dataset
 
 # For backwards compatibility
 GadgetDataset = frontends.gadget.GadgetDataset
@@ -86,38 +113,66 @@ TipsyDataset = frontends.tipsy.TipsyDataset
 TipsyStaticOutput = deprecated_class(TipsyDataset)
 
 # Now individual component imports from the visualization API
-from yt.visualization.api import \
-    FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    write_bitmap, write_image, \
-    apply_colormap, scale_image, write_projection, \
-    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, LinePlot, \
-    LineBuffer, ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps, add_cmap, make_colormap, \
-    ProfilePlot, PhasePlot, ParticlePhasePlot, \
-    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
-    FITSImageData, FITSSlice, FITSProjection, FITSOffAxisSlice, \
-    FITSOffAxisProjection, plot_2d
+from yt.visualization.api import (
+    FixedResolutionBuffer,
+    ObliqueFixedResolutionBuffer,
+    write_bitmap,
+    write_image,
+    apply_colormap,
+    scale_image,
+    write_projection,
+    SlicePlot,
+    AxisAlignedSlicePlot,
+    OffAxisSlicePlot,
+    LinePlot,
+    LineBuffer,
+    ProjectionPlot,
+    OffAxisProjectionPlot,
+    show_colormaps,
+    add_colormap,
+    make_colormap,
+    ProfilePlot,
+    PhasePlot,
+    ParticlePhasePlot,
+    ParticleProjectionPlot,
+    ParticleImageBuffer,
+    ParticlePlot,
+    FITSImageData,
+    FITSSlice,
+    FITSProjection,
+    FITSOffAxisSlice,
+    FITSOffAxisProjection,
+    plot_2d,
+)
 
-from yt.visualization.volume_rendering.api import \
-    volume_render, create_scene, ColorTransferFunction, TransferFunction, \
-    off_axis_projection, interactive_render
+from yt.visualization.volume_rendering.api import (
+    volume_render,
+    create_scene,
+    ColorTransferFunction,
+    TransferFunction,
+    off_axis_projection,
+    interactive_render,
+)
 import yt.visualization.volume_rendering.api as volume_rendering
+
 #    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection
 
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, enable_parallelism, communication_system
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    parallel_objects,
+    enable_parallelism,
+    communication_system,
+)
 
-from yt.convenience import \
-    load, simulation
+from yt.convenience import load, simulation
 
 from yt.utilities.load_sample import load_sample
 
 from yt.testing import run_nose
 
 # Import some helpful math utilities
-from yt.utilities.math_utils import \
-    ortho_find, quartiles, periodic_position
+from yt.utilities.math_utils import ortho_find, quartiles, periodic_position
 
-from yt.units.unit_systems import \
-    UnitSystem, unit_system_registry
+from yt.units.unit_systems import UnitSystem, unit_system_registry
+
+_called_from_pytest = False

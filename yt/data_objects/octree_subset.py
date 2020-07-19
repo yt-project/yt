@@ -1,21 +1,21 @@
 from contextlib import contextmanager
+
 import numpy as np
 
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
-
+from yt.data_objects.data_containers import YTSelectionContainer
 from yt.funcs import mylog
-from yt.utilities.lib.geometry_utils import compute_morton
-from yt.geometry.particle_oct_container import \
-    ParticleOctreeContainer
-from yt.units.yt_array import YTArray
+from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.units.dimensions import length
-from yt.utilities.exceptions import \
-    YTInvalidPositionArray, \
-    YTFieldTypeNotFound, \
-    YTParticleDepositionNotImplemented
+from yt.units.yt_array import YTArray
+from yt.utilities.exceptions import (
+    YTFieldTypeNotFound,
+    YTInvalidPositionArray,
+    YTParticleDepositionNotImplemented,
+)
+from yt.utilities.lib.geometry_utils import compute_morton
+
 
 def cell_count_cache(func):
     def cc_cache_func(self, dobj):
@@ -25,19 +25,21 @@ def cell_count_cache(func):
         self._cell_count = rv.shape[0]
         self._last_selector_id = hash(dobj.selector)
         return rv
+
     return cc_cache_func
+
 
 class OctreeSubset(YTSelectionContainer):
     _spatial = True
     _num_ghost_zones = 0
-    _type_name = 'octree_subset'
+    _type_name = "octree_subset"
     _skip_add = True
-    _con_args = ('base_region', 'domain', 'ds')
+    _con_args = ("base_region", "domain", "ds")
     _domain_offset = 0
     _cell_count = -1
     _block_reorder = None
 
-    def __init__(self, base_region, domain, ds, over_refine_factor = 1):
+    def __init__(self, base_region, domain, ds, over_refine_factor=1):
         super(OctreeSubset, self).__init__(ds, None)
         self._num_zones = 1 << (over_refine_factor)
         self._oref = over_refine_factor
@@ -68,17 +70,19 @@ class OctreeSubset(YTSelectionContainer):
 
     @property
     def nz(self):
-        return self._num_zones + 2*self._num_ghost_zones
+        return self._num_zones + 2 * self._num_ghost_zones
 
     def _reshape_vals(self, arr):
         nz = self.nz
         if len(arr.shape) <= 2:
-            n_oct = arr.shape[0] // (nz**3)
+            n_oct = arr.shape[0] // (nz ** 3)
+        elif arr.shape[-1] == 3:
+            n_oct = arr.shape[-2]
         else:
-            n_oct = max(arr.shape)
-        if arr.size == nz*nz*nz*n_oct:
+            n_oct = arr.shape[-1]
+        if arr.size == nz * nz * nz * n_oct:
             new_shape = (nz, nz, nz, n_oct)
-        elif arr.size == nz*nz*nz*n_oct * 3:
+        elif arr.size == nz * nz * nz * n_oct * 3:
             new_shape = (nz, nz, nz, n_oct, 3)
         else:
             raise RuntimeError
@@ -92,14 +96,14 @@ class OctreeSubset(YTSelectionContainer):
     _domain_ind = None
 
     def mask_refinement(self, selector):
-        mask = self.oct_handler.mask(selector, domain_id = self.domain_id)
+        mask = self.oct_handler.mask(selector, domain_id=self.domain_id)
         return mask
 
     def select_blocks(self, selector):
-        mask = self.oct_handler.mask(selector, domain_id = self.domain_id)
+        mask = self.oct_handler.mask(selector, domain_id=self.domain_id)
         slicer = OctreeSubsetBlockSlice(self)
         for i, sl in slicer:
-            yield sl, np.atleast_3d(mask[i,...])
+            yield sl, np.atleast_3d(mask[i, ...])
 
     def select_tcoords(self, dobj):
         # These will not be pre-allocated, which can be a problem for speed and
@@ -121,8 +125,7 @@ class OctreeSubset(YTSelectionContainer):
             self._domain_ind = di
         return self._domain_ind
 
-    def deposit(self, positions, fields = None, method = None,
-                kernel_name='cubic'):
+    def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with
         exclusively local input.
 
@@ -155,35 +158,121 @@ class OctreeSubset(YTSelectionContainer):
         List of fortran-ordered, mesh-like arrays.
         """
         # Here we perform our particle deposition.
-        if fields is None: fields = []
+        if fields is None:
+            fields = []
         cls = getattr(particle_deposit, "deposit_%s" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
         nvals = (nz, nz, nz, (self.domain_ind >= 0).sum())
         if np.max(self.domain_ind) >= nvals[-1]:
-            print ('nocts, domain_ind >= 0, max {} {} {}'.format(
-                self.oct_handler.nocts, nvals[-1], np.max(self.domain_ind)))
+            print(
+                "nocts, domain_ind >= 0, max {} {} {}".format(
+                    self.oct_handler.nocts, nvals[-1], np.max(self.domain_ind)
+                )
+            )
             raise Exception()
         # We allocate number of zones, not number of octs
         op = cls(nvals, kernel_name)
         op.initialize()
-        mylog.debug("Depositing %s (%s^3) particles into %s Octs",
-            positions.shape[0], positions.shape[0]**0.3333333, nvals[-1])
+        mylog.debug(
+            "Depositing %s (%s^3) particles into %s Octs",
+            positions.shape[0],
+            positions.shape[0] ** 0.3333333,
+            nvals[-1],
+        )
         positions.convert_to_units("code_length")
         pos = positions.d
         # We should not need the following if we know in advance all our fields
         # need no casting.
         fields = [np.ascontiguousarray(f, dtype="float64") for f in fields]
-        op.process_octree(self.oct_handler, self.domain_ind, pos, fields,
-            self.domain_id, self._domain_offset)
+        op.process_octree(
+            self.oct_handler,
+            self.domain_ind,
+            pos,
+            fields,
+            self.domain_id,
+            self._domain_offset,
+        )
         vals = op.finalize()
-        if vals is None: return
+        if vals is None:
+            return
         return np.asfortranarray(vals)
 
-    def smooth(self, positions, fields = None, index_fields = None,
-               method = None, create_octree = False, nneighbors = 64,
-               kernel_name = 'cubic'):
+    def mesh_sampling_particle_field(self, positions, mesh_field, lvlmax=None):
+        r"""Operate on the particles, in a mesh-against-particle
+        fashion, with exclusively local input.
+
+        This uses the octree indexing system to call a "mesh
+        sampling" operation (defined in yt/geometry/particle_deposit.pyx).
+        For each particle, the function returns the value of the cell
+        containing the particle.
+
+        Parameters
+        ----------
+        positions : array_like (Nx3)
+            The positions of all of the particles to be examined.
+        mesh_field : array_like (M,)
+            The value of the field to deposit.
+        lvlmax : array_like (N), optional
+            If provided, the maximum level where to look for cells
+
+        Returns
+        -------
+        List of fortran-ordered, particle-like arrays containing the
+        value of the mesh at the location of the particles.
+        """
+        # Here we perform our particle deposition.
+        npart = positions.shape[0]
+        nocts = (self.domain_ind >= 0).sum()
+        # We allocate number of zones, not number of octs
+        op = particle_deposit.CellIdentifier(npart, "none")
+        op.initialize(npart)
+        mylog.debug(
+            "Depositing %s Octs onto %s (%s^3) particles",
+            nocts,
+            positions.shape[0],
+            positions.shape[0] ** 0.3333333,
+        )
+        pos = positions.to("code_length").value.astype("float64")
+
+        op.process_octree(
+            self.oct_handler,
+            self.domain_ind,
+            pos,
+            None,
+            self.domain_id,
+            self._domain_offset,
+            lvlmax=lvlmax,
+        )
+
+        igrid, icell = op.finalize()
+
+        igrid = np.asfortranarray(igrid)
+        icell = np.asfortranarray(icell)
+
+        # Some particle may fall outside of the local domain, so we
+        # need to be careful here
+        ids = igrid * 8 + icell
+        mask = ids >= 0
+
+        # Fill the return array
+        ret = np.empty(npart)
+        ret[mask] = mesh_field[ids[mask]]
+        ret[~mask] = np.nan
+
+        return ret
+
+    def smooth(
+        self,
+        positions,
+        fields=None,
+        index_fields=None,
+        method=None,
+        create_octree=False,
+        nneighbors=64,
+        kernel_name="cubic",
+    ):
         r"""Operate on the mesh, in a particle-against-mesh fashion, with
         non-local input.
 
@@ -229,14 +318,19 @@ class OctreeSubset(YTSelectionContainer):
         positions.convert_to_units("code_length")
         if create_octree:
             morton = compute_morton(
-                positions[:,0], positions[:,1], positions[:,2],
-                self.ds.domain_left_edge,
-                self.ds.domain_right_edge)
-            morton.sort()
-            particle_octree = ParticleOctreeContainer([1, 1, 1],
+                positions[:, 0],
+                positions[:, 1],
+                positions[:, 2],
                 self.ds.domain_left_edge,
                 self.ds.domain_right_edge,
-                over_refine = self._oref)
+            )
+            morton.sort()
+            particle_octree = ParticleOctreeContainer(
+                [1, 1, 1],
+                self.ds.domain_left_edge,
+                self.ds.domain_right_edge,
+                over_refine=self._oref,
+            )
             # This should ensure we get everything within one neighbor of home.
             particle_octree.n_ref = nneighbors * 2
             particle_octree.add(morton)
@@ -245,8 +339,10 @@ class OctreeSubset(YTSelectionContainer):
         else:
             particle_octree = self.oct_handler
             pdom_ind = self.domain_ind
-        if fields is None: fields = []
-        if index_fields is None: index_fields = []
+        if fields is None:
+            fields = []
+        if index_fields is None:
+            index_fields = []
         cls = getattr(particle_smooth, "%s_smooth" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
@@ -255,20 +351,31 @@ class OctreeSubset(YTSelectionContainer):
         nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
         op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
-        mylog.debug("Smoothing %s particles into %s Octs",
-            positions.shape[0], nvals[-1])
+        mylog.debug(
+            "Smoothing %s particles into %s Octs", positions.shape[0], nvals[-1]
+        )
         # Pointer operations within 'process_octree' require arrays to be
         # contiguous cf. https://bitbucket.org/yt_analysis/yt/issues/1079
         fields = [np.ascontiguousarray(f, dtype="float64") for f in fields]
-        op.process_octree(self.oct_handler, mdom_ind, positions,
-            self.fcoords, fields,
-            self.domain_id, self._domain_offset, self.ds.periodicity,
-            index_fields, particle_octree, pdom_ind, self.ds.geometry)
+        op.process_octree(
+            self.oct_handler,
+            mdom_ind,
+            positions,
+            self.fcoords,
+            fields,
+            self.domain_id,
+            self._domain_offset,
+            self.ds.periodicity,
+            index_fields,
+            particle_octree,
+            pdom_ind,
+            self.ds.geometry,
+        )
         # If there are 0s in the smoothing field this will not throw an error,
         # but silently return nans for vals where dividing by 0
         # Same as what is currently occurring, but suppressing the div by zero
         # error.
-        with np.errstate(invalid='ignore'):
+        with np.errstate(invalid="ignore"):
             vals = op.finalize()
         if isinstance(vals, list):
             vals = [np.asfortranarray(v) for v in vals]
@@ -276,8 +383,9 @@ class OctreeSubset(YTSelectionContainer):
             vals = np.asfortranarray(vals)
         return vals
 
-    def particle_operation(self, positions, fields = None,
-            method = None, nneighbors = 64, kernel_name = 'cubic'):
+    def particle_operation(
+        self, positions, fields=None, method=None, nneighbors=64, kernel_name="cubic"
+    ):
         r"""Operate on particles, in a particle-against-particle fashion.
 
         This uses the octree indexing system to call a "smoothing" operation
@@ -317,19 +425,25 @@ class OctreeSubset(YTSelectionContainer):
         # Here we perform our particle deposition.
         positions.convert_to_units("code_length")
         morton = compute_morton(
-            positions[:,0], positions[:,1], positions[:,2],
-            self.ds.domain_left_edge,
-            self.ds.domain_right_edge)
-        morton.sort()
-        particle_octree = ParticleOctreeContainer([1, 1, 1],
+            positions[:, 0],
+            positions[:, 1],
+            positions[:, 2],
             self.ds.domain_left_edge,
             self.ds.domain_right_edge,
-            over_refine = 1)
+        )
+        morton.sort()
+        particle_octree = ParticleOctreeContainer(
+            [1, 1, 1],
+            self.ds.domain_left_edge,
+            self.ds.domain_right_edge,
+            over_refine=1,
+        )
         particle_octree.n_ref = nneighbors * 2
         particle_octree.add(morton)
         particle_octree.finalize()
         pdom_ind = particle_octree.domain_ind(self.selector)
-        if fields is None: fields = []
+        if fields is None:
+            fields = []
         cls = getattr(particle_smooth, "%s_smooth" % method, None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
@@ -338,13 +452,22 @@ class OctreeSubset(YTSelectionContainer):
         nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
         op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
-        mylog.debug("Smoothing %s particles into %s Octs",
-            positions.shape[0], nvals[-1])
-        op.process_particles(particle_octree, pdom_ind, positions,
-            fields, self.domain_id, self._domain_offset, self.ds.periodicity,
-            self.ds.geometry)
+        mylog.debug(
+            "Smoothing %s particles into %s Octs", positions.shape[0], nvals[-1]
+        )
+        op.process_particles(
+            particle_octree,
+            pdom_ind,
+            positions,
+            fields,
+            self.domain_id,
+            self._domain_offset,
+            self.ds.periodicity,
+            self.ds.geometry,
+        )
         vals = op.finalize()
-        if vals is None: return
+        if vals is None:
+            return
         if isinstance(vals, list):
             vals = [np.asfortranarray(v) for v in vals]
         else:
@@ -353,29 +476,34 @@ class OctreeSubset(YTSelectionContainer):
 
     @cell_count_cache
     def select_icoords(self, dobj):
-        return self.oct_handler.icoords(dobj.selector, domain_id = self.domain_id,
-                                     num_cells = self._cell_count)
+        return self.oct_handler.icoords(
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count
+        )
 
     @cell_count_cache
     def select_fcoords(self, dobj):
         fcoords = self.oct_handler.fcoords(
-            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count)
-        return self.ds.arr(fcoords, 'code_length')
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count
+        )
+        return self.ds.arr(fcoords, "code_length")
 
     @cell_count_cache
     def select_fwidth(self, dobj):
         fwidth = self.oct_handler.fwidth(
-            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count)
-        return self.ds.arr(fwidth, 'code_length')
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count
+        )
+        return self.ds.arr(fwidth, "code_length")
 
     @cell_count_cache
     def select_ires(self, dobj):
-        return self.oct_handler.ires(dobj.selector, domain_id = self.domain_id,
-                                     num_cells = self._cell_count)
+        return self.oct_handler.ires(
+            dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count
+        )
 
     def select(self, selector, source, dest, offset):
-        n = self.oct_handler.selector_fill(selector, source, dest, offset,
-                                           domain_id = self.domain_id)
+        n = self.oct_handler.selector_fill(
+            selector, source, dest, offset, domain_id=self.domain_id
+        )
         return n
 
     def count(self, selector):
@@ -383,23 +511,24 @@ class OctreeSubset(YTSelectionContainer):
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
-        count = selector.count_points(x,y,z, 0.0)
+        count = selector.count_points(x, y, z, 0.0)
         return count
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x,y,z, 0.0)
+        mask = selector.select_points(x, y, z, 0.0)
         return mask
 
-class OctreeSubsetBlockSlicePosition(object):
+
+class OctreeSubsetBlockSlicePosition:
     def __init__(self, ind, block_slice):
         self.ind = ind
         self.block_slice = block_slice
         nz = self.block_slice.octree_subset.nz
-        self.ActiveDimensions = np.array([nz,nz,nz], dtype="int64")
+        self.ActiveDimensions = np.array([nz, nz, nz], dtype="int64")
 
     def __getitem__(self, key):
         bs = self.block_slice
-        rv = bs.octree_subset[key][:,:,:,self.ind].T
+        rv = bs.octree_subset[key][:, :, :, self.ind].T
         if bs.octree_subset._block_reorder:
             rv = rv.copy(order=bs.octree_subset._block_reorder)
         return rv
@@ -410,25 +539,31 @@ class OctreeSubsetBlockSlicePosition(object):
 
     @property
     def Level(self):
-        return self.block_slice._ires[0,0,0,self.ind]
+        return self.block_slice._ires[0, 0, 0, self.ind]
 
     @property
     def LeftEdge(self):
-        LE = (self.block_slice._fcoords[0,0,0,self.ind,:].d
-            - self.block_slice._fwidth[0,0,0,self.ind,:].d*0.5)
+        LE = (
+            self.block_slice._fcoords[0, 0, 0, self.ind, :].d
+            - self.block_slice._fwidth[0, 0, 0, self.ind, :].d * 0.5
+        )
         return self.block_slice.octree_subset.ds.arr(
-            LE, self.block_slice._fcoords.units)
+            LE, self.block_slice._fcoords.units
+        )
 
     @property
     def RightEdge(self):
-        RE = (self.block_slice._fcoords[-1,-1,-1,self.ind,:].d
-            + self.block_slice._fwidth[-1,-1,-1,self.ind,:].d*0.5)
+        RE = (
+            self.block_slice._fcoords[-1, -1, -1, self.ind, :].d
+            + self.block_slice._fwidth[-1, -1, -1, self.ind, :].d * 0.5
+        )
         return self.block_slice.octree_subset.ds.arr(
-            RE, self.block_slice._fcoords.units)
+            RE, self.block_slice._fcoords.units
+        )
 
     @property
     def dds(self):
-        return self.block_slice._fwidth[0,0,0,self.ind,:]
+        return self.block_slice._fwidth[0, 0, 0, self.ind, :]
 
     def clear_data(self):
         pass
@@ -438,10 +573,10 @@ class OctreeSubsetBlockSlicePosition(object):
 
     @contextmanager
     def _field_parameter_state(self, field_parameters):
-        yield self.block_slice.octree_subset._field_parameter_state(
-                field_parameters)
+        yield self.block_slice.octree_subset._field_parameter_state(field_parameters)
 
-class OctreeSubsetBlockSlice(object):
+
+class OctreeSubsetBlockSlice:
     def __init__(self, octree_subset):
         self.octree_subset = octree_subset
         # Cache some attributes
@@ -453,6 +588,7 @@ class OctreeSubsetBlockSlice(object):
         for i in range(self._ires.shape[-1]):
             yield i, OctreeSubsetBlockSlicePosition(i, self)
 
+
 class YTPositionArray(YTArray):
     @property
     def morton(self):
@@ -462,13 +598,10 @@ class YTPositionArray(YTArray):
         LE -= np.abs(LE) * eps
         RE = self.max(axis=0)
         RE += np.abs(RE) * eps
-        morton = compute_morton(
-            self[:,0], self[:,1], self[:,2],
-            LE, RE)
+        morton = compute_morton(self[:, 0], self[:, 1], self[:, 2], LE, RE)
         return morton
 
-    def to_octree(self, over_refine_factor = 1, dims = (1,1,1),
-                  n_ref = 64):
+    def to_octree(self, over_refine_factor=1, dims=(1, 1, 1), n_ref=64):
         mi = self.morton
         mi.sort()
         eps = np.finfo(self.dtype).eps
@@ -476,14 +609,16 @@ class YTPositionArray(YTArray):
         LE -= np.abs(LE) * eps
         RE = self.max(axis=0)
         RE += np.abs(RE) * eps
-        octree = ParticleOctreeContainer(dims, LE, RE,
-            over_refine = over_refine_factor)
+        octree = ParticleOctreeContainer(dims, LE, RE, over_refine=over_refine_factor)
         octree.n_ref = n_ref
         octree.add(mi)
         octree.finalize()
         return octree
 
     def validate(self):
-        if len(self.shape) != 2 or self.shape[1] != 3 \
-           or self.units.dimensions != length:
+        if (
+            len(self.shape) != 2
+            or self.shape[1] != 3
+            or self.units.dimensions != length
+        ):
             raise YTInvalidPositionArray(self.shape, self.units.dimensions)

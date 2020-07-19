@@ -14,14 +14,15 @@ worked examples.
 
 To execute the quickstart interactively, you have a couple of options: 1) run
 the notebook from your own system or 2) run it from the url
-https://demo.use.yt. Option 1 requires an existing installation of yt (see
+https://girder.hub.yt/#raft/5b5b4686323d12000122aa8a.
+Option 1 requires an existing installation of yt (see
 :ref:`getting-and-installing-yt`), a copy of the yt source (which you may
 already have depending on your installation choice), and a download of the
 tutorial data-sets (total about 3 GB). If you know you are going to be a yt user
 and have the time to download the data-sets, option 1 is a good choice. However,
 if you're only interested in getting a feel for yt and its capabilities, or you
 already have yt but don't want to spend time downloading the data, go ahead to
-https://demo.use.yt.
+https://girder.hub.yt/#raft/5b5b4686323d12000122aa8a.
 
 If you're running the tutorial from your own system and you do not already have
 the yt repository, the easiest way to get the repository is to clone it using
@@ -64,7 +65,7 @@ Here are the notebooks, which have been filled in for inspection:
 .. note::
 
    The notebooks use sample datasets that are available for download at
-   http://yt-project.org/data.  See :ref:`quickstart-introduction` for more
+   https://yt-project.org/data.  See :ref:`quickstart-introduction` for more
    details.
 
 Let us know if you would like to contribute other example notebooks, or have

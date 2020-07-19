@@ -2,4 +2,3 @@
 Initialize amr_kdtree
 
 """
-

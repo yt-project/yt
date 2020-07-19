@@ -56,7 +56,7 @@ Colormaps from cmocean
 ~~~~~~~~~~~~~~~~~~~~~~
 
 In addition to ``palettable``, yt will also import colormaps defined in the
-`cmocean <http://matplotlib.org/cmocean>`_ package. These colormaps are
+`cmocean <https://matplotlib.org/cmocean>`_ package. These colormaps are
 `perceptually uniform <http://bids.github.io/colormap/>`_ and were originally
 designed for oceanography applications, but can be used for any kind of plots.
 
@@ -171,6 +171,6 @@ To give the reader a better feel for how a colormap appears once it is applied
 to a dataset, below we provide a library of identical projections of an
 isolated galaxy where only the colormap has changed.  They use the sample
 dataset "IsolatedGalaxy" available at
-`http://yt-project.org/data <http://yt-project.org/data>`_.
+`https://yt-project.org/data <https://yt-project.org/data>`_.
 
 .. yt_colormaps:: cmap_images.py

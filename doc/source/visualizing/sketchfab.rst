@@ -37,8 +37,7 @@ isocontour in density and calculate the mass flux over that isocontour.  It
 also means you can export a surface from yt and view it in something like
 `Blender <https://www.blender.org/>`__, `MeshLab
 <http://www.meshlab.net>`__, or even on your Android or iOS device in
-`MeshPad <http://www.meshpad.org/>`__ or `MeshLab Android
-<https://play.google.com/store/apps/details?id=it.isticnr.meshlab&hl=en>`__.
+`MeshPad <http://www.meshpad.org/>`__.
 
 To extract geometry or sample a field, call
 :meth:`~yt.data_objects.data_containers.YTSelectionContainer3D.extract_isocontours`.  To
@@ -175,7 +174,7 @@ galaxy simulation:
        surf.export_obj(filename, transparency = trans[i], color_field='temperature', plot_index = i)
 
 The calling sequence is fairly similar to the ``export_ply`` function
-`previously used <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`__
+`previously used <https://blog.yt-project.org/post/3DSurfacesAndSketchFab/>`__
 to export 3D surfaces.  However, one can now specify a transparency for each
 surface of interest, and each surface is enumerated in the OBJ files with ``plot_index``.
 This means one could potentially add surfaces to a previously
@@ -216,9 +215,9 @@ Importing to MeshLab and Blender
 --------------------------------
 
 The new OBJ formatting will produce multi-colored surfaces in both
-`MeshLab <http://meshlab.sourceforge.net/>`__ and `Blender <http://www.blender.org/>`__,
+`MeshLab <http://www.meshlab.net/>`__ and `Blender <https://www.blender.org/>`__,
 a feature not possible with the
-`previous PLY exporter <http://blog.yt-project.org/post/3DSurfacesAndSketchFab.html>`__.
+`previous PLY exporter <https://blog.yt-project.org/post/3DSurfacesAndSketchFab/>`__.
 To see colors in MeshLab go to the "Render" tab and
 select "Color -> Per Face".  Note in both MeshLab and Blender, unlike Sketchfab, you can't see
 transparencies until you render.
@@ -281,7 +280,7 @@ in the function "create_materials" with:
    # ...
 
 To use this in Blender, you might create a
-`Blender script <http://cgcookie.com/blender/2011/08/26/introduction-to-scripting-with-python-in-blender/>`__
+`Blender script <https://docs.blender.org/manual/en/latest/advanced/scripting/introduction.html>`__
 like the following:
 
 .. code-block:: python

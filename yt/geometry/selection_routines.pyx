@@ -1,3 +1,5 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Geometry selection routines.
 
@@ -951,7 +953,9 @@ cdef class RegionSelector(SelectorObject):
         cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
         le_all = (np.array(LE) == _ensure_code(dobj.ds.domain_left_edge)).all()
         re_all = (np.array(RE) == _ensure_code(dobj.ds.domain_right_edge)).all()
-        if le_all and re_all:
+        # If we have a bounding box, then we should *not* revert to all data
+        domain_override = getattr(dobj.ds, '_domain_override', False)
+        if le_all and re_all and not domain_override:
             self.is_all_data = True
         else:
             self.is_all_data = False
@@ -1142,7 +1146,10 @@ cdef class CutRegionSelector(SelectorObject):
     cdef tuple _conditionals
 
     def __init__(self, dobj):
-        positions = np.array([dobj['index', 'x'], dobj['index', 'y'], dobj['index', 'z']]).T
+        axis_name = dobj.ds.coordinates.axis_name
+        positions = np.array([dobj['index', axis_name[0]],
+                              dobj['index', axis_name[1]],
+                              dobj['index', axis_name[2]]]).T
         self._conditionals = tuple(dobj.conditionals)
         self._positions = set(tuple(position) for position in positions)
 

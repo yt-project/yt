@@ -1,3 +1,4 @@
+# distutils: libraries = STD_LIBS
 """
 Bit array functions
 

@@ -1,6 +1,6 @@
 import numpy as np
 
-# This is just an export from `pydistmesh` using the '3D Unit Ball' example: 
+# This is just an export from `pydistmesh` using the '3D Unit Ball' example:
 # https://github.com/bfroehle/pydistmesh
 
 _coordinates = np.array([

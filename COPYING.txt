@@ -45,7 +45,7 @@ diverse institutions, scientific, and technical backgrounds.
 Until the fall of 2013, yt was licensed under the GPLv3.  However, with consent
 from all developers and on a public mailing list, yt has been relicensed under
 the BSD 3-clause under a shared copyright model.  For more information, see:
-https://mail.python.org/mm3/archives/list/yt-dev@python.org/thread/G4DJDDGB4PSZFJVPWRSHNOSUMTISXC4X/
+https://mail.python.org/archives/list/yt-dev@python.org/thread/G4DJDDGB4PSZFJVPWRSHNOSUMTISXC4X/
 All versions of yt prior to this licensing change are available under the
 GPLv3; all subsequent versions are available under the BSD 3-clause license.
 
@@ -68,14 +68,3 @@ Development Team.  If individual contributors want to maintain a record of what
 changes/contributions they have specific copyright on, they should indicate
 their copyright in the commit message of the change, when they commit the
 change to one of the yt repositories.
-
-With this in mind, the following banner should be used in any source code file
-to indicate the copyright and license terms:
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------

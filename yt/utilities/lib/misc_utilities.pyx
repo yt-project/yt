@@ -1,3 +1,6 @@
+# distutils: libraries = STD_LIBS
+# distutils: extra_compile_args = OMP_ARGS
+# distutils: extra_link_args = OMP_ARGS
 """
 Simple utilities that don't fit anywhere else
 
