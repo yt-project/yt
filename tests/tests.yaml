@@ -162,5 +162,6 @@ other_tests:
   unittests:
      - '--exclude=test_mesh_slices'  # disable randomly failing test
      - '--exclude=test_load_from_path'  # py2
+     - '--exclude=test_Snipshot'  # until PR 2645 is merged
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
