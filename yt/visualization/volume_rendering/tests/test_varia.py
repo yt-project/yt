@@ -95,7 +95,8 @@ class VariousVRTests(TestCase):
 
         ad = self.ds.all_data()
 
-        assert source.transfer_function.x_bounds == list(
+        np.testing.assert_allclose(
+            source.transfer_function.x_bounds,
             np.log10(ad.quantities.extrema("density"))
         )
         assert source.tfh.log == source.log_field
