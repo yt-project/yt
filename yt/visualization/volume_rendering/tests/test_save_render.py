@@ -5,16 +5,18 @@ import yt
 from yt.testing import fake_random_ds
 from unittest import TestCase
 
+
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
 
 
 class SaveRenderTest(TestCase):
     # This toggles using a temporary directory. Turn off to examine images.
     use_tmpdir = True
-    tmpdir = './'
+    tmpdir = "./"
 
     def setUp(self):
         if self.use_tmpdir:
@@ -30,13 +32,11 @@ class SaveRenderTest(TestCase):
         sc = yt.create_scene(ds)
 
         # make sure it renders if nothing exists, even if render = False
-        sc.save(os.path.join(self.tmpdir,'raw.png'), render=False)
+        sc.save(os.path.join(self.tmpdir, "raw.png"), render=False)
         # make sure it re-renders
-        sc.save(os.path.join(self.tmpdir,'raw_2.png'), render=True)
+        sc.save(os.path.join(self.tmpdir, "raw_2.png"), render=True)
         # make sure sigma clip does not re-render
-        sc.save(os.path.join(self.tmpdir,'clip_2.png'), sigma_clip=2.,
-                render=False)
-        sc.save(os.path.join(self.tmpdir,'clip_4.png'), sigma_clip=4.,
-                render=False)
+        sc.save(os.path.join(self.tmpdir, "clip_2.png"), sigma_clip=2.0, render=False)
+        sc.save(os.path.join(self.tmpdir, "clip_4.png"), sigma_clip=4.0, render=False)
 
         return sc

@@ -232,12 +232,18 @@ class Scene:
         # desirable (e.g., if only changing sigma_clip or
         # saving after a call to sc.show()).
         if self._last_render is None:
-            mylog.warning("No previous rendered image found, rendering now and saving to %s", fname)
+            mylog.warning(
+                "No previous rendered image found, rendering now and saving to %s",
+                fname,
+            )
             render = True
         elif render:
-            mylog.info("Overwriting previous rendered image with new rendering, saving to %s", fname)
+            mylog.info(
+                "Overwriting previous rendered image with new rendering, saving to %s",
+                fname,
+            )
         else:
-            mylog.info("Saving most recently rendered image to %s.",fname)
+            mylog.info("Saving most recently rendered image to %s.", fname)
 
         if render:
             self.render()
@@ -350,9 +356,15 @@ class Scene:
             ax.imshow(np.rot90(out), origin="lower")
             canvas.print_figure(fname, dpi=100)
 
-    def save_annotated(self, fname=None, label_fmt=None,
-                       text_annotate=None, dpi=100, sigma_clip=None,
-                       render=True):
+    def save_annotated(
+        self,
+        fname=None,
+        label_fmt=None,
+        text_annotate=None,
+        dpi=100,
+        sigma_clip=None,
+        render=True,
+    ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
         text.
