@@ -207,7 +207,7 @@ class Scene:
         >>> sc.save(sigma_clip=4.0,render=False)
 
         Altneratively, if you do not need the image array, you can just call
-        save as follows.
+        ``save`` as follows.
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
