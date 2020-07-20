@@ -4,6 +4,7 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
+from yt.data_objects.static_output import Dataset
 from yt.funcs import ensure_numpy_array, iterable, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_geometry_handler import OctreeIndex
@@ -119,7 +120,11 @@ class OpaqueSource(RenderSource):
 
 
 def create_volume_source(data_source, field):
-    index_class = data_source.ds.index.__class__
+    if isinstance(data_source, Dataset):
+        ds = data_source
+    else:
+        ds = data_source.ds
+    index_class = ds.index.__class__
     if issubclass(index_class, GridIndex):
         return KDTreeVolumeSource(data_source, field)
     elif issubclass(index_class, OctreeIndex):
