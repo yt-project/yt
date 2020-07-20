@@ -280,8 +280,14 @@ class RAMSESDomainSubset(OctreeSubset):
         if gz_cache:
             levels, cell_inds, file_inds, domains = gz_cache
         else:
-            gz_cache = levels, cell_inds, file_inds, domains = self.oct_handler.file_index_octs_with_ghost_zones(
-            selector, self.domain_id, cell_count)
+            gz_cache = (
+                levels,
+                cell_inds,
+                file_inds,
+                domains,
+            ) = self.oct_handler.file_index_octs_with_ghost_zones(
+                selector, self.domain_id, cell_count
+            )
             self._ghost_zone_cache = gz_cache
 
         # Initializing data container
@@ -348,13 +354,19 @@ class RAMSESDomainSubset(OctreeSubset):
             )
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
-        new_subset = getattr(self, '_subset_with_gz', None)
+        new_subset = getattr(self, "_subset_with_gz", None)
         if not new_subset:
             new_subset = RAMSESDomainSubset(
-                self.base_region, self.domain, self.ds, num_ghost_zones=ngz, base_grid=self
+                self.base_region,
+                self.domain,
+                self.ds,
+                num_ghost_zones=ngz,
+                base_grid=self,
             )
         else:
-            mylog.debug('Reusing previous subset with ghost zone for domain %s' % self.domain_id)
+            mylog.debug(
+                "Reusing previous subset with ghost zone for domain %s" % self.domain_id
+            )
         self._subset_with_gz = new_subset
 
         return new_subset

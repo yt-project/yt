@@ -526,8 +526,8 @@ class OctreeSubset(YTSelectionContainer):
         _old_api = isinstance(fields, (str, tuple))
         if _old_api:
             message = (
-                'get_vertex_centered_data() requires list of fields, rather than '
-                'a single field as an argument.'
+                "get_vertex_centered_data() requires list of fields, rather than "
+                "a single field as an argument."
             )
             warnings.warn(message, DeprecationWarning, stacklevel=2)
             fields = [fields]
@@ -537,19 +537,20 @@ class OctreeSubset(YTSelectionContainer):
         new_fields = {}
         cg = self.retrieve_ghost_zones(1, fields)
         for field in fields:
-            new_fields[field] = cg[field][1: ,1: ,1: ].copy()
-            np.add(new_fields[field], cg[field][:-1,1: ,1: ], new_fields[field])
-            np.add(new_fields[field], cg[field][1: ,:-1,1: ], new_fields[field])
-            np.add(new_fields[field], cg[field][1: ,1: ,:-1], new_fields[field])
-            np.add(new_fields[field], cg[field][:-1,1: ,:-1], new_fields[field])
-            np.add(new_fields[field], cg[field][1: ,:-1,:-1], new_fields[field])
-            np.add(new_fields[field], cg[field][:-1,:-1,1: ], new_fields[field])
-            np.add(new_fields[field], cg[field][:-1,:-1,:-1], new_fields[field])
+            new_fields[field] = cg[field][1:, 1:, 1:].copy()
+            np.add(new_fields[field], cg[field][:-1, 1:, 1:], new_fields[field])
+            np.add(new_fields[field], cg[field][1:, :-1, 1:], new_fields[field])
+            np.add(new_fields[field], cg[field][1:, 1:, :-1], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1, 1:, :-1], new_fields[field])
+            np.add(new_fields[field], cg[field][1:, :-1, :-1], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1, :-1, 1:], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1, :-1, :-1], new_fields[field])
             np.multiply(new_fields[field], 0.125, new_fields[field])
 
         if _old_api:
             return new_fields[fields[0]]
         return new_fields
+
 
 class OctreeSubsetBlockSlicePosition:
     def __init__(self, ind, block_slice):
