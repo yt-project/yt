@@ -2352,17 +2352,23 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     ...                 north_vector=[0.2,-0.3,0.1])
 
     """
-    # Make sure we are passed a normal
-    # we check the axis keyword for backwards compatibility
-    if normal is None:
+    if axis is not None:
+        issue_deprecation_warning(
+            "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
+            "will be removed in a future version of yt."
+        )
+        if normal is not None:
+            raise TypeError(
+                "SlicePlot() received incompatible arguments 'axis' and 'normal'"
+            )
         normal = axis
-    if normal is None:
-        raise AssertionError("Must pass a normal vector to the slice!")
 
-    # to keep positional ordering we had to make fields a keyword; make sure
-    # it is present
+    # to keep positional ordering we had to make 'normal' and 'fields' keywords
+    if normal is None:
+        raise TypeError("Missing argument in SlicePlot(): 'normal'")
+
     if fields is None:
-        raise AssertionError("Must pass field(s) to plot!")
+        raise TypeError("Missing argument in SlicePlot(): 'fields'")
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
