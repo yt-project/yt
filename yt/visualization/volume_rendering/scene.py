@@ -226,24 +226,18 @@ class Scene:
         self._last_render = bmp
         return bmp
 
-    def _check_render(self, fname, render=True):
-        # checks for existing render before saving,  in most cases we want to
+    def _render_if_missing(self, render=True):
+        # checks for existing render before saving, in most cases we want to
         # render every time, but in some cases pulling the previous render is
         # desirable (e.g., if only changing sigma_clip or
         # saving after a call to sc.show()).
         if self._last_render is None:
-            mylog.warning(
-                "No previous rendered image found, rendering now and saving to %s",
-                fname,
-            )
+            mylog.warning("No previous rendered image found, rendering now.")
             render = True
         elif render:
-            mylog.info(
-                "Overwriting previous rendered image with new rendering, saving to %s",
-                fname,
-            )
+            mylog.info("Overwriting previous rendered image with new rendering.")
         else:
-            mylog.info("Saving most recently rendered image to %s.", fname)
+            mylog.info("Found previous rendered image to save.")
 
         if render:
             self.render()
@@ -324,7 +318,8 @@ class Scene:
             suffix = ".png"
             fname = "%s%s" % (fname, suffix)
 
-        self._check_render(fname, render)
+        self._render_if_missing(render)
+        mylog.info("Saving rendered image to %s", fname)
 
         # We can render pngs natively but for other formats we defer to
         # matplotlib.
@@ -452,7 +447,8 @@ class Scene:
             suffix = ".png"
             fname = "%s%s" % (fname, suffix)
 
-        self._check_render(fname, render)
+        self._render_if_missing(fname, render)
+        mylog.info("Saving rendered image to %s", fname)
 
         # which transfer function?
         rs = rensources[0]
