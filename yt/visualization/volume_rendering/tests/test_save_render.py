@@ -30,7 +30,7 @@ class SaveRenderTest(TestCase):
             shutil.rmtree(self.tmpdir)
 
     def test_save_render(self):
-        ds = fake_random_ds(32)
+        ds = fake_random_ds(ndims=32)
         sc = yt.create_scene(ds)
         sc.save('raw.png') # will use render = True by default
         sc.save('clip_2.png', sigma_clip=2, render=False) # will pull render
