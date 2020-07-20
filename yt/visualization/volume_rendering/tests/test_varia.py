@@ -97,7 +97,7 @@ class VariousVRTests(TestCase):
 
         np.testing.assert_allclose(
             source.transfer_function.x_bounds,
-            np.log10(ad.quantities.extrema("density"))
+            np.log10(ad.quantities.extrema("density")),
         )
         assert source.tfh.log == source.log_field
 
