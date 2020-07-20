@@ -1,4 +1,3 @@
-import warnings
 from contextlib import contextmanager
 
 import numpy as np
@@ -6,7 +5,7 @@ import numpy as np
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 from yt.data_objects.data_containers import YTSelectionContainer
-from yt.funcs import mylog
+from yt.funcs import mylog, issue_deprecation_warning
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.units.dimensions import length
 from yt.units.yt_array import YTArray
@@ -529,7 +528,7 @@ class OctreeSubset(YTSelectionContainer):
                 "get_vertex_centered_data() requires list of fields, rather than "
                 "a single field as an argument."
             )
-            warnings.warn(message, DeprecationWarning, stacklevel=2)
+            issue_deprecation_warning(message)
             fields = [fields]
 
         # Make sure the field list has only unique entries

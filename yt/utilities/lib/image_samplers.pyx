@@ -73,7 +73,7 @@ cdef class ImageSampler:
         cdef int i
 
         self.volume_method = kwargs.pop('volume_method', None)
-        if self.volume_method and self.volume_method not in ('KDTree', 'Octree'):
+        if self.volume_method not in ('KDTree', 'Octree'):
             raise NotImplementedError(
                 'Invalid volume method "%s".' % self.svolume_method)
         camera_data = kwargs.pop("camera_data", None)
@@ -139,6 +139,8 @@ cdef class ImageSampler:
             return self.cast_through_kdtree(pg, **kwa)
         elif self.volume_method == 'Octree':
             return self.cast_through_octree(pg, **kwa)
+        else:
+            raise NotImplementedError
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -297,10 +299,6 @@ cdef class ImageSampler:
             free(idata)
 
         mylog.debug('Done integration')
-        # # Free memory
-        # for j in range(size):
-        #     del ret[j]
-        # free(ret)
 
 
     cdef void setup(self, PartitionedGrid pg):

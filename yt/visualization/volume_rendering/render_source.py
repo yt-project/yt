@@ -129,6 +129,8 @@ def create_volume_source(data_source, field):
         return KDTreeVolumeSource(data_source, field)
     elif issubclass(index_class, OctreeIndex):
         return OctreeVolumeSource(data_source, field)
+    else:
+        raise NotImplementedError
 
 
 class VolumeSource(RenderSource):
@@ -567,9 +569,7 @@ class OctreeVolumeSource(VolumeSource):
             data = self.data_source
             ds = data.ds
 
-            xyz = np.stack(
-                [data[_].to("unitary").value for _ in "x y z".split()], axis=-1
-            )
+            xyz = np.stack([data[key].to("unitary").value for key in "xyz"], axis=-1)
             lvl = data["grid_level"].astype(np.int32).value + ds.parameters["levelmin"]
             ipos = np.floor(xyz * (1 << (ds.parameters["levelmax"]))).astype(np.int32)
 
@@ -601,7 +601,10 @@ class OctreeVolumeSource(VolumeSource):
         """
         self.zbuffer = zbuffer
         self.set_sampler(camera)
-        assert self.sampler is not None
+        if self.sampler is None:
+            raise RuntimeError(
+                "No sampler set. This is likely a bug as it should never happen."
+            )
 
         data = self.data_source
 

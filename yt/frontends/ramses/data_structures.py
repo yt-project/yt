@@ -354,8 +354,12 @@ class RAMSESDomainSubset(OctreeSubset):
             )
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
-        new_subset = getattr(self, "_subset_with_gz", None)
-        if not new_subset:
+        try:
+            new_subset = self._subset_with_gz
+            mylog.debug(
+                "Reusing previous subset with ghost zone for domain %s", self.domain_id
+            )
+        except AttributeError:
             new_subset = RAMSESDomainSubset(
                 self.base_region,
                 self.domain,
@@ -363,11 +367,7 @@ class RAMSESDomainSubset(OctreeSubset):
                 num_ghost_zones=ngz,
                 base_grid=self,
             )
-        else:
-            mylog.debug(
-                "Reusing previous subset with ghost zone for domain %s", self.domain_id
-            )
-        self._subset_with_gz = new_subset
+            self._subset_with_gz = new_subset
 
         return new_subset
 

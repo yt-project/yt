@@ -24,9 +24,7 @@ class OctreeRayTracing(object):
         self.octree = CythonOctreeRayTracing(LE, RE, depth)
         ds = data_source.ds
 
-        xyz = np.stack(
-            [data_source[_].to("unitary").value for _ in "x y z".split()], axis=-1
-        )
+        xyz = np.stack([data_source[key].to("unitary").value for key in "xyz"], axis=-1)
         lvl = data_source["grid_level"].astype(int).value + ds.parameters["levelmin"]
 
         ipos = np.floor(xyz * (1 << (ds.parameters["levelmax"]))).astype(int)
