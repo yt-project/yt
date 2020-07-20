@@ -134,8 +134,8 @@ def _print_installation_information(path):
 def _get_girder_client():
     try:
         import girder_client
-    except ImportError:
-        raise YTCommandRequiresModule("girder_client")
+    except ImportError as e:
+        raise YTCommandRequiresModule("girder_client") from e
     if not ytcfg.get("yt", "hub_api_key"):
         print("Before you can access the yt Hub you need an API key")
         print("In order to obtain one, either register by typing:")
@@ -797,8 +797,8 @@ class YTHubRegisterCmd(YTCommand):
     def __call__(self, args):
         try:
             import requests
-        except ImportError:
-            raise YTCommandRequiresModule("requests")
+        except ImportError as e:
+            raise YTCommandRequiresModule("requests") from e
         if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
             print(f"{CURRENT_CONFIG_FILE} . Delete this if you want to force a")
@@ -1045,12 +1045,12 @@ class YTMapserverCmd(YTCommand):
         PannableMapServer(p.data_source, args.field, args.takelog, args.cmap)
         try:
             import bottle
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "The mapserver functionality requires the bottle "
                 "package to be installed. Please install using `pip "
                 "install bottle`."
-            )
+            ) from e
         bottle.debug(True)
         if args.host is not None:
             colonpl = args.host.find(":")
@@ -1607,8 +1607,8 @@ class YTUploadFileCmd(YTCommand):
     def __call__(self, args):
         try:
             import requests
-        except ImportError:
-            raise YTCommandRequiresModule("requests")
+        except ImportError as e:
+            raise YTCommandRequiresModule("requests") from e
 
         fs = iter(FileStreamer(open(args.file, "rb")))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")

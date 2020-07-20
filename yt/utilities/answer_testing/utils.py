@@ -186,7 +186,7 @@ def generate_hash(data):
         if isinstance(data, dict):
             hd = _hash_dict(data)
         else:
-            raise TypeError
+            raise
     return hd
 
 

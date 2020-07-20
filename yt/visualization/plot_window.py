@@ -1,4 +1,3 @@
-import sys
 import types
 from collections import defaultdict
 from distutils.version import LooseVersion

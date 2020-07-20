@@ -2732,12 +2732,12 @@ class ScaleCallback(PlotCallback):
             setter_func = "set_" + key
             try:
                 getattr(fontproperties, setter_func)(val)
-            except AttributeError:
+            except AttributeError as e:
                 raise AttributeError(
                     "Cannot set text_args keyword "
                     "to include '%s' because MPL's fontproperties object does "
                     "not contain function '%s'." % (key, setter_func)
-                )
+                ) from e
 
         # this "anchors" the size bar to a box centered on self.pos in axis
         # coordinates

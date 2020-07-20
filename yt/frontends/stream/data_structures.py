@@ -363,7 +363,6 @@ class StreamDictFieldHandler(dict):
         fields = list(set(fields))
         return fields
 
-
 class StreamParticleIndex(SPHParticleIndex):
     def __init__(self, ds, dataset_type=None):
         self.stream_handler = ds.stream_handler
