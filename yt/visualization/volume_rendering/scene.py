@@ -226,8 +226,25 @@ class Scene:
         self._last_render = bmp
         return bmp
 
+    def _check_render(self, fname, render=True):    
+        # checks for existing render before saving,  in most cases we want to 
+        # render every time, but in some cases pulling the previous render is 
+        # desirable (e.g., if only changing sigma_clip or
+        # saving after a call to sc.show()).
+        if self._last_render is None:
+            mylog.warning("No previous rendered image found, rendering now and saving to %s", fname)
+            render = True
+        elif render:
+            mylog.info("Overwriting previous rendered image with new rendering, saving to %s", fname)
+        else:            
+            mylog.info("Saving most recently rendered image to %s.",fname)            
+            
+            
+        if render:    
+            self.render()
+            
     def save(self, fname=None, sigma_clip=None, render=True):
-        r"""Saves the most recently rendered image of the Scene to disk.
+        r"""Saves a rendered image of the Scene to disk.
 
         Once you have created a scene, this saves an image array to disk with
         an optional filename. This function calls render() to generate an
@@ -302,13 +319,8 @@ class Scene:
             suffix = ".png"
             fname = "%s%s" % (fname, suffix)
 
-        # in most cases we want to render every time, but in some cases pulling
-        # the previous render is desirable (e.g., if only changing sigma_clip or
-        # saving after a call to sc.show()).
-        if render or hasattr(self,'_last_render') is False:
-            self.render()
-
-        mylog.info("Saving render %s", fname)
+        self._check_render(fname, render) 
+    
         # We can render pngs natively but for other formats we defer to
         # matplotlib.
         if suffix == ".png":
@@ -429,8 +441,7 @@ class Scene:
             suffix = ".png"
             fname = "%s%s" % (fname, suffix)
 
-        if render or hasattr(self,'_last_render') is False:
-            self.render()
+        self._check_render(fname, render)
 
         # which transfer function?
         rs = rensources[0]

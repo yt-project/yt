@@ -873,8 +873,7 @@ scene and volumes, you can simply call
 calling :meth:`~yt.visualization.volume_rendering.scene.Scene.render`. If you
 wish to save the most recently rendered image without rendering again, set
 ``render=False`` in the call to
-:meth:`~yt.visualization.volume_rendering.scene.Scene.save` and the most
-recently rendered image array will be used.  Cases where you
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save`.  Cases where you
 may wish to use ``render=False`` include saving images at different
 ``sigma_clip`` values (see :ref:`cookbook-sigma_clip`) or when saving an image
 that has already been rendered in a Jupyter notebook using
