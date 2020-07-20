@@ -226,9 +226,9 @@ class Scene:
         self._last_render = bmp
         return bmp
 
-    def _check_render(self, fname, render=True):    
-        # checks for existing render before saving,  in most cases we want to 
-        # render every time, but in some cases pulling the previous render is 
+    def _check_render(self, fname, render=True):
+        # checks for existing render before saving,  in most cases we want to
+        # render every time, but in some cases pulling the previous render is
         # desirable (e.g., if only changing sigma_clip or
         # saving after a call to sc.show()).
         if self._last_render is None:
@@ -236,13 +236,12 @@ class Scene:
             render = True
         elif render:
             mylog.info("Overwriting previous rendered image with new rendering, saving to %s", fname)
-        else:            
-            mylog.info("Saving most recently rendered image to %s.",fname)            
-            
-            
-        if render:    
+        else:
+            mylog.info("Saving most recently rendered image to %s.",fname)
+
+        if render:
             self.render()
-            
+
     def save(self, fname=None, sigma_clip=None, render=True):
         r"""Saves a rendered image of the Scene to disk.
 
@@ -319,8 +318,8 @@ class Scene:
             suffix = ".png"
             fname = "%s%s" % (fname, suffix)
 
-        self._check_render(fname, render) 
-    
+        self._check_render(fname, render)
+
         # We can render pngs natively but for other formats we defer to
         # matplotlib.
         if suffix == ".png":

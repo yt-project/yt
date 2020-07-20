@@ -29,14 +29,14 @@ class SaveRenderTest(TestCase):
         ds = fake_random_ds(ndims=32)
         sc = yt.create_scene(ds)
 
-        # make sure it renders if nothing exists, even if render = False 
-        sc.save(os.path.join(self.tmpdir,'raw.png'), render = False) 
-        # make sure it re-renders 
-        sc.save(os.path.join(self.tmpdir,'raw_2.png'), render = True)
-        # make sure sigma clip does not re-render 
-        sc.save(os.path.join(self.tmpdir,'clip_2.png'), sigma_clip=2., 
-            render=False)
-        sc.save(os.path.join(self.tmpdir,'clip_4.png'), sigma_clip=4., 
-            render=False)
+        # make sure it renders if nothing exists, even if render = False
+        sc.save(os.path.join(self.tmpdir,'raw.png'), render=False)
+        # make sure it re-renders
+        sc.save(os.path.join(self.tmpdir,'raw_2.png'), render=True)
+        # make sure sigma clip does not re-render
+        sc.save(os.path.join(self.tmpdir,'clip_2.png'), sigma_clip=2.,
+                render=False)
+        sc.save(os.path.join(self.tmpdir,'clip_4.png'), sigma_clip=4.,
+                render=False)
 
         return sc
