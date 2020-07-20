@@ -479,7 +479,7 @@ class VolumeSource(RenderSource, abc.ABC):
         image.shape = camera.resolution[0], camera.resolution[1], 4
         # If the call is from VR, the image is rotated by 180 to get correct
         # up direction
-        if self.transfer_function.grey_opacity is False:
+        if not self.transfer_function.grey_opacity:
             image[:, :, 3] = 1
         return image
 
