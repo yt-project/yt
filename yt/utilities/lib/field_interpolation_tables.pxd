@@ -79,7 +79,6 @@ cdef inline void FIT_eval_transfer(
     cdef np.float64_t ta
     cdef np.float64_t istorage[6]
     cdef np.float64_t trgba[6]
-    # for i in range(6): istorage[i] = 0.0
     for i in range(n_fits):
         istorage[i] = FIT_get_value(&fits[i], dvs)
     for i in range(n_fits):

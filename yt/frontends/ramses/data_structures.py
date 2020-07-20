@@ -365,7 +365,8 @@ class RAMSESDomainSubset(OctreeSubset):
             )
         else:
             mylog.debug(
-                "Reusing previous subset with ghost zone for domain %s" % self.domain_id
+                "Reusing previous subset with ghost zone for domain %s",
+                self.domain_id
             )
         self._subset_with_gz = new_subset
 
