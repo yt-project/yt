@@ -82,12 +82,18 @@ class TestYTConfigCommands(TestYTConfig):
         if mock is None:
             return
 
+        def remove_spaces_and_breaks(s):
+            return "".join(s.split())
+
         self.assertFalse(os.path.exists(CURRENT_CONFIG_FILE))
 
         info = self._runYTConfig(["--help"])
         self.assertEqual(info["rc"], 0)
         self.assertEqual(info["stderr"], "")
-        self.assertIn("Get and set configuration values for yt", info["stdout"])
+        self.assertIn(
+            remove_spaces_and_breaks("Get and set configuration values for yt"),
+            remove_spaces_and_breaks(info["stdout"]),
+        )
 
         info = self._runYTConfig(["list"])
         self.assertEqual(info["rc"], 0)

@@ -30,7 +30,7 @@ before_install:
     else
       sudo mkdir -p /usr/local/man
       sudo chown -R "${USER}:admin" /usr/local/man
-      brew update
+      # brew update  # do not update to save build time
       brew install python ccache hdf5 proj geos openmpi netcdf
       brew uninstall gdal postgis numpy
       export PATH=/usr/local/opt/ccache/libexec:$PATH
@@ -68,7 +68,7 @@ install:
         # pyproject.toml in cartopy.
         # These versions are pinned, so we will need to update/remove them when
         # the hack is no longer necessary.
-        $PIP install numpy==1.18.1 cython==0.29.6
+        $PIP install numpy==1.18.1 cython==0.29.14
         CFLAGS="$CFLAGS -DACCEPT_USE_OF_DEPRECATED_PROJ_API_H" $PIP install -r tests/test_requirements.txt
       fi
       $PIP install -e .
@@ -116,14 +116,11 @@ jobs:
       name: "MacOS: Unit Tests"
       os: osx
       osx_image: xcode10.1
-      language: generic  # https://github.com/travis-ci/travis-ci/issues/2312
+      language: shell
       env: PIP=pip3
       cache:
-        pip: false
-        directories:
+        - directories:
           - $HOME/Library/Caches/pip
-          # `cache` does not support `env`-like `global` so copy-paste from top
-          - $HOME/.ccache  # https://github.com/travis-ci/travis-ci/issues/5853
       script: nosetests -c nose_unit.cfg
 
 after_success:

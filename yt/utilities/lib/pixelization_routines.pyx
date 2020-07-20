@@ -245,7 +245,7 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                                 # conservative about the iteration indices.
                                 # This will reduce artifacts if we ever move to
                                 # compositing instead of replacing bitmaps.
-                                if overlap1 * overlap2 == 0.0: continue
+                                if overlap1 * overlap2 < 1.e-6: continue
                                 buff[i,j] += (dsp * overlap1) * overlap2
                             else:
                                 buff[i,j] = dsp
