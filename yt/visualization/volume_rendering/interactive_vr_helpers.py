@@ -50,13 +50,13 @@ def _render_opengl(
             "packages to be installed."
         )
 
-    from .interactive_vr import (
-        SceneGraph,
-        BlockCollection,
-        TrackballCamera,
-        MeshSceneComponent,
-    )
     from .interactive_loop import RenderingContext
+    from .interactive_vr import (
+        BlockCollection,
+        MeshSceneComponent,
+        SceneGraph,
+        TrackballCamera,
+    )
 
     if isinstance(data_source, Dataset):
         dobj = data_source.all_data()

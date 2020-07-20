@@ -10,16 +10,22 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 
 
 import struct
-from libcpp.map cimport map as cmap
-from libcpp.map cimport map
-from libcpp.algorithm cimport sort
-from libc.stdlib cimport malloc, free, qsort
+
 from cython.operator cimport dereference, preincrement
+from libc.stdlib cimport free, malloc, qsort
+from libcpp.algorithm cimport sort
+from libcpp.map cimport map as cmap
+
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from yt.utilities.lib.geometry_utils cimport \
-    morton_neighbors_coarse, morton_neighbors_refined
+cimport numpy as np
+
+from yt.utilities.lib.geometry_utils cimport (
+    morton_neighbors_coarse,
+    morton_neighbors_refined,
+)
+
 
 cdef extern from "<algorithm>" namespace "std" nogil:
     Iter unique[Iter](Iter first, Iter last)

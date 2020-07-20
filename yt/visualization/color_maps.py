@@ -1,6 +1,5 @@
-import matplotlib.cm as mcm
-import matplotlib.colors as cc
 import numpy as np
+from matplotlib import cm as mcm, colors as cc
 
 from . import _colormap_data as _cm
 
@@ -566,8 +565,7 @@ def show_colormaps(subset="all", filename=None):
         If filename is set, then it will save the colormaps to an output
         file.  If it is not set, it will "show" the result interactively.
     """
-    import matplotlib.pyplot as plt
-    import matplotlib.cm as cm
+    from matplotlib import cm as cm, pyplot as plt
 
     a = np.outer(np.arange(0, 1, 0.01), np.ones(10))
     if subset == "all":

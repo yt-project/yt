@@ -1,9 +1,9 @@
 import os
 from functools import wraps
 
+import bottle
 import numpy as np
 
-import bottle
 from yt.utilities.lib.misc_utilities import get_color_bounds
 from yt.utilities.png_writer import write_png_to_string
 from yt.visualization.fixed_resolution import FixedResolutionBuffer

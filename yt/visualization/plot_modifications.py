@@ -616,7 +616,7 @@ class ContourCallback(PlotCallback):
         self.data_source = data_source
 
     def __call__(self, plot):
-        from matplotlib.tri import Triangulation, LinearTriInterpolator
+        from matplotlib.tri import LinearTriInterpolator, Triangulation
 
         # These need to be in code_length
         x0, x1, y0, y1 = self._physical_bounds(plot)

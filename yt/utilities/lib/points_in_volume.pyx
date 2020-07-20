@@ -10,9 +10,11 @@ Checks for points contained in a volume
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
 from libc.math cimport sqrt
+
 
 cdef extern from "math.h":
     double fabs(double x)

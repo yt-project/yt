@@ -9,19 +9,24 @@ Marching cubes implementation
 """
 
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
+
 import numpy as np
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
-from libc.stdlib cimport malloc, free, abs
+
+from fixed_interpolator cimport (
+    eval_gradient,
+    offset_fill,
+    offset_interpolate,
+    vertex_interp,
+)
 from libc.math cimport sqrt
-from fixed_interpolator cimport \
-    eval_gradient, \
-    offset_fill, \
-    offset_interpolate, \
-    vertex_interp
+from libc.stdlib cimport abs, free, malloc
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
 
 from yt.units.yt_array import YTArray
+
 
 cdef extern from "marching_cubes.h":
     int tri_table[256][16]

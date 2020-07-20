@@ -295,9 +295,9 @@ class Scene:
         if suffix == ".png":
             self._last_render.write_png(fname, sigma_clip=sigma_clip)
         else:
-            from matplotlib.figure import Figure
             from matplotlib.backends.backend_pdf import FigureCanvasPdf
             from matplotlib.backends.backend_ps import FigureCanvasPS
+            from matplotlib.figure import Figure
 
             shape = self._last_render.shape
             fig = Figure((shape[0] / 100.0, shape[1] / 100.0))
