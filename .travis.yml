@@ -79,12 +79,18 @@ install:
 jobs:
   include:
     - stage: Lint
+      name: "flake8"
       python: 3.6
       script: flake8 yt/
 
     - stage: Lint
+      name: "isort"
       python: 3.6
       script: isort --check-only -rc yt/
+
+    - stage: Lint
+      name: "black"
+      python: 3.6
       script: black --check yt/
 
     - stage: tests
