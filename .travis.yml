@@ -19,6 +19,7 @@ addons:
 env:
   global:
     PIP=pip
+    HOMEBREW_NO_AUTO_UPDATE=1
 
 before_install:
   - |
@@ -30,9 +31,8 @@ before_install:
     else
       sudo mkdir -p /usr/local/man
       sudo chown -R "${USER}:admin" /usr/local/man
-      # brew update  # do not update to save build time
-      brew install python ccache hdf5 proj geos openmpi netcdf
-      brew uninstall gdal postgis numpy
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache
+      HOMEBREW_NO_AUTO_UPDATE=1 brew uninstall gdal postgis numpy  # WHY?
       export PATH=/usr/local/opt/ccache/libexec:$PATH
     fi
     mkdir -p $HOME/.config/yt
