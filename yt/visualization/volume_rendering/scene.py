@@ -226,21 +226,23 @@ class Scene:
         self._last_render = bmp
         return bmp
 
-    def _render_if_missing(self, render=True):
+    def _sanitize_render(self, render=True):
         # checks for existing render before saving, in most cases we want to
         # render every time, but in some cases pulling the previous render is
         # desirable (e.g., if only changing sigma_clip or
         # saving after a call to sc.show()).
         if self._last_render is None:
-            mylog.warning("No previous rendered image found, rendering now.")
+            mylog.warning("No previously rendered image found, rendering now.")
             render = True
         elif render:
-            mylog.info("Overwriting previous rendered image with new rendering.")
+            mylog.warning(
+                "Previously rendered image exists, but rendering anyway. "
+                "Supply 'render=False' to save previously rendered image directly."
+            )
         else:
-            mylog.info("Found previous rendered image to save.")
+            mylog.info("Found previously rendered image to save.")
 
-        if render:
-            self.render()
+        return render
 
     def save(self, fname=None, sigma_clip=None, render=True):
         r"""Saves a rendered image of the Scene to disk.
@@ -318,7 +320,9 @@ class Scene:
             suffix = ".png"
             fname = "%s%s" % (fname, suffix)
 
-        self._render_if_missing(render)
+        render = self._sanitize_render(render)
+        if render:
+            self.render()
         mylog.info("Saving rendered image to %s", fname)
 
         # We can render pngs natively but for other formats we defer to
@@ -447,7 +451,9 @@ class Scene:
             suffix = ".png"
             fname = "%s%s" % (fname, suffix)
 
-        self._render_if_missing(fname, render)
+        render = self._sanitize_render(render)
+        if render:
+            self.render()
         mylog.info("Saving rendered image to %s", fname)
 
         # which transfer function?
