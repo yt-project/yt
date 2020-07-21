@@ -8,8 +8,8 @@ from yt.funcs import mylog
 
 def get_thingking_deps():
     try:
-        from thingking.httpmmap import HTTPArray
         from thingking.arbitrary_page import PageCacheURL
+        from thingking.httpmmap import HTTPArray
     except ImportError:
         raise ImportError(
             "This functionality requires the thingking package to be installed"

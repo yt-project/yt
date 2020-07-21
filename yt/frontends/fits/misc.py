@@ -100,8 +100,9 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
     ...                            nan_mask=0.0)
     """
     from spectral_cube import SpectralCube
-    from yt.visualization.fits_image import FITSImageData
+
     from yt.frontends.fits.api import FITSDataset
+    from yt.visualization.fits_image import FITSImageData
 
     cube = SpectralCube.read(filename)
     if not isinstance(slab_width, YTQuantity):
@@ -157,6 +158,7 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     >>> print(circle_region.quantities.extrema("flux"))
     """
     import pyregion
+
     from yt.frontends.fits.api import EventsFITSDataset
 
     if os.path.exists(reg):

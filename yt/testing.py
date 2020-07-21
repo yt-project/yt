@@ -1063,9 +1063,10 @@ def run_nose(
     call_pdb=False,
     module=None,
 ):
-    from yt.utilities.on_demand_imports import _nose
     import sys
+
     from yt.utilities.logger import ytLogger as mylog
+    from yt.utilities.on_demand_imports import _nose
 
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)

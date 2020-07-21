@@ -8,8 +8,10 @@ Utilities for line integral convolution annotation
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 @cython.cdivision(True)
 cdef void _advance_2d(double vx, double vy,

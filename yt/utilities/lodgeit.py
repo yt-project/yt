@@ -132,7 +132,7 @@ def copy_url(url):
         # then give pbcopy a try.  do that before gtk because
         # gtk might be installed on os x but nobody is interested
         # in the X11 clipboard there.
-        from subprocess import Popen, PIPE
+        from subprocess import PIPE, Popen
 
         try:
             client = Popen(["pbcopy"], stdin=PIPE)
@@ -141,8 +141,8 @@ def copy_url(url):
                 import pygtk
 
                 pygtk.require("2.0")
-                import gtk
                 import gobject
+                import gtk
             except ImportError:
                 return
             gtk.clipboard_get(gtk.gdk.SELECTION_CLIPBOARD).set_text(url)

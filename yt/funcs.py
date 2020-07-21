@@ -528,8 +528,8 @@ def paste_traceback_detailed(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     import cgitb
-    from io import StringIO
     import xmlrpc.client
+    from io import StringIO
 
     s = StringIO()
     handler = cgitb.Hook(format="text", file=s)
@@ -892,6 +892,7 @@ def parallel_profile(prefix):
     ...     yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
     """
     import cProfile
+
     from yt.config import ytcfg
 
     fn = "%s_%04i_%04i.cprof" % (
@@ -1105,8 +1106,8 @@ def enable_plugins(pluginfilename=None):
     file is shared with it.
     """
     import yt
+    from yt.config import CONFIG_DIR, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
-    from yt.config import ytcfg, CONFIG_DIR
 
     if pluginfilename is not None:
         _fn = pluginfilename

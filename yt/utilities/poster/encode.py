@@ -25,7 +25,9 @@ try:
 
 
 except ImportError:
-    import random, sha
+    import random
+
+    import sha
 
     def gen_boundary():
         """Returns a random string to use as the boundary for a message"""

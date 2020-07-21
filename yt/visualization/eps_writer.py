@@ -1,8 +1,7 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
-
 import pyx
+from matplotlib import cm, pyplot as plt
+
 from yt.config import ytcfg
 from yt.funcs import issue_deprecation_warning
 from yt.units.unit_object import Unit

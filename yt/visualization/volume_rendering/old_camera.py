@@ -1189,7 +1189,7 @@ class InteractiveCamera(Camera):
     frames = []
 
     def snapshot(self, fn=None, clip_ratio=None):
-        import matplotlib.pylab as pylab
+        from matplotlib import pylab as pylab
 
         pylab.figure(2)
         self.transfer_function.show()
@@ -2027,8 +2027,8 @@ def plot_allsky_healpix(
     cmin=None,
     cmax=None,
 ):
-    import matplotlib.figure
     import matplotlib.backends.backend_agg
+    import matplotlib.figure
 
     if rotation is None:
         rotation = np.eye(3).astype("float64")

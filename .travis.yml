@@ -86,7 +86,7 @@ jobs:
     - stage: Lint
       name: "isort"
       python: 3.6
-      script: isort --check-only -rc yt/
+      script: isort . --check --diff
 
     - stage: Lint
       name: "black"

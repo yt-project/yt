@@ -558,11 +558,11 @@ class YTCuttingPlane(YTSelectionContainer2D):
         self.fields = ensure_list(fields) + [
             k for k in self.field_data.keys() if k not in self._key_fields
         ]
-        from yt.visualization.plot_window import (
-            get_oblique_window_parameters,
-            PWViewerMPL,
-        )
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
+        from yt.visualization.plot_window import (
+            PWViewerMPL,
+            get_oblique_window_parameters,
+        )
 
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, self.ds

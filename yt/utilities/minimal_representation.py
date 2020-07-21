@@ -17,8 +17,8 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5
 
 if sys.version_info < (3, 0):
-    from .poster.streaminghttp import register_openers
     from .poster.encode import multipart_encode
+    from .poster.streaminghttp import register_openers
 
     register_openers()
 else:

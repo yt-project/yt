@@ -1,13 +1,12 @@
 # This is a part of the experimental Interactive Data Visualization
-
 import random
 from collections import defaultdict, namedtuple
 
-import matplotlib.cm as cm
-import numpy as np
-
 import cyglfw3 as glfw
-import OpenGL.GL as GL
+import numpy as np
+from matplotlib import cm as cm
+from OpenGL import GL as GL
+
 from yt.utilities.math_utils import get_orthographic_matrix, get_perspective_matrix
 
 event_registry = {}

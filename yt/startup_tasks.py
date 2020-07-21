@@ -29,7 +29,7 @@ def turn_on_parallelism():
         )
         raise e
         # Now we have to turn on the parallelism from the perspective of the
-        # parallel_analysis_interface
+    # parallel_analysis_interface
     from yt.utilities.parallel_tools.parallel_analysis_interface import (
         enable_parallelism,
     )

@@ -8,7 +8,6 @@ from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
 
-import yt.geometry.particle_deposit as particle_deposit
 from yt.config import ytcfg
 from yt.data_objects.data_containers import (
     YTSelectionContainer1D,
@@ -21,6 +20,7 @@ from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.frontends.stream.api import load_uniform_grid
 from yt.funcs import ensure_list, get_memory_usage, iterable, mylog, only_on_root
+from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, uconcatenate
@@ -2004,9 +2004,9 @@ class YTSurface(YTSelectionContainer3D):
             emit_field_min,
             emit_field,
         )  # map color values to color scheme
-        from yt.visualization._colormap_data import (
+        from yt.visualization._colormap_data import (  # import colors for mtl file
             color_map_luts,
-        )  # import colors for mtl file
+        )
 
         lut = color_map_luts[color_map]  # enumerate colors
         # interpolate emissivity to enumerated colors
@@ -2237,9 +2237,9 @@ class YTSurface(YTSelectionContainer3D):
             emit_field_min,
             emit_field,
         )  # map color values to color scheme
-        from yt.visualization._colormap_data import (
+        from yt.visualization._colormap_data import (  # import colors for mtl file
             color_map_luts,
-        )  # import colors for mtl file
+        )
 
         lut = color_map_luts[color_map]  # enumerate colors
         # interpolate emissivity to enumerated colors

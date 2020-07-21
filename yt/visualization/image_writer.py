@@ -2,12 +2,12 @@ import builtins
 
 import numpy as np
 
-import yt.utilities.lib.image_utilities as au
-import yt.utilities.png_writer as pw
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
 from yt.units.yt_array import YTQuantity
+from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook
+from yt.utilities.lib import image_utilities as au
 
 from . import _colormap_data as cmd
 from .color_maps import mcm
@@ -298,6 +298,7 @@ def strip_colormap_data(
     ),
 ):
     import pprint
+
     from . import color_maps as rcm
 
     f = open(fn, "w")
@@ -392,8 +393,9 @@ def write_projection(
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
-    import matplotlib.figure
     import matplotlib.colors
+    import matplotlib.figure
+
     from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
     # If this is rendered as log, then apply now.
