@@ -282,6 +282,7 @@ class ShaderTrait(traitlets.TraitType):
                 shader_info.setdefault("shader_type", shader_type)
                 shader_info["use_separate_blend"] = bool(
                         "blend_func_separate" in shader_info)
+                shader_info.setdefault("shader_name", value)
                 shader = Shader(**shader_info)
                 return shader
             except KeyError:

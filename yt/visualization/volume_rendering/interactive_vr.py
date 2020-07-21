@@ -700,6 +700,17 @@ class BlockRendering(SceneComponent):
                                       _cmaps)
         if _: self.colormap.colormap_name = _cmaps[cmap_index]
         changed = changed or _
+        # Now, shaders
+        shaders = ["max_intensity", "projection", "transfer_function"]
+        _, shader_ind = imgui.listbox("Shader", shaders.index(self.fragment_shader.shader_name),
+                                       shaders)
+        if _:
+            new_fragment_shader = shaders[shader_ind]
+            new_colormap_shader = {'max_intensity': 'apply_colormap',
+                                   'projection': 'apply_colormap',
+                                   'transfer_function': 'passthrough'}[new_fragment_shader]
+            self.fragment_shader, self.colormap_fragment = new_fragment_shader, new_colormap_shader
+        changed = changed or _
         return changed
 
     @traitlets.default("transfer_function")
