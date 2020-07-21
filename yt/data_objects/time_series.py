@@ -181,7 +181,11 @@ class DatasetSeries:
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
         if setup_function is None:
-            setup_function = lambda a: None
+
+            def _null(x):
+                return None
+
+            setup_function = _null
         self._setup_function = setup_function
         for type_name in data_object_registry:
             setattr(
