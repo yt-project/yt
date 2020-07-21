@@ -183,7 +183,7 @@ class IDVCamera(traitlets.HasTraits):
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
         '''Change camera orientation matrix using delta of mouse's cursor position
-        
+
         Parameters
         ----------
 
@@ -273,13 +273,19 @@ class TrackballCamera(IDVCamera):
                                                 self.aspect_ratio,
                                                 self.near_plane,
                                                 self.far_plane)
+
+    def offsetPosition(self,dPos=np.array([0.,0.,0.])):
+        self.position+=dPos
+        self.view_matrix = get_lookat_matrix(self.position,
+                                             self.focus,
+                                             self.up)
     def _compute_matrices(self):
         pass
 
 class SceneData(traitlets.HasTraits):
     """A class that defines a collection of GPU-managed data.
 
-    This class contains the largest common set of features that can be used 
+    This class contains the largest common set of features that can be used
     OpenGL rendering: a set of vertices and a set of vertex attributes.  Note
     that this is distinct from the shader, which can be swapped out and
     provided with these items.
@@ -310,7 +316,7 @@ class SceneComponent(traitlets.HasTraits):
     _program1_invalid = True
     _program2_invalid = True
 
-    # These attributes are 
+    # These attributes are
     cmap_min = traitlets.CFloat(None, allow_none = True)
     cmap_max = traitlets.CFloat(None, allow_none = True)
     cmap_log = traitlets.Bool(True)
@@ -367,7 +373,7 @@ class SceneComponent(traitlets.HasTraits):
 
     @traitlets.default("base_quad")
     def _default_base_quad(self):
-        bq = SceneData(name = "fullscreen_quad", 
+        bq = SceneData(name = "fullscreen_quad",
                        vertex_array = VertexArray(name = "tri", each = 6),
         )
         fq = FULLSCREEN_QUAD.reshape((6, 3), order="C")
@@ -493,7 +499,7 @@ class TextCharacters(SceneData):
             vert.append(triangles)
             texture = Texture2D(texture_name = tex_id,
                                 data = bitmap,
-                                boundary_x = "clamp", 
+                                boundary_x = "clamp",
                                 boundary_y = "clamp")
             # I can't find information as to why horiAdvance is a
             # factor of 8 larger than the other factors.  I assume it
@@ -749,7 +755,7 @@ class BoxData(SceneData):
     name = "box_data"
     left_edge = YTPositionTrait([0.0, 0.0, 0.0])
     right_edge = YTPositionTrait([1.0, 1.0, 1.0])
-    
+
     @traitlets.default("vertex_array")
     def _default_vertex_array(self):
         va = VertexArray(name = "box_outline", each = 36)
@@ -772,7 +778,7 @@ class BoxData(SceneData):
 
 class BlockOutline(SceneAnnotation):
     '''
-    A class that renders outlines of block data.  
+    A class that renders outlines of block data.
     '''
     name = "block_outline"
     data = traitlets.Instance(BlockCollection)
@@ -855,9 +861,9 @@ class MeshData(SceneData):
 
     def get_mesh_data(self, data_source, field):
         """
-        
+
         This reads the mesh data into a form that can be fed in to OpenGL.
-        
+
         """
 
         # get mesh information
@@ -899,7 +905,7 @@ class MeshRendering(SceneComponent):
     default_shaders = ("mesh", "mesh", "passthrough", "apply_colormap")
 
     def draw(self, scene, program):
-        GL.glDrawElements(GL.GL_TRIANGLES, self.data.size, 
+        GL.glDrawElements(GL.GL_TRIANGLES, self.data.size,
                 GL.GL_UNSIGNED_INT, None)
 
     def _set_uniforms(self, scene, shader_program):
