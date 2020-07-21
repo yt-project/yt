@@ -1,3 +1,4 @@
+# isort: skip-file
 import argparse
 import base64
 import getpass
@@ -28,7 +29,7 @@ from yt.funcs import (
     mylog,
     update_hg_or_git,
 )
-from yt.startup_tasks import parser, subparsers
+
 from yt.utilities.configure import set_config
 from yt.utilities.exceptions import (
     YTCommandRequiresModule,
@@ -38,7 +39,12 @@ from yt.utilities.exceptions import (
 from yt.utilities.metadata import get_metadata
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
-ytcfg["yt", "__command_line"] = "True"
+# isort: off
+# This needs to be set before importing startup_tasks
+ytcfg["yt", "__command_line"] = "True"  # isort: skip
+from yt.startup_tasks import parser, subparsers  # isort: skip # noqa: E402
+
+# isort: on
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"

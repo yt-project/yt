@@ -17,6 +17,12 @@ cdef struct Oct:
     np.int64_t domain       # (opt) addl int index
     Oct **children          # Up to 8 long
 
+cdef struct OctInfo:
+    np.float64_t left_edge[3]
+    np.float64_t dds[3]
+    np.int64_t ipos[3]
+    np.int32_t level
+
 cdef struct OctPadded:
     np.int64_t file_ind
     np.int64_t domain_ind
@@ -135,4 +141,35 @@ cdef class MortonIndexOcts(OctVisitor):
 cdef inline int cind(int i, int j, int k) nogil:
     # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.
     return (((i*2)+j)*2+k)
+
+from oct_container cimport OctreeContainer
+
+cdef class StoreIndex(OctVisitor):
+    cdef np.int64_t[:,:,:,:] cell_inds
+
+# cimport oct_container
+cdef class BaseNeighbourVisitor(OctVisitor):
+    cdef int idim      # 0,1,2 for x,y,z
+    cdef int direction # +1 for +x, -1 for -x
+    cdef np.uint8_t neigh_ind[3]
+    cdef bint other_oct
+    cdef Oct *neighbour
+    cdef OctreeContainer octree
+    cdef OctInfo oi
+
+    cdef void set_neighbour_info(self, Oct *o, int ishift[3])
+
+    cdef inline np.uint8_t neighbour_rind(self):
+        cdef int d = (1 << self.oref)
+        return (((self.neigh_ind[2]*d)+self.neigh_ind[1])*d+self.neigh_ind[0])
+
+cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
+    cdef np.uint8_t[::1] cell_inds
+    cdef np.int64_t[::1] domain_inds
+
+cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
+    cdef np.uint8_t[::1] levels
+    cdef np.int64_t[::1] file_inds
+    cdef np.uint8_t[::1] cell_inds
+    cdef np.int32_t[::1] domains
 

@@ -221,8 +221,8 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
     geom = registry.ds.geometry
     if is_curvilinear(geom):
         mylog.warning(
-            "In %s geometry, gradient fields may contain artifacts near cartesian axes."
-            % geom
+            "In %s geometry, gradient fields may contain artifacts near cartesian axes.",
+            geom,
         )
 
     assert isinstance(grad_field, tuple)
@@ -240,16 +240,27 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
         slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi + 1 :]
 
         def func(field, data):
-            ds = div_fac * data[ftype, "d%s" % ax]
+            block_order = getattr(data, "_block_order", "C")
+            if block_order == "F":
+                # Fortran-ordering: we need to swap axes here and
+                # reswap below
+                field_data = data[grad_field].swapaxes(0, 2)
+            else:
+                field_data = data[grad_field]
+            dx = div_fac * data[ftype, f"d{ax}"]
             if ax == "theta":
-                ds *= data[ftype, "r"]
+                dx *= data[ftype, "r"]
             if ax == "phi":
-                ds *= data[ftype, "r"] * np.sin(data[ftype, "theta"])
-            f = data[grad_field][slice_3dr] / ds[slice_3d]
-            f -= data[grad_field][slice_3dl] / ds[slice_3d]
+                dx *= data[ftype, "r"] * np.sin(data[ftype, "theta"])
+            f = field_data[slice_3dr] / dx[slice_3d]
+            f -= field_data[slice_3dl] / dx[slice_3d]
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
-            new_field = data.ds.arr(new_field, f.units)
+            new_field = data.ds.arr(new_field, field_data.units / dx.units)
             new_field[slice_3d] = f
+
+            if block_order == "F":
+                new_field = new_field.swapaxes(0, 2)
+
             return new_field
 
         return func

@@ -18,7 +18,8 @@ import traceback
 import urllib.parse
 import urllib.request
 import warnings
-from functools import wraps
+from distutils.version import LooseVersion
+from functools import lru_cache, wraps
 from math import ceil, floor
 from numbers import Number as numeric_type
 
@@ -29,7 +30,6 @@ from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.lru_cache import lru_cache
 
 # Some functions for handling sequences and other types
 
@@ -1266,10 +1266,13 @@ def matplotlib_style_context(style_name=None, after_reset=False):
     available, returns a dummy context manager.
     """
     if style_name is None:
-        style_name = {
-            "mathtext.fontset": "cm",
-            "mathtext.fallback_to_cm": True,
-        }
+        import matplotlib
+
+        style_name = {"mathtext.fontset": "cm"}
+        if LooseVersion(matplotlib.__version__) >= LooseVersion("3.3.0"):
+            style_name["mathtext.fallback"] = "cm"
+        else:
+            style_name["mathtext.fallback_to_cm"] = True
     try:
         import matplotlib.style
 

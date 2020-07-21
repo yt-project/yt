@@ -10,11 +10,11 @@ Oct visitor functions
 
 
 cimport cython
-cimport numpy
-import numpy
+cimport numpy as np
+import numpy as np
 from yt.utilities.lib.fp_utils cimport *
 from libc.stdlib cimport malloc, free
-from yt.geometry.oct_container cimport OctreeContainer
+from yt.geometry.oct_container cimport OctreeContainer, OctInfo
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
 
 # Now some visitor functions
@@ -338,3 +338,192 @@ cdef class MortonIndexOcts(OctVisitor):
                 np.uint64(coord[1]),
                 np.uint64(coord[2]))
         self.index += 1
+
+# Store cell index
+cdef class StoreIndex(OctVisitor):
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        if not selected: return
+        self.cell_inds[o.domain_ind, self.ind[2], self.ind[1], self.ind[0]] = self.index
+
+        self.index += 1
+
+cdef class BaseNeighbourVisitor(OctVisitor):
+    def __init__(self, OctreeContainer octree, int domain_id = -1):
+        self.octree = octree
+        self.neigh_ind[0] = 0
+        self.neigh_ind[1] = 0
+        self.neigh_ind[2] = 0
+        super(BaseNeighbourVisitor, self).__init__(octree, domain_id)
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    cdef void set_neighbour_info(self, Oct *o, int ishift[3]):
+        cdef int i
+        cdef np.float64_t c, dx
+        cdef np.int64_t ipos
+        cdef np.float64_t fcoords[3]
+        cdef Oct *neighbour
+        cdef bint local_oct
+        cdef bint other_oct
+        dx = 1.0 / ((1 << self.oref) << self.level)
+        local_oct = True
+
+        # Compute position of neighbouring cell
+        for i in range(3):
+            c = <np.float64_t> (self.pos[i] << self.oref)
+            fcoords[i] = (c + 0.5 + ishift[i]) * dx / self.octree.nn[i]
+            # Assuming periodicity
+            if fcoords[i] < 0:
+                fcoords[i] += 1
+            elif fcoords[i] > 1:
+                fcoords[i] -= 1
+            local_oct &= (0 <= ishift[i] <= 1)
+        other_oct = not local_oct
+
+        # Use octree to find neighbour
+        if other_oct:
+            neighbour = self.octree.get(fcoords, &self.oi, max_level=self.level)
+        else:
+            neighbour = o
+            self.oi.level = self.level
+            for i in range(3):
+                self.oi.ipos[i] = (self.pos[i] << self.oref) + ishift[i]
+
+        # Extra step - compute cell position in neighbouring oct (and store in oi.ipos)
+        if self.oi.level == self.level - 1:
+            for i in range(3):
+                ipos = (((self.pos[i] << self.oref) + ishift[i])) >> 1
+                if (self.oi.ipos[i] << 1) == ipos:
+                    self.oi.ipos[i] = 0
+                else:
+                    self.oi.ipos[i] = 1
+        self.neighbour = neighbour
+
+        # Index of neighbouring cell within its oct
+        for i in range(3):
+            self.neigh_ind[i] = <np.uint8_t>(ishift[i]) % 2
+
+        self.other_oct = other_oct
+        if other_oct:
+            if self.neighbour != NULL:
+                if self.oi.level == self.level - 1:
+                    # Position within neighbouring oct is stored in oi.ipos
+                    for i in range(3):
+                        self.neigh_ind[i] = self.oi.ipos[i]
+                elif self.oi.level != self.level:
+                    print('This should not happen! %s %s' % (self.oi.level, self.level))
+                    self.neighbour = NULL
+
+# Store neighbouring cell index in current cell
+cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
+    # This piece of code is very much optimizable. Here are possible routes to achieve
+    # much better performance:
+
+    # - Work oct by oct, which would reduce the number of neighbor lookup
+    #   from 4³=64 to 3³=27,
+    # - Use faster neighbor lookup method(s). For now, all searches are started from
+    #   the root mesh down to leaf nodes, but we could instead go up the tree from the
+    #   central oct then down to find all neighbors (see e.g.
+    #   https://geidav.wordpress.com/2017/12/02/advanced-octrees-4-finding-neighbor-nodes/).
+    # -  Pre-compute the face-neighbors of all octs.
+
+    # Note that for the last point, algorithms exist that generate the neighbors of all
+    # octs in O(1) time (https://link.springer.com/article/10.1007/s13319-015-0060-9)
+    # during the octree construction.
+    # Another possible solution would be to keep a unordered hash map of all the octs
+    # indexed by their (3-integers) position. With such structure, finding a neighbor
+    # takes O(1) time. This could even come as a replacement of the current
+    # pointer-based octree structure.
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        cdef int i, j, k
+        cdef int ishift[3]
+        cdef np.uint8_t neigh_cell_ind
+        cdef np.int64_t neigh_domain_ind
+        if selected == 0: return
+        # Work at oct level
+        if self.last == o.domain_ind: return
+
+        self.last = o.domain_ind
+
+        # Loop over cells in and directly around oct
+        for i in range(-1, 3):
+            ishift[0] = i
+            for j in range(-1, 3):
+                ishift[1] = j
+                for k in range(-1, 3):
+                    ishift[2] = k
+                    self.set_neighbour_info(o, ishift)
+
+                    if not self.other_oct:
+                        neigh_domain_ind = o.domain_ind
+                        neigh_cell_ind   = self.neighbour_rind()
+                    elif self.neighbour != NULL:
+                        neigh_domain_ind = self.neighbour.domain_ind
+                        neigh_cell_ind   = self.neighbour_rind()
+                    else:
+                        neigh_domain_ind = -1
+                        neigh_cell_ind   = 8
+
+                    self.cell_inds[self.index]   = neigh_cell_ind
+                    self.domain_inds[self.index] = neigh_domain_ind
+
+                    self.index += 1
+
+# Store file position + cell of neighbouring cell in current cell
+cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.initializedcheck(False)
+    cdef void visit(self, Oct* o, np.uint8_t selected):
+        cdef int i, j, k
+        cdef int ishift[3]
+        cdef np.int64_t neigh_file_ind
+        cdef np.uint8_t neigh_cell_ind
+        cdef np.int32_t neigh_domain
+        cdef np.uint8_t neigh_level
+        if selected == 0: return
+        # Work at oct level
+        if self.last == o.domain_ind: return
+
+        self.last = o.domain_ind
+
+        # Loop over cells in and directly around oct
+        for i in range(-1, 3):
+            ishift[0] = i
+            for j in range(-1, 3):
+                ishift[1] = j
+                for k in range(-1, 3):
+                    ishift[2] = k
+                    self.set_neighbour_info(o, ishift)
+
+                    if not self.other_oct:
+                        neigh_level    = self.level
+                        neigh_domain   = o.domain
+                        neigh_file_ind = o.file_ind
+                        neigh_cell_ind = self.neighbour_rind()
+                    elif self.neighbour != NULL:
+                        neigh_level    = self.oi.level
+                        neigh_domain   = self.neighbour.domain
+                        neigh_file_ind = self.neighbour.file_ind
+                        neigh_cell_ind = self.neighbour_rind()
+                    else:
+                        neigh_level    = 255
+                        neigh_domain   = -1
+                        neigh_file_ind = -1
+                        neigh_cell_ind = 8
+
+                    self.levels[self.index]    = neigh_level
+                    self.file_inds[self.index] = neigh_file_ind
+                    self.cell_inds[self.index] = neigh_cell_ind
+                    self.domains[self.index]   = neigh_domain
+
+                    self.index += 1

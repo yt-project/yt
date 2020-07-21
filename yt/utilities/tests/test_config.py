@@ -2,6 +2,7 @@ import contextlib
 import os
 import sys
 import unittest
+import unittest.mock as mock
 from configparser import NoOptionError
 from io import StringIO
 
@@ -9,14 +10,6 @@ import yt.config
 import yt.utilities.command_line
 from yt.config import _OLD_CONFIG_FILE, CONFIG_DIR, CURRENT_CONFIG_FILE, YTConfigParser
 from yt.fields.tests.test_fields_plugins import TEST_PLUGIN_FILE
-
-if sys.version_info.major < 3:
-    try:
-        import mock
-    except ImportError:
-        mock = None
-else:
-    import unittest.mock as mock
 
 _TEST_PLUGIN = "_test_plugin.py"
 _DUMMY_CFG = ["[yt]", "loglevel = 49", "pluginfilename = " + _TEST_PLUGIN]
@@ -89,12 +82,18 @@ class TestYTConfigCommands(TestYTConfig):
         if mock is None:
             return
 
+        def remove_spaces_and_breaks(s):
+            return "".join(s.split())
+
         self.assertFalse(os.path.exists(CURRENT_CONFIG_FILE))
 
         info = self._runYTConfig(["--help"])
         self.assertEqual(info["rc"], 0)
         self.assertEqual(info["stderr"], "")
-        self.assertIn("Get and set configuration values for yt", info["stdout"])
+        self.assertIn(
+            remove_spaces_and_breaks("Get and set configuration values for yt"),
+            remove_spaces_and_breaks(info["stdout"]),
+        )
 
         info = self._runYTConfig(["list"])
         self.assertEqual(info["rc"], 0)
