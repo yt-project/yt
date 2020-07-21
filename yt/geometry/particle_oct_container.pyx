@@ -13,7 +13,7 @@ Oct container tuned for Particles
 from libc.math cimport ceil, floor, fmod
 from libc.stdlib cimport free, malloc, qsort
 from libc.string cimport memset
-from libcpp.map cimport map
+from libcpp.map cimport map as cmap
 from libcpp.vector cimport vector
 
 from yt.utilities.lib.ewah_bool_array cimport (
@@ -84,7 +84,7 @@ from ..utilities.lib.ewah_bool_wrap cimport (
     SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask,
 )
 
-ctypedef map[np.uint64_t, bool_array] CoarseRefinedSets
+ctypedef cmap[np.uint64_t, bool_array] CoarseRefinedSets
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -691,7 +691,7 @@ cdef class ParticleBitmap:
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
-        cdef map[np.uint64_t, np.uint64_t] refined_count
+        cdef cmap[np.uint64_t, np.uint64_t] refined_count
         cdef np.uint64_t nfully_enclosed = 0, n_calls = 0
         mi1_max = (1 << self.index_order1) - 1
         mi2_max = (1 << self.index_order2) - 1
@@ -1103,7 +1103,7 @@ cdef class ParticleBitmap:
             arr_two.reset()
             for ifile in range(nbitmasks):
                 if self.bitmasks._isref(ifile, mi1) == 1:
-                    arr = (<map[np.int64_t, ewah_bool_array]**> self.bitmasks.ewah_coll)[ifile][0][mi1]
+                    arr = (<cmap[np.int64_t, ewah_bool_array]**> self.bitmasks.ewah_coll)[ifile][0][mi1]
                     arr_any.logicaland(arr, arr_two) # Indices in previous files
                     arr_any.logicalor(arr, arr_swap) # All second level indices
                     arr_any = arr_swap
