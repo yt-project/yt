@@ -290,6 +290,9 @@ class ShaderTrait(traitlets.TraitType):
         elif isinstance(value, Shader):
             return value
         self.error(obj, value)
+known_shaders = {}
+component_shaders = {}
+default_shader_combos = {}
 
 # We'll load our shaders here from shaderlist.yaml
 _shlist_fn = os.path.join(os.path.dirname(__file__),
@@ -297,4 +300,9 @@ _shlist_fn = os.path.join(os.path.dirname(__file__),
                          "shaderlist.yaml")
 if os.path.exists(_shlist_fn):
     with open(_shlist_fn, "r") as f:
-        known_shaders = yaml.load(f)
+        shader_info = yaml.load(f, yaml.SafeLoader)
+        known_shaders.update(shader_info["shader_definitions"])
+        component_shaders.update(shader_info["component_shaders"])
+        default_shader_combos.update({_:
+                                      component_shaders[_].pop("default_value")
+                                      for _ in component_shaders})

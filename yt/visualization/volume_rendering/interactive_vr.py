@@ -53,7 +53,8 @@ from yt.data_objects.static_output import \
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from yt.extern.six import unichr
 from .shader_objects import \
-    ShaderProgram, ShaderTrait
+    ShaderProgram, ShaderTrait, \
+    component_shaders, default_shader_combos
 from .opengl_support import \
     Texture, Texture1D, Texture2D, Texture3D, \
     VertexArray, VertexAttribute, ColormapTexture, \
@@ -305,6 +306,7 @@ class SceneComponent(traitlets.HasTraits):
     name = "undefined"
     priority = traitlets.CInt(0)
 
+    render_method = traitlets.Unicode(allow_none = True)
     fragment_shader = ShaderTrait(allow_none = True).tag(shader_type = "fragment")
     vertex_shader = ShaderTrait(allow_none = True).tag(shader_type = "vertex")
     fb = traitlets.Instance(Framebuffer)
@@ -324,6 +326,19 @@ class SceneComponent(traitlets.HasTraits):
 
     def render_gui(self, imgui, renderer):
         return False
+
+    @traitlets.default("render_method")
+    def _default_render_method(self):
+        return default_shader_combos[self.name]
+
+    @traitlets.observe("render_method")
+    def _change_render_method(self, change):
+        new_combo = component_shaders[self.name][change['new']]
+        with self.hold_trait_notifications():
+            self.vertex_shader = new_combo['first_vertex']
+            self.fragment_shader = new_combo['first_fragment']
+            self.colormap_vertex = new_combo['second_vertex']
+            self.colormap_fragment = new_combo['second_fragment']
 
     @traitlets.default("fb")
     def _fb_default(self):
@@ -357,19 +372,19 @@ class SceneComponent(traitlets.HasTraits):
 
     @traitlets.default("vertex_shader")
     def _vertex_shader_default(self):
-        return self.default_shaders[0]
+        return component_shaders[self.name][self.render_method]['first_vertex']
 
     @traitlets.default("fragment_shader")
     def _fragment_shader_default(self):
-        return self.default_shaders[1]
+        return component_shaders[self.name][self.render_method]['first_fragment']
 
     @traitlets.default("colormap_vertex")
     def _colormap_vertex_default(self):
-        return self.default_shaders[2]
+        return component_shaders[self.name][self.render_method]['second_vertex']
 
     @traitlets.default("colormap_fragment")
     def _colormap_fragment_default(self):
-        return self.default_shaders[3]
+        return component_shaders[self.name][self.render_method]['second_fragment']
 
     @traitlets.default("base_quad")
     def _default_base_quad(self):
@@ -512,14 +527,13 @@ class TextCharacters(SceneData):
 
 class TextAnnotation(SceneAnnotation):
 
+    name = "text_annotation"
     data = traitlets.Instance(TextCharacters)
     text = traitlets.CUnicode()
     draw_instructions = traitlets.List()
     origin = traitlets.Tuple(traitlets.CFloat(), traitlets.CFloat(),
             default_value = (-1, -1))
     scale = traitlets.CFloat(1.0)
-    default_shaders = ("text_overlay", "text_overlay",
-                       "passthrough", "passthrough")
 
     @traitlets.observe("text")
     def _observe_text(self, change):
@@ -692,8 +706,6 @@ class BlockRendering(SceneComponent):
     tf_min = traitlets.CFloat(0.0)
     tf_max = traitlets.CFloat(1.0)
     tf_log = traitlets.Bool(True)
-    default_shaders = ("default", "max_intensity",
-                       "passthrough", "apply_colormap")
 
     priority = 10
 
@@ -707,15 +719,13 @@ class BlockRendering(SceneComponent):
         if _: self.colormap.colormap_name = _cmaps[cmap_index]
         changed = changed or _
         # Now, shaders
-        shaders = ["max_intensity", "projection", "transfer_function"]
-        _, shader_ind = imgui.listbox("Shader", shaders.index(self.fragment_shader.shader_name),
-                                       shaders)
+        shader_combos = list(sorted(component_shaders[self.name]))
+        descriptions = [component_shaders[self.name][_]["description"]
+                        for _ in shader_combos]
+        selected = shader_combos.index(self.render_method)
+        _, shader_ind = imgui.listbox("Shader", selected, descriptions)
         if _:
-            new_fragment_shader = shaders[shader_ind]
-            new_colormap_shader = {'max_intensity': 'apply_colormap',
-                                   'projection': 'apply_colormap',
-                                   'transfer_function': 'passthrough'}[new_fragment_shader]
-            self.fragment_shader, self.colormap_fragment = new_fragment_shader, new_colormap_shader
+            self.render_method = shader_combos[shader_ind]
         changed = changed or _
         return changed
 
@@ -784,8 +794,6 @@ class BlockOutline(SceneAnnotation):
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
     box_alpha = traitlets.CFloat(1.0)
-    default_shaders = ("default", "draw_blocks",
-                       "passthrough", "passthrough")
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
@@ -820,8 +828,6 @@ class BoxAnnotation(SceneAnnotation):
     data = traitlets.Instance(BoxData)
     box_width = traitlets.CFloat(0.05)
     box_alpha = traitlets.CFloat(1.0)
-    default_shaders = ("default", "draw_blocks",
-                       "passthrough", "passthrough")
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
@@ -902,7 +908,6 @@ class MeshData(SceneData):
 class MeshRendering(SceneComponent):
     name = "mesh_rendering"
     data = traitlets.Instance(MeshData)
-    default_shaders = ("mesh", "mesh", "passthrough", "apply_colormap")
 
     def draw(self, scene, program):
         GL.glDrawElements(GL.GL_TRIANGLES, self.data.size,
