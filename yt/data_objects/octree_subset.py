@@ -5,7 +5,7 @@ import numpy as np
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 from yt.data_objects.data_containers import YTSelectionContainer
-from yt.funcs import mylog, issue_deprecation_warning
+from yt.funcs import issue_deprecation_warning, mylog
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.units.dimensions import length
 from yt.units.yt_array import YTArray
