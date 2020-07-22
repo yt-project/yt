@@ -1,6 +1,7 @@
 import os
 import tempfile
 
+import mock
 import numpy as np
 
 from yt.testing import assert_equal, assert_rel_equal, fake_amr_ds, fake_random_ds
@@ -23,7 +24,8 @@ def teardown_func(fns):
             pass
 
 
-def test_projection():
+@mock.patch("yt.visualization._mpl_imports.FigureCanvasAgg.print_figure")
+def test_projection(pf):
     fns = []
     for nprocs in [8, 1]:
         # We want to test both 1 proc and 8 procs, to make sure that
