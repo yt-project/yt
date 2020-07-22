@@ -189,7 +189,7 @@ AMRVAC
    ~yt.frontends.amrvac.data_structures.AMRVACDataset
    ~yt.frontends.amrvac.fields.AMRVACFieldInfo
    ~yt.frontends.amrvac.io.AMRVACIOHandler
-   ~yt.frontends.amrvac.read_amrvac_namelist
+   ~yt.frontends.amrvac.io.read_amrvac_namelist
 
 ARTIO
 ^^^^^
