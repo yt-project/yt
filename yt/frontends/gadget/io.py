@@ -4,6 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
+from yt.units.yt_array import uconcatenate
 from yt.utilities.lib.particle_kdtree_tools import \
     generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
@@ -114,7 +115,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         for fn, count in counts.items():
             offsets[fn] = offset
             offset += count
-        positions = np.concatenate(positions)[kdtree.idx]
+        positions = uconcatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(
             positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype
