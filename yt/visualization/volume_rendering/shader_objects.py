@@ -262,8 +262,8 @@ class Shader(traitlets.HasTraits):
         return self._shader
 
     def delete_shader(self):
-        if self.shader is not None:
-            GL.glDeleteShader(self.shader)
+        if None not in (self._shader, GL.glDeleteShader):
+            GL.glDeleteShader(self._shader)
             self._shader = None
 
     def __del__(self):
