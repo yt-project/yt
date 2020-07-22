@@ -53,6 +53,7 @@ class SimpleGUI:
         self.renderer.render(imgui.get_draw_data())
 
     def render_camera(self, scene):
+        if not imgui.tree_node("Camera"): return
         changed = False
         with scene.camera.hold_trait_notifications():
             for attr in ("position", "up", "focus"):
@@ -64,6 +65,7 @@ class SimpleGUI:
                 if _: setattr(scene.camera, attr, np.array(values))
         if changed:
             scene.camera._update_matrices()
+        imgui.tree_pop()
         return changed
 
     @property
