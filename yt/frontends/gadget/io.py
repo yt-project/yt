@@ -91,16 +91,17 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     def _generate_smoothing_length(self, data_files, kdtree):
         if not self.ds.gen_hsmls:
             return
-        # TODO: We need to do something like this here but I'm not sure how
-        """
-        if os.path.exists(self.hsml_filename):
-            with open(self.hsml_filename, 'rb') as f:
-                file_hash = struct.unpack('q', f.read(struct.calcsize('q')))[0]
+        hsml_fn = data_files[0].filename.replace(".hdf5", ".hsml.hdf5")
+        if os.path.exists(hsml_fn):
+            with h5py.File(hsml_fn, "r") as f:
+                file_hash = f.attrs["q"]
             if file_hash != self.ds._file_hash:
-                os.remove(self.hsml_filename)
+                mylog.warning("Replacing hsml files.")
+                for data_file in data_files:
+                    hfn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
+                    os.remove(hfn)
             else:
                 return
-        """
         positions = []
         counts = defaultdict(int)
         for data_file in data_files:
@@ -120,11 +121,13 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype
         hsml = hsml[np.argsort(kdtree.idx)].astype(dtype)
-        for data_file in data_files:
+        mylog.warning("Writing smoothing lengths to hsml files.")
+        for i, data_file in enumerate(data_files):
             si, ei = data_file.start, data_file.end
             fn = data_file.filename
-            hsml_fn = data_file.filename+".hsml"
+            hsml_fn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
             with h5py.File(hsml_fn, mode='a') as f:
+                if i == 0: f.attrs['q'] = self.ds._file_hash
                 g = f.require_group(self.ds._sph_ptypes[0])
                 d = g.require_dataset("SmoothingLength", dtype=dtype,
                                       shape=(counts[fn],))
