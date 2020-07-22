@@ -1847,7 +1847,7 @@ def run_main():
     # http://bugs.python.org/issue16308
     # http://bugs.python.org/issue9253
     try:
-        getattr(args, "func")
+        args.func
     except AttributeError:
         parser.print_help()
         sys.exit(0)

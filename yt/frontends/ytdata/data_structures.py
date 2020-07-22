@@ -752,9 +752,7 @@ class YTNonspatialDataset(YTGridDataset):
             v = getattr(self, a)
             if v is not None:
                 mylog.info("Parameters: %-25s = %s", a, v)
-        if hasattr(self, "cosmological_simulation") and getattr(
-            self, "cosmological_simulation"
-        ):
+        if hasattr(self, "cosmological_simulation") and self.cosmological_simulation:
             for a in [
                 "current_redshift",
                 "omega_lambda",
