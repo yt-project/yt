@@ -2,11 +2,7 @@ import weakref
 
 from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
-from yt.utilities.exceptions import (
-    YTDimensionalityError,
-    YTFieldNotFound,
-    YTFieldNotParseable,
-)
+from yt.utilities.exceptions import YTDimensionalityError, YTFieldNotParseable
 from yt.visualization.line_plot import LineBuffer
 
 from .data_containers import _get_ipython_key_completion
@@ -30,7 +26,7 @@ class RegionExpression:
         # that result in a rectangular prism or a slice.
         try:
             return self.all_data[item]
-        except (TypeError, YTFieldNotFound, YTFieldNotParseable):
+        except (TypeError, YTFieldNotParseable):
             pass
 
         if isinstance(item, slice):
