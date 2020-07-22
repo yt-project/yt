@@ -226,7 +226,7 @@ class Scene:
         self._last_render = bmp
         return bmp
 
-    def _sanitize_render(self, render=True):
+    def _sanitize_render(self, render):
         # checks for existing render before saving, in most cases we want to
         # render every time, but in some cases pulling the previous render is
         # desirable (e.g., if only changing sigma_clip or
