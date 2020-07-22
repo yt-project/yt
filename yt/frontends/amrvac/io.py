@@ -20,12 +20,13 @@ def read_amrvac_namelist(parfiles):
     """Read one or more parfiles, and return a unified f90nml.Namelist object.
 
     This function replicates the patching logic of MPI-AMRVAC where redundant parameters
-    only retain last-in-line values EXCEPT `&filelist:base_filename`, which is accumulated.
-    When passed a single file, this function acts as a mere wrapper of f90nml.read().
+    only retain last-in-line values, with the exception of `&filelist:base_filename`,
+    which is accumulated. When passed a single file, this function acts as a mere
+    wrapper of f90nml.read().
 
     Parameters
     ----------
-    parfiles : str or list
+    parfiles : str, os.Pathlike, byte, or an iterable returning those types
         A file path, or a list of file paths to MPI-AMRVAC configuration parfiles.
 
     Returns
