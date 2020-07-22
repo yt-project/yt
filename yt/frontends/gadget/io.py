@@ -139,7 +139,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         ptype = self.ds._sph_ptypes[0]
         si, ei = data_file.start, data_file.end
         if self.ds.gen_hsmls:
-            fn = data_file.filename+".hsml"
+            fn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
         else:
             fn = data_file.filename
         with h5py.File(fn, mode="r") as f:
