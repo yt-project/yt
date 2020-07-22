@@ -119,12 +119,10 @@ class TransferFunctionWidget(WindowWidget):
         return False
 
     def do_draw(self):
-        self.window.clear()
         for color in ('red', 'green', 'blue', 'alpha'):
             pyglet.graphics.draw(self.N_bins, pyglet.gl.GL_LINE_STRIP,
                 ('vertices2f', self.draw[color].ravel(order="F")),
                 ('colors3Bn', self.colors[color].ravel(order="C")))
-        self.window.flip()
 
 class TransferFunctionImage(WindowWidget):
     def __init__(self, window, x0, y0, width, height, tf_widget, draw_border = False):

@@ -135,7 +135,7 @@ class RenderingContext(pyglet.window.Window):
     _do_update = True
     def __init__(self, width=1024, height=1024, title="vol_render",
                  always_on_top = False, decorated = True, position = None,
-                 visible = True, scene = None, gui = False):
+                 visible = True, gui = False):
         self.offscreen = not visible
         config = pyglet.gl.Config(major_version = 3, minor_version = 3,
                                   forward_compat = True, double_buffer = True)
@@ -149,7 +149,6 @@ class RenderingContext(pyglet.window.Window):
             #self.set_position(*position)
             self.set_location(*position)
 
-        self.scene = scene
         self.label = pyglet.text.Label('Hello, yt',
                                   font_name=("Verdana", "Helvetica", "Arial"),
                                   font_size=36,
@@ -160,9 +159,9 @@ class RenderingContext(pyglet.window.Window):
         self.gui = gui
 
     def on_draw(self):
-        if self._do_update:
+        self.switch_to()
+        if self._do_update and self.scene:
             self._do_update = False
-            self.switch_to()
             self.clear()
             if self.scene is not None:
                 # This should check if the scene is actually dirty, and only
@@ -174,6 +173,7 @@ class RenderingContext(pyglet.window.Window):
                             self.scene.image[:,:,:3], None)
             self.label.draw()
         if self.gui:
+            self.switch_to()
             self.gui.render(self.scene)
 
     def set_position(self, xpos, ypos):
