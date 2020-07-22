@@ -1454,8 +1454,8 @@ def create_profile(
         for o_bin, ax in zip(o_bins, ["x", "y", "z"]):
             kwargs["override_bins_{0}".format(ax)] = o_bin
     obj = cls(*args, **kwargs)
-    setattr(obj, "accumulation", accumulation)
-    setattr(obj, "fractional", fractional)
+    obj.accumulation = accumulation
+    obj.fractional = fractional
     if fields is not None:
         obj.add_fields([field for field in fields])
     for field in fields:
