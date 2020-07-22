@@ -318,6 +318,7 @@ class SceneComponent(traitlets.HasTraits):
     events = traitlets.Instance(EventCollection)
     name = "undefined"
     priority = traitlets.CInt(0)
+    visible = traitlets.Bool(True)
 
     render_method = traitlets.Unicode(allow_none = True)
     fragment_shader = ShaderTrait(allow_none = True).tag(shader_type = "fragment")
@@ -434,6 +435,8 @@ class SceneComponent(traitlets.HasTraits):
         return self._program2
 
     def run_program(self, scene):
+        if not self.visible:
+            return
         with self.fb.bind(True):
             with self.program1.enable() as p:
                 self._set_uniforms(scene, p)
@@ -724,6 +727,8 @@ class BlockRendering(SceneComponent):
 
     def render_gui(self, imgui, renderer):
         changed = False
+        _, self.visible = imgui.checkbox("Visible", self.visible)
+        changed = changed or _
         _, self.cmap_log = imgui.checkbox("Take log", self.cmap_log)
         changed = changed or _
         _, cmap_index = imgui.listbox("Colormap",
@@ -815,6 +820,8 @@ class BlockOutline(SceneAnnotation):
 
     def render_gui(self, imgui, renderer):
         changed = False
+        _, self.visible = imgui.checkbox("Visible", self.visible)
+        changed = changed or _
         _, bw = imgui.slider_float("Width", self.box_width, 0.001, 0.250)
         if _: self.box_width = bw
         changed = changed or _
