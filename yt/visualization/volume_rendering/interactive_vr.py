@@ -276,8 +276,6 @@ class TrackballCamera(IDVCamera):
                                                 self.far_plane)
 
     def _update_matrices(self):
-        rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
-        self.up = rotation_matrix[1]
 
         self.view_matrix = get_lookat_matrix(self.position,
                                              self.focus,

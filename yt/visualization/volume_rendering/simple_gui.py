@@ -40,13 +40,7 @@ class SimpleGUI:
                 scene.render()
                 write_bitmap(scene.image[:,:,:3], self.snapshot_format.format(count = self.snapshot_count))
                 self.snapshot_count += 1
-            imgui.text("Camera Position")
-            pos = scene.camera.position
-            _, values = imgui.input_float3("", pos[0], pos[1], pos[2], flags =
-                                           imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
-            if _:
-                scene.camera.position = np.array(values)
-                scene.camera._update_matrices()
+            _ = self.render_camera(scene)
             changed = changed or _
             #imgui.show_style_editor()
             for i, element in enumerate(scene):
@@ -57,6 +51,20 @@ class SimpleGUI:
             imgui.end()
         imgui.render()
         self.renderer.render(imgui.get_draw_data())
+
+    def render_camera(self, scene):
+        changed = False
+        with scene.camera.hold_trait_notifications():
+            for attr in ("position", "up", "focus"):
+                arr = getattr(scene.camera, attr)
+                imgui.text(f"Camera {attr}")
+                _, values = imgui.input_float3("", arr[0], arr[1], arr[2],
+                                               flags = imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+                changed = changed or _
+                if _: setattr(scene.camera, attr, np.array(values))
+        if changed:
+            scene.camera._update_matrices()
+        return changed
 
     @property
     def mouse_event_handled(self):
