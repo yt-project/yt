@@ -275,6 +275,21 @@ class TrackballCamera(IDVCamera):
                                                 self.near_plane,
                                                 self.far_plane)
 
+    def _update_matrices(self):
+        rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
+        self.up = rotation_matrix[1]
+
+        self.view_matrix = get_lookat_matrix(self.position,
+                                             self.focus,
+                                             self.up)
+
+        self.projection_matrix = self.proj_func(self.fov,
+                                                self.aspect_ratio,
+                                                self.near_plane,
+                                                self.far_plane)
+
+
+
     def offsetPosition(self,dPos=np.array([0.,0.,0.])):
         self.position+=dPos
         self.view_matrix = get_lookat_matrix(self.position,
@@ -955,11 +970,15 @@ class SceneGraph(traitlets.HasTraits):
         self.data_objects.append(data)
         self.annotations.append(BoxAnnotation(data = data))
 
+    def __iter__(self):
+        elements = self.components + self.annotations
+        for element in sorted(elements, key = lambda a: a.priority):
+            yield element
+
     def render(self):
         with self.bind_buffer():
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
-        elements = self.components + self.annotations
-        for element in sorted(elements, key = lambda a: a.priority):
+        for element in self:
             element.run_program(self)
 
     @contextlib.contextmanager
