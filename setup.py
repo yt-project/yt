@@ -13,11 +13,6 @@ from setupext import (
     install_ccompiler,
 )
 
-if sys.version_info < (3, 5):
-    print("yt currently supports versions newer than Python 3.5")
-    print("certain features may fail unexpectedly and silently with older " "versions.")
-    sys.exit(1)
-
 install_ccompiler()
 
 try:

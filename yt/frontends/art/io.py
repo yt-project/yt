@@ -1,6 +1,5 @@
 import os
 import os.path
-import sys
 from collections import defaultdict
 
 import numpy as np
@@ -16,9 +15,6 @@ from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.logger import ytLogger as mylog
-
-if sys.version_info >= (3, 0, 0):
-    long = int
 
 
 class IOHandlerART(BaseIOHandler):
