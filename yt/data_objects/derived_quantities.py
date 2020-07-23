@@ -1,34 +1,33 @@
 import numpy as np
 
-from yt.funcs import \
-    camelcase_to_underscore, \
-    ensure_list
+from yt.funcs import camelcase_to_underscore, ensure_list
 from yt.units.yt_array import array_like_field
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_objects
-from yt.utilities.physical_constants import \
-    gravitational_constant_cgs
+from yt.utilities.exceptions import YTParticleTypeNotFound
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+    parallel_objects,
+)
+from yt.utilities.physical_constants import gravitational_constant_cgs
 from yt.utilities.physical_ratios import HUGE
-from yt.utilities.exceptions import \
-    YTParticleTypeNotFound
 
 derived_quantity_registry = {}
+
 
 def get_position_fields(field, data):
     axis_names = [data.ds.coordinates.axis_name[num] for num in [0, 1, 2]]
     field = data._determine_fields(field)[0]
     finfo = data.ds.field_info[field]
-    if finfo.sampling_type == 'particle':
+    if finfo.sampling_type == "particle":
         if finfo.alias_field:
             ftype = finfo.alias_name[0]
         else:
             ftype = finfo.name[0]
-        position_fields = [(ftype, 'particle_position_%s' % d)
-                           for d in axis_names]
+        position_fields = [(ftype, "particle_position_%s" % d) for d in axis_names]
     else:
         position_fields = axis_names
 
     return position_fields
+
 
 class RegisteredDerivedQuantity(type):
     def __init__(cls, name, b, d):
@@ -36,7 +35,8 @@ class RegisteredDerivedQuantity(type):
         if name != "DerivedQuantity":
             derived_quantity_registry[name] = cls
 
-class DerivedQuantity(ParallelAnalysisInterface, metaclass = RegisteredDerivedQuantity):
+
+class DerivedQuantity(ParallelAnalysisInterface, metaclass=RegisteredDerivedQuantity):
     num_vals = -1
 
     def __init__(self, data_source):
@@ -52,12 +52,12 @@ class DerivedQuantity(ParallelAnalysisInterface, metaclass = RegisteredDerivedQu
         self.count_values(*args, **kwargs)
         chunks = self.data_source.chunks([], chunking_style="io")
         storage = {}
-        for sto, ds in parallel_objects(chunks, -1, storage = storage):
+        for sto, ds in parallel_objects(chunks, -1, storage=storage):
             sto.result = self.process_chunk(ds, *args, **kwargs)
         # Now storage will have everything, and will be done via pickling, so
         # the units will be preserved.  (Credit to Nathan for this
         # idea/implementation.)
-        values = [ [] for i in range(self.num_vals) ]
+        values = [[] for i in range(self.num_vals)]
         for key in sorted(storage):
             for i in range(self.num_vals):
                 values[i].append(storage[key][i])
@@ -71,6 +71,7 @@ class DerivedQuantity(ParallelAnalysisInterface, metaclass = RegisteredDerivedQu
 
     def reduce_intermediate(self, values):
         raise NotImplementedError
+
 
 class DerivedQuantityCollection:
     def __new__(cls, data_source, *args, **kwargs):
@@ -89,6 +90,7 @@ class DerivedQuantityCollection:
 
     def keys(self):
         return derived_quantity_registry.keys()
+
 
 class WeightedAverageQuantity(DerivedQuantity):
     r"""
@@ -119,6 +121,7 @@ class WeightedAverageQuantity(DerivedQuantity):
     ...                                                ("gas", "cell_mass")))
 
     """
+
     def count_values(self, fields, weight):
         # This is a list now
         self.num_vals = len(fields) + 1
@@ -126,18 +129,19 @@ class WeightedAverageQuantity(DerivedQuantity):
     def __call__(self, fields, weight):
         fields = ensure_list(fields)
         rv = super(WeightedAverageQuantity, self).__call__(fields, weight)
-        if len(rv) == 1: rv = rv[0]
+        if len(rv) == 1:
+            rv = rv[0]
         return rv
 
     def process_chunk(self, data, fields, weight):
-        vals = [(data[field] * data[weight]).sum(dtype=np.float64)
-                for field in fields]
+        vals = [(data[field] * data[weight]).sum(dtype=np.float64) for field in fields]
         wv = data[weight].sum(dtype=np.float64)
         return vals + [wv]
 
     def reduce_intermediate(self, values):
         w = values.pop(-1).sum(dtype=np.float64)
-        return [v.sum(dtype=np.float64)/w for v in values]
+        return [v.sum(dtype=np.float64) / w for v in values]
+
 
 class TotalQuantity(DerivedQuantity):
     r"""
@@ -156,6 +160,7 @@ class TotalQuantity(DerivedQuantity):
     >>> print(ad.quantities.total_quantity([("gas", "cell_mass")]))
 
     """
+
     def count_values(self, fields):
         # This is a list now
         self.num_vals = len(fields)
@@ -163,16 +168,17 @@ class TotalQuantity(DerivedQuantity):
     def __call__(self, fields):
         fields = ensure_list(fields)
         rv = super(TotalQuantity, self).__call__(fields)
-        if len(rv) == 1: rv = rv[0]
+        if len(rv) == 1:
+            rv = rv[0]
         return rv
 
     def process_chunk(self, data, fields):
-        vals = [data[field].sum(dtype=np.float64)
-                for field in fields]
+        vals = [data[field].sum(dtype=np.float64) for field in fields]
         return vals
 
     def reduce_intermediate(self, values):
         return [v.sum(dtype=np.float64) for v in values]
+
 
 class TotalMass(TotalQuantity):
     r"""
@@ -188,18 +194,20 @@ class TotalMass(TotalQuantity):
     >>> print(ad.quantities.total_mass())
 
     """
+
     def __call__(self):
         self.data_source.ds.index
         fi = self.data_source.ds.field_info
         if ("gas", "mass") in fi:
-            gas = super(TotalMass, self).__call__([('gas', 'mass')])
+            gas = super(TotalMass, self).__call__([("gas", "mass")])
         else:
-            gas = self.data_source.ds.arr([0], 'g')
+            gas = self.data_source.ds.arr([0], "g")
         if ("nbody", "particle_mass") in fi:
-            part = super(TotalMass, self).__call__([('nbody', 'particle_mass')])
+            part = super(TotalMass, self).__call__([("nbody", "particle_mass")])
         else:
-            part = self.data_source.ds.arr([0], 'g')
+            part = self.data_source.ds.arr([0], "g")
         return self.data_source.ds.arr([gas, part])
+
 
 class CenterOfMass(DerivedQuantity):
     r"""
@@ -231,7 +239,8 @@ class CenterOfMass(DerivedQuantity):
     >>> print(ad.quantities.center_of_mass())
 
     """
-    def count_values(self, use_gas = True, use_particles = False, particle_type="nbody"):
+
+    def count_values(self, use_gas=True, use_particles=False, particle_type="nbody"):
         finfo = self.data_source.ds.field_info
         includes_gas = ("gas", "mass") in finfo
         includes_particles = (particle_type, "particle_mass") in finfo
@@ -245,17 +254,24 @@ class CenterOfMass(DerivedQuantity):
         if self.use_particles:
             self.num_vals += 4
 
-    def process_chunk(self, data, use_gas = True, use_particles = False, particle_type="nbody"):
+    def process_chunk(
+        self, data, use_gas=True, use_particles=False, particle_type="nbody"
+    ):
         vals = []
         if self.use_gas:
-            vals += [(data["gas", ax] *
-                      data["gas", "mass"]).sum(dtype=np.float64)
-                     for ax in 'xyz']
+            vals += [
+                (data["gas", ax] * data["gas", "mass"]).sum(dtype=np.float64)
+                for ax in "xyz"
+            ]
             vals.append(data["gas", "mass"].sum(dtype=np.float64))
         if self.use_particles:
-            vals += [(data[particle_type, "particle_position_%s" % ax] *
-                      data[particle_type, "particle_mass"]).sum(dtype=np.float64)
-                     for ax in 'xyz']
+            vals += [
+                (
+                    data[particle_type, "particle_position_%s" % ax]
+                    * data[particle_type, "particle_mass"]
+                ).sum(dtype=np.float64)
+                for ax in "xyz"
+            ]
             vals.append(data[particle_type, "particle_mass"].sum(dtype=np.float64))
         return vals
 
@@ -273,7 +289,8 @@ class CenterOfMass(DerivedQuantity):
             y += values.pop(0).sum(dtype=np.float64)
             z += values.pop(0).sum(dtype=np.float64)
             w += values.pop(0).sum(dtype=np.float64)
-        return self.data_source.ds.arr([v/w for v in [x, y, z]])
+        return self.data_source.ds.arr([v / w for v in [x, y, z]])
+
 
 class BulkVelocity(DerivedQuantity):
     r"""
@@ -305,27 +322,37 @@ class BulkVelocity(DerivedQuantity):
     >>> print(ad.quantities.bulk_velocity())
 
     """
+
     def count_values(self, use_gas=True, use_particles=False, particle_type="nbody"):
         if use_particles and particle_type not in self.data_source.ds.particle_types:
-            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
+            raise YTParticleTypeNotFound(particle_type, self.data_source.ds)
         # This is a list now
         self.num_vals = 0
         if use_gas:
             self.num_vals += 4
-        if use_particles and 'nbody' in self.data_source.ds.particle_types:
+        if use_particles and "nbody" in self.data_source.ds.particle_types:
             self.num_vals += 4
 
-    def process_chunk(self, data, use_gas=True, use_particles=False, particle_type="nbody"):
+    def process_chunk(
+        self, data, use_gas=True, use_particles=False, particle_type="nbody"
+    ):
         vals = []
         if use_gas:
-            vals += [(data["gas", "velocity_%s" % ax] *
-                      data["gas", "mass"]).sum(dtype=np.float64)
-                     for ax in 'xyz']
+            vals += [
+                (data["gas", "velocity_%s" % ax] * data["gas", "mass"]).sum(
+                    dtype=np.float64
+                )
+                for ax in "xyz"
+            ]
             vals.append(data["gas", "mass"].sum(dtype=np.float64))
-        if use_particles and 'nbody' in data.ds.particle_types:
-            vals += [(data[particle_type, "particle_velocity_%s" % ax] *
-                      data[particle_type, "particle_mass"]).sum(dtype=np.float64)
-                     for ax in 'xyz']
+        if use_particles and "nbody" in data.ds.particle_types:
+            vals += [
+                (
+                    data[particle_type, "particle_velocity_%s" % ax]
+                    * data[particle_type, "particle_mass"]
+                ).sum(dtype=np.float64)
+                for ax in "xyz"
+            ]
             vals.append(data[particle_type, "particle_mass"].sum(dtype=np.float64))
         return vals
 
@@ -343,7 +370,8 @@ class BulkVelocity(DerivedQuantity):
             y += values.pop(0).sum(dtype=np.float64)
             z += values.pop(0).sum(dtype=np.float64)
             w += values.pop(0).sum(dtype=np.float64)
-        return self.data_source.ds.arr([v/w for v in [x, y, z]])
+        return self.data_source.ds.arr([v / w for v in [x, y, z]])
+
 
 class WeightedVariance(DerivedQuantity):
     r"""
@@ -375,29 +403,33 @@ class WeightedVariance(DerivedQuantity):
     ...                                        ("gas", "cell_mass")))
 
     """
+
     def count_values(self, fields, weight):
         # This is a list now
         self.num_vals = 2 * len(fields) + 1
 
     def __call__(self, fields, weight):
         fields = ensure_list(fields)
-        units = [self.data_source.ds._get_field_info(field).units 
-                 for field in fields]
+        units = [self.data_source.ds._get_field_info(field).units for field in fields]
         rv = super(WeightedVariance, self).__call__(fields, weight)
-        rv = [self.data_source.ds.arr(v, u) for v, u in zip(rv, units)] 
-        if len(rv) == 1: rv = rv[0]
+        rv = [self.data_source.ds.arr(v, u) for v, u in zip(rv, units)]
+        if len(rv) == 1:
+            rv = rv[0]
         return rv
 
     def process_chunk(self, data, fields, weight):
         my_weight = data[weight].d.sum(dtype=np.float64)
         if my_weight == 0:
-            return [0.0 for field in fields] + \
-                [0.0 for field in fields] + [0.0]
-        my_means = [(data[field].d * data[weight].d).sum(dtype=np.float64) / my_weight
-                    for field in fields]
-        my_var2s = [(data[weight].d * (data[field].d -
-                                     my_mean)**2).sum(dtype=np.float64) / my_weight
-                   for field, my_mean in zip(fields, my_means)]
+            return [0.0 for field in fields] + [0.0 for field in fields] + [0.0]
+        my_means = [
+            (data[field].d * data[weight].d).sum(dtype=np.float64) / my_weight
+            for field in fields
+        ]
+        my_var2s = [
+            (data[weight].d * (data[field].d - my_mean) ** 2).sum(dtype=np.float64)
+            / my_weight
+            for field, my_mean in zip(fields, my_means)
+        ]
         return my_means + my_var2s + [my_weight]
 
     def reduce_intermediate(self, values):
@@ -408,11 +440,20 @@ class WeightedVariance(DerivedQuantity):
             my_mean = values[i]
             my_var2 = values[i + int(len(values) / 2)]
             all_mean = (my_weight * my_mean).sum(dtype=np.float64) / all_weight
-            ret = [(np.sqrt(
-                (my_weight * (my_var2 + (my_mean - all_mean)**2)).sum(dtype=np.float64) /
-                all_weight)), all_mean]
+            ret = [
+                (
+                    np.sqrt(
+                        (my_weight * (my_var2 + (my_mean - all_mean) ** 2)).sum(
+                            dtype=np.float64
+                        )
+                        / all_weight
+                    )
+                ),
+                all_mean,
+            ]
             rvals.append(np.array(ret))
         return rvals
+
 
 class AngularMomentumVector(DerivedQuantity):
     r"""
@@ -449,51 +490,73 @@ class AngularMomentumVector(DerivedQuantity):
     >>> ds = load("FIRE_M12i_ref11/snapshot_600.hdf5")
     >>> _, c = ds.find_max(('gas', 'density'))
     >>> sp = ds.sphere(c, (10, 'kpc'))
-    >>> print(sp.quantities.angular_momentum_vector(use_gas=False, use_particles=True, particle_type='PartType0'))
+    >>> search_args = dict(use_gas=False, use_particles=True, particle_type='PartType0')
+    >>> print(sp.quantities.angular_momentum_vector(**search_args))
 
     """
-    def count_values(self, use_gas=True, use_particles=True, particle_type='all'):
+
+    def count_values(self, use_gas=True, use_particles=True, particle_type="all"):
         if use_particles and particle_type not in self.data_source.ds.particle_types:
-            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
+            raise YTParticleTypeNotFound(particle_type, self.data_source.ds)
         num_vals = 0
         # create the index if it doesn't exist yet
         self.data_source.ds.index
         self.particle_type = particle_type
-        self.use_gas = use_gas & \
-            (("gas", "mass") in self.data_source.ds.field_info)
-        self.use_particles = use_particles & \
-            ((self.particle_type, "particle_mass") in self.data_source.ds.field_info)
+        self.use_gas = use_gas & (("gas", "mass") in self.data_source.ds.field_info)
+        self.use_particles = use_particles & (
+            (self.particle_type, "particle_mass") in self.data_source.ds.field_info
+        )
         if self.use_gas:
             num_vals += 4
         if self.use_particles:
             num_vals += 4
         self.num_vals = num_vals
 
-    def process_chunk(self, data, use_gas = True, use_particles = False, particle_type= "all"):
+    def process_chunk(
+        self, data, use_gas=True, use_particles=False, particle_type="all"
+    ):
         rvals = []
         if self.use_gas:
-            rvals.extend([(data["gas", "specific_angular_momentum_%s" % axis] *
-                           data["gas", "mass"]).sum(dtype=np.float64) \
-                          for axis in "xyz"])
+            rvals.extend(
+                [
+                    (
+                        data["gas", "specific_angular_momentum_%s" % axis]
+                        * data["gas", "mass"]
+                    ).sum(dtype=np.float64)
+                    for axis in "xyz"
+                ]
+            )
             rvals.append(data["gas", "mass"].sum(dtype=np.float64))
         if self.use_particles:
-            rvals.extend([(data[self.particle_type, "particle_specific_angular_momentum_%s" % axis] *
-                           data[self.particle_type, "particle_mass"]).sum(dtype=np.float64) \
-                          for axis in "xyz"])
-            rvals.append(data[self.particle_type, "particle_mass"].sum(dtype=np.float64))
+            rvals.extend(
+                [
+                    (
+                        data[
+                            self.particle_type,
+                            "particle_specific_angular_momentum_%s" % axis,
+                        ]
+                        * data[self.particle_type, "particle_mass"]
+                    ).sum(dtype=np.float64)
+                    for axis in "xyz"
+                ]
+            )
+            rvals.append(
+                data[self.particle_type, "particle_mass"].sum(dtype=np.float64)
+            )
         return rvals
 
     def reduce_intermediate(self, values):
         jx = values.pop(0).sum(dtype=np.float64)
         jy = values.pop(0).sum(dtype=np.float64)
         jz = values.pop(0).sum(dtype=np.float64)
-        m  = values.pop(0).sum(dtype=np.float64)
+        m = values.pop(0).sum(dtype=np.float64)
         if values:
             jx += values.pop(0).sum(dtype=np.float64)
             jy += values.pop(0).sum(dtype=np.float64)
             jz += values.pop(0).sum(dtype=np.float64)
-            m  += values.pop(0).sum(dtype=np.float64)
+            m += values.pop(0).sum(dtype=np.float64)
         return self.data_source.ds.arr([jx / m, jy / m, jz / m])
+
 
 class Extrema(DerivedQuantity):
     r"""
@@ -521,13 +584,15 @@ class Extrema(DerivedQuantity):
     ...                              ("gas", "temperature")]))
 
     """
+
     def count_values(self, fields, non_zero):
         self.num_vals = len(fields) * 2
 
-    def __call__(self, fields, non_zero = False):
+    def __call__(self, fields, non_zero=False):
         fields = ensure_list(fields)
         rv = super(Extrema, self).__call__(fields, non_zero)
-        if len(rv) == 1: rv = rv[0]
+        if len(rv) == 1:
+            rv = rv[0]
         return rv
 
     def process_chunk(self, data, fields, non_zero):
@@ -535,18 +600,24 @@ class Extrema(DerivedQuantity):
         for field in fields:
             field = data._determine_fields(field)[0]
             fd = data[field]
-            if non_zero: fd = fd[fd > 0.0]
+            if non_zero:
+                fd = fd[fd > 0.0]
             if fd.size > 0:
                 vals += [fd.min(), fd.max()]
             else:
-                vals += [array_like_field(data, HUGE, field),
-                         array_like_field(data, -HUGE, field)]
+                vals += [
+                    array_like_field(data, HUGE, field),
+                    array_like_field(data, -HUGE, field),
+                ]
         return vals
 
     def reduce_intermediate(self, values):
         # The values get turned into arrays here.
-        return [self.data_source.ds.arr([mis.min(), mas.max()])
-                for mis, mas in zip(values[::2], values[1::2])]
+        return [
+            self.data_source.ds.arr([mis.min(), mas.max()])
+            for mis, mas in zip(values[::2], values[1::2])
+        ]
+
 
 class SampleAtMaxFieldValues(DerivedQuantity):
     _sign = -1
@@ -570,18 +641,20 @@ class SampleAtMaxFieldValues(DerivedQuantity):
     ...         ["temperature", "velocity_magnitude"]))
 
     """
+
     def count_values(self, field, sample_fields):
         # field itself, then index, then the number of sample fields
         self.num_vals = 1 + len(sample_fields)
 
     def __call__(self, field, sample_fields):
         rv = super(SampleAtMaxFieldValues, self).__call__(field, sample_fields)
-        if len(rv) == 1: rv = rv[0]
+        if len(rv) == 1:
+            rv = rv[0]
         return rv
 
     def process_chunk(self, data, field, sample_fields):
         field = data._determine_fields(field)[0]
-        ma = array_like_field(data, self._sign*HUGE, field)
+        ma = array_like_field(data, self._sign * HUGE, field)
         vals = [array_like_field(data, -1, sf) for sf in sample_fields]
         maxi = -1
         if data[field].size > 0:
@@ -591,11 +664,12 @@ class SampleAtMaxFieldValues(DerivedQuantity):
         return (ma,) + tuple(vals)
 
     def reduce_intermediate(self, values):
-        i = self._func(values[0]) # ma is values[0]
+        i = self._func(values[0])  # ma is values[0]
         return [val[i] for val in values]
 
     def _func(self, arr):
         return np.argmax(arr)
+
 
 class MaxLocation(SampleAtMaxFieldValues):
     r"""
@@ -615,6 +689,7 @@ class MaxLocation(SampleAtMaxFieldValues):
     >>> print(ad.quantities.max_location(("gas", "density")))
 
     """
+
     def __call__(self, field):
         # Make sure we have an index
         self.data_source.index
@@ -623,6 +698,7 @@ class MaxLocation(SampleAtMaxFieldValues):
         if len(rv) == 1:
             rv = rv[0]
         return rv
+
 
 class SampleAtMinFieldValues(SampleAtMaxFieldValues):
     _sign = 1
@@ -646,8 +722,10 @@ class SampleAtMinFieldValues(SampleAtMaxFieldValues):
     ...         ["temperature", "velocity_magnitude"]))
 
     """
+
     def _func(self, arr):
         return np.argmin(arr)
+
 
 class MinLocation(SampleAtMinFieldValues):
     r"""
@@ -667,6 +745,7 @@ class MinLocation(SampleAtMinFieldValues):
     >>> print(ad.quantities.min_location(("gas", "density")))
 
     """
+
     def __call__(self, field):
         # Make sure we have an index
         self.data_source.index
@@ -675,6 +754,7 @@ class MinLocation(SampleAtMinFieldValues):
         if len(rv) == 1:
             rv = rv[0]
         return rv
+
 
 class SpinParameter(DerivedQuantity):
     r"""
@@ -713,28 +793,37 @@ class SpinParameter(DerivedQuantity):
     >>> print(ad.quantities.spin_parameter())
 
     """
+
     def count_values(self, **kwargs):
         self.num_vals = 3
 
-    def process_chunk(self, data, use_gas=True, use_particles=True, particle_type="nbody"):
+    def process_chunk(
+        self, data, use_gas=True, use_particles=True, particle_type="nbody"
+    ):
         if use_particles and particle_type not in self.data_source.ds.particle_types:
-            raise YTParticleTypeNotFound(particle_type,self.data_source.ds)
-        use_gas &= \
-          (("gas", "mass") in self.data_source.ds.field_info)
-        use_particles &= \
-          ((particle_type, "particle_mass") in self.data_source.ds.field_info)
-        e = data.ds.quan(0., "erg")
-        j = data.ds.quan(0., "g*cm**2/s")
-        m = data.ds.quan(0., "g")
+            raise YTParticleTypeNotFound(particle_type, self.data_source.ds)
+        use_gas &= ("gas", "mass") in self.data_source.ds.field_info
+        use_particles &= (
+            particle_type,
+            "particle_mass",
+        ) in self.data_source.ds.field_info
+        e = data.ds.quan(0.0, "erg")
+        j = data.ds.quan(0.0, "g*cm**2/s")
+        m = data.ds.quan(0.0, "g")
         if use_gas:
-            e += (data["gas", "kinetic_energy"] *
-                  data["gas", "volume"]).sum(dtype=np.float64)
+            e += (data["gas", "kinetic_energy"] * data["gas", "volume"]).sum(
+                dtype=np.float64
+            )
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
             m += data["gas", "mass"].sum(dtype=np.float64)
         if use_particles:
-            e += (data[particle_type, "particle_velocity_magnitude"]**2 *
-                  data[particle_type, "particle_mass"]).sum(dtype=np.float64)
-            j += data[particle_type, "particle_angular_momentum_magnitude"].sum(dtype=np.float64)
+            e += (
+                data[particle_type, "particle_velocity_magnitude"] ** 2
+                * data[particle_type, "particle_mass"]
+            ).sum(dtype=np.float64)
+            j += data[particle_type, "particle_angular_momentum_magnitude"].sum(
+                dtype=np.float64
+            )
             m += data[particle_type, "particle_mass"].sum(dtype=np.float64)
         return (e, j, m)
 
@@ -742,4 +831,4 @@ class SpinParameter(DerivedQuantity):
         e = values.pop(0).sum(dtype=np.float64)
         j = values.pop(0).sum(dtype=np.float64)
         m = values.pop(0).sum(dtype=np.float64)
-        return j * np.sqrt(np.abs(e)) / m**2.5 / gravitational_constant_cgs
+        return j * np.sqrt(np.abs(e)) / m ** 2.5 / gravitational_constant_cgs

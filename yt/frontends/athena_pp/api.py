@@ -1,12 +1,4 @@
-from .data_structures import \
-      AthenaPPGrid, \
-      AthenaPPHierarchy, \
-      AthenaPPDataset
-
-from .fields import \
-      AthenaPPFieldInfo
-
-from .io import \
-      IOHandlerAthenaPP
-
 from . import tests
+from .data_structures import AthenaPPDataset, AthenaPPGrid, AthenaPPHierarchy
+from .fields import AthenaPPFieldInfo
+from .io import IOHandlerAthenaPP

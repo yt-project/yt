@@ -9,14 +9,13 @@ import tempfile
 import matplotlib.image as mpimg
 import numpy as np
 
-from yt.analysis_modules.cosmological_observation.api import \
-     LightCone
+from yt.analysis_modules.cosmological_observation.api import LightCone
 from yt.analysis_modules.halo_analysis.api import HaloCatalog
 from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
-from yt.utilities.on_demand_imports import \
-    _h5py as h5py
-from . import utils
+from yt.utilities.on_demand_imports import _h5py as h5py
 import yt.visualization.plot_window as pw
+
+from . import utils
 
 
 def grid_hierarchy(ds):
@@ -27,6 +26,7 @@ def grid_hierarchy(ds):
     result['grid_levels'] = ds.index.grid_levels
     result['grid_particle_count'] = ds.index.grid_particle_count
     return result
+
 
 def parentage_relationships(ds):
     parents = []
@@ -64,6 +64,7 @@ def projection_values(ds, axis, field, weight_field=None, dobj_type=None):
             )
     return proj.field_data
 
+
 def field_values(ds, field, obj_type=None, particle_type=False):
     # If needed build an instance of the dataset type
     obj = utils.create_obj(ds, obj_type)
@@ -79,8 +80,8 @@ def field_values(ds, field, obj_type=None, particle_type=False):
         weight_field = ("index", "ones")
     # Get the average, min, and max
     avg = obj.quantities.weighted_average_quantity(
-        determined_field,
-        weight=weight_field)
+        determined_field, weight=weight_field
+    )
     minimum, maximum = obj.quantities.extrema(field)
     # Return as a hashable bytestring
     return np.array([avg, minimum, maximum])
@@ -89,14 +90,13 @@ def all_field_values(ds, field, obj_type=None):
     obj = utils.create_obj(ds, obj_type)
     return obj[field]
 
-def pixelized_projection_values(ds, axis, field,
-    weight_field=None, dobj_type=None):
+def pixelized_projection_values(ds, axis, field, weight_field=None, dobj_type=None):
     if dobj_type is not None:
         obj = utils.create_obj(ds, dobj_type)
     else:
         obj = None
     proj = ds.proj(field, axis, weight_field=weight_field, data_source=obj)
-    frb = proj.to_frb((1.0, 'unitary'), 256)
+    frb = proj.to_frb((1.0, "unitary"), 256)
     frb[field]
     if weight_field is not None:
         frb[weight_field]
@@ -134,6 +134,7 @@ def small_patch_amr(ds, field, weight, axis, ds_obj):
     results['projection_values'] = projection_values(ds, axis, field, weight, ds_obj)
     return results 
 
+
 def big_patch_amr(ds, field, weight, axis, ds_obj):
     results = {} 
     results['grid_hierarchy'] = grid_hierarchy(ds)
@@ -145,6 +146,7 @@ def big_patch_amr(ds, field, weight, axis, ds_obj):
 
 def generic_array(func, args=[], kwargs={}):
     return func(*args, **kwargs)
+
 
 def sph_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     assert str(ds) == ds_str_repr
@@ -178,6 +180,7 @@ def nbody_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     hex_digests['field_values'] = fv
     return hex_digests
 
+
 def get_field_size_and_mean(ds, field, geometric):
     if geometric:
         obj = ds.all_data()
@@ -185,14 +188,27 @@ def get_field_size_and_mean(ds, field, geometric):
         obj = ds.data
     return np.array([obj[field].size, obj[field].mean()])
 
-def plot_window_attribute(ds, plot_field, plot_axis, attr_name,
-    attr_args, plot_type='SlicePlot', callback_id='', callback_runners=[]):
-    plot = utils._create_plot_window_attribute_plot(ds, plot_type, plot_field, plot_axis, {})
+
+def plot_window_attribute(
+    ds,
+    plot_field,
+    plot_axis,
+    attr_name,
+    attr_args,
+    plot_type="SlicePlot",
+    callback_id="",
+    callback_runners=None,
+):
+    if callback_runners is None:
+        callback_runners = []
+    plot = utils._create_plot_window_attribute_plot(
+        ds, plot_type, plot_field, plot_axis, {}
+    )
     for r in callback_runners:
         r(plot_field, plot)
     attr = getattr(plot, attr_name)
     attr(*attr_args[0], **attr_args[1])
-    tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+    tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
     os.close(tmpfd)
     plot.save(name=tmpname)
     image = mpimg.imread(tmpname)
@@ -207,7 +223,7 @@ def phase_plot_attribute(ds, x_field, y_field, z_field,
                             z_field, plot_type, plot_kwargs)
     attr = getattr(plot, attr_name)
     attr(*attr_args[0], **attr_args[1])
-    tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+    tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
     os.close(tmpfd)
     plot.save(name=tmpname)
     image = mpimg.imread(tmpname)
@@ -227,6 +243,7 @@ def generic_image(img_func, args=[], kwargs={}):
         comp_imgs.append(img_data)
     return comp_imgs
 
+
 def axial_pixelization(ds):
     r"""
     This test is typically used once per geometry or coordinates type.
@@ -235,8 +252,9 @@ def axial_pixelization(ds):
     """
     rv = {}
     for i, axis in enumerate(ds.coordinates.axis_order):
-        (bounds, center, display_center) = \
-                pw.get_window_parameters(axis, ds.domain_center, None, ds)
+        (bounds, center, display_center) = pw.get_window_parameters(
+            axis, ds.domain_center, None, ds
+        )
         slc = ds.slice(axis, center[i])
         xax = ds.coordinates.axis_name[ds.coordinates.x_axis[axis]]
         yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
@@ -270,19 +288,24 @@ def light_cone_projection(parameter_file, simulation_type):
 
 def extract_connected_sets(ds_fn, data_source, field, num_levels, min_val, max_val):
     n, all_sets = data_source.extract_connected_sets(
-        field, num_levels, min_val, max_val)
+        field, num_levels, min_val, max_val
+    )
     result = []
     for level in all_sets:
         for set_id in all_sets[level]:
-            result.append([all_sets[level][set_id]["cell_mass"].size,
-                           all_sets[level][set_id]["cell_mass"].sum()])
+            result.append(
+                [
+                    all_sets[level][set_id]["cell_mass"].size,
+                    all_sets[level][set_id]["cell_mass"].sum(),
+                ]
+            )
     result = np.array(result)
     return result
 
+
 def VR_image_comparison(scene):
-    tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+    tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
     os.close(tmpfd)
-    scene.render()
     scene.save(tmpname, sigma_clip=1.0)
     image = mpimg.imread(tmpname)
     os.remove(tmpname)

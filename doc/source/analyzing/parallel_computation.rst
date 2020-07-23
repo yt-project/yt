@@ -110,7 +110,7 @@ processes using the following Bash command:
 
 .. code-block:: bash
 
-   $ mpirun -np 16 python2.7 my_script.py
+   $ mpirun -np 16 python my_script.py
 
 .. note::
 

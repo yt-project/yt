@@ -28,31 +28,25 @@ Example usage:
 
 
 import http.client as http_client
-import urllib
 import socket
 import sys
+import urllib
 
-def request_has_data(req):
-    if sys.version_info >= (3,0,0):
-        return hasattr(req, "data")
-    else:
-        return req.has_data()
+__all__ = [
+    "StreamingHTTPConnection",
+    "StreamingHTTPRedirectHandler",
+    "StreamingHTTPHandler",
+    "register_openers",
+]
 
-def request_get_data(req):
-    if sys.version_info >= (3,0,0):
-        return req.data
-    else:
-        return req.get_data()
+if hasattr(http_client, "HTTPS"):
+    __all__.extend(["StreamingHTTPSHandler", "StreamingHTTPSConnection"])
 
-__all__ = ['StreamingHTTPConnection', 'StreamingHTTPRedirectHandler',
-        'StreamingHTTPHandler', 'register_openers']
-
-if hasattr(http_client, 'HTTPS'):
-    __all__.extend(['StreamingHTTPSHandler', 'StreamingHTTPSConnection'])
 
 class _StreamingHTTPMixin:
     """Mixin class for HTTP and HTTPS connections that implements a streaming
     send method."""
+
     def send(self, value):
         """Send ``value`` to the server.
 
@@ -76,8 +70,8 @@ class _StreamingHTTPMixin:
             print("send:", repr(value))
         try:
             blocksize = 8192
-            if hasattr(value, 'read') :
-                if hasattr(value, 'seek'):
+            if hasattr(value, "read"):
+                if hasattr(value, "seek"):
                     value.seek(0)
                 if self.debuglevel > 0:
                     print("sendIng a read()able")
@@ -85,8 +79,8 @@ class _StreamingHTTPMixin:
                 while data:
                     self.sock.sendall(data)
                     data = value.read(blocksize)
-            elif hasattr(value, 'next'):
-                if hasattr(value, 'reset'):
+            elif hasattr(value, "next"):
+                if hasattr(value, "reset"):
                     value.reset()
                 if self.debuglevel > 0:
                     print("sendIng an iterable")
@@ -95,14 +89,17 @@ class _StreamingHTTPMixin:
             else:
                 self.sock.sendall(value)
         except socket.error as v:
-            if v[0] == 32:      # Broken pipe
+            if v[0] == 32:  # Broken pipe
                 self.close()
             raise
+
 
 class StreamingHTTPConnection(_StreamingHTTPMixin, http_client.HTTPConnection):
     """Subclass of `httplib.HTTPConnection` that overrides the `send()` method
     to support iterable body objects"""
+
     pass
+
 
 class StreamingHTTPRedirectHandler(urllib.request.HTTPRedirectHandler):
     """Subclass of `urllib2.HTTPRedirectHandler` that overrides the
@@ -127,25 +124,33 @@ class StreamingHTTPRedirectHandler(urllib.request.HTTPRedirectHandler):
         but another Handler might.
         """
         m = req.get_method()
-        if (code in (301, 302, 303, 307) and m in ("GET", "HEAD")
-            or code in (301, 302, 303) and m == "POST"):
+        if (
+            code in (301, 302, 303, 307)
+            and m in ("GET", "HEAD")
+            or code in (301, 302, 303)
+            and m == "POST"
+        ):
             # Strictly (according to RFC 2616), 301 or 302 in response
             # to a POST MUST NOT cause a redirection without confirmation
             # from the user (of urllib2, in this case).  In practice,
             # essentially all clients do redirect in this case, so we
             # do the same.
             # be conciliant with URIs containing a space
-            newurl = newurl.replace(' ', '%20')
-            newheaders = dict((k, v) for k, v in list(req.headers.items())
-                              if k.lower() not in (
-                                  "content-length", "content-type")
-                             )
-            return urllib.request.Request(newurl,
-                           headers=newheaders,
-                           origin_req_host=req.get_origin_req_host(),
-                           unverifiable=True)
+            newurl = newurl.replace(" ", "%20")
+            newheaders = dict(
+                (k, v)
+                for k, v in list(req.headers.items())
+                if k.lower() not in ("content-length", "content-type")
+            )
+            return urllib.request.Request(
+                newurl,
+                headers=newheaders,
+                origin_req_host=req.get_origin_req_host(),
+                unverifiable=True,
+            )
         else:
             raise urllib.error.HTTPError(req.get_full_url(), code, msg, headers, fp)
+
 
 class StreamingHTTPHandler(urllib.request.HTTPHandler):
     """Subclass of `urllib2.HTTPHandler` that uses
@@ -162,17 +167,17 @@ class StreamingHTTPHandler(urllib.request.HTTPHandler):
         if we're using an iterable value"""
         # Make sure that if we're using an iterable object as the request
         # body, that we've also specified Content-Length
-        if request_has_data(req):
-            data = request_get_data(req)
-            if hasattr(data, 'read') or hasattr(data, 'next'):
-                if not req.has_header('Content-length'):
-                    raise ValueError(
-                            "No Content-Length specified for iterable body")
+        if hasattr(req, "data"):
+            data = req.data
+            if hasattr(data, "read") or hasattr(data, "next"):
+                if not req.has_header("Content-length"):
+                    raise ValueError("No Content-Length specified for iterable body")
         return urllib.request.HTTPHandler.do_request_(self, req)
 
-if hasattr(http_client, 'HTTPS'):
-    class StreamingHTTPSConnection(_StreamingHTTPMixin,
-            http_client.HTTPSConnection):
+
+if hasattr(http_client, "HTTPS"):
+
+    class StreamingHTTPSConnection(_StreamingHTTPMixin, http_client.HTTPSConnection):
         """Subclass of `httplib.HTTSConnection` that overrides the `send()`
         method to support iterable body objects"""
 
@@ -188,12 +193,13 @@ if hasattr(http_client, 'HTTPS'):
         def https_request(self, req):
             # Make sure that if we're using an iterable object as the request
             # body, that we've also specified Content-Length
-            if request_has_data(req):
-                data = request_get_data(req)
-                if hasattr(data, 'read') or hasattr(data, 'next'):
-                    if not req.has_header('Content-length'):
+            if hasattr(req, "data")(req):
+                data = req.data
+                if hasattr(data, "read") or hasattr(data, "next"):
+                    if not req.has_header("Content-length"):
                         raise ValueError(
-                                "No Content-Length specified for iterable body")
+                            "No Content-Length specified for iterable body"
+                        )
             return urllib.request.HTTPSHandler.do_request_(self, req)
 
 
@@ -202,7 +208,8 @@ def get_handlers():
     if hasattr(http_client, "HTTPS"):
         handlers.append(StreamingHTTPSHandler)
     return handlers
-    
+
+
 def register_openers():
     """Register the streaming http handlers in the global urllib2 default
     opener object.

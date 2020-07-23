@@ -1,12 +1,14 @@
-from os import path
 from copy import deepcopy
+from os import path
+
+from yt.frontends.amrvac import read_amrvac_namelist
 from yt.testing import requires_module
 from yt.utilities.on_demand_imports import _f90nml as f90nml
-from yt.frontends.amrvac import read_amrvac_namelist
 
 test_dir = path.dirname(path.abspath(__file__))
 blast_wave_parfile = path.join(test_dir, "sample_parfiles/bw_3d.par")
 modifier_parfile = path.join(test_dir, "sample_parfiles/tvdlf_scheme.par")
+
 
 @requires_module("f90nml")
 def test_read_one_file():
@@ -14,6 +16,7 @@ def test_read_one_file():
     namelist1 = read_amrvac_namelist(blast_wave_parfile)
     namelist2 = f90nml.read(blast_wave_parfile)
     assert namelist1 == namelist2
+
 
 @requires_module("f90nml")
 def test_accumulate_basename():
@@ -29,7 +32,11 @@ def test_accumulate_basename():
     name1 = namelist_tot1["filelist"].pop("base_filename")
     name2 = namelist_tot2["filelist"].pop("base_filename")
 
-    assert name1 == namelist_base["filelist"]["base_filename"] + namelist_update["filelist"]["base_filename"]
+    assert (
+        name1
+        == namelist_base["filelist"]["base_filename"]
+        + namelist_update["filelist"]["base_filename"]
+    )
     assert name2 == namelist_update["filelist"]["base_filename"]
     assert name1 != name2
 

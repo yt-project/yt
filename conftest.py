@@ -18,7 +18,6 @@ import yt
 from yt.config import ytcfg
 from yt.utilities.answer_testing import utils
 
-
 # Global variables can be added to the pytest namespace
 # if this is not done (i.e., just using answer_files = {}), then
 # the dictionary is empty come pytest configuration time and
@@ -81,9 +80,10 @@ def pytest_configure(config):
     with open(answer_file_list, 'r') as f:
         pytest.answer_files = yaml.safe_load(f)
     # Register custom marks for answer tests and big data
-    config.addinivalue_line('markers', 'answer_test: Run the answer tests.')
-    config.addinivalue_line('markers', 'big_data: Run answer tests that require'
-        ' large data files.')
+    config.addinivalue_line("markers", "answer_test: Run the answer tests.")
+    config.addinivalue_line(
+        "markers", "big_data: Run answer tests that require" " large data files."
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -97,7 +97,9 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         # If it's an answer test and the appropriate CL option hasn't
         # been set, skip it
-        if "answer_test" in item.keywords and not config.getoption("--with-answer-testing"):
+        if "answer_test" in item.keywords and not config.getoption(
+            "--with-answer-testing"
+        ):
             item.add_marker(skip_answer)
         # If it's an answer test that requires big data and the CL
         # option hasn't been set, skip it
@@ -105,13 +107,13 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_big)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def temp_dir():
     r"""
     Creates a temporary directory needed by certain tests.
     """
     curdir = os.getcwd()
-    if int(os.environ.get('GENERATE_YTDATA', 0)):
+    if int(os.environ.get("GENERATE_YTDATA", 0)):
         tmpdir = os.getcwd()
     else:
         tmpdir = tempfile.mkdtemp()
@@ -122,7 +124,7 @@ def temp_dir():
         shutil.rmtree(tmpdir)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope="class")
 def answer_file(request):
     r"""
     Assigns the name of the appropriate answer file as an attribute of
@@ -232,7 +234,7 @@ def _param_list(request):
     return test_params
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def hashing(request):
     r"""
     Handles initialization, generation, and saving of answer test
@@ -294,18 +296,15 @@ def hashing(request):
     # Add the other test parameters
     hashes.update(params)
     # Add the function name as the "master" key to the hashes dict
-    hashes = {request.node.name : hashes}
+    hashes = {request.node.name: hashes}
     # Either save or compare
     if not request.config.getoption("--no-hash"):
         utils._handle_hashes(request.cls.answer_file, hashes,
             request.config.getoption('--answer-store'))
     if request.config.getoption('--answer-raw-arrays'):
-        # answer_file has .yaml appended to it, but here we're saving
-        # the arrays as .npy files, so we remove the .yaml extension
         utils._handle_raw_arrays(request.cls.raw_answer_file,
             request.cls.hashes, request.config.getoption('--raw-answer-store'),
             request.node.name)
-
 
 @pytest.fixture(scope='class')
 def ds(request):

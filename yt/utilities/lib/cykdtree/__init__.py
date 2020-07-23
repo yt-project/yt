@@ -1,5 +1,6 @@
-from yt.utilities.lib.cykdtree.kdtree import PyKDTree, PyNode  # NOQA
 from yt.utilities.lib.cykdtree import plot  # NOQA
+from yt.utilities.lib.cykdtree.kdtree import PyKDTree, PyNode  # NOQA
+
 
 def make_tree(pts, **kwargs):
     r"""Build a KD-tree for a set of points.
@@ -17,7 +18,7 @@ def make_tree(pts, **kwargs):
 
     """
     # Check input
-    if (pts.ndim != 2):
+    if pts.ndim != 2:
         raise ValueError("pts must be a 2D array of ND coordinates")
     T = PyKDTree(pts, **kwargs)
     return T
