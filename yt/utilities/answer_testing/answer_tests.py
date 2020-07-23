@@ -304,7 +304,6 @@ def extract_connected_sets(ds_fn, data_source, field, num_levels, min_val, max_v
 def VR_image_comparison(scene):
     tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
     os.close(tmpfd)
-    scene.render()
     scene.save(tmpname, sigma_clip=1.0)
     image = mpimg.imread(tmpname)
     os.remove(tmpname)
