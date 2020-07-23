@@ -2040,7 +2040,11 @@ def plot_allsky_healpix(
     if take_log:
         func = np.log10
     else:
-        func = lambda a: a
+
+        def _identity(x):
+            return x
+
+        func = _identity
     implot = ax.imshow(
         func(img),
         extent=(-np.pi, np.pi, -np.pi / 2, np.pi / 2),

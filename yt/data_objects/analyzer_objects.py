@@ -89,7 +89,11 @@ class ParameterValue(AnalysisTask):
     def __init__(self, parameter, cast=None):
         self.parameter = parameter
         if cast is None:
-            cast = lambda a: a
+
+            def _identity(x):
+                return x
+
+            cast = _identity
         self.cast = cast
 
     def eval(self, ds):
