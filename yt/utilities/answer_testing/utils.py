@@ -7,8 +7,12 @@ import functools
 import hashlib
 import inspect
 import os
+import sys
+import tempfile
+import zlib
 
-from yt.utilities.on_demand_imports import _h5py as h5py
+import matplotlib.image as mpimg
+from matplotlib.testing.compare import compare_images
 import numpy as np
 import pytest
 import yaml
@@ -18,11 +22,10 @@ from yt.convenience import load, simulation
 from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified
+from yt.testing import assert_equal
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import YTOutputNotIdentified
+from yt.utilities.on_demand_imports import _h5py as h5py
 import yt.visualization.particle_plots as particle_plots
 import yt.visualization.plot_window as pw
 import yt.visualization.profile_plotter as profile_plotter
@@ -584,3 +587,27 @@ def get_parameterization(fname):
         return [fields, ids]
     except YTOutputNotIdentified:
         return [[pytest.param(None, marks=pytest.mark.skip),], ['skipped',]]
+
+
+def compare_image_lists(new_result, old_result, decimals):
+    fns = []
+    for i in range(2):
+        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        os.close(tmpfd)
+        fns.append(tmpname)
+    num_images = len(old_result)
+    assert(num_images > 0)
+    for i in range(num_images):
+        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
+        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+        results = compare_images(fns[0], fns[1], 10**(-decimals))
+        if results is not None:
+            if os.environ.get("JENKINS_HOME") is not None:
+                tempfiles = [line.strip() for line in results.split('\n')
+                             if line.endswith(".png")]
+                for fn in tempfiles:
+                    sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
+                sys.stderr.write('\n')
+        assert_equal(results, None, results)
+        for fn in fns:
+            os.remove(fn)
