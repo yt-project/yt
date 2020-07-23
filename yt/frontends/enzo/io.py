@@ -299,9 +299,6 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
         f.close()
         return ds.transpose()[:, :, None]
 
-    def modify(self, field):
-        pass
-
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
         # Now we have to do something unpleasant
@@ -358,6 +355,3 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
         ds = f["/Grid%08i/%s" % (grid.id, field)][:]
         f.close()
         return ds.transpose()[:, None, None]
-
-    def modify(self, field):
-        pass

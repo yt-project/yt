@@ -1,3 +1,4 @@
+import abc
 import os
 import pickle
 import weakref
@@ -17,7 +18,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 )
 
 
-class Index(ParallelAnalysisInterface):
+class Index(ParallelAnalysisInterface, abc.ABC):
     """The base index class"""
 
     _unsupported_objects = ()
@@ -43,6 +44,10 @@ class Index(ParallelAnalysisInterface):
         # potentially quite expensive, and should be done with the indexing.
         mylog.debug("Detecting fields.")
         self._detect_output_fields()
+
+    @abc.abstractmethod
+    def _detect_output_fields(self):
+        pass
 
     def _initialize_state_variables(self):
         self._parallel_locking = False
