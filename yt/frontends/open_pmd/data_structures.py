@@ -43,8 +43,12 @@ class OpenPMDGrid(AMRGridPatch):
     pindex = 0
     poffset = 0
 
-    def __init__(self, gid, index, level=-1, fi=0, fo=0, pi=0, po=0, ft=[], pt=[]):
+    def __init__(self, gid, index, level=-1, fi=0, fo=0, pi=0, po=0, ft=None, pt=None):
         AMRGridPatch.__init__(self, gid, filename=index.index_filename, index=index)
+        if ft is None:
+            ft = []
+        if pt is None:
+            pt = []
         self.findex = fi
         self.foffset = fo
         self.pindex = pi
