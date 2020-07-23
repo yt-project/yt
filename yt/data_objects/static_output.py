@@ -813,6 +813,7 @@ class Dataset(metaclass=RegisteredDataset):
 
     def _get_field_info(self, ftype, fname=None):
         self.index
+        INPUT = ftype, fname
         if fname is None:
             if isinstance(ftype, DerivedField):
                 ftype, fname = ftype.name
@@ -860,7 +861,7 @@ class Dataset(metaclass=RegisteredDataset):
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
                     return self._last_finfo
-        raise YTFieldNotFound((ftype, fname), self)
+        raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
         # Called by subclass
@@ -1081,7 +1082,7 @@ class Dataset(metaclass=RegisteredDataset):
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
-        import yt.units.dimensions as dimensions
+        from yt.units import dimensions as dimensions
 
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
