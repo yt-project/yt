@@ -7,7 +7,6 @@ metal_elements = ["He", "C", "N", "O", "Ne", "Mg", "Si", "Fe"]
 
 
 class ArepoFieldInfo(GadgetFieldInfo):
-
     def __init__(self, ds, field_list, slice_info=None):
         if ds.cosmological_simulation:
             GFM_SFT_units = "dimensionless"
@@ -16,8 +15,10 @@ class ArepoFieldInfo(GadgetFieldInfo):
         self.known_particle_fields += (
             ("GFM_StellarFormationTime", (GFM_SFT_units, ["stellar_age"], None)),
             ("MagneticField", ("code_magnetic", ["particle_magnetic_field"], None)),
-            ("MagneticFieldDivergence",
-                ("code_magnetic/code_length", ["magnetic_field_divergence"], None)),
+            (
+                "MagneticFieldDivergence",
+                ("code_magnetic/code_length", ["magnetic_field_divergence"], None),
+            ),
             ("GFM_Metallicity", ("", ["metallicity"], None)),
             ("GFM_Metals_00", ("", ["H_fraction"], None)),
             ("GFM_Metals_01", ("", ["He_fraction"], None)),

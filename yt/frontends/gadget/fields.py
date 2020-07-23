@@ -8,8 +8,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         if ds.gen_hsmls:
             hsml = (("smoothing_length", ("code_length", [], None)),)
             self.known_particle_fields += hsml
-        super(GadgetFieldInfo, self).__init__(ds, field_list,
-                                              slice_info=slice_info)
+        super(GadgetFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
 

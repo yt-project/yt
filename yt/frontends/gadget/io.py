@@ -5,8 +5,7 @@ import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
 from yt.units.yt_array import uconcatenate
-from yt.utilities.lib.particle_kdtree_tools import \
-    generate_smoothing_length
+from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -106,7 +105,8 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         counts = defaultdict(int)
         for data_file in data_files:
             for _, ppos in self._yield_coordinates(
-                    data_file, needed_ptype=self.ds._sph_ptypes[0]):
+                data_file, needed_ptype=self.ds._sph_ptypes[0]
+            ):
                 counts[data_file.filename] += ppos.shape[0]
                 positions.append(ppos)
         if not positions:
@@ -117,8 +117,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             offsets[fn] = offset
             offset += count
         positions = uconcatenate(positions)[kdtree.idx]
-        hsml = generate_smoothing_length(
-            positions, kdtree, self.ds._num_neighbors)
+        hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype
         hsml = hsml[np.argsort(kdtree.idx)].astype(dtype)
         mylog.warning("Writing smoothing lengths to hsml files.")
@@ -126,13 +125,15 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             si, ei = data_file.start, data_file.end
             fn = data_file.filename
             hsml_fn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
-            with h5py.File(hsml_fn, mode='a') as f:
-                if i == 0: f.attrs['q'] = self.ds._file_hash
+            with h5py.File(hsml_fn, mode="a") as f:
+                if i == 0:
+                    f.attrs["q"] = self.ds._file_hash
                 g = f.require_group(self.ds._sph_ptypes[0])
-                d = g.require_dataset("SmoothingLength", dtype=dtype,
-                                      shape=(counts[fn],))
-                begin = si+offsets[fn]
-                end = min(ei, d.size)+offsets[fn]
+                d = g.require_dataset(
+                    "SmoothingLength", dtype=dtype, shape=(counts[fn],)
+                )
+                begin = si + offsets[fn]
+                end = min(ei, d.size) + offsets[fn]
                 d[si:ei] = hsml[begin:end]
 
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
