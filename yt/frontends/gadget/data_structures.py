@@ -340,6 +340,7 @@ class GadgetDataset(SPHDataset):
         return os.path.basename(self.parameter_filename).split(".")[0]
 
     def _get_hvals(self):
+        self.gen_hsmls = False
         return self._header.value
 
     def _parse_parameter_file(self):
@@ -591,6 +592,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         # Compat reasons.
         hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
         hvals["Massarr"] = hvals["MassTable"]
+        self.gen_hsmls = "SmoothingLength" not in handle[self._sph_ptypes[0]]
         handle.close()
         return hvals
 
