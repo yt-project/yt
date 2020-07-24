@@ -34,25 +34,25 @@ test_params = {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("c", (0.1, "unitary")))), ("None", "sphere")],
         "w": [(None, "ones"), ("None", "ones")],
-        "f": _fields_grs,
+        "f": [_fields_grs, ("temperature",)]
     },
     "test_velocity_field": {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("c", (0.1, "unitary")))), ("None", "sphere")],
         "w": [(None, "ones"), ("None", "ones")],
-        "f": _fields_vels,
+        "f": [_fields_vels, ("vx", "vy", "vz")]
     },
     "test_acis": {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("c", (0.1, "unitary")))), ("None", "sphere")],
         "w": [(None, "ones"), ("None", "ones")],
-        "f": _fields_acis,
+        "f": [_fields_acis, ("counts1", "counts2")]
     },
     "test_A2052": {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("c", (0.1, "unitary")))), ("None", "sphere")],
         "w": [(None, "ones"), ("None", "ones")],
-        "f": _fields_A2052,
+        "f": [_fields_A2052, ("flux",)]
     },
 }
 

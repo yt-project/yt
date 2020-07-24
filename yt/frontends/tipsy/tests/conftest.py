@@ -54,7 +54,7 @@ test_params = {
         "a": [(0, 1, 2), ("0", "1", "2")],
     },
     "test_tipsy_galaxy_nbody": {
-        "f, w": [[(k, v) for k, v in tg_nbody_fields.items()], ("metals-None")],
+        "f, w": [[(k, v) for k, v in tg_nbody_fields.items()], ("metals-None",)],
         "d": [(None, ("sphere", ("c", (0.1, "unitary")))), ("None", "sphere")],
         "a": [(0, 1, 2), ("0", "1", "2")],
     },

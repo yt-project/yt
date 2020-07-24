@@ -10,7 +10,6 @@ test_params = {
     "test_arepo_bullet": {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
-        "w": [(None, "density"), ("None", "density")],
         "f, w": [
             (
                 (("gas", "density"), None),
@@ -29,7 +28,6 @@ test_params = {
     "test_arepo_tng59": {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
-        "w": [(None, "density"), ("None", "density")],
         "f, w": [
             (
                 (("gas", "density"), None),

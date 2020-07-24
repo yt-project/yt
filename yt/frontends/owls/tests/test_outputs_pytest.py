@@ -24,21 +24,21 @@ os33 = "snapshot_033/snap_033.0.hdf5"
 class TestOwls:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parameterize("ds", [os33], indirect=True)
+    @pytest.mark.parametrize("ds", [os33], indirect=True)
     def test_snapshot_033(self, f, w, d, a, ds):
         self.hashes.update(sph_answer(ds, "snap_033", 2 * 128 ** 3, f, w, d, a))
 
     @pytest.mark.big_data
-    @pytest.mark.parameterize("ds", [os33], indirect=True)
+    @pytest.mark.parametrize("ds", [os33], indirect=True)
     def test_owls_psc(self, ds):
         psc = ParticleSelectionComparison(ds)
         psc.run_defaults()
 
-    @pytest.mark.parameterize("ds", [os33], indirect=True)
+    @pytest.mark.parametrize("ds", [os33], indirect=True)
     def test_OWLSDataset(self, ds):
         assert isinstance(ds, OWLSDataset)
 
-    @pytest.mark.parameterize("ds", [os33], indirect=True)
+    @pytest.mark.parametrize("ds", [os33], indirect=True)
     def test_OWLS_particlefilter(self, ds):
         ad = ds.all_data()
 

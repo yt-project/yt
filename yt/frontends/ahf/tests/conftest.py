@@ -19,10 +19,10 @@ test_params = {
     "test_fields_ahf_halos": {
         "field": [
             (
-                "particle_position_x",
-                "particle_position_y",
-                "particle_position_z",
-                "particle_mass",
+                ("nbody", "particle_position_x"),
+                ("nbody", "particle_position_y"),
+                ("nbody", "particle_position_z"),
+                ("nbody", "particle_mass"),
             ),
             ("x", "y", "z", "mass"),
         ]
