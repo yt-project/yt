@@ -745,8 +745,39 @@ class BlockCollection(SceneData):
             self.texture_objects[vbo_i] = data_tex
             self.bitmap_objects[vbo_i] = bitmap_tex
 
+class RGBAData(SceneData):
+    name = "rgba_data"
+    colormap_texture = traitlets.Instance(Texture1D)
+
+    @traitlets.default("vertex_array")
+    def _default_vertex_array(self):
+        va = VertexArray(name = "tri", each = 6)
+        fq = FULLSCREEN_QUAD.reshape((6, 3), order="C")
+        va.attributes.append(VertexAttribute(
+            name = "vertexPosition_modelspace", data = fq
+        ))
+        return va
+
+    def add_data(self, lines):
+        assert(lines.shape[1] == 4)
+        self.colormap_texture = Texture1D(boundary_x = "clamp", data = lines)
+
+
+class RGBADisplay(SceneComponent):
+    name = "rgba_display"
+    data = traitlets.Instance(RGBAData)
+    priority = 20
+
+    def _set_uniforms(self, scene, shader_program):
+        shader_program._set_uniform("cm_texture", 0)
+
+    def draw(self, scene, program):
+        with self.data.colormap_texture.bind(0):
+            GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
+
 class RGBALinePlot(SceneComponent):
     name = "rgba_line_plot"
+    data = traitlets.Instance(LineData)
     priority = 20
 
     def draw(self, scene, program):
@@ -781,8 +812,6 @@ class BlockRendering(SceneComponent):
 
     def render_gui(self, imgui, renderer):
         changed = super(BlockRendering, self).render_gui(imgui, renderer)
-        changed = False
-        changed = changed or _
         _, self.cmap_log = imgui.checkbox("Take log", self.cmap_log)
         changed = changed or _
         _, cmap_index = imgui.listbox("Colormap",
@@ -905,7 +934,7 @@ class BoxAnnotation(SceneAnnotation):
         GL.glDrawArrays(GL.GL_TRIANGLES, 0, each)
 
     def render_gui(self, imgui, renderer):
-        changed = False
+        changed = super(BoxAnnotation, self).render_gui(imgui, renderer)
         _, bw = imgui.slider_float("Width", self.box_width, 0.001, 0.250)
         if _: self.box_width = bw
         changed = changed or _

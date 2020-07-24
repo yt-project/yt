@@ -8,6 +8,13 @@ shader_definitions:
       - src alpha
       - dst alpha
       blend_equation: func add
+    expand_1d:
+      info: This expands a 1D texture along the y dimension
+      source: expand_1d.frag.glsl
+      blend_func:
+      - one
+      - zero
+      blend_equation: func add
     draw_blocks:
       info: A first pass fragment shader that performs ray casting using transfer function.
         See :ref:`volume-rendering-method` for more details.
@@ -161,5 +168,13 @@ component_shaders:
       description: Default
       first_vertex: draw_lines
       first_fragment: draw_lines
+      second_vertex: passthrough
+      second_fragment: passthrough
+  rgba_display:
+    default_value: default
+    default:
+      description: Display an image
+      first_vertex: passthrough
+      first_fragment: expand_1d
       second_vertex: passthrough
       second_fragment: passthrough
