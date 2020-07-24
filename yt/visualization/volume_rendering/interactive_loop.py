@@ -166,7 +166,6 @@ class RenderingContext(pyglet.window.Window):
             if self.scene is not None:
                 # This should check if the scene is actually dirty, and only
                 # redraw the FB if it's not; this might need another flag
-                print("Rendering %s" % time.time())
                 self.scene.render()
                 if self.image_widget is not None:
                     self.image_widget.value = write_bitmap(

@@ -353,7 +353,8 @@ class SceneComponent(traitlets.HasTraits):
             self.fb = Framebuffer()
 
     def render_gui(self, imgui, renderer):
-        return False
+        changed, self.visible = imgui.checkbox("Visible", self.visible)
+        return changed
 
     @traitlets.default("render_method")
     def _default_render_method(self):
@@ -779,8 +780,8 @@ class BlockRendering(SceneComponent):
     priority = 10
 
     def render_gui(self, imgui, renderer):
+        changed = super(BlockRendering, self).render_gui(imgui, renderer)
         changed = False
-        _, self.visible = imgui.checkbox("Visible", self.visible)
         changed = changed or _
         _, self.cmap_log = imgui.checkbox("Take log", self.cmap_log)
         changed = changed or _
@@ -871,9 +872,7 @@ class BlockOutline(SceneAnnotation):
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
 
     def render_gui(self, imgui, renderer):
-        changed = False
-        _, self.visible = imgui.checkbox("Visible", self.visible)
-        changed = changed or _
+        changed = super(BlockOutline, self).render_gui(imgui, renderer)
         _, bw = imgui.slider_float("Width", self.box_width, 0.001, 0.250)
         if _: self.box_width = bw
         changed = changed or _
