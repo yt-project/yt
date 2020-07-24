@@ -8,7 +8,7 @@ Purpose: Eagle frontend tests using the snapshot_028_z000p000 dataset
 """
 import pytest
 
-from yt.frontends.eagle.api import EagleDataset 
+from yt.frontends.eagle.api import EagleDataset
 from yt.testing import ParticleSelectionComparison
 
 
@@ -19,14 +19,13 @@ s399 = "snipshot_399_z000p000/snip_399_z000p000.0.hdf5"
 
 @pytest.mark.answer_test
 class TestEagle:
-
-    @pytest.mark.parametrize('ds', [s28], indirect=True)
+    @pytest.mark.parametrize("ds", [s28], indirect=True)
     def test_EagleDataset(self, ds):
         assert isinstance(ds, EagleDataset)
         psc = ParticleSelectionComparison(ds)
         psc.run_defaults()
 
-    @pytest.mark.parametrize('ds', [s399], indirect=True)
+    @pytest.mark.parametrize("ds", [s399], indirect=True)
     def test_Snipshot(self, ds):
         assert isinstance(ds, EagleDataset)
         psc = ParticleSelectionComparison(ds)

@@ -9,15 +9,15 @@ Notes:
 """
 import pytest
 
-from yt.frontends.fits.data_structures import FITSDataset, \
-    SpectralCubeFITSDataset, \
-    SkyDataFITSDataset, \
-    EventsFITSDataset
-from yt.testing import \
-    requires_file, \
-    units_override_check
+from yt.frontends.fits.data_structures import (
+    FITSDataset,
+    SpectralCubeFITSDataset,
+    SkyDataFITSDataset,
+    EventsFITSDataset,
+)
+from yt.testing import requires_file, units_override_check
 from yt.utilities.answer_testing.answer_tests import small_patch_amr
-from yt.utilities.answer_testing.utils import data_dir_load, requires_ds
+from yt.utilities.answer_testing.utils import requires_ds
 
 
 # Test data
@@ -28,25 +28,24 @@ A2052 = "xray_fits/A2052_merged_0.3-2_match-core_tmap_bgecorr.fits"
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('answer_file')
+@pytest.mark.usefixtures("answer_file")
 class TestFits:
-
-    @pytest.mark.usefixtures('hashing')
+    @pytest.mark.usefixtures("hashing")
     @requires_ds(grs)
     def test_grs(self, f, a, d, w, ds_grs):
         self.hashes.update(small_patch_amr(ds_grs, f, w, a, d))
 
-    @pytest.mark.usefixtures('hashing')
+    @pytest.mark.usefixtures("hashing")
     @requires_ds(vf)
     def test_velocity_field(self, f, a, d, w, ds_vf):
         self.hashes.update(small_patch_amr(ds_vf, f, w, a, d))
 
-    @pytest.mark.usefixtures('hashing')
+    @pytest.mark.usefixtures("hashing")
     @requires_ds(acis)
     def test_acis(self, f, a, d, w, ds_acis):
         self.hashes.update(small_patch_amr(ds_acis, f, w, a, d))
 
-    @pytest.mark.usefixtures('hashing')
+    @pytest.mark.usefixtures("hashing")
     @requires_ds(A2052)
     def test_A2052(self, f, a, d, w, ds_A2052):
         self.hashes.update(small_patch_amr(ds_A2052, f, w, a, d))

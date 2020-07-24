@@ -12,32 +12,36 @@ jet = "InteractingJets/jet_000002"
 
 
 test_params = {
-    'test_jet' : {
-        'a' : [(0, 1, 2), ('0', '1', '2')],
-        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
-        'w' : [(None, 'density'), ('None', 'density')],
-        'f' : [("temperature", "density", "velocity_magnitude"),
-                ("temperature", "density", "velocity_magnitude")]
+    "test_jet": {
+        "a": [(0, 1, 2), ("0", "1", "2")],
+        "d": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
+        "w": [(None, "density"), ("None", "density")],
+        "f": [
+            ("temperature", "density", "velocity_magnitude"),
+            ("temperature", "density", "velocity_magnitude"),
+        ],
     },
-    'test_psiDM' : {
-        'a' : [(0, 1, 2), ('0', '1', '2')],
-        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
-        'w' : [(None, 'density'), ('None', 'density')],
-        'f' : [("Dens", "Real", "Imag"), ("Dens", "Real", "Imag")]
+    "test_psiDM": {
+        "a": [(0, 1, 2), ("0", "1", "2")],
+        "d": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
+        "w": [(None, "density"), ("None", "density")],
+        "f": [("Dens", "Real", "Imag"), ("Dens", "Real", "Imag")],
     },
-    'test_plummer' : {
-        'a' : [(0, 1, 2), ('0', '1', '2')],
-        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
-        'w' : [(None, 'density'), ('None', 'density')],
-        'f' : [(("gamer","ParDens"), ("deposit","io_cic")), ("parDens", "iocic")]
+    "test_plummer": {
+        "a": [(0, 1, 2), ("0", "1", "2")],
+        "d": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
+        "w": [(None, "density"), ("None", "density")],
+        "f": [(("gamer", "ParDens"), ("deposit", "io_cic")), ("parDens", "iocic")],
     },
-    'test_mhdvortex' : {
-        'a' : [(0, 1, 2), ('0', '1', '2')],
-        'd' : [(None, ('sphere', ('max', (0.1, 'unitary')))), ('None', 'sphere')],
-        'w' : [(None, 'density'), ('None', 'density')],
-        'f' : [(("gamer","CCMagX"), ("gamer","CCMagY"), ("gas","magnetic_energy")),
-                ("CCMagX", "CCMagY", "magnetic_energy")]
-    }
+    "test_mhdvortex": {
+        "a": [(0, 1, 2), ("0", "1", "2")],
+        "d": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
+        "w": [(None, "density"), ("None", "density")],
+        "f": [
+            (("gamer", "CCMagX"), ("gamer", "CCMagY"), ("gas", "magnetic_energy")),
+            ("CCMagX", "CCMagY", "magnetic_energy"),
+        ],
+    },
 }
 
 
@@ -48,11 +52,13 @@ def pytest_generate_tests(metafunc):
                 metafunc.parametrize(param_name, param_vals[0], ids=param_vals[1])
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope="class")
 def ds_jet():
-    jet_units   = {"length_unit":(1.0,"kpc"),
-                   "time_unit"  :(3.08567758096e+13,"s"),
-                   "mass_unit"  :(1.4690033e+36,"g")}
-    ds = data_dir_load(jet, kwargs={"units_override":jet_units})
+    jet_units = {
+        "length_unit": (1.0, "kpc"),
+        "time_unit": (3.08567758096e13, "s"),
+        "mass_unit": (1.4690033e36, "g"),
+    }
+    ds = data_dir_load(jet, kwargs={"units_override": jet_units})
     assert str(ds) == "jet_000002"
     return ds

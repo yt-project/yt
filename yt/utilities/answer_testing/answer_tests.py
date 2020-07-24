@@ -10,9 +10,9 @@ import matplotlib.image as mpimg
 import numpy as np
 
 from yt.analysis_modules.cosmological_observation.api import LightCone
-from yt.analysis_modules.halo_analysis.api import HaloCatalog
-from yt.analysis_modules.halo_mass_function.api import HaloMassFcn
+from yt.testing import assert_equal
 from yt.utilities.on_demand_imports import _h5py as h5py
+import yt.visualization.particle_plots as particle_plots
 import yt.visualization.plot_window as pw
 
 from . import utils
@@ -20,11 +20,11 @@ from . import utils
 
 def grid_hierarchy(ds):
     result = {}
-    result['grid_dimensions'] = ds.index.grid_dimensions
-    result['grid_left_edges'] = ds.index.grid_left_edge
-    result['grid_right_edges'] = ds.index.grid_right_edge
-    result['grid_levels'] = ds.index.grid_levels
-    result['grid_particle_count'] = ds.index.grid_particle_count
+    result["grid_dimensions"] = ds.index.grid_dimensions
+    result["grid_left_edges"] = ds.index.grid_left_edge
+    result["grid_right_edges"] = ds.index.grid_right_edge
+    result["grid_levels"] = ds.index.grid_levels
+    result["grid_particle_count"] = ds.index.grid_particle_count
     return result
 
 
@@ -40,8 +40,9 @@ def parentage_relationships(ds):
         else:
             parents.append([pg.id for pg in p])
         children.append([c.id for c in g.Children])
-    result = [parents, children] 
-    return result 
+    result = [parents, children]
+    return result
+
 
 def grid_values(ds, field):
     result = {}
@@ -50,6 +51,7 @@ def grid_values(ds, field):
         g.clear_data()
     return result
 
+
 def projection_values(ds, axis, field, weight_field=None, dobj_type=None):
     if dobj_type is not None:
         dobj = utils.create_obj(ds, dobj_type)
@@ -57,11 +59,7 @@ def projection_values(ds, axis, field, weight_field=None, dobj_type=None):
         dobj = None
     if ds.domain_dimensions[axis] == 1:
         return None
-    proj = ds.proj(field,
-                axis,
-                weight_field=weight_field,
-                data_source=dobj
-            )
+    proj = ds.proj(field, axis, weight_field=weight_field, data_source=dobj)
     return proj.field_data
 
 
@@ -86,9 +84,11 @@ def field_values(ds, field, obj_type=None, particle_type=False):
     # Return as a hashable bytestring
     return np.array([avg, minimum, maximum])
 
+
 def all_field_values(ds, field, obj_type=None):
     obj = utils.create_obj(ds, obj_type)
     return obj[field]
+
 
 def pixelized_projection_values(ds, axis, field, weight_field=None, dobj_type=None):
     if dobj_type is not None:
@@ -106,14 +106,13 @@ def pixelized_projection_values(ds, axis, field, weight_field=None, dobj_type=No
         d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
     return d
 
-def pixelized_particle_projection_values(ds, axis, field, weight_field=None,
-    dobj_type=None):
-    if dobj_type is not None:
-        obj = utils.create_obj(ds, dobj_type)
-    else:
-        obj = None
-    proj_plot = particle_plots.ParticleProjectionPlot(ds, axis, [field],
-                  weight_field = weight_field)
+
+def pixelized_particle_projection_values(
+    ds, axis, field, weight_field=None, dobj_type=None
+):
+    proj_plot = particle_plots.ParticleProjectionPlot(
+        ds, axis, [field], weight_field=weight_field
+    )
     proj = proj_plot.data_source
     frb = proj_plot.frb
     frb[field]
@@ -125,24 +124,27 @@ def pixelized_particle_projection_values(ds, axis, field, weight_field=None,
         d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
     return d
 
+
 def small_patch_amr(ds, field, weight, axis, ds_obj):
     results = {}
-    results['grid_hierarchy'] = grid_hierarchy(ds)
-    results['parentage_relationships'] = parentage_relationships(ds)
-    results['grid_values'] = grid_values(ds, field)
-    results['field_values'] = field_values(ds, field, ds_obj)
-    results['projection_values'] = projection_values(ds, axis, field, weight, ds_obj)
-    return results 
+    results["grid_hierarchy"] = grid_hierarchy(ds)
+    results["parentage_relationships"] = parentage_relationships(ds)
+    results["grid_values"] = grid_values(ds, field)
+    results["field_values"] = field_values(ds, field, ds_obj)
+    results["projection_values"] = projection_values(ds, axis, field, weight, ds_obj)
+    return results
 
 
 def big_patch_amr(ds, field, weight, axis, ds_obj):
-    results = {} 
-    results['grid_hierarchy'] = grid_hierarchy(ds)
-    results['parentage_relationships'] = parentage_relationships(ds)
-    results['grid_values'] = grid_values(ds, field)
-    results['pixelized_projection_values'] = pixelized_projection_values(
-        ds, axis, field, weight, ds_obj)
+    results = {}
+    results["grid_hierarchy"] = grid_hierarchy(ds)
+    results["parentage_relationships"] = parentage_relationships(ds)
+    results["grid_values"] = grid_values(ds, field)
+    results["pixelized_projection_values"] = pixelized_projection_values(
+        ds, axis, field, weight, ds_obj
+    )
     return results
+
 
 def generic_array(func, args=[], kwargs={}):
     return func(*args, **kwargs)
@@ -150,34 +152,37 @@ def generic_array(func, args=[], kwargs={}):
 
 def sph_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     assert str(ds) == ds_str_repr
-    hex_digests = {} 
+    hex_digests = {}
     dd = ds.all_data()
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
-    tot = sum(dd[ptype, "particle_position"].shape[0]
-              for ptype in ds.particle_types_raw)
+    tot = sum(
+        dd[ptype, "particle_position"].shape[0] for ptype in ds.particle_types_raw
+    )
     assert_equal(tot, ds_nparticles)
     particle_type = field[0] in ds.particle_types
     if not particle_type:
         ppv = pixelized_projection_values(ds, axis, field, weight, ds_obj)
-        hex_digests['pixelized_projection_values'] = ppv
+        hex_digests["pixelized_projection_values"] = ppv
     fv = field_values(ds, field, ds_obj, particle_type=particle_type)
-    hex_digests['field_values'] = fv
+    hex_digests["field_values"] = fv
     return hex_digests
+
 
 def nbody_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     assert str(ds) == ds_str_repr
-    hex_digests = {} 
+    hex_digests = {}
     dd = ds.all_data()
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
-    tot = sum(dd[ptype, "particle_position"].shape[0]
-              for ptype in ds.particle_types_raw)
+    tot = sum(
+        dd[ptype, "particle_position"].shape[0] for ptype in ds.particle_types_raw
+    )
     assert_equal(tot, ds_nparticles)
     particle_type = field[0] in ds.particle_types
     if not particle_type:
         pppv = pixelized_particle_projection_values(ds, axis, field, weight, ds_obj)
-        hex_digests['pixelized_particle_projection_values'] = pppv
+        hex_digests["pixelized_particle_projection_values"] = pppv
     fv = field_values(ds, field, ds_obj, particle_type=particle_type)
-    hex_digests['field_values'] = fv
+    hex_digests["field_values"] = fv
     return hex_digests
 
 
@@ -215,12 +220,21 @@ def plot_window_attribute(
     os.remove(tmpname)
     return image
 
-def phase_plot_attribute(ds, x_field, y_field, z_field,
-             attr_name, attr_args, plot_type='PhasePlot',
-             plot_kwargs={}):
+
+def phase_plot_attribute(
+    ds,
+    x_field,
+    y_field,
+    z_field,
+    attr_name,
+    attr_args,
+    plot_type="PhasePlot",
+    plot_kwargs={},
+):
     data_source = ds.all_data()
-    plot = utils._create_phase_plot_attribute_plot(data_source, x_field, y_field,
-                            z_field, plot_type, plot_kwargs)
+    plot = utils._create_phase_plot_attribute_plot(
+        data_source, x_field, y_field, z_field, plot_type, plot_kwargs
+    )
     attr = getattr(plot, attr_name)
     attr(*attr_args[0], **attr_args[1])
     tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
@@ -230,13 +244,14 @@ def phase_plot_attribute(ds, x_field, y_field, z_field,
     os.remove(tmpname)
     return image
 
+
 def generic_image(img_func, args=[], kwargs={}):
     comp_imgs = []
     tmpdir = tempfile.mkdtemp()
-    image_prefix = os.path.join(tmpdir,"test_img")
-    image_func(image_prefix, *args, **kwargs)
-    imgs = sorted(glob.glob(image_prefix+"*"))
-    assert(len(imgs) > 0)
+    image_prefix = os.path.join(tmpdir, "test_img")
+    img_func(image_prefix, *args, **kwargs)
+    imgs = sorted(glob.glob(image_prefix + "*"))
+    assert len(imgs) > 0
     for img in imgs:
         img_data = mpimg.imread(img)
         os.remove(img)
@@ -263,19 +278,28 @@ def axial_pixelization(ds):
         # Wipe out invalid values (fillers)
         pix_x[~np.isfinite(pix_x)] = 0.0
         pix_y[~np.isfinite(pix_y)] = 0.0
-        rv['%s_x' % axis] = pix_x
-        rv['%s_y' % axis] = pix_y
-    return rv 
+        rv["%s_x" % axis] = pix_x
+        rv["%s_y" % axis] = pix_y
+    return rv
+
 
 def light_cone_projection(parameter_file, simulation_type):
     lc = LightCone(
-        parameter_file, simulation_type, 0., 0.1,
-        observer_redshift=0.0, time_data=False)
-    lc.calculate_light_cone_solution(
-        seed=123456789, filename="LC/solution.txt")
+        parameter_file,
+        simulation_type,
+        0.0,
+        0.1,
+        observer_redshift=0.0,
+        time_data=False,
+    )
+    lc.calculate_light_cone_solution(seed=123456789, filename="LC/solution.txt")
     lc.project_light_cone(
-        (600.0, "arcmin"), (60.0, "arcsec"), "density",
-        weight_field=None, save_stack=True)
+        (600.0, "arcmin"),
+        (60.0, "arcsec"),
+        "density",
+        weight_field=None,
+        save_stack=True,
+    )
     fh = h5py.File("LC/LightCone.h5")
     data = fh["density_None"].value
     units = fh["density_None"].attrs["units"]
@@ -285,6 +309,7 @@ def light_cone_projection(parameter_file, simulation_type):
     mi = data[data.nonzero()].min()
     ma = data.max()
     return np.array([mean, mi, ma])
+
 
 def extract_connected_sets(ds_fn, data_source, field, num_levels, min_val, max_val):
     n, all_sets = data_source.extract_connected_sets(
@@ -311,6 +336,7 @@ def VR_image_comparison(scene):
     os.remove(tmpname)
     return image
 
+
 def yt_data_field(ds, field, geometric):
     if geometric:
         obj = ds.all_data()
@@ -319,6 +345,7 @@ def yt_data_field(ds, field, geometric):
     num_e = obj[field].size
     avg = obj[field].mean()
     return np.array([num_e, avg])
+
 
 def verify_simulation_same(sim_obj):
     result = [ds.current_time for ds in sim_obj]

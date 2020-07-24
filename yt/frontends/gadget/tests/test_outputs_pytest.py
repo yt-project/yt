@@ -7,7 +7,6 @@ Notes:
     The full license is in the file COPYING.txt, distributed with this
     software.
 """
-from collections import OrderedDict
 from itertools import product
 
 import pytest
@@ -34,17 +33,14 @@ iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('answer_file')
+@pytest.mark.usefixtures("answer_file")
 class TestGadget:
-
-    @pytest.mark.usefixtures('temp_dir')
+    @pytest.mark.usefixtures("temp_dir")
     def test_gadget_binary(self):
-        header_specs = ['default', 'default+pad32', ['default', 'pad32']]
-        for header_spec, endian, fmt in product(header_specs, '<>', [1, 2]):
+        header_specs = ["default", "default+pad32", ["default", "pad32"]]
+        for header_spec, endian, fmt in product(header_specs, "<>", [1, 2]):
             fake_snap = fake_gadget_binary(
-                header_spec=header_spec,
-                endian=endian,
-                fmt=fmt
+                header_spec=header_spec, endian=endian, fmt=fmt
             )
             ds = yt.load(fake_snap, header_spec=header_spec)
             assert isinstance(ds, GadgetDataset)
@@ -52,8 +48,8 @@ class TestGadget:
 
     @requires_file(isothermal_h5)
     def test_gadget_hdf5(self):
-        assert isinstance(data_dir_load(isothermal_h5, kwargs=iso_kwargs),
-            GadgetHDF5Dataset
+        assert isinstance(
+            data_dir_load(isothermal_h5, kwargs=iso_kwargs), GadgetHDF5Dataset
         )
 
     @requires_file(keplerian_ring)
@@ -66,17 +62,17 @@ class TestGadget:
         assert data.current_redshift == 0.0
         assert data.cosmological_simulation == 0
 
-    @pytest.mark.usefixtures('hashing')
+    @pytest.mark.usefixtures("hashing")
     @requires_ds(isothermal_h5)
     def test_iso_collapse(self, f, w, d, a):
         ds = data_dir_load(isothermal_h5, kwargs=iso_kwargs)
-        self.hashes.update(sph_answer(ds, 'snap_505', 2**17, f, w, d, a))
+        self.hashes.update(sph_answer(ds, "snap_505", 2 ** 17, f, w, d, a))
 
-    @utils.requires_ds(LE_SnapFormat2)
+    @requires_ds(LE_SnapFormat2)
     def test_pid_uniqueness(self):
         ds = data_dir_load(LE_SnapFormat2)
         ad = ds.all_data()
-        pid = ad['ParticleIDs']
+        pid = ad["ParticleIDs"]
         assert len(pid) == len(set(pid.v))
 
     @requires_file(snap_33)
@@ -98,8 +94,8 @@ class TestGadget:
         psc = ParticleSelectionComparison(ds)
         psc.run_defaults()
 
-    @utils.requires_ds(BE_Gadget)
+    @requires_ds(BE_Gadget)
     def test_bigendian_field_access(self):
         ds = data_dir_load(BE_Gadget)
         data = ds.all_data()
-        data['Halo', 'Velocities']
+        data["Halo", "Velocities"]

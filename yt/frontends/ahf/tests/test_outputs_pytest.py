@@ -15,22 +15,22 @@ from yt.utilities.answer_testing.answer_tests import field_values
 from yt.utilities.answer_testing import utils
 
 # Test data
-ahf_halos = 'ahf_halos/snap_N64L16_135.parameter'
+ahf_halos = "ahf_halos/snap_N64L16_135.parameter"
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('answer_file')
+@pytest.mark.usefixtures("answer_file")
 class TestAHF:
     @requires_file(ahf_halos)
     def test_AHFHalosDataset(self, ds_ahf_halos):
         assert isinstance(ds_ahf_halos, AHFHalosDataset)
         ad = ds_ahf_halos.all_data()
-        ad['particle_mass']
+        ad["particle_mass"]
         psc = ParticleSelectionComparison(ds_ahf_halos)
         psc.run_defaults()
 
-    @pytest.mark.usefixtures('hashing')
+    @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(ahf_halos)
     def test_fields_ahf_halos(self, field, ds_ahf_halos):
         fv = field_values(ds_ahf_halos, field, particle_type=True)
-        self.hashes.update({'field_values' : fv})
+        self.hashes.update({"field_values": fv})

@@ -5,13 +5,13 @@ AdaptaHOP frontend tests
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2015, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 import numpy as np
 import pytest
@@ -40,12 +40,17 @@ class TestAdaptahop:
     def test_field_access(self):
         ds_parent = data_dir_load(r0)
         ds = data_dir_load(r1, kwargs=dict(parent_ds=ds_parent))
-        skip_list = ('particle_identities', 'mesh_id')
-        fields = [(ptype, field) for (ptype, field) in ds.derived_field_list
-                  if (ptype == 'halos') and (field not in skip_list)]
+        skip_list = ("particle_identities", "mesh_id")
+        fields = [
+            (ptype, field)
+            for (ptype, field) in ds.derived_field_list
+            if (ptype == "halos") and (field not in skip_list)
+        ]
         ad = ds.all_data()
+
         def test_access(ptype, field):
             ad[ptype, field]
+
         for (ptype, field) in fields:
             test_access(ptype, field)
 
@@ -54,14 +59,14 @@ class TestAdaptahop:
     def test_get_halo(self):
         ds_parent = data_dir_load(r0)
         ds = data_dir_load(r1, kwargs=dict(parent_ds=ds_parent))
-        halo = ds.halo(1, ptype='io')
+        halo = ds.halo(1, ptype="io")
         # Check halo objet has position, velocity, mass and members attributes
-        for attr_name in ('mass', 'position', 'velocity', 'member_ids'):
+        for attr_name in ("mass", "position", "velocity", "member_ids"):
             getattr(halo, attr_name)
         members = np.sort(halo.member_ids)
         # Check sphere contains all the members
-        id_sphere = halo.sphere['io', 'particle_identity'].astype(int)
+        id_sphere = halo.sphere["io", "particle_identity"].astype(int)
         assert len(np.lib.arraysetops.setdiff1d(members, id_sphere)) == 0
         # Check region contains *only* halo particles
-        id_reg = np.sort(halo['io', 'particle_identity'].astype(int))
+        id_reg = np.sort(halo["io", "particle_identity"].astype(int))
         np.testing.assert_equal(members, id_reg)

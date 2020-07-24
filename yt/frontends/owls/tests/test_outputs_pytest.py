@@ -20,33 +20,42 @@ os33 = "snapshot_033/snap_033.0.hdf5"
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('answer_file')
+@pytest.mark.usefixtures("answer_file")
 class TestOwls:
-
     @pytest.mark.big_data
-    @pytest.mark.usefixtures('hashing')
-    @pytest.mark.parameterize('ds', [os33], indirect=True)
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parameterize("ds", [os33], indirect=True)
     def test_snapshot_033(self, f, w, d, a, ds):
-        self.hashes.update(sph_answer(ds, 'snap_033', 2*128**3, f, w, d, a))
+        self.hashes.update(sph_answer(ds, "snap_033", 2 * 128 ** 3, f, w, d, a))
 
     @pytest.mark.big_data
-    @pytest.mark.parameterize('ds', [os33], indirect=True)
+    @pytest.mark.parameterize("ds", [os33], indirect=True)
     def test_owls_psc(self, ds):
         psc = ParticleSelectionComparison(ds)
         psc.run_defaults()
 
-    @pytest.mark.parameterize('ds', [os33], indirect=True)
+    @pytest.mark.parameterize("ds", [os33], indirect=True)
     def test_OWLSDataset(self, ds):
         assert isinstance(ds, OWLSDataset)
-    
-    @pytest.mark.parameterize('ds', [os33], indirect=True)
+
+    @pytest.mark.parameterize("ds", [os33], indirect=True)
     def test_OWLS_particlefilter(self, ds):
         ad = ds.all_data()
+
         def cold_gas(pfilter, data):
             temperature = data[pfilter.filtered_type, "Temperature"]
-            filter = (temperature.in_units('K') <= 1e5)
+            filter = temperature.in_units("K") <= 1e5
             return filter
-        add_particle_filter("gas_cold", function=cold_gas, filtered_type='PartType0', requires=["Temperature"])
-        ds.add_particle_filter('gas_cold')
-        mask = (ad['PartType0','Temperature'] <= 1e5)
-        assert ad['PartType0','Temperature'][mask].shape == ad['gas_cold','Temperature'].shape
+
+        add_particle_filter(
+            "gas_cold",
+            function=cold_gas,
+            filtered_type="PartType0",
+            requires=["Temperature"],
+        )
+        ds.add_particle_filter("gas_cold")
+        mask = ad["PartType0", "Temperature"] <= 1e5
+        assert (
+            ad["PartType0", "Temperature"][mask].shape
+            == ad["gas_cold", "Temperature"].shape
+        )

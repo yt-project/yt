@@ -9,7 +9,6 @@ Notes:
 """
 import pytest
 
-from yt.frontends.owls_subfind.api import OWLSSubfindDataset
 from yt.utilities.answer_testing.answer_tests import field_values
 
 # Test data
@@ -18,17 +17,16 @@ g8 = "owls_fof_halos/groups_008/group_008.0.hdf5"
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('answer_file')
+@pytest.mark.usefixtures("answer_file")
 class TestOwlsSubfind:
-
-    @pytest.mark.usefixtures('hashing')
-    @pytest.mark.parametrize('ds', [g8], indirect=True)
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [g8], indirect=True)
     def test_fields_g8(self, field, ds):
         fv = field_values(ds, field, particle_type=True)
-        self.hashes.update({'field_values' : fv})
+        self.hashes.update({"field_values": fv})
 
-    @pytest.mark.usefixtures('hashing')
-    @pytest.mark.parametrize('ds', [g1], indirect=True)
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [g1], indirect=True)
     def test_fields_g1(self, field, ds):
         fv = field_values(ds, field, particle_type=True)
-        self.hashes.update({'field_values' : fv})
+        self.hashes.update({"field_values": fv})

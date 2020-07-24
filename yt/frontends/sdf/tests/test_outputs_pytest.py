@@ -17,7 +17,7 @@ from yt.frontends.sdf.api import SDFDataset
 from yt.testing import assert_equal, requires_module
 from yt.visualization.api import ProjectionPlot
 
-_fields = (('deposit', 'all_cic'))
+_fields = ("deposit", "all_cic")
 slac_scivis_data = "http://darksky.slac.stanford.edu/scivis2015/data/ds14_scivis_0128/ds14_scivis_0128_e4_dt04_1.0000"
 ncsa_scivis_data = "http://use.yt/upload/744abba3"
 scivis_data = ncsa_scivis_data
@@ -39,19 +39,18 @@ def internet_on():
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('answer_file')
+@pytest.mark.usefixtures("answer_file")
 class TestSDF:
-
-    @requires_module('thingking')
+    @requires_module("thingking")
     def test_scivis(self):
         if not internet_on():
             return
-        return # HOTFIX: See discussion in 2334
+        return  # HOTFIX: See discussion in 2334
         ds = SDFDataset(scivis_data)
         if scivis_data == slac_scivis_data:
             assert_equal(str(ds), "ds14_scivis_0128_e4_dt04_1.0000")
         else:
             assert_equal(str(ds), "744abba3")
         ad = ds.all_data()
-        assert np.unique(ad['particle_position_x']).size > 1
+        assert np.unique(ad["particle_position_x"]).size > 1
         ProjectionPlot(ds, "z", _fields)

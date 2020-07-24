@@ -9,7 +9,7 @@ Notes:
 """
 import pytest
 
-from yt.frontends.gizmo.api import GizmoDataset
+import yt
 from yt.frontends.gizmo.fields import metal_elements
 from yt.testing import requires_file
 from yt.utilities.answer_testing.answer_tests import sph_answer
@@ -24,31 +24,30 @@ gmhd_bbox = [[-400, 400]] * 3
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('answer_file')
+@pytest.mark.usefixtures("answer_file")
 class TestGizmo:
-
     @pytest.mark.big_data
-    @pytest.mark.usefixtures('hashing')
-    @pytest.mark.parametrize('ds', [g64], indirect=True)
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [g64], indirect=True)
     def test_gizmo_64(self, f, w, d, a, ds):
-        self.hashes.update(sph_answer(ds, 'snap_N64L16_135', 524288, f, w, d, a))
+        self.hashes.update(sph_answer(ds, "snap_N64L16_135", 524288, f, w, d, a))
 
     @requires_file(gmhd)
     def test_gizmo_mhd(self):
         r"""Magnetic fields should be loaded correctly when they are present.
         """
-        ds = yt.load(gmhd, bounding_box=gmhd_bbox, unit_system='code')
+        ds = yt.load(gmhd, bounding_box=gmhd_bbox, unit_system="code")
         ad = ds.all_data()
-        ptype = 'PartType0'
+        ptype = "PartType0"
         # Test vector magnetic field
-        fmag = 'particle_magnetic_field'
+        fmag = "particle_magnetic_field"
         f = ad[ptype, fmag]
-        assert str(f.units) == 'code_magnetic'
+        assert str(f.units) == "code_magnetic"
         assert f.shape == (409013, 3)
         # Test component magnetic fields
-        for axis in 'xyz':
-            f = ad[ptype, fmag + '_' + axis]
-            assert str(f.units) == 'code_magnetic'
+        for axis in "xyz":
+            f = ad[ptype, fmag + "_" + axis]
+            assert str(f.units) == "code_magnetic"
             assert f.shape == (409013,)
 
     @requires_file(gmhd)
@@ -87,9 +86,6 @@ class TestGizmo:
         """
         ds = yt.load(gmhd, bounding_box=gmhd_bbox)
         ptype = "PartType4"
-        derived_fields =[
-            "creation_time",
-            "age"
-        ]
+        derived_fields = ["creation_time", "age"]
         for field in derived_fields:
             assert (ptype, field) in ds.derived_field_list

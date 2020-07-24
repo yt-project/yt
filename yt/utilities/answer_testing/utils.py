@@ -17,9 +17,6 @@ import numpy as np
 import pytest
 import yaml
 
-import yt.visualization.particle_plots as particle_plots
-import yt.visualization.plot_window as pw
-import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
 from yt.convenience import load, simulation
 from yt.data_objects.selection_data_containers import YTRegion
@@ -195,7 +192,7 @@ def generate_hash(data):
         if isinstance(data, dict):
             hd = _hash_dict(data)
         elif data is None:
-            hd = hashlib.md5(bytes(str(-1).encode('utf-8'))).hexdigest()
+            hd = hashlib.md5(bytes(str(-1).encode("utf-8"))).hexdigest()
         else:
             raise TypeError
     return hd
@@ -243,6 +240,7 @@ def _compare_result(data, outputFile):
 
     # Compare
     _check_vals(data, savedData)
+
 
 def _handle_hashes(answer_file, hashes, answer_store):
     r"""
@@ -322,14 +320,14 @@ def _save_raw_arrays(arrays, answer_file, func_name):
         test parameters) that called the test functions
         (e.g, test_toro1d).
     """
-    with h5py.File(answer_file, 'a') as f:
+    with h5py.File(answer_file, "a") as f:
         grp = f.create_group(func_name)
         for test_name, test_data in arrays.items():
             # Some answer tests (e.g., grid_values, projection_values)
             # return a dictionary, which cannot be handled by h5py
             if isinstance(test_data, dict):
                 sub_grp = grp.create_group(test_name)
-                _parse_raw_answer_dict(test_data, sub_grp) 
+                _parse_raw_answer_dict(test_data, sub_grp)
             else:
                 # Some tests return None, which hdf5 can't handle, and there is
                 # no proxy, so we have to make one ourselves. Using -1
@@ -350,8 +348,6 @@ def _parse_raw_answer_dict(d, h5grp):
             if not isinstance(k, str):
                 k = str(k)
             h5grp.create_dataset(k, data=v)
-            
-
 
 
 def _compare_raw_arrays(arrays, answer_file, func_name):
@@ -379,7 +375,7 @@ def _compare_raw_arrays(arrays, answer_file, func_name):
         test parameters) that called the test functions
         (e.g, test_toro1d).
     """
-    with h5py.File(answer_file, 'r') as f:
+    with h5py.File(answer_file, "r") as f:
         for test_name, new_answer in arrays.items():
             np.testing.assert_array_equal(f[func_name][test_name][:], new_answer)
 
@@ -458,6 +454,7 @@ def requires_ds(ds_fn, file_check=False):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
             return func(*args, **kwargs)
+
         return true_wrapper
 
     if not can_run_ds(ds_fn, file_check):
@@ -605,28 +602,31 @@ def get_parameterization(fname):
         ids = [str(i) for i in range(len(ds.field_list))]
         return [fields, ids]
     except YTOutputNotIdentified:
-        return [[pytest.param(None, marks=pytest.mark.skip),], ['skipped',]]
+        return [[pytest.param(None, marks=pytest.mark.skip),], ["skipped",]]
 
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = []
     for i in range(2):
-        tmpfd, tmpname = tempfile.mkstemp(suffix='.png')
+        tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
         os.close(tmpfd)
         fns.append(tmpname)
     num_images = len(old_result)
-    assert(num_images > 0)
+    assert num_images > 0
     for i in range(num_images):
         mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
         mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
-        results = compare_images(fns[0], fns[1], 10**(-decimals))
+        results = compare_images(fns[0], fns[1], 10 ** (-decimals))
         if results is not None:
             if os.environ.get("JENKINS_HOME") is not None:
-                tempfiles = [line.strip() for line in results.split('\n')
-                             if line.endswith(".png")]
+                tempfiles = [
+                    line.strip()
+                    for line in results.split("\n")
+                    if line.endswith(".png")
+                ]
                 for fn in tempfiles:
                     sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
-                sys.stderr.write('\n')
+                sys.stderr.write("\n")
         assert_equal(results, None, results)
         for fn in fns:
             os.remove(fn)
