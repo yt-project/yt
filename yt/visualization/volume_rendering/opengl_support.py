@@ -256,7 +256,7 @@ class Texture2D(Texture):
             if not isinstance(change['old'], np.ndarray):
                 GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, type1, dx, dy)
             GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, dx, dy, 
-                        type2, gl_type, data)
+                        type2, gl_type, data.swapaxes(0,1))
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T,

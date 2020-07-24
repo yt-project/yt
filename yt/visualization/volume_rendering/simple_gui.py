@@ -10,6 +10,7 @@ import imgui
 from imgui.integrations.pyglet import create_renderer
 import contextlib
 from ..image_writer import write_bitmap
+from .opengl_support import Texture2D
 
 class SimpleGUI:
 
@@ -25,6 +26,9 @@ class SimpleGUI:
         self.renderer = create_renderer(window)
         self.snapshot_count = 0
         self.snapshot_format = r"snap_{count:04d}.png"
+        data = plt.get_cmap("viridis")(np.mgrid[0.0:1.0:256j]).reshape((-1, 1, 4))
+        data = (data[:,:,:4].astype("f4") * 255).astype("u1")
+        self.colormap = Texture2D(data = data, boundary_x = "clamp", boundary_y = "clamp")
 
     def render(self, scene):
         imgui.new_frame()
@@ -41,6 +45,7 @@ class SimpleGUI:
                 write_bitmap(scene.image[:,:,:3], self.snapshot_format.format(count = self.snapshot_count))
                 self.snapshot_count += 1
             _ = self.render_camera(scene)
+            self.custom_render(scene)
             changed = changed or _
             #imgui.show_style_editor()
             for i, element in enumerate(scene):
@@ -67,6 +72,11 @@ class SimpleGUI:
             scene.camera._update_matrices()
         imgui.tree_pop()
         return changed
+
+    def custom_render(self, scene):
+        #if not imgui.tree_node("Custom Renderer"): return
+        imgui.image(self.colormap.texture_name, 256, 32)
+        #imgui.tree_pop()
 
     @property
     def mouse_event_handled(self):
