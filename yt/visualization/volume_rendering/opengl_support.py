@@ -249,13 +249,14 @@ class Texture2D(Texture):
                 channels = data.shape[-1]
             else:
                 channels = 1
+            self.channels = channels
             dx, dy = data.shape[:2]
             gl_type, type1, type2 = TEX_CHANNELS[data.dtype.name][channels]
             GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
             if not isinstance(change['old'], np.ndarray):
                 GL.glTexStorage2D(GL.GL_TEXTURE_2D, 1, type1, dx, dy)
             GL.glTexSubImage2D(GL.GL_TEXTURE_2D, 0, 0, 0, dx, dy, 
-                        type2, gl_type, data.T)
+                        type2, gl_type, data)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_S,
                     self.boundary_x)
             GL.glTexParameterf(GL.GL_TEXTURE_2D, GL.GL_TEXTURE_WRAP_T,

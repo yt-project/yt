@@ -320,6 +320,7 @@ class SceneComponent(traitlets.HasTraits):
     priority = traitlets.CInt(0)
     visible = traitlets.Bool(True)
     display_bounds = traitlets.Tuple((0.0, 1.0, 0.0, 1.0), trait = traitlets.CFloat())
+    clear_region = traitlets.Bool(False)
 
     render_method = traitlets.Unicode(allow_none = True)
     fragment_shader = ShaderTrait(allow_none = True).tag(shader_type = "fragment")
@@ -1065,6 +1066,7 @@ class SceneGraph(traitlets.HasTraits):
         with self.bind_buffer():
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         for element in self:
+            # If we need to clear the region, we need to use the scissor test
             db = element.display_bounds
             new_origin_x = origin_x + width * db[0]
             new_origin_y = origin_y + height * db[2]
@@ -1074,6 +1076,11 @@ class SceneGraph(traitlets.HasTraits):
                           int(new_origin_y),
                           int(new_width),
                           int(new_height))
+            if element.clear_region:
+                GL.glEnable(GL.GL_SCISSOR_TEST)
+                GL.glScissor(int(new_origin_x), int(new_origin_y), int(new_width), int(new_height))
+                GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
+                GL.glDisable(GL.GL_SCISSOR_TEST)
             element.run_program(self)
         GL.glViewport(origin_x, origin_y, width, height)
 
