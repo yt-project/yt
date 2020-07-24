@@ -51,7 +51,7 @@ class LensTest(TestCase):
     def test_stereoperspective_lens(self):
         sc = Scene()
         cam = sc.add_camera(self.ds, lens_type="stereo-perspective")
-        cam.resolution = [1024, 512]
+        cam.resolution = [256, 128]
         cam.position = self.ds.arr(np.array([0.7, 0.7, 0.7]), "code_length")
         vol = VolumeSource(self.ds, field=self.field)
         tf = vol.transfer_function
@@ -88,7 +88,7 @@ class LensTest(TestCase):
     def test_spherical_lens(self):
         sc = Scene()
         cam = sc.add_camera(self.ds, lens_type="spherical")
-        cam.resolution = [512, 256]
+        cam.resolution = [256, 128]
         cam.position = self.ds.arr(np.array([0.6, 0.5, 0.5]), "code_length")
         vol = VolumeSource(self.ds, field=self.field)
         tf = vol.transfer_function
@@ -101,7 +101,7 @@ class LensTest(TestCase):
         w = self.ds.arr(w, "code_length")
         sc = Scene()
         cam = sc.add_camera(self.ds, lens_type="stereo-spherical")
-        cam.resolution = [512, 512]
+        cam.resolution = [256, 256]
         cam.position = self.ds.arr(np.array([0.6, 0.5, 0.5]), "code_length")
         vol = VolumeSource(self.ds, field=self.field)
         tf = vol.transfer_function
