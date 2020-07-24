@@ -319,7 +319,7 @@ class SceneComponent(traitlets.HasTraits):
     name = "undefined"
     priority = traitlets.CInt(0)
     visible = traitlets.Bool(True)
-    display_bounds = traitlets.Tuple((-1.0, 1.0, -1.0, 1.0), trait = traitlets.CFloat())
+    display_bounds = traitlets.Tuple((0.0, 1.0, 0.0, 1.0), trait = traitlets.CFloat())
 
     render_method = traitlets.Unicode(allow_none = True)
     fragment_shader = ShaderTrait(allow_none = True).tag(shader_type = "fragment")
@@ -338,6 +338,19 @@ class SceneComponent(traitlets.HasTraits):
     cmap_max = traitlets.CFloat(None, allow_none = True)
     cmap_log = traitlets.Bool(True)
     scale = traitlets.CFloat(1.0)
+
+    @traitlets.observe("display_bounds")
+    def _change_display_bounds(self, change):
+        # We need to update the framebuffer if the width or height has changed
+        # Same thing is true if the total pixel size has changed, but that is
+        # not doable from in here.
+        if change['old'] == traitlets.Undefined: return
+        old_width = change['old'][1] - change['old'][0]
+        old_height = change['old'][3] - change['old'][2]
+        new_width = change['new'][1] - change['new'][0]
+        new_height = change['new'][3] - change['new'][2]
+        if old_width != new_width or old_height != new_height:
+            self.fb = Framebuffer()
 
     def render_gui(self, imgui, renderer):
         return False
@@ -436,6 +449,9 @@ class SceneComponent(traitlets.HasTraits):
         return self._program2
 
     def run_program(self, scene):
+        # Store this info, because we need to render into a framebuffer that is the right size.
+        x0, y0, w, h = GL.glGetIntegerv(GL.GL_VIEWPORT)
+        GL.glViewport(0, 0, w, h)
         if not self.visible:
             return
         with self.fb.bind(True):
@@ -468,8 +484,9 @@ class SceneComponent(traitlets.HasTraits):
                         p2._set_uniform("cmap_min", cmap_min)
                         p2._set_uniform("cmap_max", cmap_max)
                         p2._set_uniform("cmap_log", float(self.cmap_log))
-                        p2._set_uniform("bounds", np.array(self.display_bounds, dtype="f4"))
                         with self.base_quad.vertex_array.bind(p2):
+                            # Now we do our viewport globally, not just within the framebuffer
+                            GL.glViewport(x0, y0, w, h)
                             GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
 
     def draw(self, scene, program):
@@ -729,20 +746,18 @@ class BlockCollection(SceneData):
 
 class RGBALinePlot(SceneComponent):
     name = "rgba_line_plot"
+    priority = 20
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
-        # yeah calling np.array is not the fastest I know
         for i, channel in enumerate("rgba"):
             program._set_uniform("channel", i)
-            GL.glDrawArrays(GL.GL_LINE_STRIP, 0, 256)
+            GL.glDrawArrays(GL.GL_LINE_STRIP, 0, self.data.n_vertices)
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
         shader_program._set_uniform("viewport",
                 np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
-
-
 
 _cmaps = ["arbre", "viridis", "magma", "doom"]
 
@@ -788,7 +803,6 @@ class BlockRendering(SceneComponent):
     @traitlets.default("transfer_function")
     def _default_transfer_function(self):
         tf = TransferFunctionTexture(data = np.zeros((256, 4), dtype='f4'))
-        print(tf.channels)
         return tf
 
     def draw(self, scene, program):
@@ -1019,10 +1033,21 @@ class SceneGraph(traitlets.HasTraits):
             yield element
 
     def render(self):
+        origin_x, origin_y, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
         with self.bind_buffer():
             GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
         for element in self:
+            db = element.display_bounds
+            new_origin_x = origin_x + width * db[0]
+            new_origin_y = origin_y + height * db[2]
+            new_width = (db[1] - db[0]) * width
+            new_height = (db[3] - db[2]) * height
+            GL.glViewport(int(new_origin_x),
+                          int(new_origin_y),
+                          int(new_width),
+                          int(new_height))
             element.run_program(self)
+        GL.glViewport(origin_x, origin_y, width, height)
 
     @contextlib.contextmanager
     def bind_buffer(self):

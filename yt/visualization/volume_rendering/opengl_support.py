@@ -395,18 +395,18 @@ class Framebuffer(traitlets.HasTraits):
 
     @property
     def data(self):
-        _, _, width, height = self.viewport
+        origin_x, origin_y, width, height = self.viewport
         with self.bind(clear = False):
-            arr = GL.glReadPixels(0, 0, width, height, GL.GL_RGBA,
-                                           GL.GL_FLOAT)
+            arr = GL.glReadPixels(0, 0, width, height,
+                                  GL.GL_RGBA, GL.GL_FLOAT)
         return arr
 
     @property
     def depth_data(self):
-        _, _, width, height = self.viewport
+        origin_x, origin_y, width, height = self.viewport
         with self.bind(clear = False):
-            arr = GL.glReadPixels(0, 0, width, height, GL.GL_DEPTH_COMPONENT,
-                                           GL.GL_FLOAT)
+            arr = GL.glReadPixels(0, 0, width, height,
+                                  GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT)
         return arr
 
     @traitlets.default("viewport")
