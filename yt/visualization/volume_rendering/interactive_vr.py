@@ -319,6 +319,7 @@ class SceneComponent(traitlets.HasTraits):
     name = "undefined"
     priority = traitlets.CInt(0)
     visible = traitlets.Bool(True)
+    display_bounds = traitlets.Tuple((-1.0, 1.0, -1.0, 1.0), trait = traitlets.CFloat())
 
     render_method = traitlets.Unicode(allow_none = True)
     fragment_shader = ShaderTrait(allow_none = True).tag(shader_type = "fragment")
@@ -467,6 +468,7 @@ class SceneComponent(traitlets.HasTraits):
                         p2._set_uniform("cmap_min", cmap_min)
                         p2._set_uniform("cmap_max", cmap_max)
                         p2._set_uniform("cmap_log", float(self.cmap_log))
+                        p2._set_uniform("bounds", np.array(self.display_bounds, dtype="f4"))
                         with self.base_quad.vertex_array.bind(p2):
                             GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
 
@@ -727,12 +729,10 @@ class BlockCollection(SceneData):
 
 class RGBALinePlot(SceneComponent):
     name = "rgba_line_plot"
-    viewport = traitlets.Tuple((-1.0, 1.0, -1.0, 1.0), trait = traitlets.CFloat())
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
         # yeah calling np.array is not the fastest I know
-        program._set_uniform("bounds", np.array(self.viewport))
         for i, channel in enumerate("rgba"):
             program._set_uniform("channel", i)
             GL.glDrawArrays(GL.GL_LINE_STRIP, 0, 256)
