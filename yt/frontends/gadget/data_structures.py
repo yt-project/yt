@@ -248,7 +248,12 @@ class GadgetDataset(SPHDataset):
             # came through _is_valid in load()
             for f in os.listdir(filename):
                 fname = os.path.join(filename, f)
-                if (".0" in f) and (".ewah" not in f) and os.path.isfile(fname):
+                fext = os.path.splitext(fname)[-1]
+                if (
+                    (".0" in f)
+                    and (fext not in {".ewah", ".kdtree"})
+                    and os.path.isfile(fname)
+                ):
                     filename = os.path.join(filename, f)
                     break
         self._header = GadgetBinaryHeader(filename, header_spec)
