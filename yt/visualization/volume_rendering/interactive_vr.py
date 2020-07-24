@@ -585,6 +585,25 @@ class TextAnnotation(SceneAnnotation):
                 program._set_uniform("scale", self.scale)
                 GL.glDrawArrays(GL.GL_TRIANGLES, vbo_offset*each, each)
 
+
+class LineData(SceneData):
+    name = "line_data"
+    n_values = traitlets.CInt()
+
+    @traitlets.default("vertex_array")
+    def _default_vertex_array(self):
+        return VertexArray(name = "vertices", each = 6)
+
+    def add_data(self, lines):
+        assert(lines.shape[1] == 4)
+        x_coord = np.mgrid[0.0:1.0:lines.shape[0]*1j].astype("f4")
+        x_coord = x_coord.reshape((-1, 1))
+        self.n_vertices = lines.shape[0]
+        self.vertex_array.attributes.append(VertexAttribute(
+            name = "rgba_values", data = lines))
+        self.vertex_array.attributes.append(VertexAttribute(
+            name = "x_coord", data = x_coord))
+
 class BlockCollection(SceneData):
     name = "block_collection"
     data_source = traitlets.Instance(YTDataContainer)
@@ -705,6 +724,25 @@ class BlockCollection(SceneData):
                     min_filter = "nearest", mag_filter = "nearest")
             self.texture_objects[vbo_i] = data_tex
             self.bitmap_objects[vbo_i] = bitmap_tex
+
+class RGBALinePlot(SceneComponent):
+    name = "rgba_line_plot"
+    viewport = traitlets.Tuple((-1.0, 1.0, -1.0, 1.0), trait = traitlets.CFloat())
+
+    def draw(self, scene, program):
+        each = self.data.vertex_array.each
+        # yeah calling np.array is not the fastest I know
+        program._set_uniform("bounds", np.array(self.viewport))
+        for i, channel in enumerate("rgba"):
+            program._set_uniform("channel", i)
+            GL.glDrawArrays(GL.GL_LINE_STRIP, 0, 256)
+
+    def _set_uniforms(self, scene, shader_program):
+        cam = scene.camera
+        shader_program._set_uniform("viewport",
+                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
+
+
 
 _cmaps = ["arbre", "viridis", "magma", "doom"]
 

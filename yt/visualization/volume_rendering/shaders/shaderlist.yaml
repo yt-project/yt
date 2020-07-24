@@ -46,6 +46,13 @@ shader_definitions:
       - src alpha
       - dst alpha
       blend_equation: func add
+    draw_lines:
+      info: A line drawing fragment shader
+      source: draw_lines.frag.glsl
+      blend_func:
+      - one
+      - zero
+      blend_equation: func add
     projection:
       info: A first pass fragment shader that performs unweighted integration of the
         data along the line of sight. See :ref:`projection-types` for more information.
@@ -89,6 +96,9 @@ shader_definitions:
     passthrough:
       info: A second pass vertex shader that performs no operations on vertices
       source: passthrough.vert.glsl
+    draw_lines:
+      info: A line drawing vertex shader
+      source: draw_lines.vert.glsl
     text_overlay:
       info: A simple text overlay shader
       source: textoverlay.vert.glsl
@@ -145,3 +155,11 @@ component_shaders:
       first_fragment: mesh
       second_vertex: passthrough
       second_fragment: apply_colormap
+  rgba_line_plot:
+    default_value: default
+    default:
+      description: Default
+      first_vertex: draw_lines
+      first_fragment: draw_lines
+      second_vertex: passthrough
+      second_fragment: passthrough
