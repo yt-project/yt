@@ -1,7 +1,6 @@
 import abc
 import json
 import os
-import pickle
 from uuid import uuid4
 
 import numpy as np
@@ -152,11 +151,10 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
         raise NotImplementedError("This method hasn't been ported to python 3")
 
     def load(self, storage):
-        return pickle.load(open(storage, "r"))
+        raise NotImplementedError("This method hasn't been ported to python 3")
 
     def dump(self, storage):
-        with open(storage, "w") as fh:
-            pickle.dump(self, fh)
+        raise NotImplementedError("This method hasn't been ported to python 3")
 
 
 class FilteredRepresentation(MinimalRepresentation):
