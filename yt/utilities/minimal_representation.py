@@ -2,18 +2,12 @@ import abc
 import json
 import os
 import pickle
-import sys
-import urllib
-from tempfile import TemporaryFile
 from uuid import uuid4
 
 import numpy as np
 
-from yt.config import ytcfg
 from yt.funcs import compare_dicts, get_pbar, iterable
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTHubRegisterError
-from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5
 
 
@@ -155,57 +149,7 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
         pass
 
     def upload(self):
-        api_key = ytcfg.get("yt", "hub_api_key")
-        url = ytcfg.get("yt", "hub_url")
-        if api_key == "":
-            raise YTHubRegisterError
-        metadata, (final_name, chunks) = self._generate_post()
-        if hasattr(self, "_ds_mrep"):
-            self._ds_mrep.upload()
-        for i in metadata:
-            if isinstance(metadata[i], np.ndarray):
-                metadata[i] = metadata[i].tolist()
-            elif hasattr(metadata[i], "dtype"):
-                metadata[i] = np.asscalar(metadata[i])
-        metadata["obj_type"] = self.type
-        if len(chunks) == 0:
-            chunk_info = {"chunks": []}
-        else:
-            chunk_info = {"final_name": final_name, "chunks": []}
-            for cn, cv in chunks:
-                chunk_info["chunks"].append((cn, cv.size * cv.itemsize))
-        metadata = json.dumps(metadata)
-        chunk_info = json.dumps(chunk_info)
-        datagen, headers = multipart_encode(
-            {"metadata": metadata, "chunk_info": chunk_info, "api_key": api_key}
-        )
-        request = urllib.request.Request(url, datagen, headers)
-        # Actually do the request, and get the response
-        try:
-            rv = urllib.request.urlopen(request).read()
-        except urllib.error.HTTPError as ex:
-            if ex.code == 401:
-                mylog.error("You must create an API key before uploading.")
-                mylog.error("https://data.yt-project.org/getting_started.html")
-                return
-            else:
-                raise ex
-        uploader_info = json.loads(rv)
-        new_url = url + "/handler/%s" % uploader_info["handler_uuid"]
-        for i, (cn, cv) in enumerate(chunks):
-            f = TemporaryFile()
-            np.save(f, cv)
-            f.seek(0)
-            pbar = UploaderBar("%s, % 2i/% 2i" % (self.type, i + 1, len(chunks)))
-            datagen, headers = multipart_encode({"chunk_data": f}, cb=pbar)
-            request = urllib.request.Request(new_url, datagen, headers)
-            rv = urllib.request.urlopen(request).read()
-
-        datagen, headers = multipart_encode({"status": "FINAL"})
-        request = urllib.request.Request(new_url, datagen, headers)
-        rv = json.loads(urllib.request.urlopen(request).read())
-        mylog.info("Upload succeeded!  View here: %s", rv["url"])
-        return rv
+        raise NotImplementedError("This method hasn't been ported to python 3")
 
     def load(self, storage):
         return pickle.load(open(storage, "r"))
