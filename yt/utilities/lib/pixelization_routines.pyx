@@ -1729,7 +1729,7 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                    quantity_to_smooth,
                                    [rot_bounds_x0, rot_bounds_x1,
                                     rot_bounds_y0, rot_bounds_y1],
-                                    weight_field=weight_field,
+                                   weight_field=weight_field,
                                    check_period=0)
 
 
