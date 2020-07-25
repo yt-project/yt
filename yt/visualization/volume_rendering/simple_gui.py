@@ -51,7 +51,6 @@ class SimpleGUI:
                 write_bitmap(scene.image[:,:,:3], self.snapshot_format.format(count = self.snapshot_count))
                 self.snapshot_count += 1
             _ = self.render_camera(scene)
-            self.custom_render(scene)
             changed = changed or _
             #imgui.show_style_editor()
             for i, element in enumerate(scene):
@@ -78,44 +77,6 @@ class SimpleGUI:
             scene.camera._update_matrices()
         imgui.tree_pop()
         return changed
-
-    def custom_render(self, scene):
-        #if not imgui.tree_node("Custom Renderer"): return
-        imgui.image_button(self.colormap.texture_name, 256, 32, frame_padding = 0)
-        imgui.text("Right click and drag to change")
-        update = False
-        for i, c in enumerate("rgba"):
-            imgui.plot_lines(f"## {c}", self.data[c], scale_min = 0.0, scale_max = 1.0, graph_size = (256, 32))
-            if imgui.is_item_hovered() and imgui.is_mouse_dragging(2):
-                update = True
-                self.do_dragging(c)
-        if update:
-            data = self.colormap.data.copy()
-            for i, c in enumerate("rgba"):
-                data[:,0,i] = (self.data[c] * 255).astype("uint8")
-            self.colormap.data = data
-        #imgui.tree_pop()
-
-    def do_dragging(self, c):
-        # We have to do some stuff to keep the y coordinates pointed in the right direction
-        dx, dy = self.renderer.io.mouse_delta
-        dy = -dy
-        mi = imgui.get_item_rect_min()
-        ma = imgui.get_item_rect_max()
-        x, y = self.renderer.io.mouse_pos
-        x = x - mi.x
-        y = (ma.y - mi.y) - (y - mi.y)
-        xb1 = floor(min(x + dx, x) * self.data[c].size / (ma.x - mi.x))
-        xb2 = ceil(max(x + dx, x) * self.data[c].size / (ma.x - mi.x))
-        yv1 = (y / (ma.y - mi.y))
-        yv2 = (y + dy) / (ma.y - mi.y)
-        yv1, yv2 = (max(min(_, 1.0), 0.0) for _ in (yv1, yv2))
-        if dx < 0:
-            yv2, yv1 = yv1, yv2
-            xb1 -= 1
-        elif dx > 0:
-            xb2 += 1
-        self.data[c][xb1:xb2] = np.mgrid[yv1:yv2:(xb2 - xb1)*1j]
 
     @property
     def mouse_event_handled(self):

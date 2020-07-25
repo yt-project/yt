@@ -1,7 +1,7 @@
 uniform float tf_min;
 uniform float tf_max;
 uniform float tf_log;
-uniform sampler1D tf_tex;
+uniform sampler2D tf_tex;
 
 bool sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
                     float t, vec3 dir)
@@ -24,7 +24,7 @@ bool sample_texture(vec3 tex_curr_pos, inout vec4 curr_color, float tdelta,
 
     if(tex_sample < tm) return false;
     if(tex_sample > tp) return false;
-    float tex_sample_norm = (tex_sample - tm)/(tp - tm);
+    vec2 tex_sample_norm = vec2((tex_sample - tm)/(tp - tm), 0.5);
     tf_sample = texture(tf_tex, tex_sample_norm);
     float dt = length(tdelta * dir);
     float ta = max((1.0f - dt * tf_sample.a), 0.0);

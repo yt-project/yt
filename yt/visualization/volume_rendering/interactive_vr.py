@@ -28,6 +28,7 @@ import traitlets
 import string
 import contextlib
 import traittypes
+from math import ceil, floor
 
 from yt import write_bitmap
 from yt.config import \
@@ -829,11 +830,50 @@ class BlockRendering(SceneComponent):
         if _:
             self.render_method = shader_combos[shader_ind]
         changed = changed or _
+
+        # Now for the transfer function stuff
+        imgui.image_button(self.transfer_function.texture_name, 256, 32, frame_padding = 0)
+        imgui.text("Right click and drag to change")
+        update = False
+        data = self.transfer_function.data.astype("f4") / 255
+        for i, c in enumerate("rgba"):
+            imgui.plot_lines(f"## {c}", data[:,0,i].copy(), scale_min = 0.0, scale_max = 1.0, graph_size = (256, 32))
+            if imgui.is_item_hovered() and imgui.is_mouse_dragging(2):
+                update = True
+                dx, dy = renderer.io.mouse_delta
+                dy = -dy
+                mi = imgui.get_item_rect_min()
+                ma = imgui.get_item_rect_max()
+                x, y = renderer.io.mouse_pos
+                x = x - mi.x
+                y = (ma.y - mi.y) - (y - mi.y)
+                xb1 = floor(min(x + dx, x) * data.shape[0] / (ma.x - mi.x))
+                xb2 = ceil(max(x + dx, x) * data.shape[0] / (ma.x - mi.x))
+                yv1 = (y / (ma.y - mi.y))
+                yv2 = (y + dy) / (ma.y - mi.y)
+                yv1, yv2 = (max(min(_, 1.0), 0.0) for _ in (yv1, yv2))
+                if dx < 0:
+                    yv2, yv1 = yv1, yv2
+                    xb1 -= 1
+                elif dx > 0:
+                    xb2 += 1
+                xb1 = max(0, xb1)
+                xb2 = min(255, xb2)
+                data[xb1:xb2,0,i] = np.mgrid[yv1:yv2:(xb2 - xb1)*1j]
+        if update:
+            print("Updating")
+            self.transfer_function.data = (data * 255).astype("u1")
+        #imgui.tree_pop()
+
+    def do_dragging(self, c):
+        # We have to do some stuff to keep the y coordinates pointed in the right direction
+
+
         return changed
 
     @traitlets.default("transfer_function")
     def _default_transfer_function(self):
-        tf = TransferFunctionTexture(data = np.zeros((256, 4), dtype='f4'))
+        tf = TransferFunctionTexture(data = np.ones((256, 1, 4), dtype='u1') * 255)
         return tf
 
     def draw(self, scene, program):
