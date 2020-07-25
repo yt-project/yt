@@ -863,7 +863,7 @@ def units_override_check(fn):
         unit_attr = getattr(ds1, "%s_unit" % u, None)
         if unit_attr is not None:
             attrs1.append(unit_attr)
-            units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
+            units_override["%s_unit" % u] = (unit_attr.v, unit_attr.units)
     del ds1
     ds2 = load(fn, units_override=units_override)
     assert len(ds2.units_override) > 0
