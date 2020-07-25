@@ -83,10 +83,17 @@ class SimpleGUI:
         #if not imgui.tree_node("Custom Renderer"): return
         imgui.image_button(self.colormap.texture_name, 256, 32, frame_padding = 0)
         imgui.text("Right click and drag to change")
+        update = False
         for i, c in enumerate("rgba"):
             imgui.plot_lines(f"## {c}", self.data[c], scale_min = 0.0, scale_max = 1.0, graph_size = (256, 32))
             if imgui.is_item_hovered() and imgui.is_mouse_dragging(2):
+                update = True
                 self.do_dragging(c)
+        if update:
+            data = self.colormap.data.copy()
+            for i, c in enumerate("rgba"):
+                data[:,0,i] = (self.data[c] * 255).astype("uint8")
+            self.colormap.data = data
         #imgui.tree_pop()
 
     def do_dragging(self, c):
