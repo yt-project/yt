@@ -872,7 +872,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         bounds, size = self._get_grid_bounds_size()
 
         period = self.ds.coordinates.period.copy()
-        if hasattr(period, 'in_units'):
+        if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
         # TODO maybe there is a better way of handling this
         periodic = any(self.ds.periodicity)
@@ -909,7 +909,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                         bounds,
                         pbar=pbar,
                         check_period=int(periodic),
-                        period=period
+                        period=period,
                     )
                     if normalize:
                         pixelize_sph_kernel_arbitrary_grid(
@@ -924,7 +924,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                             bounds,
                             pbar=pbar,
                             check_period=int(periodic),
-                            period=period
+                            period=period,
                         )
 
                 if normalize:
