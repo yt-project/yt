@@ -395,9 +395,9 @@ class FITSImageData:
             if hasattr(self, "hubble_constant"):
                 # Don't store cosmology units
                 atoms = {str(a) for a in uq.units.expr.atoms()}
-                if 'h' in atoms or 'a' in atoms:
+                if "h" in atoms or "a" in atoms:
                     uq.convert_to_cgs()
-                
+
             if uq is not None and uq.units.is_code_unit:
                 mylog.warning(
                     "Cannot use code units of '%s' "
@@ -692,8 +692,9 @@ class FITSImageData:
         self.field_units.pop(key)
         self.fields.remove(key)
         f = _astropy.pyfits.PrimaryHDU(im.data, header=im.header)
-        return FITSImageData(f, current_time=f[0].header["TIME"],
-                             unit_header=f[0].header)
+        return FITSImageData(
+            f, current_time=f[0].header["TIME"], unit_header=f[0].header
+        )
 
     def close(self):
         self.hdulist.close()
