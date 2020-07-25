@@ -374,9 +374,6 @@ class YTSlice(YTSelectionContainer2D):
     def _mrep(self):
         return MinimalSliceData(self)
 
-    def hub_upload(self):
-        self._mrep.upload()
-
     def to_pw(self, fields=None, center="c", width=None, origin="center-window"):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
