@@ -16,16 +16,6 @@ from yt.utilities.exceptions import YTHubRegisterError
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5
 
-if sys.version_info < (3, 0):
-    from .poster.encode import multipart_encode
-    from .poster.streaminghttp import register_openers
-
-    register_openers()
-else:
-    # We don't yet have a solution for this, but it won't show up very often
-    # anyway.
-    pass
-
 
 def _sanitize_list(flist):
     temp = []
