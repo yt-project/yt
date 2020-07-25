@@ -9,6 +9,7 @@ from collections import defaultdict
 from stat import ST_CTIME
 
 import numpy as np
+from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import filter_registry
@@ -215,9 +216,7 @@ class Dataset(abc.ABC):
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
-        if units_override is None:
-            units_override = {}
-        self.units_override = units_override
+        self.units_override = self.__class__._sanitize_units_override(units_override)
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -1116,6 +1115,8 @@ class Dataset(abc.ABC):
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
+        from yt.units import dimensions as dimensions
+
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
         # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
@@ -1243,29 +1244,83 @@ class Dataset(abc.ABC):
                 "unitary", float(DW.max() * DW.units.base_value), DW.units.dimensions
             )
 
+    @classmethod
+    def _validate_units_override_keys(cls, units_override):
+        valid_keys = set(cls.default_units.keys())
+        invalid_keys_found = set(units_override.keys()) - valid_keys
+        if invalid_keys_found:
+            raise ValueError(
+                "units_override contains invalid keys: {}".format(invalid_keys_found)
+            )
+
+    default_units = {
+        "length_unit": "cm",
+        "time_unit": "s",
+        "mass_unit": "g",
+        "velocity_unit": "cm/s",
+        "magnetic_unit": "gauss",
+        "temperature_unit": "K",
+    }
+
+    @classmethod
+    def _sanitize_units_override(cls, units_override):
+        """
+        Convert units_override values to valid input types for unyt.
+        Throw meaningful errors early if units_override is ill-formed.
+        """
+        uo = {}
+        if units_override is None:
+            return uo
+
+        cls._validate_units_override_keys(units_override)
+
+        for key in cls.default_units:
+            try:
+                val = units_override[key]
+            except KeyError:
+                continue
+            try:
+                uo[key] = YTQuantity(val)
+                continue
+            except RuntimeError:
+                pass
+            try:
+                uo[key] = YTQuantity(*val)
+                continue
+            except (RuntimeError, TypeError, UnitParseError):
+                pass
+            raise TypeError(
+                "units_override values should be 2-tuples (float, str), "
+                "YTQuantity objects or real numbers; "
+                "received {} with type {}.".format(val, type(val))
+            )
+        for key, q in uo.items():
+            if q.units.is_dimensionless:
+                uo[key] = YTQuantity(q, cls.default_units[key])
+            try:
+                uo[key].to(cls.default_units[key])
+            except UnitConversionError:
+                raise ValueError(
+                    "Inconsistent dimensionality in units_override. "
+                    "Received {} = {}".format(key, uo[key])
+                )
+            if 1 / uo[key].value == np.inf:
+                raise ValueError(
+                    "Invalid 0 normalisation factor in units_override for %s." % key
+                )
+        return uo
+
     def _override_code_units(self):
-        if len(self.units_override) == 0:
+        if not self.units_override:
             return
+
         mylog.warning(
             "Overriding code units: Use this option only if you know that the "
             "dataset doesn't define the units correctly or at all."
         )
-        for unit, cgs in [
-            ("length", "cm"),
-            ("time", "s"),
-            ("mass", "g"),
-            ("velocity", "cm/s"),
-            ("magnetic", "gauss"),
-            ("temperature", "K"),
-        ]:
-            val = self.units_override.get(f"{unit}_unit", None)
-            if val is not None:
-                if isinstance(val, YTQuantity):
-                    val = (val.v, str(val.units))
-                elif not isinstance(val, tuple):
-                    val = (val, cgs)
-                mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
-                setattr(self, f"{unit}_unit", self.quan(val[0], val[1]))
+        for ukey, val in self.units_override.items():
+            mylog.info("Overriding %s: %s.", ukey, val)
+            setattr(self, ukey, self.quan(val))
 
     _units = None
     _unit_system_id = None
