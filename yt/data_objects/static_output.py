@@ -895,6 +895,32 @@ class Dataset(metaclass=RegisteredDataset):
         setattr(self, name, obj)
 
     def _find_extremum(self, field, ext, source=None, to_array=True):
+        """
+        Find the extremum value of a field in a data object (source) and its position.
+
+        Parameters
+        ----------
+        field: str or tuple(str, str)
+
+        ext: str
+            'min' or 'max', select an extremum
+
+        source: a Yt data object
+
+        to_array: bool
+            select the return type.
+
+        Returns
+        -------
+        val, coords
+
+        val: unyt.unyt_quantity
+            extremum value detected
+
+        coords: unyt.unyt_array or list(unyt.unyt_quantity)
+            Conversion to a single unyt_array object is only possible for coordinate
+            systems with homogeneous dimensions across axes (i.e. cartesian).
+        """
         ext = ext.lower()
         if source is None:
             source = self.all_data()
@@ -906,19 +932,19 @@ class Dataset(metaclass=RegisteredDataset):
         coords = [x1, x2, x3]
         mylog.info("%s value is %0.5e at %0.16f %0.16f %0.16f", ext, val, *coords)
         if to_array:
-            # This is a hack to fix the fact that some non-cartesian datasets have
-            # dimensionless quantities, and we can't yet handle that.
-            alt_coords = []
-            for x in coords:
-                alt_coords.append(
-                    self.quan(x.v, "code_length") if x.units.is_dimensionless else x
+            if any(x.units.is_dimensionless for x in coords):
+                raise ValueError(
+                    "Can not convert dimensionless coordinates to spatial."
+                    "For non cartesian geometries, please use 'to_array=False'"
                 )
-            coords = self.arr(alt_coords, dtype="float64").to("code_length")
+            coords = self.arr(coords, dtype="float64").to("code_length")
         return val, coords
 
     def find_max(self, field, source=None, to_array=True):
         """
         Returns (value, location) of the maximum of a given field.
+
+        This is a wrapper around _find_extremum
         """
         mylog.debug("Searching for maximum value of %s", field)
         return self._find_extremum(field, "max", source=source, to_array=to_array)
@@ -926,6 +952,8 @@ class Dataset(metaclass=RegisteredDataset):
     def find_min(self, field, source=None, to_array=True):
         """
         Returns (value, location) for the minimum of a given field.
+
+        This is a wrapper around _find_extremum
         """
         mylog.debug("Searching for minimum value of %s", field)
         return self._find_extremum(field, "min", source=source, to_array=to_array)
