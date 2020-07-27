@@ -75,7 +75,7 @@ cdef class ImageSampler:
         self.volume_method = kwargs.pop('volume_method', None)
         if self.volume_method not in ('KDTree', 'Octree'):
             raise NotImplementedError(
-                'Invalid volume method "%s".' % self.svolume_method)
+                'Invalid volume method "%s".' % self.volume_method)
         camera_data = kwargs.pop("camera_data", None)
         if camera_data is not None:
             self.camera_data = camera_data
