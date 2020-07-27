@@ -14,64 +14,66 @@ Interactive Data Visualization classes for Scene, Camera and BlockCollection
 
 # This is a part of the experimental Interactive Data Visualization
 
-import OpenGL.GL as GL
-import OpenGL.GLUT.freeglut as GLUT
-from collections import OrderedDict, namedtuple, defaultdict
+import contextlib
+import ctypes
+import string
+import time
+from collections import OrderedDict, defaultdict, namedtuple
+from math import ceil, floor
+
 import matplotlib.cm as cm
 import matplotlib.font_manager
-from matplotlib.ft2font import (
-    FT2Font,
-    LOAD_FORCE_AUTOHINT,
-    LOAD_NO_HINTING,
-    LOAD_DEFAULT,
-    LOAD_NO_AUTOHINT,
-)
 import numpy as np
-import ctypes
-import time
+import OpenGL.GL as GL
+import OpenGL.GLUT.freeglut as GLUT
 import traitlets
-import string
-import contextlib
 import traittypes
-from math import ceil, floor
+from matplotlib.ft2font import (
+    LOAD_DEFAULT,
+    LOAD_FORCE_AUTOHINT,
+    LOAD_NO_AUTOHINT,
+    LOAD_NO_HINTING,
+    FT2Font,
+)
 
 from yt import write_bitmap
 from yt.config import ytcfg
-from yt.utilities.traitlets_support import YTPositionTrait, ndarray_shape, ndarray_ro
+from yt.data_objects.api import Dataset
+from yt.data_objects.data_containers import YTDataContainer
+from yt.data_objects.static_output import Dataset
+from yt.extern.six import unichr
+from yt.utilities.lib.mesh_triangulation import triangulate_mesh
+from yt.utilities.lib.misc_utilities import update_orientation
 from yt.utilities.math_utils import (
-    get_translate_matrix,
-    get_scale_matrix,
     get_lookat_matrix,
     get_perspective_matrix,
+    get_scale_matrix,
+    get_translate_matrix,
     quaternion_mult,
     quaternion_to_rotation_matrix,
     rotation_matrix_to_quaternion,
 )
-from yt.utilities.lib.misc_utilities import update_orientation
-from yt.data_objects.data_containers import YTDataContainer
-from yt.data_objects.static_output import Dataset
-from yt.utilities.lib.mesh_triangulation import triangulate_mesh
-from yt.extern.six import unichr
+from yt.utilities.traitlets_support import YTPositionTrait, ndarray_ro, ndarray_shape
+
+from .input_events import EventCollection
+from .opengl_support import (
+    ColormapTexture,
+    Framebuffer,
+    Texture,
+    Texture1D,
+    Texture2D,
+    Texture3D,
+    Texture3DIterator,
+    TransferFunctionTexture,
+    VertexArray,
+    VertexAttribute,
+)
 from .shader_objects import (
     ShaderProgram,
     ShaderTrait,
     component_shaders,
     default_shader_combos,
 )
-from .opengl_support import (
-    Texture,
-    Texture1D,
-    Texture2D,
-    Texture3D,
-    VertexArray,
-    VertexAttribute,
-    ColormapTexture,
-    Framebuffer,
-    Texture3DIterator,
-    TransferFunctionTexture,
-)
-from .input_events import EventCollection
-from yt.data_objects.api import Dataset
 
 bbox_vertices = np.array(
     [

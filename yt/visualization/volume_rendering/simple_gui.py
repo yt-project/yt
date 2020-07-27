@@ -1,14 +1,15 @@
 import array
+import contextlib
 import ctypes
 import itertools
-import pyglet
-import numpy as np
 from math import ceil, floor
-import matplotlib.pyplot as plt
 
 import imgui
+import matplotlib.pyplot as plt
+import numpy as np
+import pyglet
 from imgui.integrations.pyglet import create_renderer
-import contextlib
+
 from ..image_writer import write_bitmap
 from .opengl_support import Texture2D
 

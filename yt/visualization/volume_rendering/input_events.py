@@ -1,15 +1,16 @@
 # This is a part of the experimental Interactive Data Visualization
-import random
-from collections import defaultdict, namedtuple
-from yt.utilities.math_utils import get_perspective_matrix, get_orthographic_matrix
-from yt.visualization.image_writer import write_bitmap
-import OpenGL.GL as GL
-import cyglfw3 as glfw
-import numpy as np
-import matplotlib.cm as cm
+import os
 import random
 import time
-import os
+from collections import defaultdict, namedtuple
+
+import cyglfw3 as glfw
+import matplotlib.cm as cm
+import numpy as np
+import OpenGL.GL as GL
+
+from yt.utilities.math_utils import get_orthographic_matrix, get_perspective_matrix
+from yt.visualization.image_writer import write_bitmap
 
 from .opengl_support import ColormapTexture
 

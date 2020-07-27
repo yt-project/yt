@@ -14,13 +14,15 @@ in Interactive Data Visualization
 
 # This is a part of the experimental Interactive Data Visualization
 
-import OpenGL.GL as GL
 from contextlib import contextmanager
+
+import matplotlib.cm as cm
+import numpy as np
+import OpenGL.GL as GL
 import traitlets
 import traittypes
-import numpy as np
-import matplotlib.cm as cm
-from yt.utilities.traitlets_support import ndarray_shape, ndarray_ro
+
+from yt.utilities.traitlets_support import ndarray_ro, ndarray_shape
 
 try:
     from contextlib import ExitStack

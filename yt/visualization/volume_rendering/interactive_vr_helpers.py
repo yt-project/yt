@@ -42,8 +42,8 @@ def _render_opengl(
     """
 
     try:
-        import pyglet  # NOQA
         import OpenGL.GL  # NOQA
+        import pyglet  # NOQA
     except ImportError:
         raise ImportError(
             "This functionality requires the cyglfw3 and PyOpenGL "

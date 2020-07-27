@@ -17,12 +17,13 @@ Event loop for Interactive Data Visualization
 import os
 import time
 
-import pyglet
 import numpy as np
 import OpenGL.GL as GL
-from .input_events import EventCollection, MouseRotation, JoystickAction
-from .glfw_inputhook import InputHookGLFW
+import pyglet
+
 from ..image_writer import write_bitmap
+from .glfw_inputhook import InputHookGLFW
+from .input_events import EventCollection, JoystickAction, MouseRotation
 
 try:
     from .simple_gui import SimpleGUI

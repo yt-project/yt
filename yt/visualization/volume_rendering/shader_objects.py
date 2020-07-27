@@ -14,22 +14,24 @@ in Interactive Data Visualization
 
 # This is a part of the experimental Interactive Data Visualization
 
-import yaml
-import os
-import OpenGL.GL as GL
 import contextlib
-from yt.extern.six import add_metaclass
+import ctypes
+import os
 from collections import OrderedDict
+
+import OpenGL.GL as GL
+import traitlets
+import yaml
+
+from yt.extern.six import add_metaclass
+from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import (
     YTInvalidShaderType,
     YTUnknownUniformKind,
     YTUnknownUniformSize,
 )
-from yt.units.yt_array import YTQuantity
-import ctypes
-from .opengl_support import num_to_const, coerce_uniform_type, VertexArray, GLValue
 
-import traitlets
+from .opengl_support import GLValue, VertexArray, coerce_uniform_type, num_to_const
 
 
 class ShaderProgram(object):
