@@ -434,7 +434,6 @@ class VolumeSource(RenderSource, abc.ABC):
         self.sampler = sampler
         assert self.sampler is not None
 
-
     @abc.abstractmethod
     def _get_volume(self):
         """The abstract volume associated with this VolumeSource
@@ -443,7 +442,6 @@ class VolumeSource(RenderSource, abc.ABC):
         using a KDTree
         """
         pass
-
 
     @abc.abstractmethod
     @validate_volume

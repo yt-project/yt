@@ -66,8 +66,8 @@ class OctreeRayTracing(object):
 
         if len(fields) != 1:
             raise ValueError(
-                'Can only set one fields at a time. '
-                'This is likely a bug, and should be reported.'
+                "Can only set one fields at a time. "
+                "This is likely a bug, and should be reported."
             )
 
         field = self.data_source._determine_fields(fields)[0]
