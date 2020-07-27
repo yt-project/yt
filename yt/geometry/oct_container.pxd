@@ -74,7 +74,7 @@ cdef class OctreeContainer:
                         OctVisitor visitor,
                         int vc = ?, np.int64_t *indices = ?)
     cdef Oct *next_root(self, int domain_id, int ind[3])
-    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
+    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent) except? NULL
     cdef void append_domain(self, np.int64_t domain_count)
     # The fill_style is the ordering, C or F, of the octs in the file.  "o"
     # corresponds to C, and "r" is for Fortran.

@@ -643,7 +643,7 @@ cdef class OctreeContainer:
         self.nocts += 1
         return next
 
-    cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent):
+    cdef Oct* next_child(self, int domain_id, int ind[3], Oct *parent) except? NULL:
         cdef int i
         cdef Oct *next = NULL
         if parent.children != NULL:
