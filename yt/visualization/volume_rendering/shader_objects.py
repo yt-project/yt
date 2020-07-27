@@ -12,7 +12,7 @@ in Interactive Data Visualization
 # The full license is in the file COPYING.txt, distributed with this software.
 # ----------------------------------------------------------------------------
 
-# This is a part of the experimental Interactive Data Visualization 
+# This is a part of the experimental Interactive Data Visualization
 
 import yaml
 import os
@@ -20,22 +20,20 @@ import OpenGL.GL as GL
 import contextlib
 from yt.extern.six import add_metaclass
 from collections import OrderedDict
-from yt.utilities.exceptions import \
-    YTInvalidShaderType, \
-    YTUnknownUniformKind, \
-    YTUnknownUniformSize
+from yt.utilities.exceptions import (
+    YTInvalidShaderType,
+    YTUnknownUniformKind,
+    YTUnknownUniformSize,
+)
 from yt.units.yt_array import YTQuantity
 import ctypes
-from .opengl_support import \
-    num_to_const, \
-    coerce_uniform_type, \
-    VertexArray, \
-    GLValue
+from .opengl_support import num_to_const, coerce_uniform_type, VertexArray, GLValue
 
 import traitlets
 
+
 class ShaderProgram(object):
-    '''
+    """
     Wrapper class that compiles and links vertex and fragment shaders
     into a shader program.
 
@@ -47,7 +45,7 @@ class ShaderProgram(object):
 
     fragment_shader : string or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
         The fragment shader used in the Interactive Data Visualization pipeline.
-    '''
+    """
 
     def __init__(self, vertex_shader=None, fragment_shader=None):
         # Don't allow just one.  Either neither or both.
@@ -63,9 +61,9 @@ class ShaderProgram(object):
         # There are more types of shaders, but for now we only allow v&f.
         self.program = GL.glCreateProgram()
         if not isinstance(vertex_shader, Shader):
-            vertex_shader = Shader(source = vertex_shader)
+            vertex_shader = Shader(source=vertex_shader)
         if not isinstance(fragment_shader, Shader):
-            fragment_shader = Shader(source = fragment_shader)
+            fragment_shader = Shader(source=fragment_shader)
         self.vertex_shader = vertex_shader
         self.fragment_shader = fragment_shader
         GL.glAttachShader(self.program, vertex_shader.shader)
@@ -85,27 +83,28 @@ class ShaderProgram(object):
         self.uniforms = {}
         self.attributes = {}
 
-        if not bool(GL.glGetProgramInterfaceiv): return
-        n_uniforms = GL.glGetProgramInterfaceiv(self.program, 
-                GL.GL_UNIFORM, GL.GL_ACTIVE_RESOURCES)
+        if not bool(GL.glGetProgramInterfaceiv):
+            return
+        n_uniforms = GL.glGetProgramInterfaceiv(
+            self.program, GL.GL_UNIFORM, GL.GL_ACTIVE_RESOURCES
+        )
 
         for i in range(n_uniforms):
             name, size, gl_type = GL.glGetActiveUniform(self.program, i)
             gl_type = num_to_const[gl_type]
             self.uniforms[name.decode("utf-8")] = (size, gl_type)
 
-        n_attrib = GL.glGetProgramInterfaceiv(self.program, 
-                GL.GL_PROGRAM_INPUT, GL.GL_ACTIVE_RESOURCES)
+        n_attrib = GL.glGetProgramInterfaceiv(
+            self.program, GL.GL_PROGRAM_INPUT, GL.GL_ACTIVE_RESOURCES
+        )
         length = ctypes.pointer(ctypes.c_int())
         size = ctypes.pointer(ctypes.c_int())
         gl_type = ctypes.pointer(ctypes.c_int())
         name = ctypes.create_string_buffer(256)
         for i in range(n_attrib):
-            GL.glGetActiveAttrib(self.program, i, 256, length, size, gl_type,
-                                 name)
+            GL.glGetActiveAttrib(self.program, i, 256, length, size, gl_type, name)
             gl_const = num_to_const[gl_type[0]]
-            self.attributes[name[:length[0]].decode("utf-8")] = (size[0],
-                    gl_const)
+            self.attributes[name[: length[0]].decode("utf-8")] = (size[0], gl_const)
 
     def delete_program(self):
         if self.program is not None:
@@ -125,10 +124,10 @@ class ShaderProgram(object):
             return GL.glUniform1f
         else:
             kind = value.dtype.kind
-        if kind not in 'if':
+        if kind not in "if":
             raise YTUnknownUniformKind(kind)
         if len(value.shape) == 0:
-            return {'f': GL.glUniform1f, 'i': GL.glUniform1i}[kind]
+            return {"f": GL.glUniform1f, "i": GL.glUniform1i}[kind]
         elif len(value.shape) == 1:
             if value.size > 4:
                 raise YTUnknownUniformSize(value.size)
@@ -143,15 +142,19 @@ class ShaderProgram(object):
 
     def _set_scalar_uniform(self, kind, size_spec):
         gl_func = getattr(GL, "glUniform%s%sv" % (size_spec, kind))
+
         def _func(location, value):
             return gl_func(location, 1, value)
+
         return _func
 
     def _set_matrix_uniform(self, kind, size_spec):
-        assert(size_spec[0] == size_spec[1])
+        assert size_spec[0] == size_spec[1]
         gl_func = getattr(GL, "glUniformMatrix%s%sv" % (size_spec[0], kind))
+
         def _func(location, value):
             return gl_func(location, 1, GL.GL_TRUE, value)
+
         return _func
 
     def _set_uniform(self, name, value):
@@ -171,8 +174,9 @@ class ShaderProgram(object):
         yield self
         GL.glUseProgram(0)
 
+
 class Shader(traitlets.HasTraits):
-    '''
+    """
     Creates a shader from source
 
     Parameters
@@ -183,24 +187,30 @@ class Shader(traitlets.HasTraits):
         an absolute path to a source file or a filename of a shader
         residing in the ./shaders/ directory.
 
-    '''
+    """
 
     _shader = None
     source = traitlets.Any()
     shader_name = traitlets.CUnicode()
     info = traitlets.CUnicode()
     shader_type = traitlets.CaselessStrEnum(("vertex", "fragment"))
-    blend_func = traitlets.Tuple(GLValue(), GLValue(),
-            default_value = ("src alpha", "dst alpha"))
+    blend_func = traitlets.Tuple(
+        GLValue(), GLValue(), default_value=("src alpha", "dst alpha")
+    )
     blend_equation = GLValue("func add")
     depth_test = GLValue("always")
 
     use_separate_blend = traitlets.Bool(False)
-    blend_equation_separate = traitlets.Tuple(GLValue(), GLValue(),
-            default_value = ("none", "none"))
-    blend_func_separate = traitlets.Tuple(GLValue(), GLValue(),
-                                           GLValue(), GLValue(),
-            default_value = ("none", "none", "none", "none"))
+    blend_equation_separate = traitlets.Tuple(
+        GLValue(), GLValue(), default_value=("none", "none")
+    )
+    blend_func_separate = traitlets.Tuple(
+        GLValue(),
+        GLValue(),
+        GLValue(),
+        GLValue(),
+        default_value=("none", "none", "none", "none"),
+    )
 
     def _get_source(self, source):
         if ";" in source:
@@ -212,35 +222,35 @@ class Shader(traitlets.HasTraits):
         # instance, that can still share ray tracing code between multiple
         # files.
         if not isinstance(source, (tuple, list)):
-            source = (source, )
+            source = (source,)
         full_source = []
         for fn in source:
             if os.path.isfile(fn):
-                sh_directory = ''
+                sh_directory = ""
             else:
                 sh_directory = os.path.join(os.path.dirname(__file__), "shaders")
             fn = os.path.join(sh_directory, fn)
             if not os.path.isfile(fn):
                 raise YTInvalidShaderType(fn)
-            full_source.append(open(fn, 'r').read())
+            full_source.append(open(fn, "r").read())
         return "\n\n".join(full_source)
 
-    def compile(self, source = None, parameters = None):
+    def compile(self, source=None, parameters=None):
         if source is None:
             source = self.source
-            if source is None: raise RuntimeError
+            if source is None:
+                raise RuntimeError
         if parameters is not None:
             raise NotImplementedError
         source = self._get_source(source)
-        shader_type_enum = getattr(GL,
-            'GL_%s_SHADER' % self.shader_type.upper())
+        shader_type_enum = getattr(GL, "GL_%s_SHADER" % self.shader_type.upper())
         shader = GL.glCreateShader(shader_type_enum)
         # We could do templating here if we wanted.
         self.shader_source = source
         GL.glShaderSource(shader, source)
         GL.glCompileShader(shader)
         result = GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS)
-        if not(result):
+        if not (result):
             raise RuntimeError(GL.glGetShaderInfoLog(shader))
         self._shader = shader
 
@@ -270,6 +280,7 @@ class Shader(traitlets.HasTraits):
         # This is not guaranteed to be called
         self.delete_shader()
 
+
 class ShaderTrait(traitlets.TraitType):
     default_value = None
     info_text = "A shader (vertex or fragment)"
@@ -281,7 +292,8 @@ class ShaderTrait(traitlets.TraitType):
                 shader_info = known_shaders[shader_type][value]
                 shader_info.setdefault("shader_type", shader_type)
                 shader_info["use_separate_blend"] = bool(
-                        "blend_func_separate" in shader_info)
+                    "blend_func_separate" in shader_info
+                )
                 shader_info.setdefault("shader_name", value)
                 shader = Shader(**shader_info)
                 return shader
@@ -290,19 +302,19 @@ class ShaderTrait(traitlets.TraitType):
         elif isinstance(value, Shader):
             return value
         self.error(obj, value)
+
+
 known_shaders = {}
 component_shaders = {}
 default_shader_combos = {}
 
 # We'll load our shaders here from shaderlist.yaml
-_shlist_fn = os.path.join(os.path.dirname(__file__),
-                         "shaders",
-                         "shaderlist.yaml")
+_shlist_fn = os.path.join(os.path.dirname(__file__), "shaders", "shaderlist.yaml")
 if os.path.exists(_shlist_fn):
     with open(_shlist_fn, "r") as f:
         shader_info = yaml.load(f, yaml.SafeLoader)
         known_shaders.update(shader_info["shader_definitions"])
         component_shaders.update(shader_info["component_shaders"])
-        default_shader_combos.update({_:
-                                      component_shaders[_].pop("default_value")
-                                      for _ in component_shaders})
+        default_shader_combos.update(
+            {_: component_shaders[_].pop("default_value") for _ in component_shaders}
+        )

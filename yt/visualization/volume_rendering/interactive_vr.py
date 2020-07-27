@@ -19,8 +19,13 @@ import OpenGL.GLUT.freeglut as GLUT
 from collections import OrderedDict, namedtuple, defaultdict
 import matplotlib.cm as cm
 import matplotlib.font_manager
-from matplotlib.ft2font import FT2Font, LOAD_FORCE_AUTOHINT, LOAD_NO_HINTING, \
-     LOAD_DEFAULT, LOAD_NO_AUTOHINT
+from matplotlib.ft2font import (
+    FT2Font,
+    LOAD_FORCE_AUTOHINT,
+    LOAD_NO_HINTING,
+    LOAD_DEFAULT,
+    LOAD_NO_AUTOHINT,
+)
 import numpy as np
 import ctypes
 import time
@@ -31,96 +36,121 @@ import traittypes
 from math import ceil, floor
 
 from yt import write_bitmap
-from yt.config import \
-    ytcfg
-from yt.utilities.traitlets_support import \
-    YTPositionTrait, \
-    ndarray_shape, \
-    ndarray_ro
-from yt.utilities.math_utils import \
-    get_translate_matrix, \
-    get_scale_matrix, \
-    get_lookat_matrix, \
-    get_perspective_matrix, \
-    quaternion_mult, \
-    quaternion_to_rotation_matrix, \
-    rotation_matrix_to_quaternion
-from yt.utilities.lib.misc_utilities import \
-    update_orientation
-from yt.data_objects.data_containers import \
-    YTDataContainer
-from yt.data_objects.static_output import \
-     Dataset
+from yt.config import ytcfg
+from yt.utilities.traitlets_support import YTPositionTrait, ndarray_shape, ndarray_ro
+from yt.utilities.math_utils import (
+    get_translate_matrix,
+    get_scale_matrix,
+    get_lookat_matrix,
+    get_perspective_matrix,
+    quaternion_mult,
+    quaternion_to_rotation_matrix,
+    rotation_matrix_to_quaternion,
+)
+from yt.utilities.lib.misc_utilities import update_orientation
+from yt.data_objects.data_containers import YTDataContainer
+from yt.data_objects.static_output import Dataset
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from yt.extern.six import unichr
-from .shader_objects import \
-    ShaderProgram, ShaderTrait, \
-    component_shaders, default_shader_combos
-from .opengl_support import \
-    Texture, Texture1D, Texture2D, Texture3D, \
-    VertexArray, VertexAttribute, ColormapTexture, \
-    Framebuffer, Texture3DIterator, TransferFunctionTexture
-from .input_events import \
-    EventCollection
+from .shader_objects import (
+    ShaderProgram,
+    ShaderTrait,
+    component_shaders,
+    default_shader_combos,
+)
+from .opengl_support import (
+    Texture,
+    Texture1D,
+    Texture2D,
+    Texture3D,
+    VertexArray,
+    VertexAttribute,
+    ColormapTexture,
+    Framebuffer,
+    Texture3DIterator,
+    TransferFunctionTexture,
+)
+from .input_events import EventCollection
 from yt.data_objects.api import Dataset
 
 bbox_vertices = np.array(
-      [[ 0.,  0.,  0.,  1.],
-       [ 0.,  0.,  1.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 1.,  1.,  0.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 0.,  1.,  0.,  1.],
-       [ 1.,  0.,  1.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 1.,  0.,  0.,  1.],
-       [ 1.,  1.,  0.,  1.],
-       [ 1.,  0.,  0.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 0.,  1.,  0.,  1.],
-       [ 1.,  0.,  1.,  1.],
-       [ 0.,  0.,  1.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 0.,  0.,  1.,  1.],
-       [ 1.,  0.,  1.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 1.,  0.,  0.,  1.],
-       [ 1.,  1.,  0.,  1.],
-       [ 1.,  0.,  0.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 1.,  0.,  1.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 1.,  1.,  0.,  1.],
-       [ 0.,  1.,  0.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 0.,  1.,  0.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 1.,  0.,  1.,  1.]], dtype=np.float32)
+    [
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 0.0, 1.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 0.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0, 1.0],
+        [1.0, 1.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+        [0.0, 0.0, 1.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [0.0, 0.0, 1.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [1.0, 0.0, 0.0, 1.0],
+        [1.0, 1.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+    ],
+    dtype=np.float32,
+)
 
 FULLSCREEN_QUAD = np.array(
-    [-1.0, -1.0, 0.0,
-     +1.0, -1.0, 0.0,
-     -1.0, +1.0, 0.0,
-     -1.0, +1.0, 0.0,
-     +1.0, -1.0, 0.0,
-     +1.0, +1.0, 0.0], dtype=np.float32
+    [
+        -1.0,
+        -1.0,
+        0.0,
+        +1.0,
+        -1.0,
+        0.0,
+        -1.0,
+        +1.0,
+        0.0,
+        -1.0,
+        +1.0,
+        0.0,
+        +1.0,
+        -1.0,
+        0.0,
+        +1.0,
+        +1.0,
+        0.0,
+    ],
+    dtype=np.float32,
 )
+
 
 def compute_box_geometry(left_edge, right_edge):
     move = get_translate_matrix(*left_edge)
-    width = (right_edge - left_edge)
+    width = right_edge - left_edge
     scale = get_scale_matrix(*width)
 
     transformed_box = bbox_vertices.dot(scale.T).dot(move.T).astype("float32")
     return transformed_box
 
+
 class IDVCamera(traitlets.HasTraits):
-    '''Camera object used in the Interactive Data Visualization
+    """Camera object used in the Interactive Data Visualization
 
     Parameters
     ----------
@@ -140,24 +170,27 @@ class IDVCamera(traitlets.HasTraits):
     aspect_ratio: float, optional
         The ratio between the height and the width of the camera's fov.
 
-    '''
+    """
+
     # We have to be careful about some of these, as it's possible in-place
     # operations won't trigger our observation.
     position = YTPositionTrait([0.0, 0.0, 1.0])
     focus = YTPositionTrait([0.0, 0.0, 0.0])
     up = traittypes.Array(np.array([0.0, 0.0, 1.0])).valid(
-            ndarray_shape(3), ndarray_ro())
+        ndarray_shape(3), ndarray_ro()
+    )
     fov = traitlets.Float(45.0)
     near_plane = traitlets.Float(0.01)
     far_plane = traitlets.Float(20.0)
-    aspect_ratio = traitlets.Float(8.0/6.0)
+    aspect_ratio = traitlets.Float(8.0 / 6.0)
 
-    projection_matrix = traittypes.Array(np.zeros((4,4))).valid(
-            ndarray_shape(4,4), ndarray_ro())
-    view_matrix = traittypes.Array(np.zeros((4,4))).valid(
-            ndarray_shape(4,4), ndarray_ro())
-    orientation = traittypes.Array(np.zeros(4)).valid(
-            ndarray_shape(4), ndarray_ro())
+    projection_matrix = traittypes.Array(np.zeros((4, 4))).valid(
+        ndarray_shape(4, 4), ndarray_ro()
+    )
+    view_matrix = traittypes.Array(np.zeros((4, 4))).valid(
+        ndarray_shape(4, 4), ndarray_ro()
+    )
+    orientation = traittypes.Array(np.zeros(4)).valid(ndarray_shape(4), ndarray_ro())
 
     held = traitlets.Bool(False)
 
@@ -176,15 +209,23 @@ class IDVCamera(traitlets.HasTraits):
     def _default_up(self):
         return np.array([0.0, 1.0, 0.0])
 
-    @traitlets.observe('position', 'focus', 'up', 'fov', 'near_plane',
-            'far_plane', 'aspect_ratio', 'orientation')
-    def compute_matrices(self, change = None):
-        '''Regenerate all position, view and projection matrices of the camera.'''
+    @traitlets.observe(
+        "position",
+        "focus",
+        "up",
+        "fov",
+        "near_plane",
+        "far_plane",
+        "aspect_ratio",
+        "orientation",
+    )
+    def compute_matrices(self, change=None):
+        """Regenerate all position, view and projection matrices of the camera."""
         with self.hold_traits(self._compute_matrices):
             pass
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
-        '''Change camera orientation matrix using delta of mouse's cursor position
+        """Change camera orientation matrix using delta of mouse's cursor position
 
         Parameters
         ----------
@@ -198,8 +239,9 @@ class IDVCamera(traitlets.HasTraits):
         end_y : float
             final cursor position in y direction
 
-        '''
+        """
         pass
+
 
 class TrackballCamera(IDVCamera):
     """
@@ -219,25 +261,25 @@ class TrackballCamera(IDVCamera):
     def proj_func(self):
         return get_perspective_matrix
 
-    @traitlets.default('orientation')
+    @traitlets.default("orientation")
     def _orientation_default(self):
-        rotation_matrix = self.view_matrix[0:3,0:3]
+        rotation_matrix = self.view_matrix[0:3, 0:3]
         return rotation_matrix_to_quaternion(rotation_matrix)
 
-    @traitlets.default('view_matrix')
+    @traitlets.default("view_matrix")
     def _default_view_matrix(self):
         return get_lookat_matrix(self.position, self.focus, self.up)
 
     def _map_to_surface(self, mouse_x, mouse_y):
         # right now this just maps to the surface of the unit sphere
         x, y = mouse_x, mouse_y
-        mag = np.sqrt(x*x + y*y)
-        if (mag > 1.0):
+        mag = np.sqrt(x * x + y * y)
+        if mag > 1.0:
             x /= mag
             y /= mag
             z = 0.0
         else:
-            z = np.sqrt(1.0 - mag**2)
+            z = np.sqrt(1.0 - mag ** 2)
         return np.array([x, -y, z])
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
@@ -246,56 +288,50 @@ class TrackballCamera(IDVCamera):
             new = self._map_to_surface(end_x, end_y)
 
             # dot product controls the angle of the rotation
-            w = old[0]*new[0] + old[1]*new[1] + old[2]*new[2]
+            w = old[0] * new[0] + old[1] * new[1] + old[2] * new[2]
 
             # cross product gives the rotation axis
-            x = old[1]*new[2] - old[2]*new[1]
-            y = old[2]*new[0] - old[0]*new[2]
-            z = old[0]*new[1] - old[1]*new[0]
+            x = old[1] * new[2] - old[2] * new[1]
+            y = old[2] * new[0] - old[0] * new[2]
+            z = old[0] * new[1] - old[1] * new[0]
 
             q = np.array([w, x, y, z])
 
-            #renormalize to prevent floating point issues
-            mag = np.sqrt(w**2 + x**2 + y**2 + z**2)
+            # renormalize to prevent floating point issues
+            mag = np.sqrt(w ** 2 + x ** 2 + y ** 2 + z ** 2)
             q /= mag
 
             o1 = quaternion_mult(self.orientation, q)
-        self.orientation = update_orientation(self.orientation, start_x, start_y, end_x, end_y)
+        self.orientation = update_orientation(
+            self.orientation, start_x, start_y, end_x, end_y
+        )
 
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
-        dp = np.linalg.norm(self.position - self.focus)*rotation_matrix[2]
+        dp = np.linalg.norm(self.position - self.focus) * rotation_matrix[2]
         self.position = dp + self.focus
         self.up = rotation_matrix[1]
 
-        self.view_matrix = get_lookat_matrix(self.position,
-                                             self.focus,
-                                             self.up)
+        self.view_matrix = get_lookat_matrix(self.position, self.focus, self.up)
 
-        self.projection_matrix = self.proj_func(self.fov,
-                                                self.aspect_ratio,
-                                                self.near_plane,
-                                                self.far_plane)
+        self.projection_matrix = self.proj_func(
+            self.fov, self.aspect_ratio, self.near_plane, self.far_plane
+        )
 
     def _update_matrices(self):
 
-        self.view_matrix = get_lookat_matrix(self.position,
-                                             self.focus,
-                                             self.up)
+        self.view_matrix = get_lookat_matrix(self.position, self.focus, self.up)
 
-        self.projection_matrix = self.proj_func(self.fov,
-                                                self.aspect_ratio,
-                                                self.near_plane,
-                                                self.far_plane)
+        self.projection_matrix = self.proj_func(
+            self.fov, self.aspect_ratio, self.near_plane, self.far_plane
+        )
 
+    def offsetPosition(self, dPos=np.array([0.0, 0.0, 0.0])):
+        self.position += dPos
+        self.view_matrix = get_lookat_matrix(self.position, self.focus, self.up)
 
-
-    def offsetPosition(self,dPos=np.array([0.,0.,0.])):
-        self.position+=dPos
-        self.view_matrix = get_lookat_matrix(self.position,
-                                             self.focus,
-                                             self.up)
     def _compute_matrices(self):
         pass
+
 
 class SceneData(traitlets.HasTraits):
     """A class that defines a collection of GPU-managed data.
@@ -306,12 +342,14 @@ class SceneData(traitlets.HasTraits):
     provided with these items.
 
     """
+
     name = None
     vertex_array = traitlets.Instance(VertexArray)
-    textures = traitlets.List(trait = traitlets.Instance(Texture))
+    textures = traitlets.List(trait=traitlets.Instance(Texture))
 
     min_val = traitlets.CFloat(0.0)
     max_val = traitlets.CFloat(1.0)
+
 
 class SceneComponent(traitlets.HasTraits):
     data = traitlets.Instance(SceneData)
@@ -320,24 +358,24 @@ class SceneComponent(traitlets.HasTraits):
     name = "undefined"
     priority = traitlets.CInt(0)
     visible = traitlets.Bool(True)
-    display_bounds = traitlets.Tuple((0.0, 1.0, 0.0, 1.0), trait = traitlets.CFloat())
+    display_bounds = traitlets.Tuple((0.0, 1.0, 0.0, 1.0), trait=traitlets.CFloat())
     clear_region = traitlets.Bool(False)
 
-    render_method = traitlets.Unicode(allow_none = True)
-    fragment_shader = ShaderTrait(allow_none = True).tag(shader_type = "fragment")
-    vertex_shader = ShaderTrait(allow_none = True).tag(shader_type = "vertex")
+    render_method = traitlets.Unicode(allow_none=True)
+    fragment_shader = ShaderTrait(allow_none=True).tag(shader_type="fragment")
+    vertex_shader = ShaderTrait(allow_none=True).tag(shader_type="vertex")
     fb = traitlets.Instance(Framebuffer)
-    colormap_fragment = ShaderTrait(allow_none = True).tag(shader_type = "fragment")
-    colormap_vertex = ShaderTrait(allow_none = True).tag(shader_type = "vertex")
+    colormap_fragment = ShaderTrait(allow_none=True).tag(shader_type="fragment")
+    colormap_vertex = ShaderTrait(allow_none=True).tag(shader_type="vertex")
     colormap = traitlets.Instance(ColormapTexture)
-    _program1 = traitlets.Instance(ShaderProgram, allow_none = True)
-    _program2 = traitlets.Instance(ShaderProgram, allow_none = True)
+    _program1 = traitlets.Instance(ShaderProgram, allow_none=True)
+    _program2 = traitlets.Instance(ShaderProgram, allow_none=True)
     _program1_invalid = True
     _program2_invalid = True
 
     # These attributes are
-    cmap_min = traitlets.CFloat(None, allow_none = True)
-    cmap_max = traitlets.CFloat(None, allow_none = True)
+    cmap_min = traitlets.CFloat(None, allow_none=True)
+    cmap_max = traitlets.CFloat(None, allow_none=True)
     cmap_log = traitlets.Bool(True)
     scale = traitlets.CFloat(1.0)
 
@@ -346,11 +384,12 @@ class SceneComponent(traitlets.HasTraits):
         # We need to update the framebuffer if the width or height has changed
         # Same thing is true if the total pixel size has changed, but that is
         # not doable from in here.
-        if change['old'] == traitlets.Undefined: return
-        old_width = change['old'][1] - change['old'][0]
-        old_height = change['old'][3] - change['old'][2]
-        new_width = change['new'][1] - change['new'][0]
-        new_height = change['new'][3] - change['new'][2]
+        if change["old"] == traitlets.Undefined:
+            return
+        old_width = change["old"][1] - change["old"][0]
+        old_height = change["old"][3] - change["old"][2]
+        new_width = change["new"][1] - change["new"][0]
+        new_height = change["new"][3] - change["new"][2]
         if old_width != new_width or old_height != new_height:
             self.fb = Framebuffer()
 
@@ -364,12 +403,12 @@ class SceneComponent(traitlets.HasTraits):
 
     @traitlets.observe("render_method")
     def _change_render_method(self, change):
-        new_combo = component_shaders[self.name][change['new']]
+        new_combo = component_shaders[self.name][change["new"]]
         with self.hold_trait_notifications():
-            self.vertex_shader = new_combo['first_vertex']
-            self.fragment_shader = new_combo['first_fragment']
-            self.colormap_vertex = new_combo['second_vertex']
-            self.colormap_fragment = new_combo['second_fragment']
+            self.vertex_shader = new_combo["first_vertex"]
+            self.fragment_shader = new_combo["first_fragment"]
+            self.colormap_vertex = new_combo["second_vertex"]
+            self.colormap_fragment = new_combo["second_fragment"]
 
     @traitlets.default("fb")
     def _fb_default(self):
@@ -403,29 +442,29 @@ class SceneComponent(traitlets.HasTraits):
 
     @traitlets.default("vertex_shader")
     def _vertex_shader_default(self):
-        return component_shaders[self.name][self.render_method]['first_vertex']
+        return component_shaders[self.name][self.render_method]["first_vertex"]
 
     @traitlets.default("fragment_shader")
     def _fragment_shader_default(self):
-        return component_shaders[self.name][self.render_method]['first_fragment']
+        return component_shaders[self.name][self.render_method]["first_fragment"]
 
     @traitlets.default("colormap_vertex")
     def _colormap_vertex_default(self):
-        return component_shaders[self.name][self.render_method]['second_vertex']
+        return component_shaders[self.name][self.render_method]["second_vertex"]
 
     @traitlets.default("colormap_fragment")
     def _colormap_fragment_default(self):
-        return component_shaders[self.name][self.render_method]['second_fragment']
+        return component_shaders[self.name][self.render_method]["second_fragment"]
 
     @traitlets.default("base_quad")
     def _default_base_quad(self):
-        bq = SceneData(name = "fullscreen_quad",
-                       vertex_array = VertexArray(name = "tri", each = 6),
+        bq = SceneData(
+            name="fullscreen_quad", vertex_array=VertexArray(name="tri", each=6),
         )
         fq = FULLSCREEN_QUAD.reshape((6, 3), order="C")
-        bq.vertex_array.attributes.append(VertexAttribute(
-            name = "vertexPosition_modelspace", data = fq
-        ))
+        bq.vertex_array.attributes.append(
+            VertexAttribute(name="vertexPosition_modelspace", data=fq)
+        )
         return bq
 
     @property
@@ -433,8 +472,7 @@ class SceneComponent(traitlets.HasTraits):
         if self._program1_invalid:
             if self._program1 is not None:
                 self._program1.delete_program()
-            self._program1 = ShaderProgram(self.vertex_shader,
-                self.fragment_shader)
+            self._program1 = ShaderProgram(self.vertex_shader, self.fragment_shader)
             self._program1_invalid = False
         return self._program1
 
@@ -446,8 +484,7 @@ class SceneComponent(traitlets.HasTraits):
             # The vertex shader will always be the same.
             # The fragment shader will change based on whether we are
             # colormapping or not.
-            self._program2 = ShaderProgram(self.colormap_vertex,
-                    self.colormap_fragment)
+            self._program2 = ShaderProgram(self.colormap_vertex, self.colormap_fragment)
             self._program2_invalid = False
         return self._program2
 
@@ -464,7 +501,7 @@ class SceneComponent(traitlets.HasTraits):
                     self.draw(scene, p)
         if self.cmap_min is None or self.cmap_max is None:
             data = self.fb.data
-            data = data[data[:,:,3] > 0][:,0]
+            data = data[data[:, :, 3] > 0][:, 0]
             if self.cmap_min is None and data.size > 0:
                 self.cmap_min = cmap_min = data.min()
             if self.cmap_max is None and data.size > 0:
@@ -495,14 +532,17 @@ class SceneComponent(traitlets.HasTraits):
     def draw(self, scene, program):
         raise NotImplementedError
 
+
 class SceneAnnotation(SceneComponent):
     pass
 
+
 # This is drawn in part from
 #  https://learnopengl.com/#!In-Practice/Text-Rendering
-Character = namedtuple('Character',
-        ['texture', 'vbo_offset', 'hori_advance', 'vert_advance']
+Character = namedtuple(
+    "Character", ["texture", "vbo_offset", "hori_advance", "vert_advance"]
 )
+
 
 class FontTrait(traitlets.TraitType):
     info_text = "A font instance from matplotlib"
@@ -516,6 +556,7 @@ class FontTrait(traitlets.TraitType):
                 self.error(obj, value)
         return value
 
+
 class TextCharacters(SceneData):
     characters = traitlets.Dict(trait=traitlets.Instance(Character))
     name = "text_overlay"
@@ -524,7 +565,7 @@ class TextCharacters(SceneData):
 
     @traitlets.default("vertex_array")
     def _default_vertex_array(self):
-        return VertexArray(name = "char_info", each = 6)
+        return VertexArray(name="char_info", each=6)
 
     def build_textures(self):
         # This doesn't check if the textures have already been built
@@ -534,34 +575,39 @@ class TextCharacters(SceneData):
         vert = []
         for i, (tex_id, char_code) in enumerate(zip(tex_ids, chars)):
             self.font.clear()
-            self.font.set_text(unichr(char_code),
-                    flags = LOAD_FORCE_AUTOHINT)
-            self.font.draw_glyphs_to_bitmap(antialiased = True)
+            self.font.set_text(unichr(char_code), flags=LOAD_FORCE_AUTOHINT)
+            self.font.draw_glyphs_to_bitmap(antialiased=True)
             glyph = self.font.load_char(char_code)
             x0, y0, x1, y1 = glyph.bbox
-            bitmap = self.font.get_image().astype(">f4")/255.0
-            dx = 1.0/bitmap.shape[0]
-            dy = 1.0/bitmap.shape[1]
-            triangles = np.array([[x0, y1, 0.0 + dx/2.0, 0.0 + dy/2.0],
-                                  [x0, y0, 0.0 + dx/2.0, 1.0 - dy/2.0],
-                                  [x1, y0, 1.0 - dx/2.0, 1.0 - dy/2.0],
-                                  [x0, y1, 0.0 + dx/2.0, 0.0 + dy/2.0],
-                                  [x1, y0, 1.0 - dx/2.0, 1.0 - dy/2.0],
-                                  [x1, y1, 1.0 - dx/2.0, 0.0 + dy/2.0]],
-                                  dtype="<f4")
+            bitmap = self.font.get_image().astype(">f4") / 255.0
+            dx = 1.0 / bitmap.shape[0]
+            dy = 1.0 / bitmap.shape[1]
+            triangles = np.array(
+                [
+                    [x0, y1, 0.0 + dx / 2.0, 0.0 + dy / 2.0],
+                    [x0, y0, 0.0 + dx / 2.0, 1.0 - dy / 2.0],
+                    [x1, y0, 1.0 - dx / 2.0, 1.0 - dy / 2.0],
+                    [x0, y1, 0.0 + dx / 2.0, 0.0 + dy / 2.0],
+                    [x1, y0, 1.0 - dx / 2.0, 1.0 - dy / 2.0],
+                    [x1, y1, 1.0 - dx / 2.0, 0.0 + dy / 2.0],
+                ],
+                dtype="<f4",
+            )
             vert.append(triangles)
-            texture = Texture2D(texture_name = tex_id,
-                                data = bitmap,
-                                boundary_x = "clamp",
-                                boundary_y = "clamp")
+            texture = Texture2D(
+                texture_name=tex_id, data=bitmap, boundary_x="clamp", boundary_y="clamp"
+            )
             # I can't find information as to why horiAdvance is a
             # factor of 8 larger than the other factors.  I assume it
             # is referenced somewhere, but I cannot find it.
-            self.characters[unichr(char_code)] = Character(texture,
-                    i, glyph.horiAdvance/8., glyph.vertAdvance)
+            self.characters[unichr(char_code)] = Character(
+                texture, i, glyph.horiAdvance / 8.0, glyph.vertAdvance
+            )
         vert = np.concatenate(vert)
-        self.vertex_array.attributes.append(VertexAttribute(
-            name = "quad_vertex", data = vert.astype("<f4")))
+        self.vertex_array.attributes.append(
+            VertexAttribute(name="quad_vertex", data=vert.astype("<f4"))
+        )
+
 
 class TextAnnotation(SceneAnnotation):
 
@@ -569,13 +615,14 @@ class TextAnnotation(SceneAnnotation):
     data = traitlets.Instance(TextCharacters)
     text = traitlets.CUnicode()
     draw_instructions = traitlets.List()
-    origin = traitlets.Tuple(traitlets.CFloat(), traitlets.CFloat(),
-            default_value = (-1, -1))
+    origin = traitlets.Tuple(
+        traitlets.CFloat(), traitlets.CFloat(), default_value=(-1, -1)
+    )
     scale = traitlets.CFloat(1.0)
 
     @traitlets.observe("text")
     def _observe_text(self, change):
-        text = change['new']
+        text = change["new"]
         lines = text.split("\n")
         draw_instructions = []
         y = 0
@@ -584,8 +631,7 @@ class TextAnnotation(SceneAnnotation):
             dy = 0
             for c in line:
                 e = self.data.characters[c]
-                draw_instructions.append((x, y,
-                    e.texture, e.vbo_offset))
+                draw_instructions.append((x, y, e.texture, e.vbo_offset))
                 dy = max(dy, e.vert_advance)
                 x += e.hori_advance
             y += dy
@@ -605,7 +651,7 @@ class TextAnnotation(SceneAnnotation):
                 program._set_uniform("x_origin", self.origin[0])
                 program._set_uniform("y_origin", self.origin[1])
                 program._set_uniform("scale", self.scale)
-                GL.glDrawArrays(GL.GL_TRIANGLES, vbo_offset*each, each)
+                GL.glDrawArrays(GL.GL_TRIANGLES, vbo_offset * each, each)
 
 
 class LineData(SceneData):
@@ -614,33 +660,36 @@ class LineData(SceneData):
 
     @traitlets.default("vertex_array")
     def _default_vertex_array(self):
-        return VertexArray(name = "vertices", each = 6)
+        return VertexArray(name="vertices", each=6)
 
     def add_data(self, lines):
-        assert(lines.shape[1] == 4)
-        x_coord = np.mgrid[0.0:1.0:lines.shape[0]*1j].astype("f4")
+        assert lines.shape[1] == 4
+        x_coord = np.mgrid[0.0 : 1.0 : lines.shape[0] * 1j].astype("f4")
         x_coord = x_coord.reshape((-1, 1))
         self.n_vertices = lines.shape[0]
-        self.vertex_array.attributes.append(VertexAttribute(
-            name = "rgba_values", data = lines))
-        self.vertex_array.attributes.append(VertexAttribute(
-            name = "x_coord", data = x_coord))
+        self.vertex_array.attributes.append(
+            VertexAttribute(name="rgba_values", data=lines)
+        )
+        self.vertex_array.attributes.append(
+            VertexAttribute(name="x_coord", data=x_coord)
+        )
+
 
 class BlockCollection(SceneData):
     name = "block_collection"
     data_source = traitlets.Instance(YTDataContainer)
-    texture_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
-    bitmap_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
-    blocks = traitlets.Dict(default_value = ())
+    texture_objects = traitlets.Dict(trait=traitlets.Instance(Texture3D))
+    bitmap_objects = traitlets.Dict(trait=traitlets.Instance(Texture3D))
+    blocks = traitlets.Dict(default_value=())
     scale = traitlets.Bool(False)
     blocks_by_grid = traitlets.Instance(defaultdict, (list,))
-    grids_by_block = traitlets.Dict(default_value = ())
+    grids_by_block = traitlets.Dict(default_value=())
 
     @traitlets.default("vertex_array")
     def _default_vertex_array(self):
-        return VertexArray(name = "block_info", each = 36)
+        return VertexArray(name="block_info", each=36)
 
-    def add_data(self, field, no_ghost = False):
+    def add_data(self, field, no_ghost=False):
         r"""Adds a source of data for the block collection.
 
         Given a `data_source` and a `field` to populate from, adds the data
@@ -678,14 +727,14 @@ class BlockCollection(SceneData):
             self.max_val = max(self.max_val, np.nanmax(np.abs(block.my_data[0]).max()))
             self.blocks[id(block)] = (i, block)
             vert.append(compute_box_geometry(block.LeftEdge, block.RightEdge))
-            dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape
+            dds = (block.RightEdge - block.LeftEdge) / block.my_data[0].shape
             n = int(vert[-1].size) // 4
-            dx.append([dds.astype('f4') for _ in range(n)])
-            le.append([block.LeftEdge.astype('f4') for _ in range(n)])
-            re.append([block.RightEdge.astype('f4') for _ in range(n)])
+            dx.append([dds.astype("f4") for _ in range(n)])
+            le.append([block.LeftEdge.astype("f4") for _ in range(n)])
+            re.append([block.RightEdge.astype("f4") for _ in range(n)])
         for (g, node, (sl, dims, gi)) in self.data_source.tiles.slice_traverse():
             block = node.data
-            self.blocks_by_grid[g.id - g._id_offset].append( (id(block), i ) )
+            self.blocks_by_grid[g.id - g._id_offset].append((id(block), i))
             self.grids_by_block[id(node.data)] = (g.id - g._id_offset, sl)
 
         if hasattr(self.min_val, "in_units"):
@@ -693,10 +742,8 @@ class BlockCollection(SceneData):
         if hasattr(self.max_val, "in_units"):
             self.max_val = self.max_val.d
 
-        LE = np.array([b.LeftEdge
-                       for i, b in self.blocks.values()]).min(axis=0)
-        RE = np.array([b.RightEdge
-                       for i, b in self.blocks.values()]).max(axis=0)
+        LE = np.array([b.LeftEdge for i, b in self.blocks.values()]).min(axis=0)
+        RE = np.array([b.RightEdge for i, b in self.blocks.values()]).max(axis=0)
         self.diagonal = np.sqrt(((RE - LE) ** 2).sum())
         # Now we set up our buffer
         vert = np.concatenate(vert)
@@ -704,23 +751,24 @@ class BlockCollection(SceneData):
         le = np.concatenate(le)
         re = np.concatenate(re)
 
-        self.vertex_array.attributes.append(VertexAttribute(
-            name = "model_vertex", data = vert))
-        self.vertex_array.attributes.append(VertexAttribute(
-            name = "in_dx", data = dx))
-        self.vertex_array.attributes.append(VertexAttribute(
-            name = "in_left_edge", data = le))
-        self.vertex_array.attributes.append(VertexAttribute(
-            name = "in_right_edge", data = re))
+        self.vertex_array.attributes.append(
+            VertexAttribute(name="model_vertex", data=vert)
+        )
+        self.vertex_array.attributes.append(VertexAttribute(name="in_dx", data=dx))
+        self.vertex_array.attributes.append(
+            VertexAttribute(name="in_left_edge", data=le)
+        )
+        self.vertex_array.attributes.append(
+            VertexAttribute(name="in_right_edge", data=re)
+        )
 
         # Now we set up our textures
         self._load_textures()
 
     def viewpoint_iter(self, camera):
-        for block in self.data_source.tiles.traverse(viewpoint = camera.position):
+        for block in self.data_source.tiles.traverse(viewpoint=camera.position):
             vbo_i, _ = self.blocks[id(block)]
-            yield (vbo_i, self.texture_objects[vbo_i],
-                   self.bitmap_objects[vbo_i])
+            yield (vbo_i, self.texture_objects[vbo_i], self.bitmap_objects[vbo_i])
 
     def filter_callback(self, callback):
         # This is not efficient.  It calls it once for each node in a grid.
@@ -740,12 +788,16 @@ class BlockCollection(SceneData):
         for block_id in sorted(self.blocks):
             vbo_i, block = self.blocks[block_id]
             n_data = np.abs(block.my_data[0]).copy(order="F").astype("float32").d
-            n_data = (n_data - self.min_val) / ((self.max_val - self.min_val))# * self.diagonal)
-            data_tex = Texture3D(data = n_data)
-            bitmap_tex = Texture3D(data = block.source_mask * 255,
-                    min_filter = "nearest", mag_filter = "nearest")
+            n_data = (n_data - self.min_val) / (
+                (self.max_val - self.min_val)
+            )  # * self.diagonal)
+            data_tex = Texture3D(data=n_data)
+            bitmap_tex = Texture3D(
+                data=block.source_mask * 255, min_filter="nearest", mag_filter="nearest"
+            )
             self.texture_objects[vbo_i] = data_tex
             self.bitmap_objects[vbo_i] = bitmap_tex
+
 
 class RGBAData(SceneData):
     name = "rgba_data"
@@ -753,16 +805,14 @@ class RGBAData(SceneData):
 
     @traitlets.default("vertex_array")
     def _default_vertex_array(self):
-        va = VertexArray(name = "tri", each = 6)
+        va = VertexArray(name="tri", each=6)
         fq = FULLSCREEN_QUAD.reshape((6, 3), order="C")
-        va.attributes.append(VertexAttribute(
-            name = "vertexPosition_modelspace", data = fq
-        ))
+        va.attributes.append(VertexAttribute(name="vertexPosition_modelspace", data=fq))
         return va
 
     def add_data(self, lines):
-        assert(lines.shape[1] == 4)
-        self.colormap_texture = Texture1D(boundary_x = "clamp", data = lines)
+        assert lines.shape[1] == 4
+        self.colormap_texture = Texture1D(boundary_x="clamp", data=lines)
 
 
 class RGBADisplay(SceneComponent):
@@ -777,6 +827,7 @@ class RGBADisplay(SceneComponent):
         with self.data.colormap_texture.bind(0):
             GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
 
+
 class RGBALinePlot(SceneComponent):
     name = "rgba_line_plot"
     data = traitlets.Instance(LineData)
@@ -790,18 +841,22 @@ class RGBALinePlot(SceneComponent):
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
-        shader_program._set_uniform("viewport",
-                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
+        shader_program._set_uniform(
+            "viewport", np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype="f4")
+        )
+
 
 _cmaps = ["arbre", "viridis", "magma", "doom"]
 
+
 class BlockRendering(SceneComponent):
-    '''
+    """
     A class that renders block data.  It may do this in one of several ways,
     including mesh outline.  This allows us to render a single collection of
     blocks multiple times in a single scene and to separate out the memory
     handling from the display.
-    '''
+    """
+
     name = "block_rendering"
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
@@ -816,15 +871,17 @@ class BlockRendering(SceneComponent):
         changed = super(BlockRendering, self).render_gui(imgui, renderer)
         _, self.cmap_log = imgui.checkbox("Take log", self.cmap_log)
         changed = changed or _
-        _, cmap_index = imgui.listbox("Colormap",
-                                      _cmaps.index(self.colormap.colormap_name),
-                                      _cmaps)
-        if _: self.colormap.colormap_name = _cmaps[cmap_index]
+        _, cmap_index = imgui.listbox(
+            "Colormap", _cmaps.index(self.colormap.colormap_name), _cmaps
+        )
+        if _:
+            self.colormap.colormap_name = _cmaps[cmap_index]
         changed = changed or _
         # Now, shaders
         shader_combos = list(sorted(component_shaders[self.name]))
-        descriptions = [component_shaders[self.name][_]["description"]
-                        for _ in shader_combos]
+        descriptions = [
+            component_shaders[self.name][_]["description"] for _ in shader_combos
+        ]
         selected = shader_combos.index(self.render_method)
         _, shader_ind = imgui.listbox("Shader", selected, descriptions)
         if _:
@@ -832,12 +889,20 @@ class BlockRendering(SceneComponent):
         changed = changed or _
 
         # Now for the transfer function stuff
-        imgui.image_button(self.transfer_function.texture_name, 256, 32, frame_padding = 0)
+        imgui.image_button(
+            self.transfer_function.texture_name, 256, 32, frame_padding=0
+        )
         imgui.text("Right click and drag to change")
         update = False
         data = self.transfer_function.data.astype("f4") / 255
         for i, c in enumerate("rgba"):
-            imgui.plot_lines(f"## {c}", data[:,0,i].copy(), scale_min = 0.0, scale_max = 1.0, graph_size = (256, 32))
+            imgui.plot_lines(
+                f"## {c}",
+                data[:, 0, i].copy(),
+                scale_min=0.0,
+                scale_max=1.0,
+                graph_size=(256, 32),
+            )
             if imgui.is_item_hovered() and imgui.is_mouse_dragging(2):
                 update = True
                 dx, dy = renderer.io.mouse_delta
@@ -849,7 +914,7 @@ class BlockRendering(SceneComponent):
                 y = (ma.y - mi.y) - (y - mi.y)
                 xb1 = floor(min(x + dx, x) * data.shape[0] / (ma.x - mi.x))
                 xb2 = ceil(max(x + dx, x) * data.shape[0] / (ma.x - mi.x))
-                yv1 = (y / (ma.y - mi.y))
+                yv1 = y / (ma.y - mi.y)
                 yv2 = (y + dy) / (ma.y - mi.y)
                 yv1, yv2 = (max(min(_, 1.0), 0.0) for _ in (yv1, yv2))
                 if dx < 0:
@@ -863,33 +928,31 @@ class BlockRendering(SceneComponent):
                     yv1 = yv2 = 1.0
                 elif renderer.io.key_ctrl:
                     yv1 = yv2 = 0.0
-                data[xb1:xb2,0,i] = np.mgrid[yv1:yv2:(xb2 - xb1)*1j]
+                data[xb1:xb2, 0, i] = np.mgrid[yv1 : yv2 : (xb2 - xb1) * 1j]
         if update:
             self.transfer_function.data = (data * 255).astype("u1")
 
     @traitlets.default("transfer_function")
     def _default_transfer_function(self):
-        tf = TransferFunctionTexture(data = np.ones((256, 1, 4), dtype='u1') * 255)
+        tf = TransferFunctionTexture(data=np.ones((256, 1, 4), dtype="u1") * 255)
         return tf
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
-        with self.transfer_function.bind(target = 2):
+        with self.transfer_function.bind(target=2):
             for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
-                with tex.bind(target = 0):
-                    with bitmap_tex.bind(target = 1):
-                        GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+                with tex.bind(target=0):
+                    with bitmap_tex.bind(target=1):
+                        GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind * each, each)
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
-        shader_program._set_uniform("projection",
-                cam.projection_matrix)
-        shader_program._set_uniform("modelview",
-                cam.view_matrix)
-        shader_program._set_uniform("viewport",
-                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
-        shader_program._set_uniform("camera_pos",
-                cam.position)
+        shader_program._set_uniform("projection", cam.projection_matrix)
+        shader_program._set_uniform("modelview", cam.view_matrix)
+        shader_program._set_uniform(
+            "viewport", np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype="f4")
+        )
+        shader_program._set_uniform("camera_pos", cam.position)
         shader_program._set_uniform("box_width", self.box_width)
         shader_program._set_uniform("ds_tex", 0)
         shader_program._set_uniform("bitmap_tex", 1)
@@ -898,6 +961,7 @@ class BlockRendering(SceneComponent):
         shader_program._set_uniform("tf_max", self.tf_max)
         shader_program._set_uniform("tf_log", float(self.tf_log))
 
+
 class BoxData(SceneData):
     name = "box_data"
     left_edge = YTPositionTrait([0.0, 0.0, 0.0])
@@ -905,28 +969,29 @@ class BoxData(SceneData):
 
     @traitlets.default("vertex_array")
     def _default_vertex_array(self):
-        va = VertexArray(name = "box_outline", each = 36)
+        va = VertexArray(name="box_outline", each=36)
         data = compute_box_geometry(self.left_edge, self.right_edge).copy()
-        va.attributes.append(VertexAttribute(
-            name = "model_vertex",
-            data = data.astype("f4")))
+        va.attributes.append(
+            VertexAttribute(name="model_vertex", data=data.astype("f4"))
+        )
         N = data.size // 4
         le = np.concatenate([[self.left_edge.copy()] for _ in range(N)])
         re = np.concatenate([[self.right_edge.copy()] for _ in range(N)])
         dds = self.right_edge - self.left_edge
         dds = np.concatenate([[dds.copy()] for _ in range(N)])
-        va.attributes.append(VertexAttribute(
-            name = "in_left_edge", data = le.astype('f4')))
-        va.attributes.append(VertexAttribute(
-            name = "in_right_edge", data = re.astype('f4')))
-        va.attributes.append(VertexAttribute(
-            name = "in_dx", data = dds.astype('f4')))
+        va.attributes.append(VertexAttribute(name="in_left_edge", data=le.astype("f4")))
+        va.attributes.append(
+            VertexAttribute(name="in_right_edge", data=re.astype("f4"))
+        )
+        va.attributes.append(VertexAttribute(name="in_dx", data=dds.astype("f4")))
         return va
 
+
 class BlockOutline(SceneAnnotation):
-    '''
+    """
     A class that renders outlines of block data.
-    '''
+    """
+
     name = "block_outline"
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
@@ -935,30 +1000,31 @@ class BlockOutline(SceneAnnotation):
     def draw(self, scene, program):
         each = self.data.vertex_array.each
         for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
-            GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind*each, each)
+            GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind * each, each)
 
     def render_gui(self, imgui, renderer):
         changed = super(BlockOutline, self).render_gui(imgui, renderer)
         _, bw = imgui.slider_float("Width", self.box_width, 0.001, 0.250)
-        if _: self.box_width = bw
+        if _:
+            self.box_width = bw
         changed = changed or _
         _, ba = imgui.slider_float("Alpha", self.box_alpha, 0.0, 1.0)
-        if _: self.box_alpha = ba
+        if _:
+            self.box_alpha = ba
         changed = changed or _
         return changed
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
-        shader_program._set_uniform("projection",
-                cam.projection_matrix)
-        shader_program._set_uniform("modelview",
-                cam.view_matrix)
-        shader_program._set_uniform("viewport",
-                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
-        shader_program._set_uniform("camera_pos",
-                cam.position)
+        shader_program._set_uniform("projection", cam.projection_matrix)
+        shader_program._set_uniform("modelview", cam.view_matrix)
+        shader_program._set_uniform(
+            "viewport", np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype="f4")
+        )
+        shader_program._set_uniform("camera_pos", cam.position)
         shader_program._set_uniform("box_width", self.box_width)
         shader_program._set_uniform("box_alpha", self.box_alpha)
+
 
 class BoxAnnotation(SceneAnnotation):
     name = "box_outline"
@@ -973,32 +1039,33 @@ class BoxAnnotation(SceneAnnotation):
     def render_gui(self, imgui, renderer):
         changed = super(BoxAnnotation, self).render_gui(imgui, renderer)
         _, bw = imgui.slider_float("Width", self.box_width, 0.001, 0.250)
-        if _: self.box_width = bw
+        if _:
+            self.box_width = bw
         changed = changed or _
         _, ba = imgui.slider_float("Alpha", self.box_alpha, 0.0, 1.0)
-        if _: self.box_alpha = ba
+        if _:
+            self.box_alpha = ba
         changed = changed or _
         return changed
 
     def _set_uniforms(self, scene, shader_program):
         cam = scene.camera
-        shader_program._set_uniform("projection",
-                cam.projection_matrix)
-        shader_program._set_uniform("modelview",
-                cam.view_matrix)
-        shader_program._set_uniform("viewport",
-                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
-        shader_program._set_uniform("camera_pos",
-                cam.position)
+        shader_program._set_uniform("projection", cam.projection_matrix)
+        shader_program._set_uniform("modelview", cam.view_matrix)
+        shader_program._set_uniform(
+            "viewport", np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype="f4")
+        )
+        shader_program._set_uniform("camera_pos", cam.position)
         shader_program._set_uniform("box_width", self.box_width)
         shader_program._set_uniform("box_alpha", self.box_alpha)
+
 
 class MeshData(SceneData):
     name = "mesh"
     data_source = traitlets.Instance(YTDataContainer)
-    texture_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
-    texture_objects = traitlets.Dict(trait = traitlets.Instance(Texture3D))
-    blocks = traitlets.Dict(default_value = ())
+    texture_objects = traitlets.Dict(trait=traitlets.Instance(Texture3D))
+    texture_objects = traitlets.Dict(trait=traitlets.Instance(Texture3D))
+    blocks = traitlets.Dict(default_value=())
     scale = traitlets.Bool(False)
     size = traitlets.CInt(-1)
 
@@ -1016,10 +1083,10 @@ class MeshData(SceneData):
         except ValueError:
             mesh_id = 0
 
-        mesh = data_source.ds.index.meshes[mesh_id-1]
+        mesh = data_source.ds.index.meshes[mesh_id - 1]
         offset = mesh._index_offset
         vertices = mesh.connectivity_coords
-        indices  = mesh.connectivity_indices - offset
+        indices = mesh.connectivity_indices - offset
 
         data = data_source[field]
 
@@ -1027,28 +1094,28 @@ class MeshData(SceneData):
 
     def add_data(self, field):
         v, d, i = self.get_mesh_data(self.data_source, field)
-        v.shape = (v.size//3, 3)
+        v.shape = (v.size // 3, 3)
         d.shape = (d.size, 1)
         i.shape = (i.size, 1)
         i = i.astype("uint32")
-        self.vertex_array.attributes.append(VertexAttribute(
-            name = "vertexPosition_modelspace", data = v))
-        self.vertex_array.attributes.append(VertexAttribute(
-            name = "vertexData", data = d))
+        self.vertex_array.attributes.append(
+            VertexAttribute(name="vertexPosition_modelspace", data=v)
+        )
+        self.vertex_array.attributes.append(VertexAttribute(name="vertexData", data=d))
         self.vertex_array.indices = i
         self.size = i.size
 
     @traitlets.default("vertex_array")
     def _default_vertex_array(self):
-        return VertexArray(name = "mesh_info", each = 0)
+        return VertexArray(name="mesh_info", each=0)
+
 
 class MeshRendering(SceneComponent):
     name = "mesh_rendering"
     data = traitlets.Instance(MeshData)
 
     def draw(self, scene, program):
-        GL.glDrawElements(GL.GL_TRIANGLES, self.data.size,
-                GL.GL_UNSIGNED_INT, None)
+        GL.glDrawElements(GL.GL_TRIANGLES, self.data.size, GL.GL_UNSIGNED_INT, None)
 
     def _set_uniforms(self, scene, shader_program):
         projection_matrix = scene.camera.projection_matrix
@@ -1056,45 +1123,46 @@ class MeshRendering(SceneComponent):
         model_to_clip = np.dot(projection_matrix, view_matrix)
         shader_program._set_uniform("model_to_clip", model_to_clip)
 
+
 class SceneGraph(traitlets.HasTraits):
-    components = traitlets.List(trait = traitlets.Instance(SceneComponent),
-            default_value = [])
-    annotations = traitlets.List(trait = traitlets.Instance(SceneAnnotation),
-            default_value = [])
-    data_objects = traitlets.List(trait = traitlets.Instance(SceneData),
-            default_value = [])
+    components = traitlets.List(
+        trait=traitlets.Instance(SceneComponent), default_value=[]
+    )
+    annotations = traitlets.List(
+        trait=traitlets.Instance(SceneAnnotation), default_value=[]
+    )
+    data_objects = traitlets.List(trait=traitlets.Instance(SceneData), default_value=[])
     camera = traitlets.Instance(IDVCamera)
     ds = traitlets.Instance(Dataset)
-    fb = traitlets.Instance(Framebuffer, allow_none = True)
+    fb = traitlets.Instance(Framebuffer, allow_none=True)
     input_captured_mouse = traitlets.Bool(False)
     input_captured_keyboard = traitlets.Bool(False)
 
-    def add_volume(self, data_source, field_name, no_ghost = False):
-        self.data_objects.append(BlockCollection(
-            data_source = data_source))
-        self.data_objects[-1].add_data(field_name, no_ghost = no_ghost)
-        self.components.append(BlockRendering(
-            data = self.data_objects[-1]))
-        return self.components[-1] # Only the rendering object
+    def add_volume(self, data_source, field_name, no_ghost=False):
+        self.data_objects.append(BlockCollection(data_source=data_source))
+        self.data_objects[-1].add_data(field_name, no_ghost=no_ghost)
+        self.components.append(BlockRendering(data=self.data_objects[-1]))
+        return self.components[-1]  # Only the rendering object
 
     def add_text(self, **kwargs):
         if "data" not in kwargs:
             if not any(_.name == "text_overlay" for _ in self.data_objects):
                 self.data_objects.append(TextCharacters())
                 self.data_objects[-1].build_textures()
-            kwargs['data'] = next((_ for _ in self.data_objects
-                                  if _.name == "text_overlay"))
+            kwargs["data"] = next(
+                (_ for _ in self.data_objects if _.name == "text_overlay")
+            )
         self.annotations.append(TextAnnotation(**kwargs))
         return self.annotations[-1]
 
     def add_box(self, left_edge, right_edge):
-        data = BoxData(left_edge = left_edge, right_edge = right_edge)
+        data = BoxData(left_edge=left_edge, right_edge=right_edge)
         self.data_objects.append(data)
-        self.annotations.append(BoxAnnotation(data = data))
+        self.annotations.append(BoxAnnotation(data=data))
 
     def __iter__(self):
         elements = self.components + self.annotations
-        for element in sorted(elements, key = lambda a: a.priority):
+        for element in sorted(elements, key=lambda a: a.priority):
             yield element
 
     def render(self):
@@ -1108,13 +1176,17 @@ class SceneGraph(traitlets.HasTraits):
             new_origin_y = origin_y + height * db[2]
             new_width = (db[1] - db[0]) * width
             new_height = (db[3] - db[2]) * height
-            GL.glViewport(int(new_origin_x),
-                          int(new_origin_y),
-                          int(new_width),
-                          int(new_height))
+            GL.glViewport(
+                int(new_origin_x), int(new_origin_y), int(new_width), int(new_height)
+            )
             if element.clear_region:
                 GL.glEnable(GL.GL_SCISSOR_TEST)
-                GL.glScissor(int(new_origin_x), int(new_origin_y), int(new_width), int(new_height))
+                GL.glScissor(
+                    int(new_origin_x),
+                    int(new_origin_y),
+                    int(new_width),
+                    int(new_height),
+                )
                 GL.glClear(GL.GL_COLOR_BUFFER_BIT | GL.GL_DEPTH_BUFFER_BIT)
                 GL.glDisable(GL.GL_SCISSOR_TEST)
             element.run_program(self)
@@ -1123,7 +1195,7 @@ class SceneGraph(traitlets.HasTraits):
     @contextlib.contextmanager
     def bind_buffer(self):
         if self.fb is not None:
-            with self.fb.bind(clear = False):
+            with self.fb.bind(clear=False):
                 yield
         else:
             yield
@@ -1131,30 +1203,29 @@ class SceneGraph(traitlets.HasTraits):
     @property
     def image(self):
         if self.fb is not None:
-            arr = self.fb.data[::-1,:,:]
+            arr = self.fb.data[::-1, :, :]
             arr.swapaxes(0, 1)
             return arr
         _, _, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
-        arr = GL.glReadPixels(0, 0, width, height, GL.GL_RGBA,
-                GL.GL_FLOAT)[::-1,:,:]
+        arr = GL.glReadPixels(0, 0, width, height, GL.GL_RGBA, GL.GL_FLOAT)[::-1, :, :]
         arr.swapaxes(0, 1)
         return arr
 
     @property
     def depth(self):
         if self.fb is not None:
-            arr = self.fb.depth_data[::-1,:]
+            arr = self.fb.depth_data[::-1, :]
             arr.swapaxes(0, 1)
             return arr
         _, _, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
-        arr = GL.glReadPixels(0, 0, width, height, GL.GL_DEPTH_COMPONENT,
-                GL.GL_FLOAT)[::-1,:]
+        arr = GL.glReadPixels(0, 0, width, height, GL.GL_DEPTH_COMPONENT, GL.GL_FLOAT)[
+            ::-1, :
+        ]
         arr.swapaxes(0, 1)
         return arr
 
-
     @staticmethod
-    def from_ds(ds, field, no_ghost = True):
+    def from_ds(ds, field, no_ghost=True):
         # Here we make a bunch of guesses.  Nothing too complex -- only two
         # arguments: dataset and field.  If you supply a rendering context,
         # great.  If not, we'll make one.
@@ -1166,8 +1237,8 @@ class SceneGraph(traitlets.HasTraits):
         pos = center + 1.5 * ds.domain_width
         near_plane = 3.0 * ds.index.get_smallest_dx().min().d
 
-        c = TrackballCamera(position=pos, focus = center, near_plane = near_plane)
+        c = TrackballCamera(position=pos, focus=center, near_plane=near_plane)
 
-        scene = SceneGraph(camera = c)
-        scene.add_volume(data_source, field, no_ghost = no_ghost)
+        scene = SceneGraph(camera=c)
+        scene.add_volume(data_source, field, no_ghost=no_ghost)
         return scene

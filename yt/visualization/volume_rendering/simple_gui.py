@@ -12,6 +12,7 @@ import contextlib
 from ..image_writer import write_bitmap
 from .opengl_support import Texture2D
 
+
 class SimpleGUI:
 
     renderer = None
@@ -28,13 +29,13 @@ class SimpleGUI:
         self.snapshot_format = r"snap_{count:04d}.png"
         data = plt.get_cmap("viridis")(np.mgrid[0.0:1.0:256j]).reshape((-1, 1, 4))
         self.data = dict(
-            r = data[:,0,0].astype("f4"),
-            g = data[:,0,1].astype("f4"),
-            b = data[:,0,2].astype("f4"),
-            a = data[:,0,3].astype("f4"),
+            r=data[:, 0, 0].astype("f4"),
+            g=data[:, 0, 1].astype("f4"),
+            b=data[:, 0, 2].astype("f4"),
+            a=data[:, 0, 3].astype("f4"),
         )
-        data = (data[:,:,:4] * 255).astype("u1")
-        self.colormap = Texture2D(data = data, boundary_x = "clamp", boundary_y = "clamp")
+        data = (data[:, :, :4] * 255).astype("u1")
+        self.colormap = Texture2D(data=data, boundary_x="clamp", boundary_y="clamp")
 
     def render(self, scene):
         imgui.new_frame()
@@ -48,11 +49,14 @@ class SimpleGUI:
                 # Call render again, since we're in the middle of overlaying
                 # some stuff and we want a clean scene snapshot
                 scene.render()
-                write_bitmap(scene.image[:,:,:3], self.snapshot_format.format(count = self.snapshot_count))
+                write_bitmap(
+                    scene.image[:, :, :3],
+                    self.snapshot_format.format(count=self.snapshot_count),
+                )
                 self.snapshot_count += 1
             _ = self.render_camera(scene)
             changed = changed or _
-            #imgui.show_style_editor()
+            # imgui.show_style_editor()
             for i, element in enumerate(scene):
                 if imgui.tree_node("element {}: {}".format(i + 1, element.name)):
                     changed = changed or element.render_gui(imgui, self.renderer)
@@ -63,16 +67,23 @@ class SimpleGUI:
         self.renderer.render(imgui.get_draw_data())
 
     def render_camera(self, scene):
-        if not imgui.tree_node("Camera"): return
+        if not imgui.tree_node("Camera"):
+            return
         changed = False
         with scene.camera.hold_trait_notifications():
             for attr in ("position", "up", "focus"):
                 arr = getattr(scene.camera, attr)
                 imgui.text(f"Camera {attr}")
-                _, values = imgui.input_float3("", arr[0], arr[1], arr[2],
-                                               flags = imgui.INPUT_TEXT_ENTER_RETURNS_TRUE)
+                _, values = imgui.input_float3(
+                    "",
+                    arr[0],
+                    arr[1],
+                    arr[2],
+                    flags=imgui.INPUT_TEXT_ENTER_RETURNS_TRUE,
+                )
                 changed = changed or _
-                if _: setattr(scene.camera, attr, np.array(values))
+                if _:
+                    setattr(scene.camera, attr, np.array(values))
         if changed:
             scene.camera._update_matrices()
         imgui.tree_pop()

@@ -1,11 +1,8 @@
 # This is a part of the experimental Interactive Data Visualization
 import random
 from collections import defaultdict, namedtuple
-from yt.utilities.math_utils import \
-    get_perspective_matrix, \
-    get_orthographic_matrix
-from yt.visualization.image_writer import \
-    write_bitmap
+from yt.utilities.math_utils import get_perspective_matrix, get_orthographic_matrix
+from yt.visualization.image_writer import write_bitmap
 import OpenGL.GL as GL
 import cyglfw3 as glfw
 import numpy as np
@@ -14,8 +11,7 @@ import random
 import time
 import os
 
-from .opengl_support import \
-    ColormapTexture
+from .opengl_support import ColormapTexture
 
 event_registry = {}
 
@@ -50,7 +46,8 @@ class EventCollection:
         self.current_colormap = 0
 
     def key_call(self, window, key, scancode, action, mods):
-        if self.scene.input_captured_keyboard: return
+        if self.scene.input_captured_keyboard:
+            return
         draw = False
         event = GLFWEvent(window, key, scancode, action, mods, None, None)
         for f in self.key_callbacks[key, action, mods]:
@@ -58,7 +55,8 @@ class EventCollection:
         self.draw = self.draw or draw
 
     def mouse_call(self, window, key, action, mods):
-        if self.scene.input_captured_mouse: return
+        if self.scene.input_captured_mouse:
+            return
         event = GLFWEvent(window, key, None, action, mods, None, None)
         draw = False
         for f in self.mouse_callbacks[key, action, mods]:
@@ -120,6 +118,7 @@ class EventCollection:
     def current_annotation(self):
         return self.scene.annotations[self.active_annotation]
 
+
 def register_event(name):
     def _f(func):
         event_registry[name] = func
@@ -127,10 +126,12 @@ def register_event(name):
 
     return _f
 
+
 def filter_comp(scene, comp_types):
     if not isinstance(comp_types, (list, tuple)):
         comp_types = (comp_types,)
     return (_ for _ in scene.components if _.name in comp_types)
+
 
 @register_event("cmap_autoscale")
 def cmap_autoscale(event_coll, event):
@@ -141,21 +142,24 @@ def cmap_autoscale(event_coll, event):
             comp.cmap_max = None
     return True
 
+
 @register_event("prev_component")
 def prev_component(event_coll, event):
-    ac = event_coll.active_component 
+    ac = event_coll.active_component
     nc = len(event_coll.scene.components)
     ac = (ac - 1) % nc
     event_coll.active_component = ac
     print("Activated ", event_coll.scene.components[ac])
 
+
 @register_event("next_component")
 def next_component(event_coll, event):
-    ac = event_coll.active_component 
+    ac = event_coll.active_component
     nc = len(event_coll.scene.components)
     ac = (ac + 1) % nc
     event_coll.active_component = ac
     print("Activated ", event_coll.scene.components[ac])
+
 
 @register_event("framebuffer_size")
 def framebuffer_size_callback(event_coll, event):
@@ -215,6 +219,7 @@ def camera_proj(event_coll, event):
     camera.fov = np.degrees(np.arctan(camera.fov) * 2.0)
     return True
 
+
 @register_event("shader_max")
 def shader_max(event_coll, event):
     """Use maximum intensity shader"""
@@ -268,10 +273,9 @@ def shader_lines(event_coll, event):
 @register_event("cmap_cycle")
 def cmap_cycle(event_coll, event):
     """Change colormap"""
-    cmap = ['arbre', 'algae', 'kamae', 'viridis', 'inferno', 'magma']
+    cmap = ["arbre", "algae", "kamae", "viridis", "inferno", "magma"]
     cmi = event_coll.current_colormap % len(cmap)
-    event_coll.current_component.colormap = ColormapTexture(
-            colormap_name = cmap[cmi])
+    event_coll.current_component.colormap = ColormapTexture(colormap_name=cmap[cmi])
     print("Setting colormap to {}".format(cmap[cmi]))
     event_coll.current_colormap += 1
     return True
@@ -359,6 +363,7 @@ def debug_buffer(event_coll, event):
     buffer = event_coll.scene._retrieve_framebuffer()
     print(buffer.min(), buffer.max())
 
+
 @register_event("screenshot")
 def screenshot(event_coll, event):
     """Save a copy of the displayed image"""
@@ -370,6 +375,7 @@ def screenshot(event_coll, event):
     fn = base % n
     print("Writing %s" % fn)
     write_bitmap(buffer, fn)
+
 
 @register_event("print_help")
 def print_help(event_coll, event):
@@ -444,8 +450,10 @@ class MouseRotation:
         self.start = new_end
         return True
 
+
 class JoystickAction(object):
-    '''Class to turn joystick pushes into rotations and motions'''
+    """Class to turn joystick pushes into rotations and motions"""
+
     def __init__(self):
         self.calibrated = None
         self.scaling = 0.1
@@ -453,10 +461,12 @@ class JoystickAction(object):
     def check_axes(self, event_coll, event):
         if not glfw.JoystickPresent(glfw.JOYSTICK_1):
             return
-        if self.calibrated is None: self.calibrate()
+        if self.calibrated is None:
+            self.calibrate()
         axes = glfw.GetJoystickAxes(glfw.JOYSTICK_1)
         tilt = self.calibrated - axes
-        if not tilt.any(): return False
+        if not tilt.any():
+            return False
         # Let's move around!
         cam = event_coll.camera
         # We go by the first two axes being the fwd/back and left/right,
@@ -466,27 +476,25 @@ class JoystickAction(object):
         net_zax = tilt[5] - tilt[2]
         lookat = cam.view_matrix
         delta = self.scaling * (
-                  - tilt[0] * lookat[0,:3]
-                  - net_zax * lookat[1,:3] 
-                  - tilt[1] * lookat[2,:3])
+            -tilt[0] * lookat[0, :3] - net_zax * lookat[1, :3] - tilt[1] * lookat[2, :3]
+        )
         cam.position += delta
         cam.focus += delta
 
         # Now we rotate based on tilt[3] and tilt[4]
-        cam.update_orientation(0.0, 0.0, self.scaling * tilt[3],
-                               self.scaling * tilt[4])
+        cam.update_orientation(0.0, 0.0, self.scaling * tilt[3], self.scaling * tilt[4])
         return True
-    
+
     def calibrate(self):
-        print("Calibrating joystick in 2 seconds.  Please return to a"
-              "resting state.")
+        print("Calibrating joystick in 2 seconds.  Please return to a" "resting state.")
         time.sleep(2)
         self.calibrated = np.array(glfw.GetJoystickAxes(glfw.JOYSTICK_1), "f8")
         print("Calibrated:")
         print(self.calibrated)
 
+
 class BlendFuncs(object):
-    '''Class allowing to switch between different GL blending functions'''
+    """Class allowing to switch between different GL blending functions"""
 
     possibilities = (
         "GL_ZERO",
