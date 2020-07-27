@@ -80,7 +80,6 @@ def new_volume_render_sampler(camera, render_source):
         )
     else:
         kwargs["zbuffer"] = np.ones(params["image"].shape[:2], "float64")
-
     sampler = VolumeRenderSampler(*args, **kwargs)
     return sampler
 

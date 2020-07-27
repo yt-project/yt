@@ -671,7 +671,11 @@ class Camera(ParallelAnalysisInterface):
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "plane-parallel"}
+        kwargs = {
+            "lens_type": "plane-parallel",
+            "volume_method": "KDTree",
+        }
+        return args, kwargs
 
     def get_sampler(self, args, kwargs):
         if self.use_light:
@@ -1362,7 +1366,11 @@ class PerspectiveCamera(Camera):
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "perspective"}
+        kwargs = {
+            "lens_type": "perspective",
+            "volume_method": "KDTree",
+        }
+        return args, kwargs
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
@@ -1562,7 +1570,8 @@ class HEALpixCamera(Camera):
         if self._needs_tf:
             args += (self.transfer_function,)
         args += (self.sub_samples,)
-        return args, {}
+
+        return args, {"volume_method": "KDTree"}
 
     def _render(self, double_check, num_threads, image, sampler):
         pbar = get_pbar(
@@ -1781,7 +1790,7 @@ class FisheyeCamera(Camera):
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {}
+        return args, {"volume_method": "KDTree"}
 
     def finalize_image(self, image):
         image.shape = self.resolution, self.resolution, 4
@@ -2176,7 +2185,8 @@ class ProjectionCamera(Camera):
             np.array(self.width, dtype="float64"),
             self.sub_samples,
         )
-        return args, {"lens_type": "plane-parallel"}
+        kwargs = {"lens_type": "plane-parallel", "volume_method": "KDTree"}
+        return args, kwargs
 
     def finalize_image(self, image):
         ds = self.ds
@@ -2419,7 +2429,11 @@ class StereoSphericalCamera(Camera):
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "stereo-spherical"}
+        kwargs = {
+            "lens_type": "stereo-spherical",
+            "volume_method": "KDTree",
+        }
+        return args, kwargs
 
     def snapshot(
         self,
