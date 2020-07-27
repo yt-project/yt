@@ -149,11 +149,6 @@ class RenderingContext(pyglet.window.Window):
             #self.set_position(*position)
             self.set_location(*position)
 
-        self.label = pyglet.text.Label('Hello, yt',
-                                  font_name=("Verdana", "Helvetica", "Arial"),
-                                  font_size=36,
-                                  x=self.width, y=self.height,
-                                  anchor_x='right', anchor_y='top')
         if gui:
             gui = SimpleGUI(self)
         self.gui = gui
@@ -170,7 +165,6 @@ class RenderingContext(pyglet.window.Window):
                 if self.image_widget is not None:
                     self.image_widget.value = write_bitmap(
                             self.scene.image[:,:,:3], None)
-            self.label.draw()
         if self.gui:
             self.switch_to()
             self.gui.render(self.scene)

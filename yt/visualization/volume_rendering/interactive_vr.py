@@ -859,17 +859,13 @@ class BlockRendering(SceneComponent):
                     xb2 += 1
                 xb1 = max(0, xb1)
                 xb2 = min(255, xb2)
+                if renderer.io.key_shift:
+                    yv1 = yv2 = 1.0
+                elif renderer.io.key_ctrl:
+                    yv1 = yv2 = 0.0
                 data[xb1:xb2,0,i] = np.mgrid[yv1:yv2:(xb2 - xb1)*1j]
         if update:
-            print("Updating")
             self.transfer_function.data = (data * 255).astype("u1")
-        #imgui.tree_pop()
-
-    def do_dragging(self, c):
-        # We have to do some stuff to keep the y coordinates pointed in the right direction
-
-
-        return changed
 
     @traitlets.default("transfer_function")
     def _default_transfer_function(self):
