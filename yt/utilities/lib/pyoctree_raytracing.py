@@ -99,6 +99,5 @@ class OctreeRayTracing(object):
             The t value at entry and exit for each cell.
         """
         if not self._cell_index:
-            # TODO: cache indices of cells
             self._cell_index, self._tvalues = self.octree.cast_rays(vp_pos, vp_dir)
         return self._cell_index, self._tvalues
