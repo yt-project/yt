@@ -188,7 +188,7 @@ To build our extension, we would run:
 
 .. code-block:: bash
 
-   $ python2.7 axes_calculator_setup.py build_ext -i
+   $ python axes_calculator_setup.py build_ext -i
 
 Note that since we don't yet have an ``axes_calculator.pyx``, this will fail.
 But once we have it, it ought to run.
@@ -395,7 +395,7 @@ import, and then save things out into a file.
 .. code-block:: python
 
    import h5py
-   f = h5py.File("some_file.h5")
+   f = h5py.File("some_file.h5", mode="w")
    f.create_dataset("/data", data=some_data)
 
 This will create ``some_file.h5`` if necessary and add a new dataset

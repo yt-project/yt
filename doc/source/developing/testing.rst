@@ -389,7 +389,7 @@ Here is an example test function:
 
        def create_image(filename_prefix):
            plt.plot([1, 2], [1, 2])
-           plt.savefig(filename_prefix)
+           plt.savefig("%s_lineplot" % filename_prefix)
        test = GenericImageTest(ds, create_image, 12)
 
        # this ensures the test has a unique key in the
@@ -400,6 +400,9 @@ Here is an example test function:
        test_my_ds.__name__ = test.description
 
        yield test
+
+.. note:: The inner function ``create_image`` can create any number of images,
+   as long as the corresponding filenames conform to the prefix.
 
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in
@@ -493,19 +496,3 @@ In order to add a new set of answer tests, it is sufficient to extend the
    +
     other_tests:
       unittests:
-
-Restricting Python Versions for Answer Tests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If for some reason a test can be run only for a specific version of python it is
-possible to indicate this by adding a ``[py2]`` or ``[py3]`` tag. For example:
-
-.. code-block:: yaml
-
-   answer_tests:
-      local_test_000:
-         - yt/test_A.py  # [py2]
-         - yt/test_B.py  # [py3]
-
-would result in ``test_A.py`` being run only for *python2* and ``test_B.py``
-being run only for *python3*.

@@ -391,19 +391,27 @@ for the grid cell to be incorporated.
     | A cylinder defined by a point at the center of one of the circular bases,
       a normal vector to it defining the orientation of the length of the
       cylinder, and radius and height values for the cylinder's dimensions.
+      Note: ``height`` is the distance from midplane to the top or bottom of the
+      cylinder, i.e., ``height`` is half that of the cylinder object that is
+      created.
 
 **Ellipsoid**
     | Class :class:`~yt.data_objects.selection_data_containers.YTEllipsoid`
     | Usage: ``ellipsoid(center, semi_major_axis_length, semi_medium_axis_length, semi_minor_axis_length, semi_major_vector, tilt, fields=None, ds=None, field_parameters=None, data_source=None)``
-    | An ellipsoid with axis magnitudes set by semi_major_axis_length,
-     semi_medium_axis_length, and semi_minor_axis_length.  semi_major_vector
-     sets the direction of the semi_major_axis.  tilt defines the orientation
+    | An ellipsoid with axis magnitudes set by ``semi_major_axis_length``,
+     ``semi_medium_axis_length``, and ``semi_minor_axis_length``.  ``semi_major_vector``
+     sets the direction of the ``semi_major_axis``.  ``tilt`` defines the orientation
      of the semi-medium and semi_minor axes.
 
 **Sphere**
     | Class :class:`~yt.data_objects.selection_data_containers.YTSphere`
     | Usage: ``sphere(center, radius, ds=None, field_parameters=None, data_source=None)``
     | A sphere defined by a central coordinate and a radius.
+
+**Minimal Bounding Sphere**
+    | Class :class:`~yt.data_objects.selection_data_containers.YTMinimalSphere`
+    | Usage: ``minimal_sphere(points, ds=None, field_parameters=None, data_source=None)``
+    | A sphere that contains all the points passed as argument.
 
 .. _collection-objects:
 

@@ -1,3 +1,6 @@
+# distutils: sources = FIXED_INTERP
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Image sampler definitions
 
@@ -5,19 +8,15 @@ Image sampler definitions
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.stdlib cimport malloc, calloc, free, abs
+cimport numpy as np
+from libc.stdlib cimport abs, calloc, free, malloc
+
 from .fixed_interpolator cimport offset_interpolate
+
 
 cdef class PartitionedGrid:
 

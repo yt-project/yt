@@ -1,3 +1,4 @@
+# distutils: libraries = STD_LIBS
 """
 
 This file contains definitions of the various primitives that can be used
@@ -12,12 +13,15 @@ need to provide three functions:
 """
 
 cimport cython
+
 import numpy as np
-cimport numpy as np
+
 cimport cython.floating
+cimport numpy as np
 from libc.math cimport fabs
 
-from yt.utilities.lib.vec3_ops cimport dot, subtract, cross, distance, L2_norm
+from yt.utilities.lib.vec3_ops cimport L2_norm, cross, distance, dot, subtract
+
 
 cdef np.float64_t DETERMINANT_EPS = 1.0e-10
 cdef np.float64_t INF = np.inf

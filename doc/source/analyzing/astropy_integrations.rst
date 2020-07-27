@@ -46,10 +46,10 @@ can then be exported to an
 `AstroPy Table <http://docs.astropy.org/en/stable/table/>`_ object, 
 specifically a 
 `QTable <http://docs.astropy.org/en/stable/table/mixin_columns.html#quantity-and-qtable>`_.
-``QTable``s are unit-aware, and can be manipulated in a number of ways
+``QTable`` is unit-aware, and can be manipulated in a number of ways
 and written to disk in several formats, including ASCII text or FITS 
 files. For more details, see :ref:`fields-astropy-export`. 
 
 Similarly, 1D profile objects can also be exported to AstroPy 
-``QTable``s, optionally writing all of the profile bins or only the ones
+``QTable``, optionally writing all of the profile bins or only the ones
 which are used. For more details, see :ref:`profile-astropy-export`.

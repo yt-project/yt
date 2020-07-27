@@ -1,36 +1,30 @@
-"""
-Writing yt data to a GDF file.
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
 import sys
-from yt.utilities.on_demand_imports import _h5py as h5py
-import numpy as np
 from contextlib import contextmanager
 
+import numpy as np
+
 from yt import __version__ as yt_version
-from yt.utilities.exceptions import YTGDFAlreadyExists
 from yt.funcs import ensure_list, issue_deprecation_warning
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, \
-    communication_system
+from yt.utilities.exceptions import YTGDFAlreadyExists
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    communication_system,
+    parallel_objects,
+)
 
 
-def write_to_gdf(ds, gdf_path, fields=None, 
-                 data_author=None, data_comment=None,
-                 dataset_units=None, particle_type_name="dark_matter",
-                 overwrite=False, **kwargs):
+def write_to_gdf(
+    ds,
+    gdf_path,
+    fields=None,
+    data_author=None,
+    data_comment=None,
+    dataset_units=None,
+    particle_type_name="dark_matter",
+    overwrite=False,
+    **kwargs,
+):
     """
     Write a dataset to the given path in the Grid Data Format.
 
@@ -74,22 +68,28 @@ def write_to_gdf(ds, gdf_path, fields=None,
     ...              data_comment="My Really Cool Dataset", overwrite=True)
     """
     if "clobber" in kwargs:
-        issue_deprecation_warning("The \"clobber\" keyword argument "
-                                  "is deprecated. Use the \"overwrite\" "
-                                  "argument, which has the same effect, "
-                                  "instead.")
+        issue_deprecation_warning(
+            'The "clobber" keyword argument '
+            'is deprecated. Use the "overwrite" '
+            "argument, which has the same effect, "
+            "instead."
+        )
         overwrite = kwargs.pop("clobber")
 
     if fields is None:
         fields = ds.field_list
 
     fields = ensure_list(fields)
-    
-    with _create_new_gdf(ds, gdf_path, data_author, 
-                         data_comment,
-                         dataset_units=dataset_units,
-                         particle_type_name=particle_type_name, 
-                         overwrite=overwrite) as f:
+
+    with _create_new_gdf(
+        ds,
+        gdf_path,
+        data_author,
+        data_comment,
+        dataset_units=dataset_units,
+        particle_type_name=particle_type_name,
+        overwrite=overwrite,
+    ) as f:
 
         # now add the fields one-by-one
         _write_fields_to_gdf(ds, f, fields, particle_type_name)
@@ -115,19 +115,24 @@ def save_field(ds, fields, field_parameters=None):
         if isinstance(field_name, tuple):
             field_name = field_name[1]
         field_obj = ds._get_field_info(field_name)
-        if field_obj.particle_type:
+        if field_obj.sampling_type == "particle":
             print("Saving particle fields currently not supported.")
             return
 
     with _get_backup_file(ds) as f:
         # now save the field
-        _write_fields_to_gdf(ds, f, fields, 
-                             particle_type_name="dark_matter",
-                             field_parameters=field_parameters)
+        _write_fields_to_gdf(
+            ds,
+            f,
+            fields,
+            particle_type_name="dark_matter",
+            field_parameters=field_parameters,
+        )
 
 
-def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
-                        field_parameters=None):
+def _write_fields_to_gdf(
+    ds, fhandle, fields, particle_type_name, field_parameters=None
+):
 
     for field_name in fields:
         # add field info to field_types group
@@ -158,7 +163,6 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
         # @todo: is this always true?
         sg.attrs["staggering"] = 0
 
-
     # first we must create the datasets on all processes.
     g = fhandle["data"]
     for grid in ds.index.grids:
@@ -173,12 +177,14 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
             particles_group = grid_group["particles"]
             pt_group = particles_group[particle_type_name]
 
-            if fi.particle_type:  # particle data
-                pt_group.create_dataset(field_name, grid.ActiveDimensions,
-                                        dtype="float64")
+            if fi.sampling_type == "particle":  # particle data
+                pt_group.create_dataset(
+                    field_name, grid.ActiveDimensions, dtype="float64"
+                )
             else:  # a field
-                grid_group.create_dataset(field_name, grid.ActiveDimensions,
-                                          dtype="float64")
+                grid_group.create_dataset(
+                    field_name, grid.ActiveDimensions, dtype="float64"
+                )
 
     # now add the actual data, grid by grid
     g = fhandle["data"]
@@ -206,14 +212,14 @@ def _write_fields_to_gdf(ds, fhandle, fields, particle_type_name,
                     # add the field data to the grid group
                     # Check if this is a real field or particle data.
                     grid.get_data(field_name)
-                    units = fhandle[
-                        "field_types"][field_name].attrs["field_units"]
-                    if fi.particle_type:  # particle data
+                    units = fhandle["field_types"][field_name].attrs["field_units"]
+                    if fi.sampling_type == "particle":  # particle data
                         dset = pt_group[field_name]
                         dset[:] = grid[field_name].in_units(units)
                     else:  # a field
                         dset = grid_group[field_name]
                         dset[:] = grid[field_name].in_units(units)
+
 
 @contextmanager
 def _get_backup_file(ds):
@@ -221,34 +227,46 @@ def _get_backup_file(ds):
     if os.path.exists(backup_filename):
         # backup file already exists, open it. We use parallel
         # h5py if it is available
-        if communication_system.communicators[-1].size > 1 and \
-                h5py.get_config().mpi is True:
+        if communication_system.communicators[-1].size > 1 and h5py.get_config().mpi:
             mpi4py_communicator = communication_system.communicators[-1].comm
-            f = h5py.File(backup_filename, "r+", driver='mpio', 
-                          comm=mpi4py_communicator)
+            f = h5py.File(
+                backup_filename, mode="r+", driver="mpio", comm=mpi4py_communicator
+            )
         else:
-            f = h5py.File(backup_filename, "r+")
+            f = h5py.File(backup_filename, mode="r+")
         yield f
         f.close()
     else:
         # backup file does not exist, create it
-        with _create_new_gdf(ds, backup_filename, 
-                             data_author=None,
-                             data_comment=None,
-                             particle_type_name="dark_matter") as f:
+        with _create_new_gdf(
+            ds,
+            backup_filename,
+            data_author=None,
+            data_comment=None,
+            particle_type_name="dark_matter",
+        ) as f:
             yield f
 
 
 @contextmanager
-def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
-                    dataset_units=None, particle_type_name="dark_matter",
-                    overwrite=False, **kwargs):
+def _create_new_gdf(
+    ds,
+    gdf_path,
+    data_author=None,
+    data_comment=None,
+    dataset_units=None,
+    particle_type_name="dark_matter",
+    overwrite=False,
+    **kwargs,
+):
 
     if "clobber" in kwargs:
-        issue_deprecation_warning("The \"clobber\" keyword argument "
-                                  "is deprecated. Use the \"overwrite\" "
-                                  "argument, which has the same effect, "
-                                  "instead.")
+        issue_deprecation_warning(
+            'The "clobber" keyword argument '
+            'is deprecated. Use the "overwrite" '
+            "argument, which has the same effect, "
+            "instead."
+        )
         overwrite = kwargs.pop("clobber")
 
     # Make sure we have the absolute path to the file first
@@ -263,13 +281,11 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
     # Create and open the file with h5py. We use parallel
     # h5py if it is available.
     ###
-    if communication_system.communicators[-1].size > 1 and \
-            h5py.get_config().mpi is True:
+    if communication_system.communicators[-1].size > 1 and h5py.get_config().mpi:
         mpi4py_communicator = communication_system.communicators[-1].comm
-        f = h5py.File(gdf_path, "w", driver='mpio', 
-                      comm=mpi4py_communicator)
+        f = h5py.File(gdf_path, mode="w", driver="mpio", comm=mpi4py_communicator)
     else:
-        f = h5py.File(gdf_path, "w")
+        f = h5py.File(gdf_path, mode="w")
 
     ###
     # "gridded_data_format" group
@@ -299,7 +315,7 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
     # @todo: Where is this in the yt API?
     g.attrs["field_ordering"] = 0
     # @todo: not yet supported by yt.
-    g.attrs["boundary_conditions"] = np.array([0, 0, 0, 0, 0, 0], 'int32')
+    g.attrs["boundary_conditions"] = np.array([0, 0, 0, 0, 0, 0], "int32")
 
     if ds.cosmological_simulation:
         g.attrs["current_redshift"] = ds.current_redshift
@@ -311,8 +327,8 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
         dataset_units = {}
 
     g = f.create_group("dataset_units")
-    for u in ["length","time","mass","velocity","magnetic"]:
-        unit_name = u+"_unit"
+    for u in ["length", "time", "mass", "velocity", "magnetic"]:
+        unit_name = u + "_unit"
         if unit_name in dataset_units:
             value, units = dataset_units[unit_name]
         else:
@@ -361,6 +377,6 @@ def _create_new_gdf(ds, gdf_path, data_author=None, data_comment=None,
         particles_group.create_group(particle_type_name)
 
     yield f
-    
+
     # close the file when done
     f.close()

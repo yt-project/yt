@@ -1,45 +1,32 @@
-"""
-Test for write_bitmap and add_rgba_points
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import os
 import os.path
-import tempfile
 import shutil
+import tempfile
+
 import numpy as np
+
 import yt
-from yt.testing import \
-    assert_equal
+from yt.testing import assert_equal
 from yt.utilities.lib.api import add_rgba_points_to_image
 
 
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
 
 
 def test_splat():
-    """Tests functionality of off_axis_projection and write_projection."""
     # Perform I/O in safe place instead of yt main dir
     tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
     os.chdir(tmpdir)
 
-    prng = np.random.RandomState(0x4d3d3d3)
-    N = 16 
+    prng = np.random.RandomState(0x4D3D3D3)
+    N = 16
     Np = int(1e2)
-    image = np.zeros([N,N,4])
+    image = np.zeros([N, N, 4])
     xs = prng.random_sample(Np)
     ys = prng.random_sample(Np)
 
@@ -48,7 +35,7 @@ def test_splat():
     add_rgba_points_to_image(image, xs, ys, cs)
 
     before_hash = image.copy()
-    fn = 'tmp.png'
+    fn = "tmp.png"
     yt.write_bitmap(image, fn)
     assert_equal(os.path.exists(fn), True)
     os.remove(fn)

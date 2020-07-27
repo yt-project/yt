@@ -1,35 +1,28 @@
-"""
-GadgetFOF frontend tests using gadget_fof datasets
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
-from yt.frontends.gadget_fof.api import \
-    GadgetFOFDataset
-from yt.testing import \
-    requires_file, \
-    assert_equal, \
-    assert_array_equal
-from yt.utilities.answer_testing.framework import \
-    FieldValuesTest, \
-    requires_ds, \
-    data_dir_load
+from yt.frontends.gadget_fof.api import GadgetFOFDataset
+from yt.testing import (
+    ParticleSelectionComparison,
+    assert_array_equal,
+    assert_equal,
+    requires_file,
+)
+from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    data_dir_load,
+    requires_ds,
+)
 
-_fields = ("particle_position_x", "particle_position_y",
-           "particle_position_z", "particle_velocity_x",
-           "particle_velocity_y", "particle_velocity_z",
-           "particle_mass", "particle_identifier")
+_fields = (
+    "particle_position_x",
+    "particle_position_y",
+    "particle_position_z",
+    "particle_velocity_x",
+    "particle_velocity_y",
+    "particle_velocity_z",
+    "particle_mass",
+    "particle_identifier",
+)
 
 # a dataset with empty files
 g5 = "gadget_fof_halos/groups_005/fof_subhalo_tab_005.0.hdf5"
@@ -47,12 +40,22 @@ def test_fields_g42():
     for field in _fields:
         yield FieldValuesTest(g42, field, particle_type=True)
 
+
 @requires_file(g42)
 def test_GadgetFOFDataset():
     assert isinstance(data_dir_load(g42), GadgetFOFDataset)
 
+
 # fof/subhalo catalog with member particles
 g298 = "gadget_halos/data/groups_298/fof_subhalo_tab_298.0.hdf5"
+
+
+@requires_file(g298)
+def test_particle_selection():
+    ds = data_dir_load(g298)
+    psc = ParticleSelectionComparison(ds)
+    psc.run_defaults()
+
 
 @requires_file(g298)
 def test_subhalos():
@@ -71,6 +74,7 @@ def test_subhalos():
     # their parent group.
     assert_equal(total_sub, total_int)
 
+
 @requires_file(g298)
 def test_halo_masses():
     ds = data_dir_load(g298)
@@ -87,6 +91,7 @@ def test_halo_masses():
         # scalar fields for halos correctly.
         assert_array_equal(ad[ptype, "particle_mass"], mass)
 
+
 # fof/subhalo catalog with no member ids in first file
 g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
 
@@ -96,8 +101,10 @@ g56 = "gadget_halos/data/groups_056/fof_subhalo_tab_056.0.hdf5"
 def test_unbalanced_dataset():
     ds = data_dir_load(g56)
     halo = ds.halo("Group", 0)
-    halo["member_ids"]
-    assert True
+    assert_equal(len(halo["member_ids"]), 33)
+    assert_equal(halo["member_ids"].min().d, 723254.0)
+    assert_equal(halo["member_ids"].max().d, 772662.0)
+
 
 # fof/subhalo catalog with no member ids in first file
 g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"

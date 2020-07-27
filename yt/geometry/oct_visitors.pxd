@@ -6,13 +6,6 @@ Oct visitor definitions file
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
 
@@ -23,6 +16,12 @@ cdef struct Oct:
     np.int64_t domain_ind   # index within the global set of domains
     np.int64_t domain       # (opt) addl int index
     Oct **children          # Up to 8 long
+
+cdef struct OctInfo:
+    np.float64_t left_edge[3]
+    np.float64_t dds[3]
+    np.int64_t ipos[3]
+    np.int32_t level
 
 cdef struct OctPadded:
     np.int64_t file_ind
@@ -72,6 +71,16 @@ cdef class MaskOcts(OctVisitor):
 cdef class IndexOcts(OctVisitor):
     cdef np.int64_t[:] oct_index
 
+cdef class MaskedIndexOcts(OctVisitor):
+    cdef np.int64_t[:] oct_index
+    cdef np.uint8_t[:] oct_mask
+
+cdef class IndexMaskMapOcts(OctVisitor):
+    cdef np.int64_t[:] oct_index
+    cdef np.uint8_t[:] oct_mask
+    cdef np.int64_t[:] map_domain_ind
+    cdef np.uint64_t map_index
+
 cdef class ICoordsOcts(OctVisitor):
     cdef np.int64_t[:,:] icoords
 
@@ -91,6 +100,11 @@ cdef class CopyArrayI64(OctVisitor):
 cdef class CopyArrayF64(OctVisitor):
     cdef np.float64_t[:,:,:,:,:] source
     cdef np.float64_t[:,:] dest
+
+cdef class CopyFileIndArrayI8(OctVisitor):
+    cdef np.int64_t root
+    cdef np.uint8_t[:] source
+    cdef np.uint8_t[:] dest
 
 cdef class IdentifyOcts(OctVisitor):
     cdef np.uint8_t[:] domain_mask
@@ -120,7 +134,42 @@ cdef class LoadOctree(OctVisitor):
     cdef np.uint64_t *nocts
     cdef np.uint64_t *nfinest
 
+cdef class MortonIndexOcts(OctVisitor):
+    cdef np.uint8_t[:] level_arr
+    cdef np.uint64_t[:] morton_ind
+
 cdef inline int cind(int i, int j, int k) nogil:
     # THIS ONLY WORKS FOR CHILDREN.  It is not general for zones.
     return (((i*2)+j)*2+k)
+
+from oct_container cimport OctreeContainer
+
+cdef class StoreIndex(OctVisitor):
+    cdef np.int64_t[:,:,:,:] cell_inds
+
+# cimport oct_container
+cdef class BaseNeighbourVisitor(OctVisitor):
+    cdef int idim      # 0,1,2 for x,y,z
+    cdef int direction # +1 for +x, -1 for -x
+    cdef np.uint8_t neigh_ind[3]
+    cdef bint other_oct
+    cdef Oct *neighbour
+    cdef OctreeContainer octree
+    cdef OctInfo oi
+
+    cdef void set_neighbour_info(self, Oct *o, int ishift[3])
+
+    cdef inline np.uint8_t neighbour_rind(self):
+        cdef int d = (1 << self.oref)
+        return (((self.neigh_ind[2]*d)+self.neigh_ind[1])*d+self.neigh_ind[0])
+
+cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
+    cdef np.uint8_t[::1] cell_inds
+    cdef np.int64_t[::1] domain_inds
+
+cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
+    cdef np.uint8_t[::1] levels
+    cdef np.int64_t[::1] file_inds
+    cdef np.uint8_t[::1] cell_inds
+    cdef np.int32_t[::1] domains
 
