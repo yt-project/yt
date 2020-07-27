@@ -4,7 +4,7 @@
     - id: black
       language_version: python3.7
 -   repo: https://github.com/timothycrosley/isort
-    rev: '5.1.4'  # keep in sync with tests/lint_requirements.txt
+    rev: '5.2.0'  # keep in sync with tests/lint_requirements.txt
     hooks:
     -   id: isort
 -   repo: https://gitlab.com/pycqa/flake8
