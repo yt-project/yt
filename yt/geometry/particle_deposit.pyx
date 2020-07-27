@@ -124,6 +124,7 @@ cdef class ParticleDepositOperation:
         cdef int nf, i, j
         if fields is None:
             fields = []
+        if positions.shape[0] == 0: return
         nf = len(fields)
         cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
         cdef np.float64_t[::cython.view.indirect, ::1] field_pointers

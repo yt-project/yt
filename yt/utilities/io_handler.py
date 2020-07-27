@@ -175,10 +175,11 @@ class BaseIOHandler(metaclass=RegisteredIOHandler):
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
                 rv[field_f].append(vals)
-        # Now we need to truncate all our fields, since we allow for
-        # over-estimating.
         for field_f in rv:
-            if len(rv[field_f]) > 0:
+            # We need to ensure the arrays have the right shape if there are no
+            # particles in them.
+            total = sum(_.size for _ in rv[field_f])
+            if total > 0:
                 rv[field_f] = np.concatenate(rv[field_f], axis=0)
             else:
                 shape = (0,)

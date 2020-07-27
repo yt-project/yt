@@ -375,7 +375,8 @@ class AMRGridPatch(YTSelectionContainer):
         # one grid
         op = cls(nvals + (1,), kernel_name)
         op.initialize()
-        op.process_grid(self, positions, fields)
+        if positions.size > 0:
+            op.process_grid(self, positions, fields)
         vals = op.finalize()
         if vals is None:
             return
