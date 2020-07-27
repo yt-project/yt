@@ -1,6 +1,7 @@
 from functools import wraps
 
 import numpy as np
+import abc
 
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
@@ -133,7 +134,7 @@ def create_volume_source(data_source, field):
         raise NotImplementedError
 
 
-class VolumeSource(RenderSource):
+class VolumeSource(RenderSource, abc.ABC):
     """A class for rendering data from a volumetric data source
 
     Examples of such sources include a sphere, cylinder, or the
@@ -433,6 +434,18 @@ class VolumeSource(RenderSource):
         self.sampler = sampler
         assert self.sampler is not None
 
+
+    @abc.abstractmethod
+    def _get_volume(self):
+        """The abstract volume associated with this VolumeSource
+
+        This object does the heavy lifting to access data in an efficient manner
+        using a KDTree
+        """
+        pass
+
+
+    @abc.abstractmethod
     @validate_volume
     def render(self, camera, zbuffer=None):
         """Renders an image using the provided camera
@@ -453,7 +466,7 @@ class VolumeSource(RenderSource):
         the rendered image.
 
         """
-        raise NotImplementedError()
+        pass
 
     def finalize_image(self, camera, image):
         """Parallel reduce the image.
