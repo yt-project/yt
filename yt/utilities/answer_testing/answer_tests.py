@@ -28,18 +28,20 @@ def grid_hierarchy(ds):
 
 
 def parentage_relationships(ds):
-    parents = []
-    children = []
+    result = {}
+    result["parents"] = []
+    result["children"] = []
     for g in ds.index.grids:
         p = g.Parent
         if p is None:
-            parents.append(-1)
+            result["parents"].append(-1)
         elif hasattr(p, "id"):
-            parents.append(p.id)
+            result["parents"].append(p.id)
         else:
-            parents.append([pg.id for pg in p])
-        children.append([c.id for c in g.Children])
-    result = [parents, children]
+            result["parents"].append([pg.id for pg in p])
+        result["children"].append([c.id for c in g.Children])
+    result["parents"] = np.array(result["parents"])
+    result["children"] = np.array(result["children"])
     return result
 
 
