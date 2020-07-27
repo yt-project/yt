@@ -1,7 +1,7 @@
+import abc
 from functools import wraps
 
 import numpy as np
-import abc
 
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
