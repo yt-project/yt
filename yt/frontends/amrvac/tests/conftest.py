@@ -7,17 +7,17 @@ from yt.utilities.answer_testing.utils import data_dir_load
 
 def _get_fields_to_check(fname):
     ds = data_dir_load(fname)
-    fields = ["density", "velocity_magnitude"]
+    fields = [("gas", "density"), ("gas", "velocity_magnitude")]
     field_ids = ["density", "velocity_magnitude"]
     raw_fields_labels = [fname for ftype, fname in ds.field_list]
     if "b1" in raw_fields_labels:
-        fields.append("magnetic_energy_density")
+        fields.append(("gas", "magnetic_energy_density"))
         field_ids.append("magnetic_energy_density")
     if "e" in raw_fields_labels:
-        fields.append("energy_density")
+        fields.append(("gas", "energy_density"))
         field_ids.append("energy_density")
     if "rhod1" in raw_fields_labels:
-        fields.append("total_dust_density")
+        fields.append(("gas", "total_dust_density"))
         field_ids.append("total_dust_density")
         # note : not hitting dust velocity fields
     return [fields, field_ids]
