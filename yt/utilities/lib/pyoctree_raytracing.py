@@ -64,7 +64,12 @@ class OctreeRayTracing(object):
         if no_ghost:
             raise NotImplementedError("Ghost zones are required with Octree datasets")
 
-        assert len(fields) == 1
+        if len(fields) != 1:
+            raise ValueError(
+                'Can only set one fields at a time. '
+                'This is likely a bug, and should be reported.'
+            )
+
         field = self.data_source._determine_fields(fields)[0]
         take_log = log_fields[0]
         vertex_data = self.vertex_centered_data(field)
