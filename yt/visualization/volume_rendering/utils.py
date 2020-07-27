@@ -123,7 +123,10 @@ def new_projection_sampler(camera, render_source):
         params["width"],
         params["num_samples"],
     )
-    kwargs = {"lens_type": params["lens_type"]}
+    kwargs = {
+        "lens_type": params["lens_type"],
+        "volume_method": render_source.volume_method
+    }
     if render_source.zbuffer is not None:
         kwargs["zbuffer"] = render_source.zbuffer.z
     else:

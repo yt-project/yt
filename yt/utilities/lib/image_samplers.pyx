@@ -69,10 +69,12 @@ cdef class ImageSampler:
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  *args, **kwargs):
+                  *args,
+                  str volume_method=None,
+                  **kwargs):
         cdef int i
 
-        self.volume_method = kwargs.pop('volume_method', None)
+        self.volume_method = volume_method
         camera_data = kwargs.pop("camera_data", None)
         if camera_data is not None:
             self.camera_data = camera_data
@@ -137,7 +139,10 @@ cdef class ImageSampler:
         elif self.volume_method == 'Octree':
             return self.cast_through_octree(pg, **kwa)
         else:
-            raise NotImplementedError
+            raise NotImplementedError(
+                'Volume rendering has not been implemented for method: "%s"' %
+                self.volume_method
+            )
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

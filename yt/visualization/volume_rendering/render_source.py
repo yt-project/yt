@@ -121,10 +121,8 @@ class OpaqueSource(RenderSource):
 
 
 def create_volume_source(data_source, field):
-    if isinstance(data_source, Dataset):
-        ds = data_source
-    else:
-        ds = data_source.ds
+    data_source = data_source_or_all(data_source)
+    ds = data_source.ds
     index_class = ds.index.__class__
     if issubclass(index_class, GridIndex):
         return KDTreeVolumeSource(data_source, field)
