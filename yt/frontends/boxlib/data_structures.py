@@ -756,7 +756,7 @@ class BoxlibDataset(Dataset):
             elif param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
-                vals = self.periodicity = ensure_tuple([i == 0 for i in vals.split()])
+                vals = self.periodicity = ensure_tuple([p == "1" for p in vals.split()])
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
             else:
@@ -915,9 +915,8 @@ class BoxlibDataset(Dataset):
         tmp = self.domain_dimensions.tolist()
         tmp.extend((1, 1))
         self.domain_dimensions = np.array(tmp)
-        tmp = list(self.periodicity)
-        tmp[1] = False
-        tmp[2] = False
+        self.periodicity = list(self.periodicity)
+        self.periodicity[1:] = False
         self.periodicity = ensure_tuple(tmp)
 
     def _setup2d(self):
@@ -1160,17 +1159,15 @@ class CastroDataset(BoxlibDataset):
         self.parameters["HydroMethod"] = "Castro"
 
         # set the periodicity based on the runtime parameters
-        periodicity = [True, True, True]
-        if not self.parameters["-x"] == "interior":
-            periodicity[0] = False
-        if self.dimensionality >= 2:
-            if not self.parameters["-y"] == "interior":
-                periodicity[1] = False
-        if self.dimensionality == 3:
-            if not self.parameters["-z"] == "interior":
-                periodicity[2] = False
+        self.periodicity = [True, True, True]
+        for i, axis in enumerate("xyz"):
+            try:
+                self.periodicity[i] = self.parameters["-%s" % axis] == "interior"
+            except KeyError:
+                break
 
-        self.periodicity = ensure_tuple(periodicity)
+        self.periodicity = ensure_tuple(self.periodicity)
+
         if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
             # we have particles
             self.parameters["particles"] = 1
@@ -1244,7 +1241,7 @@ class MaestroDataset(BoxlibDataset):
             except KeyError:
                 pass
 
-        self.periodicity = ensure_tuple(periodicity)
+        self.periodicity = tuple(periodicity)
 
 
 class NyxHierarchy(BoxlibHierarchy):
@@ -1597,11 +1594,13 @@ class WarpXDataset(BoxlibDataset):
                     self.parameters[l[0].strip()] = l[1].strip()
 
         # set the periodicity based on the integer BC runtime parameters
-        is_periodic = self.parameters["geometry.is_periodic"].split()
-        periodicity = [bool(val) for val in is_periodic]
-        for _ in range(self.dimensionality, 3):
-            periodicity += [True]  # pad to 3D
-        self.periodicity = ensure_tuple(periodicity)
+        self.periodicity = [True] * 3
+        try:
+            is_periodic = self.parameters["geometry.is_periodic"].split()
+            self.periodicity[: len(is_periodic)] = [p == "1" for p in is_periodic]
+        except KeyError:
+            pass
+        self.periodicity = ensure_tuple(self.periodicity)
 
         particle_types = glob.glob(self.output_dir + "/*/Header")
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
