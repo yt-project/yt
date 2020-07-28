@@ -15,33 +15,19 @@ Interactive Data Visualization classes for Scene, Camera and BlockCollection
 # This is a part of the experimental Interactive Data Visualization
 
 import contextlib
-import ctypes
 import string
-import time
-from collections import OrderedDict, defaultdict, namedtuple
+from collections import defaultdict, namedtuple
 from math import ceil, floor
 
-import matplotlib.cm as cm
 import matplotlib.font_manager
 import numpy as np
 import OpenGL.GL as GL
-import OpenGL.GLUT.freeglut as GLUT
 import traitlets
 import traittypes
-from matplotlib.ft2font import (
-    LOAD_DEFAULT,
-    LOAD_FORCE_AUTOHINT,
-    LOAD_NO_AUTOHINT,
-    LOAD_NO_HINTING,
-    FT2Font,
-)
+from matplotlib.ft2font import LOAD_FORCE_AUTOHINT
 
-from yt import write_bitmap
-from yt.config import ytcfg
 from yt.data_objects.api import Dataset
 from yt.data_objects.data_containers import YTDataContainer
-from yt.data_objects.static_output import Dataset
-from yt.extern.six import unichr
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from yt.utilities.lib.misc_utilities import update_orientation
 from yt.utilities.math_utils import (
@@ -63,7 +49,6 @@ from .opengl_support import (
     Texture1D,
     Texture2D,
     Texture3D,
-    Texture3DIterator,
     TransferFunctionTexture,
     VertexArray,
     VertexAttribute,
@@ -303,7 +288,7 @@ class TrackballCamera(IDVCamera):
             mag = np.sqrt(w ** 2 + x ** 2 + y ** 2 + z ** 2)
             q /= mag
 
-            o1 = quaternion_mult(self.orientation, q)
+            _ = quaternion_mult(self.orientation, q)
         self.orientation = update_orientation(
             self.orientation, start_x, start_y, end_x, end_y
         )
@@ -577,7 +562,7 @@ class TextCharacters(SceneData):
         vert = []
         for i, (tex_id, char_code) in enumerate(zip(tex_ids, chars)):
             self.font.clear()
-            self.font.set_text(unichr(char_code), flags=LOAD_FORCE_AUTOHINT)
+            self.font.set_text(chr(char_code), flags=LOAD_FORCE_AUTOHINT)
             self.font.draw_glyphs_to_bitmap(antialiased=True)
             glyph = self.font.load_char(char_code)
             x0, y0, x1, y1 = glyph.bbox
@@ -602,7 +587,7 @@ class TextCharacters(SceneData):
             # I can't find information as to why horiAdvance is a
             # factor of 8 larger than the other factors.  I assume it
             # is referenced somewhere, but I cannot find it.
-            self.characters[unichr(char_code)] = Character(
+            self.characters[chr(char_code)] = Character(
                 texture, i, glyph.horiAdvance / 8.0, glyph.vertAdvance
             )
         vert = np.concatenate(vert)
@@ -836,13 +821,11 @@ class RGBALinePlot(SceneComponent):
     priority = 20
 
     def draw(self, scene, program):
-        each = self.data.vertex_array.each
         for i, channel in enumerate("rgba"):
             program._set_uniform("channel", i)
             GL.glDrawArrays(GL.GL_LINE_STRIP, 0, self.data.n_vertices)
 
     def _set_uniforms(self, scene, shader_program):
-        cam = scene.camera
         shader_program._set_uniform(
             "viewport", np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype="f4")
         )
@@ -997,6 +980,7 @@ class BlockOutline(SceneAnnotation):
     name = "block_outline"
     data = traitlets.Instance(BlockCollection)
     box_width = traitlets.CFloat(0.1)
+    box_color = traitlets.Tuple((1.0, 1.0, 1.0), trait=traitlets.CFloat())
     box_alpha = traitlets.CFloat(1.0)
 
     def draw(self, scene, program):
@@ -1009,6 +993,10 @@ class BlockOutline(SceneAnnotation):
         _, bw = imgui.slider_float("Width", self.box_width, 0.001, 0.250)
         if _:
             self.box_width = bw
+        changed = changed or _
+        _, (r, g, b) = imgui.color_edit3("Color", *self.box_color)
+        if _:
+            self.box_color = (r, g, b)
         changed = changed or _
         _, ba = imgui.slider_float("Alpha", self.box_alpha, 0.0, 1.0)
         if _:

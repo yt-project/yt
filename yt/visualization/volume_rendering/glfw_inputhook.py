@@ -88,8 +88,6 @@ def create_inputhook_glfw(mgr, render_loop):
                     time.sleep(0.001)
         except KeyboardInterrupt:
             pass
-        except StopIteration:
-            break
         return 0
 
     return inputhook_glfw
