@@ -1,4 +1,4 @@
 [submodule "answer-store"]
 	path = answer-store
 	url = https://github.com/yt-project/answer-store
-	branch = master
+	branch = yt-4.0

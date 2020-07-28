@@ -1,19 +1,9 @@
-"""
-Tests for yt.testing
-"""
-#-----------------------------------------------------------------------------
-# Copyright (c) 2018, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import matplotlib
 import numpy as np
 import pytest
 
-from yt.testing import assert_equal, requires_backend
 import yt
+from yt.testing import assert_equal, requires_backend
 
 
 def test_requires_backend():

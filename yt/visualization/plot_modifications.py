@@ -1,71 +1,36 @@
-"""
-
-Callbacks to add additional functionality on to plots.
-
-
-
-"""
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from __future__ import absolute_import
-
+import re
 import warnings
+from functools import wraps
+from numbers import Number
 
 import matplotlib
 import numpy as np
-import re
 
-from functools import wraps
-
-from numbers import Number
-
-from yt.data_objects.level_sets.clump_handling import \
-    Clump
-try:
-    from yt.extensions.astro_analysis.halo_analysis.halo_catalog import \
-        HaloCatalog as AAHaloCatalog
-except ImportError:
-    AAHaloCatalog = None
-from yt.analysis_modules.halo_analysis.halo_catalog import \
-    HaloCatalog
-from yt.frontends.ytdata.data_structures import \
-    YTClumpContainer
+from yt.data_objects.data_containers import YTDataContainer
+from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_data_containers import YTCutRegion
-from yt.data_objects.data_containers import \
-    YTDataContainer
-from yt.data_objects.static_output import \
-    Dataset
-from yt.funcs import \
-    iterable, \
-    mylog, \
-    validate_width_tuple
-from yt.geometry.geometry_handler import \
-    is_curvilinear
-from yt.extern.six import add_metaclass
-from yt.units import dimensions
-from yt.units.yt_array import YTQuantity, YTArray, uhstack
-from yt.units.unit_object import Unit
-from yt.visualization.image_writer import apply_colormap
-from yt.utilities.lib.geometry_utils import triangle_plane_intersect
-from yt.utilities.lib.pixelization_routines import \
-    pixelize_off_axis_cartesian, \
-    pixelize_cartesian
-from yt.analysis_modules.cosmological_observation.light_ray.light_ray import \
-    periodic_ray
-from yt.utilities.lib.line_integral_convolution import \
-    line_integral_convolution_2d
+from yt.data_objects.static_output import Dataset
+from yt.frontends.ytdata.data_structures import YTClumpContainer
+from yt.funcs import iterable, mylog, validate_width_tuple
+from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
+from yt.units import dimensions
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTArray, YTQuantity, uhstack
+from yt.utilities.exceptions import YTDataTypeUnsupported
+from yt.utilities.lib.geometry_utils import triangle_plane_intersect
+from yt.utilities.lib.line_integral_convolution import line_integral_convolution_2d
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
-from yt.utilities.exceptions import \
-    YTDataTypeUnsupported
+from yt.utilities.lib.pixelization_routines import (
+    pixelize_cartesian,
+    pixelize_off_axis_cartesian,
+)
+from yt.utilities.math_utils import periodic_ray
+from yt.utilities.on_demand_imports import NotAModule
+from yt.visualization.image_writer import apply_colormap
 
 callback_registry = {}
+
 
 def _verify_geometry(func):
     @wraps(func)
@@ -78,7 +43,9 @@ def _verify_geometry(func):
         if cs in ("axis", "figure") and "force" not in supp:
             return func(self, plot)
         raise YTDataTypeUnsupported(geom, supp)
+
     return _check_geometry
+
 
 class RegisteredCallback(type):
     def __init__(cls, name, b, d):
@@ -86,8 +53,8 @@ class RegisteredCallback(type):
         callback_registry[name] = cls
         cls.__call__ = _verify_geometry(cls.__call__)
 
-@add_metaclass(RegisteredCallback)
-class PlotCallback(object):
+
+class PlotCallback(metaclass=RegisteredCallback):
     # _supported_geometries is set by subclasses of PlotCallback to a tuple of
     # strings corresponding to the names of the geometries that a callback
     # supports.  By default it is None, which means it supports everything.
@@ -113,14 +80,16 @@ class PlotCallback(object):
         """
         if len(coord) == 3:
             if not isinstance(coord, YTArray):
-                coord = plot.data.ds.arr(coord, 'code_length')
-            coord.convert_to_units('code_length')
+                coord = plot.data.ds.arr(coord, "code_length")
+            coord.convert_to_units("code_length")
             ax = plot.data.axis
             # if this is an on-axis projection or slice, then
             # just grab the appropriate 2 coords for the on-axis view
             if ax >= 0 and ax <= 2:
-                (xi, yi) = (plot.data.ds.coordinates.x_axis[ax],
-                            plot.data.ds.coordinates.y_axis[ax])
+                (xi, yi) = (
+                    plot.data.ds.coordinates.x_axis[ax],
+                    plot.data.ds.coordinates.y_axis[ax],
+                )
                 coord = (coord[xi], coord[yi])
 
             # if this is an off-axis project or slice (ie cutting plane)
@@ -136,8 +105,9 @@ class PlotCallback(object):
                 # right-handed coord system
                 coord = (y, x)
             else:
-                raise SyntaxError("Object being plot must have a `data.axis` "
-                                  "defined")
+                raise SyntaxError(
+                    "Object being plot must have a `data.axis` " "defined"
+                )
 
         # if the position is already two-coords, it is expected to be
         # in the proper projected orientation
@@ -164,28 +134,36 @@ class PlotCallback(object):
         # Convert the data and plot limits to tiled numpy arrays so that
         # convert_to_plot is automatically vectorized.
 
-        x0 = np.array(np.tile(plot.xlim[0].to('code_length'),ncoord))
-        x1 = np.array(np.tile(plot.xlim[1].to('code_length'),ncoord))
-        xx0 = np.tile(plot._axes.get_xlim()[0],ncoord)
-        xx1 = np.tile(plot._axes.get_xlim()[1],ncoord)
+        x0 = np.array(np.tile(plot.xlim[0].to("code_length"), ncoord))
+        x1 = np.array(np.tile(plot.xlim[1].to("code_length"), ncoord))
+        xx0 = np.tile(plot._axes.get_xlim()[0], ncoord)
+        xx1 = np.tile(plot._axes.get_xlim()[1], ncoord)
 
-        y0 = np.array(np.tile(plot.ylim[0].to('code_length'),ncoord))
-        y1 = np.array(np.tile(plot.ylim[1].to('code_length'),ncoord))
-        yy0 = np.tile(plot._axes.get_ylim()[0],ncoord)
-        yy1 = np.tile(plot._axes.get_ylim()[1],ncoord)
+        y0 = np.array(np.tile(plot.ylim[0].to("code_length"), ncoord))
+        y1 = np.array(np.tile(plot.ylim[1].to("code_length"), ncoord))
+        yy0 = np.tile(plot._axes.get_ylim()[0], ncoord)
+        yy1 = np.tile(plot._axes.get_ylim()[1], ncoord)
 
         try:
-            ccoord = np.array(coord.to('code_length'))
+            ccoord = np.array(coord.to("code_length"))
         except AttributeError:
             ccoord = np.array(coord)
 
         # We need a special case for when we are only given one coordinate.
         if ccoord.shape == (2,):
-            return np.array([((ccoord[0]-x0)/(x1-x0)*(xx1-xx0) + xx0)[0],
-                             ((ccoord[1]-y0)/(y1-y0)*(yy1-yy0) + yy0)[0]])
+            return np.array(
+                [
+                    ((ccoord[0] - x0) / (x1 - x0) * (xx1 - xx0) + xx0)[0],
+                    ((ccoord[1] - y0) / (y1 - y0) * (yy1 - yy0) + yy0)[0],
+                ]
+            )
         else:
-            return np.array([(ccoord[0][:]-x0)/(x1-x0)*(xx1-xx0) + xx0,
-                             (ccoord[1][:]-y0)/(y1-y0)*(yy1-yy0) + yy0])
+            return np.array(
+                [
+                    (ccoord[0][:] - x0) / (x1 - x0) * (xx1 - xx0) + xx0,
+                    (ccoord[1][:] - y0) / (y1 - y0) * (yy1 - yy0) + yy0,
+                ]
+            )
 
     def _sanitize_coord_system(self, plot, coord, coord_system):
         """
@@ -227,8 +205,9 @@ class PlotCallback(object):
         # if in data coords, project them to plot coords
         if coord_system == "data":
             if len(coord) < 3:
-                raise SyntaxError("Coordinates in 'data' coordinate system "
-                                  "need to be in 3D")
+                raise SyntaxError(
+                    "Coordinates in 'data' coordinate system " "need to be in 3D"
+                )
             coord = self._project_coords(plot, coord)
             coord = self._convert_to_plot(plot, coord)
         # if in plot coords, define the transform correctly
@@ -239,16 +218,19 @@ class PlotCallback(object):
         if coord_system == "axis":
             self.transform = plot._axes.transAxes
             if len(coord) > 2:
-                raise SyntaxError("Coordinates in 'axis' coordinate system "
-                                  "need to be in 2D")
+                raise SyntaxError(
+                    "Coordinates in 'axis' coordinate system " "need to be in 2D"
+                )
             return coord
         # if in figure coords, define the transform correctly
         elif coord_system == "figure":
             self.transform = plot._figure.transFigure
             return coord
         else:
-            raise SyntaxError("Argument coord_system must have a value of "
-                              "'data', 'plot', 'axis', or 'figure'.")
+            raise SyntaxError(
+                "Argument coord_system must have a value of "
+                "'data', 'plot', 'axis', or 'figure'."
+            )
 
     def _physical_bounds(self, plot):
         xlims = tuple(v.in_units("code_length") for v in plot.xlim)
@@ -280,35 +262,36 @@ class PlotCallback(object):
 
         # Turn off the default TT font file, otherwise none of this works.
         local_font_properties.set_file(None)
-        local_font_properties.set_family('stixgeneral')
+        local_font_properties.set_family("stixgeneral")
 
-        if 'family' in kwargs:
-            local_font_properties.set_family(kwargs['family'])
-        if 'file' in kwargs:
-            local_font_properties.set_file(kwargs['file'])
-        if 'fontconfig_pattern' in kwargs:
-            local_font_properties.set_fontconfig_pattern(kwargs['fontconfig_pattern'])
-        if 'name' in kwargs:
-            local_font_properties.set_name(kwargs['name'])
-        if 'size' in kwargs:
-            local_font_properties.set_size(kwargs['size'])
-        if 'slant' in kwargs:
-            local_font_properties.set_slant(kwargs['slant'])
-        if 'stretch' in kwargs:
-            local_font_properties.set_stretch(kwargs['stretch'])
-        if 'style' in kwargs:
-            local_font_properties.set_style(kwargs['style'])
-        if 'variant' in kwargs:
-            local_font_properties.set_variant(kwargs['variant'])
-        if 'weight' in kwargs:
-            local_font_properties.set_weight(kwargs['weight'])
+        if "family" in kwargs:
+            local_font_properties.set_family(kwargs["family"])
+        if "file" in kwargs:
+            local_font_properties.set_file(kwargs["file"])
+        if "fontconfig_pattern" in kwargs:
+            local_font_properties.set_fontconfig_pattern(kwargs["fontconfig_pattern"])
+        if "name" in kwargs:
+            local_font_properties.set_name(kwargs["name"])
+        if "size" in kwargs:
+            local_font_properties.set_size(kwargs["size"])
+        if "slant" in kwargs:
+            local_font_properties.set_slant(kwargs["slant"])
+        if "stretch" in kwargs:
+            local_font_properties.set_stretch(kwargs["stretch"])
+        if "style" in kwargs:
+            local_font_properties.set_style(kwargs["style"])
+        if "variant" in kwargs:
+            local_font_properties.set_variant(kwargs["variant"])
+        if "weight" in kwargs:
+            local_font_properties.set_weight(kwargs["weight"])
 
         # For each label, set the font properties and color to the figure
         # defaults if not already set in the callback itself
         for label in labels:
-            if plot.font_color is not None and 'color' not in kwargs:
+            if plot.font_color is not None and "color" not in kwargs:
                 label.set_color(plot.font_color)
             label.set_fontproperties(local_font_properties)
+
 
 class VelocityCallback(PlotCallback):
     """
@@ -321,13 +304,16 @@ class VelocityCallback(PlotCallback):
     morphological features to be more clearly seen for fields
     with substantial variation in field strength.
     """
+
     _type_name = "velocity"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    def __init__(self, factor=16, scale=None, scale_units=None,
-                 normalize=False, plot_args=None):
+
+    def __init__(
+        self, factor=16, scale=None, scale_units=None, normalize=False, plot_args=None
+    ):
         PlotCallback.__init__(self)
         self.factor = factor
-        self.scale  = scale
+        self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
         if plot_args is None:
@@ -338,15 +324,21 @@ class VelocityCallback(PlotCallback):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
             if is_curvilinear(plot.data.ds.geometry):
-                raise NotImplementedError("Velocity annotation for cutting \
-                    plane is not supported for %s geometry" % plot.data.ds.geometry)
+                raise NotImplementedError(
+                    "Velocity annotation for cutting \
+                    plane is not supported for %s geometry"
+                    % plot.data.ds.geometry
+                )
         if plot._type_name == "CuttingPlane":
-            qcb = CuttingQuiverCallback("cutting_plane_velocity_x",
-                                        "cutting_plane_velocity_y",
-                                        self.factor, scale=self.scale,
-                                        normalize=self.normalize,
-                                        scale_units=self.scale_units,
-                                        plot_args=self.plot_args)
+            qcb = CuttingQuiverCallback(
+                "cutting_plane_velocity_x",
+                "cutting_plane_velocity_y",
+                self.factor,
+                scale=self.scale,
+                normalize=self.normalize,
+                scale_units=self.scale_units,
+                plot_args=self.plot_args,
+            )
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
@@ -356,10 +348,13 @@ class VelocityCallback(PlotCallback):
             if bv is not None:
                 bv_x = bv[xax]
                 bv_y = bv[yax]
-            else: bv_x = bv_y = 0
+            else:
+                bv_x = bv_y = 0
 
-            if plot.data.ds.geometry in ["polar", "cylindrical"] and \
-                axis_names[plot.data.axis] == "z":
+            if (
+                plot.data.ds.geometry in ["polar", "cylindrical"]
+                and axis_names[plot.data.axis] == "z"
+            ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
                 xv = "velocity_cartesian_x"
@@ -370,11 +365,19 @@ class VelocityCallback(PlotCallback):
                 xv = "velocity_%s" % axis_names[xax]
                 yv = "velocity_%s" % axis_names[yax]
 
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
-                                 scale_units=self.scale_units,
-                                 normalize=self.normalize, bv_x=bv_x,
-                                 bv_y=bv_y, plot_args=self.plot_args)
+            qcb = QuiverCallback(
+                xv,
+                yv,
+                self.factor,
+                scale=self.scale,
+                scale_units=self.scale_units,
+                normalize=self.normalize,
+                bv_x=bv_x,
+                bv_y=bv_y,
+                plot_args=self.plot_args,
+            )
         return qcb(plot)
+
 
 class MagFieldCallback(PlotCallback):
     """
@@ -386,13 +389,16 @@ class MagFieldCallback(PlotCallback):
     local (in-plane) length, allowing morphological features to be more
     clearly seen for fields with substantial variation in field strength.
     """
+
     _type_name = "magnetic_field"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    def __init__(self, factor=16, scale=None, scale_units=None,
-                 normalize=False, plot_args=None):
+
+    def __init__(
+        self, factor=16, scale=None, scale_units=None, normalize=False, plot_args=None
+    ):
         PlotCallback.__init__(self)
         self.factor = factor
-        self.scale  = scale
+        self.scale = scale
         self.scale_units = scale_units
         self.normalize = normalize
         if plot_args is None:
@@ -403,21 +409,29 @@ class MagFieldCallback(PlotCallback):
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
             if is_curvilinear(plot.data.ds.geometry):
-                raise NotImplementedError("Magnetic field annotation for cutting \
-                    plane is not supported for %s geometry" % plot.data.ds.geometry)
-            qcb = CuttingQuiverCallback("cutting_plane_magnetic_field_x",
-                                        "cutting_plane_magnetic_field_y",
-                                        self.factor, scale=self.scale,
-                                        scale_units=self.scale_units,
-                                        normalize=self.normalize,
-                                        plot_args=self.plot_args)
+                raise NotImplementedError(
+                    "Magnetic field annotation for cutting \
+                    plane is not supported for %s geometry"
+                    % plot.data.ds.geometry
+                )
+            qcb = CuttingQuiverCallback(
+                "cutting_plane_magnetic_field_x",
+                "cutting_plane_magnetic_field_y",
+                self.factor,
+                scale=self.scale,
+                scale_units=self.scale_units,
+                normalize=self.normalize,
+                plot_args=self.plot_args,
+            )
         else:
             xax = plot.data.ds.coordinates.x_axis[plot.data.axis]
             yax = plot.data.ds.coordinates.y_axis[plot.data.axis]
             axis_names = plot.data.ds.coordinates.axis_name
 
-            if plot.data.ds.geometry in ["polar", "cylindrical"] and \
-                axis_names[plot.data.axis] == "z":
+            if (
+                plot.data.ds.geometry in ["polar", "cylindrical"]
+                and axis_names[plot.data.axis] == "z"
+            ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
                 xv = "magnetic_field_cartesian_x"
@@ -428,11 +442,17 @@ class MagFieldCallback(PlotCallback):
                 xv = "magnetic_field_%s" % axis_names[xax]
                 yv = "magnetic_field_%s" % axis_names[yax]
 
-            qcb = QuiverCallback(xv, yv, self.factor, scale=self.scale,
-                                 scale_units=self.scale_units,
-                                 normalize=self.normalize,
-                                 plot_args=self.plot_args)
+            qcb = QuiverCallback(
+                xv,
+                yv,
+                self.factor,
+                scale=self.scale,
+                scale_units=self.scale_units,
+                normalize=self.normalize,
+                plot_args=self.plot_args,
+            )
         return qcb(plot)
+
 
 class QuiverCallback(PlotCallback):
     """
@@ -445,11 +465,22 @@ class QuiverCallback(PlotCallback):
     morphological features to be more clearly seen for fields with
     substantial variation in field strength.
     """
+
     _type_name = "quiver"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=False, bv_x=0, bv_y=0,
-                 plot_args=None):
+
+    def __init__(
+        self,
+        field_x,
+        field_y,
+        factor=16,
+        scale=None,
+        scale_units=None,
+        normalize=False,
+        bv_x=0,
+        bv_y=0,
+        plot_args=None,
+    ):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -466,20 +497,24 @@ class QuiverCallback(PlotCallback):
     def __call__(self, plot):
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        bounds = [x0,x1,y0,y1]
+        bounds = [x0, x1, y0, y1]
         periodic = int(any(plot.data.ds.periodicity))
 
         def transform(field_name, vector_value):
             field_units = plot.data[field_name].units
-            def _transformed_field(field,data):
-                return data[field_name] - data.ds.arr(vector_value, field_units)
-            plot.data.ds.add_field(("gas", "transformed_%s" % field_name),
-                                   sampling_type="cell",
-                                   function=_transformed_field,
-                                   units=field_units,
-                                   display_field=False)
 
-        if self.bv_x != 0. or self.bv_x != 0.:
+            def _transformed_field(field, data):
+                return data[field_name] - data.ds.arr(vector_value, field_units)
+
+            plot.data.ds.add_field(
+                ("gas", "transformed_%s" % field_name),
+                sampling_type="cell",
+                function=_transformed_field,
+                units=field_units,
+                display_field=False,
+            )
+
+        if self.bv_x != 0.0 or self.bv_x != 0.0:
             # We create a relative vector field
             transform(self.field_x, self.bv_x)
             transform(self.field_y, self.bv_y)
@@ -492,32 +527,44 @@ class QuiverCallback(PlotCallback):
         # set it in reverse order
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
-        pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
-                                                 plot.data,
-                                                 field_x,
-                                                 bounds,
-                                                 (nx,ny),
-                                                 False, # antialias
-                                                 periodic
-                                                 )
-        pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
-                                                 plot.data,
-                                                 field_y,
-                                                 bounds,
-                                                 (nx,ny),
-                                                 False, # antialias
-                                                 periodic
-                                                 )
-        X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
-                          np.linspace(yy0,yy1,ny,endpoint=True))
+        pixX = plot.data.ds.coordinates.pixelize(
+            plot.data.axis,
+            plot.data,
+            field_x,
+            bounds,
+            (nx, ny),
+            False,  # antialias
+            periodic,
+        )
+        pixY = plot.data.ds.coordinates.pixelize(
+            plot.data.axis,
+            plot.data,
+            field_y,
+            bounds,
+            (nx, ny),
+            False,  # antialias
+            periodic,
+        )
+        X, Y = np.meshgrid(
+            np.linspace(xx0, xx1, nx, endpoint=True),
+            np.linspace(yy0, yy1, ny, endpoint=True),
+        )
         if self.normalize:
-            nn = np.sqrt(pixX**2 + pixY**2)
+            nn = np.sqrt(pixX ** 2 + pixY ** 2)
             pixX /= nn
             pixY /= nn
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale,
-                          scale_units=self.scale_units, **self.plot_args)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.quiver(
+            X,
+            Y,
+            pixX,
+            pixY,
+            scale=self.scale,
+            scale_units=self.scale_units,
+            **self.plot_args,
+        )
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
+
 
 class ContourCallback(PlotCallback):
     """
@@ -528,32 +575,48 @@ class ContourCallback(PlotCallback):
     specified with *data_source*, but by default the plot's data source will be
     queried.
     """
+
     _type_name = "contour"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
-    def __init__(self, field, ncont=5, factor=4, clim=None,
-                 plot_args=None, label=False, take_log=None,
-                 label_args=None, text_args=None, data_source=None):
+
+    def __init__(
+        self,
+        field,
+        ncont=5,
+        factor=4,
+        clim=None,
+        plot_args=None,
+        label=False,
+        take_log=None,
+        label_args=None,
+        text_args=None,
+        data_source=None,
+    ):
         PlotCallback.__init__(self)
-        def_plot_args = {'colors':'k', 'linestyles': 'solid'}
-        def_text_args = {'colors':'w'}
+        def_plot_args = {"colors": "k", "linestyles": "solid"}
+        def_text_args = {"colors": "w"}
         self.ncont = ncont
         self.field = field
         self.factor = factor
         self.clim = clim
         self.take_log = take_log
-        if plot_args is None: plot_args = def_plot_args
+        if plot_args is None:
+            plot_args = def_plot_args
         self.plot_args = plot_args
         self.label = label
         if label_args is not None:
             text_args = label_args
-            warnings.warn("The label_args keyword is deprecated.  Please use "
-                          "the text_args keyword instead.")
-        if text_args is None: text_args = def_text_args
+            warnings.warn(
+                "The label_args keyword is deprecated.  Please use "
+                "the text_args keyword instead."
+            )
+        if text_args is None:
+            text_args = def_text_args
         self.text_args = text_args
         self.data_source = data_source
 
     def __call__(self, plot):
-        from matplotlib.tri import Triangulation, LinearTriInterpolator
+        from matplotlib.tri import LinearTriInterpolator, Triangulation
 
         # These need to be in code_length
         x0, x1, y0, y1 = self._physical_bounds(plot)
@@ -567,33 +630,37 @@ class ContourCallback(PlotCallback):
         numPoints_y = plot.image._A.shape[0]
 
         # Multiply by dx and dy to go from data->plot
-        dx = (xx1 - xx0) / (x1-x0)
-        dy = (yy1 - yy0) / (y1-y0)
+        dx = (xx1 - xx0) / (x1 - x0)
+        dy = (yy1 - yy0) / (y1 - y0)
 
         # We want xi, yi in plot coordinates
-        xi, yi = np.mgrid[xx0:xx1:numPoints_x/(self.factor*1j),
-                          yy0:yy1:numPoints_y/(self.factor*1j)]
+        xi, yi = np.mgrid[
+            xx0 : xx1 : numPoints_x / (self.factor * 1j),
+            yy0 : yy1 : numPoints_y / (self.factor * 1j),
+        ]
         data = self.data_source or plot.data
 
-        if plot._type_name in ['CuttingPlane','Projection','Slice']:
-            if plot._type_name == 'CuttingPlane':
-                x = data["px"]*dx
-                y = data["py"]*dy
+        if plot._type_name in ["CuttingPlane", "Projection", "Slice"]:
+            if plot._type_name == "CuttingPlane":
+                x = data["px"] * dx
+                y = data["py"] * dy
                 z = data[self.field]
-            elif plot._type_name in ['Projection','Slice']:
-                #Makes a copy of the position fields "px" and "py" and adds the
-                #appropriate shift to the copied field.
+            elif plot._type_name in ["Projection", "Slice"]:
+                # Makes a copy of the position fields "px" and "py" and adds the
+                # appropriate shift to the copied field.
 
-                AllX = np.zeros(data["px"].size, dtype='bool')
-                AllY = np.zeros(data["py"].size, dtype='bool')
+                AllX = np.zeros(data["px"].size, dtype="bool")
+                AllY = np.zeros(data["py"].size, dtype="bool")
                 XShifted = data["px"].copy()
                 YShifted = data["py"].copy()
                 dom_x, dom_y = plot._period
                 for shift in np.mgrid[-1:1:3j]:
-                    xlim = ((data["px"] + shift*dom_x >= x0) &
-                            (data["px"] + shift*dom_x <= x1))
-                    ylim = ((data["py"] + shift*dom_y >= y0) &
-                            (data["py"] + shift*dom_y <= y1))
+                    xlim = (data["px"] + shift * dom_x >= x0) & (
+                        data["px"] + shift * dom_x <= x1
+                    )
+                    ylim = (data["py"] + shift * dom_y >= y0) & (
+                        data["py"] + shift * dom_y <= y1
+                    )
                     XShifted[xlim] += shift * dom_x
                     YShifted[ylim] += shift * dom_y
                     AllX |= xlim
@@ -601,25 +668,26 @@ class ContourCallback(PlotCallback):
 
                 # At this point XShifted and YShifted are the shifted arrays of
                 # position data in data coordinates
-                wI = (AllX & AllY)
+                wI = AllX & AllY
 
                 # This converts XShifted and YShifted into plot coordinates
-                x = ((XShifted[wI]-x0)*dx).ndarray_view() + xx0
-                y = ((YShifted[wI]-y0)*dy).ndarray_view() + yy0
+                x = ((XShifted[wI] - x0) * dx).ndarray_view() + xx0
+                y = ((YShifted[wI] - y0) * dy).ndarray_view() + yy0
                 z = data[self.field][wI]
 
             # Both the input and output from the triangulator are in plot
             # coordinates
             triangulation = Triangulation(x, y)
-            zi = LinearTriInterpolator(triangulation, z)(xi,yi)
-        elif plot._type_name == 'OffAxisProjection':
-            zi = plot.frb[self.field][::self.factor,::self.factor].transpose()
+            zi = LinearTriInterpolator(triangulation, z)(xi, yi)
+        elif plot._type_name == "OffAxisProjection":
+            zi = plot.frb[self.field][:: self.factor, :: self.factor].transpose()
 
         if self.take_log is None:
             field = data._determine_fields([self.field])[0]
             self.take_log = plot.ds._get_field_info(*field).take_log
 
-        if self.take_log: zi=np.log10(zi)
+        if self.take_log:
+            zi = np.log10(zi)
 
         if self.take_log and self.clim is not None:
             self.clim = (np.log10(self.clim[0]), np.log10(self.clim[1]))
@@ -627,9 +695,9 @@ class ContourCallback(PlotCallback):
         if self.clim is not None:
             self.ncont = np.linspace(self.clim[0], self.clim[1], self.ncont)
 
-        cset = plot._axes.contour(xi,yi,zi,self.ncont, **self.plot_args)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        cset = plot._axes.contour(xi, yi, zi, self.ncont, **self.plot_args)
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
 
         if self.label:
             plot._axes.clabel(cset, **self.text_args)
@@ -652,13 +720,24 @@ class GridBoundaryCallback(PlotCallback):
     One can set min and maximum level of grids to display, and
     can change the linewidth of the displayed grids.
     """
+
     _type_name = "grids"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
-    def __init__(self, alpha=0.7, min_pix=1, min_pix_ids=20,
-                 draw_ids=False, id_loc=None,
-                 periodic=True, min_level=None, max_level=None,
-                 cmap='B-W LINEAR_r', edgecolors=None, linewidth=1.0):
+    def __init__(
+        self,
+        alpha=0.7,
+        min_pix=1,
+        min_pix_ids=20,
+        draw_ids=False,
+        id_loc=None,
+        periodic=True,
+        min_level=None,
+        max_level=None,
+        cmap="B-W LINEAR_r",
+        edgecolors=None,
+        linewidth=1.0,
+    ):
         PlotCallback.__init__(self)
         self.alpha = alpha
         self.min_pix = min_pix
@@ -669,7 +748,9 @@ class GridBoundaryCallback(PlotCallback):
         else:
             self.id_loc = id_loc.lower()  # Make case-insensitive
             if not self.draw_ids:
-                mylog.warning("Supplied id_loc but draw_ids is False. Not drawing grid ids")
+                mylog.warning(
+                    "Supplied id_loc but draw_ids is False. Not drawing grid ids"
+                )
         self.periodic = periodic
         self.min_level = min_level
         self.max_level = max_level
@@ -678,10 +759,11 @@ class GridBoundaryCallback(PlotCallback):
         self.edgecolors = edgecolors
 
     def __call__(self, plot):
-        if plot.data.ds.geometry == "cylindrical" and \
-            plot.data.ds.dimensionality == 3:
-            raise NotImplementedError("Grid annotation is only supported for \
-                for 2D cylindrical geometry, not 3D")
+        if plot.data.ds.geometry == "cylindrical" and plot.data.ds.dimensionality == 3:
+            raise NotImplementedError(
+                "Grid annotation is only supported for \
+                for 2D cylindrical geometry, not 3D"
+            )
         from matplotlib.colors import colorConverter
 
         x0, x1, y0, y1 = self._physical_bounds(plot)
@@ -693,19 +775,20 @@ class GridBoundaryCallback(PlotCallback):
         py_index = plot.data.ds.coordinates.y_axis[ax]
         DW = plot.data.ds.domain_width
         if self.periodic:
-            pxs, pys = np.mgrid[-1:1:3j,-1:1:3j]
+            pxs, pys = np.mgrid[-1:1:3j, -1:1:3j]
         else:
-            pxs, pys = np.mgrid[0:0:1j,0:0:1j]
+            pxs, pys = np.mgrid[0:0:1j, 0:0:1j]
         GLE, GRE, levels, block_ids = [], [], [], []
         for block, mask in plot.data.blocks:
             GLE.append(block.LeftEdge.in_units("code_length"))
             GRE.append(block.RightEdge.in_units("code_length"))
             levels.append(block.Level)
             block_ids.append(block.id)
-        if len(GLE) == 0: return
+        if len(GLE) == 0:
+            return
         # Retain both units and registry
-        GLE = YTArray(GLE, input_units = GLE[0].units)
-        GRE = YTArray(GRE, input_units = GRE[0].units)
+        GLE = plot.ds.arr(GLE, units=GLE[0].units)
+        GRE = plot.ds.arr(GRE, units=GRE[0].units)
         levels = np.array(levels)
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
@@ -720,73 +803,87 @@ class GridBoundaryCallback(PlotCallback):
         for px_off, py_off in zip(pxs.ravel(), pys.ravel()):
             pxo = px_off * DW[px_index]
             pyo = py_off * DW[py_index]
-            left_edge_x = np.array((GLE[:,px_index]+pxo-x0)*dx) + xx0
-            left_edge_y = np.array((GLE[:,py_index]+pyo-y0)*dy) + yy0
-            right_edge_x = np.array((GRE[:,px_index]+pxo-x0)*dx) + xx0
-            right_edge_y = np.array((GRE[:,py_index]+pyo-y0)*dy) + yy0
+            left_edge_x = np.array((GLE[:, px_index] + pxo - x0) * dx) + xx0
+            left_edge_y = np.array((GLE[:, py_index] + pyo - y0) * dy) + yy0
+            right_edge_x = np.array((GRE[:, px_index] + pxo - x0) * dx) + xx0
+            right_edge_y = np.array((GRE[:, py_index] + pyo - y0) * dy) + yy0
             xwidth = xpix * (right_edge_x - left_edge_x) / (xx1 - xx0)
             ywidth = ypix * (right_edge_y - left_edge_y) / (yy1 - yy0)
             visible = np.logical_and(
                 np.logical_and(xwidth > self.min_pix, ywidth > self.min_pix),
-                np.logical_and(levels >= min_level, levels <= max_level))
+                np.logical_and(levels >= min_level, levels <= max_level),
+            )
 
             # Grids can either be set by edgecolors OR a colormap.
             if self.edgecolors is not None:
-                edgecolors = colorConverter.to_rgba(
-                    self.edgecolors, alpha=self.alpha)
+                edgecolors = colorConverter.to_rgba(self.edgecolors, alpha=self.alpha)
             else:  # use colormap if not explicitly overridden by edgecolors
                 if self.cmap is not None:
-                    color_bounds = [0,plot.data.ds.index.max_level]
-                    edgecolors = apply_colormap(
-                        levels[visible]*1.0, color_bounds=color_bounds,
-                        cmap_name=self.cmap)[0,:,:]*1.0/255.
-                    edgecolors[:,3] = self.alpha
+                    color_bounds = [0, plot.data.ds.index.max_level]
+                    edgecolors = (
+                        apply_colormap(
+                            levels[visible] * 1.0,
+                            color_bounds=color_bounds,
+                            cmap_name=self.cmap,
+                        )[0, :, :]
+                        * 1.0
+                        / 255.0
+                    )
+                    edgecolors[:, 3] = self.alpha
                 else:
-                    edgecolors = (0.0,0.0,0.0,self.alpha)
+                    edgecolors = (0.0, 0.0, 0.0, self.alpha)
 
-            if visible.nonzero()[0].size == 0: continue
+            if visible.nonzero()[0].size == 0:
+                continue
             verts = np.array(
-                [(left_edge_x, left_edge_x, right_edge_x, right_edge_x),
-                 (left_edge_y, right_edge_y, right_edge_y, left_edge_y)])
-            verts=verts.transpose()[visible,:,:]
+                [
+                    (left_edge_x, left_edge_x, right_edge_x, right_edge_x),
+                    (left_edge_y, right_edge_y, right_edge_y, left_edge_y),
+                ]
+            )
+            verts = verts.transpose()[visible, :, :]
             grid_collection = matplotlib.collections.PolyCollection(
-                verts, facecolors="none", edgecolors=edgecolors,
-                linewidth=self.linewidth)
+                verts,
+                facecolors="none",
+                edgecolors=edgecolors,
+                linewidth=self.linewidth,
+            )
             plot._axes.add_collection(grid_collection)
 
             visible_ids = np.logical_and(
-                    np.logical_and(xwidth > self.min_pix_ids,
-                                   ywidth > self.min_pix_ids),
-                    np.logical_and(levels >= min_level, levels <= max_level))
-
+                np.logical_and(xwidth > self.min_pix_ids, ywidth > self.min_pix_ids),
+                np.logical_and(levels >= min_level, levels <= max_level),
+            )
 
             if self.draw_ids:
                 plot_ids = np.where(visible_ids)[0]
                 x = np.empty(plot_ids.size)
                 y = np.empty(plot_ids.size)
-                for i,n in enumerate(plot_ids):
+                for i, n in enumerate(plot_ids):
                     if self.id_loc == "lower left":
                         x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
                         y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
                     elif self.id_loc == "lower right":
-                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
-                                                   * (xx1 - xx0) / xpix)
+                        x[i] = right_edge_x[n] - (
+                            (10 * len(str(block_ids[i])) - 2) * (xx1 - xx0) / xpix
+                        )
                         y[i] = left_edge_y[n] + (2 * (yy1 - yy0) / ypix)
                     elif self.id_loc == "upper left":
                         x[i] = left_edge_x[n] + (2 * (xx1 - xx0) / xpix)
                         y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
                     elif self.id_loc == "upper right":
-                        x[i] = right_edge_x[n] - ((10*len(str(block_ids[i]))-2)\
-                                                   * (xx1 - xx0) / xpix)
+                        x[i] = right_edge_x[n] - (
+                            (10 * len(str(block_ids[i])) - 2) * (xx1 - xx0) / xpix
+                        )
                         y[i] = right_edge_y[n] - (12 * (yy1 - yy0) / ypix)
                     else:
                         raise RuntimeError(
-                               "Unrecognized id_loc value ('%s'). "
-                               "Allowed values are 'lower left', lower right', "
-                               "'upper left', and 'upper right'." % self.id_loc
-                               )
-                    plot._axes.text(x[i], y[i],
-                                    "%d" % block_ids[n], clip_on=True)
+                            "Unrecognized id_loc value ('%s'). "
+                            "Allowed values are 'lower left', lower right', "
+                            "'upper left', and 'upper right'." % self.id_loc
+                        )
+                    plot._axes.text(x[i], y[i], "%d" % block_ids[n], clip_on=True)
+
 
 class StreamlineCallback(PlotCallback):
     """
@@ -798,12 +895,20 @@ class StreamlineCallback(PlotCallback):
     *field_color* is less than the threshold will be removed by having
     their line width set to 0.
     """
+
     _type_name = "streamlines"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    def __init__(self, field_x, field_y, factor=16,
-                 density=1, field_color=None,
-                 display_threshold=None,
-                 plot_args=None):
+
+    def __init__(
+        self,
+        field_x,
+        field_y,
+        factor=16,
+        density=1,
+        field_color=None,
+        display_threshold=None,
+        plot_args=None,
+    ):
         PlotCallback.__init__(self)
         def_plot_args = {}
         self.field_x = field_x
@@ -812,7 +917,8 @@ class StreamlineCallback(PlotCallback):
         self.factor = factor
         self.dens = density
         self.display_threshold = display_threshold
-        if plot_args is None: plot_args = def_plot_args
+        if plot_args is None:
+            plot_args = def_plot_args
         self.plot_args = plot_args
 
     def __call__(self, plot):
@@ -823,53 +929,58 @@ class StreamlineCallback(PlotCallback):
         # set it in reverse order
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
-        pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
-                                                 plot.data,
-                                                 self.field_x,
-                                                 bounds,
-                                                 (nx,ny))
-        pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
-                                                 plot.data,
-                                                 self.field_y,
-                                                 bounds,
-                                                 (nx,ny))
+        pixX = plot.data.ds.coordinates.pixelize(
+            plot.data.axis, plot.data, self.field_x, bounds, (nx, ny)
+        )
+        pixY = plot.data.ds.coordinates.pixelize(
+            plot.data.axis, plot.data, self.field_y, bounds, (nx, ny)
+        )
         if self.field_color:
-            field_colors = plot.data.ds.coordinates.pixelize(plot.data.axis,
-                                                             plot.data,
-                                                             self.field_color,
-                                                             bounds,
-                                                             (nx,ny))
+            field_colors = plot.data.ds.coordinates.pixelize(
+                plot.data.axis, plot.data, self.field_color, bounds, (nx, ny)
+            )
 
             if self.display_threshold:
 
-                mask = (field_colors > self.display_threshold)
-                lwdefault = matplotlib.rcParams['lines.linewidth']
+                mask = field_colors > self.display_threshold
+                lwdefault = matplotlib.rcParams["lines.linewidth"]
 
-                if 'linewidth' in self.plot_args:
-                    linewidth = self.plot_args['linewidth']
+                if "linewidth" in self.plot_args:
+                    linewidth = self.plot_args["linewidth"]
                 else:
                     linewidth = lwdefault
 
                 try:
                     linewidth *= mask
-                    self.plot_args['linewidth'] = linewidth
+                    self.plot_args["linewidth"] = linewidth
                 except ValueError:
-                    err_msg = "Error applying display threshold: linewidth" + \
-                              "must have shape ({}, {}) or be scalar"
+                    err_msg = (
+                        "Error applying display threshold: linewidth"
+                        + "must have shape ({}, {}) or be scalar"
+                    )
                     err_msg = err_msg.format(nx, ny)
                     raise ValueError(err_msg)
 
         else:
             field_colors = None
 
-        X,Y = (np.linspace(xx0,xx1,nx,endpoint=True),
-               np.linspace(yy0,yy1,ny,endpoint=True))
-        streamplot_args = {'x': X, 'y': Y, 'u':pixX, 'v': pixY,
-                           'density': self.dens, 'color':field_colors}
+        X, Y = (
+            np.linspace(xx0, xx1, nx, endpoint=True),
+            np.linspace(yy0, yy1, ny, endpoint=True),
+        )
+        streamplot_args = {
+            "x": X,
+            "y": Y,
+            "u": pixX,
+            "v": pixY,
+            "density": self.dens,
+            "color": field_colors,
+        }
         streamplot_args.update(self.plot_args)
         plot._axes.streamplot(**streamplot_args)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
+
 
 class LinePlotCallback(PlotCallback):
     """
@@ -921,33 +1032,37 @@ class LinePlotCallback(PlotCallback):
     >>> s.save()
 
     """
+
     _type_name = "line"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    def __init__(self, p1, p2, data_coords=False, coord_system="data",
-                 plot_args=None):
+
+    def __init__(self, p1, p2, data_coords=False, coord_system="data", plot_args=None):
         PlotCallback.__init__(self)
-        def_plot_args = {'color':'white', 'linewidth':2}
+        def_plot_args = {"color": "white", "linewidth": 2}
         self.p1 = p1
         self.p2 = p2
-        if plot_args is None: plot_args = def_plot_args
+        if plot_args is None:
+            plot_args = def_plot_args
         self.plot_args = plot_args
         if data_coords:
             coord_system = "data"
-            warnings.warn("The data_coords keyword is deprecated.  Please set "
-                          "the keyword coord_system='data' instead.")
+            warnings.warn(
+                "The data_coords keyword is deprecated.  Please set "
+                "the keyword coord_system='data' instead."
+            )
         self.coord_system = coord_system
         self.transform = None
 
     def __call__(self, plot):
-        p1 = self._sanitize_coord_system(plot, self.p1,
-                            coord_system=self.coord_system)
-        p2 = self._sanitize_coord_system(plot, self.p2,
-                            coord_system=self.coord_system)
+        p1 = self._sanitize_coord_system(plot, self.p1, coord_system=self.coord_system)
+        p2 = self._sanitize_coord_system(plot, self.p2, coord_system=self.coord_system)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        plot._axes.plot([p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform,
-                        **self.plot_args)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.plot(
+            [p1[0], p2[0]], [p1[1], p2[1]], transform=self.transform, **self.plot_args
+        )
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
+
 
 class ImageLineCallback(LinePlotCallback):
     """
@@ -957,18 +1072,23 @@ class ImageLineCallback(LinePlotCallback):
     for more information.
 
     """
+
     _type_name = "image_line"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
-    def __init__(self, p1, p2, data_coords=False, coord_system='axis',
-                 plot_args=None):
-        super(ImageLineCallback, self).__init__(p1, p2, data_coords,
-                                                coord_system, plot_args)
-        warnings.warn("The ImageLineCallback (annotate_image_line()) is "
-                      "deprecated.  Please use the LinePlotCallback "
-                      "(annotate_line()) instead.")
+
+    def __init__(self, p1, p2, data_coords=False, coord_system="axis", plot_args=None):
+        super(ImageLineCallback, self).__init__(
+            p1, p2, data_coords, coord_system, plot_args
+        )
+        warnings.warn(
+            "The ImageLineCallback (annotate_image_line()) is "
+            "deprecated.  Please use the LinePlotCallback "
+            "(annotate_line()) instead."
+        )
 
     def __call__(self, plot):
         super(ImageLineCallback, self).__call__(plot)
+
 
 class CuttingQuiverCallback(PlotCallback):
     """
@@ -981,11 +1101,20 @@ class CuttingQuiverCallback(PlotCallback):
     morphological features to be more clearly seen for fields with
     substantial variation in field strength.
     """
+
     _type_name = "cquiver"
     _supported_geometries = ("cartesian", "spectral_cube")
 
-    def __init__(self, field_x, field_y, factor=16, scale=None,
-                 scale_units=None, normalize=False, plot_args=None):
+    def __init__(
+        self,
+        field_x,
+        field_y,
+        factor=16,
+        scale=None,
+        scale_units=None,
+        normalize=False,
+        plot_args=None,
+    ):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -1002,52 +1131,79 @@ class CuttingQuiverCallback(PlotCallback):
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
-        indices = np.argsort(plot.data['dx'])[::-1].astype(np.int_)
+        indices = np.argsort(plot.data["dx"])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")
-        pixelize_off_axis_cartesian(pixX,
-                               plot.data['x'].to('code_length'),
-                               plot.data['y'].to('code_length'),
-                               plot.data['z'].to('code_length'),
-                               plot.data['px'], plot.data['py'],
-                               plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
-                               plot.data.center, plot.data._inv_mat, indices,
-                               plot.data[self.field_x],
-                               (x0, x1, y0, y1))
-        pixelize_off_axis_cartesian(pixY,
-                               plot.data['x'].to('code_length'),
-                               plot.data['y'].to('code_length'),
-                               plot.data['z'].to('code_length'),
-                               plot.data['px'], plot.data['py'],
-                               plot.data['pdx'], plot.data['pdy'], plot.data['pdz'],
-                               plot.data.center, plot.data._inv_mat, indices,
-                               plot.data[self.field_y],
-                               (x0, x1, y0, y1))
-        X,Y = np.meshgrid(np.linspace(xx0,xx1,nx,endpoint=True),
-                          np.linspace(yy0,yy1,ny,endpoint=True))
+        pixelize_off_axis_cartesian(
+            pixX,
+            plot.data["x"].to("code_length"),
+            plot.data["y"].to("code_length"),
+            plot.data["z"].to("code_length"),
+            plot.data["px"],
+            plot.data["py"],
+            plot.data["pdx"],
+            plot.data["pdy"],
+            plot.data["pdz"],
+            plot.data.center,
+            plot.data._inv_mat,
+            indices,
+            plot.data[self.field_x],
+            (x0, x1, y0, y1),
+        )
+        pixelize_off_axis_cartesian(
+            pixY,
+            plot.data["x"].to("code_length"),
+            plot.data["y"].to("code_length"),
+            plot.data["z"].to("code_length"),
+            plot.data["px"],
+            plot.data["py"],
+            plot.data["pdx"],
+            plot.data["pdy"],
+            plot.data["pdz"],
+            plot.data.center,
+            plot.data._inv_mat,
+            indices,
+            plot.data[self.field_y],
+            (x0, x1, y0, y1),
+        )
+        X, Y = np.meshgrid(
+            np.linspace(xx0, xx1, nx, endpoint=True),
+            np.linspace(yy0, yy1, ny, endpoint=True),
+        )
 
         if self.normalize:
-            nn = np.sqrt(pixX**2 + pixY**2)
+            nn = np.sqrt(pixX ** 2 + pixY ** 2)
             pixX /= nn
             pixY /= nn
 
-        plot._axes.quiver(X,Y, pixX, pixY, scale=self.scale,
-                          scale_units=self.scale_units, **self.plot_args)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.quiver(
+            X,
+            Y,
+            pixX,
+            pixY,
+            scale=self.scale,
+            scale_units=self.scale_units,
+            **self.plot_args,
+        )
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
+
 
 class ClumpContourCallback(PlotCallback):
     """
     Take a list of *clumps* and plot them as a set of contours.
     """
+
     _type_name = "clumps"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
+
     def __init__(self, clumps, plot_args=None):
         self.clumps = clumps
-        if plot_args is None: plot_args = {}
-        if 'color' in plot_args:
-            plot_args['colors'] = plot_args.pop('color')
+        if plot_args is None:
+            plot_args = {}
+        if "color" in plot_args:
+            plot_args["colors"] = plot_args.pop("color")
         self.plot_args = plot_args
 
     def __call__(self, plot):
@@ -1064,8 +1220,8 @@ class ClumpContourCallback(PlotCallback):
         dyf = "d%s" % yf
 
         ny, nx = plot.image._A.shape
-        buff = np.zeros((nx,ny),dtype='float64')
-        for i,clump in enumerate(reversed(self.clumps)):
+        buff = np.zeros((nx, ny), dtype="float64")
+        for i, clump in enumerate(reversed(self.clumps)):
             mylog.info("Pixelizing contour %s", i)
 
             if isinstance(clump, Clump):
@@ -1074,21 +1230,28 @@ class ClumpContourCallback(PlotCallback):
                 ftype = "grid"
             else:
                 raise RuntimeError(
-                    "Unknown field type for object of type %s." %
-                    type(clump))
+                    "Unknown field type for object of type %s." % type(clump)
+                )
 
             xf_copy = clump[ftype, xf].copy().in_units("code_length")
             yf_copy = clump[ftype, yf].copy().in_units("code_length")
 
             temp = np.zeros((ny, nx), dtype="f8")
-            pixelize_cartesian(temp, xf_copy, yf_copy,
-                               clump[ftype, dxf].in_units("code_length")/2.0,
-                               clump[ftype, dyf].in_units("code_length")/2.0,
-                               clump[ftype, dxf].d*0.0+i+1, # inits inside Pixelize
-                               bounds, 0)
+            pixelize_cartesian(
+                temp,
+                xf_copy,
+                yf_copy,
+                clump[ftype, dxf].in_units("code_length") / 2.0,
+                clump[ftype, dyf].in_units("code_length") / 2.0,
+                clump[ftype, dxf].d * 0.0 + i + 1,  # inits inside Pixelize
+                bounds,
+                0,
+            )
             buff = np.maximum(temp, buff)
-        self.rv = plot._axes.contour(buff, np.unique(buff),
-                                     extent=extent, **self.plot_args)
+        self.rv = plot._axes.contour(
+            buff, np.unique(buff), extent=extent, **self.plot_args
+        )
+
 
 class ArrowCallback(PlotCallback):
     """
@@ -1171,12 +1334,23 @@ class ArrowCallback(PlotCallback):
     >>> s.save()
 
     """
+
     _type_name = "arrow"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
-    def __init__(self, pos, code_size=None, length=0.03, width=0.0001,
-                 head_width=0.01, head_length=0.01,
-                 starting_pos=None, coord_system='data', plot_args=None):
-        def_plot_args = {'color':'white'}
+
+    def __init__(
+        self,
+        pos,
+        code_size=None,
+        length=0.03,
+        width=0.0001,
+        head_width=0.01,
+        head_length=0.01,
+        starting_pos=None,
+        coord_system="data",
+        plot_args=None,
+    ):
+        def_plot_args = {"color": "white"}
         self.pos = pos
         self.code_size = code_size
         self.length = length
@@ -1186,24 +1360,28 @@ class ArrowCallback(PlotCallback):
         self.starting_pos = starting_pos
         self.coord_system = coord_system
         self.transform = None
-        if plot_args is None: plot_args = def_plot_args
+        if plot_args is None:
+            plot_args = def_plot_args
         self.plot_args = plot_args
 
     def __call__(self, plot):
-        x,y = self._sanitize_coord_system(plot, self.pos,
-                               coord_system=self.coord_system)
+        x, y = self._sanitize_coord_system(
+            plot, self.pos, coord_system=self.coord_system
+        )
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         # normalize all of the kwarg lengths to the plot size
-        plot_diag = ((yy1-yy0)**2 + (xx1-xx0)**2)**(0.5)
+        plot_diag = ((yy1 - yy0) ** 2 + (xx1 - xx0) ** 2) ** (0.5)
         self.length *= plot_diag
         self.width *= plot_diag
         self.head_width *= plot_diag
         if self.head_length is not None:
             self.head_length *= plot_diag
         if self.code_size is not None:
-            warnings.warn("The code_size keyword is deprecated.  Please use "
-                          "the length keyword in 'axis' units instead. "
-                          "Setting code_size overrides length value.")
+            warnings.warn(
+                "The code_size keyword is deprecated.  Please use "
+                "the length keyword in 'axis' units instead. "
+                "Setting code_size overrides length value."
+            )
             if iterable(self.code_size):
                 self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
                 self.code_size = np.float64(self.code_size.in_units(plot.xlim[0].units))
@@ -1211,33 +1389,48 @@ class ArrowCallback(PlotCallback):
             dx = dy = self.code_size
         else:
             if self.starting_pos is not None:
-                start_x,start_y = self._sanitize_coord_system(plot,
-                                       self.starting_pos,
-                                       coord_system=self.coord_system)
+                start_x, start_y = self._sanitize_coord_system(
+                    plot, self.starting_pos, coord_system=self.coord_system
+                )
                 dx = x - start_x
                 dy = y - start_y
             else:
-                dx = (xx1-xx0) * 2**(0.5) * self.length
-                dy = (yy1-yy0) * 2**(0.5) * self.length
+                dx = (xx1 - xx0) * 2 ** (0.5) * self.length
+                dy = (yy1 - yy0) * 2 ** (0.5) * self.length
         # If the arrow is 0 length
         if dx == dy == 0:
             warnings.warn("The arrow has zero length.  Not annotating.")
             return
         try:
-            plot._axes.arrow(x-dx, y-dy, dx, dy, width=self.width,
-                             head_width=self.head_width,
-                             head_length=self.head_length,
-                             transform=self.transform,
-                             length_includes_head=True, **self.plot_args)
+            plot._axes.arrow(
+                x - dx,
+                y - dy,
+                dx,
+                dy,
+                width=self.width,
+                head_width=self.head_width,
+                head_length=self.head_length,
+                transform=self.transform,
+                length_includes_head=True,
+                **self.plot_args,
+            )
         except ValueError:
             for i in range(len(x)):
-                plot._axes.arrow(x[i]-dx, y[i]-dy, dx, dy, width=self.width,
-                                 head_width=self.head_width,
-                                 head_length=self.head_length,
-                                 transform=self.transform,
-                                 length_includes_head=True, **self.plot_args)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+                plot._axes.arrow(
+                    x[i] - dx,
+                    y[i] - dy,
+                    dx,
+                    dy,
+                    width=self.width,
+                    head_width=self.head_width,
+                    head_length=self.head_length,
+                    transform=self.transform,
+                    length_includes_head=True,
+                    **self.plot_args,
+                )
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
+
 
 class MarkerAnnotateCallback(PlotCallback):
     """
@@ -1291,25 +1484,31 @@ class MarkerAnnotateCallback(PlotCallback):
     >>> s.save()
 
     """
+
     _type_name = "marker"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    def __init__(self, pos, marker='x', coord_system="data", plot_args=None):
-        def_plot_args = {'color':'w', 's':50}
+
+    def __init__(self, pos, marker="x", coord_system="data", plot_args=None):
+        def_plot_args = {"color": "w", "s": 50}
         self.pos = pos
         self.marker = marker
-        if plot_args is None: plot_args = def_plot_args
+        if plot_args is None:
+            plot_args = def_plot_args
         self.plot_args = plot_args
         self.coord_system = coord_system
         self.transform = None
 
     def __call__(self, plot):
-        x,y = self._sanitize_coord_system(plot, self.pos,
-                               coord_system=self.coord_system)
+        x, y = self._sanitize_coord_system(
+            plot, self.pos, coord_system=self.coord_system
+        )
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        plot._axes.scatter(x, y, marker = self.marker,
-                           transform=self.transform, **self.plot_args)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.scatter(
+            x, y, marker=self.marker, transform=self.transform, **self.plot_args
+        )
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
+
 
 class SphereCallback(PlotCallback):
     """
@@ -1359,19 +1558,31 @@ class SphereCallback(PlotCallback):
     >>> s.save()
 
     """
+
     _type_name = "sphere"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    def __init__(self, center, radius, circle_args=None,
-                 text=None, coord_system='data', text_args=None):
-        def_text_args = {'color':'white'}
-        def_circle_args = {'color':'white'}
+
+    def __init__(
+        self,
+        center,
+        radius,
+        circle_args=None,
+        text=None,
+        coord_system="data",
+        text_args=None,
+    ):
+        def_text_args = {"color": "white"}
+        def_circle_args = {"color": "white"}
         self.center = center
         self.radius = radius
-        if circle_args is None: circle_args = def_circle_args
-        if 'fill' not in circle_args: circle_args['fill'] = False
+        if circle_args is None:
+            circle_args = def_circle_args
+        if "fill" not in circle_args:
+            circle_args["fill"] = False
         self.circle_args = circle_args
         self.text = text
-        if text_args is None: text_args = def_text_args
+        if text_args is None:
+            text_args = def_text_args
         self.text_args = text_args
         self.coord_system = coord_system
         self.transform = None
@@ -1386,33 +1597,34 @@ class SphereCallback(PlotCallback):
             if isinstance(self.center, YTArray):
                 units = self.center.units
             else:
-                units = 'code_length'
+                units = "code_length"
             self.radius = self.radius.to(units)
 
         # This assures the radius has the appropriate size in
         # the different coordinate systems, since one cannot simply
         # apply a different transform for a length in the same way
         # you can for a coordinate.
-        if self.coord_system == 'data' or self.coord_system == 'plot':
+        if self.coord_system == "data" or self.coord_system == "plot":
             self.radius = self.radius * self._pixel_scale(plot)[0]
         else:
-            self.radius /= (plot.xlim[1]-plot.xlim[0]).v
+            self.radius /= (plot.xlim[1] - plot.xlim[0]).v
 
-        x,y = self._sanitize_coord_system(plot, self.center,
-                               coord_system=self.coord_system)
+        x, y = self._sanitize_coord_system(
+            plot, self.center, coord_system=self.coord_system
+        )
 
-        cir = Circle((x, y), self.radius, transform=self.transform,
-                     **self.circle_args)
+        cir = Circle((x, y), self.radius, transform=self.transform, **self.circle_args)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
 
         plot._axes.add_patch(cir)
         if self.text is not None:
-            label = plot._axes.text(x, y, self.text, transform=self.transform,
-                                    **self.text_args)
+            label = plot._axes.text(
+                x, y, self.text, transform=self.transform, **self.text_args
+            )
             self._set_font_properties(plot, [label], **self.text_args)
 
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
 
 
 class TextLabelCallback(PlotCallback):
@@ -1475,18 +1687,30 @@ class TextLabelCallback(PlotCallback):
     ...                                 'edgecolor':'white', 'alpha':0.5})
     >>> s.save()
     """
+
     _type_name = "text"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    def __init__(self, pos, text, data_coords=False, coord_system='data',
-                 text_args=None, inset_box_args=None):
-        def_text_args = {'color':'white'}
+
+    def __init__(
+        self,
+        pos,
+        text,
+        data_coords=False,
+        coord_system="data",
+        text_args=None,
+        inset_box_args=None,
+    ):
+        def_text_args = {"color": "white"}
         self.pos = pos
         self.text = text
         if data_coords:
-            coord_system = 'data'
-            warnings.warn("The data_coords keyword is deprecated.  Please set "
-                          "the keyword coord_system='data' instead.")
-        if text_args is None: text_args = def_text_args
+            coord_system = "data"
+            warnings.warn(
+                "The data_coords keyword is deprecated.  Please set "
+                "the keyword coord_system='data' instead."
+            )
+        if text_args is None:
+            text_args = def_text_args
         self.text_args = text_args
         self.inset_box_args = inset_box_args
         self.coord_system = coord_system
@@ -1494,19 +1718,20 @@ class TextLabelCallback(PlotCallback):
 
     def __call__(self, plot):
         kwargs = self.text_args.copy()
-        x,y = self._sanitize_coord_system(plot, self.pos,
-                               coord_system=self.coord_system)
+        x, y = self._sanitize_coord_system(
+            plot, self.pos, coord_system=self.coord_system
+        )
 
         # Set the font properties of text from this callback to be
         # consistent with other text labels in this figure
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         if self.inset_box_args is not None:
-            kwargs['bbox'] = self.inset_box_args
-        label = plot._axes.text(x, y, self.text, transform=self.transform,
-                                **kwargs)
+            kwargs["bbox"] = self.inset_box_args
+        label = plot._axes.text(x, y, self.text, transform=self.transform, **kwargs)
         self._set_font_properties(plot, [label], **kwargs)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
+
 
 class PointAnnotateCallback(TextLabelCallback):
     """
@@ -1515,25 +1740,41 @@ class PointAnnotateCallback(TextLabelCallback):
     for more information.
 
     """
+
     _type_name = "point"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
-    def __init__(self, pos, text, data_coords=False, coord_system='data',
-                 text_args=None, inset_box_args=None):
-        super(PointAnnotateCallback, self).__init__(pos, text, data_coords,
-                                                    coord_system, text_args,
-                                                    inset_box_args)
-        warnings.warn("The PointAnnotateCallback (annotate_point()) is "
-                      "deprecated.  Please use the TextLabelCallback "
-                      "(annotate_point()) instead.")
+
+    def __init__(
+        self,
+        pos,
+        text,
+        data_coords=False,
+        coord_system="data",
+        text_args=None,
+        inset_box_args=None,
+    ):
+        super(PointAnnotateCallback, self).__init__(
+            pos, text, data_coords, coord_system, text_args, inset_box_args
+        )
+        warnings.warn(
+            "The PointAnnotateCallback (annotate_point()) is "
+            "deprecated.  Please use the TextLabelCallback "
+            "(annotate_point()) instead."
+        )
 
     def __call__(self, plot):
         super(PointAnnotateCallback, self).__call__(plot)
+
 
 class HaloCatalogCallback(PlotCallback):
     """
     Plots circles at the locations of all the halos
     in a halo catalog with radii corresponding to the
     virial radius of each halo.
+
+    Note, this functionality requires the yt_astro_analysis
+    package. See https://yt-astro-analysis.readthedocs.io/
+    for more information.
 
     Parameters
     ----------
@@ -1599,7 +1840,7 @@ class HaloCatalogCallback(PlotCallback):
 
     >>> # plot halos from a HaloCatalog
     >>> import yt
-    >>> from yt.extensions.astro_analysis.halo_analysis.halo_catalog import HaloCatalog
+    >>> from yt.extensions.astro_analysis.halo_analysis.api import HaloCatalog
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
     >>> hc = HaloCatalog(data_ds=dds, halos_ds=hds)
@@ -1609,36 +1850,48 @@ class HaloCatalogCallback(PlotCallback):
 
     """
 
-    _type_name = 'halos'
+    _type_name = "halos"
     region = None
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube")
 
-    def __init__(self, halo_catalog, circle_args=None, circle_kwargs=None,
-                 width=None, annotate_field=None, radius_field='virial_radius',
-                 center_field_prefix="particle_position",
-                 text_args=None, font_kwargs=None, factor=1.0):
+    def __init__(
+        self,
+        halo_catalog,
+        circle_args=None,
+        circle_kwargs=None,
+        width=None,
+        annotate_field=None,
+        radius_field="virial_radius",
+        center_field_prefix="particle_position",
+        text_args=None,
+        font_kwargs=None,
+        factor=1.0,
+    ):
+
+        try:
+            from yt_astro_analysis.halo_analysis.api import HaloCatalog
+        except ImportError:
+            HaloCatalog = NotAModule("yt_astro_analysis")
 
         PlotCallback.__init__(self)
-        def_circle_args = {'edgecolor':'white', 'facecolor':'None'}
-        def_text_args = {'color':'white'}
-
-        is_hc = (isinstance(halo_catalog, HaloCatalog) or
-                 (AAHaloCatalog and isinstance(halo_catalog, AAHaloCatalog)))
+        def_circle_args = {"edgecolor": "white", "facecolor": "None"}
+        def_text_args = {"color": "white"}
 
         if isinstance(halo_catalog, YTDataContainer):
             self.halo_data = halo_catalog
         elif isinstance(halo_catalog, Dataset):
             self.halo_data = halo_catalog.all_data()
-        elif is_hc:
+        elif isinstance(halo_catalog, HaloCatalog):
             if halo_catalog.data_source.ds == halo_catalog.halos_ds:
                 self.halo_data = halo_catalog.data_source
             else:
                 self.halo_data = halo_catalog.halos_ds.all_data()
         else:
             raise RuntimeError(
-                "halo_catalog argument must be a HaloCatalog object, " +
-                "a dataset, or a data container.")
+                "halo_catalog argument must be a HaloCatalog object, "
+                + "a dataset, or a data container."
+            )
 
         self.width = width
         self.radius_field = radius_field
@@ -1646,20 +1899,27 @@ class HaloCatalogCallback(PlotCallback):
         self.annotate_field = annotate_field
         if circle_kwargs is not None:
             circle_args = circle_kwargs
-            warnings.warn("The circle_kwargs keyword is deprecated.  Please "
-                          "use the circle_args keyword instead.")
+            warnings.warn(
+                "The circle_kwargs keyword is deprecated.  Please "
+                "use the circle_args keyword instead."
+            )
         if font_kwargs is not None:
             text_args = font_kwargs
-            warnings.warn("The font_kwargs keyword is deprecated.  Please use "
-                          "the text_args keyword instead.")
-        if circle_args is None: circle_args = def_circle_args
+            warnings.warn(
+                "The font_kwargs keyword is deprecated.  Please use "
+                "the text_args keyword instead."
+            )
+        if circle_args is None:
+            circle_args = def_circle_args
         self.circle_args = circle_args
-        if text_args is None: text_args = def_text_args
+        if text_args is None:
+            text_args = def_text_args
         self.text_args = text_args
         self.factor = factor
 
     def __call__(self, plot):
         from matplotlib.patches import Circle
+
         data = plot.data
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
@@ -1681,8 +1941,8 @@ class HaloCatalogCallback(PlotCallback):
         px = halo_data[field_x][:].in_units(units)
         py = halo_data[field_y][:].in_units(units)
 
-        xplotcenter = (plot.xlim[0] + plot.xlim[1])/2
-        yplotcenter = (plot.ylim[0] + plot.ylim[1])/2
+        xplotcenter = (plot.xlim[0] + plot.xlim[1]) / 2
+        yplotcenter = (plot.ylim[0] + plot.ylim[1]) / 2
 
         xdomaincenter = plot.ds.domain_center[xax]
         ydomaincenter = plot.ds.domain_center[yax]
@@ -1703,32 +1963,31 @@ class HaloCatalogCallback(PlotCallback):
 
         # Convert halo radii to a radius in pixels
         radius = halo_data[self.radius_field][:].in_units(units)
-        radius = np.array(radius*pixel_scale*self.factor)
+        radius = np.array(radius * pixel_scale * self.factor)
 
         if self.width:
-            pz = halo_data[field_z][:].in_units('code_length')
+            pz = halo_data[field_z][:].in_units("code_length")
             c = data.center[data.axis]
 
             # I should catch an error here if width isn't in this form
             # but I dont really want to reimplement get_sanitized_width...
-            width = data.ds.arr(self.width[0], self.width[1]).in_units('code_length')
+            width = data.ds.arr(self.width[0], self.width[1]).in_units("code_length")
 
-            indices = np.where((pz > c-0.5*width) & (pz < c+0.5*width))
+            indices = np.where((pz > c - 0.5 * width) & (pz < c + 0.5 * width))
 
             px = px[indices]
             py = py[indices]
             radius = radius[indices]
 
-        for x,y,r in zip(px, py, radius):
-            plot._axes.add_artist(Circle(xy=(x,y),
-                radius = r, **self.circle_args))
+        for x, y, r in zip(px, py, radius):
+            plot._axes.add_artist(Circle(xy=(x, y), radius=r, **self.circle_args))
 
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
 
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
-            texts = ['{:g}'.format(float(dat))for dat in annotate_dat]
+            texts = ["{:g}".format(float(dat)) for dat in annotate_dat]
             labels = []
             for pos_x, pos_y, t in zip(px, py, texts):
                 labels.append(plot._axes.text(pos_x, pos_y, t, **self.text_args))
@@ -1736,6 +1995,7 @@ class HaloCatalogCallback(PlotCallback):
             # Set the font properties of text from this callback to be
             # consistent with other text labels in this figure
             self._set_font_properties(plot, labels, **self.text_args)
+
 
 class ParticleCallback(PlotCallback):
     """
@@ -1747,12 +2007,24 @@ class ParticleCallback(PlotCallback):
     An alternate data source can be specified with *data_source*, but by
     default the plot's data source will be queried.
     """
+
     _type_name = "particles"
     region = None
     _descriptor = None
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
-    def __init__(self, width, p_size=1.0, col='k', marker='o', stride=1,
-                 ptype='all', minimum_mass=None, alpha=1.0, data_source=None):
+
+    def __init__(
+        self,
+        width,
+        p_size=1.0,
+        col="k",
+        marker="o",
+        stride=1,
+        ptype="all",
+        minimum_mass=None,
+        alpha=1.0,
+        data_source=None,
+    ):
         PlotCallback.__init__(self)
         self.width = width
         self.p_size = p_size
@@ -1762,11 +2034,12 @@ class ParticleCallback(PlotCallback):
         self.ptype = ptype
         self.minimum_mass = minimum_mass
         self.alpha = alpha
-        self.data_source=data_source
+        self.data_source = data_source
         if self.minimum_mass is not None:
-            warnings.warn("The minimum_mass keyword is deprecated.  Please use "
-                          "an appropriate particle filter and the ptype keyword instead.")
-
+            warnings.warn(
+                "The minimum_mass keyword is deprecated.  Please use "
+                "an appropriate particle filter and the ptype keyword instead."
+            )
 
     def __call__(self, plot):
         data = plot.data
@@ -1780,13 +2053,15 @@ class ParticleCallback(PlotCallback):
         # we construct a rectangular prism
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
-        if type(self.data_source)==YTCutRegion:
-            mylog.warning("Parameter 'width' is ignored in annotate_particles if the "
-                          "data_source is a cut_region. "
-                          "See https://github.com/yt-project/yt/issues/1933 for further details.")
-            self.region=self.data_source
+        if isinstance(self.data_source, YTCutRegion):
+            mylog.warning(
+                "Parameter 'width' is ignored in annotate_particles if the "
+                "data_source is a cut_region. "
+                "See https://github.com/yt-project/yt/issues/1933 for further details."
+            )
+            self.region = self.data_source
         else:
-            self.region=self._get_region((x0,x1), (y0,y1), plot.data.axis, data)
+            self.region = self._get_region((x0, x1), (y0, y1), plot.data.axis, data)
         ax = data.axis
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]
@@ -1796,33 +2071,50 @@ class ParticleCallback(PlotCallback):
         pt = self.ptype
         self.periodic_x = plot.data.ds.periodicity[xax]
         self.periodic_y = plot.data.ds.periodicity[yax]
-        self.LE = plot.data.ds.domain_left_edge[xax], \
-                  plot.data.ds.domain_left_edge[yax]
-        self.RE = plot.data.ds.domain_right_edge[xax], \
-                  plot.data.ds.domain_right_edge[yax]
+        self.LE = plot.data.ds.domain_left_edge[xax], plot.data.ds.domain_left_edge[yax]
+        self.RE = (
+            plot.data.ds.domain_right_edge[xax],
+            plot.data.ds.domain_right_edge[yax],
+        )
         period_x = plot.data.ds.domain_width[xax]
         period_y = plot.data.ds.domain_width[yax]
-        particle_x, particle_y = self._enforce_periodic(self.region[pt, field_x],
-                                                        self.region[pt, field_y],
-                                                        x0, x1, period_x,
-                                                        y0, y1, period_y)
-        gg = ( ( particle_x >= x0 ) & ( particle_x <= x1 )
-           &   ( particle_y >= y0 ) & ( particle_y <= y1 ) )
+        particle_x, particle_y = self._enforce_periodic(
+            self.region[pt, field_x],
+            self.region[pt, field_y],
+            x0,
+            x1,
+            period_x,
+            y0,
+            y1,
+            period_y,
+        )
+        gg = (
+            (particle_x >= x0)
+            & (particle_x <= x1)
+            & (particle_y >= y0)
+            & (particle_y <= y1)
+        )
         if self.minimum_mass is not None:
-            gg &= (self.region[pt, "particle_mass"] >= self.minimum_mass)
-            if gg.sum() == 0: return
-        px, py = [particle_x[gg][::self.stride], particle_y[gg][::self.stride]]
+            gg &= self.region[pt, "particle_mass"] >= self.minimum_mass
+            if gg.sum() == 0:
+                return
+        px, py = [particle_x[gg][:: self.stride], particle_y[gg][:: self.stride]]
         px, py = self._convert_to_plot(plot, [px, py])
-        plot._axes.scatter(px, py, edgecolors='None', marker=self.marker,
-                           s=self.p_size, c=self.color,alpha=self.alpha)
-        plot._axes.set_xlim(xx0,xx1)
-        plot._axes.set_ylim(yy0,yy1)
+        plot._axes.scatter(
+            px,
+            py,
+            edgecolors="None",
+            marker=self.marker,
+            s=self.p_size,
+            c=self.color,
+            alpha=self.alpha,
+        )
+        plot._axes.set_xlim(xx0, xx1)
+        plot._axes.set_ylim(yy0, yy1)
 
-    def _enforce_periodic(self,
-                          particle_x,
-                          particle_y,
-                          x0, x1, period_x,
-                          y0, y1, period_y):
+    def _enforce_periodic(
+        self, particle_x, particle_y, x0, x1, period_x, y0, y1, period_y
+    ):
         #  duplicate particles if periodic in that direction AND if the plot
         #  extends outside the domain boundaries.
         if self.periodic_x and x0 > self.RE[0]:
@@ -1840,33 +2132,38 @@ class ParticleCallback(PlotCallback):
         return particle_x, particle_y
 
     def _get_region(self, xlim, ylim, axis, data):
-        LE, RE = [None]*3, [None]*3
+        LE, RE = [None] * 3, [None] * 3
         ds = data.ds
         xax = ds.coordinates.x_axis[axis]
         yax = ds.coordinates.y_axis[axis]
         zax = axis
         LE[xax], RE[xax] = xlim
         LE[yax], RE[yax] = ylim
-        LE[zax] = data.center[zax] - self.width*0.5
+        LE[zax] = data.center[zax] - self.width * 0.5
         LE[zax].convert_to_units("code_length")
         RE[zax] = LE[zax] + self.width
-        if self.region is not None \
-            and np.all(self.region.left_edge <= LE) \
-            and np.all(self.region.right_edge >= RE):
+        if (
+            self.region is not None
+            and np.all(self.region.left_edge <= LE)
+            and np.all(self.region.right_edge >= RE)
+        ):
             return self.region
         self.region = data.ds.region(data.center, LE, RE, data_source=self.data_source)
         return self.region
+
 
 class TitleCallback(PlotCallback):
     """
     Accepts a *title* and adds it to the plot
     """
+
     _type_name = "title"
+
     def __init__(self, title):
         PlotCallback.__init__(self)
         self.title = title
 
-    def __call__(self,plot):
+    def __call__(self, plot):
         plot._axes.set_title(self.title)
         # Set the font properties of text from this callback to be
         # consistent with other text labels in this figure
@@ -1895,6 +2192,7 @@ class MeshLinesCallback(PlotCallback):
     >>> sl.annotate_mesh_lines(plot_args={'color':'black'})
 
     """
+
     _type_name = "mesh_lines"
     _supported_geometries = ("cartesian", "spectral_cube")
 
@@ -1903,17 +2201,18 @@ class MeshLinesCallback(PlotCallback):
         self.plot_args = plot_args
 
     def promote_2d_to_3d(self, coords, indices, plot):
-        new_coords = np.zeros((2*coords.shape[0], 3))
-        new_connects = np.zeros((indices.shape[0], 2*indices.shape[1]),
-                                dtype=np.int64)
+        new_coords = np.zeros((2 * coords.shape[0], 3))
+        new_connects = np.zeros(
+            (indices.shape[0], 2 * indices.shape[1]), dtype=np.int64
+        )
 
-        new_coords[0:coords.shape[0],0:2] = coords
-        new_coords[0:coords.shape[0],2] = plot.ds.domain_left_edge[2]
-        new_coords[coords.shape[0]:,0:2] = coords
-        new_coords[coords.shape[0]:,2] = plot.ds.domain_right_edge[2]
+        new_coords[0 : coords.shape[0], 0:2] = coords
+        new_coords[0 : coords.shape[0], 2] = plot.ds.domain_left_edge[2]
+        new_coords[coords.shape[0] :, 0:2] = coords
+        new_coords[coords.shape[0] :, 2] = plot.ds.domain_right_edge[2]
 
-        new_connects[:,0:indices.shape[1]] = indices
-        new_connects[:,indices.shape[1]:] = indices + coords.shape[0]
+        new_connects[:, 0 : indices.shape[1]] = indices
+        new_connects[:, indices.shape[1] :] = indices + coords.shape[0]
 
         return new_coords, new_connects
 
@@ -1921,12 +2220,14 @@ class MeshLinesCallback(PlotCallback):
 
         index = plot.ds.index
         if not issubclass(type(index), UnstructuredIndex):
-            raise RuntimeError("Mesh line annotations only work for "
-                               "unstructured or semi-structured mesh data.")
+            raise RuntimeError(
+                "Mesh line annotations only work for "
+                "unstructured or semi-structured mesh data."
+            )
         for i, m in enumerate(index.meshes):
             try:
                 ftype, fname = plot.field
-                if ftype.startswith('connect') and int(ftype[-1]) - 1 != i:
+                if ftype.startswith("connect") and int(ftype[-1]) - 1 != i:
                     continue
             except ValueError:
                 pass
@@ -1958,6 +2259,7 @@ class TriangleFacetsCallback(PlotCallback):
     of the triangles are then added to the plot to create an outline
     of the geometry represented by the triangles.
     """
+
     _type_name = "triangle_facets"
     _supported_geometries = ("cartesian", "spectral_cube")
 
@@ -1975,19 +2277,22 @@ class TriangleFacetsCallback(PlotCallback):
             vertices = plot.data.pf.arr(self.vertices, "code_length")
         else:
             vertices = self.vertices
-        l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, vertices)[:,:,(xax, yax)]
+        l_cy = triangle_plane_intersect(plot.data.axis, plot.data.coord, vertices)[
+            :, :, (xax, yax)
+        ]
         # l_cy is shape (nlines, 2, 2)
         # reformat for conversion to plot coordinates
-        l_cy = np.rollaxis(l_cy,0,3)
+        l_cy = np.rollaxis(l_cy, 0, 3)
         # convert all line starting points
-        l_cy[0] = self._convert_to_plot(plot,l_cy[0])
+        l_cy[0] = self._convert_to_plot(plot, l_cy[0])
         # convert all line ending points
-        l_cy[1] = self._convert_to_plot(plot,l_cy[1])
+        l_cy[1] = self._convert_to_plot(plot, l_cy[1])
         # convert back to shape (nlines, 2, 2)
-        l_cy = np.rollaxis(l_cy,2,0)
+        l_cy = np.rollaxis(l_cy, 2, 0)
         # create line collection and add it to the plot
         lc = matplotlib.collections.LineCollection(l_cy, **self.plot_args)
         plot._axes.add_collection(lc)
+
 
 class TimestampCallback(PlotCallback):
     """
@@ -2068,7 +2373,8 @@ class TimestampCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of any arbitrary parameters to be passed to the Matplotlib
         FancyBboxPatch object as the inset box around the text.
-        Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black', 'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
+        Defaults: ``{'boxstyle':'square', 'pad':0.3, 'facecolor':'black',
+                     'linewidth':3, 'edgecolor':'white', 'alpha':0.5}``
 
     Example
     -------
@@ -2078,21 +2384,39 @@ class TimestampCallback(PlotCallback):
     >>> s = yt.SlicePlot(ds, 'z', 'density')
     >>> s.annotate_timestamp()
     """
+
     _type_name = "timestamp"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
-    def __init__(self, x_pos=None, y_pos=None, corner='lower_left', time=True,
-                 redshift=False, time_format="t = {time:.1f} {units}",
-                 time_unit=None, redshift_format="z = {redshift:.2f}",
-                 draw_inset_box=False, coord_system='axis', time_offset=None,
-                 text_args=None, inset_box_args=None):
 
-        def_text_args = {'color': 'white',
-                         'horizontalalignment': 'center',
-                         'verticalalignment': 'top'}
-        def_inset_box_args = {'boxstyle': 'square,pad=0.3',
-                              'facecolor': 'black',
-                              'linewidth': 3,
-                              'edgecolor': 'white', 'alpha': 0.5}
+    def __init__(
+        self,
+        x_pos=None,
+        y_pos=None,
+        corner="lower_left",
+        time=True,
+        redshift=False,
+        time_format="t = {time:.1f} {units}",
+        time_unit=None,
+        redshift_format="z = {redshift:.2f}",
+        draw_inset_box=False,
+        coord_system="axis",
+        time_offset=None,
+        text_args=None,
+        inset_box_args=None,
+    ):
+
+        def_text_args = {
+            "color": "white",
+            "horizontalalignment": "center",
+            "verticalalignment": "top",
+        }
+        def_inset_box_args = {
+            "boxstyle": "square,pad=0.3",
+            "facecolor": "black",
+            "linewidth": 3,
+            "edgecolor": "white",
+            "alpha": 0.5,
+        }
 
         # Set position based on corner argument.
         self.pos = (x_pos, y_pos)
@@ -2104,41 +2428,46 @@ class TimestampCallback(PlotCallback):
         self.time_unit = time_unit
         self.coord_system = coord_system
         self.time_offset = time_offset
-        if text_args is None: text_args = def_text_args
+        if text_args is None:
+            text_args = def_text_args
         self.text_args = text_args
-        if inset_box_args is None: inset_box_args = def_inset_box_args
+        if inset_box_args is None:
+            inset_box_args = def_inset_box_args
         self.inset_box_args = inset_box_args
 
         # if inset box is not desired, set inset_box_args to {}
-        if not draw_inset_box: self.inset_box_args = None
+        if not draw_inset_box:
+            self.inset_box_args = None
 
     def __call__(self, plot):
         # Setting pos overrides corner argument
         if self.pos[0] is None or self.pos[1] is None:
-            if self.corner == 'upper_left':
+            if self.corner == "upper_left":
                 self.pos = (0.03, 0.96)
-                self.text_args['horizontalalignment'] = 'left'
-                self.text_args['verticalalignment'] = 'top'
-            elif self.corner == 'upper_right':
+                self.text_args["horizontalalignment"] = "left"
+                self.text_args["verticalalignment"] = "top"
+            elif self.corner == "upper_right":
                 self.pos = (0.97, 0.96)
-                self.text_args['horizontalalignment'] = 'right'
-                self.text_args['verticalalignment'] = 'top'
-            elif self.corner == 'lower_left':
+                self.text_args["horizontalalignment"] = "right"
+                self.text_args["verticalalignment"] = "top"
+            elif self.corner == "lower_left":
                 self.pos = (0.03, 0.03)
-                self.text_args['horizontalalignment'] = 'left'
-                self.text_args['verticalalignment'] = 'bottom'
-            elif self.corner == 'lower_right':
+                self.text_args["horizontalalignment"] = "left"
+                self.text_args["verticalalignment"] = "bottom"
+            elif self.corner == "lower_right":
                 self.pos = (0.97, 0.03)
-                self.text_args['horizontalalignment'] = 'right'
-                self.text_args['verticalalignment'] = 'bottom'
+                self.text_args["horizontalalignment"] = "right"
+                self.text_args["verticalalignment"] = "bottom"
             elif self.corner is None:
                 self.pos = (0.5, 0.5)
-                self.text_args['horizontalalignment'] = 'center'
-                self.text_args['verticalalignment'] = 'center'
+                self.text_args["horizontalalignment"] = "center"
+                self.text_args["verticalalignment"] = "center"
             else:
-                raise SyntaxError("Argument 'corner' must be set to "
-                                  "'upper_left', 'upper_right', 'lower_left', "
-                                  "'lower_right', or None")
+                raise SyntaxError(
+                    "Argument 'corner' must be set to "
+                    "'upper_left', 'upper_right', 'lower_left', "
+                    "'lower_right', or None"
+                )
 
         self.text = ""
 
@@ -2153,9 +2482,9 @@ class TimestampCallback(PlotCallback):
                     self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
                 else:
                     # in the case of non- code units then we
-                    self.time_unit = plot.ds.get_smallest_appropriate_unit( \
-                                                plot.ds.current_time,
-                                                quantity='time')
+                    self.time_unit = plot.ds.get_smallest_appropriate_unit(
+                        plot.ds.current_time, quantity="time"
+                    )
             t = plot.ds.current_time.in_units(self.time_unit)
             if self.time_offset is not None:
                 if isinstance(self.time_offset, tuple):
@@ -2163,20 +2492,20 @@ class TimestampCallback(PlotCallback):
                 elif isinstance(self.time_offset, Number):
                     toffset = plot.ds.quan(self.time_offset, self.time_unit)
                 elif not isinstance(self.time_offset, YTQuantity):
-                    raise RuntimeError("'time_offset' must be a float, tuple, or"
-                                       "YTQuantity!")
+                    raise RuntimeError(
+                        "'time_offset' must be a float, tuple, or" "YTQuantity!"
+                    )
                 t -= toffset.in_units(self.time_unit)
             if isinstance(self.time_unit, Unit):
                 # here the time unit will be in brackets on the annotation.
                 # This will most likely be in "code_time".
                 un = self.time_unit.latex_representation()
-                time_unit = r'$\ \ ('+un+r')$'
+                time_unit = r"$\ \ (" + un + r")$"
             else:
                 # the 'smallest_appropriate_unit' function will return a
                 # string, so we shouldn't need to format it further.
                 time_unit = self.time_unit
-            self.text += self.time_format.format(time=float(t),
-                                                 units=time_unit)
+            self.text += self.time_format.format(time=float(t), units=time_unit)
 
         # If time and redshift both shown, do one on top of the other
         if self.time and self.redshift:
@@ -2187,19 +2516,24 @@ class TimestampCallback(PlotCallback):
             try:
                 z = plot.data.ds.current_redshift
             except AttributeError:
-                raise AttributeError("Dataset does not have current_redshift. "
-                                     "Set redshift=False.")
+                raise AttributeError(
+                    "Dataset does not have current_redshift. " "Set redshift=False."
+                )
             # Replace instances of -0.0* with 0.0* to avoid
             # negative null redshifts (e.g., "-0.00").
             self.text += self.redshift_format.format(redshift=float(z))
-            self.text = re.sub('-(0.0*)$', "\g<1>", self.text)
+            self.text = re.sub("-(0.0*)$", "\g<1>", self.text)
 
         # This is just a fancy wrapper around the TextLabelCallback
-        tcb = TextLabelCallback(self.pos, self.text,
-                                coord_system=self.coord_system,
-                                text_args=self.text_args,
-                                inset_box_args=self.inset_box_args)
+        tcb = TextLabelCallback(
+            self.pos,
+            self.text,
+            coord_system=self.coord_system,
+            text_args=self.text_args,
+            inset_box_args=self.inset_box_args,
+        )
         return tcb(plot)
+
 
 class ScaleCallback(PlotCallback):
     """
@@ -2276,7 +2610,8 @@ class ScaleCallback(PlotCallback):
     inset_box_args : dictionary, optional
         A dictionary of keyword arguments to be passed to the matplotlib Patch
         object that represents the inset box.
-        Defaults: ``{'facecolor': 'black', 'linewidth': 3, 'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
+        Defaults: ``{'facecolor': 'black', 'linewidth': 3,
+                     'edgecolor': 'white', 'alpha': 0.5, 'boxstyle': 'square'}``
 
     scale_text_format : string, optional
         This specifies the format of the scalebar value assuming "scale" is the
@@ -2293,26 +2628,34 @@ class ScaleCallback(PlotCallback):
     >>> s = yt.SlicePlot(ds, 'z', 'density')
     >>> s.annotate_scale()
     """
+
     _type_name = "scale"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
-    def __init__(self, corner='lower_right', coeff=None, unit=None, pos=None,
-                 max_frac=0.16, min_frac=0.015, coord_system='axis',
-                 text_args=None, size_bar_args=None, draw_inset_box=False,
-                 inset_box_args=None, scale_text_format="{scale} {units}"):
 
-        def_size_bar_args = {
-            'pad': 0.05,
-            'sep': 5,
-            'borderpad': 1,
-            'color': 'w'
-        }
+    def __init__(
+        self,
+        corner="lower_right",
+        coeff=None,
+        unit=None,
+        pos=None,
+        max_frac=0.16,
+        min_frac=0.015,
+        coord_system="axis",
+        text_args=None,
+        size_bar_args=None,
+        draw_inset_box=False,
+        inset_box_args=None,
+        scale_text_format="{scale} {units}",
+    ):
+
+        def_size_bar_args = {"pad": 0.05, "sep": 5, "borderpad": 1, "color": "w"}
 
         def_inset_box_args = {
-            'facecolor': 'black',
-            'linewidth': 3,
-            'edgecolor': 'white',
-            'alpha': 0.5,
-            'boxstyle': 'square',
+            "facecolor": "black",
+            "linewidth": 3,
+            "edgecolor": "white",
+            "alpha": 0.5,
+            "boxstyle": "square",
         }
 
         # Set position based on corner argument.
@@ -2345,20 +2688,22 @@ class ScaleCallback(PlotCallback):
 
         # Setting pos overrides corner argument
         if self.pos is None:
-            if self.corner == 'upper_left':
+            if self.corner == "upper_left":
                 self.pos = (0.11, 0.952)
-            elif self.corner == 'upper_right':
+            elif self.corner == "upper_right":
                 self.pos = (0.89, 0.952)
-            elif self.corner == 'lower_left':
+            elif self.corner == "lower_left":
                 self.pos = (0.11, 0.052)
-            elif self.corner == 'lower_right':
+            elif self.corner == "lower_right":
                 self.pos = (0.89, 0.052)
             elif self.corner is None:
                 self.pos = (0.5, 0.5)
             else:
-                raise SyntaxError("Argument 'corner' must be set to "
-                                  "'upper_left', 'upper_right', 'lower_left', "
-                                  "'lower_right', or None")
+                raise SyntaxError(
+                    "Argument 'corner' must be set to "
+                    "'upper_left', 'upper_right', 'lower_left', "
+                    "'lower_right', or None"
+                )
 
         # When identifying a best fit distance unit, do not allow scale marker
         # to be greater than max_frac fraction of xaxis or under min_frac
@@ -2366,53 +2711,63 @@ class ScaleCallback(PlotCallback):
         max_scale = self.max_frac * xsize
         min_scale = self.min_frac * xsize
 
-        if self.coeff is None:
-            self.coeff = 1.
-
         # If no units are set, then identify a best fit distance unit
         if self.unit is None:
             min_scale = plot.ds.get_smallest_appropriate_unit(
-                min_scale, return_quantity=True)
+                min_scale, return_quantity=True
+            )
             max_scale = plot.ds.get_smallest_appropriate_unit(
-                max_scale, return_quantity=True)
-            self.coeff = max_scale.v
+                max_scale, return_quantity=True
+            )
+            if self.coeff is None:
+                self.coeff = max_scale.v
             self.unit = max_scale.units
+        elif self.coeff is None:
+            self.coeff = 1
         self.scale = plot.ds.quan(self.coeff, self.unit)
-        text = self.scale_text_format.format(scale=int(self.coeff),
-                                             units=self.unit)
-        image_scale = (plot.frb.convert_distance_x(self.scale) /
-                       plot.frb.convert_distance_x(xsize)).v
-        size_vertical = self.size_bar_args.pop(
-            'size_vertical', .005 * plot.aspect)
+        text = self.scale_text_format.format(scale=int(self.coeff), units=self.unit)
+        image_scale = (
+            plot.frb.convert_distance_x(self.scale) / plot.frb.convert_distance_x(xsize)
+        ).v
+        size_vertical = self.size_bar_args.pop("size_vertical", 0.005 * plot.aspect)
         fontproperties = self.size_bar_args.pop(
-            'fontproperties', plot.font_properties.copy())
-        frameon = self.size_bar_args.pop('frameon', self.draw_inset_box)
+            "fontproperties", plot.font_properties.copy()
+        )
+        frameon = self.size_bar_args.pop("frameon", self.draw_inset_box)
         # FontProperties instances use set_<property>() setter functions
         for key, val in self.text_args.items():
-            setter_func = "set_"+key
+            setter_func = "set_" + key
             try:
                 getattr(fontproperties, setter_func)(val)
             except AttributeError:
-                raise AttributeError("Cannot set text_args keyword " \
-                "to include '%s' because MPL's fontproperties object does " \
-                "not contain function '%s'." % (key, setter_func))
+                raise AttributeError(
+                    "Cannot set text_args keyword "
+                    "to include '%s' because MPL's fontproperties object does "
+                    "not contain function '%s'." % (key, setter_func)
+                )
 
         # this "anchors" the size bar to a box centered on self.pos in axis
         # coordinates
-        self.size_bar_args['bbox_to_anchor'] = self.pos
-        self.size_bar_args['bbox_transform'] = plot._axes.transAxes
+        self.size_bar_args["bbox_to_anchor"] = self.pos
+        self.size_bar_args["bbox_transform"] = plot._axes.transAxes
 
-        bar = AnchoredSizeBar(plot._axes.transAxes, image_scale, text, 10,
-                              size_vertical=size_vertical,
-                              fontproperties=fontproperties,
-                              frameon=frameon,
-                              **self.size_bar_args)
+        bar = AnchoredSizeBar(
+            plot._axes.transAxes,
+            image_scale,
+            text,
+            10,
+            size_vertical=size_vertical,
+            fontproperties=fontproperties,
+            frameon=frameon,
+            **self.size_bar_args,
+        )
 
         bar.patch.set(**self.inset_box_args)
 
         plot._axes.add_artist(bar)
 
         return plot
+
 
 class RayCallback(PlotCallback):
     """
@@ -2428,8 +2783,7 @@ class RayCallback(PlotCallback):
 
     ray : YTOrthoRay, YTRay, or LightRay
         Ray is the object that we want to include.  We overplot the projected
-        trajectory of the ray.  If the object is a
-        analysis_modules.cosmological_observation.light_ray.light_ray.LightRay
+        trajectory of the ray.  If the object is a trident.LightRay
         object, it will only plot the segment of the LightRay that intersects
         the dataset currently displayed.
 
@@ -2457,7 +2811,7 @@ class RayCallback(PlotCallback):
 
     >>> # Overplot a LightRay object on a projection
     >>> import yt
-    >>> from yt.analysis_modules.cosmological_observation.api import LightRay
+    >>> from trident import LightRay
     >>> ds = yt.load('enzo_cosmology_plus/RD0004/RD0004')
     >>> lr = LightRay("enzo_cosmology_plus/AMRCosmology.enzo",
     ...               'Enzo', 0.0, 0.1, time_data=False)
@@ -2467,14 +2821,17 @@ class RayCallback(PlotCallback):
     >>> p.save()
 
     """
+
     _type_name = "ray"
     _supported_geometries = ("cartesian", "spectral_cube", "force")
+
     def __init__(self, ray, arrow=False, plot_args=None):
         PlotCallback.__init__(self)
-        def_plot_args = {'color':'white', 'linewidth':2}
+        def_plot_args = {"color": "white", "linewidth": 2}
         self.ray = ray
         self.arrow = arrow
-        if plot_args is None: plot_args = def_plot_args
+        if plot_args is None:
+            plot_args = def_plot_args
         self.plot_args = plot_args
 
     def _process_ray(self):
@@ -2505,9 +2862,9 @@ class RayCallback(PlotCallback):
         """
 
         for ray_ds in self.ray.light_ray_solution:
-            if ray_ds['unique_identifier'] == str(plot.ds.unique_identifier):
-                start_coord = plot.ds.arr(ray_ds['start'])
-                end_coord = plot.ds.arr(ray_ds['end'])
+            if ray_ds["unique_identifier"] == str(plot.ds.unique_identifier):
+                start_coord = plot.ds.arr(ray_ds["start"])
+                end_coord = plot.ds.arr(ray_ds["end"])
                 return (start_coord, end_coord)
         # if no intersection between the plotted dataset and the LightRay
         # return a false tuple to pass to start_coord
@@ -2526,8 +2883,7 @@ class RayCallback(PlotCallback):
             start_coord, end_coord = self._process_light_ray(plot)
 
         else:
-            raise SyntaxError("ray must be a YTRay, YTOrthoRay, or "
-                              "LightRay object.")
+            raise SyntaxError("ray must be a YTRay, YTOrthoRay, or " "LightRay object.")
 
         # if start_coord and end_coord are all False, it means no intersecting
         # ray segment with this plot.
@@ -2541,28 +2897,33 @@ class RayCallback(PlotCallback):
                 start_coord.to("code_length"),
                 end_coord.to("code_length"),
                 left=plot.ds.domain_left_edge.to("code_length"),
-                right=plot.ds.domain_right_edge.to("code_length"))
+                right=plot.ds.domain_right_edge.to("code_length"),
+            )
         else:
             segments = [[start_coord, end_coord]]
 
         # To assure that the last ray segment has an arrow if so desired
         # and all other ray segments are lines
         for segment in segments[:-1]:
-            cb = LinePlotCallback(segment[0], segment[1],
-                                  coord_system='data',
-                                  plot_args=self.plot_args)
+            cb = LinePlotCallback(
+                segment[0], segment[1], coord_system="data", plot_args=self.plot_args
+            )
             cb(plot)
         segment = segments[-1]
         if self.arrow:
-            cb = ArrowCallback(segment[1], starting_pos=segment[0],
-                               coord_system='data',
-                               plot_args=self.plot_args)
+            cb = ArrowCallback(
+                segment[1],
+                starting_pos=segment[0],
+                coord_system="data",
+                plot_args=self.plot_args,
+            )
         else:
-           cb = LinePlotCallback(segment[0], segment[1],
-                               coord_system='data',
-                               plot_args=self.plot_args)
+            cb = LinePlotCallback(
+                segment[0], segment[1], coord_system="data", plot_args=self.plot_args
+            )
         cb(plot)
         return plot
+
 
 class LineIntegralConvolutionCallback(PlotCallback):
     """
@@ -2611,10 +2972,21 @@ class LineIntegralConvolutionCallback(PlotCallback):
     >>> s.annotate_line_integral_convolution('velocity_x', 'velocity_y',\
                                              lim=(0.5,0.65))
     """
+
     _type_name = "line_integral_convolution"
     _supported_geometries = ("cartesian", "spectral_cube", "polar", "cylindrical")
-    def __init__(self, field_x, field_y, texture=None, kernellen=50.,
-                 lim=(0.5,0.6), cmap='binary', alpha=0.8, const_alpha=False):
+
+    def __init__(
+        self,
+        field_x,
+        field_y,
+        texture=None,
+        kernellen=50.0,
+        lim=(0.5, 0.6),
+        cmap="binary",
+        alpha=0.8,
+        const_alpha=False,
+    ):
         PlotCallback.__init__(self)
         self.field_x = field_x
         self.field_y = field_y
@@ -2627,6 +2999,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
 
     def __call__(self, plot):
         from matplotlib import cm
+
         bounds = self._physical_bounds(plot)
         extent = self._plot_bounds(plot)
 
@@ -2634,46 +3007,57 @@ class LineIntegralConvolutionCallback(PlotCallback):
         # set it in reverse order
         nx = plot.image._A.shape[1]
         ny = plot.image._A.shape[0]
-        pixX = plot.data.ds.coordinates.pixelize(plot.data.axis,
-                                                 plot.data,
-                                                 self.field_x,
-                                                 bounds,
-                                                 (nx,ny))
-        pixY = plot.data.ds.coordinates.pixelize(plot.data.axis,
-                                                 plot.data,
-                                                 self.field_y,
-                                                 bounds,
-                                                 (nx,ny))
+        pixX = plot.data.ds.coordinates.pixelize(
+            plot.data.axis, plot.data, self.field_x, bounds, (nx, ny)
+        )
+        pixY = plot.data.ds.coordinates.pixelize(
+            plot.data.axis, plot.data, self.field_y, bounds, (nx, ny)
+        )
 
-        vectors = np.concatenate((pixX[...,np.newaxis],
-                                  pixY[...,np.newaxis]),axis=2)
+        vectors = np.concatenate((pixX[..., np.newaxis], pixY[..., np.newaxis]), axis=2)
 
         if self.texture is None:
-            self.texture = np.random.rand(nx,ny).astype(np.double)
-        elif self.texture.shape != (nx,ny):
-            raise SyntaxError("'texture' must have the same shape "
-                              "with that of output image (%d, %d)" % (nx,ny))
+            self.texture = np.random.rand(nx, ny).astype(np.double)
+        elif self.texture.shape != (nx, ny):
+            raise SyntaxError(
+                "'texture' must have the same shape "
+                "with that of output image (%d, %d)" % (nx, ny)
+            )
 
-        kernel = np.sin(np.arange(self.kernellen)*np.pi/self.kernellen)
+        kernel = np.sin(np.arange(self.kernellen) * np.pi / self.kernellen)
         kernel = kernel.astype(np.double)
 
-        lic_data = line_integral_convolution_2d(vectors,self.texture,kernel)
+        lic_data = line_integral_convolution_2d(vectors, self.texture, kernel)
         lic_data = lic_data / lic_data.max()
-        lic_data_clip = np.clip(lic_data,self.lim[0],self.lim[1])
+        lic_data_clip = np.clip(lic_data, self.lim[0], self.lim[1])
 
         if self.const_alpha:
-            plot._axes.imshow(lic_data_clip, extent=extent, cmap=self.cmap,
-                              alpha=self.alpha, origin='lower', aspect="auto")
+            plot._axes.imshow(
+                lic_data_clip,
+                extent=extent,
+                cmap=self.cmap,
+                alpha=self.alpha,
+                origin="lower",
+                aspect="auto",
+            )
         else:
-            lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).\
-                            to_rgba(lic_data_clip)
-            lic_data_clip_rescale = (lic_data_clip - self.lim[0]) \
-                                    / (self.lim[1] - self.lim[0])
-            lic_data_rgba[...,3] = lic_data_clip_rescale * self.alpha
-            plot._axes.imshow(lic_data_rgba, extent=extent, cmap=self.cmap,
-                              origin='lower', aspect="auto")
+            lic_data_rgba = cm.ScalarMappable(norm=None, cmap=self.cmap).to_rgba(
+                lic_data_clip
+            )
+            lic_data_clip_rescale = (lic_data_clip - self.lim[0]) / (
+                self.lim[1] - self.lim[0]
+            )
+            lic_data_rgba[..., 3] = lic_data_clip_rescale * self.alpha
+            plot._axes.imshow(
+                lic_data_rgba,
+                extent=extent,
+                cmap=self.cmap,
+                origin="lower",
+                aspect="auto",
+            )
 
         return plot
+
 
 class CellEdgesCallback(PlotCallback):
     """
@@ -2703,10 +3087,13 @@ class CellEdgesCallback(PlotCallback):
     >>> s.annotate_cell_edges()
     >>> s.save()
     """
+
     _type_name = "cell_edges"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
-    def __init__(self, line_width=0.002, alpha = 1.0, color='black'):
+
+    def __init__(self, line_width=0.002, alpha=1.0, color="black"):
         from matplotlib.colors import ColorConverter
+
         conv = ColorConverter()
         PlotCallback.__init__(self)
         self.line_width = line_width
@@ -2714,48 +3101,54 @@ class CellEdgesCallback(PlotCallback):
         self.color = (np.array(conv.to_rgb(color)) * 255).astype("uint8")
 
     def __call__(self, plot):
-        if plot.data.ds.geometry == "cylindrical" and \
-            plot.data.ds.dimensionality == 3:
-            raise NotImplementedError("Cell edge annotation is only supported for \
-                for 2D cylindrical geometry, not 3D")
+        if plot.data.ds.geometry == "cylindrical" and plot.data.ds.dimensionality == 3:
+            raise NotImplementedError(
+                "Cell edge annotation is only supported for \
+                for 2D cylindrical geometry, not 3D"
+            )
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         nx = plot.image._A.shape[1]
         ny = plot.image._A.shape[0]
         aspect = float((y1 - y0) / (x1 - x0))
-        pixel_aspect = float(ny)/nx
+        pixel_aspect = float(ny) / nx
         relative_aspect = pixel_aspect / aspect
         if relative_aspect > 1:
-            nx = int(nx/relative_aspect)
+            nx = int(nx / relative_aspect)
         else:
-            ny = int(ny*relative_aspect)
+            ny = int(ny * relative_aspect)
         if aspect > 1:
             if nx < 1600:
-                nx = int(1600./nx*ny)
+                nx = int(1600.0 / nx * ny)
                 ny = 1600
             long_axis = ny
         else:
             if ny < 1600:
-                nx = int(1600./ny*nx)
+                nx = int(1600.0 / ny * nx)
                 ny = 1600
             long_axis = nx
-        line_width = max(self.line_width*long_axis, 1.0)
+        line_width = max(self.line_width * long_axis, 1.0)
         im = np.zeros((ny, nx), dtype="f8")
-        pixelize_cartesian(im,
-                                plot.data['px'],
-                                plot.data['py'],
-                                plot.data['pdx'],
-                                plot.data['pdy'],
-                                plot.data['px'], # dummy field
-                                (x0, x1, y0, y1),
-                                line_width=line_width)
+        pixelize_cartesian(
+            im,
+            plot.data["px"],
+            plot.data["py"],
+            plot.data["pdx"],
+            plot.data["pdy"],
+            plot.data["px"],  # dummy field
+            (x0, x1, y0, y1),
+            line_width=line_width,
+        )
         # New image:
         im_buffer = np.zeros((ny, nx, 4), dtype="uint8")
         im_buffer[im > 0, 3] = 255
         im_buffer[im > 0, :3] = self.color
-        plot._axes.imshow(im_buffer, origin='lower',
-                          interpolation='bilinear',
-                          extent=[xx0, xx1, yy0, yy1],
-                          alpha=self.alpha)
+        plot._axes.imshow(
+            im_buffer,
+            origin="lower",
+            interpolation="bilinear",
+            extent=[xx0, xx1, yy0, yy1],
+            alpha=self.alpha,
+        )
         plot._axes.set_xlim(xx0, xx1)
         plot._axes.set_ylim(yy0, yy1)

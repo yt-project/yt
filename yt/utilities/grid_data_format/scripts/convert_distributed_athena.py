@@ -1,5 +1,7 @@
-from grid_data_format import AthenaDistributedConverter
 import sys
+
+from grid_data_format import AthenaDistributedConverter
+
 # Assumes that last input is the basename for the athena dataset.
 # i.e. kh_3d_mhd_hlld_128_beta5000_sub_tanhd.0030
 basename = sys.argv[-1]
@@ -19,4 +21,3 @@ converter.convert()
 
 # converter = AthenaDistributedConverter(basename, field_conversions=code_to_cgs)
 # converter.convert()
-

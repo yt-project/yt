@@ -1,3 +1,5 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Particle Deposition onto Cells
 
@@ -6,28 +8,23 @@ Particle Deposition onto Cells
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
 
 import numpy as np
-from libc.stdlib cimport malloc, free
-cimport cython
-from libc.math cimport sqrt
-from cpython cimport PyObject
-from yt.utilities.lib.fp_utils cimport *
 
-from oct_container cimport \
-    Oct, OctreeContainer, OctInfo
+cimport cython
+from cpython cimport PyObject
 from cpython.array cimport array, clone
 from cython.view cimport memoryview as cymemview
+from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
+from oct_container cimport Oct, OctInfo, OctreeContainer
+
+from yt.utilities.lib.fp_utils cimport *
+
 from yt.utilities.lib.misc_utilities import OnceIndirect
+
 
 cdef append_axes(np.ndarray arr, int naxes):
     if arr.ndim == naxes:
@@ -444,7 +441,8 @@ cdef class WeightedMeanParticleField(ParticleDepositOperation):
     def finalize(self):
         wf = np.asarray(self.wf)
         w = np.asarray(self.w)
-        rv = wf / w
+        with np.errstate(divide='ignore', invalid='ignore'):
+            rv = wf / w
         rv.shape = self.nvals
         return rv
 

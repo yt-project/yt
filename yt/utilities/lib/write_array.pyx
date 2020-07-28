@@ -5,17 +5,11 @@ Faster, cythonized file IO
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
 
 DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t

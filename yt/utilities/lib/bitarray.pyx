@@ -1,3 +1,4 @@
+# distutils: libraries = STD_LIBS
 """
 Bit array functions
 
@@ -5,25 +6,21 @@ Bit array functions
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.stdlib cimport malloc, free
+cimport numpy as np
+from libc.stdlib cimport free, malloc
+
 
 cdef class bitarray:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __init__(self, size = -1, arr = None):
+    def __cinit__(self, np.int64_t size = -1, 
+                  np.ndarray[np.uint8_t, ndim=1, cast=True] arr = None):
         r"""This is a bitarray, which flips individual bits to on/off inside a
         uint8 container array.
 
@@ -45,7 +42,7 @@ cdef class bitarray:
         >>> arr_in2 = np.array([False, True, True])
         >>> a = ba.bitarray(arr = arr_in1)
         >>> b = ba.bitarray(arr = arr_in2)
-        >>> print a & b
+        >>> print(a & b)
         >>> print (a & b).as_bool_array()
 
         """
@@ -74,7 +71,7 @@ cdef class bitarray:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def set_from_array(self, np.ndarray[np.uint8_t, cast=True] arr):
+    def set_from_array(self, np.ndarray[np.uint8_t, cast=True] arr not None):
         r"""Given an array that is either uint8_t or boolean, set the values of
         this array to match it.
 
@@ -140,7 +137,7 @@ cdef class bitarray:
 
         >>> arr_in = np.array([True, True, False])
         >>> a = ba.bitarray(arr = arr_in)
-        >>> print a.set_value(2, 1)
+        >>> print(a.set_value(2, 1))
 
         """
         ba_set_value(self.buf, ind, val)
@@ -163,7 +160,7 @@ cdef class bitarray:
 
         >>> arr_in = np.array([True, True, False])
         >>> a = ba.bitarray(arr = arr_in)
-        >>> print a.query_value(2)
+        >>> print(a.query_value(2))
 
         """
         return ba_get_value(self.buf, ind)

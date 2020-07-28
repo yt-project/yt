@@ -1,22 +1,7 @@
-"""
-Utilities for reading Fortran files.
-
-
-
-"""
-from __future__ import print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import struct
-import numpy as np
 import os
+import struct
+
+import numpy as np
 
 # This may not be the correct way to do this.  We should investigate what NumPy
 # does.
@@ -29,7 +14,8 @@ except NameError:
     class file:
         pass
 
-def read_attrs(f, attrs,endian='='):
+
+def read_attrs(f, attrs, endian="="):
     r"""This function accepts a file pointer and reads from that file pointer
     according to a definition of attributes, returning a dictionary.
 
@@ -67,42 +53,48 @@ def read_attrs(f, attrs,endian='='):
     vv = {}
     net_format = endian
     for a, n, t in attrs:
-        for end in '@=<>':
-            t = t.replace(end,'')
+        for end in "@=<>":
+            t = t.replace(end, "")
         net_format += "".join(["I"] + ([t] * n) + ["I"])
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
     vv = {}
     for a, n, t in attrs:
-        for end in '@=<>':
-            t = t.replace(end,'')
-        if type(a) == tuple:
+        for end in "@=<>":
+            t = t.replace(end, "")
+        if isinstance(a, tuple):
             n = len(a)
         s1 = vals.pop(0)
         v = [vals.pop(0) for i in range(n)]
         s2 = vals.pop(0)
         if s1 != s2:
-            size = struct.calcsize(endian + "I" + "".join(n*[t]) + "I")
+            size = struct.calcsize(endian + "I" + "".join(n * [t]) + "I")
             raise IOError(
-                'An error occured while reading a Fortran record. '
-                'Got a different size at the beginning and at the '
-                'end of the record: %s %s', s1, s2)
+                "An error occured while reading a Fortran record. "
+                "Got a different size at the beginning and at the "
+                "end of the record: %s %s",
+                s1,
+                s2,
+            )
         if n == 1:
             v = v[0]
-        if type(a)==tuple:
+        if isinstance(a, tuple):
             if len(a) != len(v):
                 raise IOError(
-                    'An error occured while reading a Fortran '
-                    'record. Record length is not equal to expected '
-                    'length: %s %s',
-                    len(a), len(v))
-            for k, val in zip(a,v):
-                vv[k]=val
+                    "An error occured while reading a Fortran "
+                    "record. Record length is not equal to expected "
+                    "length: %s %s",
+                    len(a),
+                    len(v),
+                )
+            for k, val in zip(a, v):
+                vv[k] = val
         else:
             vv[a] = v
     return vv
 
-def read_cattrs(f, attrs, endian='='):
+
+def read_cattrs(f, attrs, endian="="):
     r"""This function accepts a file pointer to a C-binary file and reads from
     that file pointer according to a definition of attributes, returning a
     dictionary.
@@ -139,34 +131,38 @@ def read_cattrs(f, attrs, endian='='):
     vv = {}
     net_format = endian
     for a, n, t in attrs:
-        for end in '@=<>':
-            t = t.replace(end,'')
+        for end in "@=<>":
+            t = t.replace(end, "")
         net_format += "".join([t] * n)
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
     vv = {}
     for a, n, t in attrs:
-        for end in '@=<>':
-            t = t.replace(end,'')
-        if type(a)==tuple:
+        for end in "@=<>":
+            t = t.replace(end, "")
+        if isinstance(a, tuple):
             n = len(a)
         v = [vals.pop(0) for i in range(n)]
-        if n == 1: v = v[0]
-        if type(a)==tuple:
+        if n == 1:
+            v = v[0]
+        if isinstance(a, tuple):
             if len(a) != len(v):
                 raise IOError(
-                    'An error occured while reading a Fortran '
-                    'record. Record length is not equal to expected '
-                    'length: %s %s',
-                    len(a), len(v))
+                    "An error occured while reading a Fortran "
+                    "record. Record length is not equal to expected "
+                    "length: %s %s",
+                    len(a),
+                    len(v),
+                )
 
-            for k,val in zip(a,v):
-                vv[k]=val
+            for k, val in zip(a, v):
+                vv[k] = val
         else:
             vv[a] = v
     return vv
 
-def read_vector(f, d, endian='='):
+
+def read_vector(f, d, endian="="):
     r"""This function accepts a file pointer and reads from that file pointer
     a vector of values.
 
@@ -192,28 +188,34 @@ def read_vector(f, d, endian='='):
     """
     pad_fmt = "%sI" % (endian)
     pad_size = struct.calcsize(pad_fmt)
-    vec_len = struct.unpack(pad_fmt,f.read(pad_size))[0] # bytes
+    vec_len = struct.unpack(pad_fmt, f.read(pad_size))[0]  # bytes
     vec_fmt = "%s%s" % (endian, d)
     vec_size = struct.calcsize(vec_fmt)
     if vec_len % vec_size != 0:
         raise IOError(
-            'An error occured while reading a Fortran record. '
-            'Vector length is not compatible with data type: %s %s',
-            vec_len, vec_size)
+            "An error occured while reading a Fortran record. "
+            "Vector length is not compatible with data type: %s %s",
+            vec_len,
+            vec_size,
+        )
     vec_num = int(vec_len / vec_size)
-    if isinstance(f, file): # Needs to be explicitly a file
+    if isinstance(f, file):  # Needs to be explicitly a file
         tr = np.fromfile(f, vec_fmt, count=vec_num)
     else:
         tr = np.fromstring(f.read(vec_len), vec_fmt, count=vec_num)
-    vec_len2 = struct.unpack(pad_fmt,f.read(pad_size))[0]
+    vec_len2 = struct.unpack(pad_fmt, f.read(pad_size))[0]
     if vec_len != vec_len2:
         raise IOError(
-            'An error occured while reading a Fortran record. '
-            'Got a different size at the beginning and at the '
-            'end of the record: %s %s', vec_len, vec_len2)
+            "An error occured while reading a Fortran record. "
+            "Got a different size at the beginning and at the "
+            "end of the record: %s %s",
+            vec_len,
+            vec_len2,
+        )
     return tr
 
-def skip(f, n=1, endian='='):
+
+def skip(f, n=1, endian="="):
     r"""This function accepts a file pointer and skips a Fortran unformatted
     record. Optionally check that the skip was done correctly by checking
     the pad bytes.
@@ -238,7 +240,7 @@ def skip(f, n=1, endian='='):
     >>> skip(f, 3)
     """
     skipped = np.zeros(n, dtype=np.int32)
-    fmt = endian+"I"
+    fmt = endian + "I"
     fmt_size = struct.calcsize(fmt)
     for i in range(n):
         size = f.read(fmt_size)
@@ -247,14 +249,18 @@ def skip(f, n=1, endian='='):
         s2 = struct.unpack(fmt, size)[0]
         if s1 != s2:
             raise IOError(
-                'An error occured while reading a Fortran record. '
-                'Got a different size at the beginning and at the '
-                'end of the record: %s %s', s1, s2)
+                "An error occured while reading a Fortran record. "
+                "Got a different size at the beginning and at the "
+                "end of the record: %s %s",
+                s1,
+                s2,
+            )
 
-        skipped[i] = s1/fmt_size
+        skipped[i] = s1 / fmt_size
     return skipped
 
-def peek_record_size(f,endian='='):
+
+def peek_record_size(f, endian="="):
     r""" This function accept the file handle and returns
     the size of the next record and then rewinds the file
     to the previous position.
@@ -271,11 +277,12 @@ def peek_record_size(f,endian='='):
     Number of bytes in the next record
     """
     pos = f.tell()
-    s = struct.unpack('>i', f.read(struct.calcsize('>i')))
+    s = struct.unpack(">i", f.read(struct.calcsize(">i")))
     f.seek(pos)
     return s[0]
 
-def read_record(f, rspec, endian='='):
+
+def read_record(f, rspec, endian="="):
     r"""This function accepts a file pointer and reads from that file pointer
     a single "record" with different components.
 
@@ -309,19 +316,22 @@ def read_record(f, rspec, endian='='):
     vv = {}
     net_format = endian + "I"
     for a, n, t in rspec:
-        t = t if len(t)==1 else t[-1]
-        net_format += "%s%s"%(n, t)
+        t = t if len(t) == 1 else t[-1]
+        net_format += "%s%s" % (n, t)
     net_format += "I"
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
     s1, s2 = vals.pop(0), vals.pop(-1)
     if s1 != s2:
         raise IOError(
-            'An error occured while reading a Fortran record. Got '
-            'a different size at the beginning and at the end of '
-            'the record: %s %s', s1, s2)
+            "An error occured while reading a Fortran record. Got "
+            "a different size at the beginning and at the end of "
+            "the record: %s %s",
+            s1,
+            s2,
+        )
     pos = 0
     for a, n, t in rspec:
-        vv[a] = vals[pos:pos+n]
+        vv[a] = vals[pos : pos + n]
         pos += n
     return vv
