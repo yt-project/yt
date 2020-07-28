@@ -1651,7 +1651,7 @@ class WarpXDataset(BoxlibDataset):
 
         # set the periodicity based on the integer BC runtime parameters
         is_periodic = []
-        if 'geometry.is_periodic' is self.parameters:
+        if "geometry.is_periodic" in self.parameters:
             is_periodic = self.parameters["geometry.is_periodic"].split()
         periodicity = [bool(val) for val in is_periodic]
         for _ in range(self.dimensionality, 3):
