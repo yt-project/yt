@@ -6,8 +6,8 @@ from numbers import Number
 
 import matplotlib
 import matplotlib.pyplot as plt
-from mpl_toolkits.axes_grid1 import ImageGrid
 import numpy as np
+from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
 from yt.data_objects.image_array import ImageArray
@@ -1281,11 +1281,16 @@ class PWViewerMPL(PlotWindow):
                 if key not in keys:
                     del self.frb[key]
 
-
-    def export_to_mpl_figure(self, nrows_ncols, axes_pad=1.0,
-                             label_mode="L",
-                             cbar_location="right", cbar_size="5%",
-                             cbar_mode="each", cbar_pad="0%"):
+    def export_to_mpl_figure(
+        self,
+        nrows_ncols,
+        axes_pad=1.0,
+        label_mode="L",
+        cbar_location="right",
+        cbar_size="5%",
+        cbar_mode="each",
+        cbar_pad="0%",
+    ):
         r"""
         Creates a matplotlib figure object with the specified axes arrangement, nrows_ncols,
         and maps the underlying figures to the matplotlib axes.  Note that all of these
@@ -1331,14 +1336,17 @@ class PWViewerMPL(PlotWindow):
         """
 
         fig = plt.figure()
-        grid = ImageGrid(fig, 111,
-                         nrows_ncols=nrows_ncols,
-                         axes_pad=axes_pad,
-                         label_mode=label_mode,
-                         cbar_location=cbar_location,
-                         cbar_size=cbar_size,
-                         cbar_mode=cbar_mode,
-                         cbar_pad=cbar_pad)
+        grid = ImageGrid(
+            fig,
+            111,
+            nrows_ncols=nrows_ncols,
+            axes_pad=axes_pad,
+            label_mode=label_mode,
+            cbar_location=cbar_location,
+            cbar_size=cbar_size,
+            cbar_mode=cbar_mode,
+            cbar_pad=cbar_pad,
+        )
 
         fields = self.fields
         if len(fields) > len(grid):
@@ -1353,6 +1361,7 @@ class PWViewerMPL(PlotWindow):
         self._setup_plots()
 
         return fig
+
 
 class AxisAlignedSlicePlot(PWViewerMPL):
     r"""Creates a slice plot from a dataset
