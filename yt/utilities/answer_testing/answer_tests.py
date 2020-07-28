@@ -153,7 +153,7 @@ def generic_array(func, args=[], kwargs={}):
 
 def sph_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     assert str(ds) == ds_str_repr
-    hex_digests = {}
+    results = {}
     dd = ds.all_data()
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
     tot = sum(
@@ -163,15 +163,15 @@ def sph_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     particle_type = field[0] in ds.particle_types
     if not particle_type:
         ppv = pixelized_projection_values(ds, axis, field, weight, ds_obj)
-        hex_digests["pixelized_projection_values"] = ppv
+        results["pixelized_projection_values"] = ppv
     fv = field_values(ds, field, ds_obj, particle_type=particle_type)
-    hex_digests["field_values"] = fv
-    return hex_digests
+    results["field_values"] = fv
+    return results
 
 
 def nbody_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     assert str(ds) == ds_str_repr
-    hex_digests = {}
+    results = {}
     dd = ds.all_data()
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
     tot = sum(
@@ -181,10 +181,10 @@ def nbody_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
     particle_type = field[0] in ds.particle_types
     if not particle_type:
         pppv = pixelized_particle_projection_values(ds, axis, field, weight, ds_obj)
-        hex_digests["pixelized_particle_projection_values"] = pppv
+        results["pixelized_particle_projection_values"] = pppv
     fv = field_values(ds, field, ds_obj, particle_type=particle_type)
-    hex_digests["field_values"] = fv
-    return hex_digests
+    results["field_values"] = fv
+    return results
 
 
 def get_field_size_and_mean(ds, field, geometric):

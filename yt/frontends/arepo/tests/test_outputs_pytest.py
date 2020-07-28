@@ -27,15 +27,13 @@ class TestArepo:
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [bullet_h5], indirect=True)
     def test_arepo_bullet(self, a, d, w, f, ds):
-        sph = sph_answer(ds, "snapshot_150", 26529600, f, w, d, a)
-        self.hashes.update({"sph_answer": sph})
+        self.hashes.update(sph_answer(ds, "snapshot_150", 26529600, f, w, d, a))
 
     @pytest.mark.usefixtures("hashing")
     @requires_ds(tng59_h5)
     def test_arepo_tng59(self, a, d, w, f):
         ds = data_dir_load(tng59_h5, kwargs={"bounding_box": _tng59_bbox})
-        sph = sph_answer(ds, "halo_59", 10107142, f, w, d, a)
-        self.hashes.update({"sph_answer": sph})
+        self.hashes.update(sph_answer(ds, "halo_59", 10107142, f, w, d, a))
 
     @requires_ds(tng59_h5)
     def test_index_override(self):

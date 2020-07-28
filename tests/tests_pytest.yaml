@@ -9,3 +9,7 @@ TestAHF:
 TestAMRVac:
     - amrvac_answers_000.yaml
     - amrvac_answers_raw_000.h5
+
+TestArepo:
+    - arepo_answers_000.yaml
+    - arepo_answers_raw_000.h5
