@@ -124,5 +124,5 @@ def volume_render(
     """
     sc = create_scene(data_source, field=field)
     im = sc.render()
-    sc.save(fname=fname, sigma_clip=sigma_clip)
+    sc.save(fname=fname, sigma_clip=sigma_clip, render=False)
     return im, sc
