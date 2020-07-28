@@ -11,6 +11,7 @@ out vec4 output_color;
 
 uniform vec4 viewport; // (offset_x, offset_y, 1 / screen_x, 1 / screen_y)
 uniform float box_width;
+uniform vec3 box_color;
 uniform float box_alpha;
 
 //
@@ -46,5 +47,5 @@ void main()
         discard;
     }
 
-    output_color = vec4(1.0, 1.0, 1.0, box_alpha);
+    output_color = vec4(box_color, box_alpha);
 }

@@ -1,6 +1,6 @@
 # encoding: utf-8
 """
-Shader and ShaderProgram wrapper classes for vertex and fragment shaders used 
+Shader and ShaderProgram wrapper classes for vertex and fragment shaders used
 in Interactive Data Visualization
 """
 
@@ -23,7 +23,6 @@ import OpenGL.GL as GL
 import traitlets
 import yaml
 
-from yt.extern.six import add_metaclass
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import (
     YTInvalidShaderType,
@@ -31,7 +30,7 @@ from yt.utilities.exceptions import (
     YTUnknownUniformSize,
 )
 
-from .opengl_support import GLValue, VertexArray, coerce_uniform_type, num_to_const
+from .opengl_support import GLValue, num_to_const
 
 
 class ShaderProgram(object):

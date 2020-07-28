@@ -14,23 +14,17 @@ Event loop for Interactive Data Visualization
 
 # This is a part of the experimental Interactive Data Visualization
 
-import os
-import time
-
 import numpy as np
 import OpenGL.GL as GL
 import pyglet
 
 from ..image_writer import write_bitmap
-from .glfw_inputhook import InputHookGLFW
-from .input_events import EventCollection, JoystickAction, MouseRotation
+from .input_events import EventCollection
 
 try:
     from .simple_gui import SimpleGUI
 except ImportError:
     pass
-
-from yt import write_bitmap
 
 
 class EGLRenderingContext(object):
