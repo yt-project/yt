@@ -1,3 +1,5 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Make a fake octree, deposit particle at every leaf
 
@@ -7,17 +9,19 @@ Make a fake octree, deposit particle at every leaf
 """
 
 
-from libc.stdlib cimport malloc, free, rand, RAND_MAX
 cimport numpy as np
+from libc.stdlib cimport RAND_MAX, free, malloc, rand
 from oct_visitors cimport cind
-import numpy as np
-cimport cython
 
-from oct_container cimport Oct, RAMSESOctreeContainer
+import numpy as np
+
+cimport cython
+from oct_container cimport Oct, SparseOctreeContainer
+
 
 # Create a balanced octree by a random walk that recursively
 # subdivides
-def create_fake_octree(RAMSESOctreeContainer oct_handler,
+def create_fake_octree(SparseOctreeContainer oct_handler,
                        long max_noct,
                        long max_level,
                        np.ndarray[np.int32_t, ndim=1] ndd,
@@ -44,7 +48,7 @@ def create_fake_octree(RAMSESOctreeContainer oct_handler,
     return cur_leaf
 
 
-cdef long subdivide(RAMSESOctreeContainer oct_handler,
+cdef long subdivide(SparseOctreeContainer oct_handler,
                     Oct *parent,
                     int ind[3], int dd[3],
                     long cur_leaf, long cur_level,

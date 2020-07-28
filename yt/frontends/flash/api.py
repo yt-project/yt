@@ -1,14 +1,9 @@
-from .data_structures import \
-      FLASHGrid, \
-      FLASHHierarchy, \
-      FLASHDataset, \
-      FLASHParticleDataset
-
-from .fields import \
-      FLASHFieldInfo
-
-from .io import \
-      IOHandlerFLASH, \
-      IOHandlerFLASHParticle
-
 from . import tests
+from .data_structures import (
+    FLASHDataset,
+    FLASHGrid,
+    FLASHHierarchy,
+    FLASHParticleDataset,
+)
+from .fields import FLASHFieldInfo
+from .io import IOHandlerFLASH, IOHandlerFLASHParticle

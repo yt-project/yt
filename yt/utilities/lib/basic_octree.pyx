@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 A refine-by-two AMR-specific octree
 
@@ -8,15 +10,18 @@ A refine-by-two AMR-specific octree
 
 
 import numpy as np
-cimport numpy as np
-# Double up here for def'd functions
-cimport numpy as cnp
+
 cimport cython
+# Double up here for def'd functions
+cimport numpy as np
+cimport numpy as cnp
+from libc.stdlib cimport abs, free, malloc
 
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
-from libc.stdlib cimport malloc, free, abs
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
 
-import sys, time
+import sys
+import time
+
 
 cdef extern from "platform_dep.h":
     # NOTE that size_t might not be int

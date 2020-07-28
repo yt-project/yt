@@ -1,3 +1,4 @@
+# distutils: language = c++
 """
 Cython tools for working with the PyKDTree particle KDTree.
 
@@ -7,31 +8,20 @@ Cython tools for working with the PyKDTree particle KDTree.
 
 
 import numpy as np
-cimport numpy as np
 
 cimport cython
-
+cimport numpy as np
 from cpython.exc cimport PyErr_CheckSignals
-from yt.utilities.lib.cykdtree.kdtree cimport (
-    PyKDTree,
-    KDTree,
-    Node,
-    uint64_t,
-    uint32_t,
-)
-
 from libc.math cimport sqrt
 from libcpp.vector cimport vector
 
+from yt.utilities.lib.cykdtree.kdtree cimport KDTree, Node, PyKDTree, uint32_t, uint64_t
+
 from yt.funcs import get_pbar
-from yt.geometry.particle_deposit cimport (
-    get_kernel_func,
-    kernel_func,
-)
-from yt.utilities.lib.bounded_priority_queue cimport (
-    BoundedPriorityQueue,
-    NeighborList
-)
+
+from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
+from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue, NeighborList
+
 
 cdef int CHUNKSIZE = 4096
 

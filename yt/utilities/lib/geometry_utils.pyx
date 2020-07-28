@@ -1,3 +1,6 @@
+# distutils: libraries = STD_LIBS
+# distutils: extra_compile_args = OMP_ARGS
+# distutils: extra_link_args = OMP_ARGS
 """
 Simple integrators for the radiative transfer equation
 
@@ -7,15 +10,18 @@ Simple integrators for the radiative transfer equation
 
 
 import numpy as np
-cimport numpy as np
-cimport cython
-from cython cimport floating
-from libc.stdlib cimport malloc, free
-from yt.utilities.lib.fp_utils cimport fclip, i64clip
-from libc.math cimport copysign, fabs
-from yt.utilities.exceptions import YTDomainOverflow
-from yt.utilities.lib.vec3_ops cimport subtract, cross, dot, L2_norm
 
+cimport cython
+cimport numpy as np
+from cython cimport floating
+from libc.math cimport copysign, fabs
+from libc.stdlib cimport free, malloc
+
+from yt.utilities.lib.fp_utils cimport fclip, i64clip
+
+from yt.utilities.exceptions import YTDomainOverflow
+
+from yt.utilities.lib.vec3_ops cimport L2_norm, cross, dot, subtract
 
 DEF ORDER_MAX=20
 DEF INDEX_MAX_64=2097151

@@ -643,7 +643,7 @@ covers mechanisms for combining arrays of different shapes and sizes, which can
 be tricky but also extremely powerful.  We won't discuss the idea of
 broadcasting here, simply because I don't know that I could do it justice!  The
 NumPy Docs have a great `section on broadcasting
-<http://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`_.
+<https://docs.scipy.org/doc/numpy/user/basics.broadcasting.html>`_.
 
 Scripted Usage
 ++++++++++++++
@@ -735,9 +735,9 @@ perspective and interactively.
 
 Python and Related References
 +++++++++++++++++++++++++++++
-    * `Python quickstart <http://docs.python.org/tutorial/>`_
-    * `Learn Python the Hard Way <http://learnpythonthehardway.org/book/>`_
-    * `Byte of Python <http://www.swaroopch.com/notes/Python>`_
+    * `Python quickstart <https://docs.python.org/3/tutorial/>`_
+    * `Learn Python the Hard Way <https://learnpythonthehardway.org/book/>`_
+    * `Byte of Python <https://python.swaroopch.com/>`_
     * `Dive Into Python <http://diveintopython.org>`_
-    * `Numpy docs <http://docs.scipy.org/doc/numpy/>`_
-    * `Matplotlib docs <http://matplotlib.org>`_
+    * `Numpy docs <https://docs.scipy.org/doc/numpy/>`_
+    * `Matplotlib docs <https://matplotlib.org>`_

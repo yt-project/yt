@@ -1,13 +1,19 @@
+# distutils: libraries = STD_LIBS
+# Note that we used to include the empty c_kdtree.cpp file, but that seems to break cythonize.
+# distutils: sources = yt/utilities/lib/cykdtree/c_utils.cpp
+# distutils: depends = yt/utilities/lib/cykdtree/c_kdtree.hpp, yt/utilities/lib/cykdtree/c_utils.hpp
+# distutils: language = c++
+# distutils: extra_compile_args = -std=c++03
 import cython
 import numpy as np
-cimport numpy as np
 
-from libc.stdlib cimport malloc, free
-from libcpp cimport bool as cbool
+cimport numpy as np
 from cpython cimport bool as pybool
 from cython.operator cimport dereference
+from libc.stdint cimport int32_t, int64_t, uint32_t, uint64_t
+from libc.stdlib cimport free, malloc
+from libcpp cimport bool as cbool
 
-from libc.stdint cimport uint32_t, uint64_t, int32_t, int64_t
 
 cdef class PyNode:
     r"""A container for leaf info.

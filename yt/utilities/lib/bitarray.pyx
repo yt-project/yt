@@ -1,3 +1,4 @@
+# distutils: libraries = STD_LIBS
 """
 Bit array functions
 
@@ -7,9 +8,11 @@ Bit array functions
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.stdlib cimport malloc, free
+cimport numpy as np
+from libc.stdlib cimport free, malloc
+
 
 cdef class bitarray:
 

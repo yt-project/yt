@@ -1,14 +1,15 @@
-import numpy as np
 import os
+from collections import defaultdict
 
-from yt.frontends.sph.io import \
-    IOHandlerSPH
+import numpy as np
+
+from yt.frontends.sph.io import IOHandlerSPH
+from yt.units.yt_array import uconcatenate
+from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-from .definitions import \
-    gadget_hdf5_ptypes, \
-    SNAP_FORMAT_2_OFFSET
+from .definitions import SNAP_FORMAT_2_OFFSET, gadget_hdf5_ptypes
 
 
 class IOHandlerGadgetHDF5(IOHandlerSPH):
@@ -16,8 +17,17 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
     _known_ptypes = gadget_hdf5_ptypes
     _var_mass = None
-    _element_names = ('Hydrogen', 'Helium', 'Carbon', 'Nitrogen', 'Oxygen',
-                      'Neon', 'Magnesium', 'Silicon', 'Iron')
+    _element_names = (
+        "Hydrogen",
+        "Helium",
+        "Carbon",
+        "Nitrogen",
+        "Oxygen",
+        "Neon",
+        "Magnesium",
+        "Silicon",
+        "Iron",
+    )
 
     @property
     def var_mass(self):
@@ -41,7 +51,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
-            f = h5py.File(data_file.filename, "r")
+            f = h5py.File(data_file.filename, mode="r")
             # This double-reads
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
@@ -70,22 +80,72 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 continue
             if needed_ptype and key != needed_ptype:
                 continue
-            ds = f[key]["Coordinates"][si:ei,...]
-            dt = ds.dtype.newbyteorder("N") # Native
+            ds = f[key]["Coordinates"][si:ei, ...]
+            dt = ds.dtype.newbyteorder("N")  # Native
             pos = np.empty(ds.shape, dtype=dt)
             pos[:] = ds
             yield key, pos
         f.close()
 
+    def _generate_smoothing_length(self, data_files, kdtree):
+        if not self.ds.gen_hsmls:
+            return
+        hsml_fn = data_files[0].filename.replace(".hdf5", ".hsml.hdf5")
+        if os.path.exists(hsml_fn):
+            with h5py.File(hsml_fn, "r") as f:
+                file_hash = f.attrs["q"]
+            if file_hash != self.ds._file_hash:
+                mylog.warning("Replacing hsml files.")
+                for data_file in data_files:
+                    hfn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
+                    os.remove(hfn)
+            else:
+                return
+        positions = []
+        counts = defaultdict(int)
+        for data_file in data_files:
+            for _, ppos in self._yield_coordinates(
+                data_file, needed_ptype=self.ds._sph_ptypes[0]
+            ):
+                counts[data_file.filename] += ppos.shape[0]
+                positions.append(ppos)
+        if not positions:
+            return
+        offsets = {}
+        offset = 0
+        for fn, count in counts.items():
+            offsets[fn] = offset
+            offset += count
+        positions = uconcatenate(positions)[kdtree.idx]
+        hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
+        dtype = positions.dtype
+        hsml = hsml[np.argsort(kdtree.idx)].astype(dtype)
+        mylog.warning("Writing smoothing lengths to hsml files.")
+        for i, data_file in enumerate(data_files):
+            si, ei = data_file.start, data_file.end
+            fn = data_file.filename
+            hsml_fn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
+            with h5py.File(hsml_fn, mode="a") as f:
+                if i == 0:
+                    f.attrs["q"] = self.ds._file_hash
+                g = f.require_group(self.ds._sph_ptypes[0])
+                d = g.require_dataset(
+                    "SmoothingLength", dtype=dtype, shape=(counts[fn],)
+                )
+                begin = si + offsets[fn]
+                end = min(ei, d.size) + offsets[fn]
+                d[si:ei] = hsml[begin:end]
+
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
         ptype = self.ds._sph_ptypes[0]
-        ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
-        with h5py.File(data_file.filename, "r") as f:
-            pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
-            pcount = np.clip(pcount - si, 0, ei - si)
-            ds = f[ptype]["SmoothingLength"][si:ei,...]
-            dt = ds.dtype.newbyteorder("N") # Native
+        if self.ds.gen_hsmls:
+            fn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
+        else:
+            fn = data_file.filename
+        with h5py.File(fn, mode="r") as f:
+            ds = f[ptype]["SmoothingLength"][si:ei, ...]
+            dt = ds.dtype.newbyteorder("N")  # Native
             if position_dtype is not None and dt < position_dtype:
                 # Sometimes positions are stored in double precision
                 # but smoothing lengths are stored in single precision.
@@ -104,25 +164,26 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             si, ei = data_file.start, data_file.end
-            f = h5py.File(data_file.filename, "r")
+            f = h5py.File(data_file.filename, mode="r")
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 g = f["/%s" % ptype]
-                if getattr(selector, 'is_all_data', False):
+                if getattr(selector, "is_all_data", False):
                     mask = slice(None, None, None)
                     mask_sum = data_file.total_particles[ptype]
                     hsmls = None
                 else:
                     coords = g["Coordinates"][si:ei].astype("float64")
-                    if ptype == 'PartType0':
-                        hsmls = self._get_smoothing_length(data_file,
-                                                           g["Coordinates"].dtype,
-                                                           g["Coordinates"].shape).astype("float64")
+                    if ptype == "PartType0":
+                        hsmls = self._get_smoothing_length(
+                            data_file, g["Coordinates"].dtype, g["Coordinates"].shape
+                        ).astype("float64")
                     else:
                         hsmls = 0.0
                     mask = selector.select_points(
-                        coords[:,0], coords[:,1], coords[:,2], hsmls)
+                        coords[:, 0], coords[:, 1], coords[:, 2], hsmls
+                    )
                     if mask is not None:
                         mask_sum = mask.sum()
                     del coords
@@ -130,13 +191,12 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     continue
                 for field in field_list:
 
-                    if field in ("Mass", "Masses") and \
-                            ptype not in self.var_mass:
+                    if field in ("Mass", "Masses") and ptype not in self.var_mass:
                         data = np.empty(mask_sum, dtype="float64")
                         ind = self._known_ptypes.index(ptype)
                         data[:] = self.ds["Massarr"][ind]
                     elif field in self._element_names:
-                        rfield = 'ElementAbundance/' + field
+                        rfield = "ElementAbundance/" + field
                         data = g[rfield][si:ei][mask, ...]
                     elif field.startswith("Metallicity_"):
                         col = int(field.rsplit("_", 1)[-1])
@@ -153,9 +213,11 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                         # attempt to read them, but instead assume
                         # that they are calculated in _get_smoothing_length.
                         if hsmls is None:
-                            hsmls = self._get_smoothing_length(data_file,
-                                                               g["Coordinates"].dtype,
-                                                               g["Coordinates"].shape).astype("float64")
+                            hsmls = self._get_smoothing_length(
+                                data_file,
+                                g["Coordinates"].dtype,
+                                g["Coordinates"].shape,
+                            ).astype("float64")
                         data = hsmls[mask]
                     else:
                         data = g[field][si:ei][mask, ...]
@@ -165,7 +227,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         f.close()
         if None not in (si, ei):
@@ -174,22 +236,22 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         return npart
 
     def _identify_fields(self, data_file):
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         fields = []
         cname = self.ds._particle_coordinates_name  # Coordinates
         mname = self.ds._particle_mass_name  # Mass
 
         # loop over all keys in OWLS hdf5 file
-        #--------------------------------------------------
+        # --------------------------------------------------
         for key in f.keys():
 
             # only want particle data
-            #--------------------------------------
+            # --------------------------------------
             if not key.startswith("PartType"):
                 continue
 
             # particle data group
-            #--------------------------------------
+            # --------------------------------------
             g = f[key]
             if cname not in g:
                 continue
@@ -200,15 +262,15 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 fields.append((ptype, mname))
 
             # loop over all keys in PartTypeX group
-            #----------------------------------------
+            # ----------------------------------------
             for k in g.keys():
 
-                if k == 'ElementAbundance':
+                if k == "ElementAbundance":
                     gp = g[k]
                     for j in gp.keys():
                         kk = j
                         fields.append((ptype, str(kk)))
-                elif k in ['Metallicity', 'GFM_Metals'] and len(g[k].shape) > 1:
+                elif k in ["Metallicity", "GFM_Metals"] and len(g[k].shape) > 1:
                     # Vector of metallicity
                     for i in range(g[k].shape[1]):
                         fields.append((ptype, "%s_%02i" % (k, i)))
@@ -224,6 +286,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     fields.append((ptype, str(kk)))
 
         f.close()
+
+        if self.ds.gen_hsmls:
+            fields.append(("PartType0", "smoothing_length"))
+
         return fields, {}
 
 
@@ -232,10 +298,12 @@ ZeroMass = object()
 
 class IOHandlerGadgetBinary(IOHandlerSPH):
     _dataset_type = "gadget_binary"
-    _vector_fields = (("Coordinates", 3),
-                      ("Velocity", 3),
-                      ("Velocities", 3),
-                      ("FourMetalFractions", 4))
+    _vector_fields = (
+        ("Coordinates", 3),
+        ("Velocity", 3),
+        ("Velocities", 3),
+        ("FourMetalFractions", 4),
+    )
 
     # Particle types (Table 3 in GADGET-2 user guide)
     #
@@ -291,12 +359,10 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             f = open(data_file.filename, "rb")
             for ptype in ptf:
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                pos = self._read_field_from_file(
-                    f, tp[ptype], "Coordinates")
+                pos = self._read_field_from_file(f, tp[ptype], "Coordinates")
                 if ptype == self.ds._sph_ptypes[0]:
                     f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
-                    hsml = self._read_field_from_file(
-                        f, tp[ptype], "SmoothingLength")
+                    hsml = self._read_field_from_file(f, tp[ptype], "SmoothingLength")
                 else:
                     hsml = 0.0
                 yield ptype, (pos[:, 0], pos[:, 1], pos[:, 2]), hsml
@@ -314,33 +380,31 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             for ptype, field_list in sorted(ptf.items()):
                 if tp[ptype] == 0:
                     continue
-                if getattr(selector, 'is_all_data', False):
+                if getattr(selector, "is_all_data", False):
                     mask = slice(None, None, None)
                 else:
                     f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
-                    pos = self._read_field_from_file(
-                        f, tp[ptype], "Coordinates")
+                    pos = self._read_field_from_file(f, tp[ptype], "Coordinates")
                     if ptype == self.ds._sph_ptypes[0]:
                         f.seek(poff[ptype, "SmoothingLength"], os.SEEK_SET)
                         hsml = self._read_field_from_file(
-                            f, tp[ptype], "SmoothingLength")
+                            f, tp[ptype], "SmoothingLength"
+                        )
                     else:
                         hsml = 0.0
-                    mask = selector.select_points(
-                        pos[:, 0], pos[:, 1], pos[:, 2], hsml)
+                    mask = selector.select_points(pos[:, 0], pos[:, 1], pos[:, 2], hsml)
                     del pos
                     del hsml
                 if mask is None:
                     continue
                 for field in field_list:
                     if field == "Mass" and ptype not in self.var_mass:
-                        if getattr(selector, 'is_all_data', False):
+                        if getattr(selector, "is_all_data", False):
                             size = data_file.total_particles[ptype]
                         else:
                             size = mask.sum()
                         data = np.empty(size, dtype="float64")
-                        m = self.ds.parameters["Massarr"][
-                            self._ptypes.index(ptype)]
+                        m = self.ds.parameters["Massarr"][self._ptypes.index(ptype)]
                         data[:] = m
                         yield (ptype, field), data
                         continue
@@ -363,7 +427,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         arr = np.fromfile(f, dtype=dt, count=count)
         # ensure data are in native endianness to avoid errors
         # when field data are passed to cython
-        dt = dt.newbyteorder('N')
+        dt = dt.newbyteorder("N")
         arr = arr.astype(dt)
         if name in self._vector_fields:
             factor = self._vector_fields[name]
@@ -382,12 +446,12 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 if needed_ptype is not None and ptype != needed_ptype:
                     continue
                 # The first total_particles * 3 values are positions
-                pp = np.fromfile(f, dtype = self._float_type, count = count*3)
+                pp = np.fromfile(f, dtype=self._float_type, count=count * 3)
                 pp.shape = (count, 3)
                 yield ptype, pp
 
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
-        ret = self._get_field(data_file, 'SmoothingLength', 'Gas')
+        ret = self._get_field(data_file, "SmoothingLength", "Gas")
         if position_dtype is not None and ret.dtype != position_dtype:
             # Sometimes positions are stored in double precision
             # but smoothing lengths are stored in single precision.
@@ -401,8 +465,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         tp = data_file.total_particles
         with open(data_file.filename, "rb") as f:
             f.seek(poff[ptype, field], os.SEEK_SET)
-            pp = self._read_field_from_file(
-                f, tp[ptype], field)
+            pp = self._read_field_from_file(f, tp[ptype], field)
         return pp
 
     def _count_particles(self, data_file):
@@ -415,8 +478,10 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
 
     # header is 256, but we have 4 at beginning and end for ints
     _field_size = 4
-    def _calculate_field_offsets(self, field_list, pcount,
-                                 offset, df_start, file_size=None):
+
+    def _calculate_field_offsets(
+        self, field_list, pcount, offset, df_start, file_size=None
+    ):
         # field_list is (ftype, fname) but the blocks are ordered
         # (fname, ftype) in the file.
         if self._format == 2:
@@ -435,16 +500,14 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 fs = 4
             if not isinstance(field, str):
                 field = field[0]
-            if not any((ptype, field) in field_list
-                       for ptype in self._ptypes):
+            if not any((ptype, field) in field_list for ptype in self._ptypes):
                 continue
             if self._format == 2:
                 pos += 20  # skip block header
             elif self._format == 1:
                 pos += 4
             else:
-                raise RuntimeError(
-                    "incorrect Gadget format %s!" % str(self._format))
+                raise RuntimeError("incorrect Gadget format %s!" % str(self._format))
             any_ptypes = False
             for ptype in self._ptypes:
                 if field == "Mass" and ptype not in self.var_mass:
@@ -465,16 +528,21 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             if not any_ptypes:
                 pos -= 8
         if file_size is not None:
-            if (file_size != pos) & (self._format == 1): #ignore the rest of format 2 
+            if (file_size != pos) & (self._format == 1):  # ignore the rest of format 2
                 diff = file_size - pos
                 possible = []
                 for ptype, psize in sorted(pcount.items()):
-                    if psize == 0: continue
-                    if float(diff) / psize == int(float(diff)/psize):
+                    if psize == 0:
+                        continue
+                    if float(diff) / psize == int(float(diff) / psize):
                         possible.append(ptype)
-                mylog.warning("Your Gadget-2 file may have extra " +
-                              "columns or different precision! " +
-                              "(%s diff => %s?)", diff, possible)
+                mylog.warning(
+                    "Your Gadget-2 file may have extra "
+                    + "columns or different precision! "
+                    + "(%s diff => %s?)",
+                    diff,
+                    possible,
+                )
         return offsets
 
     def _identify_fields(self, domain):

@@ -1,73 +1,94 @@
 # This is a part of the experimental Interactive Data Visualization
-
-import OpenGL.GL as GL
-from collections import OrderedDict
-import matplotlib.cm as cm
-import numpy as np
 import ctypes
+from collections import OrderedDict
 
-from yt.config import \
-    ytcfg
-from yt.utilities.math_utils import \
-    get_translate_matrix, \
-    get_scale_matrix, \
-    get_lookat_matrix, \
-    get_perspective_matrix, \
-    quaternion_mult, \
-    quaternion_to_rotation_matrix, \
-    rotation_matrix_to_quaternion
+import numpy as np
+from matplotlib import cm as cm
+from OpenGL import GL as GL
+
+from yt.config import ytcfg
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
-from .shader_objects import known_shaders, ShaderProgram
-
-bbox_vertices = np.array(
-      [[ 0.,  0.,  0.,  1.],
-       [ 0.,  0.,  1.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 1.,  1.,  0.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 0.,  1.,  0.,  1.],
-       [ 1.,  0.,  1.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 1.,  0.,  0.,  1.],
-       [ 1.,  1.,  0.,  1.],
-       [ 1.,  0.,  0.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 0.,  1.,  0.,  1.],
-       [ 1.,  0.,  1.,  1.],
-       [ 0.,  0.,  1.,  1.],
-       [ 0.,  0.,  0.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 0.,  0.,  1.,  1.],
-       [ 1.,  0.,  1.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 1.,  0.,  0.,  1.],
-       [ 1.,  1.,  0.,  1.],
-       [ 1.,  0.,  0.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 1.,  0.,  1.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 1.,  1.,  0.,  1.],
-       [ 0.,  1.,  0.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 0.,  1.,  0.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 1.,  1.,  1.,  1.],
-       [ 0.,  1.,  1.,  1.],
-       [ 1.,  0.,  1.,  1.]], dtype=np.float32)
-
-FULLSCREEN_QUAD = np.array(
-    [-1.0, -1.0, 0.0,
-     +1.0, -1.0, 0.0,
-     -1.0, +1.0, 0.0,
-     -1.0, +1.0, 0.0,
-     +1.0, -1.0, 0.0,
-     +1.0, +1.0, 0.0], dtype=np.float32
+from yt.utilities.math_utils import (
+    get_lookat_matrix,
+    get_perspective_matrix,
+    get_scale_matrix,
+    get_translate_matrix,
+    quaternion_mult,
+    quaternion_to_rotation_matrix,
+    rotation_matrix_to_quaternion,
 )
 
-class IDVCamera(object):
-    '''Camera object used in the Interactive Data Visualization
+from .shader_objects import ShaderProgram, known_shaders
+
+bbox_vertices = np.array(
+    [
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 0.0, 1.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 0.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0, 1.0],
+        [1.0, 1.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+        [0.0, 0.0, 1.0, 1.0],
+        [0.0, 0.0, 0.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [0.0, 0.0, 1.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [1.0, 0.0, 0.0, 1.0],
+        [1.0, 1.0, 0.0, 1.0],
+        [1.0, 0.0, 0.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 0.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [0.0, 1.0, 0.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [1.0, 1.0, 1.0, 1.0],
+        [0.0, 1.0, 1.0, 1.0],
+        [1.0, 0.0, 1.0, 1.0],
+    ],
+    dtype=np.float32,
+)
+
+FULLSCREEN_QUAD = np.array(
+    [
+        -1.0,
+        -1.0,
+        0.0,
+        +1.0,
+        -1.0,
+        0.0,
+        -1.0,
+        +1.0,
+        0.0,
+        -1.0,
+        +1.0,
+        0.0,
+        +1.0,
+        -1.0,
+        0.0,
+        +1.0,
+        +1.0,
+        0.0,
+    ],
+    dtype=np.float32,
+)
+
+
+class IDVCamera:
+    """Camera object used in the Interactive Data Visualization
 
     Parameters
     ----------
@@ -87,13 +108,18 @@ class IDVCamera(object):
     aspect_ratio: float, optional
         The ratio between the height and the width of the camera's fov.
 
-    '''
-    def __init__(self,
-                 position=(0.0, 0.0, 1.0),
-                 focus=(0.0, 0.0, 0.0),
-                 up=(0.0, 1.0, 0.0),
-                 fov=45.0, near_plane=0.01, far_plane=20.0,
-                 aspect_ratio=8.0/6.0):
+    """
+
+    def __init__(
+        self,
+        position=(0.0, 0.0, 1.0),
+        focus=(0.0, 0.0, 0.0),
+        up=(0.0, 1.0, 0.0),
+        fov=45.0,
+        near_plane=0.01,
+        far_plane=20.0,
+        aspect_ratio=8.0 / 6.0,
+    ):
         self.position = np.array(position)
         self.focus = np.array(focus)
         self.up = np.array(up)
@@ -101,7 +127,7 @@ class IDVCamera(object):
         self.near_plane = near_plane
         self.far_plane = far_plane
         self.aspect_ratio = aspect_ratio
-        
+
         # set cmap
         cmap = cm.get_cmap(ytcfg.get("yt", "default_colormap"))
         self.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
@@ -116,12 +142,12 @@ class IDVCamera(object):
         self.proj_func = get_perspective_matrix
 
     def compute_matrices(self):
-        '''Regenerate all position, view and projection matrices of the camera.'''
+        """Regenerate all position, view and projection matrices of the camera."""
         pass
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
-        '''Change camera orientation matrix using delta of mouse's cursor position
-        
+        """Change camera orientation matrix using delta of mouse's cursor position
+
         Parameters
         ----------
 
@@ -134,7 +160,7 @@ class IDVCamera(object):
         end_y : float
             final cursor position in y direction
 
-        '''
+        """
         pass
 
     def get_viewpoint(self):
@@ -145,20 +171,20 @@ class IDVCamera(object):
 
     def get_projection_matrix(self):
         return self.projection_matrix
-    
+
     def update_cmap_minmax(self, minval, maxval, iflog):
-        '''Update camera's colormap bounds
+        """Update camera's colormap bounds
 
         Parameters
         ----------
-        
+
         minval: float
             min color limit used for image scaling
         maxval: float
             max color limit used for image scaling
         iflog: boolean
             Set to True if colormap is using log scale, False for linear scale.
-        '''
+        """
         self.cmap_log = iflog
         self.cmap_min = minval
         self.cmap_max = maxval
@@ -178,33 +204,42 @@ class TrackballCamera(IDVCamera):
 
     """
 
-    def __init__(self, position=(0.0, 0.0, 1.0), focus=(0.0, 0.0, 0.0),
-                 up=(0.0, 1.0, 0.0), fov=45.0, near_plane=0.01, far_plane=20.0,
-                 aspect_ratio=8.0/6.0):
+    def __init__(
+        self,
+        position=(0.0, 0.0, 1.0),
+        focus=(0.0, 0.0, 0.0),
+        up=(0.0, 1.0, 0.0),
+        fov=45.0,
+        near_plane=0.01,
+        far_plane=20.0,
+        aspect_ratio=8.0 / 6.0,
+    ):
 
-        super(TrackballCamera, self).__init__(position=position, focus=focus,
-                                              up=up, fov=fov, 
-                                              near_plane=near_plane,
-                                              far_plane=far_plane,
-                                              aspect_ratio=aspect_ratio)
+        super(TrackballCamera, self).__init__(
+            position=position,
+            focus=focus,
+            up=up,
+            fov=fov,
+            near_plane=near_plane,
+            far_plane=far_plane,
+            aspect_ratio=aspect_ratio,
+        )
 
-        self.view_matrix = get_lookat_matrix(self.position,
-                                             self.focus,
-                                             self.up)
+        self.view_matrix = get_lookat_matrix(self.position, self.focus, self.up)
 
-        rotation_matrix = self.view_matrix[0:3,0:3]
+        rotation_matrix = self.view_matrix[0:3, 0:3]
         self.orientation = rotation_matrix_to_quaternion(rotation_matrix)
 
     def _map_to_surface(self, mouse_x, mouse_y):
         # right now this just maps to the surface of the unit sphere
         x, y = mouse_x, mouse_y
-        mag = np.sqrt(x*x + y*y)
-        if (mag > 1.0):
+        mag = np.sqrt(x * x + y * y)
+        if mag > 1.0:
             x /= mag
             y /= mag
             z = 0.0
         else:
-            z = np.sqrt(1.0 - mag**2)
+            z = np.sqrt(1.0 - mag ** 2)
         return np.array([x, -y, z])
 
     def update_orientation(self, start_x, start_y, end_x, end_y):
@@ -212,38 +247,35 @@ class TrackballCamera(IDVCamera):
         new = self._map_to_surface(end_x, end_y)
 
         # dot product controls the angle of the rotation
-        w = old[0]*new[0] + old[1]*new[1] + old[2]*new[2]
+        w = old[0] * new[0] + old[1] * new[1] + old[2] * new[2]
 
         # cross product gives the rotation axis
-        x = old[1]*new[2] - old[2]*new[1]
-        y = old[2]*new[0] - old[0]*new[2]
-        z = old[0]*new[1] - old[1]*new[0]
+        x = old[1] * new[2] - old[2] * new[1]
+        y = old[2] * new[0] - old[0] * new[2]
+        z = old[0] * new[1] - old[1] * new[0]
 
         q = np.array([w, x, y, z])
 
-        #renormalize to prevent floating point issues
-        mag = np.sqrt(w**2 + x**2 + y**2 + z**2)
+        # renormalize to prevent floating point issues
+        mag = np.sqrt(w ** 2 + x ** 2 + y ** 2 + z ** 2)
         q /= mag
 
         self.orientation = quaternion_mult(self.orientation, q)
 
     def compute_matrices(self):
         rotation_matrix = quaternion_to_rotation_matrix(self.orientation)
-        dp = np.linalg.norm(self.position - self.focus)*rotation_matrix[2]
+        dp = np.linalg.norm(self.position - self.focus) * rotation_matrix[2]
         self.position = dp + self.focus
         self.up = rotation_matrix[1]
 
-        self.view_matrix = get_lookat_matrix(self.position,
-                                             self.focus,
-                                             self.up)
+        self.view_matrix = get_lookat_matrix(self.position, self.focus, self.up)
 
-        self.projection_matrix = self.proj_func(self.fov,
-                                                self.aspect_ratio,
-                                                self.near_plane,
-                                                self.far_plane)
+        self.projection_matrix = self.proj_func(
+            self.fov, self.aspect_ratio, self.near_plane, self.far_plane
+        )
 
 
-class SceneComponent(object):
+class SceneComponent:
     """A class that defines basic OpenGL object
 
     This class contains the largest common set of features that every object in
@@ -251,11 +283,13 @@ class SceneComponent(object):
     a shader program to operate on them.
 
     """
+
     name = None
     _program = None
     _program_invalid = True
     fragment_shader = None
     vertex_shader = None
+
     def __init__(self):
         self.vert_attrib = OrderedDict()
         self.vert_arrays = OrderedDict()
@@ -265,8 +299,7 @@ class SceneComponent(object):
         if self._program_invalid:
             if self._program is not None:
                 self._program.delete_program()
-            self._program = ShaderProgram(self.vertex_shader,
-                self.fragment_shader)
+            self._program = ShaderProgram(self.vertex_shader, self.fragment_shader)
             self._program_invalid = False
         return self._program
 
@@ -316,23 +349,24 @@ class SceneComponent(object):
 
 class BlockCollection(SceneComponent):
     name = "block_collection"
+
     def __init__(self, scale=False):
-        '''Class responsible for converting yt data objects into a set of 3D textures
-        
+        """Class responsible for converting yt data objects into a set of 3D textures
+
         Parameters
         ----------
 
         scale : boolean, optional
             Rescale the data passed to the texture from 0 to 1
 
-        '''
+        """
         self.scale = scale
         super(BlockCollection, self).__init__()
         self.set_shader("default.v")
         self.set_shader("max_intensity.f")
         self.data_source = None
 
-        self.blocks = {} # A collection of PartitionedGrid objects
+        self.blocks = {}  # A collection of PartitionedGrid objects
         self.block_order = []
 
         self.gl_texture_names = []
@@ -409,17 +443,15 @@ class BlockCollection(SceneComponent):
             self.max_val = max(self.max_val, np.nanmax(block.my_data[0].max()))
             self.blocks[id(block)] = (i, block)
             vert.append(self._compute_geometry(block, bbox_vertices))
-            dds = (block.RightEdge - block.LeftEdge)/block.my_data[0].shape
+            dds = (block.RightEdge - block.LeftEdge) / block.my_data[0].shape
             n = int(vert[-1].size) // 4
-            dx.append([dds.astype('f4') for _ in range(n)])
-            le.append([block.LeftEdge.astype('f4') for _ in range(n)])
-            re.append([block.RightEdge.astype('f4') for _ in range(n)])
+            dx.append([dds.astype("f4") for _ in range(n)])
+            le.append([block.LeftEdge.astype("f4") for _ in range(n)])
+            re.append([block.RightEdge.astype("f4") for _ in range(n)])
             self.block_order.append(id(block))
 
-        LE = np.array([b.LeftEdge
-                       for i, b in self.blocks.values()]).min(axis=0)
-        RE = np.array([b.RightEdge
-                       for i, b in self.blocks.values()]).max(axis=0)
+        LE = np.array([b.LeftEdge for i, b in self.blocks.values()]).min(axis=0)
+        RE = np.array([b.RightEdge for i, b in self.blocks.values()]).max(axis=0)
         self.diagonal = np.sqrt(((RE - LE) ** 2).sum())
         # Now we set up our buffer
         vert = np.concatenate(vert)
@@ -446,7 +478,7 @@ class BlockCollection(SceneComponent):
 
         """
         self.block_order = []
-        for block in self.data_source.tiles.traverse(viewpoint = camera.position):
+        for block in self.data_source.tiles.traverse(viewpoint=camera.position):
             self.block_order.append(id(block))
         self.camera = camera
         self.redraw = True
@@ -465,21 +497,19 @@ class BlockCollection(SceneComponent):
             tex_i, block = self.blocks[bi]
             ti = self.gl_texture_names[tex_i]
             GL.glBindTexture(GL.GL_TEXTURE_3D, ti)
-            GL.glDrawArrays(GL.GL_TRIANGLES, tex_i*36, 36)
+            GL.glDrawArrays(GL.GL_TRIANGLES, tex_i * 36, 36)
 
     def _set_uniforms(self, shader_program):
-        shader_program._set_uniform("projection",
-                self.camera.get_projection_matrix())
-        shader_program._set_uniform("lookat",
-                self.camera.get_view_matrix())
-        shader_program._set_uniform("viewport",
-                np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype = 'f4'))
-        shader_program._set_uniform("camera_pos",
-                self.camera.position)
+        shader_program._set_uniform("projection", self.camera.get_projection_matrix())
+        shader_program._set_uniform("lookat", self.camera.get_view_matrix())
+        shader_program._set_uniform(
+            "viewport", np.array(GL.glGetIntegerv(GL.GL_VIEWPORT), dtype="f4")
+        )
+        shader_program._set_uniform("camera_pos", self.camera.position)
 
     def _compute_geometry(self, block, bbox_vertices):
         move = get_translate_matrix(*block.LeftEdge)
-        dds = (block.RightEdge - block.LeftEdge)
+        dds = block.RightEdge - block.LeftEdge
         scale = get_scale_matrix(*dds)
 
         transformed_box = bbox_vertices.dot(scale.T).dot(move.T).astype("float32")
@@ -493,8 +523,7 @@ class BlockCollection(SceneComponent):
                 self.gl_texture_names = [self.gl_texture_names]
             GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
             GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
-            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MIN_FILTER,
-                    GL.GL_LINEAR)
+            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
 
         else:
             for texture in self.gl_texture_names:
@@ -509,23 +538,42 @@ class BlockCollection(SceneComponent):
             texture_name = self.gl_texture_names[tex_i]
             dx, dy, dz = block.my_data[0].shape
             n_data = block.my_data[0].copy(order="F").astype("float32")
-            n_data = (n_data - self.min_val) / ((self.max_val - self.min_val) * self.diagonal)
+            n_data = (n_data - self.min_val) / (
+                (self.max_val - self.min_val) * self.diagonal
+            )
             GL.glBindTexture(GL.GL_TEXTURE_3D, texture_name)
-            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexParameterf(GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP_TO_EDGE)
-            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, GL.GL_R32F,
-                *block.my_data[0].shape)
-            GL.glTexSubImage3D(GL.GL_TEXTURE_3D, 0, 0, 0, 0, dx, dy, dz,
-                        GL.GL_RED, GL.GL_FLOAT, n_data.T)
+            GL.glTexParameterf(
+                GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE
+            )
+            GL.glTexParameterf(
+                GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_T, GL.GL_CLAMP_TO_EDGE
+            )
+            GL.glTexParameterf(
+                GL.GL_TEXTURE_3D, GL.GL_TEXTURE_WRAP_R, GL.GL_CLAMP_TO_EDGE
+            )
+            GL.glTexStorage3D(GL.GL_TEXTURE_3D, 1, GL.GL_R32F, *block.my_data[0].shape)
+            GL.glTexSubImage3D(
+                GL.GL_TEXTURE_3D,
+                0,
+                0,
+                0,
+                0,
+                dx,
+                dy,
+                dz,
+                GL.GL_RED,
+                GL.GL_FLOAT,
+                n_data.T,
+            )
             GL.glGenerateMipmap(GL.GL_TEXTURE_3D)
 
+
 class ColorBarSceneComponent(SceneComponent):
-    ''' 
+    """
 
-    A class for scene components that apply colorbars using a 1D texture. 
+    A class for scene components that apply colorbars using a 1D texture.
 
-    '''
+    """
 
     def __init__(self):
         super(ColorBarSceneComponent, self).__init__()
@@ -539,19 +587,27 @@ class ColorBarSceneComponent(SceneComponent):
         pass
 
     def setup_cmap_tex(self):
-        '''Creates 1D texture that will hold colormap in framebuffer'''
-        self.cmap_texture = GL.glGenTextures(1)   # create target texture
+        """Creates 1D texture that will hold colormap in framebuffer"""
+        self.cmap_texture = GL.glGenTextures(1)  # create target texture
         GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
         GL.glPixelStorei(GL.GL_UNPACK_ALIGNMENT, 1)
         GL.glTexParameterf(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_WRAP_S, GL.GL_CLAMP_TO_EDGE)
         GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MAG_FILTER, GL.GL_LINEAR)
         GL.glTexParameteri(GL.GL_TEXTURE_1D, GL.GL_TEXTURE_MIN_FILTER, GL.GL_LINEAR)
-        GL.glTexImage1D(GL.GL_TEXTURE_1D, 0, GL.GL_RGBA, 256,
-                        0, GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
+        GL.glTexImage1D(
+            GL.GL_TEXTURE_1D,
+            0,
+            GL.GL_RGBA,
+            256,
+            0,
+            GL.GL_RGBA,
+            GL.GL_FLOAT,
+            self.camera.cmap,
+        )
         GL.glBindTexture(GL.GL_TEXTURE_1D, 0)
 
     def update_cmap_tex(self):
-        '''Updates 1D texture with colormap that's used in framebuffer'''
+        """Updates 1D texture with colormap that's used in framebuffer"""
         if self.camera is None or not self.camera.cmap_new:
             return
 
@@ -559,16 +615,18 @@ class ColorBarSceneComponent(SceneComponent):
             self.setup_cmap_tex()
 
         GL.glBindTexture(GL.GL_TEXTURE_1D, self.cmap_texture)
-        GL.glTexSubImage1D(GL.GL_TEXTURE_1D, 0, 0, 256,
-                           GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap)
+        GL.glTexSubImage1D(
+            GL.GL_TEXTURE_1D, 0, 0, 256, GL.GL_RGBA, GL.GL_FLOAT, self.camera.cmap
+        )
         self.camera.cmap_new = False
-    
+
+
 class MeshSceneComponent(ColorBarSceneComponent):
-    '''
+    """
 
     A scene component for representing unstructured mesh data.
 
-    '''
+    """
 
     def __init__(self, data_source, field):
         super(MeshSceneComponent, self).__init__()
@@ -592,11 +650,16 @@ class MeshSceneComponent(ColorBarSceneComponent):
         self.add_vert_attrib("data_buffer", data, data.size)
 
         self.vert_attrib["element_buffer"] = (GL.glGenBuffers(1), indices.size)
-        GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0])
-        GL.glBufferData(GL.GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL.GL_STATIC_DRAW)
+        GL.glBindBuffer(
+            GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0]
+        )
+        GL.glBufferData(
+            GL.GL_ELEMENT_ARRAY_BUFFER, indices.nbytes, indices, GL.GL_STATIC_DRAW
+        )
 
-        self.transform_matrix = GL.glGetUniformLocation(self.program.program,
-                                                        "model_to_clip")
+        self.transform_matrix = GL.glGetUniformLocation(
+            self.program.program, "model_to_clip"
+        )
 
         self.cmin = data.min()
         self.cmax = data.max()
@@ -616,9 +679,9 @@ class MeshSceneComponent(ColorBarSceneComponent):
 
     def get_mesh_data(self, data_source, field):
         """
-        
+
         This reads the mesh data into a form that can be fed in to OpenGL.
-        
+
         """
 
         # get mesh information
@@ -628,10 +691,10 @@ class MeshSceneComponent(ColorBarSceneComponent):
         except ValueError:
             mesh_id = 0
 
-        mesh = data_source.ds.index.meshes[mesh_id-1]
+        mesh = data_source.ds.index.meshes[mesh_id - 1]
         offset = mesh._index_offset
         vertices = mesh.connectivity_coords
-        indices  = mesh.connectivity_indices - offset
+        indices = mesh.connectivity_indices - offset
 
         data = data_source[field]
 
@@ -665,9 +728,15 @@ class MeshSceneComponent(ColorBarSceneComponent):
             GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.vert_attrib["data_buffer"][0])
             GL.glVertexAttribPointer(1, 1, GL.GL_FLOAT, False, 0, ctypes.c_void_p(0))
 
-            GL.glBindBuffer(GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0])
-            GL.glDrawElements(GL.GL_TRIANGLES, self.vert_attrib["element_buffer"][1],
-                              GL.GL_UNSIGNED_INT, ctypes.c_void_p(0))
+            GL.glBindBuffer(
+                GL.GL_ELEMENT_ARRAY_BUFFER, self.vert_attrib["element_buffer"][0]
+            )
+            GL.glDrawElements(
+                GL.GL_TRIANGLES,
+                self.vert_attrib["element_buffer"][1],
+                GL.GL_UNSIGNED_INT,
+                ctypes.c_void_p(0),
+            )
 
             GL.glDisableVertexAttribArray(0)
             GL.glDisableVertexAttribArray(1)
@@ -717,8 +786,12 @@ class SceneGraph(ColorBarSceneComponent):
 
         quad_attrib = GL.glGenBuffers(1)
         GL.glBindBuffer(GL.GL_ARRAY_BUFFER, quad_attrib)
-        GL.glBufferData(GL.GL_ARRAY_BUFFER, FULLSCREEN_QUAD.nbytes,
-                        FULLSCREEN_QUAD, GL.GL_STATIC_DRAW)
+        GL.glBufferData(
+            GL.GL_ARRAY_BUFFER,
+            FULLSCREEN_QUAD.nbytes,
+            FULLSCREEN_QUAD,
+            GL.GL_STATIC_DRAW,
+        )
         GL.glVertexAttribPointer(0, 3, GL.GL_FLOAT, GL.GL_FALSE, 0, None)
 
         # unbind
@@ -728,15 +801,13 @@ class SceneGraph(ColorBarSceneComponent):
         self.setup_fb(self.width, self.height)
 
     def setup_fb(self, width, height):
-        '''Sets up FrameBuffer that will be used as container
-           for 1 pass of rendering'''
+        """Sets up FrameBuffer that will be used as container
+           for 1 pass of rendering"""
         # Clean up old FB and Texture
-        if self.fb_texture is not None and \
-            GL.glIsTexture(self.fb_texture):
-                GL.glDeleteTextures([self.fb_texture])
+        if self.fb_texture is not None and GL.glIsTexture(self.fb_texture):
+            GL.glDeleteTextures([self.fb_texture])
         if self.fbo is not None and GL.glIsFramebuffer(self.fbo):
             GL.glDeleteFramebuffers(1, [self.fbo])
-
 
         # initialize FrameBuffer
         self.fbo = GL.glGenFramebuffers(1)
@@ -744,16 +815,16 @@ class SceneGraph(ColorBarSceneComponent):
 
         depthbuffer = GL.glGenRenderbuffers(1)
         GL.glBindRenderbuffer(GL.GL_RENDERBUFFER, depthbuffer)
-        GL.glRenderbufferStorage(GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT32F,
-                                 width, height)
+        GL.glRenderbufferStorage(
+            GL.GL_RENDERBUFFER, GL.GL_DEPTH_COMPONENT32F, width, height
+        )
         GL.glFramebufferRenderbuffer(
-            GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_RENDERBUFFER,
-            depthbuffer
+            GL.GL_FRAMEBUFFER, GL.GL_DEPTH_ATTACHMENT, GL.GL_RENDERBUFFER, depthbuffer
         )
         # end of FrameBuffer initialization
 
         # generate the texture we render to, and set parameters
-        self.fb_texture = GL.glGenTextures(1)   # create target texture
+        self.fb_texture = GL.glGenTextures(1)  # create target texture
         # bind to new texture, all future texture functions will modify this
         # particular one
         GL.glBindTexture(GL.GL_TEXTURE_2D, self.fb_texture)
@@ -766,16 +837,27 @@ class SceneGraph(ColorBarSceneComponent):
 
         # occupy width x height texture memory, (None at the end == empty
         # image)
-        GL.glTexImage2D(GL.GL_TEXTURE_2D, 0, GL.GL_RGBA32F, width,
-                        height, 0, GL.GL_RGBA, GL.GL_FLOAT, None)
+        GL.glTexImage2D(
+            GL.GL_TEXTURE_2D,
+            0,
+            GL.GL_RGBA32F,
+            width,
+            height,
+            0,
+            GL.GL_RGBA,
+            GL.GL_FLOAT,
+            None,
+        )
 
         # --- end texture init
 
         # Set "fb_texture" as our colour attachment #0
         GL.glFramebufferTexture2D(
-            GL.GL_FRAMEBUFFER, GL.GL_COLOR_ATTACHMENT0, GL.GL_TEXTURE_2D,
+            GL.GL_FRAMEBUFFER,
+            GL.GL_COLOR_ATTACHMENT0,
+            GL.GL_TEXTURE_2D,
             self.fb_texture,
-            0 # mipmap level, normally 0
+            0,  # mipmap level, normally 0
         )
 
         # verify that everything went well
@@ -810,8 +892,7 @@ class SceneGraph(ColorBarSceneComponent):
             self.data_logged = self.data_logged or collection.data_logged
 
         if self.camera is not None:
-            self.camera.update_cmap_minmax(self.min_val, self.max_val,
-                                           self.data_logged)
+            self.camera.update_cmap_minmax(self.min_val, self.max_val, self.data_logged)
 
     def set_camera(self, camera):
         r""" Sets the camera orientation for the entire scene.
@@ -831,9 +912,10 @@ class SceneGraph(ColorBarSceneComponent):
 
     def _retrieve_framebuffer(self):
         ox, oy, width, height = GL.glGetIntegerv(GL.GL_VIEWPORT)
-        debug_buffer = GL.glReadPixels(0, 0, width, height, GL.GL_RGB,
-                                       GL.GL_UNSIGNED_BYTE)
-        arr = np.fromstring(debug_buffer, "uint8", count = width*height*3)
+        debug_buffer = GL.glReadPixels(
+            0, 0, width, height, GL.GL_RGB, GL.GL_UNSIGNED_BYTE
+        )
+        arr = np.fromstring(debug_buffer, "uint8", count=width * height * 3)
         return arr.reshape((width, height, 3))
 
     def run_program(self):

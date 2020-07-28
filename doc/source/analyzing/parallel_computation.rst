@@ -110,7 +110,7 @@ processes using the following Bash command:
 
 .. code-block:: bash
 
-   $ mpirun -np 16 python2.7 my_script.py
+   $ mpirun -np 16 python my_script.py
 
 .. note::
 
@@ -221,7 +221,7 @@ Parallelization over Multiple Objects and Datasets
 
 If you have a set of computational steps that need to apply identically and
 independently to several different objects or datasets, a so-called
-`embarrassingly parallel <http://en.wikipedia.org/wiki/Embarrassingly_parallel>`_
+`embarrassingly parallel <https://en.wikipedia.org/wiki/Embarrassingly_parallel>`_
 task, yt can do that easily.  See the sections below on
 :ref:`parallelizing-your-analysis` and :ref:`parallel-time-series-analysis`.
 
@@ -269,6 +269,16 @@ and you can access the contents:
         sto.result_id = <some identifier for this dataset>
 
     print(my_dictionary)
+
+By default, the dataset series will be divided as equally as possible
+among the cores.  Often some datasets will require more work than
+others.  We offer the ``dynamic`` keyword in the
+:func:`~yt.data_objects.time_series.DatasetSeries.piter` function to
+enable dynamic load balancing with a task queue.  Dynamic load
+balancing works best with more cores and a variable workload.  Here
+one process will act as a server to assign the next available dataset
+to any free client.  For example, a 16 core job will have 15 cores
+analyzing the data with 1 core acting as the task manager.
 
 .. _parallelizing-your-analysis:
 
@@ -639,7 +649,7 @@ Additional Tips
 * Remember that if the script handles disk IO explicitly, and does not use
   a built-in yt function to write data to disk,
   care must be taken to
-  avoid `race-conditions <http://en.wikipedia.org/wiki/Race_conditions>`_.
+  avoid `race-conditions <https://en.wikipedia.org/wiki/Race_conditions>`_.
   Be explicit about which MPI task writes to disk using a construction
   something like this:
 

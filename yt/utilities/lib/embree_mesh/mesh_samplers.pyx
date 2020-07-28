@@ -1,3 +1,7 @@
+# distutils: include_dirs = EMBREE_INC_DIR
+# distutils: library_dirs = EMBREE_LIB_DIR
+# distutils: libraries = EMBREE_LIBS
+# distutils: language = c++
 """
 This file contains functions that sample a surface mesh at the point hit by
 a ray. These can be used with pyembree in the form of "filter feedback functions."
@@ -7,24 +11,25 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 """
 
 
+cimport cython
+cimport numpy as np
 cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_ray as rtcr
-from pyembree.rtcore cimport Vec3f, Triangle, Vertex
-from yt.utilities.lib.mesh_construction cimport \
-    MeshDataContainer, \
-    Patch, \
-    Tet_Patch
-from yt.utilities.lib.primitives cimport patchSurfaceFunc, tet_patchSurfaceFunc
-from yt.utilities.lib.element_mappings cimport \
-    ElementSampler, \
-    P1Sampler3D, \
-    Q1Sampler3D, \
-    S2Sampler3D, \
-    W1Sampler3D, \
-    Tet2Sampler3D
-cimport numpy as np
-cimport cython
 from libc.math cimport fabs, fmax
+from pyembree.rtcore cimport Triangle, Vec3f, Vertex
+
+from yt.utilities.lib.element_mappings cimport (
+    ElementSampler,
+    P1Sampler3D,
+    Q1Sampler3D,
+    S2Sampler3D,
+    Tet2Sampler3D,
+    W1Sampler3D,
+)
+from yt.utilities.lib.primitives cimport patchSurfaceFunc, tet_patchSurfaceFunc
+
+from .mesh_construction cimport MeshDataContainer, Patch, Tet_Patch
+
 
 cdef ElementSampler Q1Sampler = Q1Sampler3D()
 cdef ElementSampler P1Sampler = P1Sampler3D()

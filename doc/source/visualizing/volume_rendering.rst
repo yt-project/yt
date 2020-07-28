@@ -74,13 +74,13 @@ with a series of
 hanging off of it that describe the contents
 of that volume.  It also contains a
 :class:`~yt.visualization.volume_rendering.camera.Camera` for rendering that
-volume..  All of its classes can be
+volume.  All of its classes can be
 accessed and modified as properties hanging off of the scene.
 The scene's most important functions are
 :meth:`~yt.visualization.volume_rendering.scene.Scene.render` for
 casting rays through the scene and
 :meth:`~yt.visualization.volume_rendering.scene.Scene.save` for saving the
-resulting rendered image to disk.
+resulting rendered image to disk (see note on :ref:`when_to_render`).
 
 The easiest way to create a scene with sensible defaults is to use the
 functions:
@@ -329,7 +329,7 @@ To add a single gaussian layer with a color determined by a colormap value, use
    source.tfh.plot('transfer_function.png', profile_field='density')
 
    sc.save('rendering.png', sigma_clip=6)
-   
+
 
 add_gaussian
 """"""""""""
@@ -400,7 +400,7 @@ the volume rendering.
    def linramp(vals, minval, maxval):
        return (vals - vals.min())/(vals.max() - vals.min())
 
-   tf.map_to_colormap(np.log10(3e-31), np.log10(5e-27), colormap='arbre', 
+   tf.map_to_colormap(np.log10(3e-31), np.log10(5e-27), colormap='arbre',
                       scale_func=linramp)
 
    source.tfh.tf = tf
@@ -408,7 +408,7 @@ the volume rendering.
 
    source.tfh.plot('transfer_function.png', profile_field='density')
 
-   sc.save('rendering.png', sigma_clip=6)   
+   sc.save('rendering.png', sigma_clip=6)
 
 Projection Transfer Function
 ++++++++++++++++++++++++++++
@@ -522,10 +522,10 @@ adjusts for an opening view angle, so that the scene will have an
 element of perspective to it.
 :class:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens`
 is identical to PerspectiveLens, but it produces two images from nearby
-camera positions for use in 3D viewing. How 3D the image appears at viewing 
-will depend upon the value of 
-:attr:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens.disparity`, 
-which is half the maximum distance between two corresponding points in the left 
+camera positions for use in 3D viewing. How 3D the image appears at viewing
+will depend upon the value of
+:attr:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens.disparity`,
+which is half the maximum distance between two corresponding points in the left
 and right images. By default, it is set to 3 pixels.
 
 
@@ -556,11 +556,11 @@ see `the YouTube help: Upload virtual reality videos
 <https://support.google.com/youtube/answer/6316263?hl=en>`_).
 `This virtual reality video
 <https://youtu.be/ZYWY53X7UQE>`_ on YouTube is an example produced with
-:class:`~yt.visualization.volume_rendering.lens.StereoSphericalLens`. As in 
-the case of  
-:class:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens`, the 
-difference between the two images can be controlled by changing the value of 
-:attr:`~yt.visualization.volume_rendering.lens.StereoSphericalLens.disparity` 
+:class:`~yt.visualization.volume_rendering.lens.StereoSphericalLens`. As in
+the case of
+:class:`~yt.visualization.volume_rendering.lens.StereoPerspectiveLens`, the
+difference between the two images can be controlled by changing the value of
+:attr:`~yt.visualization.volume_rendering.lens.StereoSphericalLens.disparity`
 (See above).
 
 .. _annotated-vr-example:
@@ -573,7 +573,7 @@ Annotated Examples
              information can be hard.  We've provided information about best
              practices and tried to make the interface easy to develop nice
              visualizations, but getting them *just right* is often
-             time-consuming.  It's usually best to start out simple and expand 
+             time-consuming.  It's usually best to start out simple and expand
              and tweak as needed.
 
 The scene interface provides a modular interface for creating renderings
@@ -653,7 +653,7 @@ function. Example:
 
     import numpy as np
     import yt
-  
+
 
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     sc = yt.create_scene(ds, 'density')
@@ -856,3 +856,27 @@ dark.  ``sigma_clip = N`` can address this by removing values that are more
 than ``N`` standard deviations brighter than the mean of your image.
 Typically, a choice of 4 to 6 will help dramatically with your resulting image.
 See the cookbook recipe :ref:`cookbook-sigma_clip` for a demonstration.
+
+.. _when_to_render:
+
+When to Render
+^^^^^^^^^^^^^^
+
+The rendering of a scene is the most computationally demanding step in
+creating a final image and there are a number of ways to control at which point
+a scene is actually rendered. The default behavior of the
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save` function includes
+a call to :meth:`~yt.visualization.volume_rendering.scene.Scene.render`. This
+means that in most cases (including the above examples), after you set up your
+scene and volumes, you can simply call
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save` without first
+calling :meth:`~yt.visualization.volume_rendering.scene.Scene.render`. If you
+wish to save the most recently rendered image without rendering again, set
+``render=False`` in the call to
+:meth:`~yt.visualization.volume_rendering.scene.Scene.save`.  Cases where you
+may wish to use ``render=False`` include saving images at different
+``sigma_clip`` values (see :ref:`cookbook-sigma_clip`) or when saving an image
+that has already been rendered in a Jupyter notebook using
+:meth:`~yt.visualization.volume_rendering.scene.Scene.show`. Changes to the
+scene including adding sources, modifying transfer functions or adjusting camera
+settings generally require rendering again.

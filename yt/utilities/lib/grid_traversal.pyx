@@ -1,3 +1,6 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
+# distutils: sources = FIXED_INTERP
 """
 Simple integrators for the radiative transfer equation
 
@@ -7,17 +10,34 @@ Simple integrators for the radiative transfer equation
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-#cimport healpix_interface
-from libc.stdlib cimport malloc, calloc, free, abs
-from libc.math cimport exp, floor, log2, \
-    fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI, sqrt
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
-from field_interpolation_tables cimport \
-    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
-    FIT_eval_transfer_with_light
+cimport numpy as np
+from field_interpolation_tables cimport (
+    FieldInterpolationTable,
+    FIT_eval_transfer,
+    FIT_eval_transfer_with_light,
+    FIT_initialize_table,
+)
 from fixed_interpolator cimport *
+from libc.math cimport (
+    M_PI,
+    acos,
+    asin,
+    atan,
+    atan2,
+    cos,
+    exp,
+    fabs,
+    floor,
+    log2,
+    sin,
+    sqrt,
+)
+#cimport healpix_interface
+from libc.stdlib cimport abs, calloc, free, malloc
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, imin
 
 DEF Nch = 4
 

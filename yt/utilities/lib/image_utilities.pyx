@@ -1,12 +1,17 @@
+
+# distutils: libraries = STD_LIBS
 """
 Utilities for images
 """
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 from yt.utilities.lib.fp_utils cimport iclip
+
 
 def add_points_to_greyscale_image(
         np.ndarray[np.float64_t, ndim=2] buffer,

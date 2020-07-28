@@ -1,3 +1,6 @@
+# distutils: sources = FIXED_INTERP
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Image sampler definitions
 
@@ -7,10 +10,13 @@ Image sampler definitions
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.stdlib cimport malloc, calloc, free, abs
+cimport numpy as np
+from libc.stdlib cimport abs, calloc, free, malloc
+
 from .fixed_interpolator cimport offset_interpolate
+
 
 cdef class PartitionedGrid:
 

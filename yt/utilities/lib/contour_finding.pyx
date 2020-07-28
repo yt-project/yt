@@ -1,3 +1,5 @@
+# distutils: libraries = STD_LIBS
+# distutils: include_dirs = LIB_DIR_GEOM
 """
 A two-pass contour finding algorithm
 
@@ -6,22 +8,24 @@ A two-pass contour finding algorithm
 """
 
 from __future__ import print_function
+
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
 from cython cimport floating
-from libc.stdlib cimport malloc, free, realloc
+from libc.stdlib cimport free, malloc, realloc
+
+from yt.geometry.oct_container cimport OctInfo, OctreeContainer
+from yt.geometry.oct_visitors cimport Oct
 from yt.utilities.lib.fp_utils cimport imax
-from yt.geometry.oct_container cimport \
-    OctreeContainer, OctInfo
-from yt.geometry.oct_visitors cimport \
-    Oct
+
 from .amr_kdtools cimport Node
-from .partitioned_grid cimport \
-    PartitionedGrid
-from .volume_container cimport \
-    VolumeContainer, vc_index, vc_pos_index
+from .partitioned_grid cimport PartitionedGrid
+from .volume_container cimport VolumeContainer, vc_index, vc_pos_index
+
 import sys
+
 
 cdef inline ContourID *contour_create(np.int64_t contour_id,
                                ContourID *prev = NULL):

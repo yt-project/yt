@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Simple interpolators
 
@@ -7,9 +9,12 @@ Simple interpolators
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+cimport numpy as np
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+
 
 @cython.cdivision(True)
 @cython.wraparound(False)

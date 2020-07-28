@@ -69,7 +69,7 @@ you would like to include it in the base distribution of yt, we would be happy
 to do so; drop us a line or see :ref:`contributing-code` for more information.
 
 To accomplish the process of linking Python with our external code, we will be
-using a language called `Cython <http://www.cython.org/>`_, which is
+using a language called `Cython <https://cython.org/>`_, which is
 essentially a superset of Python that compiles down to C.  It is aware of NumPy
 arrays, and it is able to massage data between the interpreted language Python
 and C, Fortran or C++.  It will be much easier to utilize routines and analysis
@@ -188,7 +188,7 @@ To build our extension, we would run:
 
 .. code-block:: bash
 
-   $ python2.7 axes_calculator_setup.py build_ext -i
+   $ python axes_calculator_setup.py build_ext -i
 
 Note that since we don't yet have an ``axes_calculator.pyx``, this will fail.
 But once we have it, it ought to run.
@@ -201,7 +201,7 @@ figured out how to build it, which is halfway to being able to test that it
 works, and we now need to start writing Cython code.
 
 For a more detailed introduction to Cython, see the Cython documentation at
-http://docs.cython.org/ .  We'll cover a few of the basics for wrapping code
+http://docs.cython.org/en/latest/ .  We'll cover a few of the basics for wrapping code
 however.
 
 To start out with, we need to open up and edit our file,
@@ -395,7 +395,7 @@ import, and then save things out into a file.
 .. code-block:: python
 
    import h5py
-   f = h5py.File("some_file.h5")
+   f = h5py.File("some_file.h5", mode="w")
    f.create_dataset("/data", data=some_data)
 
 This will create ``some_file.h5`` if necessary and add a new dataset

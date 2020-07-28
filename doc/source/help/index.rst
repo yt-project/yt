@@ -184,14 +184,14 @@ If you want a fast, interactive experience, you could try jumping into our Slack
 or IRC channels to get your questions answered in a chatroom style environment.
 
 To join our slack channel you will need to request an invite by going to
-http://yt-project.org/development.html, click the "Join as @ Slack!" button, and
+https://yt-project.org/development.html, click the "Join as @ Slack!" button, and
 fill out the form. You will get an invite as soon as an administrator approves
 your request.
 
 Alternatively you can go to our IRC channel, which does not require an
 invite. You don't even need to have any special IRC client in order to join the
 IRC channel.  We are the #yt channel on irc.freenode.net, but you can also
-connect using your web browser by going to http://yt-project.org/irc.html .
+connect using your web browser by going to https://yt-project.org/irc.html .
 There are usually 2-8 members of the user base and development team online, so
 you'll probably get your answers quickly.  Remember to bring the information
 from the :ref:`last step <isolate_and_document>`.
@@ -203,8 +203,8 @@ Ask the mailing list
 
 If you still haven't yet found a solution, feel free to
 write to the mailing list regarding your problems.  There are two mailing lists,
-`yt-users <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_ and
-`yt-dev <https://mail.python.org/mm3/archives/list/yt-dev@python.org/>`_.  The
+`yt-users <https://mail.python.org/archives/list/yt-users@python.org/>`_ and
+`yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_.  The
 first should be used for asking for help, suggesting features and so on, and
 the latter has more chatter about the way the code is developed and discussions
 of changes and feature improvements.

@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Distance queue implementation
 
@@ -7,8 +9,11 @@ Distance queue implementation
 """
 
 cimport numpy as np
+
 import numpy as np
+
 cimport cython
+
 
 cdef int Neighbor_compare(void *on1, void *on2) nogil:
     cdef NeighborList *n1

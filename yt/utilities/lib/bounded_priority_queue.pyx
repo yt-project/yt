@@ -11,10 +11,11 @@ element at the beginning - this exploited to store nearest neighbour lists.
 
 
 import numpy as np
-cimport numpy as np
 
 cimport cython
-from cpython.mem cimport PyMem_Malloc, PyMem_Realloc, PyMem_Free
+cimport numpy as np
+from cpython.mem cimport PyMem_Free, PyMem_Malloc, PyMem_Realloc
+
 
 cdef class BoundedPriorityQueue:
     def __cinit__(self, np.intp_t max_elements, np.intp_t pids=0):

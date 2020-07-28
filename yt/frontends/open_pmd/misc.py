@@ -37,17 +37,11 @@ def parse_unit_dimension(unit_dimension):
     >>> print(parse_unit_dimension(magnetic_field))
     'kg**1*s**-2*A**-1'
     """
-    if len(unit_dimension) is not 7:
+    if len(unit_dimension) != 7:
         mylog.error("SI must have 7 base dimensions!")
     unit_dimension = np.asarray(unit_dimension, dtype=np.int)
     dim = []
-    si = ["m",
-          "kg",
-          "s",
-          "A",
-          "C",
-          "mol",
-          "cd"]
+    si = ["m", "kg", "s", "A", "C", "mol", "cd"]
     for i in np.arange(7):
         if unit_dimension[i] != 0:
             dim.append("{}**{}".format(si[i], unit_dimension[i]))
@@ -107,11 +101,17 @@ def get_component(group, component_name, index=0, offset=None):
         else:
             shape[0] = offset
         # component is constant, craft an array by hand
-        # mylog.debug("open_pmd - get_component: {}/{} [const {}]".format(group.name, component_name, shape))
+        # mylog.debug(
+        #    "open_pmd - get_component: {}/{} [const {}]".format(group.name, component_name, shape)
+        # )
         return np.full(shape, record_component.attrs["value"] * unit_si)
     else:
         if offset is not None:
             offset += index
         # component is a dataset, return it (possibly masked)
-        # mylog.debug("open_pmd - get_component: {}/{}[{}:{}]".format(group.name, component_name, index, offset))
+        # mylog.debug(
+        #    "open_pmd - get_component: {}/{}[{}:{}]".format(
+        #        group.name, component_name, index, offset
+        #    )
+        # )
         return np.multiply(record_component[index:offset], unit_si)

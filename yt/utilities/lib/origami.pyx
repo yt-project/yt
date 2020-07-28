@@ -1,3 +1,6 @@
+# distutils: sources = yt/utilities/lib/origami_tags.c
+# distutils: include_dirs = LIB_DIR
+# distutils: depends = yt/utilities/lib/origami_tags.h
 """
 This calls the ORIGAMI routines
 
@@ -7,8 +10,10 @@ This calls the ORIGAMI routines
 
 
 import numpy as np
+
 cimport numpy as np
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free, malloc
+
 
 cdef extern from "origami_tags.h":
     int compute_tags(int ng, double boxsize, double **r, int npart,

@@ -1,22 +1,20 @@
+import builtins
+
 import numpy as np
 
-from yt.config import \
-    ytcfg
-from yt.funcs import \
-    mylog, \
-    get_image_suffix, \
-    get_brewer_cmap
+from yt.config import ytcfg
+from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
 from yt.units.yt_array import YTQuantity
+from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook
-from .color_maps import mcm
+from yt.utilities.lib import image_utilities as au
+
 from . import _colormap_data as cmd
-import yt.utilities.lib.image_utilities as au
-import yt.utilities.png_writer as pw
-import builtins
+from .color_maps import mcm
 
 
 def scale_image(image, mi=None, ma=None):
-    r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled 
+    r"""Scale an image ([NxNxM] where M = 1-4) to be uint8 and values scaled
     from [0,255].
 
     Parameters
@@ -38,11 +36,13 @@ def scale_image(image, mi=None, ma=None):
         mi = image.min()
     if ma is None:
         ma = image.max()
-    image = (np.clip((image-mi)/(ma-mi) * 255, 0, 255)).astype('uint8')
+    image = (np.clip((image - mi) / (ma - mi) * 255, 0, 255)).astype("uint8")
     return image
 
-def multi_image_composite(fn, red_channel, blue_channel,
-                          green_channel = None, alpha_channel = None):
+
+def multi_image_composite(
+    fn, red_channel, blue_channel, green_channel=None, alpha_channel=None
+):
     r"""Write an image with different color channels corresponding to different
     quantities.
 
@@ -91,18 +91,19 @@ def multi_image_composite(fn, red_channel, blue_channel,
     red_channel = scale_image(red_channel)
     blue_channel = scale_image(blue_channel)
     if green_channel is None:
-        green_channel = np.zeros(red_channel.shape, dtype='uint8')
+        green_channel = np.zeros(red_channel.shape, dtype="uint8")
     else:
         green_channel = scale_image(green_channel)
     if alpha_channel is None:
-        alpha_channel = np.zeros(red_channel.shape, dtype='uint8') + 255
+        alpha_channel = np.zeros(red_channel.shape, dtype="uint8") + 255
     else:
-        alpha_channel = scale_image(alpha_channel) 
+        alpha_channel = scale_image(alpha_channel)
     image = np.array([red_channel, green_channel, blue_channel, alpha_channel])
-    image = image.transpose().copy() # Have to make sure it's contiguous 
+    image = image.transpose().copy()  # Have to make sure it's contiguous
     pw.write_png(image, fn)
 
-def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
+
+def write_bitmap(bitmap_array, filename, max_val=None, transpose=False):
     r"""Write out a bitmapped image directly to a PNG file.
 
     This accepts a three- or four-channel `bitmap_array`.  If the image is not
@@ -134,29 +135,34 @@ def write_bitmap(bitmap_array, filename, max_val = None, transpose=False):
         first element will be placed in the lower-left corner.
     """
     if len(bitmap_array.shape) != 3 or bitmap_array.shape[-1] not in (3, 4):
-        raise RuntimeError("Expecting image array of shape (N,M,3) or "
-                           "(N,M,4), received %s" % str(bitmap_array.shape))
+        raise RuntimeError(
+            "Expecting image array of shape (N,M,3) or "
+            "(N,M,4), received %s" % str(bitmap_array.shape)
+        )
 
     if bitmap_array.dtype != np.uint8:
         s1, s2 = bitmap_array.shape[:2]
         if bitmap_array.shape[-1] == 3:
-            alpha_channel = 255*np.ones((s1,s2,1), dtype='uint8')
+            alpha_channel = 255 * np.ones((s1, s2, 1), dtype="uint8")
         else:
-            alpha_channel = (255*bitmap_array[:,:,3]).astype('uint8')
+            alpha_channel = (255 * bitmap_array[:, :, 3]).astype("uint8")
             alpha_channel.shape = s1, s2, 1
-        if max_val is None: max_val = bitmap_array[:,:,:3].max()
-        bitmap_array = np.clip(bitmap_array[:,:,:3] / max_val, 0.0, 1.0) * 255
-        bitmap_array = np.concatenate([bitmap_array.astype('uint8'),
-                                       alpha_channel], axis=-1)
+        if max_val is None:
+            max_val = bitmap_array[:, :, :3].max()
+        bitmap_array = np.clip(bitmap_array[:, :, :3] / max_val, 0.0, 1.0) * 255
+        bitmap_array = np.concatenate(
+            [bitmap_array.astype("uint8"), alpha_channel], axis=-1
+        )
     if transpose:
-        bitmap_array = bitmap_array.swapaxes(0,1).copy(order="C")
+        bitmap_array = bitmap_array.swapaxes(0, 1).copy(order="C")
     if filename is not None:
         pw.write_png(bitmap_array, filename)
     else:
         return pw.write_png_to_string(bitmap_array.copy())
     return bitmap_array
 
-def write_image(image, filename, color_bounds = None, cmap_name = None, func = lambda x: x):
+
+def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda x: x):
     r"""Write out a floating point array directly to a PNG file, scaling it and
     applying a colormap.
 
@@ -175,9 +181,9 @@ def write_image(image, filename, color_bounds = None, cmap_name = None, func = l
         The min and max to scale between.  Outlying values will be clipped.
     cmap_name : string, optional
         An acceptable colormap.  See either yt.visualization.color_maps or
-        http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
     func : function, optional
-        A function to transform the buffer before applying a colormap. 
+        A function to transform the buffer before applying a colormap.
 
     Returns
     -------
@@ -195,12 +201,13 @@ def write_image(image, filename, color_bounds = None, cmap_name = None, func = l
         cmap_name = ytcfg.get("yt", "default_colormap")
     if len(image.shape) == 3:
         mylog.info("Using only channel 1 of supplied image")
-        image = image[:,:,0]
-    to_plot = apply_colormap(image, color_bounds = color_bounds, cmap_name = cmap_name)
+        image = image[:, :, 0]
+    to_plot = apply_colormap(image, color_bounds=color_bounds, cmap_name=cmap_name)
     pw.write_png(to_plot, filename)
     return to_plot
 
-def apply_colormap(image, color_bounds = None, cmap_name = None, func=lambda x: x):
+
+def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
     r"""Apply a colormap to a floating point image, scaling to uint8.
 
     This function will scale an image and directly call libpng to write out a
@@ -216,9 +223,9 @@ def apply_colormap(image, color_bounds = None, cmap_name = None, func=lambda x: 
         The min and max to scale between.  Outlying values will be clipped.
     cmap_name : string, optional
         An acceptable colormap.  See either yt.visualization.color_maps or
-        http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+        https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
     func : function, optional
-        A function to transform the buffer before applying a colormap. 
+        A function to transform the buffer before applying a colormap.
 
     Returns
     -------
@@ -228,17 +235,19 @@ def apply_colormap(image, color_bounds = None, cmap_name = None, func=lambda x: 
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
     from yt.data_objects.image_array import ImageArray
+
     image = ImageArray(func(image))
     if color_bounds is None:
-        mi = np.nanmin(image[~np.isinf(image)])*image.uq
-        ma = np.nanmax(image[~np.isinf(image)])*image.uq
+        mi = np.nanmin(image[~np.isinf(image)]) * image.uq
+        ma = np.nanmax(image[~np.isinf(image)]) * image.uq
         color_bounds = mi, ma
     else:
         color_bounds = [YTQuantity(func(c), image.units) for c in color_bounds]
-    image = (image - color_bounds[0])/(color_bounds[1] - color_bounds[0])
+    image = (image - color_bounds[0]) / (color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
     to_plot = np.clip(to_plot, 0, 255)
     return to_plot
+
 
 def map_to_colors(buff, cmap_name):
     try:
@@ -255,28 +264,43 @@ def map_to_colors(buff, cmap_name):
         except ValueError:
             raise KeyError(
                 "Your color map (%s) was not found in either the extracted"
-                " colormap file or matplotlib colormaps" % cmap_name)
+                " colormap file or matplotlib colormaps" % cmap_name
+            )
 
     if isinstance(cmap_name, tuple):
         # If we are using the colorbrewer maps, don't interpolate
         shape = buff.shape
         # We add float_eps so that digitize doesn't go out of bounds
-        x = np.mgrid[0.0:1.0+np.finfo(np.float32).eps:lut[0].shape[0]*1j]
+        x = np.mgrid[0.0 : 1.0 + np.finfo(np.float32).eps : lut[0].shape[0] * 1j]
         inds = np.digitize(buff.ravel(), x)
         inds.shape = (shape[0], shape[1])
-        mapped = np.dstack([(v[inds]*255).astype('uint8') for v in lut])
+        mapped = np.dstack([(v[inds] * 255).astype("uint8") for v in lut])
         del inds
     else:
-        x = np.mgrid[0.0:1.0:lut[0].shape[0]*1j]
-        mapped = np.dstack(
-                [(np.interp(buff, x, v)*255).astype('uint8') for v in lut ])
+        x = np.mgrid[0.0 : 1.0 : lut[0].shape[0] * 1j]
+        mapped = np.dstack([(np.interp(buff, x, v) * 255).astype("uint8") for v in lut])
     return mapped.copy("C")
 
-def strip_colormap_data(fn = "color_map_data.py",
-            cmaps = ("jet", "algae", "hot", "gist_stern", "RdBu",
-                     "kamae", "kelp", "arbre", "octarine", "dusk")):
+
+def strip_colormap_data(
+    fn="color_map_data.py",
+    cmaps=(
+        "jet",
+        "algae",
+        "hot",
+        "gist_stern",
+        "RdBu",
+        "kamae",
+        "kelp",
+        "arbre",
+        "octarine",
+        "dusk",
+    ),
+):
     import pprint
+
     from . import color_maps as rcm
+
     f = open(fn, "w")
     f.write("### Auto-generated colormap tables, taken from Matplotlib ###\n\n")
     f.write("from numpy import array\n")
@@ -296,11 +320,11 @@ def strip_colormap_data(fn = "color_map_data.py",
         f.write("   )\n\n")
     f.close()
 
-def splat_points(image, points_x, points_y,
-                 contribution = None, transposed = False):
+
+def splat_points(image, points_x, points_y, contribution=None, transposed=False):
     if contribution is None:
         contribution = 100.0
-    val = contribution * 1.0/points_x.size
+    val = contribution * 1.0 / points_x.size
     if transposed:
         points_y = 1.0 - points_y
         points_x = 1.0 - points_x
@@ -308,14 +332,26 @@ def splat_points(image, points_x, points_y,
     au.add_points_to_image(im, points_x, points_y, val)
     return im
 
-def write_projection(data, filename, colorbar=True, colorbar_label=None, 
-                     title=None, limits=None, take_log=True, figsize=(8,6),
-                     dpi=100, cmap_name=None, extent=None, xlabel=None,
-                     ylabel=None):
-    r"""Write a projection or volume rendering to disk with a variety of 
+
+def write_projection(
+    data,
+    filename,
+    colorbar=True,
+    colorbar_label=None,
+    title=None,
+    limits=None,
+    take_log=True,
+    figsize=(8, 6),
+    dpi=100,
+    cmap_name=None,
+    extent=None,
+    xlabel=None,
+    ylabel=None,
+):
+    r"""Write a projection or volume rendering to disk with a variety of
     pretty parameters such as limits, title, colorbar, etc.  write_projection
     uses the standard matplotlib interface to create the figure.  N.B. This code
-    only works *after* you have created the projection using the standard 
+    only works *after* you have created the projection using the standard
     framework (i.e. the Camera interface or off_axis_projection).
 
     Accepts an NxM sized array representing the projection itself as well
@@ -324,9 +360,9 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
 
     Parameters
     ----------
-    data : array_like 
+    data : array_like
         image array as output by off_axis_projection or camera.snapshot()
-    filename : string 
+    filename : string
         the filename where the data will be saved
     colorbar : boolean
         do you want a colorbar generated to the right of the image?
@@ -335,7 +371,7 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     title : string
         the label at the top of the figure
     limits : 2-element array_like
-        the lower limit and the upper limit to be plotted in the figure 
+        the lower limit and the upper limit to be plotted in the figure
         of the data array
     take_log : boolean
         plot the log of the data array (and take the log of the limits if set)?
@@ -350,15 +386,16 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     --------
 
     >>> image = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
-    >>> write_projection(image, 'test.png', 
-                         colorbar_label="Column Density (cm$^{-2}$)", 
-                         title="Offaxis Projection", limits=(1e-5,1e-3), 
+    >>> write_projection(image, 'test.png',
+                         colorbar_label="Column Density (cm$^{-2}$)",
+                         title="Offaxis Projection", limits=(1e-5,1e-3),
                          take_log=True)
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
-    import matplotlib.figure
     import matplotlib.colors
+    import matplotlib.figure
+
     from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
     # If this is rendered as log, then apply now.
@@ -366,17 +403,23 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
         norm = matplotlib.colors.LogNorm()
     else:
         norm = matplotlib.colors.Normalize()
-    
+
     if limits is None:
         limits = [None, None]
 
     # Create the figure and paint the data on
     fig = matplotlib.figure.Figure(figsize=figsize)
     ax = fig.add_subplot(111)
-    
-    cax = ax.imshow(data.to_ndarray(), vmin=limits[0], vmax=limits[1], norm=norm,
-                    extent=extent, cmap=cmap_name)
-    
+
+    cax = ax.imshow(
+        data.to_ndarray(),
+        vmin=limits[0],
+        vmax=limits[1],
+        norm=norm,
+        extent=extent,
+        cmap=cmap_name,
+    )
+
     if title:
         ax.set_title(title)
 
@@ -398,8 +441,8 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
 
     suffix = get_image_suffix(filename)
 
-    if suffix == '':
-        suffix = '.png'
+    if suffix == "":
+        suffix = ".png"
         filename = "%s%s" % (filename, suffix)
     mylog.info("Saving plot %s", filename)
     if suffix == ".pdf":
@@ -414,31 +457,32 @@ def write_projection(data, filename, colorbar=True, colorbar_label=None,
     canvas.print_figure(filename, dpi=dpi)
     return filename
 
+
 def display_in_notebook(image, max_val=None):
     """
     A helper function to display images in an IPython notebook
-    
+
     Must be run from within an IPython notebook, or else it will raise
     a YTNotInsideNotebook exception.
-        
+
     Parameters
     ----------
     image : array_like
         This is an (unscaled) array of floating point values, shape (N,N,3) or
         (N,N,4) to display in the notebook. The first three channels will be
-        scaled automatically.  
+        scaled automatically.
     max_val : float, optional
         The upper limit to clip values of the image.  Only applies to the first
         three channels.
     """
- 
+
     if "__IPYTHON__" in dir(builtins):
         from IPython.core.displaypub import publish_display_data
+
         data = write_bitmap(image, None, max_val=max_val)
         publish_display_data(
-            data={'image/png': data},
-            source='yt.visualization.image_writer.display_in_notebook',
+            data={"image/png": data},
+            source="yt.visualization.image_writer.display_in_notebook",
         )
     else:
         raise YTNotInsideNotebook
-

@@ -1,3 +1,7 @@
+# distutils: include_dirs = EMBREE_INC_DIR
+# distutils: library_dirs = EMBREE_LIB_DIR
+# distutils: libraries = EMBREE_LIBS
+# distutils: language = c++
 """
 This file contains functions used for performing ray-tracing with Embree
 for 2nd-order Lagrange Elements.
@@ -7,26 +11,29 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 """
 
 
-cimport pyembree.rtcore as rtc
-cimport pyembree.rtcore_ray as rtcr
-cimport pyembree.rtcore_geometry as rtcg
-from pyembree.rtcore cimport Vec3f
-cimport numpy as np
 cimport cython
-from libc.math cimport fabs, fmin, fmax, sqrt
-from yt.utilities.lib.mesh_samplers cimport sample_hex20, sample_tet10
+cimport numpy as np
+cimport pyembree.rtcore as rtc
+cimport pyembree.rtcore_geometry as rtcg
+cimport pyembree.rtcore_ray as rtcr
+from libc.math cimport fabs, fmax, fmin, sqrt
+from pyembree.rtcore cimport Vec3f
+
 from yt.utilities.lib.bounding_volume_hierarchy cimport BBox
-from yt.utilities.lib.primitives cimport \
-    patchSurfaceFunc, \
-    patchSurfaceDerivU, \
-    patchSurfaceDerivV, \
-    RayHitData, \
-    compute_patch_hit, \
-    tet_patchSurfaceFunc, \
-    tet_patchSurfaceDerivU, \
-    tet_patchSurfaceDerivV, \
-    compute_tet_patch_hit
-from vec3_ops cimport dot, subtract, cross, distance
+from yt.utilities.lib.primitives cimport (
+    RayHitData,
+    compute_patch_hit,
+    compute_tet_patch_hit,
+    patchSurfaceDerivU,
+    patchSurfaceDerivV,
+    patchSurfaceFunc,
+    tet_patchSurfaceDerivU,
+    tet_patchSurfaceDerivV,
+    tet_patchSurfaceFunc,
+)
+from yt.utilities.lib.vec3_ops cimport cross, distance, dot, subtract
+
+from .mesh_samplers cimport sample_hex20, sample_tet10
 
 
 @cython.boundscheck(False)

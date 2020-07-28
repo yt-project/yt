@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 An allocation container and memory pool
 
@@ -7,7 +9,9 @@ An allocation container and memory pool
 
 
 cimport numpy as np
+
 import numpy as np
+
 
 cdef class ObjectPool:
     def __cinit__(self):

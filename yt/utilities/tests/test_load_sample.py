@@ -1,27 +1,49 @@
 from yt.testing import assert_equal
 from yt.utilities.load_sample import _validate_sampledata_name
 
-names = { "t1": {"load_name" : "IsolatedGalaxy.tar.gz",
-                 "answers": { "fileext" : "IsolatedGalaxy.tar.gz",
-                              "basename" : "IsolatedGalaxy",
-                              "extension" : "tar"}},
-          "t2": {"load_name" : "IsolatedGalaxy",
-                 "answers": { "fileext" : "IsolatedGalaxy.tar.gz",
-                              "basename" : "IsolatedGalaxy",
-                              "extension" : "tar"}},
-          "t3": {"load_name" : "apec_emissivity_v3.h5",
-                 "answers": { "fileext" : "apec_emissivity_v3.h5",
-                              "basename" : "apec_emissivity_v3",
-                              "extension" : "h5"}},
-          "t4": {"load_name" : "apec_emissivity_v3.hdf5",
-                 "answers": { "fileext" : "apec_emissivity_v3.hdf5",
-                              "basename" : "apec_emissivity_v3",
-                              "extension" : "h5"}},
-          "t5": {"load_name" : "solution-00027.0000.vtu",
-                 "answers": { "fileext" : "solution-00027.0000.vtu",
-                              "basename" : "solution-00027.0000",
-                              "extension" : ".vtu"}}
-        }
+names = {
+    "t1": {
+        "load_name": "IsolatedGalaxy.tar.gz",
+        "answers": {
+            "fileext": "IsolatedGalaxy.tar.gz",
+            "basename": "IsolatedGalaxy",
+            "extension": "tar",
+        },
+    },
+    "t2": {
+        "load_name": "IsolatedGalaxy",
+        "answers": {
+            "fileext": "IsolatedGalaxy.tar.gz",
+            "basename": "IsolatedGalaxy",
+            "extension": "tar",
+        },
+    },
+    "t3": {
+        "load_name": "apec_emissivity_v3.h5",
+        "answers": {
+            "fileext": "apec_emissivity_v3.h5",
+            "basename": "apec_emissivity_v3",
+            "extension": "h5",
+        },
+    },
+    "t4": {
+        "load_name": "apec_emissivity_v3.hdf5",
+        "answers": {
+            "fileext": "apec_emissivity_v3.hdf5",
+            "basename": "apec_emissivity_v3",
+            "extension": "h5",
+        },
+    },
+    "t5": {
+        "load_name": "solution-00027.0000.vtu",
+        "answers": {
+            "fileext": "solution-00027.0000.vtu",
+            "basename": "solution-00027.0000",
+            "extension": ".vtu",
+        },
+    },
+}
+
 
 def test_name_validator():
     for test in names:
@@ -30,4 +52,3 @@ def test_name_validator():
         assert_equal(fileext, expected_answers["fileext"])
         assert_equal(bname, expected_answers["basename"])
         assert_equal(ext, expected_answers["extension"])
-

@@ -1,13 +1,12 @@
-
-from .scene import Scene
-from .render_source import VolumeSource, \
-    MeshSource
-from .utils import data_source_or_all
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
 
+from .render_source import MeshSource, VolumeSource
+from .scene import Scene
+from .utils import data_source_or_all
 
-def create_scene(data_source, field=None, lens_type='plane-parallel'):
+
+def create_scene(data_source, field=None, lens_type="plane-parallel"):
     r""" Set up a scene object with sensible defaults for use in volume
     rendering.
 
@@ -55,9 +54,12 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
     if field is None:
         field = data_source.ds.default_field
         if field not in data_source.ds.derived_field_list:
-            raise YTSceneFieldNotFound("""Could not find field '%s' in %s.
-                  Please specify a field in create_scene()""" % (field, data_source.ds))
-        mylog.info('Setting default field to %s' % field.__repr__())
+            raise YTSceneFieldNotFound(
+                """Could not find field '%s' in %s.
+                  Please specify a field in create_scene()"""
+                % (field, data_source.ds)
+            )
+        mylog.info("Setting default field to %s" % field.__repr__())
 
     if hasattr(data_source.ds.index, "meshes"):
         source = MeshSource(data_source, field=field)
@@ -69,8 +71,9 @@ def create_scene(data_source, field=None, lens_type='plane-parallel'):
     return sc
 
 
-def volume_render(data_source, field=None, fname=None, sigma_clip=None,
-                  lens_type='plane-parallel'):
+def volume_render(
+    data_source, field=None, fname=None, sigma_clip=None, lens_type="plane-parallel"
+):
     r""" Create a simple volume rendering of a data source.
 
     A helper function that creates a default camera view, transfer
@@ -121,5 +124,5 @@ def volume_render(data_source, field=None, fname=None, sigma_clip=None,
     """
     sc = create_scene(data_source, field=field)
     im = sc.render()
-    sc.save(fname=fname, sigma_clip=sigma_clip)
+    sc.save(fname=fname, sigma_clip=sigma_clip, render=False)
     return im, sc
