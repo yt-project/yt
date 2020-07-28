@@ -5,7 +5,7 @@ from uuid import uuid4
 
 import numpy as np
 
-from yt.funcs import compare_dicts, get_pbar, iterable
+from yt.funcs import compare_dicts, iterable
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.on_demand_imports import _h5py as h5
 
@@ -61,20 +61,6 @@ def _deserialize_from_h5(g, ds):
             except ValueError:
                 result[item] = g[item][()]  # fallback to scalar
     return result
-
-
-class UploaderBar:
-    pbar = None
-
-    def __init__(self, my_name=""):
-        self.my_name = my_name
-
-    def __call__(self, name, prog, total):
-        if self.pbar is None:
-            self.pbar = get_pbar("Uploading %s " % self.my_name, total)
-        self.pbar.update(prog)
-        if prog == total:
-            self.pbar.finish()
 
 
 class ContainerClass:
