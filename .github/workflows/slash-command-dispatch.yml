@@ -14,4 +14,4 @@ jobs:
             help
             format
             rebase
-          repository: matthewturk/slash-command-processor
+          repository: yt-project/slash-command-processor
