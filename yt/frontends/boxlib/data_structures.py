@@ -917,7 +917,7 @@ class BoxlibDataset(Dataset):
         self.domain_dimensions = np.array(tmp)
         self.periodicity = list(self.periodicity)
         self.periodicity[1:] = False
-        self.periodicity = ensure_tuple(tmp)
+        self.periodicity = ensure_tuple(self.periodicity)
 
     def _setup2d(self):
         self.domain_left_edge = np.concatenate([self.domain_left_edge, [0.0]])
@@ -1594,7 +1594,7 @@ class WarpXDataset(BoxlibDataset):
                     self.parameters[l[0].strip()] = l[1].strip()
 
         # set the periodicity based on the integer BC runtime parameters
-        self.periodicity = [True] * 3
+        self.periodicity = [False] * 3
         try:
             is_periodic = self.parameters["geometry.is_periodic"].split()
             self.periodicity[: len(is_periodic)] = [p == "1" for p in is_periodic]
