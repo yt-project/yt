@@ -1159,7 +1159,8 @@ class CastroDataset(BoxlibDataset):
         self.parameters["HydroMethod"] = "Castro"
 
         # set the periodicity based on the runtime parameters
-        self.periodicity = [True, True, True]
+        # https://amrex-astro.github.io/Castro/docs/inputs.html?highlight=periodicity
+        self.periodicity = [False] * 3
         for i, axis in enumerate("xyz"):
             try:
                 self.periodicity[i] = self.parameters["-%s" % axis] == "interior"
@@ -1594,6 +1595,7 @@ class WarpXDataset(BoxlibDataset):
                     self.parameters[l[0].strip()] = l[1].strip()
 
         # set the periodicity based on the integer BC runtime parameters
+        # https://amrex-codes.github.io/amrex/docs_html/InputsProblemDefinition.html
         self.periodicity = [False] * 3
         try:
             is_periodic = self.parameters["geometry.is_periodic"].split()
