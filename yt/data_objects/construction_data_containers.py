@@ -494,9 +494,6 @@ class YTQuadTreeProj(YTProj):
     def _mrep(self):
         return MinimalProjectionData(self)
 
-    def hub_upload(self):
-        self._mrep.upload()
-
     def deserialize(self, fields):
         if not ytcfg.getboolean("yt", "serialize"):
             return False

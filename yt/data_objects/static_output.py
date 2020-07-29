@@ -386,9 +386,6 @@ class Dataset(metaclass=RegisteredDataset):
     def _skip_cache(self):
         return False
 
-    def hub_upload(self):
-        self._mrep.upload()
-
     @classmethod
     def _guess_candidates(cls, base, directories, files):
         """
