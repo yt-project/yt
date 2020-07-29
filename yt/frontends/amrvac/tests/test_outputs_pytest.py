@@ -78,48 +78,192 @@ class TestAMRVac:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [blastwave_polar_2D], indirect=True)
-    def test_bw_polar_2d(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_bw_polar_2d_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_polar_2D], indirect=True)
+    def test_bw_polar_2d_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_polar_2D], indirect=True)
+    def test_bw_polar_2d_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_polar_2D], indirect=True)
+    def test_bw_polar_2d_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [blastwave_cartesian_3D], indirect=True)
-    def test_blastwave_cartesian_3D(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_blastwave_cartesian_3D_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_cartesian_3D], indirect=True)
+    def test_blastwave_cartesian_3D_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_cartesian_3D], indirect=True)
+    def test_blastwave_cartesian_3D_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_cartesian_3D], indirect=True)
+    def test_blastwave_cartesian_3D_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [blastwave_spherical_2D], indirect=True)
-    def test_blastwave_spherical_2D(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_blastwave_spherical_2D_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_spherical_2D], indirect=True)
+    def test_blastwave_spherical_2D_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_spherical_2D], indirect=True)
+    def test_blastwave_spherical_2D_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_spherical_2D], indirect=True)
+    def test_blastwave_spherical_2D_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [blastwave_cylindrical_3D], indirect=True)
-    def test_blastwave_cylindrical_3D(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_blastwave_cylindrical_3D_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_cylindrical_3D], indirect=True)
+    def test_blastwave_cylindrical_3D_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_cylindrical_3D], indirect=True)
+    def test_blastwave_cylindrical_3D_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [blastwave_cylindrical_3D], indirect=True)
+    def test_blastwave_cylindrical_3D_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [khi_cartesian_2D], indirect=True)
-    def test_khi_cartesian_2D(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_khi_cartesian_2D_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [khi_cartesian_2D], indirect=True)
+    def test_khi_cartesian_2D_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [khi_cartesian_2D], indirect=True)
+    def test_khi_cartesian_2D_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [khi_cartesian_2D], indirect=True)
+    def test_khi_cartesian_2D_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [khi_cartesian_3D], indirect=True)
-    def test_khi_cartesian_3D(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_khi_cartesian_3D_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [khi_cartesian_3D], indirect=True)
+    def test_khi_cartesian_3D_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [khi_cartesian_3D], indirect=True)
+    def test_khi_cartesian_3D_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [khi_cartesian_3D], indirect=True)
+    def test_khi_cartesian_3D_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [jet_cylindrical_25D], indirect=True)
-    def test_jet_cylindrical_25D(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_jet_cylindrical_25D_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [jet_cylindrical_25D], indirect=True)
+    def test_jet_cylindrical_25D_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [jet_cylindrical_25D], indirect=True)
+    def test_jet_cylindrical_25D_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [jet_cylindrical_25D], indirect=True)
+    def test_jet_cylindrical_25D_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [riemann_cartesian_175D], indirect=True)
-    def test_riemann_cartesian_175D(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_riemann_cartesian_175D_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [riemann_cartesian_175D], indirect=True)
+    def test_riemann_cartesian_175D_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [riemann_cartesian_175D], indirect=True)
+    def test_riemann_cartesian_175D_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [riemann_cartesian_175D], indirect=True)
+    def test_riemann_cartesian_175D_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [rmi_cartesian_dust_2D], indirect=True)
-    def test_rmi_cartesian_dust_2D(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_rmi_cartesian_dust_2D_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [rmi_cartesian_dust_2D], indirect=True)
+    def test_rmi_cartesian_dust_2D_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [rmi_cartesian_dust_2D], indirect=True)
+    def test_rmi_cartesian_dust_2D_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [rmi_cartesian_dust_2D], indirect=True)
+    def test_rmi_cartesian_dust_2D_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @requires_file(khi_cartesian_2D)
     def test_normalisations_length_temp_nb(self):
