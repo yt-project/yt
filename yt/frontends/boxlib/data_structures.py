@@ -629,7 +629,7 @@ class BoxlibDataset(Dataset):
     _output_prefix = None
 
     # THIS SHOULD BE FIXED:
-    periodicity = (True, True, True)
+    periodicity = (False, False, False)
 
     def __init__(
         self,
