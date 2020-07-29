@@ -434,7 +434,7 @@ def _validate_point(point, ds, start=False):
     if not iterable(point):
         raise RuntimeError("Input point must be array-like")
     if not isinstance(point, YTArray):
-        point = ds.arr(point, "code_length")
+        point = ds.arr(point, "code_length", dtype=np.float64)
     if len(point.shape) != 1:
         raise RuntimeError("Input point must be a 1D array")
     if point.shape[0] < ds.dimensionality:
