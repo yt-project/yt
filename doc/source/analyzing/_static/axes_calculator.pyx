@@ -1,7 +1,9 @@
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.stdlib cimport malloc, free
+cimport numpy as np
+from libc.stdlib cimport free, malloc
+
 
 cdef extern from "axes.h":
     ctypedef struct ParticleCollection:

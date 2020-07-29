@@ -1,17 +1,19 @@
-import yt
 import numpy as np
+
+import yt
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 # We start by building a default volume rendering scene
 
-im, sc = yt.volume_render(ds, field=("gas","density"), fname="v0.png", sigma_clip=6.0)
+im, sc = yt.volume_render(ds, field=("gas", "density"), fname="v0.png", sigma_clip=6.0)
 
-sc.camera.set_width(ds.arr(0.1,'code_length'))
+sc.camera.set_width(ds.arr(0.1, "code_length"))
 tf = sc.get_source().transfer_function
 tf.clear()
-tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=np.logspace(-3,0,4), colormap = 'RdBu_r')
+tf.add_layers(
+    4, 0.01, col_bounds=[-27.5, -25.5], alpha=np.logspace(-3, 0, 4), colormap="RdBu_r"
+)
 sc.render()
 sc.save("v1.png", sigma_clip=6.0)
 
@@ -21,8 +23,9 @@ sc.save("v1.png", sigma_clip=6.0)
 
 tf = sc.get_source().transfer_function
 tf.clear()
-tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=np.logspace(0,0,4), colormap = 'RdBu_r')
+tf.add_layers(
+    4, 0.01, col_bounds=[-27.5, -25.5], alpha=np.logspace(0, 0, 4), colormap="RdBu_r"
+)
 sc.render()
 sc.save("v2.png", sigma_clip=6.0)
 
@@ -36,16 +39,26 @@ sc.save("v3.png", sigma_clip=6.0)
 # That looks pretty good, but let's start bumping up the opacity.
 
 tf.clear()
-tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=10.0*np.ones(4,dtype='float64'), colormap = 'RdBu_r')
+tf.add_layers(
+    4,
+    0.01,
+    col_bounds=[-27.5, -25.5],
+    alpha=10.0 * np.ones(4, dtype="float64"),
+    colormap="RdBu_r",
+)
 sc.render()
 sc.save("v4.png", sigma_clip=6.0)
 
 # Let's bump up again to see if we can obscure the inner contour.
 
 tf.clear()
-tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=30.0*np.ones(4,dtype='float64'), colormap = 'RdBu_r')
+tf.add_layers(
+    4,
+    0.01,
+    col_bounds=[-27.5, -25.5],
+    alpha=30.0 * np.ones(4, dtype="float64"),
+    colormap="RdBu_r",
+)
 sc.render()
 sc.save("v5.png", sigma_clip=6.0)
 
@@ -53,15 +66,20 @@ sc.save("v5.png", sigma_clip=6.0)
 # layer
 
 tf.clear()
-tf.add_layers(4, 0.01, col_bounds = [-27.5,-25.5],
-        alpha=100.0*np.ones(4,dtype='float64'), colormap = 'RdBu_r')
+tf.add_layers(
+    4,
+    0.01,
+    col_bounds=[-27.5, -25.5],
+    alpha=100.0 * np.ones(4, dtype="float64"),
+    colormap="RdBu_r",
+)
 sc.render()
 sc.save("v6.png", sigma_clip=6.0)
 
 # That is very opaque!  Now lets go back and see what it would look like with
 # grey_opacity = False
 
-tf.grey_opacity=False
+tf.grey_opacity = False
 sc.render()
 sc.save("v7.png", sigma_clip=6.0)
 

@@ -1,12 +1,9 @@
-from yt.units.yt_array import \
-    YTArray
-from yt.utilities.logger import \
-    ytLogger as mylog
-from yt.utilities.on_demand_imports import \
-    _h5py as h5py
+from yt.units.yt_array import YTArray
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5py
 
-def save_as_dataset(ds, filename, data, field_types=None,
-                    extra_attrs=None):
+
+def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
     r"""Export a set of field arrays to a reloadable yt dataset.
 
     This function can be used to create a yt loadable dataset from a 
@@ -70,30 +67,40 @@ def save_as_dataset(ds, filename, data, field_types=None,
 
     mylog.info("Saving field data to yt dataset: %s." % filename)
 
-    if extra_attrs is None: extra_attrs = {}
-    base_attrs  = ["dimensionality",
-                   "domain_left_edge", "domain_right_edge",
-                   "current_redshift", "current_time",
-                   "domain_dimensions", "periodicity",
-                   "cosmological_simulation", "omega_lambda",
-                   "omega_matter", "hubble_constant",
-                   "length_unit", "mass_unit", "time_unit",
-                   "velocity_unit", "magnetic_unit"]
+    if extra_attrs is None:
+        extra_attrs = {}
+    base_attrs = [
+        "dimensionality",
+        "domain_left_edge",
+        "domain_right_edge",
+        "current_redshift",
+        "current_time",
+        "domain_dimensions",
+        "periodicity",
+        "cosmological_simulation",
+        "omega_lambda",
+        "omega_matter",
+        "hubble_constant",
+        "length_unit",
+        "mass_unit",
+        "time_unit",
+        "velocity_unit",
+        "magnetic_unit",
+    ]
 
     fh = h5py.File(filename, mode="w")
-    if ds is None: ds = {}
+    if ds is None:
+        ds = {}
 
     if hasattr(ds, "parameters") and isinstance(ds.parameters, dict):
         for attr, val in ds.parameters.items():
             _yt_array_hdf5_attr(fh, attr, val)
 
     if hasattr(ds, "unit_registry"):
-        _yt_array_hdf5_attr(fh, "unit_registry_json",
-                            ds.unit_registry.to_json())
+        _yt_array_hdf5_attr(fh, "unit_registry_json", ds.unit_registry.to_json())
 
     if hasattr(ds, "unit_system"):
-        _yt_array_hdf5_attr(fh, "unit_system_name",
-                            ds.unit_system.name.split("_")[0])
+        _yt_array_hdf5_attr(fh, "unit_system_name", ds.unit_system.name.split("_")[0])
 
     for attr in base_attrs:
         if isinstance(ds, dict):
@@ -124,13 +131,14 @@ def save_as_dataset(ds, filename, data, field_types=None,
             field_name = field
 
         # for python3
-        if data[field].dtype.kind == 'U':
-            data[field] = data[field].astype('|S')
+        if data[field].dtype.kind == "U":
+            data[field] = data[field].astype("|S")
 
         _yt_array_hdf5(fh[field_type], field_name, data[field])
         if "num_elements" not in fh[field_type].attrs:
             fh[field_type].attrs["num_elements"] = data[field].size
     fh.close()
+
 
 def _hdf5_yt_array(fh, field, ds=None):
     r"""Load an hdf5 dataset as a YTArray.
@@ -153,7 +161,7 @@ def _hdf5_yt_array(fh, field, ds=None):
     A YTArray of the requested field.
     
     """
-    
+
     if ds is None:
         new_arr = YTArray
     else:
@@ -161,8 +169,10 @@ def _hdf5_yt_array(fh, field, ds=None):
     units = ""
     if "units" in fh[field].attrs:
         units = fh[field].attrs["units"]
-    if units == "dimensionless": units = ""
+    if units == "dimensionless":
+        units = ""
     return new_arr(fh[field][()], units)
+
 
 def _yt_array_hdf5(fh, field, data):
     r"""Save a YTArray to an open hdf5 file or group.
@@ -193,6 +203,7 @@ def _yt_array_hdf5(fh, field, data):
     dataset.attrs["units"] = units
     return dataset
 
+
 def _yt_array_hdf5_attr(fh, attr, val):
     r"""Save a YTArray or YTQuantity as an hdf5 attribute.
 
@@ -211,7 +222,8 @@ def _yt_array_hdf5_attr(fh, attr, val):
 
     """
 
-    if val is None: val = "None"
+    if val is None:
+        val = "None"
     if hasattr(val, "units"):
         fh.attrs["%s_units" % attr] = str(val.units)
     try:

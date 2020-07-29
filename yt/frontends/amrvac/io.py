@@ -5,24 +5,24 @@ AMRVAC-specific IO functions
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 import numpy as np
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.geometry.selection_routines import \
-    GridSelector
+
+from yt.geometry.selection_routines import GridSelector
+from yt.utilities.io_handler import BaseIOHandler
+
 from .datfile_utils import get_single_block_field_data
 
 
 class AMRVACIOHandler(BaseIOHandler):
     _particle_reader = False
-    _dataset_type = 'amrvac'
+    _dataset_type = "amrvac"
 
     def __init__(self, ds):
         BaseIOHandler.__init__(self, ds)
@@ -65,9 +65,11 @@ class AMRVACIOHandler(BaseIOHandler):
         """
         ileaf = grid.id
         offset = grid._index.block_offsets[ileaf]
-        field_idx = self.ds.parameters['w_names'].index(field)
+        field_idx = self.ds.parameters["w_names"].index(field)
         with open(self.datfile, "rb") as istream:
-            data = get_single_block_field_data(istream, offset, self.block_shape, field_idx)
+            data = get_single_block_field_data(
+                istream, offset, self.block_shape, field_idx
+            )
 
         # Always convert data to 3D, as grid.ActiveDimensions is always 3D
         while len(data.shape) < 3:
@@ -98,14 +100,14 @@ class AMRVACIOHandler(BaseIOHandler):
             whatever selector method is appropriate. Arrays have dtype float64. 
         """
 
-        #@Notes from Niels:
-        #The chunks list has YTDataChunk objects containing the different grids.
-        #The list of grids can be obtained by doing eg. grids_list = chunks[0].objs or chunks[1].objs etc.
-        #Every element in "grids_list" is then an AMRVACGrid object, and has hence all attributes of a grid
+        # @Notes from Niels:
+        # The chunks list has YTDataChunk objects containing the different grids.
+        # The list of grids can be obtained by doing eg. grids_list = chunks[0].objs or chunks[1].objs etc.
+        # Every element in "grids_list" is then an AMRVACGrid object, and has hence all attributes of a grid
         #    (Level, ActiveDimensions, LeftEdge, etc.)
 
         chunks = list(chunks)
-        data_dict = {} # <- return variable
+        data_dict = {}  # <- return variable
         if isinstance(selector, GridSelector):
             if not len(chunks) == len(chunks[0].objs) == 1:
                 raise RuntimeError
@@ -114,13 +116,12 @@ class AMRVACIOHandler(BaseIOHandler):
                 data_dict[ftype, fname] = self._read_data(grid, fname)
         else:
             if size is None:
-                size = sum((g.count(selector) for chunk in chunks
-                            for g in chunk.objs))
+                size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
 
             for field in fields:
-                data_dict[field] = np.empty(size, dtype='float64')
+                data_dict[field] = np.empty(size, dtype="float64")
 
-            #nb_grids = sum(len(chunk.objs) for chunk in chunks)
+            # nb_grids = sum(len(chunk.objs) for chunk in chunks)
 
             ind = 0
             for chunk in chunks:
@@ -133,7 +134,6 @@ class AMRVACIOHandler(BaseIOHandler):
                     ind += nd
 
         return data_dict
-
 
     def _read_chunk_data(self, chunk, fields):
         """Not implemented yet."""

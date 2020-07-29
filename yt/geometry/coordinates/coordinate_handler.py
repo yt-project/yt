@@ -1,44 +1,48 @@
-import numpy as np
 import weakref
 from numbers import Number
 
-from yt.funcs import \
-    validate_width_tuple, \
-    fix_unitary, \
-    iterable
-from yt.units.yt_array import \
-    YTArray, YTQuantity
-from yt.utilities.exceptions import \
-    YTCoordinateNotImplemented, \
-    YTInvalidWidthError
+import numpy as np
+
+from yt.funcs import fix_unitary, iterable, validate_width_tuple
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import (YTCoordinateNotImplemented,
+                                     YTInvalidWidthError)
+
 
 def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
 
-def _get_coord_fields(axi, units = "code_length"):
+
+def _get_coord_fields(axi, units="code_length"):
     def _dds(field, data):
-        rv = data.ds.arr(data.fwidth[...,axi].copy(), units)
+        rv = data.ds.arr(data.fwidth[..., axi].copy(), units)
         return data._reshape_vals(rv)
+
     def _coords(field, data):
-        rv = data.ds.arr(data.fcoords[...,axi].copy(), units)
+        rv = data.ds.arr(data.fcoords[..., axi].copy(), units)
         return data._reshape_vals(rv)
+
     return _dds, _coords
 
-def _get_vert_fields(axi, units = "code_length"):
+
+def _get_vert_fields(axi, units="code_length"):
     def _vert(field, data):
-        rv = data.ds.arr(data.fcoords_vertex[...,axi].copy(), units)
+        rv = data.ds.arr(data.fcoords_vertex[..., axi].copy(), units)
         return rv
+
     return _vert
+
 
 def validate_iterable_width(width, ds, unit=None):
     if isinstance(width[0], tuple) and isinstance(width[1], tuple):
         validate_width_tuple(width[0])
         validate_width_tuple(width[1])
-        return (ds.quan(width[0][0], fix_unitary(width[0][1])),
-                ds.quan(width[1][0], fix_unitary(width[1][1])))
+        return (
+            ds.quan(width[0][0], fix_unitary(width[0][1])),
+            ds.quan(width[1][0], fix_unitary(width[1][1])),
+        )
     elif isinstance(width[0], Number) and isinstance(width[1], Number):
-        return (ds.quan(width[0], 'code_length'),
-                ds.quan(width[1], 'code_length'))
+        return (ds.quan(width[0], "code_length"), ds.quan(width[1], "code_length"))
     elif isinstance(width[0], YTQuantity) and isinstance(width[1], YTQuantity):
         return (ds.quan(width[0]), ds.quan(width[1]))
     else:
@@ -47,11 +51,16 @@ def validate_iterable_width(width, ds, unit=None):
         # assume width controls x and unit controls y
         try:
             validate_width_tuple(unit)
-            return (ds.quan(width[0], fix_unitary(width[1])),
-                    ds.quan(unit[0], fix_unitary(unit[1])))
+            return (
+                ds.quan(width[0], fix_unitary(width[1])),
+                ds.quan(unit[0], fix_unitary(unit[1])),
+            )
         except YTInvalidWidthError:
-            return (ds.quan(width[0], fix_unitary(width[1])),
-                    ds.quan(width[0], fix_unitary(width[1])))
+            return (
+                ds.quan(width[0], fix_unitary(width[1])),
+                ds.quan(width[0], fix_unitary(width[1])),
+            )
+
 
 class CoordinateHandler:
     name = None
@@ -64,7 +73,7 @@ class CoordinateHandler:
         # This should return field definitions for x, y, z, r, theta, phi
         raise NotImplementedError
 
-    def pixelize(self, dimension, data_source, field, bounds, size, antialias = True):
+    def pixelize(self, dimension, data_source, field, bounds, size, antialias=True):
         # This should *actually* be a pixelize call, not just returning the
         # pixelizer
         raise NotImplementedError
@@ -75,7 +84,7 @@ class CoordinateHandler:
     def distance(self, start, end):
         p1 = self.convert_to_cartesian(start)
         p2 = self.convert_to_cartesian(end)
-        return np.sqrt(((p1-p2)**2.0).sum())
+        return np.sqrt(((p1 - p2) ** 2.0).sum())
 
     def convert_from_cartesian(self, coord):
         raise NotImplementedError
@@ -96,6 +105,7 @@ class CoordinateHandler:
         raise NotImplementedError
 
     _data_projection = None
+
     @property
     def data_projection(self):
         if self._data_projection is not None:
@@ -107,6 +117,7 @@ class CoordinateHandler:
         return dpj
 
     _data_transform = None
+
     @property
     def data_transform(self):
         if self._data_transform is not None:
@@ -118,6 +129,7 @@ class CoordinateHandler:
         return dtx
 
     _axis_name = None
+
     @property
     def axis_name(self):
         if self._axis_name is not None:
@@ -131,6 +143,7 @@ class CoordinateHandler:
         return an
 
     _axis_id = None
+
     @property
     def axis_id(self):
         if self._axis_id is not None:
@@ -142,6 +155,7 @@ class CoordinateHandler:
         return ai
 
     _image_axis_name = None
+
     @property
     def image_axis_name(self):
         # Default
@@ -149,13 +163,13 @@ class CoordinateHandler:
             return self._image_axis_name
         self._image_axis_name = rv = {}
         for i in range(3):
-            rv[i] = (self.axis_name[self.x_axis[i]],
-                     self.axis_name[self.y_axis[i]])
+            rv[i] = (self.axis_name[self.x_axis[i]], self.axis_name[self.y_axis[i]])
             rv[self.axis_name[i]] = rv[i]
             rv[self.axis_name[i].capitalize()] = rv[i]
         return rv
 
     _x_axis = None
+
     @property
     def x_axis(self):
         if self._x_axis is not None:
@@ -168,6 +182,7 @@ class CoordinateHandler:
         return xa
 
     _y_axis = None
+
     @property
     def y_axis(self):
         if self._y_axis is not None:
@@ -186,12 +201,13 @@ class CoordinateHandler:
     def sanitize_depth(self, depth):
         if iterable(depth):
             validate_width_tuple(depth)
-            depth = (self.ds.quan(depth[0], fix_unitary(depth[1])), )
+            depth = (self.ds.quan(depth[0], fix_unitary(depth[1])),)
         elif isinstance(depth, Number):
-            depth = (self.ds.quan(depth, 'code_length',
-                                  registry=self.ds.unit_registry), )
+            depth = (
+                self.ds.quan(depth, "code_length", registry=self.ds.unit_registry),
+            )
         elif isinstance(depth, YTQuantity):
-            depth = (depth, )
+            depth = (depth,)
         else:
             raise YTInvalidWidthError(depth)
         return depth
@@ -216,8 +232,10 @@ class CoordinateHandler:
         elif isinstance(width, YTQuantity):
             width = (width, width)
         elif isinstance(width, Number):
-            width = (self.ds.quan(width, 'code_length'),
-                     self.ds.quan(width, 'code_length'))
+            width = (
+                self.ds.quan(width, "code_length"),
+                self.ds.quan(width, "code_length"),
+            )
         else:
             raise YTInvalidWidthError(width)
         if depth is not None:
@@ -229,14 +247,14 @@ class CoordinateHandler:
         if isinstance(center, str):
             if center.lower() == "m" or center.lower() == "max":
                 v, center = self.ds.find_max(("gas", "density"))
-                center = self.ds.arr(center, 'code_length')
+                center = self.ds.arr(center, "code_length")
             elif center.lower() == "c" or center.lower() == "center":
                 # domain_left_edge and domain_right_edge might not be
                 # initialized until we create the index, so create it
                 self.ds.index
                 center = (self.ds.domain_left_edge + self.ds.domain_right_edge) / 2
             else:
-                raise RuntimeError('center keyword \"%s\" not recognized' % center)
+                raise RuntimeError('center keyword "%s" not recognized' % center)
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
         elif iterable(center):
@@ -246,14 +264,14 @@ class CoordinateHandler:
                 elif center[0].lower() == "max":
                     v, center = self.ds.find_max(center[1])
                 else:
-                    raise RuntimeError("center keyword \"%s\" not recognized" % center)
-                center = self.ds.arr(center, 'code_length')
+                    raise RuntimeError('center keyword "%s" not recognized' % center)
+                center = self.ds.arr(center, "code_length")
             elif iterable(center[0]) and isinstance(center[1], str):
                 center = self.ds.arr(center[0], center[1])
             else:
-                center = self.ds.arr(center, 'code_length')
+                center = self.ds.arr(center, "code_length")
         else:
-            raise RuntimeError("center keyword \"%s\" not recognized" % center)
+            raise RuntimeError('center keyword "%s" not recognized' % center)
         # This has to return both a center and a display_center
         display_center = self.convert_to_cartesian(center)
         return center, display_center
@@ -266,22 +284,24 @@ class CoordinateHandler:
         if minval >= 0:
             buff[np.isnan(buff)] = np.inf
 
-def cartesian_to_cylindrical(coord, center = (0,0,0)):
+
+def cartesian_to_cylindrical(coord, center=(0, 0, 0)):
     c2 = np.zeros_like(coord)
     if not isinstance(center, YTArray):
         center = center * coord.uq
-    c2[...,0] = ((coord[...,0] - center[0])**2.0
-              +  (coord[...,1] - center[1])**2.0)**0.5
-    c2[...,1] = coord[...,2] # rzt
-    c2[...,2] = np.arctan2(coord[...,1] - center[1],
-                           coord[...,0] - center[0])
+    c2[..., 0] = (
+        (coord[..., 0] - center[0]) ** 2.0 + (coord[..., 1] - center[1]) ** 2.0
+    ) ** 0.5
+    c2[..., 1] = coord[..., 2]  # rzt
+    c2[..., 2] = np.arctan2(coord[..., 1] - center[1], coord[..., 0] - center[0])
     return c2
 
-def cylindrical_to_cartesian(coord, center = (0,0,0)):
+
+def cylindrical_to_cartesian(coord, center=(0, 0, 0)):
     c2 = np.zeros_like(coord)
     if not isinstance(center, YTArray):
         center = center * coord.uq
-    c2[...,0] = np.cos(coord[...,0]) * coord[...,1] + center[0]
-    c2[...,1] = np.sin(coord[...,0]) * coord[...,1] + center[1]
-    c2[...,2] = coord[...,2]
+    c2[..., 0] = np.cos(coord[..., 0]) * coord[..., 1] + center[0]
+    c2[..., 1] = np.sin(coord[..., 0]) * coord[..., 1] + center[1]
+    c2[..., 2] = coord[..., 2]
     return c2

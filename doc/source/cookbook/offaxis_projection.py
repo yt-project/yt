@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 # Load the dataset.
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -17,7 +18,7 @@ L = [1.0, 0.0, 0.0]
 # The first element is the left to right width, the second is the
 # top-bottom width, and the last element is the back-to-front width
 # (all in code units)
-W = [0.04,0.04,0.4]
+W = [0.04, 0.04, 0.4]
 
 # The number of pixels along one side of the image.
 # The final image will have Npixel^2 pixels.

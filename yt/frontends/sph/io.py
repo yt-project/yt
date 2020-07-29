@@ -5,8 +5,8 @@ Generic file-handing functions for SPH data
 
 
 """
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.utilities.io_handler import BaseIOHandler
+
 
 class IOHandlerSPH(BaseIOHandler):
     """IOHandler implementation specifically for SPH data
@@ -17,7 +17,7 @@ class IOHandlerSPH(BaseIOHandler):
     """
 
     def _count_particles_chunks(self, psize, chunks, ptf, selector):
-        if getattr(selector, 'is_all_data', False):
+        if getattr(selector, "is_all_data", False):
             chunks = list(chunks)
             data_files = set([])
             for chunk in chunks:

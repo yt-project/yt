@@ -9,8 +9,10 @@ This is a recursive function to return a depth-first octree
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 cdef class position:
     cdef public int output_pos, refined_pos

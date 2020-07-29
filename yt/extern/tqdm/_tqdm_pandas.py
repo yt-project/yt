@@ -2,9 +2,8 @@
 # a result precise floating numbers (instead of truncated int)
 from __future__ import absolute_import
 
-
 __author__ = "github.com/casperdcl"
-__all__ = ['tqdm_pandas']
+__all__ = ["tqdm_pandas"]
 
 
 def tqdm_pandas(t):  # pragma: no cover

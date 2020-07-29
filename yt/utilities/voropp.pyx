@@ -6,13 +6,16 @@ Wrapping code for voro++
 """
 
 
-from cython.operator cimport dereference as deref, preincrement as inc
-from libc.stdlib cimport malloc, free, abs, calloc, labs
 cimport libcpp
+from cython.operator cimport dereference as deref
+from cython.operator cimport preincrement as inc
+from libc.stdlib cimport abs, calloc, free, labs, malloc
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 cdef extern from "voro++.hh" namespace "voro":
     cdef cppclass c_loop_all

@@ -1,25 +1,26 @@
-import numpy as np
 from functools import wraps
-from yt.config import \
-    ytcfg
-from yt.funcs import mylog, ensure_numpy_array, iterable
+
+import numpy as np
+
+from yt.config import ytcfg
+from yt.data_objects.image_array import ImageArray
+from yt.funcs import ensure_numpy_array, iterable, mylog
+from yt.utilities.amr_kdtree.api import AMRKDTree
+from yt.utilities.lib.bounding_volume_hierarchy import BVH
+from yt.utilities.lib.misc_utilities import zlines, zpoints
+from yt.utilities.on_demand_imports import NotAModule
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     ParallelAnalysisInterface
-from yt.utilities.amr_kdtree.api import AMRKDTree
-from .transfer_function_helper import TransferFunctionHelper
-from .transfer_functions import TransferFunction, \
-    ProjectionTransferFunction, ColorTransferFunction
-from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler, new_mesh_sampler, \
-    new_interpolated_projection_sampler
-from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.visualization.image_writer import apply_colormap
-from yt.data_objects.image_array import ImageArray
-from .zbuffer_array import ZBuffer
-from yt.utilities.lib.misc_utilities import \
-    zlines, zpoints
 
-from yt.utilities.on_demand_imports import NotAModule
+from .transfer_function_helper import TransferFunctionHelper
+from .transfer_functions import (ColorTransferFunction,
+                                 ProjectionTransferFunction, TransferFunction)
+from .utils import (data_source_or_all, get_corners,
+                    new_interpolated_projection_sampler, new_mesh_sampler,
+                    new_projection_sampler, new_volume_render_sampler)
+from .zbuffer_array import ZBuffer
+
 try:
     from yt.utilities.lib.embree_mesh import mesh_traversal
 # Catch ValueError in case size of objects in Cython change
@@ -40,13 +41,15 @@ def invalidate_volume(f):
         ret = f(*args, **kwargs)
         obj = args[0]
         if isinstance(obj._transfer_function, ProjectionTransferFunction):
-            obj.sampler_type = 'projection'
+            obj.sampler_type = "projection"
             obj._log_field = False
             obj._use_ghost_zones = False
         del obj.volume
         obj._volume_valid = False
         return ret
+
     return wrapper
+
 
 def validate_volume(f):
     @wraps(f)
@@ -58,10 +61,12 @@ def validate_volume(f):
             fields.append(obj.weight_field)
             log_fields.append(obj.log_field)
         if not obj._volume_valid:
-            obj.volume.set_fields(fields, log_fields,
-                                  no_ghost=(not obj.use_ghost_zones))
+            obj.volume.set_fields(
+                fields, log_fields, no_ghost=(not obj.use_ghost_zones)
+            )
         obj._volume_valid = True
         return f(*args, **kwargs)
+
     return wrapper
 
 
@@ -91,6 +96,7 @@ class OpaqueSource(RenderSource):
     Will be inherited from for LineSources, BoxSources, etc.
 
     """
+
     def __init__(self):
         super(OpaqueSource, self).__init__()
         self.opaque = True
@@ -155,7 +161,7 @@ class VolumeSource(RenderSource):
         self.check_nans = False
         self.num_threads = 0
         self.num_samples = 10
-        self.sampler_type = 'volume-render'
+        self.sampler_type = "volume-render"
 
         self._volume_valid = False
 
@@ -192,13 +198,19 @@ class VolumeSource(RenderSource):
     @transfer_function.setter
     def transfer_function(self, value):
         self.tfh.tf = None
-        valid_types = (TransferFunction, ColorTransferFunction,
-                       ProjectionTransferFunction, type(None))
+        valid_types = (
+            TransferFunction,
+            ColorTransferFunction,
+            ProjectionTransferFunction,
+            type(None),
+        )
         if not isinstance(value, valid_types):
-            raise RuntimeError("transfer_function not a valid type, "
-                               "received object of type %s" % type(value))
+            raise RuntimeError(
+                "transfer_function not a valid type, "
+                "received object of type %s" % type(value)
+            )
         if isinstance(value, ProjectionTransferFunction):
-            self.sampler_type = 'projection'
+            self.sampler_type = "projection"
             if self._volume is not None:
                 fields = [self.field]
                 if self.weight_field is not None:
@@ -222,7 +234,7 @@ class VolumeSource(RenderSource):
 
     @volume.setter
     def volume(self, value):
-        assert(isinstance(value, AMRKDTree))
+        assert isinstance(value, AMRKDTree)
         del self._volume
         self._field = value.fields
         self._log_field = value.log_fields
@@ -246,7 +258,8 @@ class VolumeSource(RenderSource):
         if len(field) > 1:
             raise RuntimeError(
                 "VolumeSource.field can only be a single field but received "
-                "multiple fields: %s") % field
+                "multiple fields: %s"
+            ) % field
         field = field[0]
         if self._field != field:
             log_field = self.data_source.ds.field_info[field].take_log
@@ -385,16 +398,16 @@ class VolumeSource(RenderSource):
         ray. Interpolation is always performed for volume renderings.
 
         """
-        if self.sampler_type == 'volume-render':
+        if self.sampler_type == "volume-render":
             sampler = new_volume_render_sampler(camera, self)
-        elif self.sampler_type == 'projection' and interpolated:
+        elif self.sampler_type == "projection" and interpolated:
             sampler = new_interpolated_projection_sampler(camera, self)
-        elif self.sampler_type == 'projection':
+        elif self.sampler_type == "projection":
             sampler = new_projection_sampler(camera, self)
         else:
             NotImplementedError("%s not implemented yet" % self.sampler_type)
         self.sampler = sampler
-        assert(self.sampler is not None)
+        assert self.sampler is not None
 
     @validate_volume
     def render(self, camera, zbuffer=None):
@@ -418,7 +431,7 @@ class VolumeSource(RenderSource):
         """
         self.zbuffer = zbuffer
         self.set_sampler(camera)
-        assert (self.sampler is not None)
+        assert self.sampler is not None
 
         mylog.debug("Casting rays")
         total_cells = 0
@@ -433,13 +446,12 @@ class VolumeSource(RenderSource):
             self.sampler(brick, num_threads=self.num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
         mylog.debug("Done casting rays")
-        self.current_image = self.finalize_image(
-            camera, self.sampler.aimage)
+        self.current_image = self.finalize_image(camera, self.sampler.aimage)
 
         if zbuffer is None:
             self.zbuffer = ZBuffer(
-                self.current_image,
-                np.full(self.current_image.shape[:2], np.inf))
+                self.current_image, np.full(self.current_image.shape[:2], np.inf)
+            )
 
         return self.current_image
 
@@ -514,27 +526,29 @@ class MeshSource(OpaqueSource):
         self._mesh_line_alpha = 1.0
 
         # Error checking
-        assert(self.field is not None)
-        assert(self.data_source is not None)
-        if self.field[0] == 'all':
-            raise NotImplementedError("Mesh unions are not implemented "
-                                       "for 3D rendering")
+        assert self.field is not None
+        assert self.data_source is not None
+        if self.field[0] == "all":
+            raise NotImplementedError(
+                "Mesh unions are not implemented " "for 3D rendering"
+            )
 
-        if self.engine == 'embree':
+        if self.engine == "embree":
             self.volume = mesh_traversal.YTEmbreeScene()
             self.build_volume_embree()
-        elif self.engine == 'yt':
+        elif self.engine == "yt":
             self.build_volume_bvh()
         else:
-            raise NotImplementedError("Invalid ray-tracing engine selected. "
-                                      "Choices are 'embree' and 'yt'.")
+            raise NotImplementedError(
+                "Invalid ray-tracing engine selected. " "Choices are 'embree' and 'yt'."
+            )
 
     def cmap():
-        '''
+        """
         This is the name of the colormap that will be used when rendering
         this MeshSource object. Should be a string, like 'arbre', or 'dusk'.
 
-        '''
+        """
 
         def fget(self):
             return self._cmap
@@ -543,17 +557,20 @@ class MeshSource(OpaqueSource):
             self._cmap = cmap_name
             if hasattr(self, "data"):
                 self.current_image = self.apply_colormap()
+
         return locals()
+
     cmap = property(**cmap())
 
     def color_bounds():
-        '''
+        """
         These are the bounds that will be used with the colormap to the display
         the rendered image. Should be a (vmin, vmax) tuple, like (0.0, 2.0). If
         None, the bounds will be automatically inferred from the max and min of
         the rendered data.
 
-        '''
+        """
+
         def fget(self):
             return self._color_bounds
 
@@ -561,7 +578,9 @@ class MeshSource(OpaqueSource):
             self._color_bounds = bounds
             if hasattr(self, "data"):
                 self.current_image = self.apply_colormap()
+
         return locals()
+
     color_bounds = property(**color_bounds())
 
     def _validate(self):
@@ -595,24 +614,23 @@ class MeshSource(OpaqueSource):
         # low-order geometry. Right now, high-order geometry is only
         # implemented for 20-point hexes.
         if indices.shape[1] == 20 or indices.shape[1] == 10:
-            self.mesh = mesh_construction.QuadraticElementMesh(self.volume,
-                                                               vertices,
-                                                               indices,
-                                                               field_data)
+            self.mesh = mesh_construction.QuadraticElementMesh(
+                self.volume, vertices, indices, field_data
+            )
         else:
             # if this is another type of higher-order element, we demote
             # to 1st order here, for now.
             if indices.shape[1] == 27:
                 # hexahedral
-                mylog.warning("27-node hexes not yet supported, " +
-                              "dropping to 1st order.")
+                mylog.warning(
+                    "27-node hexes not yet supported, " + "dropping to 1st order."
+                )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
 
-            self.mesh = mesh_construction.LinearElementMesh(self.volume,
-                                                            vertices,
-                                                            indices,
-                                                            field_data)
+            self.mesh = mesh_construction.LinearElementMesh(
+                self.volume, vertices, indices, field_data
+            )
 
     def build_volume_bvh(self):
         """
@@ -637,8 +655,9 @@ class MeshSource(OpaqueSource):
         # low-order geometry.
         if indices.shape[1] == 27:
             # hexahedral
-            mylog.warning("27-node hexes not yet supported, " +
-                          "dropping to 1st order.")
+            mylog.warning(
+                "27-node hexes not yet supported, " + "dropping to 1st order."
+            )
             field_data = field_data[:, 0:8]
             indices = indices[:, 0:8]
 
@@ -666,14 +685,13 @@ class MeshSource(OpaqueSource):
 
         shape = (camera.resolution[0], camera.resolution[1], 4)
         if zbuffer is None:
-            empty = np.empty(shape, dtype='float64')
-            z = np.empty(empty.shape[:2], dtype='float64')
+            empty = np.empty(shape, dtype="float64")
+            z = np.empty(empty.shape[:2], dtype="float64")
             empty[:] = 0.0
             z[:] = np.inf
             zbuffer = ZBuffer(empty, z)
         elif zbuffer.rgba.shape != shape:
-            zbuffer = ZBuffer(zbuffer.rgba.reshape(shape),
-                              zbuffer.z.reshape(shape[:2]))
+            zbuffer = ZBuffer(zbuffer.rgba.reshape(shape), zbuffer.z.reshape(shape[:2]))
         self.zbuffer = zbuffer
 
         self.sampler = new_mesh_sampler(camera, self, engine=self.engine)
@@ -685,18 +703,17 @@ class MeshSource(OpaqueSource):
         self.finalize_image(camera)
         self.current_image = self.apply_colormap()
 
-        zbuffer += ZBuffer(self.current_image.astype('float64'),
-                           self.sampler.azbuffer)
+        zbuffer += ZBuffer(self.current_image.astype("float64"), self.sampler.azbuffer)
         zbuffer.rgba = ImageArray(zbuffer.rgba)
         self.zbuffer = zbuffer
         self.current_image = self.zbuffer.rgba
 
         if self._annotate_mesh:
-            self.current_image = self.annotate_mesh_lines(self._mesh_line_color,
-                                                          self._mesh_line_alpha)
+            self.current_image = self.annotate_mesh_lines(
+                self._mesh_line_color, self._mesh_line_alpha
+            )
 
         return self.current_image
-
 
     def finalize_image(self, camera):
         sam = self.sampler
@@ -704,8 +721,7 @@ class MeshSource(OpaqueSource):
         # reshape data
         Nx = camera.resolution[0]
         Ny = camera.resolution[1]
-        self.data = sam.aimage[:,:,0].reshape(Nx, Ny)
-
+        self.data = sam.aimage[:, :, 0].reshape(Nx, Ny)
 
     def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""
@@ -741,7 +757,7 @@ class MeshSource(OpaqueSource):
         return self.current_image
 
     def apply_colormap(self):
-        '''
+        """
 
         Applies a colormap to the current image without re-rendering.
 
@@ -759,11 +775,14 @@ class MeshSource(OpaqueSource):
             the underlying data.
 
 
-        '''
+        """
 
-        image = apply_colormap(self.data,
-                               color_bounds=self._color_bounds,
-                               cmap_name=self._cmap)/255.
+        image = (
+            apply_colormap(
+                self.data, color_bounds=self._color_bounds, cmap_name=self._cmap
+            )
+            / 255.0
+        )
         alpha = image[:, :, 3]
         alpha[self.sampler.aimage_used == -1] = 0.0
         image[:, :, 3] = alpha
@@ -820,23 +839,22 @@ class PointSource(OpaqueSource):
 
     """
 
-
     _image = None
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1, radii=None):
-        assert(positions.ndim == 2 and positions.shape[1] == 3)
+        assert positions.ndim == 2 and positions.shape[1] == 3
         if colors is not None:
-            assert(colors.ndim == 2 and colors.shape[1] == 4)
-            assert(colors.shape[0] == positions.shape[0])
+            assert colors.ndim == 2 and colors.shape[1] == 4
+            assert colors.shape[0] == positions.shape[0]
         if not iterable(radii):
-            if radii is not None:  #broadcast the value
-                radii = radii*np.ones(positions.shape[0], dtype='int64')
-            else: #default radii to 0 pixels (i.e. point is 1 pixel wide)
-                radii = np.zeros(positions.shape[0], dtype='int64')
+            if radii is not None:  # broadcast the value
+                radii = radii * np.ones(positions.shape[0], dtype="int64")
+            else:  # default radii to 0 pixels (i.e. point is 1 pixel wide)
+                radii = np.zeros(positions.shape[0], dtype="int64")
         else:
-            assert(radii.ndim == 1)
-            assert(radii.shape[0] == positions.shape[0]) 
+            assert radii.ndim == 1
+            assert radii.shape[0] == positions.shape[0]
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -867,7 +885,7 @@ class PointSource(OpaqueSource):
         vertices = self.positions
         if zbuffer is None:
             empty = camera.lens.new_image(camera)
-            z = np.empty(empty.shape[:2], dtype='float64')
+            z = np.empty(empty.shape[:2], dtype="float64")
             empty[:] = 0.0
             z[:] = np.inf
             zbuffer = ZBuffer(empty, z)
@@ -878,7 +896,7 @@ class PointSource(OpaqueSource):
         # DRAW SOME POINTS
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-        
+
         zpoints(empty, z, px, py, dz, self.colors, self.radii, self.color_stride)
 
         self.zbuffer = zbuffer
@@ -950,16 +968,16 @@ class LineSource(OpaqueSource):
     def __init__(self, positions, colors=None, color_stride=1):
         super(LineSource, self).__init__()
 
-        assert(positions.ndim == 3)
-        assert(positions.shape[1] == 2)
-        assert(positions.shape[2] == 3)
+        assert positions.ndim == 3
+        assert positions.shape[1] == 2
+        assert positions.shape[2] == 3
         if colors is not None:
-            assert(colors.ndim == 2)
-            assert(colors.shape[1] == 4)
+            assert colors.ndim == 2
+            assert colors.shape[1] == 4
 
         # convert the positions to the shape expected by zlines, below
         N = positions.shape[0]
-        self.positions = positions.reshape((2*N, 3))
+        self.positions = positions.reshape((2 * N, 3))
 
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -989,7 +1007,7 @@ class LineSource(OpaqueSource):
         vertices = self.positions
         if zbuffer is None:
             empty = camera.lens.new_image(camera)
-            z = np.empty(empty.shape[:2], dtype='float64')
+            z = np.empty(empty.shape[:2], dtype="float64")
             empty[:] = 0.0
             z[:] = np.inf
             zbuffer = ZBuffer(empty, z)
@@ -1001,19 +1019,34 @@ class LineSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
-        px = px.astype('int64')
-        py = py.astype('int64')
+        px = px.astype("int64")
+        py = py.astype("int64")
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
-                   self.color_stride)
+            zlines(
+                empty, z, px, py, dz, self.colors.astype("float64"), self.color_stride
+            )
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
-            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
-                   self.colors.astype('float64'), self.color_stride)
-            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
-                   self.colors.astype('float64'), self.color_stride)
+            zlines(
+                empty,
+                z,
+                px[0, :],
+                py[0, :],
+                dz[0, :],
+                self.colors.astype("float64"),
+                self.color_stride,
+            )
+            zlines(
+                empty,
+                z,
+                px[1, :],
+                py[1, :],
+                dz[1, :],
+                self.colors.astype("float64"),
+                self.color_stride,
+            )
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -1058,10 +1091,11 @@ class BoxSource(LineSource):
     >>> im = sc.render()
 
     """
+
     def __init__(self, left_edge, right_edge, color=None):
 
-        assert(left_edge.shape == (3,))
-        assert(right_edge.shape == (3,))
+        assert left_edge.shape == (3,)
+        assert right_edge.shape == (3,)
 
         if color is None:
             color = np.array([1.0, 1.0, 1.0, 1.0])
@@ -1074,7 +1108,7 @@ class BoxSource(LineSource):
         order += [0, 4, 1, 5, 2, 6, 3, 7]
         vertices = np.empty([24, 3])
         for i in range(3):
-            vertices[:, i] = corners[order, i, ...].ravel(order='F')
+            vertices[:, i] = corners[order, i, ...].ravel(order="F")
         vertices = vertices.reshape((12, 2, 3))
 
         super(BoxSource, self).__init__(vertices, color, color_stride=24)
@@ -1136,22 +1170,26 @@ class GridSource(LineSource):
 
     """
 
-    def __init__(self, data_source, alpha=0.3, cmap=None,
-                 min_level=None, max_level=None):
+    def __init__(
+        self, data_source, alpha=0.3, cmap=None, min_level=None, max_level=None
+    ):
         self.data_source = data_source_or_all(data_source)
         corners = []
         levels = []
         for block, mask in self.data_source.blocks:
-            block_corners = np.array([
-                [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
-                [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
-                [block.RightEdge[0], block.RightEdge[1], block.LeftEdge[2]],
-                [block.LeftEdge[0], block.RightEdge[1], block.LeftEdge[2]],
-                [block.LeftEdge[0], block.LeftEdge[1], block.RightEdge[2]],
-                [block.RightEdge[0], block.LeftEdge[1], block.RightEdge[2]],
-                [block.RightEdge[0], block.RightEdge[1], block.RightEdge[2]],
-                [block.LeftEdge[0], block.RightEdge[1], block.RightEdge[2]],
-            ], dtype='float64')
+            block_corners = np.array(
+                [
+                    [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                    [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                    [block.RightEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                    [block.LeftEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                    [block.LeftEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                    [block.RightEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                    [block.RightEdge[0], block.RightEdge[1], block.RightEdge[2]],
+                    [block.LeftEdge[0], block.RightEdge[1], block.RightEdge[2]],
+                ],
+                dtype="float64",
+            )
             corners.append(block_corners)
             levels.append(block.Level)
         corners = np.dstack(corners)
@@ -1168,20 +1206,24 @@ class GridSource(LineSource):
             levels = levels[subset]
             corners = corners[:, :, subset]
 
-        colors = apply_colormap(
-            levels*1.0,
-            color_bounds=[0, self.data_source.ds.index.max_level],
-            cmap_name=cmap)[0, :, :]/255.
+        colors = (
+            apply_colormap(
+                levels * 1.0,
+                color_bounds=[0, self.data_source.ds.index.max_level],
+                cmap_name=cmap,
+            )[0, :, :]
+            / 255.0
+        )
         colors[:, 3] = alpha
 
         order = [0, 1, 1, 2, 2, 3, 3, 0]
         order += [4, 5, 5, 6, 6, 7, 7, 4]
         order += [0, 4, 1, 5, 2, 6, 3, 7]
 
-        vertices = np.empty([corners.shape[2]*2*12, 3])
+        vertices = np.empty([corners.shape[2] * 2 * 12, 3])
         for i in range(3):
-            vertices[:, i] = corners[order, i, ...].ravel(order='F')
-        vertices = vertices.reshape((corners.shape[2]*12, 2, 3))
+            vertices[:, i] = corners[order, i, ...].ravel(order="F")
+        vertices = vertices.reshape((corners.shape[2] * 12, 2, 3))
 
         super(GridSource, self).__init__(vertices, colors, color_stride=24)
 
@@ -1257,7 +1299,7 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Create vectors in the x,y,z directions
         for i in range(3):
-            positions[2*i+1, i] += camera.width.in_units('code_length').d[i] / 16.0
+            positions[2 * i + 1, i] += camera.width.in_units("code_length").d[i] / 16.0
 
         # Project to the image plane
         px, py, dz = camera.lens.project_to_plane(camera, positions)
@@ -1278,24 +1320,24 @@ class CoordinateVectorSource(OpaqueSource):
             dz[:] = 0.0
         else:
             # For stereo-lens, two sets of pos for each eye are contained in px...pz
-            dpx = px[:,1::2] - px[:,::2]
-            dpy = py[:,1::2] - py[:,::2]
+            dpx = px[:, 1::2] - px[:, ::2]
+            dpy = py[:, 1::2] - py[:, ::2]
 
             lpx = camera.resolution[0] / 16
             lpy = camera.resolution[1] - camera.resolution[1] / 8  # Upside-downsies
 
             # Offset the pixels according to the projections above
-            px[:,::2] = lpx
-            px[:,1::2] = lpx + dpx
-            px[1,:] += camera.resolution[0] / 2
-            py[:,::2] = lpy
-            py[:,1::2] = lpy + dpy
-            dz[:,:] = 0.0
+            px[:, ::2] = lpx
+            px[:, 1::2] = lpx + dpx
+            px[1, :] += camera.resolution[0] / 2
+            py[:, ::2] = lpy
+            py[:, 1::2] = lpy + dpy
+            dz[:, :] = 0.0
 
         # Create a zbuffer if needed
         if zbuffer is None:
             empty = camera.lens.new_image(camera)
-            z = np.empty(empty.shape[:2], dtype='float64')
+            z = np.empty(empty.shape[:2], dtype="float64")
             empty[:] = 0.0
             z[:] = np.inf
             zbuffer = ZBuffer(empty, z)
@@ -1305,18 +1347,20 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Draw the vectors
 
-        px = px.astype('int64')
-        py = py.astype('int64')
+        px = px.astype("int64")
+        py = py.astype("int64")
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors.astype('float64'))
+            zlines(empty, z, px, py, dz, self.colors.astype("float64"))
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
-            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
-                   self.colors.astype('float64'))
-            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
-                   self.colors.astype('float64'))
+            zlines(
+                empty, z, px[0, :], py[0, :], dz[0, :], self.colors.astype("float64")
+            )
+            zlines(
+                empty, z, px[1, :], py[1, :], dz[1, :], self.colors.astype("float64")
+            )
 
         # Set the new zbuffer
         self.zbuffer = zbuffer

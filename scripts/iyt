@@ -1,9 +1,12 @@
 #!python
 from __future__ import print_function
+
 import os
 import re
-from yt.mods import *
+
 from yt.data_objects.data_containers import YTDataContainer
+from yt.mods import *
+
 namespace = locals().copy()
 namespace.pop("__builtins__", None)
 
@@ -25,6 +28,7 @@ except ImportError:
     sys.exit()
 
 from IPython.terminal.interactiveshell import TerminalInteractiveShell
+
 ip_shell = TerminalInteractiveShell(user_ns=namespace, banner1 = doc,
                                     display_banner = True)
 if "DISPLAY" in os.environ:

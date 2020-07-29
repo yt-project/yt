@@ -1,22 +1,17 @@
 import glob
 import os
-from yt.convenience import \
-    load
-from yt.funcs import \
-    only_on_root
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified
-from yt.utilities.logger import ytLogger as \
-    mylog
+
+from yt.convenience import load
+from yt.data_objects.time_series import (DatasetSeries,
+                                         RegisteredSimulationTimeSeries)
+from yt.funcs import only_on_root
+from yt.utilities.exceptions import YTOutputNotIdentified
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
     parallel_objects
-from yt.data_objects.time_series import \
-    DatasetSeries, \
-    RegisteredSimulationTimeSeries
 
 
-
-class ExodusIISimulation(DatasetSeries, metaclass = RegisteredSimulationTimeSeries):
+class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries):
     r"""
     Initialize an ExodusII Simulation object.
 
@@ -76,34 +71,36 @@ class ExodusIISimulation(DatasetSeries, metaclass = RegisteredSimulationTimeSeri
         all_outputs = self.all_outputs
         ds_list = []
         for output in all_outputs:
-            num_steps = output['num_steps']
-            fn = output['filename']
+            num_steps = output["num_steps"]
+            fn = output["filename"]
             for step in range(num_steps):
                 ds_list.append((fn, step))
-        super(ExodusIISimulation, self).__init__(ds_list, 
-                                                 parallel=parallel, 
-                                                 setup_function=setup_function)
-        
+        super(ExodusIISimulation, self).__init__(
+            ds_list, parallel=parallel, setup_function=setup_function
+        )
+
     def _check_for_outputs(self, potential_outputs):
         r"""
         Check a list of files to see if they are valid datasets.
         """
 
-        only_on_root(mylog.info, "Checking %d potential outputs.",
-                     len(potential_outputs))
+        only_on_root(
+            mylog.info, "Checking %d potential outputs.", len(potential_outputs)
+        )
 
         my_outputs = {}
-        for my_storage, output in parallel_objects(potential_outputs,
-                                                   storage=my_outputs):
+        for my_storage, output in parallel_objects(
+            potential_outputs, storage=my_outputs
+        ):
             if os.path.exists(output):
                 try:
                     ds = load(output)
                     if ds is not None:
                         num_steps = ds.num_steps
-                        my_storage.result = {"filename": output,
-                                             "num_steps": num_steps}
+                        my_storage.result = {"filename": output, "num_steps": num_steps}
                 except YTOutputNotIdentified:
                     mylog.error("Failed to load %s", output)
-        my_outputs = [my_output for my_output in my_outputs.values() \
-                      if my_output is not None]
+        my_outputs = [
+            my_output for my_output in my_outputs.values() if my_output is not None
+        ]
         return my_outputs

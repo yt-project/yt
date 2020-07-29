@@ -13,46 +13,39 @@ Pixelization routines
 
 
 import numpy as np
-cimport numpy as np
-cimport cython
 
-from cython.view cimport array as cvarray
+cimport cython
 cimport libc.math as math
-from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, \
-    imax, fabs, iclip
-from yt.utilities.exceptions import \
-    YTPixelizeError, \
-    YTElementTypeNotRecognized
-from libc.stdlib cimport malloc, free
-from vec3_ops cimport dot, cross, subtract
-from yt.utilities.lib.element_mappings cimport \
-    ElementSampler, \
-    P1Sampler1D, \
-    P1Sampler2D, \
-    P1Sampler3D, \
-    Q1Sampler3D, \
-    Q1Sampler2D, \
-    Q2Sampler2D, \
-    S2Sampler3D, \
-    W1Sampler3D, \
-    T2Sampler2D, \
-    Tet2Sampler3D
-from yt.geometry.particle_deposit cimport \
-    kernel_func, get_kernel_func
-from cython.parallel cimport prange
+cimport numpy as np
+from cython.view cimport array as cvarray
+
+from yt.utilities.lib.fp_utils cimport (fabs, fmax, fmin, i64max, i64min,
+                                        iclip, imax, imin)
+
+from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
+
 from cpython.exc cimport PyErr_CheckSignals
+from cython.parallel cimport prange
+from libc.stdlib cimport free, malloc
+from vec3_ops cimport cross, dot, subtract
+
+from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
+from yt.utilities.lib.element_mappings cimport (ElementSampler, P1Sampler1D,
+                                                P1Sampler2D, P1Sampler3D,
+                                                Q1Sampler2D, Q1Sampler3D,
+                                                Q2Sampler2D, S2Sampler3D,
+                                                T2Sampler2D, Tet2Sampler3D,
+                                                W1Sampler3D)
+
 from yt.funcs import get_pbar
-from yt.utilities.lib.cykdtree.kdtree cimport (
-    PyKDTree,
-    KDTree,
-    Node,
-    uint64_t,
-    uint32_t,
-)
-from yt.utilities.lib.particle_kdtree_tools cimport find_neighbors, \
-    axes_range, \
-    set_axes_range
+
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
+from yt.utilities.lib.cykdtree.kdtree cimport (KDTree, Node, PyKDTree,
+                                               uint32_t, uint64_t)
+from yt.utilities.lib.particle_kdtree_tools cimport (axes_range,
+                                                     find_neighbors,
+                                                     set_axes_range)
+
 
 cdef int TABLE_NVALS=512
 

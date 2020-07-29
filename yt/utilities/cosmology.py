@@ -1,20 +1,15 @@
 import functools
+
 import numpy as np
 
-from yt.funcs import \
-    issue_deprecation_warning
+from yt.funcs import issue_deprecation_warning
 from yt.units import dimensions
-from yt.units.unit_registry import \
-    UnitRegistry
-from yt.units.unit_object import \
-    Unit
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
+from yt.units.unit_object import Unit
+from yt.units.unit_registry import UnitRegistry
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.physical_constants import gravitational_constant_cgs as G
+from yt.utilities.physical_constants import speed_of_light_cgs
 
-from yt.utilities.physical_constants import \
-     gravitational_constant_cgs as G, \
-     speed_of_light_cgs
 
 class Cosmology:
     r"""
@@ -69,16 +64,20 @@ class Cosmology:
     >>> print(co.t_from_z(0.0).in_units("Gyr"))
 
     """
-    def __init__(self, hubble_constant = 0.71,
-                 omega_matter = 0.27,
-                 omega_lambda = 0.73,
-                 omega_radiation = 0.0,
-                 omega_curvature = 0.0,
-                 unit_registry = None,
-                 unit_system = "cgs",
-                 use_dark_factor = False,
-                 w_0 = -1.0,
-                 w_a = 0.0):
+
+    def __init__(
+        self,
+        hubble_constant=0.71,
+        omega_matter=0.27,
+        omega_lambda=0.73,
+        omega_radiation=0.0,
+        omega_curvature=0.0,
+        unit_registry=None,
+        unit_system="cgs",
+        use_dark_factor=False,
+        w_0=-1.0,
+        w_a=0.0,
+    ):
         self.omega_matter = float(omega_matter)
         self.omega_radiation = float(omega_radiation)
         self.omega_lambda = float(omega_lambda)
@@ -91,12 +90,16 @@ class Cosmology:
                 my_u = Unit(my_unit, registry=unit_registry)
                 # technically not true, but distances here are actually comoving
                 unit_registry.add(
-                    new_unit, my_u.base_value, dimensions.length,
-                    "\\rm{%s}/(1+z)" % my_unit, prefixable=True)
+                    new_unit,
+                    my_u.base_value,
+                    dimensions.length,
+                    "\\rm{%s}/(1+z)" % my_unit,
+                    prefixable=True,
+                )
         self.unit_registry = unit_registry
         self.hubble_constant = self.quan(hubble_constant, "100*km/s/Mpc")
         self.unit_system = unit_system
-        
+
         # For non-standard dark energy. If false, use default cosmological constant
         # This only affects the expansion_factor function.
         self.use_dark_factor = use_dark_factor
@@ -108,8 +111,9 @@ class Cosmology:
         The distance corresponding to c / h, where c is the speed of light 
         and h is the Hubble parameter in units of 1 / time.
         """
-        return self.quan(speed_of_light_cgs /
-                         self.hubble_constant).in_base(self.unit_system)
+        return self.quan(speed_of_light_cgs / self.hubble_constant).in_base(
+            self.unit_system
+        )
 
     def comoving_radial_distance(self, z_i, z_f):
         r"""
@@ -131,8 +135,9 @@ class Cosmology:
         >>> print(co.comoving_radial_distance(0., 1.).in_units("Mpccm"))
         
         """
-        return (self.hubble_distance() *
-                trapzint(self.inverse_expansion_factor, z_i, z_f)).in_base(self.unit_system)
+        return (
+            self.hubble_distance() * trapzint(self.inverse_expansion_factor, z_i, z_f)
+        ).in_base(self.unit_system)
 
     def comoving_transverse_distance(self, z_i, z_f):
         r"""
@@ -155,17 +160,26 @@ class Cosmology:
         >>> print(co.comoving_transverse_distance(0., 1.).in_units("Mpccm"))
         
         """
-        if (self.omega_curvature > 0):
-            return (self.hubble_distance() / np.sqrt(self.omega_curvature) * 
-                    np.sinh(np.sqrt(self.omega_curvature) * 
-                            self.comoving_radial_distance(z_i, z_f) /
-                            self.hubble_distance())).in_base(self.unit_system)
-        elif (self.omega_curvature < 0):
-            return (self.hubble_distance() /
-                    np.sqrt(np.fabs(self.omega_curvature)) * 
-                    np.sin(np.sqrt(np.fabs(self.omega_curvature)) * 
-                           self.comoving_radial_distance(z_i, z_f) /
-                           self.hubble_distance())).in_base(self.unit_system)
+        if self.omega_curvature > 0:
+            return (
+                self.hubble_distance()
+                / np.sqrt(self.omega_curvature)
+                * np.sinh(
+                    np.sqrt(self.omega_curvature)
+                    * self.comoving_radial_distance(z_i, z_f)
+                    / self.hubble_distance()
+                )
+            ).in_base(self.unit_system)
+        elif self.omega_curvature < 0:
+            return (
+                self.hubble_distance()
+                / np.sqrt(np.fabs(self.omega_curvature))
+                * np.sin(
+                    np.sqrt(np.fabs(self.omega_curvature))
+                    * self.comoving_radial_distance(z_i, z_f)
+                    / self.hubble_distance()
+                )
+            ).in_base(self.unit_system)
         else:
             return self.comoving_radial_distance(z_i, z_f)
 
@@ -190,34 +204,60 @@ class Cosmology:
         >>> print(co.comoving_volume(0., 1.).in_units("Gpccm**3"))
 
         """
-        if (self.omega_curvature > 1e-10):
-            return (2 * np.pi * np.power(self.hubble_distance(), 3) /
-                     self.omega_curvature * 
-                     (self.comoving_transverse_distance(z_i, z_f) /
-                      self.hubble_distance() * 
-                      np.sqrt(1 + self.omega_curvature * 
-                           np.sqrt(self.comoving_transverse_distance(z_i, z_f) /
-                               self.hubble_distance())) - 
-                      np.sinh(np.fabs(self.omega_curvature) * 
-                            self.comoving_transverse_distance(z_i, z_f) /
-                            self.hubble_distance()) /
-                            np.sqrt(self.omega_curvature))).in_base(self.unit_system)
-        elif (self.omega_curvature < -1e-10):
-            return (2 * np.pi * np.power(self.hubble_distance(), 3) /
-                     np.fabs(self.omega_curvature) * 
-                     (self.comoving_transverse_distance(z_i, z_f) /
-                      self.hubble_distance() * 
-                      np.sqrt(1 + self.omega_curvature * 
-                           np.sqrt(self.comoving_transverse_distance(z_i, z_f) /
-                               self.hubble_distance())) - 
-                      np.arcsin(np.fabs(self.omega_curvature) * 
-                           self.comoving_transverse_distance(z_i, z_f) /
-                           self.hubble_distance()) /
-                      np.sqrt(np.fabs(self.omega_curvature)))).in_base(self.unit_system)
+        if self.omega_curvature > 1e-10:
+            return (
+                2
+                * np.pi
+                * np.power(self.hubble_distance(), 3)
+                / self.omega_curvature
+                * (
+                    self.comoving_transverse_distance(z_i, z_f)
+                    / self.hubble_distance()
+                    * np.sqrt(
+                        1
+                        + self.omega_curvature
+                        * np.sqrt(
+                            self.comoving_transverse_distance(z_i, z_f)
+                            / self.hubble_distance()
+                        )
+                    )
+                    - np.sinh(
+                        np.fabs(self.omega_curvature)
+                        * self.comoving_transverse_distance(z_i, z_f)
+                        / self.hubble_distance()
+                    )
+                    / np.sqrt(self.omega_curvature)
+                )
+            ).in_base(self.unit_system)
+        elif self.omega_curvature < -1e-10:
+            return (
+                2
+                * np.pi
+                * np.power(self.hubble_distance(), 3)
+                / np.fabs(self.omega_curvature)
+                * (
+                    self.comoving_transverse_distance(z_i, z_f)
+                    / self.hubble_distance()
+                    * np.sqrt(
+                        1
+                        + self.omega_curvature
+                        * np.sqrt(
+                            self.comoving_transverse_distance(z_i, z_f)
+                            / self.hubble_distance()
+                        )
+                    )
+                    - np.arcsin(
+                        np.fabs(self.omega_curvature)
+                        * self.comoving_transverse_distance(z_i, z_f)
+                        / self.hubble_distance()
+                    )
+                    / np.sqrt(np.fabs(self.omega_curvature))
+                )
+            ).in_base(self.unit_system)
         else:
-            return (4 * np.pi *
-                     np.power(self.comoving_transverse_distance(z_i, z_f), 3) /\
-                     3).in_base(self.unit_system)
+            return (
+                4 * np.pi * np.power(self.comoving_transverse_distance(z_i, z_f), 3) / 3
+            ).in_base(self.unit_system)
 
     def angular_diameter_distance(self, z_i, z_f):
         r"""
@@ -239,9 +279,11 @@ class Cosmology:
         >>> print(co.angular_diameter_distance(0., 1.).in_units("Mpc"))
         
         """
-        
-        return (self.comoving_transverse_distance(0, z_f) / (1 + z_f) - 
-                self.comoving_transverse_distance(0, z_i) / (1 + z_i)).in_base(self.unit_system)
+
+        return (
+            self.comoving_transverse_distance(0, z_f) / (1 + z_f)
+            - self.comoving_transverse_distance(0, z_i) / (1 + z_i)
+        ).in_base(self.unit_system)
 
     def angular_scale(self, z_i, z_f):
         r"""
@@ -264,10 +306,9 @@ class Cosmology:
         
         """
 
-        scale = self.angular_diameter_distance(z_i, z_f) / \
-          self.quan(1, "radian")
+        scale = self.angular_diameter_distance(z_i, z_f) / self.quan(1, "radian")
         return scale.in_base(self.unit_system)
-    
+
     def luminosity_distance(self, z_i, z_f):
         r"""
         The distance that would be inferred from the inverse-square law of 
@@ -289,8 +330,10 @@ class Cosmology:
         
         """
 
-        return (self.comoving_transverse_distance(0, z_f) * (1 + z_f) - 
-                self.comoving_transverse_distance(0, z_i) * (1 + z_i)).in_base(self.unit_system)
+        return (
+            self.comoving_transverse_distance(0, z_f) * (1 + z_f)
+            - self.comoving_transverse_distance(0, z_i) * (1 + z_i)
+        ).in_base(self.unit_system)
 
     def lookback_time(self, z_i, z_f):
         r"""
@@ -312,9 +355,10 @@ class Cosmology:
         >>> print(co.lookback_time(0., 1.).in_units("Gyr"))
 
         """
-        return (trapzint(self.age_integrand, z_i, z_f) / \
-                self.hubble_constant).in_base(self.unit_system)
-    
+        return (trapzint(self.age_integrand, z_i, z_f) / self.hubble_constant).in_base(
+            self.unit_system
+        )
+
     def hubble_time(self, z, z_inf=1e6):
         r"""
         The inverse of the Hubble parameter.
@@ -344,12 +388,14 @@ class Cosmology:
 
         """
         issue_deprecation_warning(
-            'The hubble_time function is incorrect and has been deprecated! ' +
-            'Instead, do the following:\n' +
-            '>>> print (1 / co.hubble_parameter(z)).to(\'Gyr\')\n' +
-            'If you want the age of the Universe, use the t_from_z function.')
-        return (trapzint(self.age_integrand, z, z_inf) /
-                self.hubble_constant).in_base(self.unit_system)
+            "The hubble_time function is incorrect and has been deprecated! "
+            + "Instead, do the following:\n"
+            + ">>> print (1 / co.hubble_parameter(z)).to('Gyr')\n"
+            + "If you want the age of the Universe, use the t_from_z function."
+        )
+        return (trapzint(self.age_integrand, z, z_inf) / self.hubble_constant).in_base(
+            self.unit_system
+        )
 
     def critical_density(self, z):
         r"""
@@ -370,8 +416,9 @@ class Cosmology:
         >>> print(co.critical_density(0).in_units("Msun/Mpc**3"))
         
         """
-        return (3.0 * self.hubble_parameter(z)**2 /
-                8.0 / np.pi / G).in_base(self.unit_system)
+        return (3.0 * self.hubble_parameter(z) ** 2 / 8.0 / np.pi / G).in_base(
+            self.unit_system
+        )
 
     def hubble_parameter(self, z):
         r"""
@@ -390,11 +437,10 @@ class Cosmology:
         >>> print(co.hubble_parameter(1.0).in_units("km/s/Mpc"))
 
         """
-        return (self.hubble_constant.in_base(self.unit_system) *
-                self.expansion_factor(z))
+        return self.hubble_constant.in_base(self.unit_system) * self.expansion_factor(z)
 
     def age_integrand(self, z):
-        return 1. / (z + 1) / self.expansion_factor(z)
+        return 1.0 / (z + 1) / self.expansion_factor(z)
 
     def expansion_factor(self, z):
         r"""
@@ -415,16 +461,18 @@ class Cosmology:
             dark_factor = 1.0
 
         zp1 = 1 + z
-        return np.sqrt(self.omega_matter    * zp1**3 +
-                       self.omega_curvature * zp1**2 +
-                       self.omega_radiation * zp1**4 +
-                       self.omega_lambda    * dark_factor)
+        return np.sqrt(
+            self.omega_matter * zp1 ** 3
+            + self.omega_curvature * zp1 ** 2
+            + self.omega_radiation * zp1 ** 4
+            + self.omega_lambda * dark_factor
+        )
 
     def inverse_expansion_factor(self, z):
-        return 1. / self.expansion_factor(z)
+        return 1.0 / self.expansion_factor(z)
 
     def path_length_function(self, z):
-        return ((1 + z)**2) * self.inverse_expansion_factor(z)
+        return ((1 + z) ** 2) * self.inverse_expansion_factor(z)
 
     def path_length(self, z_i, z_f):
         return trapzint(self.path_length_function, z_i, z_f)
@@ -454,7 +502,7 @@ class Cosmology:
         bins_per_dex = 1000
         n_bins = int((la_f - la_i) * bins_per_dex + 1)
         la_bins = np.linspace(la_i, la_f, n_bins)
-        z_bins = 1. / np.power(10, la_bins) - 1
+        z_bins = 1.0 / np.power(10, la_bins) - 1
 
         # Integrate in redshift.
         lt = trapezoid_cumulative_integral(self.age_integrand, z_bins)
@@ -483,7 +531,7 @@ class Cosmology:
 
         """
 
-        return self.t_from_a(1. / (1. + z))
+        return self.t_from_a(1.0 / (1.0 + z))
 
     def a_from_t(self, t):
         """
@@ -505,7 +553,7 @@ class Cosmology:
         """
 
         if not isinstance(t, YTArray):
-            t = self.arr(t, 's')
+            t = self.arr(t, "s")
         lt = np.log10((t * self.hubble_constant).to(""))
 
         # Interpolate from a table of log(a) vs. log(t)
@@ -519,11 +567,10 @@ class Cosmology:
             good = True
             n_bins = int((la_f - la_i) * bins_per_dex + 1)
             la_bins = np.linspace(la_i, la_f, n_bins)
-            z_bins = 1. / np.power(10, la_bins) - 1
+            z_bins = 1.0 / np.power(10, la_bins) - 1
 
             # Integrate in redshift.
-            lt_bins = trapezoid_cumulative_integral(
-                self.age_integrand, z_bins)
+            lt_bins = trapezoid_cumulative_integral(self.age_integrand, z_bins)
 
             # Add a minus sign because we've switched the integration limits.
             table = InterpTable(np.log10(-lt_bins), la_bins[1:])
@@ -542,8 +589,7 @@ class Cosmology:
                 break
             iter += 1
             if iter > 10:
-                raise RuntimeError(
-                    "a_from_t calculation did not converge!")
+                raise RuntimeError("a_from_t calculation did not converge!")
 
         a = np.power(10, table(lt))
         return a
@@ -568,7 +614,7 @@ class Cosmology:
         """
 
         a = self.a_from_t(t)
-        return 1. / a - 1.
+        return 1.0 / a - 1.0
 
     def get_dark_factor(self, z):
         """
@@ -590,31 +636,35 @@ class Cosmology:
         scale_factor = 1.0 / (1.0 + z)
 
         # Evaluate exponential using Linder02 parameterization
-        dark_factor = np.power(scale_factor, -3.0 * (1.0 + self.w_0 + self.w_a)) * \
-                      np.exp(-3.0 * self.w_a * (1.0 - scale_factor))
+        dark_factor = np.power(
+            scale_factor, -3.0 * (1.0 + self.w_0 + self.w_a)
+        ) * np.exp(-3.0 * self.w_a * (1.0 - scale_factor))
 
         return dark_factor
 
     _arr = None
+
     @property
     def arr(self):
         if self._arr is not None:
             return self._arr
-        self._arr = functools.partial(YTArray, registry = self.unit_registry)
+        self._arr = functools.partial(YTArray, registry=self.unit_registry)
         return self._arr
-    
+
     _quan = None
+
     @property
     def quan(self):
         if self._quan is not None:
             return self._quan
-        self._quan = functools.partial(YTQuantity,
-                registry = self.unit_registry)
+        self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
+
 
 def trapzint(f, a, b, bins=10000):
     zbins = np.logspace(np.log10(a + 1), np.log10(b + 1), bins) - 1
     return np.trapz(f(zbins[:-1]), x=zbins[:-1], dx=np.diff(zbins))
+
 
 def trapezoid_cumulative_integral(f, x):
     """
@@ -624,15 +674,17 @@ def trapezoid_cumulative_integral(f, x):
     fy = f(x)
     return (0.5 * (fy[:-1] + fy[1:]) * np.diff(x)).cumsum()
 
+
 class InterpTable:
     """
     Generate a function to linearly interpolate from provided arrays.
     """
+
     def __init__(self, x, y):
         self.x = x
         self.y = y
 
     def __call__(self, val):
         i = np.clip(np.digitize(val, self.x) - 1, 0, self.x.size - 2)
-        slope = (self.y[i+1] - self.y[i]) / (self.x[i+1] - self.x[i])
+        slope = (self.y[i + 1] - self.y[i]) / (self.x[i + 1] - self.x[i])
         return slope * (val - self.x[i]) + self.y[i]

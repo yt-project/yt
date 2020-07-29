@@ -9,47 +9,51 @@ Usage:
 """
 # future division is important to divide integers and get as
 # a result precise floating numbers (instead of truncated int)
-from __future__ import division, absolute_import
+from __future__ import absolute_import, division
+
 # import compatibility functions and utilities
 from time import time
-from ._utils import _range
-# to inherit from the tqdm class
-from ._tqdm import tqdm, format_meter
 
+# to inherit from the tqdm class
+from ._tqdm import format_meter, tqdm
+from ._utils import _range
 
 __author__ = {"github.com/": ["casperdcl", "lrq3000"]}
-__all__ = ['tqdm_gui', 'tgrange']
+__all__ = ["tqdm_gui", "tgrange"]
 
 
 class tqdm_gui(tqdm):  # pragma: no cover
     """
     Experimental GUI version of tqdm!
     """
+
     def __init__(self, *args, **kwargs):
 
         # try:  # pragma: no cover
+        from collections import deque
+
         import matplotlib as mpl
         import matplotlib.pyplot as plt
-        from collections import deque
+
         # except ImportError:  # gui not available
         #   kwargs['gui'] = False
         # else:
-        kwargs['gui'] = True
+        kwargs["gui"] = True
 
         super(tqdm_gui, self).__init__(*args, **kwargs)
 
         # Initialize the GUI display
-        if self.disable or not kwargs['gui']:
+        if self.disable or not kwargs["gui"]:
             return
 
-        self.fp.write('Warning: GUI is experimental/alpha\n')
+        self.fp.write("Warning: GUI is experimental/alpha\n")
         self.mpl = mpl
         self.plt = plt
         self.sp = None
 
         # Remember if external environment uses toolbars
-        self.toolbar = self.mpl.rcParams['toolbar']
-        self.mpl.rcParams['toolbar'] = 'None'
+        self.toolbar = self.mpl.rcParams["toolbar"]
+        self.mpl.rcParams["toolbar"] = "None"
 
         self.mininterval = max(self.mininterval, 0.5)
         self.fig, ax = plt.subplots(figsize=(9, 2.2))
@@ -62,29 +66,28 @@ class tqdm_gui(tqdm):  # pragma: no cover
             self.xdata = deque([])
             self.ydata = deque([])
             self.zdata = deque([])
-        self.line1, = ax.plot(self.xdata, self.ydata, color='b')
-        self.line2, = ax.plot(self.xdata, self.zdata, color='k')
+        (self.line1,) = ax.plot(self.xdata, self.ydata, color="b")
+        (self.line2,) = ax.plot(self.xdata, self.zdata, color="k")
         ax.set_ylim(0, 0.001)
         if self.total:
             ax.set_xlim(0, 100)
-            ax.set_xlabel('percent')
-            self.fig.legend((self.line1, self.line2), ('cur', 'est'),
-                            loc='center right')
+            ax.set_xlabel("percent")
+            self.fig.legend(
+                (self.line1, self.line2), ("cur", "est"), loc="center right"
+            )
             # progressbar
-            self.hspan = plt.axhspan(0, 0.001,
-                                     xmin=0, xmax=0, color='g')
+            self.hspan = plt.axhspan(0, 0.001, xmin=0, xmax=0, color="g")
         else:
             # ax.set_xlim(-60, 0)
             ax.set_xlim(0, 60)
             ax.invert_xaxis()
-            ax.set_xlabel('seconds')
-            ax.legend(('cur', 'est'), loc='lower left')
+            ax.set_xlabel("seconds")
+            ax.legend(("cur", "est"), loc="lower left")
         ax.grid()
         # ax.set_xlabel('seconds')
-        ax.set_ylabel((self.unit if self.unit else 'it') + '/s')
+        ax.set_ylabel((self.unit if self.unit else "it") + "/s")
         if self.unit_scale:
-            plt.ticklabel_format(style='sci', axis='y',
-                                 scilimits=(0, 0))
+            plt.ticklabel_format(style="sci", axis="y", scilimits=(0, 0))
             ax.yaxis.get_offset_text().set_x(-0.15)
 
         # Remember if external environment is interactive
@@ -168,8 +171,9 @@ class tqdm_gui(tqdm):  # pragma: no cover
                         try:
                             poly_lims = self.hspan.get_xy()
                         except AttributeError:
-                            self.hspan = plt.axhspan(0, 0.001, xmin=0,
-                                                     xmax=0, color='g')
+                            self.hspan = plt.axhspan(
+                                0, 0.001, xmin=0, xmax=0, color="g"
+                            )
                             poly_lims = self.hspan.get_xy()
                         poly_lims[0, 1] = ymin
                         poly_lims[1, 1] = ymax
@@ -183,11 +187,13 @@ class tqdm_gui(tqdm):  # pragma: no cover
                         line1.set_data(t_ago, ydata)
                         line2.set_data(t_ago, zdata)
 
-                    ax.set_title(format_meter(
-                        n, total, elapsed, 0,
-                        self.desc, ascii, unit, unit_scale),
+                    ax.set_title(
+                        format_meter(
+                            n, total, elapsed, 0, self.desc, ascii, unit, unit_scale
+                        ),
                         fontname="DejaVu Sans Mono",
-                        fontsize=11)
+                        fontsize=11,
+                    )
                     plt.pause(1e-9)
 
                     # If no `miniters` was specified, adjust automatically
@@ -231,8 +237,7 @@ class tqdm_gui(tqdm):  # pragma: no cover
                 # smoothed rate
                 z = self.n / elapsed
                 # update line data
-                self.xdata.append(self.n * 100.0 / total
-                                  if total else cur_t)
+                self.xdata.append(self.n * 100.0 / total if total else cur_t)
                 self.ydata.append(y)
                 self.zdata.append(z)
 
@@ -254,8 +259,9 @@ class tqdm_gui(tqdm):  # pragma: no cover
                     try:
                         poly_lims = self.hspan.get_xy()
                     except AttributeError:
-                        self.hspan = self.plt.axhspan(0, 0.001, xmin=0,
-                                                      xmax=0, color='g')
+                        self.hspan = self.plt.axhspan(
+                            0, 0.001, xmin=0, xmax=0, color="g"
+                        )
                         poly_lims = self.hspan.get_xy()
                     poly_lims[0, 1] = ymin
                     poly_lims[1, 1] = ymax
@@ -269,11 +275,20 @@ class tqdm_gui(tqdm):  # pragma: no cover
                     self.line1.set_data(t_ago, self.ydata)
                     self.line2.set_data(t_ago, self.zdata)
 
-                ax.set_title(format_meter(
-                    self.n, total, elapsed, 0,
-                    self.desc, self.ascii, self.unit, self.unit_scale),
+                ax.set_title(
+                    format_meter(
+                        self.n,
+                        total,
+                        elapsed,
+                        0,
+                        self.desc,
+                        self.ascii,
+                        self.unit,
+                        self.unit_scale,
+                    ),
                     fontname="DejaVu Sans Mono",
-                    fontsize=11)
+                    fontsize=11,
+                )
                 self.plt.pause(1e-9)
 
                 # If no `miniters` was specified, adjust automatically to the
@@ -292,7 +307,7 @@ class tqdm_gui(tqdm):  # pragma: no cover
             return
 
         # Restore toolbars
-        self.mpl.rcParams['toolbar'] = self.toolbar
+        self.mpl.rcParams["toolbar"] = self.toolbar
         # Return to non-interactive mode
         if not self.wasion:
             self.plt.ioff()
