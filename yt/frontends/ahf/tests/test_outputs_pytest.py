@@ -16,21 +16,31 @@ from yt.utilities.answer_testing import utils
 
 # Test data
 ahf_halos = "ahf_halos/snap_N64L16_135.parameter"
+ahf_kwargs = {"hubble_constant" : 0.7}
+
+ahf_fields = [
+    ("nbody", "particle_position_x"),
+    ("nbody", "particle_position_y"),
+    ("nbody", "particle_position_z"),
+    ("nbody", "particle_mass"),
+]
 
 
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("answer_file")
 class TestAHF:
     @requires_file(ahf_halos)
-    def test_AHFHalosDataset(self, ds_ahf_halos):
-        assert isinstance(ds_ahf_halos, AHFHalosDataset)
-        ad = ds_ahf_halos.all_data()
+    @pytest.mark.parametrize('ds', [[ahf_halos, ahf_kwargs]], indirect=True)
+    def test_AHFHalosDataset(self, ds):
+        assert isinstance(ds, AHFHalosDataset)
+        ad = ds.all_data()
         ad["particle_mass"]
-        psc = ParticleSelectionComparison(ds_ahf_halos)
+        psc = ParticleSelectionComparison(ds)
         psc.run_defaults()
 
     @pytest.mark.usefixtures("hashing")
-    @utils.requires_ds(ahf_halos)
-    def test_fields_ahf_halos(self, field, ds_ahf_halos):
-        fv = field_values(ds_ahf_halos, field, particle_type=True)
+    @pytest.mark.parametrize('ds', [[ahf_halos, ahf_kwargs]], indirect=True)
+    @pytest.mark.parametrize('f', ahf_fields, indirect=True)
+    def test_fields_ahf_halos(self, f, ds):
+        fv = field_values(ds, f, particle_type=True)
         self.hashes.update({"field_values": fv})
