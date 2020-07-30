@@ -228,10 +228,7 @@ def _compare_result(new_data, old_data):
         Previously saved hashed test results.
     """
     for key, value in new_data.items():
-        if isinstance(value, dict):
-            _compare_result(value, old_data[key])
-        else:
-            assert value == old_data[key]
+        assert value == old_data[key]
 
 
 def _save_raw_arrays(arrays, answer_file, func_name):

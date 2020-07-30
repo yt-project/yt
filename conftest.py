@@ -290,6 +290,10 @@ def answer_compare(request):
     if not no_hash and not store_hash:
         with open(request.cls.answer_file, "r") as fd:
             request.cls.saved_hashes = yaml.safe_load(fd) 
+    yield
+    # No need to keep the results saved in memory after comparison has
+    # been done
+    del request.cls.saved_hashes
 
 
 @pytest.fixture(scope='class')
