@@ -293,7 +293,8 @@ def answer_compare(request):
     yield
     # No need to keep the results saved in memory after comparison has
     # been done
-    del request.cls.saved_hashes
+    if hasattr(request.cls, "saved_hashes"):
+        del request.cls.saved_hashes
 
 
 @pytest.fixture(scope='class')
