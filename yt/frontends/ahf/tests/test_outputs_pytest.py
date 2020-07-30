@@ -27,7 +27,7 @@ ahf_fields = [
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
+@pytest.mark.usefixtures("answer_file", "answer_compare")
 class TestAHF:
     @requires_file(ahf_halos)
     @pytest.mark.parametrize('ds', [[ahf_halos, ahf_kwargs]], indirect=True)
