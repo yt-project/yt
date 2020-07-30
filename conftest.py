@@ -225,8 +225,9 @@ def _param_list(request):
     blacklist = ['hashing', 'answer_file', 'request']
     test_params = {}
     for key, val in request.node.funcargs.items():
-        if key not in blacklist and not key.startswith('ds'):
-            test_params[key] = val
+        # if key not in blacklist and not key.startswith('ds'):
+        if key not in blacklist:
+            test_params[key] = str(val)
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
     # in the answer yaml file)
@@ -313,3 +314,19 @@ def ds(request):
         return dataset
     else:
         pytest.skip(f"Data file: `{request.param}` not found.")
+
+@pytest.fixture(scope='class')
+def f(request):
+    return request.param
+
+@pytest.fixture(scope='class')
+def d(request):
+    return request.param
+
+@pytest.fixture(scope='class')
+def a(request):
+    return request.param
+
+@pytest.fixture(scope='class')
+def w(request):
+    return request.param
