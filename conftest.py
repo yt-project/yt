@@ -222,7 +222,7 @@ def _param_list(request):
     # pytest treats parameterized arguments as fixtures, so there's no
     # clean way to separate them out from other other fixtures (that I
     # know of), so we do it explicitly
-    blacklist = ['hashing', 'answer_file', 'request']
+    blacklist = ['hashing', 'answer_file', 'request', 'answer_compare']
     test_params = {}
     for key, val in request.node.funcargs.items():
         # if key not in blacklist and not key.startswith('ds'):
@@ -240,48 +240,6 @@ def hashing(request):
     r"""
     Handles initialization, generation, and saving of answer test
     result hashes.
-
-    Answer tests that require generated data to be saved to disk
-    have that data hashed. This fixture creates an empty dictionary
-    as an attribute of the answer class of which the current answer
-    test is a method.
-
-    Once the test has been run and the raw data has been saved to this
-    hashes dictionary, this fixture hashes the raw data and prepares
-    an entry to the answer file containing the test name as well as the
-    test parameter names and values to accompany the hash(es).
-
-    These entries are then either compared to an existing entry or
-    saved in the new answer file.
-
-    Parameters:
-    -----------
-        request : pytest.FixtureRequest
-            Provides access to the requesting test context. For
-            example, if an answer class uses this fixture, such as
-            TestEnzo, then request provides access to all of the
-            methods and attributes of the TestEnzo class, since
-            that class is the user of this fixture (the calling
-            context).
-
-    Example:
-    --------
-        # If every method of an answer class saves data then the
-        # fixture can be applied to each method like so:
-        >>> @pytest.mark.usefixtures('hashing')
-        >>> class TestNewFrontend:
-        >>>     def test1(self):
-        >>>         ...
-        >>>     def test2(self):
-        >>>         ...
-        # If only certain methods save data, then it must be applied
-        # directly to those methods, like so:
-        >>> class TestNewFrontend:
-        >>>     @pytest.mark.usefixtures('hashing')
-        >>>     def test1(self):
-        >>>         ...
-        >>>     def test2(self):
-        >>>         ...
     """
     # Set up hashes dictionary
     if request.cls is not None:
@@ -298,14 +256,41 @@ def hashing(request):
     hashes.update(params)
     # Add the function name as the "master" key to the hashes dict
     hashes = {request.node.name: hashes}
-    # Either save or compare
-    if not request.config.getoption("--no-hash"):
-        utils._handle_hashes(request.cls.answer_file, hashes,
-            request.config.getoption('--answer-store'))
-    if request.config.getoption('--answer-raw-arrays'):
-        utils._handle_raw_arrays(request.cls.raw_answer_file,
-            request.cls.hashes, request.config.getoption('--raw-answer-store'),
-            request.node.name)
+    no_hash = request.config.getoption("--no-hash")
+    store_hash = request.config.getoption("--answer-store")
+    raw = request.config.getoption("--answer-raw-arrays")
+    raw_store = request.config.getoption("--raw-answer-store")
+    answer_file = request.cls.answer_file
+    raw_answer_file = request.cls.raw_answer_file
+    # Save hashes
+    if not no_hash and store_hash:
+        utils._save_result(hashes, answer_file)
+    # Compare hashes
+    elif not no_hash and not store_hash:
+        utils._compare_result(hashes, request.cls.saved_hashes)
+    # Save raw data
+    if raw and raw_store:
+        utils._save_raw_arrays(request.cls.hashes, raw_answer_file, request.node.name)
+    # Compare raw data. This is done one test at a time because the
+    # arrays can get quite large and storing everything in memory would
+    # be bad
+    if raw and not raw_store:
+        utils._compare_raw_arrays(request.cls.hashes, raw_answer_file, request.node.name)
+
+
+@pytest.fixture(scope="class")
+def answer_compare(request):
+    """
+    Handles reading in the saved answers when doing a comparison so
+    that the file only needs to be read once per answer class rather
+    than once per test.
+    """
+    no_hash = request.config.getoption("--no-hash")
+    store_hash = request.config.getoption("--answer-store")
+    if not no_hash and not store_hash:
+        with open(request.cls.answer_file, "r") as fd:
+            request.cls.saved_hashes = yaml.safe_load(fd) 
+
 
 @pytest.fixture(scope='class')
 def ds(request):

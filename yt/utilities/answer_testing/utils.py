@@ -214,86 +214,24 @@ def _save_result(data, outputFile):
         yaml.dump(data, f)
 
 
-def _compare_result(data, outputFile):
+def _compare_result(new_data, old_data):
     r"""
     Compares the just-generated test results to those that are already
     saved.
 
     Parameters
     ----------
-    data : dict
-        Just-generated test results.
+    new_data : dict
+        Just-generated hashed test results.
 
-    outputFile : str
-        Name of file where answers are already saved.
+    old_data: dict
+        Previously saved hashed test results.
     """
-    # Load the saved data
-    with open(outputFile, "r") as f:
-        savedData = yaml.safe_load(f)
-    # Define the comparison function
-    def _check_vals(newVals, oldVals):
-        for key, value in newVals.items():
-            if isinstance(value, dict):
-                _check_vals(value, oldVals[key])
-            else:
-                assert value == oldVals[key]
-
-    # Compare
-    _check_vals(data, savedData)
-
-
-def _handle_hashes(answer_file, hashes, answer_store):
-    r"""
-    Driver function for deciding whether to save the test results or
-    compare them to already saved results.
-
-    Parameters
-    ----------
-    answer_file : str
-        Name of the file to either save results to or where results
-        are already saved.
-
-    hashes : dict
-        The just-generated test results.
-
-    answer_store : bool
-        If true, save the just-generated test results, otherwise,
-        compare them to the previously saved results.
-    """
-    # Save the result
-    if answer_store:
-        _save_result(hashes, answer_file)
-    # Compare to already saved results
-    else:
-        _compare_result(hashes, answer_file)
-
-
-def _handle_raw_arrays(answer_file, arrays, answer_store, func_name):
-    r"""
-    Driver routine for either saving the raw arrays resulting from the
-    tests, or compare them to previously saved results.
-
-    Parameters
-    ----------
-    answer_file : str
-        Name of the file to either save results to or where results are
-        already saved.
-
-    arrays : dict
-        The raw arrays generated from the tests, with the test name
-        as a key.
-
-    answer_store : bool
-        If true, save the just-generated test results, otherwise,
-        compare them to the previously saved results.
-
-    func_name : str
-        The name of the function that created the answers being saved.
-    """
-    if answer_store:
-        _save_raw_arrays(arrays, answer_file, func_name)
-    else:
-        _compare_raw_arrays(arrays, answer_file, func_name)
+    for key, value in new_data.items():
+        if isinstance(value, dict):
+            _compare_result(value, old_data[key])
+        else:
+            assert value == old_data[key]
 
 
 def _save_raw_arrays(arrays, answer_file, func_name):
