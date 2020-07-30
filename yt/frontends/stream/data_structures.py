@@ -7,6 +7,7 @@ from itertools import chain, product, repeat
 from numbers import Number as numeric_type
 
 import numpy as np
+from unyt.dimensions import number_density
 
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.grid_patch import AMRGridPatch
@@ -1689,7 +1690,8 @@ class StreamOctreeSubset(OctreeSubset):
     domain_id = 1
     _domain_offset = 1
 
-    def __init__(self, base_region, ds, oct_handler, over_refine_factor=1):
+    def __init__(self, base_region, ds, oct_handler, over_refine_factor=1, num_ghost_zones=0):
+        self._over_refine_factor = over_refine_factor
         self._num_zones = 1 << (over_refine_factor)
         self.field_data = YTFieldData()
         self.field_parameters = {}
@@ -1702,7 +1704,33 @@ class StreamOctreeSubset(OctreeSubset):
         self.base_region = base_region
         self.base_selector = base_region.selector
 
-    def fill(self, content, dest, selector, offset):
+        self._num_ghost_zones = num_ghost_zones
+
+        if num_ghost_zones > 0:
+            if not all(ds.periodicity):
+                mylog.warn("Ghost zones will wrongly assume the domain to be periodic.")
+            base_grid = StreamOctreeSubset(base_region, ds, oct_handler, over_refine_factor)
+            self._base_grid = base_grid
+
+    def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
+        try:
+            new_subset = self._subset_with_gz
+            mylog.debug(
+                "Reusing previous subset with ghost zone."
+            )
+        except AttributeError:
+            new_subset = StreamOctreeSubset(
+                self.base_region,
+                self.ds,
+                self.oct_handler,
+                self._over_refine_factor,
+                num_ghost_zones=ngz
+            )
+            self._subset_with_gz = new_subset
+
+        return new_subset
+
+    def _fill_no_ghostzones(self, content, dest, selector, offset):
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
         oct_handler = self.oct_handler
@@ -1717,6 +1745,39 @@ class StreamOctreeSubset(OctreeSubset):
             0, levels, cell_inds, file_inds, dest, content, offset
         )
         return count
+
+    def _fill_with_ghostzones(self, content, dest, selector, offset):
+        oct_handler = self.oct_handler
+        ndim = self.ds.dimensionality
+        cell_count = (
+            selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
+        )
+
+        gz_cache = getattr(self, "_ghost_zone_cache", None)
+        if gz_cache:
+            levels, cell_inds, file_inds, domains = gz_cache
+        else:
+            gz_cache = (
+                levels,
+                cell_inds,
+                file_inds,
+                domains,
+            ) = oct_handler.file_index_octs_with_ghost_zones(
+                selector, self.domain_id, cell_count
+            )
+            self._ghost_zone_cache = gz_cache
+        levels[:] = 0
+        dest.update((field, np.empty(cell_count, dtype="float64")) for field in content)
+        # Make references ...
+        count = oct_handler.fill_level(
+            0, levels, cell_inds, file_inds, dest, content, offset
+        )
+
+    def fill(self, content, dest, selector, offset):
+        if self._num_ghost_zones == 0:
+            return self._fill_no_ghostzones(content, dest, selector, offset)
+        else:
+            return self._fill_with_ghostzones(content, dest, selector, offset)
 
 
 class StreamOctreeHandler(OctreeIndex):
@@ -1794,6 +1855,25 @@ class StreamOctreeDataset(StreamDataset):
     _index_class = StreamOctreeHandler
     _field_info_class = StreamFieldInfo
     _dataset_type = "stream_octree"
+
+    levelmax = None
+
+    def __init__(
+        self,
+        stream_handler,
+        storage_filename=None,
+        geometry="cartesian",
+        unit_system="cgs",
+    ):
+        super(StreamOctreeDataset, self).__init__(
+            stream_handler,
+            storage_filename,
+            geometry,
+            unit_system
+        )
+        # Set up levelmax
+        self.max_level = stream_handler.levels.max()
+        self.min_level = stream_handler.levels.min()
 
 
 def load_octree(

@@ -573,16 +573,6 @@ class OctreeVolumeSource(VolumeSource):
         if self._volume is None:
             mylog.info("Creating volume")
             volume = OctreeRayTracing(self.data_source)
-
-            data = self.data_source
-            ds = data.ds
-
-            xyz = np.stack([data[key].to("unitary").value for key in "xyz"], axis=-1)
-            lvl = data["grid_level"].astype(np.int32).value + ds.parameters["levelmin"]
-            ipos = np.floor(xyz * (1 << (ds.parameters["levelmax"]))).astype(np.int32)
-
-            mylog.debug("Adding cells to volume")
-            volume.octree.add_nodes(ipos, lvl, np.arange(len(ipos), dtype=np.int32))
             self._volume = volume
 
         return self._volume

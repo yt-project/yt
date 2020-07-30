@@ -2,6 +2,7 @@ from itertools import product
 
 import numpy as np
 
+from yt.funcs import mylog
 from yt.utilities.lib.cyoctree_raytracing import CythonOctreeRayTracing
 
 
@@ -17,17 +18,22 @@ class OctreeRayTracing(object):
 
     def __init__(self, data_source):
         self.data_source = data_source
+        ds = data_source.ds
         LE = np.array([0, 0, 0], dtype=np.float64)
         RE = np.array([1, 1, 1], dtype=np.float64)
-        depth = data_source.ds.parameters["levelmax"]
+        lvl_min = ds.min_level + 1
+        # This is the max refinement so that the smallest cells have size
+        # 1/2**depth
+        depth = lvl_min + ds.max_level + 1
 
         self.octree = CythonOctreeRayTracing(LE, RE, depth)
         ds = data_source.ds
 
         xyz = np.stack([data_source[key].to("unitary").value for key in "xyz"], axis=-1)
-        lvl = data_source["grid_level"].astype(int).value + ds.parameters["levelmin"]
+        lvl = data_source["grid_level"].astype(int).value + lvl_min
 
-        ipos = np.floor(xyz * (1 << (ds.parameters["levelmax"]))).astype(int)
+        ipos = np.floor(xyz * (1 << depth)).astype(int)
+        mylog.debug("Adding cells to volume")
         self.octree.add_nodes(
             ipos.astype(np.int32),
             lvl.astype(np.int32),
