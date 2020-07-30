@@ -309,7 +309,10 @@ def hashing(request):
 
 @pytest.fixture(scope='class')
 def ds(request):
-    dataset = utils.data_dir_load(request.param)
+    if isinstance(request.param, list):
+        dataset = utils.data_dir_load(request.param[0], kwargs=request.param[1])
+    else:
+        dataset = utils.data_dir_load(request.param)
     if dataset:
         return dataset
     else:
@@ -317,16 +320,32 @@ def ds(request):
 
 @pytest.fixture(scope='class')
 def f(request):
+    """
+    Fixture for returning the field. Needed because indirect=True is
+    used for loading the datasets.
+    """
     return request.param
 
 @pytest.fixture(scope='class')
 def d(request):
+    """
+    Fixture for returning the ds_obj. Needed because indirect=True is
+    used for loading the datasets.
+    """
     return request.param
 
 @pytest.fixture(scope='class')
 def a(request):
+    """
+    Fixture for returning the axis. Needed because indirect=True is
+    used for loading the datasets.
+    """
     return request.param
 
 @pytest.fixture(scope='class')
 def w(request):
+    """
+    Fixture for returning the weight_field. Needed because
+    indirect=True is used for loading the datasets.
+    """
     return request.param
