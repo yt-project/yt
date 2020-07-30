@@ -12,7 +12,6 @@ from unyt.exceptions import UnitConversionError, UnitParseError
 import yt.geometry.selection_routines
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
-from yt.fields.derived_field import DerivedField
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
@@ -1428,6 +1427,49 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
 
+    def _tupleize_field(self, field):
+
+        try:
+            ftype, fname = field.name
+            return ftype, fname
+        except AttributeError:
+            pass
+
+        if iterable(field) and not isinstance(field, str):
+            try:
+                ftype, fname = field
+                if not all(isinstance(_, str) for _ in field):
+                    raise TypeError
+                return ftype, fname
+            except TypeError as e:
+                raise YTFieldNotParseable(field) from e
+            except ValueError:
+                pass
+
+        try:
+            fname = field
+            finfo = self.ds._get_field_info(field)
+            if finfo.sampling_type == "particle":
+                ftype = self._current_particle_type
+                if hasattr(self.ds, "_sph_ptypes"):
+                    ptypes = self.ds._sph_ptypes
+                    if finfo.name[0] in ptypes:
+                        ftype = finfo.name[0]
+                    elif finfo.alias_field and finfo.alias_name[0] in ptypes:
+                        ftype = self._current_fluid_type
+            else:
+                ftype = self._current_fluid_type
+                if (ftype, fname) not in self.ds.field_info:
+                    ftype = self.ds._last_freq[0]
+            return ftype, fname
+        except YTFieldNotFound:
+            pass
+
+        if isinstance(field, str):
+            return "unknown", field
+
+        raise YTFieldNotParseable(field)
+
     def _determine_fields(self, fields):
         fields = ensure_list(fields)
         explicit_fields = []
@@ -1435,45 +1477,22 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             if field in self._container_fields:
                 explicit_fields.append(field)
                 continue
-            if isinstance(field, tuple):
-                if (
-                    len(field) != 2
-                    or not isinstance(field[0], str)
-                    or not isinstance(field[1], str)
-                ):
-                    raise YTFieldNotParseable(field)
-                ftype, fname = field
-                finfo = self.ds._get_field_info(ftype, fname)
-            elif isinstance(field, DerivedField):
-                ftype, fname = field.name
-                finfo = field
-            else:
-                fname = field
-                finfo = self.ds._get_field_info("unknown", fname)
-                if finfo.sampling_type == "particle":
-                    ftype = self._current_particle_type
-                    if hasattr(self.ds, "_sph_ptypes"):
-                        ptypes = self.ds._sph_ptypes
-                        if finfo.name[0] in ptypes:
-                            ftype = finfo.name[0]
-                        elif finfo.alias_field and finfo.alias_name[0] in ptypes:
-                            ftype = self._current_fluid_type
-                else:
-                    ftype = self._current_fluid_type
-                    if (ftype, fname) not in self.ds.field_info:
-                        ftype = self.ds._last_freq[0]
 
-                # really ugly check to ensure that this field really does exist somewhere,
-                # in some naming convention, before returning it as a possible field type
-                if (
-                    (ftype, fname) not in self.ds.field_info
-                    and (ftype, fname) not in self.ds.field_list
-                    and fname not in self.ds.field_list
-                    and (ftype, fname) not in self.ds.derived_field_list
-                    and fname not in self.ds.derived_field_list
-                    and (ftype, fname) not in self._container_fields
-                ):
-                    raise YTFieldNotFound((ftype, fname), self.ds)
+            ftype, fname = self._tupleize_field(field)
+            # print(field, " : ",ftype, fname)
+            finfo = self.ds._get_field_info(ftype, fname)
+
+            # really ugly check to ensure that this field really does exist somewhere,
+            # in some naming convention, before returning it as a possible field type
+            if (
+                (ftype, fname) not in self.ds.field_info
+                and (ftype, fname) not in self.ds.field_list
+                and fname not in self.ds.field_list
+                and (ftype, fname) not in self.ds.derived_field_list
+                and fname not in self.ds.derived_field_list
+                and (ftype, fname) not in self._container_fields
+            ):
+                raise YTFieldNotFound((ftype, fname), self.ds)
 
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
