@@ -215,8 +215,10 @@ def plot_window_attribute(
     attr_args,
     plot_type="SlicePlot",
     callback_id="",
-    callback_runners=[],
+    callback_runners=None,
 ):
+    if callback_runners is None:
+        callback_runners = []
     plot = utils._create_plot_window_attribute_plot(
         ds, plot_type, plot_field, plot_axis, {}
     )
@@ -240,8 +242,10 @@ def phase_plot_attribute(
     attr_name,
     attr_args,
     plot_type="PhasePlot",
-    plot_kwargs={},
+    plot_kwargs=None,
 ):
+    if plot_kwargs is None:
+        plot_kwargs = {}
     data_source = ds_fn.all_data()
     plot = utils._create_phase_plot_attribute_plot(
         data_source, x_field, y_field, z_field, plot_type, plot_kwargs
@@ -304,7 +308,6 @@ def extract_connected_sets(ds_fn, data_source, field, num_levels, min_val, max_v
 def VR_image_comparison(scene):
     tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
     os.close(tmpfd)
-    scene.render()
     scene.save(tmpname, sigma_clip=1.0)
     image = mpimg.imread(tmpname)
     os.remove(tmpname)

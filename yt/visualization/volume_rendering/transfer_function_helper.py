@@ -154,8 +154,9 @@ class TransferFunctionHelper:
         If fn is None, will return an image to an IPython notebook.
 
         """
-        from yt.visualization._mpl_imports import FigureCanvasAgg
         from matplotlib.figure import Figure
+
+        from yt.visualization._mpl_imports import FigureCanvasAgg
 
         if self.tf is None:
             self.build_transfer_function()

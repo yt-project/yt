@@ -1,22 +1,30 @@
 # distutils: sources = ARTIO_SOURCE
 # distutils: include_dirs = LIB_DIR_GEOM_ARTIO
 cimport cython
+
 import numpy as np
+
 cimport numpy as np
+
 import sys
 
-from yt.geometry.selection_routines cimport \
-    SelectorObject, AlwaysSelector, OctreeSubsetSelector
-from yt.utilities.lib.fp_utils cimport imax
-from yt.geometry.oct_container cimport \
-    SparseOctreeContainer, OctObjectPool
-from yt.geometry.oct_visitors cimport Oct
-from yt.geometry.particle_deposit cimport \
-    ParticleDepositOperation
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free, malloc
 from libc.string cimport memcpy
+
+from yt.geometry.oct_container cimport OctObjectPool, SparseOctreeContainer
+from yt.geometry.oct_visitors cimport Oct
+from yt.geometry.particle_deposit cimport ParticleDepositOperation
+from yt.geometry.selection_routines cimport (
+    AlwaysSelector,
+    OctreeSubsetSelector,
+    SelectorObject,
+)
+from yt.utilities.lib.fp_utils cimport imax
+
 import data_structures
+
 from yt.utilities.lib.misc_utilities import OnceIndirect
+
 
 cdef extern from "platform_dep.h":
     ctypedef int int32_t

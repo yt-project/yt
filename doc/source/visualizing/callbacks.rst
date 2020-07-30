@@ -94,7 +94,7 @@ dataset from AMRVAC :
     import yt
 
     ds = yt.load("amrvac/bw_polar_2D0000.dat")
-    s = yt.plot2d(ds, 'density')
+    s = yt.plot_2d(ds, "density")
     s.set_background_color("density", "black")
 
     # Plot marker and text in data coords

@@ -41,8 +41,8 @@ class _Dummy(unittest.TestCase):
 
 _t = _Dummy("nop")
 
-assert_true = getattr(_t, "assertTrue")
-assert_less_equal = getattr(_t, "assertLessEqual")
+assert_true = getattr(_t, "assertTrue")  # noqa: B009
+assert_less_equal = getattr(_t, "assertLessEqual")  # noqa: B009
 
 
 def assert_rel_equal(a1, a2, decimals, err_msg="", verbose=True):
@@ -574,7 +574,7 @@ def fake_sph_grid_ds(hsml_factor=1.0):
     return load_particles(data=data, length_unit=1.0, bbox=bbox)
 
 
-def construct_octree_mask(prng=RandomState(0x1D3D3D3), refined=None):
+def construct_octree_mask(prng=RandomState(0x1D3D3D3), refined=None):  # noqa B008
     # Implementation taken from url:
     # http://docs.hyperion-rt.org/en/stable/advanced/indepth_oct.html
 
@@ -600,7 +600,7 @@ def construct_octree_mask(prng=RandomState(0x1D3D3D3), refined=None):
 
 
 def fake_octree_ds(
-    prng=RandomState(0x1D3D3D3),
+    prng=RandomState(0x4D3D3D3),  # noqa B008
     refined=None,
     quantities=None,
     bbox=None,
@@ -1063,9 +1063,10 @@ def run_nose(
     call_pdb=False,
     module=None,
 ):
-    from yt.utilities.on_demand_imports import _nose
     import sys
+
     from yt.utilities.logger import ytLogger as mylog
+    from yt.utilities.on_demand_imports import _nose
 
     orig_level = mylog.getEffectiveLevel()
     mylog.setLevel(50)

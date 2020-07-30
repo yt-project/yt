@@ -1,8 +1,11 @@
 import os
+from collections import defaultdict
 
 import numpy as np
 
 from yt.frontends.sph.io import IOHandlerSPH
+from yt.units.yt_array import uconcatenate
+from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 
@@ -84,13 +87,63 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
+    def _generate_smoothing_length(self, data_files, kdtree):
+        if not self.ds.gen_hsmls:
+            return
+        hsml_fn = data_files[0].filename.replace(".hdf5", ".hsml.hdf5")
+        if os.path.exists(hsml_fn):
+            with h5py.File(hsml_fn, "r") as f:
+                file_hash = f.attrs["q"]
+            if file_hash != self.ds._file_hash:
+                mylog.warning("Replacing hsml files.")
+                for data_file in data_files:
+                    hfn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
+                    os.remove(hfn)
+            else:
+                return
+        positions = []
+        counts = defaultdict(int)
+        for data_file in data_files:
+            for _, ppos in self._yield_coordinates(
+                data_file, needed_ptype=self.ds._sph_ptypes[0]
+            ):
+                counts[data_file.filename] += ppos.shape[0]
+                positions.append(ppos)
+        if not positions:
+            return
+        offsets = {}
+        offset = 0
+        for fn, count in counts.items():
+            offsets[fn] = offset
+            offset += count
+        positions = uconcatenate(positions)[kdtree.idx]
+        hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
+        dtype = positions.dtype
+        hsml = hsml[np.argsort(kdtree.idx)].astype(dtype)
+        mylog.warning("Writing smoothing lengths to hsml files.")
+        for i, data_file in enumerate(data_files):
+            si, ei = data_file.start, data_file.end
+            fn = data_file.filename
+            hsml_fn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
+            with h5py.File(hsml_fn, mode="a") as f:
+                if i == 0:
+                    f.attrs["q"] = self.ds._file_hash
+                g = f.require_group(self.ds._sph_ptypes[0])
+                d = g.require_dataset(
+                    "SmoothingLength", dtype=dtype, shape=(counts[fn],)
+                )
+                begin = si + offsets[fn]
+                end = min(ei, d.size) + offsets[fn]
+                d[si:ei] = hsml[begin:end]
+
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
         ptype = self.ds._sph_ptypes[0]
-        ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
-        with h5py.File(data_file.filename, "r") as f:
-            pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
-            pcount = np.clip(pcount - si, 0, ei - si)
+        if self.ds.gen_hsmls:
+            fn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
+        else:
+            fn = data_file.filename
+        with h5py.File(fn, mode="r") as f:
             ds = f[ptype]["SmoothingLength"][si:ei, ...]
             dt = ds.dtype.newbyteorder("N")  # Native
             if position_dtype is not None and dt < position_dtype:
@@ -233,6 +286,10 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                     fields.append((ptype, str(kk)))
 
         f.close()
+
+        if self.ds.gen_hsmls:
+            fields.append(("PartType0", "smoothing_length"))
+
         return fields, {}
 
 

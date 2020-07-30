@@ -248,7 +248,12 @@ class GadgetDataset(SPHDataset):
             # came through _is_valid in load()
             for f in os.listdir(filename):
                 fname = os.path.join(filename, f)
-                if (".0" in f) and (".ewah" not in f) and os.path.isfile(fname):
+                fext = os.path.splitext(fname)[-1]
+                if (
+                    (".0" in f)
+                    and (fext not in {".ewah", ".kdtree"})
+                    and os.path.isfile(fname)
+                ):
                     filename = os.path.join(filename, f)
                     break
         self._header = GadgetBinaryHeader(filename, header_spec)
@@ -335,6 +340,7 @@ class GadgetDataset(SPHDataset):
         return os.path.basename(self.parameter_filename).split(".")[0]
 
     def _get_hvals(self):
+        self.gen_hsmls = False
         return self._header.value
 
     def _parse_parameter_file(self):
@@ -586,6 +592,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         # Compat reasons.
         hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
         hvals["Massarr"] = hvals["MassTable"]
+        self.gen_hsmls = "SmoothingLength" not in handle[self._sph_ptypes[0]]
         handle.close()
         return hvals
 

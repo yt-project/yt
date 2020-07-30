@@ -10,7 +10,6 @@ import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry.selection_routines
-import yt.units.dimensions as ytdims
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.derived_field import DerivedField
@@ -25,6 +24,7 @@ from yt.funcs import (
     validate_width_tuple,
 )
 from yt.geometry.selection_routines import compose_selector
+from yt.units import dimensions as ytdims
 from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
@@ -353,7 +353,9 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                         outputs.append(rv)
                         ind = 0  # Does this work with mesh?
                     with o._activate_cache():
-                        ind += o.select(self.selector, self[field], rv, ind)
+                        ind += o.select(
+                            self.selector, source=self[field], dest=rv, offset=ind
+                        )
         else:
             chunks = self.index._chunk(self, "spatial", ngz=ngz)
             for i, chunk in enumerate(chunks):
@@ -366,15 +368,12 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                             np.empty(wogz.ires.size, dtype="float64"), units
                         )
                         outputs.append(rv)
-                    if gz._type_name == "octree_subset":
-                        raise NotImplementedError
-                    else:
-                        ind += wogz.select(
-                            self.selector,
-                            gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
-                            rv,
-                            ind,
-                        )
+                    ind += wogz.select(
+                        self.selector,
+                        source=gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
+                        dest=rv,
+                        offset=ind,
+                    )
         if accumulate:
             rv = uconcatenate(outputs)
         return rv
@@ -710,8 +709,9 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         the Glue environment, you can pass a *data_collection* object,
         otherwise Glue will be started.
         """
+        from glue.core import Data, DataCollection
+
         from yt.config import ytcfg
-        from glue.core import DataCollection, Data
 
         if ytcfg.getboolean("yt", "__withintesting"):
             from glue.core.application_base import Application as GlueApplication
@@ -820,8 +820,8 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
 
         ## attempt to import firefly_api
         try:
-            from firefly_api.reader import Reader
             from firefly_api.particlegroup import ParticleGroup
+            from firefly_api.reader import Reader
         except ImportError:
             raise ImportError(
                 "Can't find firefly_api, ensure it"
@@ -1980,8 +1980,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         return field
 
     def _get_pw(self, fields, center, width, origin, plot_type):
-        from yt.visualization.plot_window import get_window_parameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer as frb
+        from yt.visualization.plot_window import PWViewerMPL, get_window_parameters
 
         axis = self.axis
         skip = self._key_fields
@@ -2120,7 +2120,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self.coords = None
         self._grids = None
 
-    def cut_region(self, field_cuts, field_parameters=None, locals={}):
+    def cut_region(self, field_cuts, field_parameters=None, locals=None):
         """
         Return a YTCutRegion, where the a cell is identified as being inside
         the cut region based on the value of one or more fields.  Note that in
@@ -2151,6 +2151,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.cut_region(["obj['temperature'] > 1e6"])
         >>> print(cr.quantities.total_quantity("cell_mass").in_units('Msun'))
         """
+        if locals is None:
+            locals = {}
         cr = self.ds.cut_region(
             self, field_cuts, field_parameters=field_parameters, locals=locals
         )

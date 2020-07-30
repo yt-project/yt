@@ -1,3 +1,4 @@
+# isort: skip-file
 import argparse
 import base64
 import getpass
@@ -28,7 +29,6 @@ from yt.funcs import (
     mylog,
     update_hg_or_git,
 )
-from yt.startup_tasks import parser, subparsers
 from yt.utilities.configure import set_config
 from yt.utilities.exceptions import (
     YTCommandRequiresModule,
@@ -38,7 +38,12 @@ from yt.utilities.exceptions import (
 from yt.utilities.metadata import get_metadata
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
-ytcfg["yt", "__command_line"] = "True"
+# isort: off
+# This needs to be set before importing startup_tasks
+ytcfg["yt", "__command_line"] = "True"  # isort: skip
+from yt.startup_tasks import parser, subparsers  # isort: skip # noqa: E402
+
+# isort: on
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
@@ -925,10 +930,10 @@ class YTLoadCmd(YTCommand):
         if args.ds is None:
             print("Could not load file.")
             sys.exit()
-        import yt.mods
-        import yt
-
         import IPython
+
+        import yt
+        import yt.mods
 
         local_ns = yt.mods.__dict__.copy()
         local_ns["ds"] = args.ds
@@ -984,8 +989,8 @@ class YTMapserverCmd(YTCommand):
         """
 
     def __call__(self, args):
-        from yt.visualization.mapserver.pannable_map import PannableMapServer
         from yt.frontends.ramses.data_structures import RAMSESDataset
+        from yt.visualization.mapserver.pannable_map import PannableMapServer
 
         # For RAMSES datasets, use the bbox feature to make the dataset load faster
         if RAMSESDataset._is_valid(args.ds) and args.center and args.width:
@@ -1113,7 +1118,7 @@ class YTPastebinCmd(YTCommand):
         """
 
     def __call__(self, args):
-        import yt.utilities.lodgeit as lo
+        from yt.utilities import lodgeit as lo
 
         lo.main(
             args.file,
@@ -1134,7 +1139,7 @@ class YTPastebinGrabCmd(YTCommand):
         """
 
     def __call__(self, args):
-        import yt.utilities.lodgeit as lo
+        from yt.utilities import lodgeit as lo
 
         lo.main(None, download=args.number)
 
@@ -1842,7 +1847,7 @@ def run_main():
     # http://bugs.python.org/issue16308
     # http://bugs.python.org/issue9253
     try:
-        getattr(args, "func")
+        args.func
     except AttributeError:
         parser.print_help()
         sys.exit(0)

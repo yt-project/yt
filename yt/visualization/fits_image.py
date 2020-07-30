@@ -633,7 +633,7 @@ class FITSImageData:
         add a *label*. If you are already within the Glue environment, you
         can pass a *data_collection* object, otherwise Glue will be started.
         """
-        from glue.core import DataCollection, Data
+        from glue.core import Data, DataCollection
         from glue.core.coordinates import coordinates_from_header
 
         try:

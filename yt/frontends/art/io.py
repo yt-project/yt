@@ -1,7 +1,7 @@
 import os
 import os.path
-import sys
 from collections import defaultdict
+from functools import partial
 
 import numpy as np
 
@@ -16,9 +16,6 @@ from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.logger import ytLogger as mylog
-
-if sys.version_info >= (3, 0, 0):
-    long = int
 
 
 class IOHandlerART(BaseIOHandler):
@@ -116,14 +113,14 @@ class IOHandlerART(BaseIOHandler):
         pbool, idxa, idxb = _determine_field_size(self.ds, ftype, self.ls, ptmax)
         npa = idxb - idxa
         sizes = np.diff(np.concatenate(([0], self.ls)))
-        rp = lambda ax: read_particles(
-            self.file_particle, self.Nrow, idxa=idxa, idxb=idxb, fields=ax
+        rp = partial(
+            read_particles, self.file_particle, self.Nrow, idxa=idxa, idxb=idxb
         )
         for i, ax in enumerate("xyz"):
             if fname.startswith("particle_position_%s" % ax):
                 dd = self.ds.domain_dimensions[0]
                 off = 1.0 / dd
-                tr[field] = rp([ax])[0] / dd - off
+                tr[field] = rp(fields=[ax])[0] / dd - off
             if fname.startswith("particle_velocity_%s" % ax):
                 (tr[field],) = rp(["v" + ax])
         if fname.startswith("particle_mass"):
@@ -228,15 +225,15 @@ class IOHandlerDarkMatterART(IOHandlerART):
         pbool, idxa, idxb = _determine_field_size(self.ds, ftype, self.ls, ptmax)
         npa = idxb - idxa
         sizes = np.diff(np.concatenate(([0], self.ls)))
-        rp = lambda ax: read_particles(
-            self.file_particle, self.Nrow, idxa=idxa, idxb=idxb, fields=ax
+        rp = partial(
+            read_particles, self.file_particle, self.Nrow, idxa=idxa, idxb=idxb
         )
         for i, ax in enumerate("xyz"):
             if fname.startswith("particle_position_%s" % ax):
                 # This is not the same as domain_dimensions
                 dd = self.ds.parameters["ng"]
                 off = 1.0 / dd
-                tr[field] = rp([ax])[0] / dd - off
+                tr[field] = rp(fields=[ax])[0] / dd - off
             if fname.startswith("particle_velocity_%s" % ax):
                 (tr[field],) = rp(["v" + ax])
         if fname.startswith("particle_mass"):
@@ -622,14 +619,18 @@ def b2a(bt, **kwargs):
     # converts code time into expansion factor
     # if Om0 ==1and OmL == 0 then b2a is (1 / (1-td))**2
     # if bt < -190.0 or bt > -.10:  raise 'bt outside of range'
-    f_b2a = lambda at: a2b(at, **kwargs) - bt
+    def f_b2a(at):
+        return a2b(at, **kwargs) - bt
+
     return find_root(f_b2a, 1e-4, 1.1)
     # return so.brenth(f_b2a,1e-4,1.1)
     # return brent.brent(f_b2a)
 
 
 def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
-    integrand = lambda x: 1.0 / (x * sqrt(Oml0 + Om0 * x ** -3.0))
+    def integrand(x):
+        return 1.0 / (x * sqrt(Oml0 + Om0 * x ** -3.0))
+
     # current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
     current_time = quad(integrand, 1e-4, at)
     # spacings = np.logspace(-5,np.log10(at),num=int(1e5))

@@ -26,13 +26,9 @@
               2006 Matt Good <matt@matt-good.net>,
               2005 Raphael Slinckx <raphael@slinckx.net>
 """
-
 import os
 import sys
 from optparse import OptionParser
-
-if sys.version_info >= (3, 0, 0):
-    unicode = str
 
 SCRIPT_NAME = os.path.basename(sys.argv[0])
 VERSION = "0.3"
@@ -92,14 +88,14 @@ def load_default_settings():
 def make_utf8(text, encoding):
     """Convert a text to UTF-8, brute-force."""
     try:
-        u = unicode(text, "utf-8")
+        u = str(text, "utf-8")
         uenc = "utf-8"
     except UnicodeError:
         try:
-            u = unicode(text, encoding)
+            u = str(text, encoding)
             uenc = "utf-8"
         except UnicodeError:
-            u = unicode(text, "iso-8859-15", "ignore")
+            u = str(text, "iso-8859-15", "ignore")
             uenc = "iso-8859-15"
     try:
         import chardet
@@ -108,7 +104,7 @@ def make_utf8(text, encoding):
     d = chardet.detect(text)
     if d["encoding"] == uenc:
         return u.encode("utf-8")
-    return unicode(text, d["encoding"], "ignore").encode("utf-8")
+    return str(text, d["encoding"], "ignore").encode("utf-8")
 
 
 def get_xmlrpc_service():
@@ -135,7 +131,7 @@ def copy_url(url):
         # then give pbcopy a try.  do that before gtk because
         # gtk might be installed on os x but nobody is interested
         # in the X11 clipboard there.
-        from subprocess import Popen, PIPE
+        from subprocess import PIPE, Popen
 
         try:
             client = Popen(["pbcopy"], stdin=PIPE)
@@ -144,8 +140,8 @@ def copy_url(url):
                 import pygtk
 
                 pygtk.require("2.0")
-                import gtk
                 import gobject
+                import gtk
             except ImportError:
                 return
             gtk.clipboard_get(gtk.gdk.SELECTION_CLIPBOARD).set_text(url)
@@ -207,10 +203,7 @@ def download_paste(uid):
     paste = xmlrpc.pastes.getPaste(uid)
     if not paste:
         fail('Paste "%s" does not exist.' % uid, 5)
-    if sys.version_info >= (3, 0, 0):
-        code = paste["code"]
-    else:
-        code = paste["code"].encode("utf-8")
+    code = paste["code"]
     print(code)
 
 
@@ -326,9 +319,7 @@ def main(
         fail("Aborted, no content to paste.", 4)
 
     # create paste
-    code = make_utf8(data, encoding)
-    if sys.version_info >= (3, 0, 0):
-        code = code.decode("utf-8")
+    code = make_utf8(data, encoding).decode("utf-8")
     pid = create_paste(code, language, filename, mimetype, private)
     url = "%sshow/%s/" % (SERVICE_URL, pid)
     print(url)

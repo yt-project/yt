@@ -121,7 +121,7 @@ class FieldNameContainer(object):
 
     def _ipython_display_(self):
         import ipywidgets
-        from IPython.display import display, Markdown
+        from IPython.display import Markdown, display
 
         names = dir(self)
         names.sort()

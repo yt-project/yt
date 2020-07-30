@@ -1,7 +1,6 @@
 import fileinput
 import io
 import os
-import sys
 import zipfile
 from functools import wraps
 from re import finditer
@@ -9,7 +8,6 @@ from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
 
-import yt.geometry.particle_deposit as particle_deposit
 from yt.config import ytcfg
 from yt.data_objects.data_containers import (
     YTSelectionContainer1D,
@@ -22,6 +20,7 @@ from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.frontends.stream.api import load_uniform_grid
 from yt.funcs import ensure_list, get_memory_usage, iterable, mylog, only_on_root
+from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, uconcatenate
@@ -494,9 +493,6 @@ class YTQuadTreeProj(YTProj):
     @property
     def _mrep(self):
         return MinimalProjectionData(self)
-
-    def hub_upload(self):
-        self._mrep.upload()
 
     def deserialize(self, fields):
         if not ytcfg.getboolean("yt", "serialize"):
@@ -1878,18 +1874,16 @@ class YTSurface(YTSelectionContainer3D):
                 em = np.log10(em)
         if color_field is not None:
             if color_field_min is None:
-                if sys.version_info > (3,):
-                    cs = [float(field) for field in cs]
-                    cs = np.array(cs)
+                cs = [float(field) for field in cs]
+                cs = np.array(cs)
                 mi = cs.min()
             else:
                 mi = color_field_min
                 if color_log:
                     mi = np.log10(mi)
             if color_field_max is None:
-                if sys.version_info > (3,):
-                    cs = [float(field) for field in cs]
-                    cs = np.array(cs)
+                cs = [float(field) for field in cs]
+                cs = np.array(cs)
                 ma = cs.max()
             else:
                 ma = color_field_max
@@ -1907,18 +1901,16 @@ class YTSurface(YTSelectionContainer3D):
         # now, get emission
         if emit_field is not None:
             if emit_field_min is None:
-                if sys.version_info > (3,):
-                    em = [float(field) for field in em]
-                    em = np.array(em)
+                em = [float(field) for field in em]
+                em = np.array(em)
                 emi = em.min()
             else:
                 emi = emit_field_min
                 if emit_log:
                     emi = np.log10(emi)
             if emit_field_max is None:
-                if sys.version_info > (3,):
-                    em = [float(field) for field in em]
-                    em = np.array(em)
+                em = [float(field) for field in em]
+                em = np.array(em)
                 ema = em.max()
             else:
                 ema = emit_field_max
@@ -2009,9 +2001,9 @@ class YTSurface(YTSelectionContainer3D):
             emit_field_min,
             emit_field,
         )  # map color values to color scheme
-        from yt.visualization._colormap_data import (
+        from yt.visualization._colormap_data import (  # import colors for mtl file
             color_map_luts,
-        )  # import colors for mtl file
+        )
 
         lut = color_map_luts[color_map]  # enumerate colors
         # interpolate emissivity to enumerated colors
@@ -2242,9 +2234,9 @@ class YTSurface(YTSelectionContainer3D):
             emit_field_min,
             emit_field,
         )  # map color values to color scheme
-        from yt.visualization._colormap_data import (
+        from yt.visualization._colormap_data import (  # import colors for mtl file
             color_map_luts,
-        )  # import colors for mtl file
+        )
 
         lut = color_map_luts[color_map]  # enumerate colors
         # interpolate emissivity to enumerated colors

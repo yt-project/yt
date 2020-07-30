@@ -1,3 +1,4 @@
+import abc
 import weakref
 from collections import defaultdict
 
@@ -16,7 +17,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 from .grid_container import GridTree, MatchPointsToGrids
 
 
-class GridIndex(Index):
+class GridIndex(Index, abc.ABC):
     """The index class for patch and block AMR datasets. """
 
     float_type = "float64"
@@ -44,6 +45,18 @@ class GridIndex(Index):
 
         mylog.debug("Re-examining index")
         self._initialize_level_stats()
+
+    @abc.abstractmethod
+    def _count_grids(self):
+        pass
+
+    @abc.abstractmethod
+    def _parse_index(self):
+        pass
+
+    @abc.abstractmethod
+    def _populate_grid_objects(self):
+        pass
 
     def __del__(self):
         del self.grid_dimensions

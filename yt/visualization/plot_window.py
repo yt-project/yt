@@ -57,10 +57,7 @@ MPL_VERSION = LooseVersion(matplotlib.__version__)
 # Some magic for dealing with pyparsing being included or not
 # included in matplotlib (not in gentoo, yes in everything else)
 try:
-    if sys.version_info[0] == 3:
-        from matplotlib.pyparsing_py3 import ParseFatalException
-    else:
-        from matplotlib.pyparsing_py2 import ParseFatalException
+    from matplotlib.pyparsing_py3 import ParseFatalException
 except ImportError:
     from pyparsing import ParseFatalException
 

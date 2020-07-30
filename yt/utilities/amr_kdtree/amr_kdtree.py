@@ -641,8 +641,9 @@ class AMRKDTree(ParallelAnalysisInterface):
 
 
 if __name__ == "__main__":
-    import yt
     from time import time
+
+    import yt
 
     ds = yt.load("/Users/skillman/simulations/DD1717/DD1717")
     ds.index

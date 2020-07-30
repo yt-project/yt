@@ -9,10 +9,11 @@ AMR kD-Tree Cython Tools
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.stdlib cimport malloc, free
+cimport numpy as np
 from cython.view cimport array as cvarray
+from libc.stdlib cimport free, malloc
 
 DEF Nch = 4
 

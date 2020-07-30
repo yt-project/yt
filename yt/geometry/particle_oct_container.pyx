@@ -10,39 +10,64 @@ Oct container tuned for Particles
 """
 
 
-from libc.stdlib cimport malloc, free, qsort
+from libc.math cimport ceil, floor, fmod
+from libc.stdlib cimport free, malloc, qsort
 from libc.string cimport memset
-from libc.math cimport floor, ceil, fmod
-from libcpp.map cimport map
+from libcpp.map cimport map as cmap
 from libcpp.vector cimport vector
-from yt.utilities.lib.ewah_bool_array cimport \
-    ewah_bool_array, ewah_bool_iterator, ewah_map, bool_array, ewah_word_type
-import numpy as np
-cimport numpy as np
 
-from oct_container cimport OctreeContainer, Oct, OctInfo, ORDER_MAX, \
-    SparseOctreeContainer, OctKey, OctAllocationContainer
-cimport oct_visitors
-from oct_visitors cimport cind, OctVisitor
-from yt.utilities.lib.fp_utils cimport *
-from yt.utilities.lib.geometry_utils cimport bounded_morton, \
-    bounded_morton_dds, bounded_morton_relative_dds, \
-    bounded_morton_split_dds, bounded_morton_split_relative_dds, \
-    encode_morton_64bit, decode_morton_64bit, \
-    morton_neighbors_coarse, morton_neighbors_refined
-from selection_routines cimport SelectorObject, AlwaysSelector
+from yt.utilities.lib.ewah_bool_array cimport (
+    bool_array,
+    ewah_bool_array,
+    ewah_bool_iterator,
+    ewah_map,
+    ewah_word_type,
+)
+
+import numpy as np
+
 cimport cython
+cimport numpy as np
+cimport oct_visitors
+from cpython.exc cimport PyErr_CheckSignals
 from cython cimport floating
 from cython.operator cimport dereference, preincrement
-from cpython.exc cimport PyErr_CheckSignals
+from oct_container cimport (
+    ORDER_MAX,
+    Oct,
+    OctAllocationContainer,
+    OctInfo,
+    OctKey,
+    OctreeContainer,
+    SparseOctreeContainer,
+)
+from oct_visitors cimport OctVisitor, cind
+from selection_routines cimport AlwaysSelector, SelectorObject
+
+from yt.utilities.lib.fp_utils cimport *
+from yt.utilities.lib.geometry_utils cimport (
+    bounded_morton,
+    bounded_morton_dds,
+    bounded_morton_relative_dds,
+    bounded_morton_split_dds,
+    bounded_morton_split_relative_dds,
+    decode_morton_64bit,
+    encode_morton_64bit,
+    morton_neighbors_coarse,
+    morton_neighbors_refined,
+)
+
 from collections import defaultdict
+
 from yt.funcs import get_pbar
 
 from particle_deposit cimport gind
+
 #from yt.utilities.lib.ewah_bool_wrap cimport \
 from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
-import struct
+
 import os
+import struct
 
 # If set to 1, ghost cells are added at the refined level reguardless of if the
 # coarse cell containing it is refined in the selector.
@@ -52,12 +77,14 @@ DEF RefinedExternalGhosts = 1
 
 _bitmask_version = np.uint64(5)
 
-from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet as SparseUnorderedBitmask
-from ..utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask
-from ..utilities.lib.ewah_bool_wrap cimport BoolArrayCollectionUncompressed as BoolArrayColl
-from ..utilities.lib.ewah_bool_wrap cimport FileBitmasks
+from ..utilities.lib.ewah_bool_wrap cimport (
+    BoolArrayCollectionUncompressed as BoolArrayColl,
+    FileBitmasks,
+    SparseUnorderedBitmaskSet as SparseUnorderedBitmask,
+    SparseUnorderedRefinedBitmaskSet as SparseUnorderedRefinedBitmask,
+)
 
-ctypedef map[np.uint64_t, bool_array] CoarseRefinedSets
+ctypedef cmap[np.uint64_t, bool_array] CoarseRefinedSets
 
 cdef class ParticleOctreeContainer(OctreeContainer):
     cdef Oct** oct_list
@@ -664,7 +691,7 @@ cdef class ParticleBitmap:
         cdef int axiter[3][2]
         cdef np.float64_t axiterv[3][2]
         cdef CoarseRefinedSets coarse_refined_map
-        cdef map[np.uint64_t, np.uint64_t] refined_count
+        cdef cmap[np.uint64_t, np.uint64_t] refined_count
         cdef np.uint64_t nfully_enclosed = 0, n_calls = 0
         mi1_max = (1 << self.index_order1) - 1
         mi2_max = (1 << self.index_order2) - 1
@@ -1076,7 +1103,7 @@ cdef class ParticleBitmap:
             arr_two.reset()
             for ifile in range(nbitmasks):
                 if self.bitmasks._isref(ifile, mi1) == 1:
-                    arr = (<map[np.int64_t, ewah_bool_array]**> self.bitmasks.ewah_coll)[ifile][0][mi1]
+                    arr = (<cmap[np.int64_t, ewah_bool_array]**> self.bitmasks.ewah_coll)[ifile][0][mi1]
                     arr_any.logicaland(arr, arr_two) # Indices in previous files
                     arr_any.logicalor(arr, arr_swap) # All second level indices
                     arr_any = arr_swap

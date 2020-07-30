@@ -190,8 +190,8 @@ class FieldDetector(defaultdict):
         return
 
     def deposit(self, *args, **kwargs):
-        from yt.frontends.stream.data_structures import StreamParticlesDataset
         from yt.data_objects.static_output import ParticleDataset
+        from yt.frontends.stream.data_structures import StreamParticlesDataset
 
         if kwargs["method"] == "mesh_id":
             if isinstance(self.ds, (StreamParticlesDataset, ParticleDataset)):
