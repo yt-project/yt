@@ -424,9 +424,9 @@ class VolumeSource(RenderSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
             A zbuffer array. This is used for opaque sources to determine the
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
@@ -434,7 +434,7 @@ class VolumeSource(RenderSource):
 
         Returns
         -------
-        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        A :class:`yt.data_objects.image_array.ImageArray` containing
         the rendered image.
 
         """
@@ -469,9 +469,9 @@ class VolumeSource(RenderSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             The camera used to produce the volume rendering image.
-        image: :class:`yt.data_objects.image_array.ImageArray` instance
+        image: :class:`yt.data_objects.image_array.ImageArray`
             A reference to an image to fill
         """
         if self._volume is not None:
@@ -673,9 +673,9 @@ class MeshSource(OpaqueSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
             A zbuffer array. This is used for opaque sources to determine the
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
@@ -683,7 +683,7 @@ class MeshSource(OpaqueSource):
 
         Returns
         -------
-        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        A :class:`yt.data_objects.image_array.ImageArray` containing
         the rendered image.
 
         """
@@ -873,9 +873,9 @@ class PointSource(OpaqueSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
             A zbuffer array. This is used for opaque sources to determine the
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
@@ -883,7 +883,7 @@ class PointSource(OpaqueSource):
 
         Returns
         -------
-        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        A :class:`yt.data_objects.image_array.ImageArray` containing
         the rendered image.
 
         """
@@ -995,17 +995,16 @@ class LineSource(OpaqueSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
-            A zbuffer array. This is used for opaque sources to determine the
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
             uses this internally.
 
         Returns
         -------
-        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        A :class:`yt.data_objects.image_array.ImageArray` containing
         the rendered image.
 
         """
@@ -1282,9 +1281,9 @@ class CoordinateVectorSource(OpaqueSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
             A zbuffer array. This is used for opaque sources to determine the
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
@@ -1292,7 +1291,7 @@ class CoordinateVectorSource(OpaqueSource):
 
         Returns
         -------
-        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        A :class:`yt.data_objects.image_array.ImageArray` containing
         the rendered image.
 
         """

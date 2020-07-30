@@ -473,8 +473,8 @@ class DatasetSeries:
 
         Note
         ----
-        This function will fail if there are duplicate particle ids or if some of the particle
-        disappear.
+        This function will fail if there are duplicate particle ids or if some of the
+        particle disappear.
         """
         return ParticleTrajectories(
             self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype

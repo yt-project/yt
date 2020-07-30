@@ -176,8 +176,8 @@ class NoStoppingCondition(YTException):
 
     def __str__(self):
         return (
-            "Simulation %s has no stopping condition.  StopTime or StopCycle should be set."
-            % self.ds
+            "Simulation %s has no stopping condition. "
+            "StopTime or StopCycle should be set." % self.ds
         )
 
 

@@ -86,7 +86,10 @@ class AMRVACHierarchy(GridIndex):
         super(AMRVACHierarchy, self).__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
-        """Parse field names from datfile header, which is stored in self.dataset.parameters"""
+        """
+        Parse field names from datfile header, as stored in self.dataset.parameters
+
+        """
         # required method
         self.field_list = [
             (self.dataset_type, f) for f in self.dataset.parameters["w_names"]
@@ -110,7 +113,8 @@ class AMRVACHierarchy(GridIndex):
             )
 
         self.block_offsets = block_offsets
-        # YT uses 0-based grid indexing, lowest level = 0 (AMRVAC uses 1 for lowest level)
+        # YT uses 0-based grid indexing:
+        # lowest level = 0, while AMRVAC uses 1 for lowest level
         ytlevels = np.array(vaclevels, dtype="int32") - 1
         self.grid_levels.flat[:] = ytlevels
         self.min_level = np.min(ytlevels)
@@ -174,12 +178,14 @@ class AMRVACDataset(Dataset):
             Either "cgs" (default), "mks" or "code"
 
         geometry_override : str, optional
-            A geometry flag formatted either according to either AMRVAC's or yt's standards.
-            When this parameter is passed along with v5 or more newer datfiles, will precede over
-            their internal "geometry" tag.
+            A geometry flag formatted either according to either
+            AMRVAC or yt standards.
+            When this parameter is passed along with v5 or more newer datfiles,
+            will precede over their internal "geometry" tag.
 
         parfiles : str or list, optional
-            One or more parfiles to be passed to yt.frontends.amrvac.read_amrvac_parfiles()
+            One or more parfiles to be passed to
+            yt.frontends.amrvac.read_amrvac_parfiles()
 
         """
         # note: geometry_override and parfiles are specific to this frontend
@@ -218,7 +224,8 @@ class AMRVACDataset(Dataset):
                 e_is_internal = namelist["method_list"].get("solve_internal_e", False)
 
         if c_adiab is not None:
-            # this complicated unit is required for the adiabatic equation of state to make physical sense
+            # this complicated unit is required for the adiabatic equation
+            # of state to make physical sense
             c_adiab *= (
                 self.mass_unit ** (1 - self.gamma)
                 * self.length_unit ** (2 + 3 * (self.gamma - 1))
@@ -271,7 +278,7 @@ class AMRVACDataset(Dataset):
         Returns
         -------
         geometry_yt : str
-            Lower case geometry tag among "cartesian", "polar", "cylindrical", "spherical".
+            Lower case geometry tag "cartesian", "polar", "cylindrical" or "spherical"
 
         Examples
         --------
@@ -374,19 +381,20 @@ class AMRVACDataset(Dataset):
         self.omega_lambda = 0.0
         self.hubble_constant = 0.0
 
-    # units stuff ===============================================================================
+    # units stuff ======================================================================
     def _set_code_unit_attributes(self):
         """Reproduce how AMRVAC internally set up physical normalisation factors."""
         # required method
         # devnote: this method is never defined in the parent abstract class Dataset
-        # but it is called in Dataset.set_code_units(), which is part of Dataset.__init__()
-        # so it must be defined here.
+        # but it is called in Dataset.set_code_units(), which is part of
+        # Dataset.__init__() so it must be defined here.
 
         # devnote: this gets called later than Dataset._override_code_units()
-        # This is the reason why it uses setdefaultattr: it will only fill in the gaps left
-        # by the "override", instead of overriding them again.
-        # For the same reason, self.units_override is set, as well as corresponding *_unit instance attributes
-        # which may include up to 3 of the following items: length, time, mass, velocity, number_density, temperature
+        # This is the reason why it uses setdefaultattr: it will only fill in the gaps
+        # left by the "override", instead of overriding them again.
+        # For the same reason, self.units_override is set, as well as corresponding
+        # *_unit instance attributes which may include up to 3 of the following items:
+        # length, time, mass, velocity, number_density, temperature
 
         # note: yt sets hydrogen mass equal to proton mass, amrvac doesn't.
         mp_cgs = self.quan(1.672621898e-24, "g")  # This value is taken from AstroPy
@@ -402,7 +410,8 @@ class AMRVACDataset(Dataset):
             density_unit = mass_unit / length_unit ** 3
             numberdensity_unit = density_unit / ((1.0 + 4.0 * He_abundance) * mp_cgs)
         else:
-            # other case: numberdensity is supplied. Fall back to one (default) if no overrides supplied
+            # other case: numberdensity is supplied.
+            # Fall back to one (default) if no overrides supplied
             numberdensity_override = self.units_override.get(
                 "numberdensity_unit", (1, "cm**-3")
             )
@@ -423,12 +432,14 @@ class AMRVACDataset(Dataset):
             # in this case time was supplied
             velocity_unit = length_unit / self.time_unit
         else:
-            # other case: velocity was supplied. Fall back to None if no overrides supplied
+            # other case: velocity was supplied.
+            # Fall back to None if no overrides supplied
             velocity_unit = getattr(self, "velocity_unit", None)
 
         # 3. calculations for pressure and temperature
         if velocity_unit is None:
-            # velocity and time not given, see if temperature is given. Fall back to one (default) if not
+            # velocity and time not given, see if temperature is given.
+            # Fall back to one (default) if not
             temperature_unit = getattr(self, "temperature_unit", self.quan(1, "K"))
             pressure_unit = (
                 (2.0 + 3.0 * He_abundance)
@@ -469,18 +480,18 @@ class AMRVACDataset(Dataset):
         super(AMRVACDataset, self)._override_code_units()
 
     def _check_override_consistency(self):
-        """Check that keys in units_override are consistent with respect to AMRVAC's internal way to
-        set up normalisations factors.
+        """Check that keys in units_override are consistent with respect to AMRVAC's
+        internal way to set up normalisations factors.
 
         """
         # frontend specific method
-        # YT supports overriding other normalisations, this method ensures consistency between
-        # supplied 'units_override' items and those used by AMRVAC.
+        # YT supports overriding other normalisations, this method ensures consistency
+        # between supplied 'units_override' items and those used by AMRVAC.
 
         # AMRVAC's normalisations/units have 3 degrees of freedom.
-        # Moreover, if temperature unit is specified then velocity unit will be calculated
-        # accordingly, and vice-versa.
-        # Currently we replicate this by allowing a finite set of combinations in units_override
+        # Moreover, if temperature unit is specified then velocity unit will be
+        # calculated accordingly, and vice-versa.
+        # We replicate this by allowing a finite set of combinations in units_override
         if not self.units_override:
             return
         overrides = set(self.units_override)
@@ -502,7 +513,8 @@ class AMRVACDataset(Dataset):
                 break
         else:
             raise ValueError(
-                "Combination {} passed to units_override is not consistent with AMRVAC. \n"
+                "Combination {} passed to units_override "
+                "is not consistent with AMRVAC. \n"
                 "Allowed combinations are {}".format(
                     overrides, ALLOWED_UNIT_COMBINATIONS
                 )

@@ -168,7 +168,8 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
 
     This function will scale an image and directly call libpng to write out a
     colormapped version of that image.  It is designed for rapid-fire saving of
-    image buffers generated using `yt.visualization.api.FixedResolutionBuffers` and the like.
+    image buffers generated using `yt.visualization.api.FixedResolutionBuffers`
+    and the likes.
 
     Parameters
     ----------
@@ -212,7 +213,8 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
 
     This function will scale an image and directly call libpng to write out a
     colormapped version of that image.  It is designed for rapid-fire saving of
-    image buffers generated using `yt.visualization.api.FixedResolutionBuffers` and the like.
+    image buffers generated using `yt.visualization.api.FixedResolutionBuffers`
+    and the likes.
 
     Parameters
     ----------

@@ -99,15 +99,17 @@ class YTDataContainer:
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
-        # ds is typically set in the new object type created in Dataset._add_object_class
-        # but it can also be passed as a parameter to the constructor, in which case it will
-        # override the default. This code ensures it is never not set.
+        # ds is typically set in the new object type created in
+        # Dataset._add_object_class but it can also be passed as a parameter to the
+        # constructor, in which case it will override the default.
+        # This code ensures it is never not set.
         if ds is not None:
             self.ds = ds
         else:
             if not hasattr(self, "ds"):
                 raise RuntimeError(
-                    "Error: ds must be set either through class type or parameter to the constructor"
+                    "Error: ds must be set either through class type "
+                    "or parameter to the constructor"
                 )
 
         self._current_particle_type = "all"

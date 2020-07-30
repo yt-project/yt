@@ -490,8 +490,9 @@ class AthenaDataset(Dataset):
             if k.endswith("_unit") and k not in units_override:
                 if not already_warned:
                     mylog.warning(
-                        "Supplying unit conversions from the parameters dict is deprecated, "
-                        "and will be removed in a future release. Use units_override instead."
+                        "Supplying unit conversions from the parameters dict "
+                        "is deprecated, and will be removed in a future release. "
+                        "Use units_override instead."
                     )
                     already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)

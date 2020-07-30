@@ -290,7 +290,8 @@ class GridIndex(Index, abc.ABC):
 
     def _find_points(self, x, y, z):
         """
-        Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
+        Returns the (objects, indices) of leaf grids
+        containing a number of (x,y,z) points
         """
         x = ensure_numpy_array(x)
         y = ensure_numpy_array(y)

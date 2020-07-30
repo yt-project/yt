@@ -573,7 +573,8 @@ class EnzoSimulation(SimulationTimeSeries):
 
     def _set_parameter_defaults(self):
         """
-        Set some default parameters to avoid problems if they are not in the parameter file.
+        Set some default parameters to avoid problems
+        if they are not in the parameter file.
         """
 
         self.parameters["GlobalDir"] = self.directory
