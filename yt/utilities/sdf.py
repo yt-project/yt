@@ -414,7 +414,7 @@ class SDFRead(dict):
                 str_types.append((v, vtype))
             l = ascfile.readline()
         num = l.strip("}[]")
-        num = num.strip("\;\\\n]")
+        num = num.strip("\;\\\n]")  # NOQA B005
         if len(num) == 0:
             # We need to compute the number of records.  The DataStruct will
             # handle this.
