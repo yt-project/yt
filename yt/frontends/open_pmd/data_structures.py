@@ -250,7 +250,7 @@ class OpenPMDHierarchy(GridIndex):
         self.vpg = int(self.dataset.gridsize / 4)  # 4Byte per value (f32)
 
         # Meshes of the same size do not need separate chunks
-        for (shape, spacing, offset, unit_si) in set(self.meshshapes.values()):
+        for (shape, _spacing, _offset, _unit_si) in set(self.meshshapes.values()):
             self.num_grids += min(
                 shape[0], int(np.ceil(reduce(mul, shape) * self.vpg ** -1))
             )

@@ -67,7 +67,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                 data_files.update(obj.data_files)
 
         def iterate_over_attributes(attr_list):
-            for attr, length, dtype in attr_list:
+            for attr, _length, _dtype in attr_list:
                 if isinstance(attr, tuple):
                     for a in attr:
                         yield a
@@ -273,7 +273,7 @@ def _todo_from_attributes(attributes):
 
 def _find_attr_position(key):
     j = 0
-    for attrs, l, k in HALO_ATTRIBUTES:
+    for attrs, _l, _k in HALO_ATTRIBUTES:
         if not isinstance(attrs, tuple):
             attrs = (attrs,)
         for a in attrs:

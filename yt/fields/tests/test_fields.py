@@ -116,13 +116,13 @@ class TestFieldAccess:
 def get_base_ds(nprocs):
     fields, units = [], []
 
-    for fname, (code_units, aliases, dn) in StreamFieldInfo.known_other_fields:
+    for fname, (code_units, _aliases, _dn) in StreamFieldInfo.known_other_fields:
         fields.append(("gas", fname))
         units.append(code_units)
 
     pfields, punits = [], []
 
-    for fname, (code_units, aliases, dn) in StreamFieldInfo.known_particle_fields:
+    for fname, (code_units, _aliases, _dn) in StreamFieldInfo.known_particle_fields:
         if fname == "smoothing_lenth":
             # we test SPH fields elsewhere
             continue
@@ -432,7 +432,7 @@ def test_field_inference():
 @requires_file(ISOGAL)
 def test_deposit_amr():
     ds = load(ISOGAL)
-    for i, g in enumerate(ds.index.grids):
+    for g in ds.index.grids:
         gpm = g["particle_mass"].sum()
         dpm = g["deposit", "all_mass"].sum()
         assert_allclose_units(gpm, dpm)

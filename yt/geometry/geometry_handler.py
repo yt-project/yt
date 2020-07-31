@@ -451,7 +451,7 @@ class ChunkDataCache:
 
     def __next__(self):
         if len(self.queue) == 0:
-            for i in range(self.max_length):
+            for _ in range(self.max_length):
                 try:
                     self.queue.append(next(self.base_iter))
                 except StopIteration:

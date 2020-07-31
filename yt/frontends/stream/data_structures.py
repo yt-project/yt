@@ -435,7 +435,7 @@ def assign_particle_data(ds, pdata, bbox):
         )
 
         grid_pdata = []
-        for i in range(num_grids):
+        for _ in range(num_grids):
             grid = {"number_of_particles": 0}
             grid_pdata.append(grid)
 
@@ -1764,7 +1764,7 @@ class StreamOctreeHandler(OctreeIndex):
         # This is where we will perform cutting of the Octree and
         # load-balancing.  That may require a specialized selector object to
         # cut based on some space-filling curve index.
-        for i, og in enumerate(sobjs):
+        for og in sobjs:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:

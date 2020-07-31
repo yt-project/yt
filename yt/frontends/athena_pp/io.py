@@ -9,7 +9,7 @@ from yt.utilities.logger import ytLogger as mylog
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
 def grid_sequences(grids):
     g_iter = sorted(grids, key=lambda g: g.id)
-    for k, g in groupby(enumerate(g_iter), lambda i_x1: i_x1[0] - i_x1[1].id):
+    for _, g in groupby(enumerate(g_iter), lambda i_x1: i_x1[0] - i_x1[1].id):
         seq = list(v[1] for v in g)
         yield seq
 

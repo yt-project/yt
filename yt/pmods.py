@@ -307,7 +307,7 @@ def __determine_parent__(globals, level):
     if "." in pname:
         if level > 0:
             end = len(pname)
-            for l in range(level):
+            for _ in range(level):
                 i = pname.rfind(".", 0, end)
                 end = i
         else:
