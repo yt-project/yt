@@ -238,6 +238,38 @@ def test_add_gradient_fields():
             assert str(ret.units) == "1/cm"
 
 
+def test_add_gradient_fields_by_fname():
+    ds = fake_amr_ds(fields=("density", "temperature"))
+    actual = ds.add_gradient_fields("density")
+    expected = [
+        ("gas", "density_gradient_x"),
+        ("gas", "density_gradient_y"),
+        ("gas", "density_gradient_z"),
+        ("gas", "density_gradient_magnitude"),
+    ]
+    assert_equal(actual, expected)
+
+
+def test_add_gradient_multiple_fields():
+    ds = fake_amr_ds(fields=("density", "temperature"))
+    actual = ds.add_gradient_fields([("gas", "density"), ("gas", "temperature")])
+    expected = [
+        ("gas", "density_gradient_x"),
+        ("gas", "density_gradient_y"),
+        ("gas", "density_gradient_z"),
+        ("gas", "density_gradient_magnitude"),
+        ("gas", "temperature_gradient_x"),
+        ("gas", "temperature_gradient_y"),
+        ("gas", "temperature_gradient_z"),
+        ("gas", "temperature_gradient_magnitude"),
+    ]
+    assert_equal(actual, expected)
+
+    ds = fake_amr_ds(fields=("density", "temperature"))
+    actual = ds.add_gradient_fields(["density", "temperature"])
+    assert_equal(actual, expected)
+
+
 def test_add_gradient_fields_curvilinear():
     ds = fake_amr_ds(fields=["density"], geometry="spherical")
     gfields = ds.add_gradient_fields(("gas", "density"))

@@ -1565,54 +1565,74 @@ class Dataset(metaclass=RegisteredDataset):
         """
         issue_deprecation_warning("This method is deprecated. " + DEP_MSG_SMOOTH_FIELD)
 
-    def add_gradient_fields(self, input_field):
+    def add_gradient_fields(self, fields=None, input_field=None):
         """Add gradient fields.
 
-        Creates four new grid-based fields that represent the components of
-        the gradient of an existing field, plus an extra field for the magnitude
-        of the gradient. Currently only supported in Cartesian geometries. The
+        Creates four new grid-based fields that represent the components of the gradient
+        of an existing field, plus an extra field for the magnitude of the gradient. The
         gradient is computed using second-order centered differences.
 
         Parameters
         ----------
-        input_field : tuple
-           The field name tuple of the particle field the deposited field will
-           be created from.  This must be a field name tuple so yt can
-           appropriately infer the correct field type.
+        fields : str or tuple(str, str), or a list of the previous
+            Label(s) for at least one field. Can either represent a tuple
+            (<field type>, <field fname>) or simply the field name.
+            Warning: several field types may match the provided field name,
+            in which case the first one discovered internally is used.
 
         Returns
         -------
         A list of field name tuples for the newly created fields.
 
+        Raises
+        ------
+        YTFieldNotParsable
+            If fields are not parsable to yt field keys.
+
+        YTFieldNotFound :
+            If at least one field can not be identified.
+
         Examples
         --------
 
-        >>> grad_fields = ds.add_gradient_fields(("gas","temperature"))
-        >>> print(grad_fields)
-        [('gas', 'temperature_gradient_x'),
-         ('gas', 'temperature_gradient_y'),
-         ('gas', 'temperature_gradient_z'),
-         ('gas', 'temperature_gradient_magnitude')]
+        >>> grad_fields = ds.add_gradient_fields(("gas","temperature")) print(grad_fields)
+        >>> [('gas', 'temperature_gradient_x'), ('gas', 'temperature_gradient_y'), ('gas',
+        >>> 'temperature_gradient_z'), ('gas', 'temperature_gradient_magnitude')]
 
-        Note that the above example assumes ds.geometry == 'cartesian'. In general, the function
-        will create gradients components along the axes of the dataset coordinate system.
-        For instance, with cylindrical data, one gets 'temperature_gradient_<r,theta,z>'
+        Note that the above example assumes ds.geometry == 'cartesian'. In general, the
+        function will create gradients components along the axes of the dataset coordinate
+        system. For instance, with cylindrical data, one gets
+        'temperature_gradient_<r,theta,z>'
         """
+        if input_field is not None:
+            issue_deprecation_warning(
+                "keyword argument 'input_field' is deprecated in favor of 'fields' "
+                "and will be removed in a future version of yt."
+            )
+            if fields is not None:
+                raise TypeError(
+                    "Can not use both 'fields' and 'input_field' keyword arguments"
+                )
+            fields = input_field
+        if fields is None:
+            raise TypeError("Missing required positional argument: fields")
+
         self.index
-        if not isinstance(input_field, tuple):
-            raise TypeError
-        ftype, input_field = input_field[0], input_field[1]
-        units = self.field_info[ftype, input_field].units
-        setup_gradient_fields(self.field_info, (ftype, input_field), units)
-        # Now we make a list of the fields that were just made, to check them
-        # and to return them
-        grad_fields = [
-            (ftype, input_field + "_gradient_%s" % suffix)
-            for suffix in self.coordinates.axis_order
-        ]
-        grad_fields.append((ftype, input_field + "_gradient_magnitude"))
-        deps, _ = self.field_info.check_derived_fields(grad_fields)
-        self.field_dependencies.update(deps)
+        data_obj = self.all_data()
+        explicit_fields = data_obj._determine_fields(fields)
+        grad_fields = []
+        for ftype, fname in explicit_fields:
+            units = self.field_info[ftype, fname].units
+            setup_gradient_fields(self.field_info, (ftype, fname), units)
+            # Now we make a list of the fields that were just made, to check them
+            # and to return them
+            grad_fields += [
+                (ftype, "{}_gradient_{}".format(fname, suffix))
+                for suffix in self.coordinates.axis_order
+            ]
+            grad_fields.append((ftype, "{}_gradient_magnitude".format(fname)))
+            deps, _ = self.field_info.check_derived_fields(grad_fields)
+            self.field_dependencies.update(deps)
         return grad_fields
 
     _max_level = None
