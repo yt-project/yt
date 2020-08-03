@@ -610,13 +610,18 @@ class RAMSESDataset(Dataset):
 
     def _sanitize_max_level(self, max_level, max_level_convention):
         if max_level is None and max_level_convention is None:
-            return (999, None)
+            return (999, "yt")
 
         # Check max_level is a valid, positive integer
-        if not isinstance(max_level, int) or max_level < 0:
-            raise ValueError(
+        if not isinstance(max_level, (int, np.integer)):
+            raise TypeError(
                 f"Expected `max_level` to be a positive integer, got {max_level} "
                 f"with type {type(max_level)} instead."
+            )
+        if max_level < 0:
+            raise ValueError(
+                f"Expected `max_level` to be a positive integer, got {max_level} "
+                "instead."
             )
 
         # Check max_level_convention is set and acceptable
@@ -625,7 +630,7 @@ class RAMSESDataset(Dataset):
                 "You specified `max_level` without specifying any `max_level_convention`. "
                 "You have to pick either 'yt' or 'ramses'."
             )
-        elif max_level_convention not in ("ramses", "yt"):
+        if max_level_convention not in ("ramses", "yt"):
             raise ValueError(
                 f"Invalid convention {max_level_convention}. "
                 "Valid choices are 'yt' and 'ramses'."

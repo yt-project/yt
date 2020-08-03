@@ -581,16 +581,21 @@ def test_max_level():
 
 @requires_file(ramses_new_format)
 def test_invalid_max_level():
-    # Should fail
-    invalid_args = (
-        (1, None),  # you have to set the convention
-        # invalid conventions
+    invalid_value_args = (
+        (1, None),
         (1, "foo"),
         (1, "bar"),
-        # invalid max_level
         (-1, "yt"),
-        ("foo", "yt"),
     )
-    for lvl, convention in invalid_args:
+    for lvl, convention in invalid_value_args:
         with assert_raises(ValueError):
+            yt.load(output_00080, max_level=lvl, max_level_convention=convention)
+
+    invalid_type_args = (
+        (1.0, "yt"),  # not an int
+        ("invalid", "yt"),
+    )
+    # Should fail with value errors
+    for lvl, convention in invalid_type_args:
+        with assert_raises(TypeError):
             yt.load(output_00080, max_level=lvl, max_level_convention=convention)
