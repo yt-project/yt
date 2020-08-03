@@ -170,8 +170,8 @@ CUTTING_ANSWERS = {
 def test_cutting():
     ds = fake_sph_orientation_ds()
     for (normal, center), answer in CUTTING_ANSWERS.items():
-        for _ in range(3):
-            cen = [c + 0.1 * c for c in center]
+        for i in range(-1, 2):
+            cen = [c + 0.1 * i for c in center]
             cut = ds.cutting(normal, cen)
             assert_equal(cut["gas", "density"].shape[0], answer)
 
