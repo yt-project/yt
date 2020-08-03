@@ -110,17 +110,15 @@ class ParticleTrajectories:
         if self.suppress_logging:
             mylog.setLevel(old_level)
 
-        times = []
-        times = [time for _fn, (time, *_) in sorted(my_storage.items())]
+        sorted_storage = sorted(my_storage.items())
+        times = [time for _fn, (time, *_) in sorted_storage]
         self.times = self.data_series[0].arr(times, times[0].units)
 
         self.particle_fields = []
         output_field = np.empty((self.num_indices, self.num_steps))
         output_field.fill(np.nan)
         for field in ("particle_position_%s" % ax for ax in "xyz"):
-            for i, (_fn, (_time, indices, pfields)) in enumerate(
-                sorted(my_storage.items())
-            ):
+            for i, (_fn, (_time, indices, pfields)) in enumerate(sorted_storage):
                 try:
                     # This will fail if particles ids are
                     # duplicate. This is due to the fact that the rhs
