@@ -164,6 +164,7 @@ class YTDataset(SavedDataset):
         "omega_lambda",
         "dimensionality",
         "domain_dimensions",
+        "geometry",
         "periodicity",
         "domain_left_edge",
         "domain_right_edge",

@@ -76,6 +76,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
         "current_redshift",
         "current_time",
         "domain_dimensions",
+        "geometry",
         "periodicity",
         "cosmological_simulation",
         "omega_lambda",
