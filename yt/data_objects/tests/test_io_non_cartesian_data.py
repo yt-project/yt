@@ -1,9 +1,10 @@
 from tempfile import NamedTemporaryFile
 
 from yt.frontends.ytdata.data_structures import YTDataContainerDataset
-from yt.testing import fake_amr_ds
+from yt.testing import fake_amr_ds, requires_module
 
 
+@requires_module("h5py")
 def test_preserve_geometric_properties():
     for geom in ("cartesian", "cylindrical", "spherical"):
         ds1 = fake_amr_ds(fields=[("gas", "density")], geometry=geom)
