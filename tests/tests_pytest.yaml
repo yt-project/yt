@@ -13,3 +13,7 @@ TestAMRVac:
 TestArepo:
     - arepo_answers_000.yaml
     - arepo_answers_raw_000.h5
+
+TestArt:
+    - art_answers_000.yaml
+    - art_answers_raw_000.h5

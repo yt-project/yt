@@ -6,6 +6,7 @@ Notes:
     Distributed under the terms of the Modified BSD License.
     The full license is in the file COPYING.txt, distributed with this software.
 """
+import numpy as np
 import pytest
 
 from yt.frontends.art.api import ARTDataset
@@ -26,20 +27,44 @@ from yt.utilities.answer_testing.answer_tests import (
 # Test data
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 
+a_list = [0, 1, 2]
+d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
+w_list = [None, "density"]
+f_list = [
+    ("gas", "density"),
+    ("gas", "temperature"),
+    ("all", "particle_mass"),
+    ("all", "particle_position_x"),
+]
+
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
+@pytest.mark.usefixtures("answer_file", "answer_compare")
 class TestArt:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [d9p], indirect=True)
-    def test_d9p(self, f, d, a, w, ds):
+    @pytest.mark.parametrize("f", f_list, indirect=True)
+    @pytest.mark.parametrize("w", w_list, indirect=True)
+    @pytest.mark.parametrize("d", d_list, indirect=True)
+    @pytest.mark.parametrize("a", a_list, indirect=True)
+    def test_d9p_ppv(self, f, d, a, w, ds):
+        ds.index
+        particle_type = f[0] in ds.particle_types
+        if not particle_type:
+            ppv = pixelized_projection_values(ds, a, f, w, d)
+            self.hashes.update({"pixelized_projection_values" : ppv})
+        # So we have something to save for this test in the answer file
+        else:
+            self.hashes.update({"pixelized_projection_values" : np.array(-1)})
+
+    @pytest.mark.parametrize("ds", [d9p], indirect=True)
+    @pytest.mark.parametrize("f", f_list, indirect=True)
+    @pytest.mark.parametrize("d", d_list, indirect=True)
+    def test_d9p_fv(self, f, d, ds):
         ds.index
         fv = field_values(ds, f, d)
         self.hashes.update({"field_values": fv})
-        if f[0] not in ds.particle_types:
-            ppv = pixelized_projection_values(ds, a, f, w, d)
-            self.hashes.update({"pixelized_projection_values": ppv})
 
     @pytest.mark.big_data
     @pytest.mark.parametrize("ds", [d9p], indirect=True)
