@@ -273,7 +273,7 @@ def _todo_from_attributes(attributes):
 
 def _find_attr_position(key):
     j = 0
-    for attrs, _l, _k in HALO_ATTRIBUTES:
+    for attrs, *_ in HALO_ATTRIBUTES:
         if not isinstance(attrs, tuple):
             attrs = (attrs,)
         for a in attrs:
