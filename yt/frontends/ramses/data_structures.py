@@ -136,8 +136,11 @@ class RAMSESDomainFile:
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
         # update levelmax
+        force_max_level, convention = self.ds._force_max_level
+        if convention == "yt":
+            force_max_level += self.ds.min_level + 1
         self.amr_header["nlevelmax"] = min(
-            self.ds._force_max_level, self.amr_header["nlevelmax"]
+            force_max_level, self.amr_header["nlevelmax"]
         )
         self.amr_offset = f.tell()
         self.local_oct_count = hvals["numbl"][
@@ -376,8 +379,11 @@ class RAMSESIndex(OctreeIndex):
         total_octs = sum(
             dom.local_oct_count for dom in self.domains  # + dom.ngridbound.sum()
         )
+        force_max_level, convention = self.ds._force_max_level
+        if convention == "yt":
+            force_max_level += self.ds.min_level + 1
         self.max_level = min(
-            self.ds._force_max_level, max(dom.max_level for dom in self.domains)
+            force_max_level, max(dom.max_level for dom in self.domains)
         )
         self.num_grids = total_octs
 
@@ -554,6 +560,8 @@ class RAMSESDataset(Dataset):
         self.force_cosmological = cosmological
         self._bbox = bbox
 
+        self._set_max_level(max_level)
+
         # Infer if the output is organized in groups
         root_folder, group_folder = os.path.split(os.path.split(filename)[0])
 
@@ -598,37 +606,21 @@ class RAMSESDataset(Dataset):
 
         self.storage_filename = storage_filename
 
-        # Setup max/min level
-        ok = (
-            isinstance(max_level, Iterable) and len(max_level) == 2
-        ) or max_level is None
-        if not ok:
+    def _set_max_level(self, max_level):
+        max_level = max_level if max_level else (999, "yt")
+        try:
+            lvl, convention = max_level
+            assert lvl >= 0
+            assert convention in ("yt", "ramses")
+        except Exception:
             raise RuntimeError(
-                "Expected `max_level` to be an iterable of length 2 (level, convention) with "
-                f"convention in 'yt', 'ramses'), got {max_level} instead."
+                "Expected `max_level` to be of the form (level, convention) "
+                f"with convention either 'yt' or 'ramses'. Got {max_level} "
+                "instead."
             )
-        else:
-            force_max_level, max_level_convention = max_level
+        self._force_max_level = max_level
 
-        # Convert level numbering from yt to ramses convention
-        if max_level_convention == "yt":
-            force_max_level += self.min_level + 1
-
-        if force_max_level < 0:
-            raise RuntimeError(
-                f"Cannot set `force_max_level` to {force_max_level} as it is a negative value. "
-                f"Change the value of `max_level` (received {max_level})."
-            )
-        elif force_max_level > self.min_level + self.max_level + 1:
-            mylog.warning(
-                "`force_max_level` was set to %s, which is larger than the deepest level (%s). "
-                "It will have no effect",
-                force_max_level,
-                self.min_level + self.max_level + 1,
-            )
-
-        self._force_max_level = force_max_level
-
+             
     def create_field_info(self, *args, **kwa):
         """Extend create_field_info to add the particles types."""
         super(RAMSESDataset, self).create_field_info(*args, **kwa)
@@ -763,8 +755,11 @@ class RAMSESDataset(Dataset):
             self.omega_matter = rheader["omega_m"]
             self.hubble_constant = rheader["H0"] / 100.0  # This is H100
 
+        force_max_level, convention = self._force_max_level
+        if convention == "yt":
+            force_max_level += self.min_level + 1
         self.max_level = (
-            min(self._force_max_level, rheader["levelmax"]) - self.min_level - 1
+            min(force_max_level, rheader["levelmax"]) - self.min_level - 1
         )
 
         if self.cosmological_simulation == 0:

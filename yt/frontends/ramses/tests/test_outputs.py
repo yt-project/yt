@@ -8,6 +8,7 @@ from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 from yt.testing import (
     assert_equal,
+    assert_raises,
     requires_file,
     requires_module,
     units_override_check,
@@ -569,9 +570,26 @@ def test_max_level():
 
     assert any(ds.r["index", "grid_level"] > 2)
 
+    # Should work
     for ds in (
         yt.load(output_00080, max_level=(2, "yt")),
         yt.load(output_00080, max_level=(8, "ramses")),
     ):
         assert all(ds.r["index", "grid_level"] <= 2)
         assert any(ds.r["index", "grid_level"] == 2)
+
+
+@requires_file(ramses_new_format)
+def test_invalid_max_level():
+    # Should fail
+    invalid_args = (
+        "invalid",
+        2,
+        (2, "invalid"),
+        (1, 2, 3, "invalid"),
+        ("yt", 1),
+        (-1, "yt"),
+    )
+    for max_level_arg in invalid_args:
+        with assert_raises(RuntimeError):
+            yt.load(output_00080, max_level=max_level_arg)
