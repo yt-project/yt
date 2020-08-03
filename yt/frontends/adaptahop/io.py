@@ -67,7 +67,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                 data_files.update(obj.data_files)
 
         def iterate_over_attributes(attr_list):
-            for attr, _length, _dtype in attr_list:
+            for attr, *_ in attr_list:
                 if isinstance(attr, tuple):
                     for a in attr:
                         yield a
