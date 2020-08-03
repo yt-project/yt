@@ -116,7 +116,7 @@ class TestFieldAccess:
 def get_base_ds(nprocs):
     fields, units = [], []
 
-    for fname, (code_units, _aliases, _dn) in StreamFieldInfo.known_other_fields:
+    for fname, (code_units, *_) in StreamFieldInfo.known_other_fields:
         fields.append(("gas", fname))
         units.append(code_units)
 
