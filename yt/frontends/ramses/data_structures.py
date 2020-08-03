@@ -620,7 +620,6 @@ class RAMSESDataset(Dataset):
             )
         self._force_max_level = max_level
 
-             
     def create_field_info(self, *args, **kwa):
         """Extend create_field_info to add the particles types."""
         super(RAMSESDataset, self).create_field_info(*args, **kwa)
@@ -758,9 +757,7 @@ class RAMSESDataset(Dataset):
         force_max_level, convention = self._force_max_level
         if convention == "yt":
             force_max_level += self.min_level + 1
-        self.max_level = (
-            min(force_max_level, rheader["levelmax"]) - self.min_level - 1
-        )
+        self.max_level = min(force_max_level, rheader["levelmax"]) - self.min_level - 1
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters["time"]
