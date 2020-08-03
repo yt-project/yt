@@ -8,7 +8,7 @@ def test_ortho_ray():
     dx = (ds.domain_right_edge - ds.domain_left_edge) / ds.domain_dimensions
 
     axes = ["x", "y", "z"]
-    for ax, _an in enumerate(axes):
+    for ax in range(3):
         ocoord = ds.arr(np.random.random(2), "code_length")
 
         my_oray = ds.ortho_ray(ax, ocoord)
