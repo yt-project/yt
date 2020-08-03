@@ -17,3 +17,7 @@ TestArepo:
 TestArt:
     - art_answers_000.yaml
     - art_answers_raw_000.h5
+
+TestArtIo:
+    - artio_answers_000.yaml
+    - artio_answers_raw_000.h5

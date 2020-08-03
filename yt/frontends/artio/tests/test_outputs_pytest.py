@@ -26,24 +26,54 @@ from yt.utilities.answer_testing.utils import create_obj
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/"
 sizmbhloz += "sizmbhloz-clref04SNth-rs9_a0.9011.art"
 
+# Test data
+a_list = [0, 1, 2]
+d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
+w_list = [None, "density"]
+
+# Which velocity magnitude? gas? all? just velocity_magnitude isn't a field
+# Does fv need particle_type?
+f_list = [
+    "temperature",
+    "density",
+    "velocity_magnitude",
+    ("deposit", "all_density"),
+    ("deposit", "all_count"),
+]
+
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
+@pytest.mark.usefixtures("answer_file", "answer_compare")
 class TestArtIo:
-    @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
-    def test_sizmbhloz(self, d, a, w, f, ds):
+    @pytest.mark.parametrize("d", d_list, indirect=True)
+    def test_sizmbhloz_validation(self, d, ds):
         ds.max_range = 1024 * 1024
-        # Run tests
-        fv = field_values(ds, f, d)
-        self.hashes.update({"field_values": fv})
-        ppv = pixelized_projection_values(ds, a, f, w, d)
-        self.hashes.update({"pixelized_projection_values": ppv})
         dobj = create_obj(ds, d)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
         assert_equal(ds.particle_type_counts, {"N-BODY": 100000, "STAR": 110650})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
+    @pytest.mark.parametrize("d", d_list, indirect=True)
+    @pytest.mark.parametrize("a", a_list, indirect=True)
+    @pytest.mark.parametrize("w", w_list, indirect=True)
+    @pytest.mark.parametrize("f", f_list, indirect=True)
+    def test_sizmbhloz_ppv(self, d, a, w, f, ds):
+        ds.max_range = 1024 * 1024
+        ppv = pixelized_projection_values(ds, a, f, w, d)
+        self.hashes.update({"pixelized_projection_values": ppv})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
+    @pytest.mark.parametrize("d", d_list, indirect=True)
+    @pytest.mark.parametrize("f", f_list, indirect=True)
+    def test_sizmbhloz_fv(self, d, f, ds):
+        ds.max_range = 1024 * 1024
+        fv = field_values(ds, f, d)
+        self.hashes.update({"field_values": fv})
 
     @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
     def test_ARTIODataset(self, ds):
