@@ -608,7 +608,8 @@ class RAMSESDataset(Dataset):
 
         self.storage_filename = storage_filename
 
-    def _sanitize_max_level(self, max_level, max_level_convention):
+    @classmethod
+    def _sanitize_max_level(cls, max_level, max_level_convention):
         # NOTE: the initialisation of the dataset class sets
         #       self.min_level _and_ requires force_max_level
         #       to be set, so we cannot convert from to yt/ramses
