@@ -561,3 +561,17 @@ def test_field_accession():
     ):
         for field in fields:
             reg[field]
+
+
+@requires_file(output_00080)
+def test_max_level():
+    ds = yt.load(output_00080)
+
+    assert any(ds.r["index", "grid_level"] > 2)
+
+    for ds in (
+        yt.load(output_00080, max_level=(2, "yt")),
+        yt.load(output_00080, max_level=(8, "ramses")),
+    ):
+        assert all(ds.r["index", "grid_level"] <= 2)
+        assert any(ds.r["index", "grid_level"] == 2)
