@@ -254,8 +254,8 @@ class ARTDataset(Dataset):
         # read the amr header
         with open(self._file_amr, "rb") as f:
             amr_header_vals = fpu.read_attrs(f, amr_header_struct, ">")
-            for _to_skip in ["tl", "dtl", "tlold", "dtlold", "iSO"]:
-                fpu.skip(f, endian=">")
+            n_to_skip = len(("tl", "dtl", "tlold", "dtlold", "iSO"))
+            fpu.skip(f, n_to_skip, endian=">")
             (self.ncell) = fpu.read_vector(f, "i", ">")[0]
             # Try to figure out the root grid dimensions
             est = int(np.rint(self.ncell ** (1.0 / 3.0)))
