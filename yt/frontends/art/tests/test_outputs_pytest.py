@@ -63,6 +63,7 @@ class TestArt:
     @pytest.mark.parametrize("d", d_list, indirect=True)
     def test_d9p_fv(self, f, d, ds):
         ds.index
+        # Does it need the particle_type argument passed?
         fv = field_values(ds, f, d)
         self.hashes.update({"field_values": fv})
 
