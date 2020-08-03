@@ -1,7 +1,6 @@
 import os
 import weakref
 from collections import defaultdict
-from collections.abc import Iterable
 from glob import glob
 
 import numpy as np
@@ -535,6 +534,7 @@ class RAMSESDataset(Dataset):
         cosmological=None,
         bbox=None,
         max_level=None,
+        max_level_convention=None,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -560,7 +560,9 @@ class RAMSESDataset(Dataset):
         self.force_cosmological = cosmological
         self._bbox = bbox
 
-        self._set_max_level(max_level)
+        self._force_max_level = self._sanitize_max_level(
+            max_level, max_level_convention
+        )
 
         # Infer if the output is organized in groups
         root_folder, group_folder = os.path.split(os.path.split(filename)[0])
@@ -606,19 +608,29 @@ class RAMSESDataset(Dataset):
 
         self.storage_filename = storage_filename
 
-    def _set_max_level(self, max_level):
-        max_level = max_level if max_level else (999, "yt")
-        try:
-            lvl, convention = max_level
-            assert lvl >= 0
-            assert convention in ("yt", "ramses")
-        except Exception:
-            raise RuntimeError(
-                "Expected `max_level` to be of the form (level, convention) "
-                f"with convention either 'yt' or 'ramses'. Got {max_level} "
-                "instead."
+    def _sanitize_max_level(self, max_level, max_level_convention):
+        if max_level is None and max_level_convention is None:
+            return (999, None)
+
+        # Check max_level is a valid, positive integer
+        if not isinstance(max_level, int) or max_level < 0:
+            raise ValueError(
+                f"Expected `max_level` to be a positive integer, got {max_level} "
+                f"with type {type(max_level)} instead."
             )
-        self._force_max_level = max_level
+
+        # Check max_level_convention is set and acceptable
+        if max_level_convention is None:
+            raise ValueError(
+                "You specified `max_level` without specifying any `max_level_convention`. "
+                "You have to pick either 'yt' or 'ramses'."
+            )
+        elif max_level_convention not in ("ramses", "yt"):
+            raise ValueError(
+                f"Invalid convention {max_level_convention}. "
+                "Valid choices are 'yt' and 'ramses'."
+            )
+        return (max_level, max_level_convention)
 
     def create_field_info(self, *args, **kwa):
         """Extend create_field_info to add the particles types."""

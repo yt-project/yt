@@ -2479,26 +2479,26 @@ It is possible to provide extra arguments to the load function when loading RAMS
       .. note::
          The ``bbox`` feature is only available for datasets using
          Hilbert ordering.
-``max_level``
-      This will set the deepest level to be read from file. It
-      accepts a tuple of length 2 with format (level, convention),
-      where the convention is either "ramses" or "yt".
+
+``max_level, max_level_convention``
+      This will set the deepest level to be read from file. Both arguments
+      have to be set, where the convention can be either "ramses" or "yt".
 
       In the "ramses" convention, levels go from 1 (the root grid)
-      to levelmax, such that the finest cells have a size of ``1/2**levelmax``.
+      to levelmax, such that the finest cells have a size of ``boxsize/2**levelmax``.
       In the "yt" convention, levels are numbered from 0 (the coarsest
-      uniform grid, equivalement of RAMSES' ``levelmin`` parameter)
-      to ``max_level``, such that the finest cells are ``2**max_level`` smaller
-      than the coarsest.
+      uniform grid at RAMSES' ``levelmin``) to ``max_level``, such that 
+      the finest cells are ``2**max_level`` smaller than the coarsest.
 
 
       .. code-block:: python
           import yt
 
-          # Assuming the tree is full down to a level 6
+          # Assuming RAMSES' levelmin=6, i.e. the structure is full
+          # down to levelmin=6
           ds_all = yt.load('output_00080/info_00080.txt')
-          ds_yt = yt.load('output_00080/info_00080.txt', max_level=(2, "yt"))
-          ds_ramses = yt.load('output_00080/info_00080.txt', max_level=(8, "ramses"))
+          ds_yt = yt.load('output_00080/info_00080.txt', max_level=2, max_level_convention="yt")
+          ds_ramses = yt.load('output_00080/info_00080.txt', max_level=8, max_level_convention="ramses")
 
           any(ds_all.r['index', 'grid_level'] > 2) # True
           all(ds_yt.r['index', 'grid_level'] <= 2) # True
