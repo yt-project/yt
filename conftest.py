@@ -339,3 +339,19 @@ def w(request):
     indirect=True is used for loading the datasets.
     """
     return request.param
+
+@pytest.fixture(scope="class")
+def ds_repr(request):
+    """
+    Fixture for returning the string representation of a dataset.
+    Needed because indirect=True is used for loading the datasets.
+    """
+    return request.param
+
+@pytest.fixture(scope="class")
+def N(request):
+    """
+    Fixture for returning the number of particles in a dataset.
+    Needed because indirect=True is used for loading the datasets.
+    """
+    return request.param

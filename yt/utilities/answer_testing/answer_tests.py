@@ -151,22 +151,19 @@ def generic_array(func, args=[], kwargs={}):
     return func(*args, **kwargs)
 
 
-def sph_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
+# Just until all frontends are ported over
+def sph_answer():
+    pass
+
+
+def sph_validation(ds, ds_str_repr, ds_nparticles):
     assert str(ds) == ds_str_repr
-    results = {}
     dd = ds.all_data()
     assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
     tot = sum(
         dd[ptype, "particle_position"].shape[0] for ptype in ds.particle_types_raw
     )
     assert_equal(tot, ds_nparticles)
-    particle_type = field[0] in ds.particle_types
-    if not particle_type:
-        ppv = pixelized_projection_values(ds, axis, field, weight, ds_obj)
-        results["pixelized_projection_values"] = ppv
-    fv = field_values(ds, field, ds_obj, particle_type=particle_type)
-    results["field_values"] = fv
-    return results
 
 
 def nbody_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
