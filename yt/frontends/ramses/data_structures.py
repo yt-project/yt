@@ -136,9 +136,11 @@ class RAMSESDomainFile:
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
         # update levelmax
-        self.amr_header["nlevelmax"] = min(
-            self.ds._force_max_level, self.amr_header["nlevelmax"]
-        )
+
+        max_level, convention = self.ds._force_max_level
+        if convention == "yt":
+            max_level += self.ds.min_level + 1
+        self.amr_header["nlevelmax"] = min(max_level, self.amr_header["nlevelmax"])
         self.amr_offset = f.tell()
         self.local_oct_count = hvals["numbl"][
             self.ds.min_level :, self.domain_id - 1
@@ -376,9 +378,11 @@ class RAMSESIndex(OctreeIndex):
         total_octs = sum(
             dom.local_oct_count for dom in self.domains  # + dom.ngridbound.sum()
         )
-        self.max_level = min(
-            self.ds._force_max_level, max(dom.max_level for dom in self.domains)
-        )
+        max_level, convention = self.ds._force_max_level
+        if convention == "yt":
+            max_level += self.ds.min_level + 1
+
+        self.max_level = min(max_level, max(dom.max_level for dom in self.domains))
         self.num_grids = total_octs
 
     def _detect_output_fields(self):
@@ -554,6 +558,8 @@ class RAMSESDataset(Dataset):
         self.force_cosmological = cosmological
         self._bbox = bbox
 
+        self.set_max_level(max_level)
+
         # Infer if the output is organized in groups
         root_folder, group_folder = os.path.split(os.path.split(filename)[0])
 
@@ -598,9 +604,11 @@ class RAMSESDataset(Dataset):
 
         self.storage_filename = storage_filename
 
-        # Setup max/min level
+    def set_max_level(self, max_level):
         ok = (
-            isinstance(max_level, Iterable) and len(max_level) == 2
+            isinstance(max_level, Iterable)
+            and len(max_level) == 2
+            and max_level[1] in ("yt", "ramses")
         ) or max_level is None
         if not ok:
             raise RuntimeError(
@@ -608,26 +616,19 @@ class RAMSESDataset(Dataset):
                 f"convention in 'yt', 'ramses'), got {max_level} instead."
             )
         else:
-            force_max_level, max_level_convention = max_level
+            if max_level is None:
+                force_max_level, convention = (999, "ramses")
+            else:
+                force_max_level, convention = max_level
 
         # Convert level numbering from yt to ramses convention
-        if max_level_convention == "yt":
-            force_max_level += self.min_level + 1
-
         if force_max_level < 0:
             raise RuntimeError(
                 f"Cannot set `force_max_level` to {force_max_level} as it is a negative value. "
-                f"Change the value of `max_level` (received {max_level})."
-            )
-        elif force_max_level > self.min_level + self.max_level + 1:
-            mylog.warning(
-                "`force_max_level` was set to %s, which is larger than the deepest level (%s). "
-                "It will have no effect",
-                force_max_level,
-                self.min_level + self.max_level + 1,
+                f"Change the value of `max_level` (received {max_level[0]})."
             )
 
-        self._force_max_level = force_max_level
+        self._force_max_level = (force_max_level, convention)
 
     def create_field_info(self, *args, **kwa):
         """Extend create_field_info to add the particles types."""
@@ -763,9 +764,10 @@ class RAMSESDataset(Dataset):
             self.omega_matter = rheader["omega_m"]
             self.hubble_constant = rheader["H0"] / 100.0  # This is H100
 
-        self.max_level = (
-            min(self._force_max_level, rheader["levelmax"]) - self.min_level - 1
-        )
+        max_level, convention = self._force_max_level
+        if convention == "yt":
+            max_level += self.min_level + 1
+        self.max_level = (min(max_level, rheader["levelmax"]) - self.min_level - 1,)
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters["time"]
