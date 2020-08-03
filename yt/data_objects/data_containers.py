@@ -664,7 +664,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             need_grid_positions = False
 
         if need_particle_positions:
-            for ax in "xyz":
+            for ax in self.ds.coordinates.axis_order:
                 for ptype in ptypes:
                     p_field = (ptype, "particle_position_%s" % ax)
                     if p_field in self.ds.field_info and p_field not in data:
@@ -672,7 +672,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                         ftypes[p_field] = p_field[0]
                         data[p_field] = self[p_field]
         if need_grid_positions:
-            for ax in "xyz":
+            for ax in self.ds.coordinates.axis_order:
                 g_field = ("index", ax)
                 if g_field in self.ds.field_info and g_field not in data:
                     data_fields.append(g_field)
