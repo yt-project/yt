@@ -1113,8 +1113,8 @@ class CastroDataset(BoxlibDataset):
             return False
 
         # Now we check for all the others
-        lines = open(jobinfo_filename).readlines()
-        return any(line.startswith("Castro   ") for line in lines)
+        lines = [line.lower() for line in open(jobinfo_filename).readlines()]
+        return any(line.startswith("castro") for line in lines)
 
     def _parse_parameter_file(self):
         super(CastroDataset, self)._parse_parameter_file()
