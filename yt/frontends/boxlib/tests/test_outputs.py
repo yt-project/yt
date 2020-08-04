@@ -255,14 +255,13 @@ def test_warpx_particle_io():
 
 _raw_fields = [("raw", "Bx"), ("raw", "Ey"), ("raw", "jz")]
 
-raw_fields = "Laser/plt00015"
+laser = "Laser/plt00015"
 
 
-@requires_ds(raw_fields)
+@requires_ds(laser)
 def test_raw_fields():
-    ds_fn = raw_fields
     for field in _raw_fields:
-        yield GridValuesTest(ds_fn, field)
+        yield GridValuesTest(laser, field)
 
 
 @requires_file(rt)
@@ -275,14 +274,29 @@ def test_NyxDataset():
     assert isinstance(data_dir_load(LyA), NyxDataset)
 
 
+@requires_file("nyx_small")
+def test_NyxDataset_2():
+    assert isinstance(data_dir_load("nyx_small"), NyxDataset)
+
+
 @requires_file(RT_particles)
 def test_CastroDataset():
     assert isinstance(data_dir_load(RT_particles), CastroDataset)
 
 
+@requires_file("castro_sod_x_plt00036")
+def test_CastroDataset_2():
+    assert isinstance(data_dir_load("castro_sod_x_plt00036"), CastroDataset)
+
+
 @requires_file(LyA)
 def test_WarpXDataset():
     assert isinstance(data_dir_load(plasma), WarpXDataset)
+
+
+@requires_ds(laser)
+def test_WarpXDataset_2():
+    assert isinstance(data_dir_load(laser), WarpXDataset)
 
 
 @requires_file(rt)
