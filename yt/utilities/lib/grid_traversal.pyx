@@ -41,10 +41,12 @@ from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, 
 
 DEF Nch = 4
 
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int walk_volume(VolumeContainer *vc,
+cdef int walk_volume_cartesian(VolumeContainer *vc,
                      np.float64_t v_pos[3],
                      np.float64_t v_dir[3],
                      sampler_function *sample,

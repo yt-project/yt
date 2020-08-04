@@ -48,7 +48,7 @@ from .fixed_interpolator cimport (
     trilinear_interpolate,
     vertex_interp,
 )
-from .grid_traversal cimport walk_volume
+from .grid_traversal cimport get_volume_walker, volume_walker
 
 
 cdef extern from "platform_dep.h":
@@ -88,6 +88,8 @@ cdef class ImageSampler:
                   *args, **kwargs):
         cdef int i
 
+        cdef char* geometry = kwargs.pop("geometry", "cartesian")
+        self.walk_volume = get_volume_walker(geometry)
         camera_data = kwargs.pop("camera_data", None)
         if camera_data is not None:
             self.camera_data = camera_data
@@ -189,7 +191,7 @@ cdef class ImageSampler:
                 for i in range(Nch):
                     idata.rgba[i] = self.image[vi, vj, i]
                 max_t = fclip(self.zbuffer[vi, vj], 0.0, 1.0)
-                walk_volume(vc, v_pos, v_dir, self.sample,
+                self.walk_volume(vc, v_pos, v_dir, self.sample,
                             (<void *> idata), NULL, max_t)
                 if (j % (10*chunksize)) == 0:
                     with gil:

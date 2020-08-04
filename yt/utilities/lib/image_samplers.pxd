@@ -12,6 +12,7 @@ cimport numpy as np
 cimport cython
 from .volume_container cimport VolumeContainer
 from .partitioned_grid cimport PartitionedGrid
+from .grid_traversal cimport volume_walker
 
 DEF Nch = 4
 
@@ -56,6 +57,7 @@ cdef class ImageSampler:
     cdef calculate_extent_function *extent_function
     cdef generate_vector_info_function *vector_function
     cdef void setup(self, PartitionedGrid pg)
+    cdef volume_walker walk_volume
     @staticmethod
     cdef void sample(VolumeContainer *vc,
                 np.float64_t v_pos[3],

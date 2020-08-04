@@ -42,10 +42,19 @@ ctypedef void sampler_function(
 # See: https://www.researchgate.net/publication/2611491_A_Fast_Voxel_Traversal_Algorithm_for_Ray_Tracing
 # Returns: The number of voxels hit during the traversal phase. If the traversal phase is not reached, returns 0.
 #-----------------------------------------------------------------------------
-cdef int walk_volume(VolumeContainer *vc,
+ctypedef int (*volume_walker)(VolumeContainer *vc,
                      np.float64_t v_pos[3],
                      np.float64_t v_dir[3],
                      sampler_function *sampler,
                      void *data,
                      np.float64_t *return_t = *,
                      np.float64_t max_t = *) nogil
+
+cdef volume_walker walk_volume_cartesian
+
+cdef inline volume_walker get_volume_walker(str geometry) nogil:
+    with gil:
+        if geometry == "cartesian":
+            return walk_volume_cartesian
+        else:
+            raise NotImplementedError
