@@ -139,6 +139,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
         if "num_elements" not in fh[field_type].attrs:
             fh[field_type].attrs["num_elements"] = data[field].size
     fh.close()
+    return filename
 
 
 def _hdf5_yt_array(fh, field, ds=None):
