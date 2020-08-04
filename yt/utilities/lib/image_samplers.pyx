@@ -88,7 +88,7 @@ cdef class ImageSampler:
                   *args, **kwargs):
         cdef int i
 
-        cdef char* geometry = kwargs.pop("geometry", "cartesian")
+        cdef str geometry = kwargs.pop("geometry", "cartesian")
         self.walk_volume = get_volume_walker(geometry)
         camera_data = kwargs.pop("camera_data", None)
         if camera_data is not None:

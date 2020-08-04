@@ -1753,7 +1753,7 @@ cdef class RaySelector(SelectorObject):
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
             vc.dims[i] = dt.shape[i]
-        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia, NULL, 1.0)
         for i in range(dt.shape[0]):
             for j in range(dt.shape[1]):
                 for k in range(dt.shape[2]):
@@ -1791,7 +1791,7 @@ cdef class RaySelector(SelectorObject):
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
             vc.dims[i] = dt.shape[i]
-        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia, NULL, 1.0)
         tr = np.zeros(ia.hits, dtype="float64")
         dtr = np.zeros(ia.hits, dtype="float64")
         ni = 0
@@ -1855,7 +1855,7 @@ cdef class RaySelector(SelectorObject):
                 vc.idds[j] = 1.0/vc.dds[j]
                 vc.dims[j] = 1
             t[0,0,0] = dt[0,0,0] = -1
-            self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+            self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia, NULL, 1.0)
             if dt[0,0,0] >= 0:
                 tr[ni] = t[0,0,0]
                 dtr[ni] = dt[0,0,0]
@@ -1914,7 +1914,7 @@ cdef class RaySelector(SelectorObject):
         ia.dt = dt
         ia.child_mask = cm
         ia.hits = 0
-        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia, NULL, 1.0)
         rv = 0
         if ia.hits > 0:
             rv = 1
@@ -1942,7 +1942,7 @@ cdef class RaySelector(SelectorObject):
         ia.dt = &dt
         ia.child_mask = &cm
         ia.hits = 0
-        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia, NULL, 1.0)
         if ia.hits > 0:
             return 2 # a box of non-zero volume cannot be inside a ray
         return 0
