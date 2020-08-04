@@ -618,6 +618,7 @@ class BoxlibDataset(Dataset):
     _index_class = BoxlibHierarchy
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
+    _job_info_basename = "job_info"
 
     # THIS SHOULD BE FIXED:
     periodicity = (True, True, True)
@@ -1606,6 +1607,8 @@ class AMReXHierarchy(BoxlibHierarchy):
 class AMReXDataset(BoxlibDataset):
 
     _index_class = AMReXHierarchy
+    _subtype_keyword = "amrex"
+    _job_info_basename = "inputs"
 
     def __init__(
         self,
@@ -1630,13 +1633,18 @@ class AMReXDataset(BoxlibDataset):
 
     def _parse_parameter_file(self):
         super(AMReXDataset, self)._parse_parameter_file()
-        particle_types = glob.glob(self.output_dir + "/*/Header")
-        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
+        particle_types = self.__class__._get_particle_types(self.output_dir)
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)
             self.particle_types_raw = self.particle_types
 
+    @staticmethod
+    def _get_particle_types(output_dir):
+        particle_types = glob.glob(output_dir + "/*/Header")
+        particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
+        return particle_types
+
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        return False
+        return cls._is_valid_subtype(args[0])
