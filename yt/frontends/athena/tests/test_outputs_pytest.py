@@ -13,12 +13,17 @@ from yt.frontends.athena.api import AthenaDataset
 from yt.convenience import load
 from yt.testing import (
     assert_allclose_units,
+    assert_almost_equal,
     assert_equal,
     disable_dataset_cache,
     requires_file,
 )
 import yt.units as u
-from yt.utilities.answer_testing.answer_tests import small_patch_amr
+from yt.utilities.answer_testing.answer_tests import field_values
+from yt.utilities.answer_testing.answer_tests import grid_hierarchy
+from yt.utilities.answer_testing.answer_tests import grid_values
+from yt.utilities.answer_testing.answer_tests import parentage_relationships
+from yt.utilities.answer_testing.answer_tests import projection_values
 from yt.utilities.answer_testing.utils import requires_ds
 
 
@@ -47,31 +52,82 @@ uo_sloshing = {
 }
 
 
+ds_list = [
+    cloud,
+    blast,
+    [stripping, {"units_override": uo_stripping}],
+]
+a_list = [0, 1, 2]
+w_list = [None, "density"]
+d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
+cloud_fields = [ 
+    ("athena", "scalar[0]"),
+    ("athena", "density"),
+    ("athena", "total_energy"),
+]
+blast_fields = [
+    ("gas", "temperature"),
+    ("athena", "density"),
+    ("gas", "velocity_magnitude"),
+]
+stripping_fields = [
+    ("gas", "temperature"),
+    ("athena", "density"),
+    ("athena", "specific_scalar[0]"),
+]
+f_list = [
+    cloud_fields,
+    blast_fields,
+    stripping_fields,
+]
+
+
+def get_pairs():
+    pairs = []
+    for i, d in enumerate(ds_list):
+        for f in f_list[i]:
+            # Stripping needs to be marked with the big_data mark
+            if str(d) == "rps.0062":
+                pairs.append(pytest.param(d, f, marks=pytest.mark.big_data))
+            else:
+                pairs.append((d, f))
+    return pairs
+
+
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
+@pytest.mark.usefixtures("answer_file", "answer_compare")
 class TestAthena:
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [cloud], indirect=True)
-    def test_cloud(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    @pytest.mark.parametrize("ds", ds_list, indirect=True)
+    def test_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
 
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [blast], indirect=True)
-    def test_blast(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
+    def test_gv(self, f, ds):
+        self.hashes.update({"grid_values" : grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
+    @pytest.mark.parametrize("d", d_list, indirect=True)
+    def test_fv(self, d, f, ds):
+        self.hashes.update({"field_values" : field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
+    @pytest.mark.parametrize("d", d_list, indirect=True)
+    @pytest.mark.parametrize("a", a_list, indirect=True) 
+    @pytest.mark.parametrize("w", w_list, indirect=True) 
+    def test_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
 
     @requires_file(blast)
     def test_blast_override(self):
         # verify that overriding units causes derived unit values to be updated.
         # see issue #1259
         ds = load(blast, units_override=uo_blast)
-        assert_equal(float(ds.magnetic_unit.in_units("gauss")), 5.478674679698131e-07)
-
-    @pytest.mark.big_data
-    @pytest.mark.usefixtures("hashing")
-    @requires_ds(stripping)
-    def test_stripping(self, f, a, d, w, ds_stripping):
-        self.hashes.update(small_patch_amr(ds_stripping, f, w, a, d))
+        assert_almost_equal(float(ds.magnetic_unit.in_units("gauss")), 5.478674679698131e-07, decimal=14)
 
     @requires_file(sloshing)
     @disable_dataset_cache

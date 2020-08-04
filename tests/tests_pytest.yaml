@@ -21,3 +21,7 @@ TestArt:
 TestArtIo:
     - artio_answers_000.yaml
     - artio_answers_raw_000.h5
+
+TestAthena:
+    - athena_answers_000.yaml
+    - athena_answers_raw_000.h5
