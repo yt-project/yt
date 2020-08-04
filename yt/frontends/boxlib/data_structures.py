@@ -1290,12 +1290,8 @@ class NyxDataset(BoxlibDataset):
     def _parse_parameter_file(self):
         super(NyxDataset, self)._parse_parameter_file()
 
-        # Nyx is always cosmological.
-        self.cosmological_simulation = 1
-
         jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
 
-        has_cosmo_info = False
         with open(jobinfo_filename, "r") as f:
             for line in f:
                 # get the code git hashes
@@ -1305,10 +1301,14 @@ class NyxDataset(BoxlibDataset):
                     self.parameters[fields[0]] = fields[1].strip()
 
                 if line.startswith(" Cosmology Information"):
-                    has_cosmo_info = True
+                    self.cosmological_simulation = 1
                     break
+            else:
+                self.cosmological_simulation = 0
 
-            if has_cosmo_info:
+            if self.cosmological_simulation:
+                # note that modern Nyx is always cosmological, but there are some old
+                # files without these parameters so we want to special-case them
                 for line in f:
                     if "Omega_m (comoving)" in line:
                         self.omega_matter = float(line.split(":")[1])
@@ -1316,8 +1316,6 @@ class NyxDataset(BoxlibDataset):
                         self.omega_lambda = float(line.split(":")[1])
                     elif "h (comoving)" in line:
                         self.hubble_constant = float(line.split(":")[1])
-            else:
-                raise NotImplementedError
 
         # Read in the `comoving_a` file and parse the value. We should fix this
         # in the new Nyx output format...
