@@ -1277,24 +1277,30 @@ class NyxDataset(BoxlibDataset):
         self.cosmological_simulation = 1
 
         jobinfo_filename = os.path.join(self.output_dir, "job_info")
-        line = ""
+
+        has_cosmo_info = False
         with open(jobinfo_filename, "r") as f:
-            while not line.startswith(" Cosmology Information"):
+            for line in f:
                 # get the code git hashes
                 if "git hash" in line:
                     # line format: codename git hash:  the-hash
                     fields = line.split(":")
                     self.parameters[fields[0]] = fields[1].strip()
-                line = next(f)
 
-            # get the cosmology
-            for line in f:
-                if "Omega_m (comoving)" in line:
-                    self.omega_matter = float(line.split(":")[1])
-                elif "Omega_lambda (comoving)" in line:
-                    self.omega_lambda = float(line.split(":")[1])
-                elif "h (comoving)" in line:
-                    self.hubble_constant = float(line.split(":")[1])
+                if line.startswith(" Cosmology Information"):
+                    has_cosmo_info = True
+                    break
+
+            if has_cosmo_info:
+                for line in f:
+                    if "Omega_m (comoving)" in line:
+                        self.omega_matter = float(line.split(":")[1])
+                    elif "Omega_lambda (comoving)" in line:
+                        self.omega_lambda = float(line.split(":")[1])
+                    elif "h (comoving)" in line:
+                        self.hubble_constant = float(line.split(":")[1])
+            else:
+                raise NotImplementedError
 
         # Read in the `comoving_a` file and parse the value. We should fix this
         # in the new Nyx output format...
