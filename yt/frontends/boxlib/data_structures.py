@@ -2,6 +2,7 @@ import glob
 import inspect
 import os
 import re
+import warnings
 from collections import namedtuple
 from stat import ST_CTIME
 
@@ -125,18 +126,22 @@ class BoxLibParticleHeader:
     def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
 
         self.particle_type = directory_name
-        header_filename = ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = os.path.join(ds.output_dir, directory_name, "Header")
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
 
             particle_real_type = self.version_string.split("_")[-1]
-            particle_real_type = self.version_string.split("_")[-1]
-            if particle_real_type == "double":
-                self.real_type = np.float64
-            elif particle_real_type == "single":
-                self.real_type = np.float32
-            else:
-                raise RuntimeError("yt did not recognize particle real type.")
+            known_real_types = {"double": np.float64, "single": np.float32}
+            try:
+                self.real_type = known_real_types[particle_real_type]
+            except KeyError:
+                warnings.warn(
+                    f"yt did not recognize particle real type {particle_real_type}"
+                    "assuming double",
+                    category=RuntimeWarning,
+                )
+                self.real_type = known_real_types["double"]
+
             self.int_type = np.int32
 
             self.dim = int(f.readline().strip())
@@ -231,14 +236,14 @@ class AMReXParticleHeader:
     def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
 
         self.particle_type = directory_name
-        header_filename = ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = os.path.join(ds.output_dir, directory_name, "Header")
         self.real_component_names = []
         self.int_component_names = []
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
 
             particle_real_type = self.version_string.split("_")[-1]
-            particle_real_type = self.version_string.split("_")[-1]
+
             if particle_real_type == "double":
                 self.real_type = np.float64
             elif particle_real_type == "single":
