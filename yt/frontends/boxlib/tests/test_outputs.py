@@ -274,9 +274,9 @@ def test_NyxDataset():
     assert isinstance(data_dir_load(LyA), NyxDataset)
 
 
-@requires_file("nyx_small")
+@requires_file("nyx_small/nyx_small_00000")
 def test_NyxDataset_2():
-    assert isinstance(data_dir_load("nyx_small"), NyxDataset)
+    assert isinstance(data_dir_load("nyx_small/nyx_small_00000"), NyxDataset)
 
 
 @requires_file(RT_particles)
