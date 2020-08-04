@@ -1,5 +1,4 @@
 import glob
-import inspect
 import os
 import re
 from collections import namedtuple
@@ -680,6 +679,20 @@ class BoxlibDataset(Dataset):
         # We *know* it's not boxlib if Header doesn't exist.
         return os.path.exists(header_filename)
 
+    @classmethod
+    def _is_valid_subtype(cls, output_dir):
+        # this is used by derived classes
+        if not BoxlibDataset._is_valid(output_dir):
+            return False
+
+        jobinfo_filename = os.path.join(output_dir, cls._job_info_basename)
+
+        if not os.path.exists(jobinfo_filename):
+            return False
+
+        lines = [line.lower() for line in open(jobinfo_filename).readlines()]
+        return any(line.startswith(cls._subtype_keyword) for line in lines)
+
     def _parse_parameter_file(self):
         """
         Parses the parameter file and establishes the various
@@ -1001,6 +1014,8 @@ class OrionHierarchy(BoxlibHierarchy):
 class OrionDataset(BoxlibDataset):
 
     _index_class = OrionHierarchy
+    _subtype_keyword = "hyp."
+    _job_info_basename = "job_info"
 
     def __init__(
         self,
@@ -1025,31 +1040,7 @@ class OrionDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if not super(OrionDataset, cls)._is_valid(*args, **kwargs):
-            return False
-        output_dir = args[0]
-        jobinfo_filename = os.path.join(output_dir, "job_info")
-
-        args = inspect.getcallargs(cls.__init__, args, kwargs)
-        inputs_filename = os.path.join(
-            os.path.dirname(os.path.abspath(output_dir)), args["cparam_filename"]
-        )
-        if not os.path.exists(inputs_filename) or os.path.exists(jobinfo_filename):
-            return False
-        # Now we check for all the others
-        warpx_jobinfo_filename = os.path.join(output_dir, "warpx_job_info")
-        if os.path.exists(warpx_jobinfo_filename):
-            return False
-        lines = open(inputs_filename).readlines()
-        if any(("castro." in line for line in lines)):
-            return False
-        if any(("nyx." in line for line in lines)):
-            return False
-        if any(("maestro" in line.lower() for line in lines)):
-            return False
-        if any(("hyp." in line for line in lines)):
-            return True
-        return False
+        return cls._is_valid_subtype(args[0])
 
 
 class CastroHierarchy(BoxlibHierarchy):
@@ -1079,6 +1070,8 @@ class CastroDataset(BoxlibDataset):
 
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
+    _subtype_keyword = "castro"
+    _job_info_basename = "job_info"
 
     def __init__(
         self,
@@ -1103,18 +1096,7 @@ class CastroDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if not super(CastroDataset, cls)._is_valid(*args, **kwargs):
-            return False
-
-        output_dir = args[0]
-        jobinfo_filename = os.path.join(output_dir, "job_info")
-
-        if not os.path.exists(jobinfo_filename):
-            return False
-
-        # Now we check for all the others
-        lines = [line.lower() for line in open(jobinfo_filename).readlines()]
-        return any(line.startswith("castro") for line in lines)
+        return cls._is_valid_subtype(args[0])
 
     def _parse_parameter_file(self):
         super(CastroDataset, self)._parse_parameter_file()
@@ -1169,6 +1151,8 @@ class CastroDataset(BoxlibDataset):
 class MaestroDataset(BoxlibDataset):
 
     _field_info_class = MaestroFieldInfo
+    _subtype_keyword = "maestro"
+    _job_info_basename = "job_info"
 
     def __init__(
         self,
@@ -1193,18 +1177,7 @@ class MaestroDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if not super(MaestroDataset, cls)._is_valid(*args, **kwargs):
-            return False
-
-        output_dir = args[0]
-        jobinfo_filename = os.path.join(output_dir, "job_info")
-
-        if not os.path.exists(jobinfo_filename):
-            return False
-
-        # Now we check the job_info for the mention of maestro
-        lines = open(jobinfo_filename).readlines()
-        return any(line.startswith("MAESTRO   ") for line in lines)
+        return cls._is_valid_subtype(args[0])
 
     def _parse_parameter_file(self):
         super(MaestroDataset, self)._parse_parameter_file()
@@ -1269,6 +1242,8 @@ class NyxDataset(BoxlibDataset):
 
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
+    _subtype_keyword = "nyx"
+    _job_info_basename = "job_info"
 
     def __init__(
         self,
@@ -1293,20 +1268,7 @@ class NyxDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if not super(NyxDataset, cls)._is_valid(*args, **kwargs):
-            return False
-
-        output_dir = args[0]
-        jobinfo_filename = os.path.join(output_dir, "job_info")
-
-        if not os.path.exists(jobinfo_filename):
-            return False
-
-        # Now we check the job_info for the mention of maestro
-        lines = open(jobinfo_filename).readlines()
-        return any(line.startswith("Nyx  ") for line in lines) or any(
-            line.startswith("nyx.") for line in lines
-        )
+        return cls._is_valid_subtype(args[0])
 
     def _parse_parameter_file(self):
         super(NyxDataset, self)._parse_parameter_file()
@@ -1554,6 +1516,8 @@ class WarpXDataset(BoxlibDataset):
 
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
+    _subtype_keyword = "warpx"
+    _job_info_basename = "warpx_job_info"
 
     def __init__(
         self,
@@ -1582,13 +1546,7 @@ class WarpXDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if not super(WarpXDataset, cls)._is_valid(*args, **kwargs):
-            return False
-
-        output_dir = args[0]
-        jobinfo_filename = os.path.join(output_dir, "warpx_job_info")
-
-        return os.path.exists(jobinfo_filename)
+        return cls._is_valid_subtype(args[0])
 
     def _parse_parameter_file(self):
         super(WarpXDataset, self)._parse_parameter_file()
