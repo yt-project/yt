@@ -3,6 +3,7 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
+from yt.convenience import load
 from yt.frontends.ytdata.api import save_as_dataset
 from yt.frontends.ytdata.data_structures import YTDataContainerDataset
 from yt.testing import fake_amr_ds, requires_module
@@ -17,7 +18,8 @@ def test_preserve_geometric_properties():
         with TemporaryDirectory() as tmpdir:
             tmpf = os.path.join(tmpdir, "savefile.h5")
             fn = ad.save_as_dataset(tmpf, fields=["density"])
-            ds2 = YTDataContainerDataset(fn)
+            ds2 = load(fn)
+            assert isinstance(ds2, YTDataContainerDataset)
             dfl = ds2.derived_field_list
         assert ds1.geometry == ds2.geometry == geom
 
@@ -33,5 +35,5 @@ def test_default_to_cartesian():
     with TemporaryDirectory() as tmpdir:
         tmpf = os.path.join(tmpdir, "savefile.h5")
         fn = save_as_dataset(ds_attrs, tmpf, data)
-        ds2 = YTDataContainerDataset(fn)
+        ds2 = load(fn)
     assert ds2.geometry == "cartesian"
