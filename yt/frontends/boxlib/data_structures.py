@@ -757,7 +757,11 @@ class BoxlibDataset(Dataset):
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
             else:
-                vals = _guess_pcast(vals)
+                try:
+                    vals = _guess_pcast(vals)
+                except IndexError:
+                    # hitting an empty string
+                    vals = None
             self.parameters[param] = vals
 
         if getattr(self, "cosmological_simulation", 0) == 1:
