@@ -626,7 +626,7 @@ class BoxlibDataset(Dataset):
     def __init__(
         self,
         output_dir,
-        cparam_filename=None,
+        cparam_filename="job_info",
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -642,7 +642,9 @@ class BoxlibDataset(Dataset):
         """
         self.fluid_types += ("boxlib",)
         self.output_dir = os.path.abspath(os.path.expanduser(output_dir))
-        self.cparam_filename = self._localize_check(cparam_filename)
+        self.cparam_filename = self._lookup_cparam_filepath(
+            output_dir, cparam_filename=cparam_filename
+        )
         self.fparam_filename = self._localize_check(fparam_filename)
         self.storage_filename = storage_filename
 
@@ -681,6 +683,21 @@ class BoxlibDataset(Dataset):
         return os.path.exists(header_filename)
 
     @classmethod
+    def _lookup_cparam_filepath(cls, *args, **kwargs):
+        output_dir = args[0]
+        iargs = inspect.getcallargs(cls.__init__, args, kwargs)
+        lookup_table = [
+            os.path.abspath(os.path.join(p, iargs["cparam_filename"]))
+            for p in (output_dir, os.path.dirname(output_dir))
+        ]
+        found = [os.path.exists(file) for file in lookup_table]
+
+        if not any(found):
+            return None
+
+        return lookup_table[found.index(True)]
+
+    @classmethod
     def _is_valid_subtype(cls, *args, **kwargs):
         # this is used by derived classes
         output_dir = args[0]
@@ -688,16 +705,10 @@ class BoxlibDataset(Dataset):
         if not BoxlibDataset._is_valid(output_dir):
             return False
 
-        iargs = inspect.getcallargs(cls.__init__, args, kwargs)
-        lookup_table = [
-            os.path.abspath(os.path.join(p, iargs["cparam_filename"]))
-            for p in (output_dir, os.path.dirname(output_dir))
-        ]
-        found = [os.path.exists(file) for file in lookup_table]
-        if not any(found):
+        cparam_filepath = cls._lookup_cparam_filepath(*args, **kwargs)
+        if cparam_filepath is None:
             return False
 
-        cparam_filepath = lookup_table[found.index(True)]
         lines = [line.lower() for line in open(cparam_filepath).readlines()]
         return any(cls._subtype_keyword in line for line in lines)
 
@@ -718,11 +729,10 @@ class BoxlibDataset(Dataset):
         if self.cparam_filename is None:
             return
         for line in (line.split("#")[0].strip() for line in open(self.cparam_filename)):
-            if "=" not in line:
+            try:
+                param, vals = [s.strip() for s in line.split("=")]
+            except ValueError:
                 continue
-            if len(line) == 0:
-                continue
-            param, vals = [s.strip() for s in line.split("=")]
             if param == "amr.n_cell":
                 vals = self.domain_dimensions = np.array(vals.split(), dtype="int32")
 
@@ -1106,7 +1116,7 @@ class CastroDataset(BoxlibDataset):
 
     def _parse_parameter_file(self):
         super(CastroDataset, self)._parse_parameter_file()
-        jobinfo_filename = os.path.join(self.output_dir, "job_info")
+        jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
         line = ""
         with open(jobinfo_filename, "r") as f:
             while not line.startswith(" Inputs File Parameters"):
@@ -1186,7 +1196,7 @@ class MaestroDataset(BoxlibDataset):
 
     def _parse_parameter_file(self):
         super(MaestroDataset, self)._parse_parameter_file()
-        jobinfo_filename = os.path.join(self.output_dir, "job_info")
+        jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
 
         with open(jobinfo_filename, "r") as f:
             for line in f:
@@ -1283,7 +1293,7 @@ class NyxDataset(BoxlibDataset):
         # Nyx is always cosmological.
         self.cosmological_simulation = 1
 
-        jobinfo_filename = os.path.join(self.output_dir, "job_info")
+        jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
 
         has_cosmo_info = False
         with open(jobinfo_filename, "r") as f:
@@ -1562,7 +1572,7 @@ class WarpXDataset(BoxlibDataset):
 
     def _parse_parameter_file(self):
         super(WarpXDataset, self)._parse_parameter_file()
-        jobinfo_filename = os.path.join(self.output_dir, "warpx_job_info")
+        jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
         with open(jobinfo_filename, "r") as f:
             for line in f.readlines():
                 if _skip_line(line):
