@@ -1187,35 +1187,38 @@ class MaestroDataset(BoxlibDataset):
     def _parse_parameter_file(self):
         super(MaestroDataset, self)._parse_parameter_file()
         jobinfo_filename = os.path.join(self.output_dir, "job_info")
-        line = ""
+
         with open(jobinfo_filename, "r") as f:
-            while not line.startswith(" [*] indicates overridden default"):
+            for line in f:
                 # get the code git hashes
                 if "git hash" in line:
                     # line format: codename git hash:  the-hash
                     fields = line.split(":")
                     self.parameters[fields[0]] = fields[1].strip()
-                line = next(f)
+
+        with open(jobinfo_filename, "r") as f:
             # get the runtime parameters
             for line in f:
-                p, v = (_.strip() for _ in line[4:].split("=", 1))
-                if len(v) == 0:
-                    self.parameters[p] = ""
-                else:
-                    self.parameters[p] = _guess_pcast(v)
+                try:
+                    p, v = (_.strip() for _ in line[4:].split("=", 1))
+                    if len(v) == 0:
+                        self.parameters[p] = ""
+                    else:
+                        self.parameters[p] = _guess_pcast(v)
+                except ValueError:
+                    # not a parameter line
+                    pass
+
             # hydro method is set by the base class -- override it here
             self.parameters["HydroMethod"] = "Maestro"
 
         # set the periodicity based on the integer BC runtime parameters
         periodicity = [True, True, True]
-        if not self.parameters["bcx_lo"] == -1:
-            periodicity[0] = False
-
-        if not self.parameters["bcy_lo"] == -1:
-            periodicity[1] = False
-
-        if not self.parameters["bcz_lo"] == -1:
-            periodicity[2] = False
+        for i, ax in enumerate("xyz"):
+            try:
+                periodicity[i] = self.parameters[f"bc{ax}_lo"] != -1
+            except KeyError:
+                pass
 
         self.periodicity = ensure_tuple(periodicity)
 
