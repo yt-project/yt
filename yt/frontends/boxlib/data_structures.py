@@ -1,4 +1,5 @@
 import glob
+import inspect
 import os
 import re
 from collections import namedtuple
@@ -680,18 +681,25 @@ class BoxlibDataset(Dataset):
         return os.path.exists(header_filename)
 
     @classmethod
-    def _is_valid_subtype(cls, output_dir):
+    def _is_valid_subtype(cls, *args, **kwargs):
         # this is used by derived classes
+        output_dir = args[0]
+
         if not BoxlibDataset._is_valid(output_dir):
             return False
 
-        jobinfo_filename = os.path.join(output_dir, cls._job_info_basename)
-
-        if not os.path.exists(jobinfo_filename):
+        iargs = inspect.getcallargs(cls.__init__, args, kwargs)
+        lookup_table = [
+            os.path.abspath(os.path.join(p, iargs["cparam_filename"]))
+            for p in (output_dir, os.path.dirname(output_dir))
+        ]
+        found = [os.path.exists(file) for file in lookup_table]
+        if not any(found):
             return False
 
-        lines = [line.lower() for line in open(jobinfo_filename).readlines()]
-        return any(line.startswith(cls._subtype_keyword) for line in lines)
+        cparam_filepath = lookup_table[found.index(True)]
+        lines = [line.lower() for line in open(cparam_filepath).readlines()]
+        return any(cls._subtype_keyword in line for line in lines)
 
     def _parse_parameter_file(self):
         """
@@ -1015,7 +1023,6 @@ class OrionDataset(BoxlibDataset):
 
     _index_class = OrionHierarchy
     _subtype_keyword = "hyp."
-    _job_info_basename = "job_info"
 
     def __init__(
         self,
@@ -1040,7 +1047,7 @@ class OrionDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(args[0])
+        return cls._is_valid_subtype(*args, **kwargs)
 
 
 class CastroHierarchy(BoxlibHierarchy):
@@ -1071,12 +1078,11 @@ class CastroDataset(BoxlibDataset):
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
     _subtype_keyword = "castro"
-    _job_info_basename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename=None,
+        cparam_filename="job_info",
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1096,7 +1102,7 @@ class CastroDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(args[0])
+        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(CastroDataset, self)._parse_parameter_file()
@@ -1152,12 +1158,11 @@ class MaestroDataset(BoxlibDataset):
 
     _field_info_class = MaestroFieldInfo
     _subtype_keyword = "maestro"
-    _job_info_basename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename=None,
+        cparam_filename="job_info",
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1177,7 +1182,7 @@ class MaestroDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(args[0])
+        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(MaestroDataset, self)._parse_parameter_file()
@@ -1243,12 +1248,11 @@ class NyxDataset(BoxlibDataset):
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
     _subtype_keyword = "nyx"
-    _job_info_basename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename=None,
+        cparam_filename="job_info",
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1268,7 +1272,7 @@ class NyxDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(args[0])
+        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(NyxDataset, self)._parse_parameter_file()
@@ -1523,12 +1527,11 @@ class WarpXDataset(BoxlibDataset):
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
     _subtype_keyword = "warpx"
-    _job_info_basename = "warpx_job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename=None,
+        cparam_filename="warpx_job_info",
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1552,7 +1555,7 @@ class WarpXDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(args[0])
+        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(WarpXDataset, self)._parse_parameter_file()
@@ -1610,7 +1613,7 @@ class AMReXDataset(BoxlibDataset):
     def __init__(
         self,
         output_dir,
-        cparam_filename=None,
+        cparam_filename="job_info",
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
