@@ -422,7 +422,7 @@ cdef class VolumeRenderSampler(ImageSampler):
                   **kwargs
         ):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width, **kwargs)
+                               x_vec, y_vec, width, volume_method, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj
