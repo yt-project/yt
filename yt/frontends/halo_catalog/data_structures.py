@@ -384,6 +384,12 @@ class YTHaloDataset(HaloDataset):
     def __init__(self, ds, dataset_type="ythalo"):
         super(YTHaloDataset, self).__init__(ds, dataset_type)
 
+    def _set_code_unit_attributes(self):
+        pass
+
+    @classmethod
+    def _is_valid(self, *args, **kwargs):
+        return False
 
 class HaloContainer(YTSelectionContainer):
     """
