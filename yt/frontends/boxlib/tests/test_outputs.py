@@ -196,6 +196,11 @@ beam = "GaussianBeam/plt03008"
 def test_beam():
     ds = data_dir_load(beam)
     assert_equal(str(ds), "plt03008")
+    for param in ("number of boxes", "maximum zones"):
+        # PR 2807
+        # these parameters are only populated if the config file attached to this
+        # dataset is read correctly
+        assert param in ds.parameters
     for test in small_patch_amr(ds, _warpx_fields, input_center="c", input_weight="Ex"):
         test_beam.__name__ = test.description
         yield test
