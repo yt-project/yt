@@ -54,7 +54,7 @@ def invalidate_volume(f):
     def wrapper(*args, **kwargs):
         ret = f(*args, **kwargs)
         obj = args[0]
-        if isinstance(obj._transfer_function, ProjectionTransferFunction):
+        if isinstance(obj.transfer_function, ProjectionTransferFunction):
             obj.sampler_type = "projection"
             obj._log_field = False
             obj._use_ghost_zones = False

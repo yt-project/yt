@@ -106,7 +106,7 @@ def off_axis_projection(
     >>> write_image(np.log10(image), "offaxis.png")
 
     """
-    if method not in ["integrate", "sum"]:
+    if method not in ("integrate", "sum"):
         raise NotImplementedError(
             "Only 'integrate' or 'sum' methods are valid for off-axis-projections"
         )
@@ -303,6 +303,7 @@ def off_axis_projection(
     funits = data_source.ds._get_field_info(item).units
 
     vol = create_volume_source(data_source, item)
+    vol.num_threads = num_threads
     if weight is None:
         vol.set_field(item)
     else:
@@ -364,8 +365,11 @@ def off_axis_projection(
     if vol.weight_field is not None:
         fields.append(vol.weight_field)
 
+    vol._log_field = False
     image = vol.render(camera)
-
+    image = ImageArray(
+        image, funits, registry=data_source.ds.unit_registry, info=image.info
+    )
     if weight is not None:
         data_source.ds.field_info.pop(("index", "temp_weightfield"))
 
