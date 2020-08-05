@@ -7,7 +7,7 @@ from yt.testing import assert_raises
 from yt.utilities.exceptions import YTOutputNotIdentified, YTSimulationNotIdentified
 
 
-def test_load_unexisting_data():
+def test_load_nonexistent_data():
     with tempfile.TemporaryDirectory() as tmpdir:
         assert_raises(OSError, load, os.path.join(tmpdir, "not_a_file"))
         assert_raises(OSError, simulation, os.path.join(tmpdir, "not_a_file"), "Enzo")
