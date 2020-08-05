@@ -71,8 +71,13 @@ tf.add_layers(
     alpha=10.0 * np.ones(4, dtype="float64"),
     colormap="RdBu_r",
 )
-tf.add_layers(4, 0.01, col_bounds=[-27.5, -25.5],
-              alpha=10.0 * np.ones(4, dtype='float64'), colormap='RdBu_r')
+tf.add_layers(
+    4,
+    0.01,
+    col_bounds=[-27.5, -25.5],
+    alpha=10.0 * np.ones(4, dtype="float64"),
+    colormap="RdBu_r",
+)
 sc.save("v4.png", sigma_clip=6.0)
 #
 ## This looks pretty good, now lets go back to the full resolution AMRKDTree
