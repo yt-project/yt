@@ -43,6 +43,7 @@ class HandlerMixin:
 
     This is not supposed to be user-facing.
     """
+
     def setup_handler(self, domain):
         """
         Initalize an instance of the class. This automatically sets
@@ -141,7 +142,9 @@ class HandlerMixin:
         return exists
 
 
-class FieldFileHandler(abc.ABC, HandlerMixin, metaclass=RegisteredRAMSESFieldFileHandler):
+class FieldFileHandler(
+    abc.ABC, HandlerMixin, metaclass=RegisteredRAMSESFieldFileHandler
+):
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
