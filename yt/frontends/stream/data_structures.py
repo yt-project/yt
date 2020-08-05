@@ -7,7 +7,6 @@ from itertools import chain, product, repeat
 from numbers import Number as numeric_type
 
 import numpy as np
-from unyt.dimensions import number_density
 
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.grid_patch import AMRGridPatch
@@ -1771,9 +1770,7 @@ class StreamOctreeSubset(OctreeSubset):
         levels[:] = 0
         dest.update((field, np.empty(cell_count, dtype="float64")) for field in content)
         # Make references ...
-        count = oct_handler.fill_level(
-            0, levels, cell_inds, file_inds, dest, content, offset
-        )
+        oct_handler.fill_level(0, levels, cell_inds, file_inds, dest, content, offset)
 
     def fill(self, content, dest, selector, offset):
         if self._num_ghost_zones == 0:
