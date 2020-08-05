@@ -93,6 +93,12 @@ for more information.
 
 .. yt_cookbook:: multiplot_2x2.py
 
+The above example gives you full control over the plots, but for most
+purposes, the ``export_to_mpl_figure`` method is a simpler option,
+allowing us to make a similar plot as:
+
+.. yt_cookbook:: multiplot_export_to_mpl.py
+
 Multipanel with PhasePlot
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
