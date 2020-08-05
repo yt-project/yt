@@ -69,8 +69,8 @@ cdef class ImageSampler:
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
+                  str volume_method,
                   *args,
-                  str volume_method=None,
                   **kwargs):
         cdef int i
 
@@ -357,9 +357,12 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  n_samples = 10, **kwargs):
+                  str volume_method,
+                  n_samples = 10,
+                  **kwargs
+        ):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width, **kwargs)
+                               x_vec, y_vec, width, volume_method, **kwargs)
         # Now we handle tf_obj
         self.vra = <VolumeRenderAccumulator *> \
             malloc(sizeof(VolumeRenderAccumulator))
@@ -413,8 +416,11 @@ cdef class VolumeRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  tf_obj, n_samples = 10,
-                  **kwargs):
+                  str volume_method,
+                  tf_obj,
+                  n_samples = 10,
+                  **kwargs
+        ):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
                                x_vec, y_vec, width, **kwargs)
         cdef int i
@@ -501,12 +507,14 @@ cdef class LightSourceRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  tf_obj, n_samples = 10,
+                  str volume_method,
+                  tf_obj,
+                  n_samples = 10,
                   light_dir=[1.,1.,1.],
                   light_rgba=[1.,1.,1.,1.],
                   **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width, **kwargs)
+                               x_vec, y_vec, width, volume_method, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj

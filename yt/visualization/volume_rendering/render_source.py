@@ -92,14 +92,18 @@ class RenderSource(ParallelAnalysisInterface):
 
     """
 
+    volume_method = None
+
     def __init__(self):
         super(RenderSource, self).__init__()
         self.opaque = False
         self.zbuffer = None
 
+    @abc.abstractmethod
     def render(self, camera, zbuffer=None):
         pass
 
+    @abc.abstractmethod
     def _validate(self):
         pass
 

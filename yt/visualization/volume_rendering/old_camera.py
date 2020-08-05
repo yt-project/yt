@@ -668,12 +668,12 @@ class Camera(ParallelAnalysisInterface):
             self.orienter.unit_vectors[0],
             self.orienter.unit_vectors[1],
             np.array(self.width, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
         kwargs = {
             "lens_type": "plane-parallel",
-            "volume_method": "KDTree",
         }
         return args, kwargs
 
@@ -1363,12 +1363,12 @@ class PerspectiveCamera(Camera):
             dummy,
             dummy,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
         kwargs = {
             "lens_type": "perspective",
-            "volume_method": "KDTree",
         }
         return args, kwargs
 
@@ -1566,12 +1566,13 @@ class HEALpixCamera(Camera):
             uv,
             uv,
             np.zeros(3, dtype="float64"),
+            "KDTree"
         )
         if self._needs_tf:
             args += (self.transfer_function,)
         args += (self.sub_samples,)
 
-        return args, {"volume_method": "KDTree"}
+        return args, {}
 
     def _render(self, double_check, num_threads, image, sampler):
         pbar = get_pbar(
@@ -1787,10 +1788,11 @@ class FisheyeCamera(Camera):
             uv,
             uv,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"volume_method": "KDTree"}
+        return args, {}
 
     def finalize_image(self, image):
         image.shape = self.resolution, self.resolution, 4
@@ -2183,9 +2185,10 @@ class ProjectionCamera(Camera):
             self.orienter.unit_vectors[0],
             self.orienter.unit_vectors[1],
             np.array(self.width, dtype="float64"),
+            "KDTree",
             self.sub_samples,
         )
-        kwargs = {"lens_type": "plane-parallel", "volume_method": "KDTree"}
+        kwargs = {"lens_type": "plane-parallel"}
         return args, kwargs
 
     def finalize_image(self, image):
@@ -2426,12 +2429,12 @@ class StereoSphericalCamera(Camera):
             dummy,
             dummy,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
         kwargs = {
-            "lens_type": "stereo-spherical",
-            "volume_method": "KDTree",
+            "lens_type": "stereo-spherical"
         }
         return args, kwargs
 
