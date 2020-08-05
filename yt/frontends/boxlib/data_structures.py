@@ -631,7 +631,7 @@ class BoxlibDataset(Dataset):
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename="job_info",  # todo: harmonise this default value with docstring
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
