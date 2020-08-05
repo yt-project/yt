@@ -7,10 +7,11 @@ Data structures for AdaptaHOP frontend.
 """
 
 
-import numpy as np
 import os
 import re
 import stat
+
+import numpy as np
 
 from yt.data_objects.data_containers import YTSelectionContainer
 from yt.data_objects.static_output import Dataset
