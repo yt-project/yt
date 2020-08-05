@@ -391,6 +391,7 @@ class YTHaloDataset(HaloDataset):
     def _is_valid(self, *args, **kwargs):
         return False
 
+
 class HaloContainer(YTSelectionContainer):
     """
     Base class for data containers providing halo particles.
