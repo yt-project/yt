@@ -9,16 +9,14 @@ Purpose: Enzo-P frontend tests
 import numpy as np
 import pytest
 
-from yt.utilities.on_demand_imports import _h5py as h5py
-
-from yt.testing import assert_equal, assert_array_equal
 from yt.frontends.enzo_p.api import EnzoPDataset
-from yt.utilities.answer_testing.answer_tests import (
-    pixelized_projection_values,
-    field_values,
-)
+from yt.testing import assert_array_equal, assert_equal
 from yt.utilities.answer_testing import utils
-
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    pixelized_projection_values,
+)
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 # Test data
 hello_world = "hello-0210/hello-0210.block_list"

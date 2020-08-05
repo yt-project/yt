@@ -11,18 +11,17 @@ import pytest
 
 from yt.frontends.art.api import ARTDataset
 from yt.testing import (
+    ParticleSelectionComparison,
     assert_almost_equal,
     assert_equal,
     requires_file,
     units_override_check,
-    ParticleSelectionComparison,
 )
 from yt.units.yt_array import YTQuantity
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     pixelized_projection_values,
 )
-
 
 # Test data
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
@@ -53,10 +52,10 @@ class TestArt:
         particle_type = f[0] in ds.particle_types
         if not particle_type:
             ppv = pixelized_projection_values(ds, a, f, w, d)
-            self.hashes.update({"pixelized_projection_values" : ppv})
+            self.hashes.update({"pixelized_projection_values": ppv})
         # So we have something to save for this test in the answer file
         else:
-            self.hashes.update({"pixelized_projection_values" : np.array(-1)})
+            self.hashes.update({"pixelized_projection_values": np.array(-1)})
 
     @pytest.mark.parametrize("ds", [d9p], indirect=True)
     @pytest.mark.parametrize("f", f_list, indirect=True)

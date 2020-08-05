@@ -5,14 +5,13 @@ Purpose: Contains fixtures for loading data.
 import pytest
 
 from yt.frontends.fits.data_structures import (
-    FITSDataset,
-    SpectralCubeFITSDataset,
-    SkyDataFITSDataset,
     EventsFITSDataset,
+    FITSDataset,
+    SkyDataFITSDataset,
+    SpectralCubeFITSDataset,
 )
 from yt.testing import assert_equal
 from yt.utilities.answer_testing.utils import data_dir_load
-
 
 # Test data
 grs = "radio_fits/grs-50-cube.fits"
@@ -34,25 +33,25 @@ test_params = {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("c", (0.1, "unitary")))), ("None", "sphere")],
         "w": [(None, "ones"), ("None", "ones")],
-        "f": [_fields_grs, ("temperature",)]
+        "f": [_fields_grs, ("temperature",)],
     },
     "test_velocity_field": {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("c", (0.1, "unitary")))), ("None", "sphere")],
         "w": [(None, "ones"), ("None", "ones")],
-        "f": [_fields_vels, ("vx", "vy", "vz")]
+        "f": [_fields_vels, ("vx", "vy", "vz")],
     },
     "test_acis": {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("c", (0.1, "unitary")))), ("None", "sphere")],
         "w": [(None, "ones"), ("None", "ones")],
-        "f": [_fields_acis, ("counts1", "counts2")]
+        "f": [_fields_acis, ("counts1", "counts2")],
     },
     "test_A2052": {
         "a": [(0, 1, 2), ("0", "1", "2")],
         "d": [(None, ("sphere", ("c", (0.1, "unitary")))), ("None", "sphere")],
         "w": [(None, "ones"), ("None", "ones")],
-        "f": [_fields_A2052, ("flux",)]
+        "f": [_fields_A2052, ("flux",)],
     },
 }
 

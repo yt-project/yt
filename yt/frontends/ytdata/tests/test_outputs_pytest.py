@@ -16,17 +16,17 @@ from yt.convenience import load
 from yt.data_objects.api import create_profile
 from yt.frontends.ytdata.api import (
     YTDataContainerDataset,
-    YTSpatialPlotDataset,
     YTGridDataset,
     YTNonspatialDataset,
     YTProfileDataset,
+    YTSpatialPlotDataset,
     save_as_dataset,
 )
 from yt.testing import assert_array_equal
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.visualization.profile_plotter import ProfilePlot, PhasePlot
-from yt.utilities.answer_testing.answer_tests import yt_data_field
 from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.answer_tests import yt_data_field
+from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
 # Test data
 enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"

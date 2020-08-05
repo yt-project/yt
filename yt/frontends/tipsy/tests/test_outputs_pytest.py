@@ -14,7 +14,6 @@ from yt.testing import ParticleSelectionComparison, requires_file
 from yt.utilities.answer_testing.answer_tests import nbody_answer, sph_answer
 from yt.utilities.answer_testing.utils import data_dir_load, requires_ds
 
-
 # Test data
 pkdgrav = "halo1e11_run1.00400/halo1e11_run1.00400"
 gasoline_dmonly = "agora_1e11.00400/agora_1e11.00400"

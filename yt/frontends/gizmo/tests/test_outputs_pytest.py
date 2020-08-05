@@ -14,7 +14,6 @@ from yt.frontends.gizmo.fields import metal_elements
 from yt.testing import requires_file
 from yt.utilities.answer_testing.answer_tests import sph_answer
 
-
 # Test data
 g64 = "gizmo_64/output/snap_N64L16_135.hdf5"
 gmhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"

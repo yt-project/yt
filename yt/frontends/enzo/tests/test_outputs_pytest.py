@@ -20,10 +20,9 @@ from yt.testing import (
     requires_file,
     units_override_check,
 )
-from yt.visualization.plot_window import SlicePlot
-from yt.utilities.answer_testing.answer_tests import big_patch_amr, small_patch_amr
 from yt.utilities.answer_testing import utils
-
+from yt.utilities.answer_testing.answer_tests import big_patch_amr, small_patch_amr
+from yt.visualization.plot_window import SlicePlot
 
 # Files containing data to be used in tests. Paths are relative to
 # yt test_data_dir

@@ -14,7 +14,6 @@ from yt.testing import requires_file, units_override_check
 from yt.utilities.answer_testing.answer_tests import small_patch_amr
 from yt.utilities.answer_testing.utils import requires_ds
 
-
 # Test data
 jet = "InteractingJets/jet_000002"
 psiDM = "WaveDarkMatter/psiDM_000020"

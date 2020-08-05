@@ -20,7 +20,6 @@ from yt.frontends.adaptahop.data_structures import AdaptaHOPDataset
 from yt.testing import requires_file
 from yt.utilities.answer_testing.utils import data_dir_load
 
-
 r0 = "output_00080/info_00080.txt"
 r1 = "output_00080_halos/tree_bricks080"
 

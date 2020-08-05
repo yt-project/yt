@@ -11,15 +11,14 @@ import numpy as np
 import pytest
 
 from yt.frontends.boxlib.api import (
-    OrionDataset,
-    NyxDataset,
-    WarpXDataset,
     CastroDataset,
     MaestroDataset,
+    NyxDataset,
+    OrionDataset,
+    WarpXDataset,
 )
 from yt.testing import assert_equal, units_override_check
 from yt.utilities.answer_testing.answer_tests import grid_values, small_patch_amr
-
 
 # Test data
 radadvect = "RadAdvect/plt00000"

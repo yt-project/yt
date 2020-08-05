@@ -13,9 +13,8 @@ import pytest
 from yt.convenience import load
 from yt.frontends.athena_pp.api import AthenaPPDataset
 from yt.testing import assert_allclose, requires_file, units_override_check
-from yt.utilities.answer_testing.answer_tests import generic_array, small_patch_amr
 from yt.utilities.answer_testing import utils
-
+from yt.utilities.answer_testing.answer_tests import generic_array, small_patch_amr
 
 # Test data
 disk = "KeplerianDisk/disk.out1.00000.athdf"

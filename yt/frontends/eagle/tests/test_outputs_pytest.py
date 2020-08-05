@@ -11,7 +11,6 @@ import pytest
 from yt.frontends.eagle.api import EagleDataset
 from yt.testing import ParticleSelectionComparison
 
-
 # Test data
 s28 = "snapshot_028_z000p000/snap_028_z000p000.0.hdf5"
 s399 = "snipshot_399_z000p000/snip_399_z000p000.0.hdf5"

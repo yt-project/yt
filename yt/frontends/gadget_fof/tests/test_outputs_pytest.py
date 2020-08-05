@@ -11,11 +11,7 @@ import numpy as np
 import pytest
 
 from yt.frontends.gadget_fof.api import GadgetFOFDataset
-from yt.testing import (
-    assert_array_equal,
-    assert_equal,
-    ParticleSelectionComparison,
-)
+from yt.testing import ParticleSelectionComparison, assert_array_equal, assert_equal
 from yt.utilities.answer_testing.answer_tests import field_values
 
 # Test data

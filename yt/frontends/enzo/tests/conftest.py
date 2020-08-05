@@ -4,7 +4,6 @@ Purpose: Contains fixtures for loading data.
 """
 from yt.utilities.answer_testing import utils
 
-
 toro1d = utils.get_parameterization("ToroShockTube/DD0001/data0001")
 kh2d = utils.get_parameterization("EnzoKelvinHelmholtz/DD0011/DD0011")
 

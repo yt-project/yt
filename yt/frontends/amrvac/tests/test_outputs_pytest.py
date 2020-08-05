@@ -5,14 +5,15 @@ import yt  # NOQA
 from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid
 from yt.testing import assert_allclose_units, assert_raises, requires_file
 from yt.units import YTQuantity
-from yt.utilities.answer_testing.answer_tests import field_values
-from yt.utilities.answer_testing.answer_tests import grid_hierarchy
-from yt.utilities.answer_testing.answer_tests import grid_values
-from yt.utilities.answer_testing.answer_tests import parentage_relationships
-from yt.utilities.answer_testing.answer_tests import projection_values
 from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    grid_hierarchy,
+    grid_values,
+    parentage_relationships,
+    projection_values,
+)
 from yt.utilities.exceptions import YTOutputNotIdentified
-
 
 # Test parameters
 blastwave_spherical_2D = "amrvac/bw_2d0000.dat"
@@ -77,7 +78,7 @@ def _get_fields_to_check(fname):
         # return [fields, field_ids]
         return [ds, fields]
     except YTOutputNotIdentified:
-        return [[pytest.param(None, marks=pytest.mark.skip),], ['Data not found',]]
+        return [[pytest.param(None, marks=pytest.mark.skip),], ["Data not found",]]
 
 
 def get_pairs():
@@ -132,27 +133,27 @@ class TestAMRVac:
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
     def test_gh_pr(self, ds):
-        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
-        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+        self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
     def test_gv(self, f, ds):
-        self.hashes.update({"grid_values" : grid_values(ds, f)})
+        self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
     @pytest.mark.parametrize("d", dso_list, indirect=True)
     def test_fv(self, d, f, ds):
-        self.hashes.update({"field_values" : field_values(ds, f, d)})
+        self.hashes.update({"field_values": field_values(ds, f, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
     @pytest.mark.parametrize("d", dso_list, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True) 
-    @pytest.mark.parametrize("w", w_list, indirect=True) 
+    @pytest.mark.parametrize("a", a_list, indirect=True)
+    @pytest.mark.parametrize("w", w_list, indirect=True)
     def test_pv(self, a, d, w, f, ds):
-        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
+        self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
 
     @requires_file(khi_cartesian_2D)
     def test_normalisations_length_temp_nb(self):

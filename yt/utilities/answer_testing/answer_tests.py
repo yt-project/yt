@@ -9,10 +9,9 @@ import tempfile
 import matplotlib.image as mpimg
 import numpy as np
 
-from yt.testing import assert_equal
-from yt.utilities.on_demand_imports import _h5py as h5py
 import yt.visualization.particle_plots as particle_plots
 import yt.visualization.plot_window as pw
+from yt.testing import assert_equal
 
 from . import utils
 

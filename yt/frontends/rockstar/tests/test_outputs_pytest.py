@@ -13,7 +13,6 @@ from yt.frontends.rockstar.api import RockstarDataset
 from yt.testing import ParticleSelectionComparison
 from yt.utilities.answer_testing.answer_tests import field_values
 
-
 # Test data
 r1 = "rockstar_halos/halos_0.0.bin"
 

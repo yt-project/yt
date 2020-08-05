@@ -1,13 +1,16 @@
 import os
 import tempfile
 
+import numpy as np
 import pytest
 
 from yt.frontends.arepo.api import ArepoHDF5Dataset
 from yt.testing import ParticleSelectionComparison
-from yt.utilities.answer_testing.answer_tests import field_values
-from yt.utilities.answer_testing.answer_tests import pixelized_projection_values
-from yt.utilities.answer_testing.answer_tests import sph_validation
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    pixelized_projection_values,
+    sph_validation,
+)
 from yt.utilities.answer_testing.utils import data_dir_load, requires_ds
 
 # Test data
@@ -25,7 +28,7 @@ val_params = [
 
 a_list = [0, 1, 2]
 
-d_bullet = [None, ("sphere", ("c", (0.1, "unitary")))] 
+d_bullet = [None, ("sphere", ("c", (0.1, "unitary")))]
 d_tng = [None, ("sphere", ("c", (0.5, "unitary")))]
 
 f_bullet = [
@@ -76,9 +79,7 @@ ppv_pairs = [
     (i[0], f[0], f[1], d) for i in pair_list for f in zip(i[1], i[2]) for d in i[3]
 ]
 
-fv_pairs = [
-    (i[0], f, d) for i in pair_list for f in i[1] for d in i[3]
-]
+fv_pairs = [(i[0], f, d) for i in pair_list for f in i[1] for d in i[3]]
 
 
 @pytest.mark.answer_test
@@ -91,17 +92,17 @@ class TestArepo:
         particle_type = f[0] in ds.particle_types
         if not particle_type:
             ppv = pixelized_projection_values(ds, a, f, w, d)
-            self.hashes.update({"pixelized_projection_values" : ppv})
+            self.hashes.update({"pixelized_projection_values": ppv})
         # So we have something to save for this test in the answer file
         else:
-            self.hashes.update({"pixelized_projection_values" : np.array(-1)})
+            self.hashes.update({"pixelized_projection_values": np.array(-1)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)
     def test_arepo_fv(self, d, f, ds):
         particle_type = f[0] in ds.particle_types
         fv = field_values(ds, f, d, particle_type=particle_type)
-        self.hashes.update({"field_values" : fv})
+        self.hashes.update({"field_values": fv})
 
     @pytest.mark.parametrize("ds, ds_repr, N", val_params, indirect=True)
     def test_arepo_validation(self, ds, ds_repr, N):

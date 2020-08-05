@@ -9,8 +9,9 @@ Notes:
 """
 import pytest
 
-from yt.frontends.athena.api import AthenaDataset
+import yt.units as u
 from yt.convenience import load
+from yt.frontends.athena.api import AthenaDataset
 from yt.testing import (
     assert_allclose_units,
     assert_almost_equal,
@@ -18,14 +19,13 @@ from yt.testing import (
     disable_dataset_cache,
     requires_file,
 )
-import yt.units as u
-from yt.utilities.answer_testing.answer_tests import field_values
-from yt.utilities.answer_testing.answer_tests import grid_hierarchy
-from yt.utilities.answer_testing.answer_tests import grid_values
-from yt.utilities.answer_testing.answer_tests import parentage_relationships
-from yt.utilities.answer_testing.answer_tests import projection_values
-from yt.utilities.answer_testing.utils import requires_ds
-
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    grid_hierarchy,
+    grid_values,
+    parentage_relationships,
+    projection_values,
+)
 
 # Test data
 cloud = "ShockCloud/id0/Cloud.0050.vtk"
@@ -60,7 +60,7 @@ ds_list = [
 a_list = [0, 1, 2]
 w_list = [None, "density"]
 d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
-cloud_fields = [ 
+cloud_fields = [
     ("athena", "scalar[0]"),
     ("athena", "density"),
     ("athena", "total_energy"),
@@ -100,34 +100,36 @@ class TestAthena:
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
     def test_gh_pr(self, ds):
-        self.hashes.update({"grid_hierarchy" : grid_hierarchy(ds)})
-        self.hashes.update({"parentage_relationships" : parentage_relationships(ds)})
+        self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
     def test_gv(self, f, ds):
-        self.hashes.update({"grid_values" : grid_values(ds, f)})
+        self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
     @pytest.mark.parametrize("d", d_list, indirect=True)
     def test_fv(self, d, f, ds):
-        self.hashes.update({"field_values" : field_values(ds, f, d)})
+        self.hashes.update({"field_values": field_values(ds, f, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
     @pytest.mark.parametrize("d", d_list, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True) 
-    @pytest.mark.parametrize("w", w_list, indirect=True) 
+    @pytest.mark.parametrize("a", a_list, indirect=True)
+    @pytest.mark.parametrize("w", w_list, indirect=True)
     def test_pv(self, a, d, w, f, ds):
-        self.hashes.update({"projection_values" : projection_values(ds, a, f, w, d)})
+        self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
 
     @requires_file(blast)
     def test_blast_override(self):
         # verify that overriding units causes derived unit values to be updated.
         # see issue #1259
         ds = load(blast, units_override=uo_blast)
-        assert_almost_equal(float(ds.magnetic_unit.in_units("gauss")), 5.478674679698131e-07, decimal=14)
+        assert_almost_equal(
+            float(ds.magnetic_unit.in_units("gauss")), 5.478674679698131e-07, decimal=14
+        )
 
     @requires_file(sloshing)
     @disable_dataset_cache

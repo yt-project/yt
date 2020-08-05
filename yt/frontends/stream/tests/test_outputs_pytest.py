@@ -14,18 +14,14 @@ import numpy as np
 import pytest
 
 from yt.convenience import load
-from yt.frontends.stream.api import (
-    load_particles,
-    load_uniform_grid,
-)
+from yt.frontends.stream.api import load_particles, load_uniform_grid
 from yt.testing import assert_equal, assert_raises
 from yt.utilities.exceptions import (
-    YTOutputNotIdentified,
     YTInconsistentGridFieldShape,
-    YTInconsistentParticleFieldShape,
     YTInconsistentGridFieldShapeGridDims,
+    YTInconsistentParticleFieldShape,
+    YTOutputNotIdentified,
 )
-
 
 # Globals
 OCT_MASK_LIST = [

@@ -10,17 +10,12 @@ Notes:
 import pytest
 
 from yt.frontends.artio.api import ARTIODataset
-from yt.testing import (
-    assert_allclose_units,
-    assert_equal,
-    units_override_check,
-)
+from yt.testing import assert_allclose_units, assert_equal, units_override_check
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     pixelized_projection_values,
 )
 from yt.utilities.answer_testing.utils import create_obj
-
 
 # Data file
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/"

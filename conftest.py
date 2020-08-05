@@ -25,9 +25,9 @@ from yt.utilities.answer_testing import utils
 pytest.answer_files = {}
 
 # List of answer files
-answer_file_list = 'tests/tests_pytest.yaml'
-answer_dir = os.path.join(ytcfg.get('yt', 'test_data_dir'), 'answers')
-array_dir = os.path.join(answer_dir, 'raw_arrays')
+answer_file_list = "tests/tests_pytest.yaml"
+answer_dir = os.path.join(ytcfg.get("yt", "test_data_dir"), "answers")
+array_dir = os.path.join(answer_dir, "raw_arrays")
 
 
 def pytest_addoption(parser):
@@ -35,32 +35,25 @@ def pytest_addoption(parser):
     Lets options be passed to test functions.
     """
     parser.addoption(
-        "--with-answer-testing",
-        action="store_true",
+        "--with-answer-testing", action="store_true",
     )
     parser.addoption(
-        "--answer-store",
-        action="store_true",
+        "--answer-store", action="store_true",
     )
     parser.addoption(
-        "--answer-big-data",
-        action="store_true",
+        "--answer-big-data", action="store_true",
     )
     parser.addoption(
-        "--answer-raw-arrays",
-        action="store_true",
+        "--answer-raw-arrays", action="store_true",
     )
     parser.addoption(
-        "--raw-answer-store",
-        action="store_true",
+        "--raw-answer-store", action="store_true",
     )
     parser.addoption(
-        "--force-overwrite",
-        action="store_true",
+        "--force-overwrite", action="store_true",
     )
     parser.addoption(
-        "--no-hash",
-        action="store_true",
+        "--no-hash", action="store_true",
     )
 
 
@@ -77,7 +70,7 @@ def pytest_configure(config):
         os.mkdir(array_dir)
     # Read the list of answer test classes and their associated answer
     # file
-    with open(answer_file_list, 'r') as f:
+    with open(answer_file_list, "r") as f:
         pytest.answer_files = yaml.safe_load(f)
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
@@ -166,16 +159,22 @@ def answer_file(request):
     """
     # See if the class being tested is one we know about
     try:
-        answer_file, raw_answer_file  = pytest.answer_files[request.cls.__name__]
+        answer_file, raw_answer_file = pytest.answer_files[request.cls.__name__]
         answer_file = os.path.join(answer_dir, answer_file)
         raw_answer_file = os.path.join(array_dir, raw_answer_file)
     except KeyError:
-        raise KeyError("Answer file: `{}` not found in list: `{}`.".format(
-            request.config.__name__, answer_file_list))
+        raise KeyError(
+            "Answer file: `{}` not found in list: `{}`.".format(
+                request.config.__name__, answer_file_list
+            )
+        )
     except ValueError:
-        raise ValueError("Either no hashed answer file name or no raw "
+        raise ValueError(
+            "Either no hashed answer file name or no raw "
             "answer file name given for: `{}` in: `{}`.".format(
-            request.cls.__name__, answer_file_list))
+                request.cls.__name__, answer_file_list
+            )
+        )
     no_hash = request.config.getoption("--no-hash")
     answer_store = request.config.getoption("--answer-store")
     answer_raw_arrays = request.config.getoption("--answer-raw-arrays")
@@ -188,32 +187,43 @@ def answer_file(request):
     if not no_hash:
         if answer_store and os.path.isfile(answer_file):
             if not force_overwrite:
-                raise FileExistsError("Attempting to overwrite existing answer " +
-                "file: `{}`. If you're sure about this, use the `--force-overwrite` " +
-                "option.".format(answer_file))
+                raise FileExistsError(
+                    "Attempting to overwrite existing answer "
+                    + "file: `{}`. If you're sure about this, use the `--force-overwrite` "
+                    + "option.".format(answer_file)
+                )
         # If we're comparing new and old answers, first make sure that the
         # file containing the old answers exists so we don't waste time running
         # all the tests only to find we have nothing to compare to
         elif not answer_store and not os.path.isfile(answer_file):
-            raise FileNotFoundError("Cannot find `{}` containing gold " +
-                "answers.".format(answer_file))
+            raise FileNotFoundError(
+                "Cannot find `{}` containing gold answers.".format(answer_file)
+            )
     # Now do the same thing as above but for the raw arrays
     if answer_raw_arrays:
         if raw_answer_store and os.path.isfile(raw_answer_file):
             if not force_overwrite:
-                raise FileExistsError("Attempting to overwrite existing answer " +
-                "file: `{}`. If you're sure about this, use the `--force-overwrite` " +
-                "option.".format(raw_answer_file))
+                raise FileExistsError(
+                    "Attempting to overwrite existing answer "
+                    + "file: `{}`. If you're sure about this, use the `--force-overwrite` "
+                    + "option.".format(raw_answer_file)
+                )
         elif not raw_answer_store and not os.path.isfile(raw_answer_file):
-            raise FileNotFoundError("Cannot find `{}` containing gold " +
-                "answers.".format(raw_answer_file))
+            raise FileNotFoundError(
+                "Cannot find `{}` containing gold answers.".format(raw_answer_file)
+            )
     # If the file exists and we are using the force-overwrite option, then
     # we need to delete the existing file, otherwise it will get appended
     # to and this will mess everything up, including with group name conflicts
     # in h5py when saving raw arrays
     if not no_hash and answer_store and os.path.isfile(answer_file) and force_overwrite:
         os.remove(answer_file)
-    if answer_raw_arrays and raw_answer_store and os.path.isfile(raw_answer_file) and force_overwrite:
+    if (
+        answer_raw_arrays
+        and raw_answer_store
+        and os.path.isfile(raw_answer_file)
+        and force_overwrite
+    ):
         os.remove(raw_answer_file)
     request.cls.answer_file = answer_file
     request.cls.raw_answer_file = raw_answer_file
@@ -227,7 +237,7 @@ def _param_list(request):
     # pytest treats parameterized arguments as fixtures, so there's no
     # clean way to separate them out from other other fixtures (that I
     # know of), so we do it explicitly
-    blacklist = ['hashing', 'answer_file', 'request', 'answer_compare']
+    blacklist = ["hashing", "answer_file", "request", "answer_compare"]
     test_params = {}
     for key, val in request.node.funcargs.items():
         # if key not in blacklist and not key.startswith('ds'):
@@ -280,7 +290,9 @@ def hashing(request):
     # arrays can get quite large and storing everything in memory would
     # be bad
     if raw and not raw_store:
-        utils._compare_raw_arrays(request.cls.hashes, raw_answer_file, request.node.name)
+        utils._compare_raw_arrays(
+            request.cls.hashes, raw_answer_file, request.node.name
+        )
 
 
 @pytest.fixture(scope="class")
@@ -294,7 +306,7 @@ def answer_compare(request):
     store_hash = request.config.getoption("--answer-store")
     if not no_hash and not store_hash:
         with open(request.cls.answer_file, "r") as fd:
-            request.cls.saved_hashes = yaml.safe_load(fd) 
+            request.cls.saved_hashes = yaml.safe_load(fd)
     yield
     # No need to keep the results saved in memory after comparison has
     # been done
@@ -302,7 +314,7 @@ def answer_compare(request):
         del request.cls.saved_hashes
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope="class")
 def ds(request):
     if isinstance(request.param, list):
         dataset = utils.data_dir_load(request.param[0], kwargs=request.param[1])
@@ -313,7 +325,8 @@ def ds(request):
     else:
         pytest.skip(f"Data file: `{request.param}` not found.")
 
-@pytest.fixture(scope='class')
+
+@pytest.fixture(scope="class")
 def f(request):
     """
     Fixture for returning the field. Needed because indirect=True is
@@ -321,7 +334,8 @@ def f(request):
     """
     return request.param
 
-@pytest.fixture(scope='class')
+
+@pytest.fixture(scope="class")
 def d(request):
     """
     Fixture for returning the ds_obj. Needed because indirect=True is
@@ -329,7 +343,8 @@ def d(request):
     """
     return request.param
 
-@pytest.fixture(scope='class')
+
+@pytest.fixture(scope="class")
 def a(request):
     """
     Fixture for returning the axis. Needed because indirect=True is
@@ -337,13 +352,15 @@ def a(request):
     """
     return request.param
 
-@pytest.fixture(scope='class')
+
+@pytest.fixture(scope="class")
 def w(request):
     """
     Fixture for returning the weight_field. Needed because
     indirect=True is used for loading the datasets.
     """
     return request.param
+
 
 @pytest.fixture(scope="class")
 def ds_repr(request):
@@ -352,6 +369,7 @@ def ds_repr(request):
     Needed because indirect=True is used for loading the datasets.
     """
     return request.param
+
 
 @pytest.fixture(scope="class")
 def N(request):

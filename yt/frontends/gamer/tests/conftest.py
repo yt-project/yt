@@ -6,7 +6,6 @@ import pytest
 
 from yt.utilities.answer_testing.utils import data_dir_load
 
-
 # Test data
 jet = "InteractingJets/jet_000002"
 

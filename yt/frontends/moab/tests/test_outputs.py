@@ -12,13 +12,12 @@ import pytest
 
 from yt.frontends.moab.api import MoabHex8Dataset
 from yt.testing import (
-    assert_equal,
     assert_almost_equal,
+    assert_equal,
     requires_file,
     units_override_check,
 )
 from yt.utilities.answer_testing.answer_tests import field_values
-
 
 # Test data
 c5 = "c5/c5.h5m"

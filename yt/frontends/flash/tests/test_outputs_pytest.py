@@ -12,8 +12,8 @@ import pytest
 
 from yt.frontends.flash.api import FLASHDataset, FLASHParticleDataset
 from yt.testing import (
-    assert_equal,
     ParticleSelectionComparison,
+    assert_equal,
     requires_file,
     units_override_check,
 )

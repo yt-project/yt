@@ -14,7 +14,6 @@ from yt.frontends.owls.api import OWLSDataset
 from yt.testing import ParticleSelectionComparison
 from yt.utilities.answer_testing.answer_tests import sph_answer
 
-
 # Test data
 os33 = "snapshot_033/snap_033.0.hdf5"
 
