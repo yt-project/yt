@@ -1,11 +1,10 @@
 # This is a part of the experimental Interactive Data Visualization
-
 import os
 
-import numpy as np
-
 import cyglfw3 as glfw
-import OpenGL.GL as GL
+import numpy as np
+from OpenGL import GL as GL
+
 from yt import write_bitmap
 
 from .input_events import EventCollection, MouseRotation

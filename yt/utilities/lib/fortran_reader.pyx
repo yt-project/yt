@@ -9,11 +9,11 @@ Simple readers for fortran unformatted data, specifically for the Tiger code.
 
 
 import numpy as np
-cimport numpy as np
-cimport cython
 
-from libc.stdio cimport fopen, fclose, FILE
+cimport cython
 cimport libc.stdlib as stdlib
+cimport numpy as np
+from libc.stdio cimport FILE, fclose, fopen
 
 #cdef inline int imax(int i0, int i1):
     #if i0 > i1: return i0

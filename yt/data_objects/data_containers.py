@@ -10,10 +10,8 @@ import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry.selection_routines
-import yt.units.dimensions as ytdims
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
-from yt.fields.derived_field import DerivedField
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
@@ -25,6 +23,7 @@ from yt.funcs import (
     validate_width_tuple,
 )
 from yt.geometry.selection_routines import compose_selector
+from yt.units import dimensions as ytdims
 from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
@@ -709,8 +708,9 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         the Glue environment, you can pass a *data_collection* object,
         otherwise Glue will be started.
         """
+        from glue.core import Data, DataCollection
+
         from yt.config import ytcfg
-        from glue.core import DataCollection, Data
 
         if ytcfg.getboolean("yt", "__withintesting"):
             from glue.core.application_base import Application as GlueApplication
@@ -819,8 +819,8 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
 
         ## attempt to import firefly_api
         try:
-            from firefly_api.reader import Reader
             from firefly_api.particlegroup import ParticleGroup
+            from firefly_api.reader import Reader
         except ImportError:
             raise ImportError(
                 "Can't find firefly_api, ensure it"
@@ -1427,6 +1427,49 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
 
+    def _tupleize_field(self, field):
+
+        try:
+            ftype, fname = field.name
+            return ftype, fname
+        except AttributeError:
+            pass
+
+        if iterable(field) and not isinstance(field, str):
+            try:
+                ftype, fname = field
+                if not all(isinstance(_, str) for _ in field):
+                    raise TypeError
+                return ftype, fname
+            except TypeError as e:
+                raise YTFieldNotParseable(field) from e
+            except ValueError:
+                pass
+
+        try:
+            fname = field
+            finfo = self.ds._get_field_info(field)
+            if finfo.sampling_type == "particle":
+                ftype = self._current_particle_type
+                if hasattr(self.ds, "_sph_ptypes"):
+                    ptypes = self.ds._sph_ptypes
+                    if finfo.name[0] in ptypes:
+                        ftype = finfo.name[0]
+                    elif finfo.alias_field and finfo.alias_name[0] in ptypes:
+                        ftype = self._current_fluid_type
+            else:
+                ftype = self._current_fluid_type
+                if (ftype, fname) not in self.ds.field_info:
+                    ftype = self.ds._last_freq[0]
+            return ftype, fname
+        except YTFieldNotFound:
+            pass
+
+        if isinstance(field, str):
+            return "unknown", field
+
+        raise YTFieldNotParseable(field)
+
     def _determine_fields(self, fields):
         fields = ensure_list(fields)
         explicit_fields = []
@@ -1434,45 +1477,22 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             if field in self._container_fields:
                 explicit_fields.append(field)
                 continue
-            if isinstance(field, tuple):
-                if (
-                    len(field) != 2
-                    or not isinstance(field[0], str)
-                    or not isinstance(field[1], str)
-                ):
-                    raise YTFieldNotParseable(field)
-                ftype, fname = field
-                finfo = self.ds._get_field_info(ftype, fname)
-            elif isinstance(field, DerivedField):
-                ftype, fname = field.name
-                finfo = field
-            else:
-                fname = field
-                finfo = self.ds._get_field_info("unknown", fname)
-                if finfo.sampling_type == "particle":
-                    ftype = self._current_particle_type
-                    if hasattr(self.ds, "_sph_ptypes"):
-                        ptypes = self.ds._sph_ptypes
-                        if finfo.name[0] in ptypes:
-                            ftype = finfo.name[0]
-                        elif finfo.alias_field and finfo.alias_name[0] in ptypes:
-                            ftype = self._current_fluid_type
-                else:
-                    ftype = self._current_fluid_type
-                    if (ftype, fname) not in self.ds.field_info:
-                        ftype = self.ds._last_freq[0]
 
-                # really ugly check to ensure that this field really does exist somewhere,
-                # in some naming convention, before returning it as a possible field type
-                if (
-                    (ftype, fname) not in self.ds.field_info
-                    and (ftype, fname) not in self.ds.field_list
-                    and fname not in self.ds.field_list
-                    and (ftype, fname) not in self.ds.derived_field_list
-                    and fname not in self.ds.derived_field_list
-                    and (ftype, fname) not in self._container_fields
-                ):
-                    raise YTFieldNotFound((ftype, fname), self.ds)
+            ftype, fname = self._tupleize_field(field)
+            # print(field, " : ",ftype, fname)
+            finfo = self.ds._get_field_info(ftype, fname)
+
+            # really ugly check to ensure that this field really does exist somewhere,
+            # in some naming convention, before returning it as a possible field type
+            if (
+                (ftype, fname) not in self.ds.field_info
+                and (ftype, fname) not in self.ds.field_list
+                and fname not in self.ds.field_list
+                and (ftype, fname) not in self.ds.derived_field_list
+                and fname not in self.ds.derived_field_list
+                and (ftype, fname) not in self._container_fields
+            ):
+                raise YTFieldNotFound((ftype, fname), self.ds)
 
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
@@ -1979,8 +1999,8 @@ class YTSelectionContainer2D(YTSelectionContainer):
         return field
 
     def _get_pw(self, fields, center, width, origin, plot_type):
-        from yt.visualization.plot_window import get_window_parameters, PWViewerMPL
         from yt.visualization.fixed_resolution import FixedResolutionBuffer as frb
+        from yt.visualization.plot_window import PWViewerMPL, get_window_parameters
 
         axis = self.axis
         skip = self._key_fields
@@ -2119,7 +2139,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self.coords = None
         self._grids = None
 
-    def cut_region(self, field_cuts, field_parameters=None, locals={}):
+    def cut_region(self, field_cuts, field_parameters=None, locals=None):
         """
         Return a YTCutRegion, where the a cell is identified as being inside
         the cut region based on the value of one or more fields.  Note that in
@@ -2150,6 +2170,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.cut_region(["obj['temperature'] > 1e6"])
         >>> print(cr.quantities.total_quantity("cell_mass").in_units('Msun'))
         """
+        if locals is None:
+            locals = {}
         cr = self.ds.cut_region(
             self, field_cuts, field_parameters=field_parameters, locals=locals
         )

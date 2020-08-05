@@ -600,8 +600,9 @@ class Profile1D(ProfileND):
         >>> df1 = p.to_dataframe()
         >>> df2 = p.to_dataframe(fields="density", only_used=True)
         """
-        import pandas as pd
         from collections import OrderedDict
+
+        import pandas as pd
 
         idxs, masked, fields = self._export_prep(fields, only_used)
         pdata = OrderedDict([(self.x_field[-1], self.x[idxs])])
@@ -1453,8 +1454,8 @@ def create_profile(
         for o_bin, ax in zip(o_bins, ["x", "y", "z"]):
             kwargs["override_bins_{0}".format(ax)] = o_bin
     obj = cls(*args, **kwargs)
-    setattr(obj, "accumulation", accumulation)
-    setattr(obj, "fractional", fractional)
+    obj.accumulation = accumulation
+    obj.fractional = fractional
     if fields is not None:
         obj.add_fields([field for field in fields])
     for field in fields:

@@ -18,6 +18,7 @@ import traceback
 import urllib.parse
 import urllib.request
 import warnings
+from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from math import ceil, floor
 from numbers import Number as numeric_type
@@ -527,8 +528,8 @@ def paste_traceback_detailed(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     import cgitb
-    from io import StringIO
     import xmlrpc.client
+    from io import StringIO
 
     s = StringIO()
     handler = cgitb.Hook(format="text", file=s)
@@ -891,6 +892,7 @@ def parallel_profile(prefix):
     ...     yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
     """
     import cProfile
+
     from yt.config import ytcfg
 
     fn = "%s_%04i_%04i.cprof" % (
@@ -1104,8 +1106,8 @@ def enable_plugins(pluginfilename=None):
     file is shared with it.
     """
     import yt
+    from yt.config import CONFIG_DIR, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
-    from yt.config import ytcfg, CONFIG_DIR
 
     if pluginfilename is not None:
         _fn = pluginfilename
@@ -1265,10 +1267,13 @@ def matplotlib_style_context(style_name=None, after_reset=False):
     available, returns a dummy context manager.
     """
     if style_name is None:
-        style_name = {
-            "mathtext.fontset": "cm",
-            "mathtext.fallback_to_cm": True,
-        }
+        import matplotlib
+
+        style_name = {"mathtext.fontset": "cm"}
+        if LooseVersion(matplotlib.__version__) >= LooseVersion("3.3.0"):
+            style_name["mathtext.fallback"] = "cm"
+        else:
+            style_name["mathtext.fallback_to_cm"] = True
     try:
         import matplotlib.style
 

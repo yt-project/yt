@@ -413,8 +413,8 @@ development version of yt instead of the latest stable release, you will need
   if you are curious why ``--install-option="--prefix="`` is necessary on some systems.
 
 This will install yt into a folder in your home directory
-(``$HOME/.local/lib64/python2.7/site-packages`` on Linux,
-``$HOME/Library/Python/2.7/lib/python/site-packages/`` on OSX) Please refer to
+(e.g. ``$HOME/.local/lib64/python<py_version>/site-packages`` on Linux,
+``$HOME/Library/Python/<py_version>/lib/python/site-packages/`` on OSX) Please refer to
 the ``setuptools`` documentation for the additional options.
 
 If you are unable to locate the ``yt`` executable (i.e. executing ``yt version``

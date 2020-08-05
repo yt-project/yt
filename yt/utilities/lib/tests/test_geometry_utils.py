@@ -47,7 +47,7 @@ def test_compact_bits():
 
 
 def test_spread_and_compact_bits():
-    from yt.utilities.lib.geometry_utils import spread_bits, compact_bits
+    from yt.utilities.lib.geometry_utils import compact_bits, spread_bits
 
     li = [np.uint64(0b111111111111111111111)]
     for ans in li:
@@ -648,7 +648,7 @@ def test_get_morton_neighbors_refined():
 
 
 def test_morton_neighbor():
-    from yt.utilities.lib.geometry_utils import morton_neighbor, get_morton_indices
+    from yt.utilities.lib.geometry_utils import get_morton_indices, morton_neighbor
 
     order = 20
     imax = np.uint64(1 << order)
@@ -695,7 +695,7 @@ def test_morton_neighbor():
 
 
 def test_get_morton_neighbors():
-    from yt.utilities.lib.geometry_utils import get_morton_neighbors, get_morton_indices
+    from yt.utilities.lib.geometry_utils import get_morton_indices, get_morton_neighbors
 
     order = 20
     imax = 1 << order

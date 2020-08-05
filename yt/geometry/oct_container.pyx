@@ -12,11 +12,18 @@ Oct container
 
 cimport cython
 cimport numpy as np
-import numpy as np
-from selection_routines cimport SelectorObject, AlwaysSelector
-from libc.math cimport floor, ceil
-from yt.geometry.oct_visitors cimport OctPadded, NeighbourCellVisitor, StoreIndex, NeighbourCellIndexVisitor
 
+import numpy as np
+
+from libc.math cimport ceil, floor
+from selection_routines cimport AlwaysSelector, SelectorObject
+
+from yt.geometry.oct_visitors cimport (
+    NeighbourCellIndexVisitor,
+    NeighbourCellVisitor,
+    OctPadded,
+    StoreIndex,
+)
 
 ORDER_MAX = 20
 _ORDER_MAX = ORDER_MAX
@@ -727,12 +734,13 @@ cdef class OctreeContainer:
                    np.int64_t offset = 0):
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef int i
+        cdef int i, lvl
 
         for key in dest_fields:
             dest = dest_fields[key]
             source = source_fields[key]
-            for i, lvl in enumerate(levels):
+            for i in range(levels.shape[0]):
+                lvl = levels[i]
                 if lvl != level: continue
                 if file_inds[i] < 0:
                     dest[i + offset] = np.nan
@@ -819,13 +827,16 @@ cdef class OctreeContainer:
         """
         cdef np.ndarray[np.float64_t, ndim=2] source
         cdef np.ndarray[np.float64_t, ndim=1] dest
-        cdef int i, count
+        cdef int i, count, lev
+        cdef np.int32_t dom
 
         for key in dest_fields:
             dest = dest_fields[key]
             source = source_fields[key]
             count = 0
-            for i, (lev, dom) in enumerate(zip(levels, domains)):
+            for i in range(levels.shape[0]):
+                lev = levels[i]
+                dom = domains[i]
                 if lev != level or dom != domain: continue
                 count += 1
                 if file_inds[i] < 0:

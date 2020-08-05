@@ -61,13 +61,9 @@ def stdchannel_redirected(stdchannel, dest_filename):
 def check_for_openmp():
     """Returns True if local setup supports OpenMP, False otherwise
 
-    Code adapted from astropy_helpers, originally written by Tom 
+    Code adapted from astropy_helpers, originally written by Tom
     Robitaille and Curtis McCully.
     """
-
-    # See https://bugs.python.org/issue25150
-    if sys.version_info[:3] == (3, 5, 0):
-        return False
 
     # Create a temporary directory
     ccompiler = new_compiler()
@@ -172,7 +168,7 @@ def check_for_pyembree(std_libs):
 
 
 def in_conda_env():
-    return any(s in sys.version for s in ("Anaconda", "Continuum"))
+    return any(s in sys.version for s in ("Anaconda", "Continuum", "conda-forge"))
 
 
 def read_embree_location():

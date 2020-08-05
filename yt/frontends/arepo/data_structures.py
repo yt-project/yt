@@ -56,9 +56,8 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
                 )
             )
             fh.close()
-        except:
+        except Exception:
             valid = False
-            pass
         return valid
 
     def _get_uvals(self):

@@ -1,12 +1,11 @@
 # This is a part of the experimental Interactive Data Visualization
-
 import ctypes
 from collections import OrderedDict
 
-import matplotlib.cm as cm
 import numpy as np
+from matplotlib import cm as cm
+from OpenGL import GL as GL
 
-import OpenGL.GL as GL
 from yt.config import ytcfg
 from yt.utilities.lib.mesh_triangulation import triangulate_mesh
 from yt.utilities.math_utils import (

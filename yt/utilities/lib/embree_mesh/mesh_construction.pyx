@@ -14,31 +14,27 @@ Note - this file is only used for the Embree-accelerated ray-tracer.
 
 
 import numpy as np
-cimport cython
-from libc.stdlib cimport malloc, free
-from libc.math cimport fmax, sqrt
-cimport numpy as np
 
+cimport cython
+cimport numpy as np
 cimport pyembree.rtcore as rtc
 cimport pyembree.rtcore_geometry as rtcg
-cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry_user as rtcgu
-from pyembree.rtcore cimport \
-    Vertex, \
-    Triangle, \
-    Vec3f
-
+cimport pyembree.rtcore_ray as rtcr
+from libc.math cimport fmax, sqrt
+from libc.stdlib cimport free, malloc
+from mesh_intersection cimport (
+    patchBoundsFunc,
+    patchIntersectFunc,
+    tet_patchBoundsFunc,
+    tet_patchIntersectFunc,
+)
+from mesh_samplers cimport sample_hex, sample_tetra, sample_wedge
 from mesh_traversal cimport YTEmbreeScene
-from mesh_samplers cimport \
-    sample_hex, \
-    sample_tetra, \
-    sample_wedge
-from mesh_intersection cimport \
-    patchIntersectFunc, \
-    patchBoundsFunc, \
-    tet_patchIntersectFunc, \
-    tet_patchBoundsFunc
+from pyembree.rtcore cimport Triangle, Vec3f, Vertex
+
 from yt.utilities.exceptions import YTElementTypeNotRecognized
+
 
 cdef extern from "mesh_triangulation.h":
     enum:

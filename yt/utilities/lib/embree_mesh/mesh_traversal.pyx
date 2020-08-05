@@ -12,16 +12,21 @@ mesh source using either pyembree or the cython ray caster.
 
 cimport cython
 cimport numpy as np
+
 import numpy as np
-from libc.stdlib cimport malloc, free
+
 cimport pyembree.rtcore as rtc
-cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_geometry as rtcg
+cimport pyembree.rtcore_ray as rtcr
 cimport pyembree.rtcore_scene as rtcs
-from yt.utilities.lib.image_samplers cimport \
-    ImageSampler
-from cython.parallel import prange, parallel, threadid
+from libc.stdlib cimport free, malloc
+
+from yt.utilities.lib.image_samplers cimport ImageSampler
+
+from cython.parallel import parallel, prange, threadid
+
 from yt.visualization.image_writer import apply_colormap
+
 from yt.utilities.lib.bounding_volume_hierarchy cimport BVH, Ray
 
 rtc.rtcInit(NULL)

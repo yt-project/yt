@@ -374,9 +374,6 @@ class YTSlice(YTSelectionContainer2D):
     def _mrep(self):
         return MinimalSliceData(self)
 
-    def hub_upload(self):
-        self._mrep.upload()
-
     def to_pw(self, fields=None, center="c", width=None, origin="center-window"):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
         object.
@@ -558,11 +555,11 @@ class YTCuttingPlane(YTSelectionContainer2D):
         self.fields = ensure_list(fields) + [
             k for k in self.field_data.keys() if k not in self._key_fields
         ]
-        from yt.visualization.plot_window import (
-            get_oblique_window_parameters,
-            PWViewerMPL,
-        )
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
+        from yt.visualization.plot_window import (
+            PWViewerMPL,
+            get_oblique_window_parameters,
+        )
 
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, self.ds
@@ -1047,8 +1044,10 @@ class YTCutRegion(YTSelectionContainer3D):
         ds=None,
         field_parameters=None,
         base_object=None,
-        locals={},
+        locals=None,
     ):
+        if locals is None:
+            locals = {}
         validate_object(data_source, YTSelectionContainer)
         validate_iterable(conditionals)
         for condition in conditionals:

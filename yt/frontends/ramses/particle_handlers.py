@@ -5,6 +5,7 @@ from yt.config import ytcfg
 from yt.funcs import mylog
 from yt.utilities.cython_fortran_utils import FortranFile
 
+from .field_handlers import HandlerMixin
 from .io import _read_part_file_descriptor
 from .field_handlers import HandlerMixin
 
@@ -34,16 +35,18 @@ class RAMSESParticleFileHandlerRegistry(abc.ABCMeta):
         return cls
 
 class ParticleFileHandler(abc.ABC, HandlerMixin, metaclass=RAMSESParticleFileHandlerRegistry):
-    '''
+    """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
 
     To add support to a new particle file, inherit from this class and
     implement all functions containing a `NotImplementedError`.
 
-    See `SinkParticleFileHandler` for an example implementation.'''
+    See `SinkParticleFileHandler` for an example implementation."""
 
     _file_type = 'particle'
+
+    _file_type = "particle"
 
     # These properties are static properties
     ptype = None  # The name to give to the particle type
