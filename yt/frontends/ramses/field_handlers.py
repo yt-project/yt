@@ -23,7 +23,7 @@ def register_field_handler(ph):
 DETECTED_FIELDS = {}
 
 
-class RAMSESFieldFileHandlerRegistry(abc.ABCMeta):
+class RegisteredRAMSESFieldFileHandler(abc.ABCMeta):
     """
     This is a base class that on instantiation registers the file
     handler into the list. Used as a metaclass.
@@ -141,7 +141,7 @@ class HandlerMixin:
         return exists
 
 
-class FieldFileHandler(abc.ABC, HandlerMixin, metaclass=RAMSESFieldFileHandlerRegistry):
+class FieldFileHandler(abc.ABC, HandlerMixin, metaclass=RegisteredRAMSESFieldFileHandler):
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
