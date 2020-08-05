@@ -1566,7 +1566,7 @@ class HEALpixCamera(Camera):
             uv,
             uv,
             np.zeros(3, dtype="float64"),
-            "KDTree"
+            "KDTree",
         )
         if self._needs_tf:
             args += (self.transfer_function,)
@@ -2433,9 +2433,7 @@ class StereoSphericalCamera(Camera):
             self.transfer_function,
             self.sub_samples,
         )
-        kwargs = {
-            "lens_type": "stereo-spherical"
-        }
+        kwargs = {"lens_type": "stereo-spherical"}
         return args, kwargs
 
     def snapshot(

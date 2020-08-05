@@ -1690,7 +1690,9 @@ class StreamOctreeSubset(OctreeSubset):
     domain_id = 1
     _domain_offset = 1
 
-    def __init__(self, base_region, ds, oct_handler, over_refine_factor=1, num_ghost_zones=0):
+    def __init__(
+        self, base_region, ds, oct_handler, over_refine_factor=1, num_ghost_zones=0
+    ):
         self._over_refine_factor = over_refine_factor
         self._num_zones = 1 << (over_refine_factor)
         self.field_data = YTFieldData()
@@ -1709,22 +1711,22 @@ class StreamOctreeSubset(OctreeSubset):
         if num_ghost_zones > 0:
             if not all(ds.periodicity):
                 mylog.warn("Ghost zones will wrongly assume the domain to be periodic.")
-            base_grid = StreamOctreeSubset(base_region, ds, oct_handler, over_refine_factor)
+            base_grid = StreamOctreeSubset(
+                base_region, ds, oct_handler, over_refine_factor
+            )
             self._base_grid = base_grid
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         try:
             new_subset = self._subset_with_gz
-            mylog.debug(
-                "Reusing previous subset with ghost zone."
-            )
+            mylog.debug("Reusing previous subset with ghost zone.")
         except AttributeError:
             new_subset = StreamOctreeSubset(
                 self.base_region,
                 self.ds,
                 self.oct_handler,
                 self._over_refine_factor,
-                num_ghost_zones=ngz
+                num_ghost_zones=ngz,
             )
             self._subset_with_gz = new_subset
 
@@ -1866,10 +1868,7 @@ class StreamOctreeDataset(StreamDataset):
         unit_system="cgs",
     ):
         super(StreamOctreeDataset, self).__init__(
-            stream_handler,
-            storage_filename,
-            geometry,
-            unit_system
+            stream_handler, storage_filename, geometry, unit_system
         )
         # Set up levelmax
         self.max_level = stream_handler.levels.max()
