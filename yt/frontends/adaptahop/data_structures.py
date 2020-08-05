@@ -7,6 +7,7 @@ Data structures for AdaptaHOP frontend.
 """
 
 
+import numpy as np
 import os
 import re
 import stat
