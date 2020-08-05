@@ -7,7 +7,6 @@ from yt.utilities.cython_fortran_utils import FortranFile
 
 from .field_handlers import HandlerMixin
 from .io import _read_part_file_descriptor
-from .field_handlers import HandlerMixin
 
 PARTICLE_HANDLERS = set()
 
@@ -34,7 +33,10 @@ class RAMSESParticleFileHandlerRegistry(abc.ABCMeta):
         cls._unique_registry = {}
         return cls
 
-class ParticleFileHandler(abc.ABC, HandlerMixin, metaclass=RAMSESParticleFileHandlerRegistry):
+
+class ParticleFileHandler(
+    abc.ABC, HandlerMixin, metaclass=RAMSESParticleFileHandlerRegistry
+):
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -44,7 +46,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin, metaclass=RAMSESParticleFileHan
 
     See `SinkParticleFileHandler` for an example implementation."""
 
-    _file_type = 'particle'
+    _file_type = "particle"
 
     _file_type = "particle"
 
@@ -145,9 +147,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         extra_particle_fields = self.ds._extra_particle_fields
 
         if self.has_descriptor:
-            particle_fields = (
-                _read_part_file_descriptor(self.file_descriptor)
-            )
+            particle_fields = _read_part_file_descriptor(self.file_descriptor)
         else:
             particle_fields = list(self.known_fields)
 
@@ -261,9 +261,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
 
         # Read the fields + add the sink properties
         if self.has_descriptor:
-            fields = (
-                _read_part_file_descriptor(self.file_descriptor)
-            )
+            fields = _read_part_file_descriptor(self.file_descriptor)
         else:
             fields = list(self.known_fields)
 
