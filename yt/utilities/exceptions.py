@@ -38,6 +38,7 @@ class YTAmbiguousDataType(YTOutputNotIdentified):
         msg += "The following independent classes were detected as valid :\n"
         for c in self.candidates:
             msg += f"{c}\n"
+        msg += "A possible workaround is to directly instantiate one of the above.\n"
         msg += "Please report this to https://github.com/yt-project/yt/issues/new"
         return msg
 
