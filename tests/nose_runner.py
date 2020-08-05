@@ -1,22 +1,30 @@
-import sys
-import os
-import yaml
 import multiprocessing
-import nose
+import os
+import sys
 
+import nose
+import yaml
 from coverage import Coverage
-cov = Coverage(config_file=".coveragerc", branch=True, auto_data=True,
-               concurrency="multiprocessing")
+
+cov = Coverage(
+    config_file=".coveragerc",
+    branch=True,
+    auto_data=True,
+    concurrency="multiprocessing",
+)
 cov.start()
 
 from io import StringIO
+
+import numpy
+
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
-import numpy
+
 numpy.set_printoptions(threshold=5, edgeitems=1, precision=4)
 
-class NoseWorker(multiprocessing.Process):
 
+class NoseWorker(multiprocessing.Process):
     def __init__(self, task_queue, result_queue):
         multiprocessing.Process.__init__(self)
         self.task_queue = task_queue
@@ -30,7 +38,7 @@ class NoseWorker(multiprocessing.Process):
                 print("%s: Exiting" % proc_name)
                 self.task_queue.task_done()
                 break
-            print('%s: %s' % (proc_name, next_task))
+            print("%s: %s" % (proc_name, next_task))
             result = next_task()
             self.task_queue.task_done()
             self.result_queue.put(result)
@@ -38,6 +46,7 @@ class NoseWorker(multiprocessing.Process):
                 print("%s: Exiting (exclusive)" % proc_name)
                 break
         return
+
 
 class NoseTask(object):
     def __init__(self, job):
@@ -51,10 +60,14 @@ class NoseTask(object):
         sys.stderr = mystderr = StringIO()
         test_dir = ytcfg.get("yt", "test_data_dir")
         answers_dir = os.path.join(test_dir, "answers")
-        if '--with-answer-testing' in self.argv and \
-                not os.path.isdir(os.path.join(answers_dir, self.name)):
-            nose.run(argv=self.argv + ['--answer-store'],
-                     addplugins=[AnswerTesting()], exit=False)
+        if "--with-answer-testing" in self.argv and not os.path.isdir(
+            os.path.join(answers_dir, self.name)
+        ):
+            nose.run(
+                argv=self.argv + ["--answer-store"],
+                addplugins=[AnswerTesting()],
+                exit=False,
+            )
         if os.path.isfile("{}.xml".format(self.name)):
             os.remove("{}.xml".format(self.name))
         nose.run(argv=self.argv, addplugins=[AnswerTesting()], exit=False)
@@ -62,7 +75,7 @@ class NoseTask(object):
         return mystderr.getvalue()
 
     def __str__(self):
-        return 'WILL DO self.name = %s' % self.name
+        return "WILL DO self.name = %s" % self.name
 
 
 def generate_tasks_input():
@@ -74,16 +87,19 @@ def generate_tasks_input():
 
     test_dir = ytcfg.get("yt", "test_data_dir")
     answers_dir = os.path.join(test_dir, "answers")
-    with open('tests/tests.yaml', 'r') as obj:
+    with open("tests/tests.yaml", "r") as obj:
         lines = obj.read()
-    data = '\n'.join([line for line in lines.split('\n')
-                      if DROP_TAG not in line])
+    data = "\n".join([line for line in lines.split("\n") if DROP_TAG not in line])
     tests = yaml.load(data, Loader=yaml.FullLoader)
 
-    base_argv = ['-s', '--nologcapture', '--with-xunit']
+    base_argv = ["-s", "--nologcapture", "--with-xunit"]
 
-    base_answer_argv = ['--local-dir=%s' % answers_dir, '--with-answer-testing',
-                        '--answer-big-data', '--local']
+    base_answer_argv = [
+        "--local-dir=%s" % answers_dir,
+        "--with-answer-testing",
+        "--answer-big-data",
+        "--local",
+    ]
 
     args = []
 
@@ -94,13 +110,16 @@ def generate_tasks_input():
             continue
         argv = ["{}_{}".format(pyver, answer)]
         argv += base_argv + base_answer_argv
-        argv.append('--answer-name=%s' % argv[0])
+        argv.append("--answer-name=%s" % argv[0])
         argv += tests["answer_tests"][answer]
         args.append((argv, False))
 
-    args = [(item + ['--xunit-file=%s.xml' % item[0]], exclusive)
-            for item, exclusive in args]
+    args = [
+        (item + ["--xunit-file=%s.xml" % item[0]], exclusive)
+        for item, exclusive in args
+    ]
     return args
+
 
 if __name__ == "__main__":
     try:
@@ -108,7 +127,7 @@ if __name__ == "__main__":
         tasks = multiprocessing.JoinableQueue()
         results = multiprocessing.Queue()
 
-        num_consumers = int(os.environ.get('NUM_WORKERS', 6))
+        num_consumers = int(os.environ.get("NUM_WORKERS", 6))
         consumers = [NoseWorker(tasks, results) for i in range(num_consumers)]
         for w in consumers:
             w.start()

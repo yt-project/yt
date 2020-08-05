@@ -13,22 +13,31 @@ Suggested usage is::
 """
 # Exports only things specified by thread documentation;
 # skipping obsolete synonyms allocate(), start_new(), exit_thread().
-__all__ = ['error', 'start_new_thread', 'exit', 'get_ident', 'allocate_lock',
-           'interrupt_main', 'LockType']
+__all__ = [
+    "error",
+    "start_new_thread",
+    "exit",
+    "get_ident",
+    "allocate_lock",
+    "interrupt_main",
+    "LockType",
+]
 
 # A dummy value
-TIMEOUT_MAX = 2**31
+TIMEOUT_MAX = 2 ** 31
 
 # NOTE: this module can be imported early in the extension building process,
 # and so top level imports of other modules should be avoided.  Instead, all
 # imports are done when needed on a function-by-function basis.  Since threads
 # are disabled, the import lock should not be an issue anyway (??).
 
+
 class error(Exception):
     """Dummy implementation of _thread.error."""
 
     def __init__(self, *args):
         self.args = args
+
 
 def start_new_thread(function, args, kwargs={}):
     """Dummy implementation of _thread.start_new_thread().
@@ -55,6 +64,7 @@ def start_new_thread(function, args, kwargs={}):
         pass
     except Exception:
         import traceback
+
         traceback.print_exc()
     _main = True
     global _interrupt
@@ -62,9 +72,11 @@ def start_new_thread(function, args, kwargs={}):
         _interrupt = False
         raise KeyboardInterrupt
 
+
 def exit():
     """Dummy implementation of _thread.exit()."""
     raise SystemExit
+
 
 def get_ident():
     """Dummy implementation of _thread.get_ident().
@@ -75,15 +87,18 @@ def get_ident():
     """
     return -1
 
+
 def allocate_lock():
     """Dummy implementation of _thread.allocate_lock()."""
     return LockType()
+
 
 def stack_size(size=None):
     """Dummy implementation of _thread.stack_size()."""
     if size is not None:
         raise error("setting thread stack size not supported")
     return 0
+
 
 class LockType(object):
     """Class implementing dummy implementation of _thread.LockType.
@@ -120,6 +135,7 @@ class LockType(object):
             else:
                 if timeout > 0:
                     import time
+
                     time.sleep(timeout)
                 return False
 
@@ -140,10 +156,12 @@ class LockType(object):
     def locked(self):
         return self.locked_status
 
+
 # Used to signal that interrupt_main was called in a "thread"
 _interrupt = False
 # True when not executing in a "thread"
 _main = True
+
 
 def interrupt_main():
     """Set _interrupt flag to True to have start_new_thread raise

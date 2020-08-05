@@ -1,8 +1,3 @@
-from .data_structures import \
-     YTHaloCatalogDataset
-
-from .io import \
-     IOHandlerYTHaloCatalog
-
-from .fields import \
-     YTHaloCatalogFieldInfo
+from .data_structures import YTHaloCatalogDataset
+from .fields import YTHaloCatalogFieldInfo
+from .io import IOHandlerYTHaloCatalog

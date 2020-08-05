@@ -12,19 +12,16 @@ import numpy as np
 import pytest
 import yaml
 
+import yt.visualization.particle_plots as particle_plots
+import yt.visualization.plot_window as pw
+import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
 from yt.convenience import load, simulation
 from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
-from yt.utilities.exceptions import \
-    YTOutputNotIdentified
-import yt.visualization.particle_plots as particle_plots
-import yt.visualization.plot_window as pw
-import yt.visualization.profile_plotter as profile_plotter
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.exceptions import YTOutputNotIdentified
 from yt.visualization.volume_rendering.scene import Scene
 
 
@@ -58,21 +55,22 @@ def _streamline_for_io(params):
             key = key.__name__
         if inspect.isfunction(value):
             value = value.__name__
-        # The key can be nested iterables, e.g., 
+        # The key can be nested iterables, e.g.,
         # d = [None, ('sphere', (center, (0.1, 'unitary')))] so we need
         # to use recursion
-        if not isinstance(key, str) and hasattr(key, '__iter__'):
+        if not isinstance(key, str) and hasattr(key, "__iter__"):
             key = _iterable_to_string(key)
         # The value can also be nested iterables
-        if not isinstance(value, str) and hasattr(value, '__iter__'):
+        if not isinstance(value, str) and hasattr(value, "__iter__"):
             value = _iterable_to_string(value)
         # Scene objects need special treatment to make them more IO friendly
         if isinstance(value, Scene):
-            value = 'Scene' 
+            value = "Scene"
         elif isinstance(value, YTRegion):
-            value = 'Region'
+            value = "Region"
         streamlined_params[key] = value
     return streamlined_params
+
 
 def _iterable_to_string(iterable):
     r"""
@@ -89,21 +87,22 @@ def _iterable_to_string(iterable):
     result : str
         The io-friendly version of the passed iterable.
     """
-    result = iterable.__class__.__name__ 
+    result = iterable.__class__.__name__
     for elem in iterable:
         # Check for user-defined functions
         if inspect.isfunction(elem):
-            result += '_' + elem.__name__
+            result += "_" + elem.__name__
         # Non-string iterables (e.g., lists, tuples, etc.)
-        elif not isinstance(elem, str) and hasattr(elem, '__iter__'):
-            result += '_' + _iterable_to_string(elem)
+        elif not isinstance(elem, str) and hasattr(elem, "__iter__"):
+            result += "_" + _iterable_to_string(elem)
         # Non-string non-iterables (ints, floats, etc.)
-        elif not isinstance(elem, str) and not hasattr(elem, '__iter__'):
-            result += '_' + str(elem)
+        elif not isinstance(elem, str) and not hasattr(elem, "__iter__"):
+            result += "_" + str(elem)
         # Strings
         elif isinstance(elem, str):
-            result += '_' + elem
+            result += "_" + elem
     return result
+
 
 def _hash_results(results):
     r"""
@@ -126,11 +125,16 @@ def _hash_results(results):
         # These tests have issues with python-specific anchors and so
         # are already hashed
         # (see their definitions in yt/utilites/answer_testing/answer_tests.py)
-        if test_name in ['projection_values', 'pixelized_projection_values', 'grid_values']:
+        if test_name in [
+            "projection_values",
+            "pixelized_projection_values",
+            "grid_values",
+        ]:
             continue
         else:
             results[test_name] = generate_hash(test_value)
     return results
+
 
 def _hash_dict(data):
     r"""
@@ -149,10 +153,11 @@ def _hash_dict(data):
     hd = None
     for key, value in sorted(data.items()):
         if hd is None:
-            hd = hashlib.md5(bytearray(key.encode('utf8')) + bytearray(value))
+            hd = hashlib.md5(bytearray(key.encode("utf8")) + bytearray(value))
         else:
-            hd.update(bytearray(key.encode('utf8')) + bytearray(value))
+            hd.update(bytearray(key.encode("utf8")) + bytearray(value))
     return hd.hexdigest()
+
 
 def generate_hash(data):
     r"""
@@ -187,6 +192,7 @@ def generate_hash(data):
             raise TypeError
     return hd
 
+
 def _save_result(data, outputFile):
     r"""
     Saves the test results to the desired answer file. 
@@ -199,8 +205,9 @@ def _save_result(data, outputFile):
     outputFile : str
         Name of file to save results to.
     """
-    with open(outputFile, 'a') as f:
+    with open(outputFile, "a") as f:
         yaml.dump(data, f)
+
 
 def _compare_result(data, outputFile):
     r"""
@@ -216,7 +223,7 @@ def _compare_result(data, outputFile):
         Name of file where answers are already saved.
     """
     # Load the saved data
-    with open(outputFile, 'r') as f:
+    with open(outputFile, "r") as f:
         savedData = yaml.safe_load(f)
     # Define the comparison function
     def _check_vals(newVals, oldVals):
@@ -225,8 +232,10 @@ def _compare_result(data, outputFile):
                 _check_vals(value, oldVals[key])
             else:
                 assert value == oldVals[key]
+
     # Compare
     _check_vals(data, savedData)
+
 
 def _handle_hashes(save_dir_name, fname, hashes, answer_store):
     r"""
@@ -286,7 +295,7 @@ def _save_arrays(save_dir_name, fbasename, arrays, answer_store):
     pass
 
 
-def can_run_ds(ds_fn, file_check = False):
+def can_run_ds(ds_fn, file_check=False):
     r"""
     Validates whether or not a given input can be loaded and used as a
     Dataset object.
@@ -305,7 +314,7 @@ def can_run_ds(ds_fn, file_check = False):
         return False
 
 
-def can_run_sim(sim_fn, sim_type, file_check = False):
+def can_run_sim(sim_fn, sim_type, file_check=False):
     r"""
     Validates whether or not a given input can be used as a simulation
     time-series object.
@@ -319,19 +328,20 @@ def can_run_sim(sim_fn, sim_type, file_check = False):
         simulation(sim_fn, sim_type)
     except YTOutputNotIdentified:
         return False
-    return True 
+    return True
 
 
-def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
+def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
     r"""
     Loads a sample dataset from the designated test_data_dir for use in
     testing.
     """
     args = args or ()
     kwargs = kwargs or {}
-    kwargs.setdefault('unit_system', 'code')
+    kwargs.setdefault("unit_system", "code")
     path = ytcfg.get("yt", "test_data_dir")
-    if isinstance(ds_fn, Dataset): return ds_fn
+    if isinstance(ds_fn, Dataset):
+        return ds_fn
     if not os.path.isdir(path):
         return False
     if cls is None:
@@ -342,44 +352,54 @@ def data_dir_load(ds_fn, cls = None, args = None, kwargs = None):
     return ds
 
 
-def requires_ds(ds_fn, file_check = False):
+def requires_ds(ds_fn, file_check=False):
     r"""
     Meta-wrapper for specifying required data for a test and
     checking if said data exists.
     """
+
     def ffalse(func):
         @functools.wraps(func)
         def skip(*args, **kwargs):
             msg = "{} not found, skipping {}.".format(ds_fn, func.__name__)
             pytest.fail(msg)
+
         return skip
+
     def ftrue(func):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
             return func
+
         return true_wrapper
+
     if not can_run_ds(ds_fn, file_check):
         return ffalse
     else:
         return ftrue
 
 
-def requires_sim(sim_fn, sim_type, file_check = False):
+def requires_sim(sim_fn, sim_type, file_check=False):
     r"""
     Meta-wrapper for specifying a required simulation for a test and
     checking if said simulation exists.
     """
+
     def ffalse(func):
         @functools.wraps(func)
         def skip(*args, **kwargs):
             msg = "{} not found, skipping {}.".format(sim_fn, func.__name__)
             pytest.fail(msg)
+
         return skip
+
     def ftrue(func):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
             return func
+
         return true_wrapper
+
     if not can_run_sim(sim_fn, sim_type, file_check):
         return ffalse
     else:
@@ -401,8 +421,7 @@ def compare_unit_attributes(ds1, ds2):
     Checks to make sure that the length, mass, time, velocity, and
     magnetic units are the same for two different dataset objects.
     """
-    attrs = ('length_unit', 'mass_unit', 'time_unit',
-             'velocity_unit', 'magnetic_unit')
+    attrs = ("length_unit", "mass_unit", "time_unit", "velocity_unit", "magnetic_unit")
     for attr in attrs:
         u1 = getattr(ds1, attr, None)
         u2 = getattr(ds2, attr, None)
@@ -411,24 +430,23 @@ def compare_unit_attributes(ds1, ds2):
 
 def fake_halo_catalog(data):
     filename = "catalog.0.h5"
-    ftypes = dict((field, '.') for field in data)
-    extra_attrs = {"data_type": "halo_catalog",
-                   "num_halos": data['particle_mass'].size}
-    ds = {'cosmological_simulation': 1,
-          'omega_lambda': 0.7,
-          'omega_matter': 0.3,
-          'hubble_constant': 0.7,
-          'current_redshift': 0,
-          'current_time': YTQuantity(1, 'yr'),
-          'domain_left_edge': YTArray(np.zeros(3), 'cm'),
-          'domain_right_edge': YTArray(np.ones(3), 'cm')}
-    save_as_dataset(ds, filename, data, field_types=ftypes,
-        extra_attrs=extra_attrs
-    )
+    ftypes = dict((field, ".") for field in data)
+    extra_attrs = {"data_type": "halo_catalog", "num_halos": data["particle_mass"].size}
+    ds = {
+        "cosmological_simulation": 1,
+        "omega_lambda": 0.7,
+        "omega_matter": 0.3,
+        "hubble_constant": 0.7,
+        "current_redshift": 0,
+        "current_time": YTQuantity(1, "yr"),
+        "domain_left_edge": YTArray(np.zeros(3), "cm"),
+        "domain_right_edge": YTArray(np.ones(3), "cm"),
+    }
+    save_as_dataset(ds, filename, data, field_types=ftypes, extra_attrs=extra_attrs)
     return filename
 
 
-def _create_plot_window_attribute_plot(ds, ptype, field, axis, pkwargs = None):
+def _create_plot_window_attribute_plot(ds, ptype, field, axis, pkwargs=None):
     r"""
     Convenience function used in plot_window_attribute_test.
 
@@ -450,7 +468,7 @@ def _create_plot_window_attribute_plot(ds, ptype, field, axis, pkwargs = None):
         Any keywords to be passed when creating the plot.
     """
     if ptype is None:
-        raise RuntimeError('Must explicitly request a plot type')
+        raise RuntimeError("Must explicitly request a plot type")
     cls = getattr(pw, ptype, None)
     if cls is None:
         cls = getattr(particle_plots, ptype)
@@ -458,8 +476,9 @@ def _create_plot_window_attribute_plot(ds, ptype, field, axis, pkwargs = None):
     return plot
 
 
-def _create_phase_plot_attribute_plot(data_source, x_field, y_field, z_field,
-                plot_type, plot_kwargs=None):
+def _create_phase_plot_attribute_plot(
+    data_source, x_field, y_field, z_field, plot_type, plot_kwargs=None
+):
     r"""
     Convenience function used in phase_plot_attribute_test.
 
@@ -484,7 +503,7 @@ def _create_phase_plot_attribute_plot(data_source, x_field, y_field, z_field,
         Any keywords to be passed when creating the plot.
     """
     if plot_type is None:
-        raise RuntimeError('Must explicitly request a plot type')
+        raise RuntimeError("Must explicitly request a plot type")
     cls = getattr(profile_plotter, plot_type, None)
     if cls is None:
         cls = getattr(particle_plots, plot_type)

@@ -1,7 +1,9 @@
 # Write the benchmarking functions here.
 # See "Writing benchmarks" in the asv docs for more information.
 import numpy as np
+
 from yt import YTArray, YTQuantity
+
 
 def time_quantity_init_scalar1():
     3.0 * YTQuantity(1, "m/s")

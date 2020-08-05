@@ -1,31 +1,22 @@
-
-import functools
-import numpy as np
-from collections import OrderedDict
-from yt.config import \
-    ytcfg
-from yt.funcs import mylog, get_image_suffix
-from yt.units.dimensions import \
-    length
-from yt.units.unit_registry import \
-    UnitRegistry
-from yt.units.yt_array import \
-    YTQuantity, \
-    YTArray
-from .camera import Camera
-from .render_source import \
-    OpaqueSource, \
-    BoxSource, \
-    CoordinateVectorSource, \
-    GridSource, \
-    RenderSource, \
-    MeshSource, \
-    VolumeSource, \
-    PointSource, \
-    LineSource
-from .zbuffer_array import ZBuffer
 import builtins
+import functools
+from collections import OrderedDict
+
+import numpy as np
+
+from yt.config import ytcfg
+from yt.funcs import get_image_suffix, mylog
+from yt.units.dimensions import length
+from yt.units.unit_registry import UnitRegistry
+from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
+
+from .camera import Camera
+from .render_source import (BoxSource, CoordinateVectorSource, GridSource,
+                            LineSource, MeshSource, OpaqueSource, PointSource,
+                            RenderSource, VolumeSource)
+from .zbuffer_array import ZBuffer
+
 
 class Scene:
 
@@ -100,8 +91,9 @@ class Scene:
         returning a tuple of (key, source)
         """
         for k, source in self.sources.items():
-            if isinstance(source, OpaqueSource) or \
-                    issubclass(OpaqueSource, type(source)):
+            if isinstance(source, OpaqueSource) or issubclass(
+                OpaqueSource, type(source)
+            ):
                 yield k, source
 
     @property
@@ -129,27 +121,28 @@ class Scene:
             dictionary.
         """
         if keyname is None:
-            keyname = 'source_%02i' % len(self.sources)
+            keyname = "source_%02i" % len(self.sources)
 
         data_sources = (VolumeSource, MeshSource, GridSource)
 
         if isinstance(render_source, data_sources):
-            self._set_new_unit_registry(
-                render_source.data_source.ds.unit_registry)
+            self._set_new_unit_registry(render_source.data_source.ds.unit_registry)
 
         line_annotation_sources = (GridSource, BoxSource, CoordinateVectorSource)
 
         if isinstance(render_source, line_annotation_sources):
             lens_str = str(self.camera.lens)
-            if 'fisheye' in lens_str or 'spherical' in lens_str:
+            if "fisheye" in lens_str or "spherical" in lens_str:
                 raise NotImplementedError(
                     "Line annotation sources are not supported for %s."
-                    % (type(self.camera.lens).__name__), )
+                    % (type(self.camera.lens).__name__),
+                )
 
         if isinstance(render_source, (LineSource, PointSource)):
             if isinstance(render_source.positions, YTArray):
-                render_source.positions = \
-                    self.arr(render_source.positions).in_units('code_length').d
+                render_source.positions = (
+                    self.arr(render_source.positions).in_units("code_length").d
+                )
 
         self.sources[keyname] = render_source
 
@@ -160,23 +153,22 @@ class Scene:
 
     def _set_new_unit_registry(self, input_registry):
         self.unit_registry = UnitRegistry(
-            add_default_symbols=False,
-            lut=input_registry.lut)
+            add_default_symbols=False, lut=input_registry.lut
+        )
 
         # Validate that the new unit registry makes sense
-        current_scaling = self.unit_registry['unitary'][0]
-        if current_scaling != input_registry['unitary'][0]:
+        current_scaling = self.unit_registry["unitary"][0]
+        if current_scaling != input_registry["unitary"][0]:
             for source in self.sources.items():
-                data_source = getattr(source, 'data_source', None)
+                data_source = getattr(source, "data_source", None)
                 if data_source is None:
                     continue
-                scaling = data_source.ds.unit_registry['unitary'][0]
+                scaling = data_source.ds.unit_registry["unitary"][0]
                 if scaling != current_scaling:
                     raise NotImplementedError(
                         "Simultaneously rendering data from datasets with "
                         "different units is not supported"
                     )
-
 
     def render(self, camera=None):
         r"""Render all sources in the Scene.
@@ -210,7 +202,7 @@ class Scene:
         mylog.info("Rendering scene (Can take a while).")
         if camera is None:
             camera = self.camera
-        assert(camera is not None)
+        assert camera is not None
         self._validate()
         bmp = self.composite(camera=camera)
         self._last_render = bmp
@@ -283,48 +275,46 @@ class Scene:
             else:
                 fname = "Render_opaque.png"
         suffix = get_image_suffix(fname)
-        if suffix == '':
-            suffix = '.png'
-            fname = '%s%s' % (fname, suffix)
+        if suffix == "":
+            suffix = ".png"
+            fname = "%s%s" % (fname, suffix)
 
         self.render()
 
         mylog.info("Saving render %s", fname)
         # We can render pngs natively but for other formats we defer to
         # matplotlib.
-        if suffix == '.png':
+        if suffix == ".png":
             self._last_render.write_png(fname, sigma_clip=sigma_clip)
         else:
+            from matplotlib.backends.backend_pdf import FigureCanvasPdf
+            from matplotlib.backends.backend_ps import FigureCanvasPS
             from matplotlib.figure import Figure
-            from matplotlib.backends.backend_pdf import \
-                FigureCanvasPdf
-            from matplotlib.backends.backend_ps import \
-                FigureCanvasPS
+
             shape = self._last_render.shape
-            fig = Figure((shape[0]/100., shape[1]/100.))
-            if suffix == '.pdf':
+            fig = Figure((shape[0] / 100.0, shape[1] / 100.0))
+            if suffix == ".pdf":
                 canvas = FigureCanvasPdf(fig)
-            elif suffix in ('.eps', '.ps'):
+            elif suffix in (".eps", ".ps"):
                 canvas = FigureCanvasPS(fig)
             else:
-                raise NotImplementedError(
-                    "Unknown file suffix '{}'".format(suffix))
+                raise NotImplementedError("Unknown file suffix '{}'".format(suffix))
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
             out = self._last_render
             nz = out[:, :, :3][out[:, :, :3].nonzero()]
             max_val = nz.mean() + sigma_clip * nz.std()
-            alpha = 255 * out[:, :, 3].astype('uint8')
+            alpha = 255 * out[:, :, 3].astype("uint8")
             out = np.clip(out[:, :, :3] / max_val, 0.0, 1.0) * 255
-            out = np.concatenate(
-                [out.astype('uint8'), alpha[..., None]], axis=-1)
+            out = np.concatenate([out.astype("uint8"), alpha[..., None]], axis=-1)
             # not sure why we need rot90, but this makes the orientation
             # match the png writer
-            ax.imshow(np.rot90(out), origin='lower')
+            ax.imshow(np.rot90(out), origin="lower")
             canvas.print_figure(fname, dpi=100)
 
-    def save_annotated(self, fname=None, label_fmt=None,
-                       text_annotate=None, dpi=100, sigma_clip=None):
+    def save_annotated(
+        self, fname=None, label_fmt=None, text_annotate=None, dpi=100, sigma_clip=None
+    ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
         text.
@@ -382,8 +372,10 @@ class Scene:
         ...                                        horizontalalignment="center")]])
 
         """
-        from yt.visualization._mpl_imports import \
-            FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
+        from yt.visualization._mpl_imports import (FigureCanvasAgg,
+                                                   FigureCanvasPdf,
+                                                   FigureCanvasPS)
+
         sources = list(self.sources.values())
         rensources = [s for s in sources if isinstance(s, RenderSource)]
 
@@ -401,9 +393,9 @@ class Scene:
             else:
                 fname = "Render_opaque.png"
         suffix = get_image_suffix(fname)
-        if suffix == '':
-            suffix = '.png'
-            fname = '%s%s' % (fname, suffix)
+        if suffix == "":
+            suffix = ".png"
+            fname = "%s%s" % (fname, suffix)
 
         self.render()
 
@@ -412,8 +404,9 @@ class Scene:
         tf = rs.transfer_function
         label = rs.data_source.ds._get_field_info(rs.field).get_label()
 
-        ax = self._show_mpl(self._last_render.swapaxes(0, 1),
-                            sigma_clip=sigma_clip, dpi=dpi)
+        ax = self._show_mpl(
+            self._last_render.swapaxes(0, 1), sigma_clip=sigma_clip, dpi=dpi
+        )
         self._annotate(ax.axes, tf, rs, label=label, label_fmt=label_fmt)
 
         # any text?
@@ -431,8 +424,7 @@ class Scene:
                 if "color" not in opt:
                     opt["color"] = "w"
 
-                ax.axes.text(xy[0], xy[1], string,
-                             transform=f.transFigure, **opt)
+                ax.axes.text(xy[0], xy[1], string, transform=f.transFigure, **opt)
 
         suffix = get_image_suffix(fname)
 
@@ -448,12 +440,13 @@ class Scene:
 
         self._render_figure.canvas = canvas
         self._render_figure.tight_layout()
-        self._render_figure.savefig(fname, facecolor='black', pad_inches=0)
+        self._render_figure.savefig(fname, facecolor="black", pad_inches=0)
 
     def _show_mpl(self, im, sigma_clip=None, dpi=100):
         from matplotlib.figure import Figure
+
         s = im.shape
-        self._render_figure = Figure(figsize=(s[1]/float(dpi), s[0]/float(dpi)))
+        self._render_figure = Figure(figsize=(s[1] / float(dpi), s[0] / float(dpi)))
         self._render_figure.clf()
         ax = self._render_figure.add_subplot(111)
         ax.set_position([0, 0, 1, 1])
@@ -466,8 +459,7 @@ class Scene:
             del nz
         else:
             nim = im
-        axim = ax.imshow(nim[:,:,:3]/nim[:,:,:3].max(),
-                         interpolation="bilinear")
+        axim = ax.imshow(nim[:, :, :3] / nim[:, :, :3].max(), interpolation="bilinear")
 
         return axim
 
@@ -476,11 +468,16 @@ class Scene:
         ax.get_xaxis().set_ticks([])
         ax.get_yaxis().set_visible(False)
         ax.get_yaxis().set_ticks([])
-        cb = self._render_figure.colorbar(ax.images[0], pad=0.0, fraction=0.05,
-                                          drawedges=True)
-        tf.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt,
-                     resolution=self.camera.resolution[0],
-                     log_scale=source.log_field)
+        cb = self._render_figure.colorbar(
+            ax.images[0], pad=0.0, fraction=0.05, drawedges=True
+        )
+        tf.vert_cbar(
+            ax=cb.ax,
+            label=label,
+            label_fmt=label_fmt,
+            resolution=self.camera.resolution[0],
+            log_scale=source.log_field,
+        )
 
     def _validate(self):
         r"""Validate the current state of the scene."""
@@ -535,8 +532,7 @@ class Scene:
         # a PlotWindow plot
         return np.rot90(im, k=2)
 
-    def add_camera(self, data_source=None, lens_type='plane-parallel',
-                   auto=False):
+    def add_camera(self, data_source=None, lens_type="plane-parallel", auto=False):
         r"""Add a new camera to the Scene.
 
         The camera is defined by a position (the location of the camera
@@ -617,7 +613,9 @@ class Scene:
         def fdel(self):
             del self._camera
             self._camera = None
+
         return locals()
+
     camera = property(**camera())
 
     def unit_registry():
@@ -634,16 +632,21 @@ class Scene:
             self._unit_registry = value
             if self.camera is not None:
                 self.camera.width = YTArray(
-                    self.camera.width.in_units('unitary'), registry=value)
+                    self.camera.width.in_units("unitary"), registry=value
+                )
                 self.camera.focus = YTArray(
-                    self.camera.focus.in_units('unitary'), registry=value)
+                    self.camera.focus.in_units("unitary"), registry=value
+                )
                 self.camera.position = YTArray(
-                    self.camera.position.in_units('unitary'), registry=value)
+                    self.camera.position.in_units("unitary"), registry=value
+                )
 
         def fdel(self):
             del self._unit_registry
             self._unit_registry = None
+
         return locals()
+
     unit_registry = property(**unit_registry())
 
     def set_camera(self, camera):
@@ -690,14 +693,13 @@ class Scene:
         >>> im = sc.render()
 
         """
-        box_source = BoxSource(ds.domain_left_edge,
-                               ds.domain_right_edge,
-                               color=color)
+        box_source = BoxSource(ds.domain_left_edge, ds.domain_right_edge, color=color)
         self.add_source(box_source)
         return self
 
-    def annotate_grids(self, data_source, alpha=0.3, cmap=None,
-                       min_level=None, max_level=None):
+    def annotate_grids(
+        self, data_source, alpha=0.3, cmap=None, min_level=None, max_level=None
+    ):
         r"""
 
         Modifies this scene by drawing the edges of the AMR grids.
@@ -732,8 +734,13 @@ class Scene:
         """
         if cmap is None:
             cmap = ytcfg.get("yt", "default_colormap")
-        grids = GridSource(data_source, alpha=alpha, cmap=cmap,
-                            min_level=min_level, max_level=max_level)
+        grids = GridSource(
+            data_source,
+            alpha=alpha,
+            cmap=cmap,
+            min_level=min_level,
+            max_level=max_level,
+        )
         self.add_source(grids)
         return self
 
@@ -789,7 +796,6 @@ class Scene:
         self.add_source(coords)
         return self
 
-
     def show(self, sigma_clip=None):
         r"""This will send the most recently rendered image to the IPython
         notebook.
@@ -815,12 +821,14 @@ class Scene:
         """
         if "__IPYTHON__" in dir(builtins):
             from IPython.display import display
+
             self._sigma_clip = sigma_clip
             display(self)
         else:
             raise YTNotInsideNotebook
 
     _arr = None
+
     @property
     def arr(self):
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
@@ -865,6 +873,7 @@ class Scene:
         return self._arr
 
     _quan = None
+
     @property
     def quan(self):
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
@@ -911,9 +920,9 @@ class Scene:
     def _repr_png_(self):
         if self._last_render is None:
             self.render()
-        png = self._last_render.write_png(filename=None,
-                                          sigma_clip=self._sigma_clip,
-                                          background='black')
+        png = self._last_render.write_png(
+            filename=None, sigma_clip=self._sigma_clip, background="black"
+        )
         self._sigma_clip = None
         return png
 

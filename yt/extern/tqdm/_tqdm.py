@@ -9,20 +9,22 @@ Usage:
 """
 # future division is important to divide integers and get as
 # a result precise floating numbers (instead of truncated int)
-from __future__ import division, absolute_import
-# import compatibility functions and utilities
-from ._utils import _supports_unicode, _environ_cols_wrapper, _range, _unich, \
-    _term_move_up
+from __future__ import absolute_import, division
+
 import sys
 from time import time
 
+# import compatibility functions and utilities
+from ._utils import (_environ_cols_wrapper, _range, _supports_unicode,
+                     _term_move_up, _unich)
 
-__author__ = {"github.com/": ["noamraph", "obiwanus", "kmike", "hadim",
-                              "casperdcl", "lrq3000"]}
-__all__ = ['tqdm', 'trange', 'format_interval', 'format_meter']
+__author__ = {
+    "github.com/": ["noamraph", "obiwanus", "kmike", "hadim", "casperdcl", "lrq3000"]
+}
+__all__ = ["tqdm", "trange", "format_interval", "format_meter"]
 
 
-def format_sizeof(num, suffix=''):
+def format_sizeof(num, suffix=""):
     """
     Formats a number (greater than unity) with SI Order of Magnitude prefixes.
 
@@ -38,15 +40,15 @@ def format_sizeof(num, suffix=''):
     out  : str
         Number with Order of Magnitude SI unit postfix.
     """
-    for unit in ['', 'K', 'M', 'G', 'T', 'P', 'E', 'Z']:
+    for unit in ["", "K", "M", "G", "T", "P", "E", "Z"]:
         if abs(num) < 999.95:
             if abs(num) < 99.95:
                 if abs(num) < 9.995:
-                    return '{0:1.2f}'.format(num) + unit + suffix
-                return '{0:2.1f}'.format(num) + unit + suffix
-            return '{0:3.0f}'.format(num) + unit + suffix
+                    return "{0:1.2f}".format(num) + unit + suffix
+                return "{0:2.1f}".format(num) + unit + suffix
+            return "{0:3.0f}".format(num) + unit + suffix
         num /= 1000.0
-    return '{0:3.1f}Y'.format(num) + suffix
+    return "{0:3.1f}Y".format(num) + suffix
 
 
 def format_interval(t):
@@ -65,13 +67,22 @@ def format_interval(t):
     mins, s = divmod(int(t), 60)
     h, m = divmod(mins, 60)
     if h:
-        return '{0:d}:{1:02d}:{2:02d}'.format(h, m, s)
+        return "{0:d}:{1:02d}:{2:02d}".format(h, m, s)
     else:
-        return '{0:02d}:{1:02d}'.format(m, s)
+        return "{0:02d}:{1:02d}".format(m, s)
 
 
-def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
-                 unit='it', unit_scale=False, rate=None):
+def format_meter(
+    n,
+    total,
+    elapsed,
+    ncols=None,
+    prefix="",
+    ascii=False,
+    unit="it",
+    unit_scale=False,
+    rate=None,
+):
     """
     Return a string-based progress bar given some parameters
 
@@ -119,10 +130,15 @@ def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
     # (we allow manual override since predicting time is an arcane art)
     if rate is None and elapsed:
         rate = n / elapsed
-    rate_fmt = ((format_sizeof(rate) if unit_scale else
-                 '{0:5.2f}'.format(rate)) if elapsed else
-                '?') \
-        + unit + '/s'
+    rate_fmt = (
+        (
+            (format_sizeof(rate) if unit_scale else "{0:5.2f}".format(rate))
+            if elapsed
+            else "?"
+        )
+        + unit
+        + "/s"
+    )
 
     if unit_scale:
         n_fmt = format_sizeof(n)
@@ -137,50 +153,46 @@ def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
         frac = n / total
         percentage = frac * 100
 
-        remaining_str = format_interval((total - n) / rate) if rate else '?'
+        remaining_str = format_interval((total - n) / rate) if rate else "?"
 
         # format the stats displayed to the left and right sides of the bar
-        l_bar = (prefix if prefix else '') + '{0:3.0f}%|'.format(percentage)
-        r_bar = '| {0}/{1} [{2}<{3}, {4}]'.format(
-                n_fmt, total_fmt, elapsed_str, remaining_str, rate_fmt)
+        l_bar = (prefix if prefix else "") + "{0:3.0f}%|".format(percentage)
+        r_bar = "| {0}/{1} [{2}<{3}, {4}]".format(
+            n_fmt, total_fmt, elapsed_str, remaining_str, rate_fmt
+        )
 
         if ncols == 0:
             return l_bar[:-1] + r_bar[1:]
 
         # space available for bar's display
-        N_BARS = max(1, ncols - len(l_bar) - len(r_bar)) if ncols \
-            else 10
+        N_BARS = max(1, ncols - len(l_bar) - len(r_bar)) if ncols else 10
 
         # format bar depending on availability of unicode/ascii chars
         if ascii:
-            bar_length, frac_bar_length = divmod(
-                int(frac * N_BARS * 10), 10)
+            bar_length, frac_bar_length = divmod(int(frac * N_BARS * 10), 10)
 
-            bar = '#' * bar_length
-            frac_bar = chr(48 + frac_bar_length) if frac_bar_length \
-                else ' '
+            bar = "#" * bar_length
+            frac_bar = chr(48 + frac_bar_length) if frac_bar_length else " "
 
         else:
             bar_length, frac_bar_length = divmod(int(frac * N_BARS * 8), 8)
 
             bar = _unich(0x2588) * bar_length
-            frac_bar = _unich(0x2590 - frac_bar_length) \
-                if frac_bar_length else ' '
+            frac_bar = _unich(0x2590 - frac_bar_length) if frac_bar_length else " "
 
         # whitespace padding
         if bar_length < N_BARS:
-            full_bar = bar + frac_bar + \
-                ' ' * max(N_BARS - bar_length - 1, 0)
+            full_bar = bar + frac_bar + " " * max(N_BARS - bar_length - 1, 0)
         else:
-            full_bar = bar + \
-                ' ' * max(N_BARS - bar_length, 0)
+            full_bar = bar + " " * max(N_BARS - bar_length, 0)
 
         return l_bar + full_bar + r_bar
 
     # no total: no progressbar, ETA, just progress stats
     else:
-        return (prefix if prefix else '') + '{0}{1} [{2}, {3}]'.format(
-            n_fmt, unit, elapsed_str, rate_fmt)
+        return (prefix if prefix else "") + "{0}{1} [{2}, {3}]".format(
+            n_fmt, unit, elapsed_str, rate_fmt
+        )
 
 
 def StatusPrinter(file):
@@ -190,16 +202,17 @@ def StatusPrinter(file):
     may not work (it will print a new line at each refresh).
     """
     fp = file
-    if not getattr(fp, 'flush', False):  # pragma: no cover
+    if not getattr(fp, "flush", False):  # pragma: no cover
         fp.flush = lambda: None
 
     last_printed_len = [0]  # closure over mutable variable (fast)
 
     def print_status(s):
         len_s = len(s)
-        fp.write('\r' + s + (' ' * max(last_printed_len[0] - len_s, 0)))
+        fp.write("\r" + s + (" " * max(last_printed_len[0] - len_s, 0)))
         fp.flush()
         last_printed_len[0] = len_s
+
     return print_status
 
 
@@ -209,11 +222,27 @@ class tqdm(object):
     like the orignal iterable, but prints a dynamically updating
     progressbar every time a value is requested.
     """
-    def __init__(self, iterable=None, desc=None, total=None, leave=False,
-                 file=sys.stderr, ncols=None, mininterval=0.1,
-                 maxinterval=10.0, miniters=None, ascii=None, disable=False,
-                 unit='it', unit_scale=False, dynamic_ncols=False,
-                 smoothing=0.3, nested=False, gui=False):
+
+    def __init__(
+        self,
+        iterable=None,
+        desc=None,
+        total=None,
+        leave=False,
+        file=sys.stderr,
+        ncols=None,
+        mininterval=0.1,
+        maxinterval=10.0,
+        miniters=None,
+        ascii=None,
+        disable=False,
+        unit="it",
+        unit_scale=False,
+        dynamic_ncols=False,
+        smoothing=0.3,
+        nested=False,
+        gui=False,
+    ):
         """
         Parameters
         ----------
@@ -288,8 +317,7 @@ class tqdm(object):
             except (TypeError, AttributeError):
                 total = None
 
-        if ((ncols is None) and (file in (sys.stderr, sys.stdout))) or \
-                dynamic_ncols:
+        if ((ncols is None) and (file in (sys.stderr, sys.stdout))) or dynamic_ncols:
             if dynamic_ncols:  # pragma: no cover
                 dynamic_ncols = _environ_cols_wrapper()
                 ncols = dynamic_ncols(file)
@@ -316,7 +344,7 @@ class tqdm(object):
 
         # Store the arguments
         self.iterable = iterable
-        self.desc = desc + ': ' if desc else ''
+        self.desc = desc + ": " if desc else ""
         self.total = total
         self.leave = leave
         self.fp = file
@@ -342,10 +370,19 @@ class tqdm(object):
             self.sp = StatusPrinter(self.fp)
             if not disable:
                 if self.nested:
-                    self.fp.write('\n')
-                self.sp(format_meter(0, total, 0,
+                    self.fp.write("\n")
+                self.sp(
+                    format_meter(
+                        0,
+                        total,
+                        0,
                         (dynamic_ncols(file) if dynamic_ncols else ncols),
-                        self.desc, ascii, unit, unit_scale))
+                        self.desc,
+                        ascii,
+                        unit,
+                        unit_scale,
+                    )
+                )
 
         # Init the time/iterations counters
         self.start_t = self.last_print_t = time()
@@ -363,7 +400,7 @@ class tqdm(object):
         return False
 
     def __iter__(self):
-        ''' Backward-compatibility to use: for x in tqdm(iterable) '''
+        """ Backward-compatibility to use: for x in tqdm(iterable) """
 
         # Inlining instance variables as locals (speed optimisation)
         iterable = self.iterable
@@ -393,8 +430,9 @@ class tqdm(object):
             try:
                 sp = self.sp
             except AttributeError:
-                raise DeprecationWarning('Please use tqdm_gui(...)'
-                                         ' instead of tqdm(..., gui=True)')
+                raise DeprecationWarning(
+                    "Please use tqdm_gui(...)" " instead of tqdm(..., gui=True)"
+                )
 
             for obj in iterable:
                 yield obj
@@ -410,16 +448,26 @@ class tqdm(object):
                         elapsed = cur_t - start_t
                         # EMA (not just overall average)
                         if smoothing and delta_t:
-                            avg_rate = delta_it / delta_t \
-                                if avg_rate is None \
-                                else smoothing * delta_it / delta_t + \
-                                (1 - smoothing) * avg_rate
+                            avg_rate = (
+                                delta_it / delta_t
+                                if avg_rate is None
+                                else smoothing * delta_it / delta_t
+                                + (1 - smoothing) * avg_rate
+                            )
 
-                        sp(format_meter(
-                            n, self.total, elapsed,
-                            (dynamic_ncols(self.fp) if dynamic_ncols
-                             else ncols),
-                            self.desc, ascii, unit, unit_scale, avg_rate))
+                        sp(
+                            format_meter(
+                                n,
+                                self.total,
+                                elapsed,
+                                (dynamic_ncols(self.fp) if dynamic_ncols else ncols),
+                                self.desc,
+                                ascii,
+                                unit,
+                                unit_scale,
+                                avg_rate,
+                            )
+                        )
 
                         # If no `miniters` was specified, adjust automatically
                         # to the maximum iteration rate seen so far.
@@ -430,11 +478,14 @@ class tqdm(object):
                             elif mininterval and delta_t:
                                 # EMA-weight miniters to converge
                                 # towards the timeframe of mininterval
-                                miniters = smoothing * delta_it * mininterval \
-                                    / delta_t + (1 - smoothing) * miniters
+                                miniters = (
+                                    smoothing * delta_it * mininterval / delta_t
+                                    + (1 - smoothing) * miniters
+                                )
                             else:
-                                miniters = smoothing * delta_it + \
-                                    (1 - smoothing) * miniters
+                                miniters = (
+                                    smoothing * delta_it + (1 - smoothing) * miniters
+                                )
 
                         # Store old values for next call
                         last_print_n = n
@@ -482,21 +533,35 @@ class tqdm(object):
                 elapsed = cur_t - self.start_t
                 # EMA (not just overall average)
                 if self.smoothing and delta_t:
-                    self.avg_rate = delta_it / delta_t \
-                        if self.avg_rate is None \
-                        else self.smoothing * delta_it / delta_t + \
-                        (1 - self.smoothing) * self.avg_rate
+                    self.avg_rate = (
+                        delta_it / delta_t
+                        if self.avg_rate is None
+                        else self.smoothing * delta_it / delta_t
+                        + (1 - self.smoothing) * self.avg_rate
+                    )
 
                 if not hasattr(self, "sp"):
-                    raise DeprecationWarning('Please use tqdm_gui(...)'
-                                             ' instead of tqdm(..., gui=True)')
+                    raise DeprecationWarning(
+                        "Please use tqdm_gui(...)" " instead of tqdm(..., gui=True)"
+                    )
 
-                self.sp(format_meter(
-                    self.n, self.total, elapsed,
-                    (self.dynamic_ncols(self.fp) if self.dynamic_ncols
-                     else self.ncols),
-                    self.desc, self.ascii, self.unit, self.unit_scale,
-                    self.avg_rate))
+                self.sp(
+                    format_meter(
+                        self.n,
+                        self.total,
+                        elapsed,
+                        (
+                            self.dynamic_ncols(self.fp)
+                            if self.dynamic_ncols
+                            else self.ncols
+                        ),
+                        self.desc,
+                        self.ascii,
+                        self.unit,
+                        self.unit_scale,
+                        self.avg_rate,
+                    )
+                )
 
                 # If no `miniters` was specified, adjust automatically to the
                 # maximum iteration rate seen so far.
@@ -505,15 +570,17 @@ class tqdm(object):
                 # at least 5 more iterations.
                 if self.dynamic_miniters:
                     if self.maxinterval and delta_t > self.maxinterval:
-                        self.miniters = self.miniters * self.maxinterval \
-                            / delta_t
+                        self.miniters = self.miniters * self.maxinterval / delta_t
                     elif self.mininterval and delta_t:
-                        self.miniters = self.smoothing * delta_it \
-                            * self.mininterval / delta_t + \
-                            (1 - self.smoothing) * self.miniters
+                        self.miniters = (
+                            self.smoothing * delta_it * self.mininterval / delta_t
+                            + (1 - self.smoothing) * self.miniters
+                        )
                     else:
-                        self.miniters = self.smoothing * delta_it + \
-                            (1 - self.smoothing) * self.miniters
+                        self.miniters = (
+                            self.smoothing * delta_it
+                            + (1 - self.smoothing) * self.miniters
+                        )
 
                 # Store old values for next call
                 self.last_print_n = self.n
@@ -526,7 +593,7 @@ class tqdm(object):
         if self.disable:
             return
 
-        endchar = '\r'
+        endchar = "\r"
         if self.nested:
             endchar += _term_move_up()
 
@@ -534,24 +601,35 @@ class tqdm(object):
             if self.last_print_n < self.n:
                 cur_t = time()
                 # stats for overall rate (no weighted average)
-                self.sp(format_meter(
-                    self.n, self.total, cur_t - self.start_t,
-                    (self.dynamic_ncols(self.fp) if self.dynamic_ncols
-                     else self.ncols),
-                    self.desc, self.ascii, self.unit, self.unit_scale))
+                self.sp(
+                    format_meter(
+                        self.n,
+                        self.total,
+                        cur_t - self.start_t,
+                        (
+                            self.dynamic_ncols(self.fp)
+                            if self.dynamic_ncols
+                            else self.ncols
+                        ),
+                        self.desc,
+                        self.ascii,
+                        self.unit,
+                        self.unit_scale,
+                    )
+                )
             if self.nested:
                 self.fp.write(endchar)
             else:
-                self.fp.write('\n')
+                self.fp.write("\n")
         else:
-            self.sp('')
+            self.sp("")
             self.fp.write(endchar)
 
     def set_description(self, desc=None):
         """
         Set/modify description of the progress bar.
         """
-        self.desc = desc + ': ' if desc else ''
+        self.desc = desc + ": " if desc else ""
 
 
 def trange(*args, **kwargs):

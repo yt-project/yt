@@ -1,5 +1,7 @@
 import numpy as np
+
 import yt
+
 
 class SmallGadgetSuite:
     dsname = "snapshot_033/snap_033.0.hdf5"
@@ -32,4 +34,4 @@ class SmallGadgetSuite:
         dd = self.ds.all_data()
         dd.quantities.extrema("particle_mass")
         dd.quantities.extrema("particle_velocity_magnitude")
-        dd.quantities.extrema(["particle_velocity_%s" % ax for ax in 'xyz'])
+        dd.quantities.extrema(["particle_velocity_%s" % ax for ax in "xyz"])

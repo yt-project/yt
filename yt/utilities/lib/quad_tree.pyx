@@ -10,14 +10,17 @@ A refine-by-two AMR-specific quadtree
 
 
 import numpy as np
-cimport numpy as np
-cimport cython
 
-from libc.stdlib cimport malloc, free, abs
-from cython.operator cimport dereference as deref, preincrement as inc
+cimport cython
+cimport numpy as np
+from cython.operator cimport dereference as deref
+from cython.operator cimport preincrement as inc
+from libc.stdlib cimport abs, free, malloc
+
 from yt.utilities.lib.fp_utils cimport fmax
 
 from yt.utilities.exceptions import YTIntDomainOverflow
+
 
 cdef extern from "platform_dep.h":
     # NOTE that size_t might not be int

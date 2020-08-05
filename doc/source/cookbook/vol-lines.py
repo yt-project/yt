@@ -1,9 +1,10 @@
-import yt
 import numpy as np
-from yt.visualization.volume_rendering.api import LineSource
-from yt.units import kpc
 
-ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+import yt
+from yt.units import kpc
+from yt.visualization.volume_rendering.api import LineSource
+
+ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
 sc = yt.create_scene(ds)
 
@@ -17,6 +18,6 @@ colors[:, 3] = 0.1
 lines = LineSource(vertices, colors)
 sc.add_source(lines)
 
-sc.camera.width = 300*kpc
+sc.camera.width = 300 * kpc
 
 sc.save(sigma_clip=4.0)

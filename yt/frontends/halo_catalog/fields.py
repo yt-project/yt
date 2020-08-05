@@ -1,5 +1,4 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "g"
 p_units = "cm"
@@ -18,17 +17,14 @@ _particle_fields = (
     ("virial_radius", (r_units, [], "Virial Radius")),
 )
 
+
 class YTHaloCatalogFieldInfo(FieldInfoContainer):
-    known_other_fields = (
-    )
+    known_other_fields = ()
 
     known_particle_fields = _particle_fields
 
-class YTHaloCatalogHaloFieldInfo(FieldInfoContainer):
-    known_other_fields = (
-    )
 
-    known_particle_fields = _particle_fields + \
-      (
-          ("ids", ("", ["member_ids"], None)),
-      )
+class YTHaloCatalogHaloFieldInfo(FieldInfoContainer):
+    known_other_fields = ()
+
+    known_particle_fields = _particle_fields + (("ids", ("", ["member_ids"], None)),)

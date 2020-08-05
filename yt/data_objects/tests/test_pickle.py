@@ -1,19 +1,20 @@
-import pickle
 import os
+import pickle
 import tempfile
-from yt.testing \
-    import fake_random_ds, assert_equal
+
+from yt.testing import assert_equal, fake_random_ds
 
 
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
 
 
 def test_save_load_pickle():
     """Main test for loading pickled objects"""
-    return # Until boolean regions are implemented we can't test this
+    return  # Until boolean regions are implemented we can't test this
     test_ds = fake_random_ds(64)
 
     # create extracted region from boolean (fairly complex object)
@@ -26,7 +27,8 @@ def test_save_load_pickle():
     contour_threshold = min(minv * 10.0, 0.9 * maxv)
 
     contours = sp_boolean.extract_connected_sets(
-        "density", 1, contour_threshold, maxv + 1, log_space=True, cache=True)
+        "density", 1, contour_threshold, maxv + 1, log_space=True, cache=True
+    )
 
     # save object
     cpklfile = tempfile.NamedTemporaryFile(delete=False)
@@ -36,11 +38,11 @@ def test_save_load_pickle():
     # load object
     test_load = pickle.load(open(cpklfile.name, "rb"))
 
-    assert_equal.description = \
-        "%s: File was pickle-loaded successfully" % __name__
+    assert_equal.description = "%s: File was pickle-loaded successfully" % __name__
     assert_equal(test_load is not None, True)
-    assert_equal.description = \
+    assert_equal.description = (
         "%s: Length of pickle-loaded connected set object" % __name__
+    )
     assert_equal(len(contours[1][0]), len(test_load))
 
     os.remove(cpklfile.name)

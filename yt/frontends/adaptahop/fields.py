@@ -6,16 +6,15 @@ AdaptaHOP-specific fields
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 m_units = "1e11 * Msun"
 r_units = "Mpc"
@@ -24,9 +23,9 @@ l_units = "1e11 * Msun * Mpc * km / s"
 e_units = "1e11 * Msun * km**2 / s**2"
 dens_units = "1e11 * Msun / Mpc**3"
 
+
 class AdaptaHOPFieldInfo(FieldInfoContainer):
-    known_other_fields = (
-    )
+    known_other_fields = ()
 
     known_particle_fields = (
         ("particle_identifier", ("", [], "Halo Identity")),
@@ -64,11 +63,17 @@ class AdaptaHOPFieldInfo(FieldInfoContainer):
         # Add particle position
         def generate_pos_field(d):
             shift = self.ds.domain_width[0] / 2
+
             def closure(field, data):
                 return data["halos", "raw_position_%s" % d] + shift
+
             return closure
 
-        for k in 'xyz':
+        for k in "xyz":
             fun = generate_pos_field(k)
-            self.add_field(("halos", "particle_position_%s" % k), sampling_type="particle", function=fun,
-                           units='Mpc')
+            self.add_field(
+                ("halos", "particle_position_%s" % k),
+                sampling_type="particle",
+                function=fun,
+                units="Mpc",
+            )

@@ -2,8 +2,8 @@ import matplotlib
 import numpy as np
 import pytest
 
-from yt.testing import assert_equal, requires_backend
 import yt
+from yt.testing import assert_equal, requires_backend
 
 
 def test_requires_backend():

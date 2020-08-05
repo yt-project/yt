@@ -12,10 +12,13 @@ Oct container
 
 cimport cython
 cimport numpy as np
+
 import numpy as np
-from selection_routines cimport SelectorObject
-from libc.math cimport floor, ceil
+
 cimport selection_routines
+from libc.math cimport ceil, floor
+from selection_routines cimport SelectorObject
+
 from yt.geometry.oct_visitors cimport OctPadded
 
 ORDER_MAX = 20

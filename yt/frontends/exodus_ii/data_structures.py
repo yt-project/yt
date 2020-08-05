@@ -1,24 +1,15 @@
 import numpy as np
 
-from yt.funcs import \
-    setdefaultattr
-from yt.geometry.unstructured_mesh_handler import \
-    UnstructuredIndex
-from yt.data_objects.unstructured_mesh import \
-    UnstructuredMesh
-from yt.data_objects.static_output import \
-    Dataset
+from yt.data_objects.static_output import Dataset
 from yt.data_objects.unions import MeshUnion
-from yt.utilities.file_handler import \
-    NetCDF4FileHandler, \
-    warn_netcdf
+from yt.data_objects.unstructured_mesh import UnstructuredMesh
+from yt.funcs import setdefaultattr
+from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
+from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
 from yt.utilities.logger import ytLogger as mylog
-from .fields import \
-    ExodusIIFieldInfo
-from .util import \
-    load_info_records, \
-    sanitize_string, \
-    get_num_pseudo_dims
+
+from .fields import ExodusIIFieldInfo
+from .util import get_num_pseudo_dims, load_info_records, sanitize_string
 
 
 class ExodusIIUnstructuredMesh(UnstructuredMesh):
@@ -29,7 +20,7 @@ class ExodusIIUnstructuredMesh(UnstructuredMesh):
 
 
 class ExodusIIUnstructuredIndex(UnstructuredIndex):
-    def __init__(self, ds, dataset_type = 'exodus_ii'):
+    def __init__(self, ds, dataset_type="exodus_ii"):
         super(ExodusIIUnstructuredIndex, self).__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
@@ -38,35 +29,35 @@ class ExodusIIUnstructuredIndex(UnstructuredIndex):
         self.meshes = []
         for mesh_id, conn_ind in enumerate(connectivity):
             displaced_coords = self.ds._apply_displacement(coords, mesh_id)
-            mesh = ExodusIIUnstructuredMesh(mesh_id,
-                                            self.index_filename,
-                                            conn_ind,
-                                            displaced_coords,
-                                            self)
+            mesh = ExodusIIUnstructuredMesh(
+                mesh_id, self.index_filename, conn_ind, displaced_coords, self
+            )
             self.meshes.append(mesh)
         self.mesh_union = MeshUnion("mesh_union", self.meshes)
 
     def _detect_output_fields(self):
-        elem_names = self.dataset.parameters['elem_names']
-        node_names = self.dataset.parameters['nod_names']
+        elem_names = self.dataset.parameters["elem_names"]
+        node_names = self.dataset.parameters["nod_names"]
         fnames = elem_names + node_names
         self.field_list = []
-        for i in range(1, len(self.meshes)+1):
-            self.field_list += [('connect%d' % i, fname) for fname in fnames]
-        self.field_list += [('all', fname) for fname in fnames]
+        for i in range(1, len(self.meshes) + 1):
+            self.field_list += [("connect%d" % i, fname) for fname in fnames]
+        self.field_list += [("all", fname) for fname in fnames]
 
 
 class ExodusIIDataset(Dataset):
     _index_class = ExodusIIUnstructuredIndex
     _field_info_class = ExodusIIFieldInfo
 
-    def __init__(self,
-                 filename,
-                 step=0,
-                 displacements=None,
-                 dataset_type='exodus_ii',
-                 storage_filename=None,
-                 units_override=None):
+    def __init__(
+        self,
+        filename,
+        step=0,
+        displacements=None,
+        dataset_type="exodus_ii",
+        storage_filename=None,
+        units_override=None,
+    ):
         """
 
         A class used to represent an on-disk ExodusII dataset. The initializer takes
@@ -144,12 +135,12 @@ class ExodusIIDataset(Dataset):
             self.displacements = {}
         else:
             self.displacements = displacements
-        super(ExodusIIDataset, self).__init__(filename, dataset_type,
-                                              units_override=units_override)
+        super(ExodusIIDataset, self).__init__(
+            filename, dataset_type, units_override=units_override
+        )
         self.index_filename = filename
         self.storage_filename = storage_filename
-        self.default_field = [f for f in self.field_list
-                              if f[0] == 'connect1'][-1]
+        self.default_field = [f for f in self.field_list if f[0] == "connect1"][-1]
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -157,9 +148,9 @@ class ExodusIIDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        setdefaultattr(self, 'length_unit', self.quan(1.0, "cm"))
-        setdefaultattr(self, 'mass_unit', self.quan(1.0, "g"))
-        setdefaultattr(self, 'time_unit', self.quan(1.0, "s"))
+        setdefaultattr(self, "length_unit", self.quan(1.0, "cm"))
+        setdefaultattr(self, "mass_unit", self.quan(1.0, "g"))
+        setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
         #
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
@@ -169,14 +160,14 @@ class ExodusIIDataset(Dataset):
         self._handle = NetCDF4FileHandler(self.parameter_filename)
         with self._handle.open_ds() as ds:
             self._read_glo_var()
-            self.dimensionality = ds.variables['coor_names'].shape[0]
-            self.parameters['info_records'] = self._load_info_records()
+            self.dimensionality = ds.variables["coor_names"].shape[0]
+            self.parameters["info_records"] = self._load_info_records()
             self.unique_identifier = self._get_unique_identifier()
-            self.num_steps = len(ds.variables['time_whole'])
+            self.num_steps = len(ds.variables["time_whole"])
             self.current_time = self._get_current_time()
-            self.parameters['num_meshes'] = ds.variables['eb_status'].shape[0]
-            self.parameters['elem_names'] = self._get_elem_names()
-            self.parameters['nod_names'] = self._get_nod_names()
+            self.parameters["num_meshes"] = ds.variables["eb_status"].shape[0]
+            self.parameters["elem_names"] = self._get_elem_names()
+            self.parameters["nod_names"] = self._get_nod_names()
             self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
             self.periodicity = (False, False, False)
 
@@ -196,13 +187,13 @@ class ExodusIIDataset(Dataset):
             fluid_types = ()
             i = 1
             while True:
-                ftype = 'connect%d' % i
+                ftype = "connect%d" % i
                 if ftype in ds.variables:
                     fluid_types += (ftype,)
                     i += 1
                 else:
                     break
-            fluid_types += ('all',)
+            fluid_types += ("all",)
             return fluid_types
 
     def _read_glo_var(self):
@@ -214,7 +205,7 @@ class ExodusIIDataset(Dataset):
         if not names:
             return
         with self._handle.open_ds() as ds:
-            values = ds.variables['vals_glo_var'][:].transpose()
+            values = ds.variables["vals_glo_var"][:].transpose()
             for name, value in zip(names, values):
                 self.parameters[name] = value
 
@@ -224,7 +215,7 @@ class ExodusIIDataset(Dataset):
         """
         with self._handle.open_ds() as ds:
             try:
-                return load_info_records(ds.variables['info_records'])
+                return load_info_records(ds.variables["info_records"])
             except (KeyError, TypeError):
                 mylog.warning("No info_records found")
                 return []
@@ -235,10 +226,11 @@ class ExodusIIDataset(Dataset):
     def _get_current_time(self):
         with self._handle.open_ds() as ds:
             try:
-                return ds.variables['time_whole'][self.step]
+                return ds.variables["time_whole"][self.step]
             except IndexError:
-                raise RuntimeError("Invalid step number, max is %d" \
-                                   % (self.num_steps - 1))
+                raise RuntimeError(
+                    "Invalid step number, max is %d" % (self.num_steps - 1)
+                )
             except (KeyError, TypeError):
                 return 0.0
 
@@ -254,8 +246,9 @@ class ExodusIIDataset(Dataset):
                 mylog.warning("name_glo_var not found")
                 return []
             else:
-                return [sanitize_string(v.tostring()) for v in
-                        ds.variables["name_glo_var"]]
+                return [
+                    sanitize_string(v.tostring()) for v in ds.variables["name_glo_var"]
+                ]
 
     def _get_elem_names(self):
         """
@@ -269,8 +262,9 @@ class ExodusIIDataset(Dataset):
                 mylog.warning("name_elem_var not found")
                 return []
             else:
-                return [sanitize_string(v.tostring()) for v in
-                        ds.variables["name_elem_var"]]
+                return [
+                    sanitize_string(v.tostring()) for v in ds.variables["name_elem_var"]
+                ]
 
     def _get_nod_names(self):
         """
@@ -284,8 +278,9 @@ class ExodusIIDataset(Dataset):
                 mylog.warning("name_nod_var not found")
                 return []
             else:
-                return [sanitize_string(v.tostring()) for v in
-                        ds.variables["name_nod_var"]]
+                return [
+                    sanitize_string(v.tostring()) for v in ds.variables["name_nod_var"]
+                ]
 
     def _read_coordinates(self):
         """
@@ -294,18 +289,22 @@ class ExodusIIDataset(Dataset):
 
         """
 
-        coord_axes = 'xyz'[:self.dimensionality]
+        coord_axes = "xyz"[: self.dimensionality]
 
         mylog.info("Loading coordinates")
         with self._handle.open_ds() as ds:
             if "coord" not in ds.variables:
-                coords = np.array([ds.variables["coord%s" % ax][:]
-                                   for ax in coord_axes]
-                                  ).transpose().astype("f8")
+                coords = (
+                    np.array([ds.variables["coord%s" % ax][:] for ax in coord_axes])
+                    .transpose()
+                    .astype("f8")
+                )
             else:
-                coords = np.array([coord for coord in
-                                   ds.variables["coord"][:]]
-                                  ).transpose().astype("f8")
+                coords = (
+                    np.array([coord for coord in ds.variables["coord"][:]])
+                    .transpose()
+                    .astype("f8")
+                )
             return coords
 
     def _apply_displacement(self, coords, mesh_id):
@@ -319,13 +318,13 @@ class ExodusIIDataset(Dataset):
         fac = self.displacements[mesh_name][0]
         offset = self.displacements[mesh_name][1]
 
-        coord_axes = 'xyz'[:self.dimensionality]
+        coord_axes = "xyz"[: self.dimensionality]
         with self._handle.open_ds() as ds:
             for i, ax in enumerate(coord_axes):
-                if "disp_%s" % ax in self.parameters['nod_names']:
-                    ind = self.parameters['nod_names'].index("disp_%s" % ax)
-                    disp = ds.variables['vals_nod_var%d' % (ind + 1)][self.step]
-                    new_coords[:, i] = coords[:, i] + fac*disp + offset[i]
+                if "disp_%s" % ax in self.parameters["nod_names"]:
+                    ind = self.parameters["nod_names"].index("disp_%s" % ax)
+                    disp = ds.variables["vals_nod_var%d" % (ind + 1)][self.step]
+                    new_coords[:, i] = coords[:, i] + fac * disp + offset[i]
 
             return new_coords
 
@@ -336,8 +335,8 @@ class ExodusIIDataset(Dataset):
         mylog.info("Loading connectivity")
         connectivity = []
         with self._handle.open_ds() as ds:
-            for i in range(self.parameters['num_meshes']):
-                connectivity.append(ds.variables["connect%d" % (i+1)][:].astype("i8"))
+            for i in range(self.parameters["num_meshes"]):
+                connectivity.append(ds.variables["connect%d" % (i + 1)][:].astype("i8"))
             return connectivity
 
     def _load_domain_edge(self):
@@ -379,10 +378,12 @@ class ExodusIIDataset(Dataset):
         warn_netcdf(args[0])
         try:
             from netCDF4 import Dataset
+
             filename = args[0]
             # We use keepweakref here to avoid holding onto the file handle
             # which can interfere with other is_valid calls.
             with Dataset(filename, keepweakref=True) as f:
-                f.variables['connect1']
+                f.variables["connect1"]
             return True
-        except Exception: pass
+        except Exception:
+            pass

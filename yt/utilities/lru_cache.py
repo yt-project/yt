@@ -1,13 +1,13 @@
 import sys
-
 from collections import namedtuple
 from functools import update_wrapper
 from threading import RLock
 
 _CacheInfo = namedtuple("CacheInfo", ["hits", "misses", "maxsize", "currsize"])
 
+
 class _HashedSeq(list):
-    __slots__ = 'hashvalue'
+    __slots__ = "hashvalue"
 
     def __init__(self, tup, hash=hash):
         self[:] = tup
@@ -16,11 +16,19 @@ class _HashedSeq(list):
     def __hash__(self):
         return self.hashvalue
 
-def _make_key(args, kwds, typed,
-             kwd_mark = (object(),),
-             fasttypes = set((int, str, frozenset, type(None))),
-             sorted=sorted, tuple=tuple, type=type, len=len):
-    'Make a cache key from optionally typed positional and keyword arguments'
+
+def _make_key(
+    args,
+    kwds,
+    typed,
+    kwd_mark=(object(),),
+    fasttypes=set((int, str, frozenset, type(None))),
+    sorted=sorted,
+    tuple=tuple,
+    type=type,
+    len=len,
+):
+    "Make a cache key from optionally typed positional and keyword arguments"
     key = args
     if kwds:
         sorted_items = sorted(kwds.items())
@@ -35,7 +43,8 @@ def _make_key(args, kwds, typed,
         return key[0]
     return _HashedSeq(key)
 
-def lru_cache(maxsize=100, typed=False, make_key = _make_key):
+
+def lru_cache(maxsize=100, typed=False, make_key=_make_key):
     """Least-recently-used cache decorator.
     If *maxsize* is set to None, the LRU features are disabled and the cache
     can grow without bound.
@@ -57,15 +66,15 @@ def lru_cache(maxsize=100, typed=False, make_key = _make_key):
     def decorating_function(user_function):
 
         cache = dict()
-        stats = [0, 0]                  # make statistics updateable non-locally
-        HITS, MISSES = 0, 1             # names for the stats fields
-        cache_get = cache.get           # bound method to lookup key or return None
-        _len = len                      # localize the global len() function
-        lock = RLock()                  # because linkedlist updates aren't threadsafe
-        root = []                       # root of the circular doubly linked list
-        root[:] = [root, root, None, None]      # initialize by pointing to self
-        nonlocal_root = [root]                  # make updateable non-locally
-        PREV, NEXT, KEY, RESULT = 0, 1, 2, 3    # names for the link fields
+        stats = [0, 0]  # make statistics updateable non-locally
+        HITS, MISSES = 0, 1  # names for the stats fields
+        cache_get = cache.get  # bound method to lookup key or return None
+        _len = len  # localize the global len() function
+        lock = RLock()  # because linkedlist updates aren't threadsafe
+        root = []  # root of the circular doubly linked list
+        root[:] = [root, root, None, None]  # initialize by pointing to self
+        nonlocal_root = [root]  # make updateable non-locally
+        PREV, NEXT, KEY, RESULT = 0, 1, 2, 3  # names for the link fields
 
         if maxsize == 0:
 
@@ -80,7 +89,9 @@ def lru_cache(maxsize=100, typed=False, make_key = _make_key):
             def wrapper(*args, **kwds):
                 # simple caching without ordering or size limit
                 key = make_key(args, kwds, typed)
-                result = cache_get(key, root)   # root used here as a unique not-found sentinel
+                result = cache_get(
+                    key, root
+                )  # root used here as a unique not-found sentinel
                 if result is not root:
                     stats[HITS] += 1
                     return result
@@ -102,7 +113,7 @@ def lru_cache(maxsize=100, typed=False, make_key = _make_key):
                     link = cache_get(key)
                     if link is not None:
                         # record recent use of the key by moving it to the front of the list
-                        root, = nonlocal_root
+                        (root,) = nonlocal_root
                         link_prev, link_next, key, result = link
                         link_prev[NEXT] = link_next
                         link_next[PREV] = link_prev
@@ -114,7 +125,7 @@ def lru_cache(maxsize=100, typed=False, make_key = _make_key):
                         return result
                 result = user_function(*args, **kwds)
                 with lock:
-                    root, = nonlocal_root
+                    (root,) = nonlocal_root
                     if key in cache:
                         # getting here means that this same key was added to the
                         # cache while the lock was released.  since the link
@@ -161,6 +172,8 @@ def lru_cache(maxsize=100, typed=False, make_key = _make_key):
         return update_wrapper(wrapper, user_function)
 
     return decorating_function
+
+
 ### End of backported lru_cache
 
 local_lru_cache = lru_cache

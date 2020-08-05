@@ -1,12 +1,14 @@
-import numpy as np
 import base64
-from yt.fields.derived_field import ValidateSpatial
-from yt.funcs import mylog, issue_deprecation_warning
-from yt.utilities.on_demand_imports import _astropy
-from yt.units.yt_array import YTQuantity, YTArray
+import os
 from io import BytesIO
 
-import os
+import numpy as np
+
+from yt.fields.derived_field import ValidateSpatial
+from yt.funcs import issue_deprecation_warning, mylog
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.on_demand_imports import _astropy
+
 
 def _make_counts(emin, emax):
     def _counts(field, data):
@@ -15,7 +17,7 @@ def _make_counts(emin, emax):
         x = data["event_x"][mask]
         y = data["event_y"][mask]
         z = np.ones(x.shape)
-        pos = np.array([x,y,z]).transpose()
+        pos = np.array([x, y, z]).transpose()
         img = data.deposit(pos, method="count")
         if data.has_field_parameter("sigma"):
             sigma = data.get_field_parameter("sigma")
@@ -23,9 +25,11 @@ def _make_counts(emin, emax):
             sigma = None
         if sigma is not None and sigma > 0.0:
             kern = _astropy.conv.Gaussian2DKernel(stddev=sigma)
-            img[:,:,0] = _astropy.conv.convolve(img[:,:,0], kern)
+            img[:, :, 0] = _astropy.conv.convolve(img[:, :, 0], kern)
         return data.ds.arr(img, "counts/pixel")
+
     return _counts
+
 
 def setup_counts_fields(ds, ebounds, ftype="gas"):
     r"""
@@ -51,15 +55,17 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
         cfunc = _make_counts(emin, emax)
         fname = "counts_%s-%s" % (emin, emax)
         mylog.info("Creating counts field %s." % fname)
-        ds.add_field((ftype,fname),
-                     sampling_type="cell",
-                     function=cfunc,
-                     units="counts/pixel",
-                     validators = [ValidateSpatial()],
-                     display_name="Counts (%s-%s keV)" % (emin, emax))
+        ds.add_field(
+            (ftype, fname),
+            sampling_type="cell",
+            function=cfunc,
+            units="counts/pixel",
+            validators=[ValidateSpatial()],
+            display_name="Counts (%s-%s keV)" % (emin, emax),
+        )
 
-def create_spectral_slabs(filename, slab_centers, slab_width,
-                          **kwargs):
+
+def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
     r"""
     Given a dictionary of spectral slab centers and a width in
     spectral units, extract data from a spectral cube at these slab
@@ -94,8 +100,10 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
     ...                            nan_mask=0.0)
     """
     from spectral_cube import SpectralCube
-    from yt.visualization.fits_image import FITSImageData
+
     from yt.frontends.fits.api import FITSDataset
+    from yt.visualization.fits_image import FITSImageData
+
     cube = SpectralCube.read(filename)
     if not isinstance(slab_width, YTQuantity):
         slab_width = YTQuantity(slab_width[0], slab_width[1])
@@ -106,22 +114,24 @@ def create_spectral_slabs(filename, slab_centers, slab_width,
             slab_center = YTQuantity(v[0], v[1])
         else:
             slab_center = v
-        mylog.info("Adding slab field %s at %g %s" %
-                   (k, slab_center.v, slab_center.units))
-        slab_lo = (slab_center-0.5*slab_width).to_astropy()
-        slab_hi = (slab_center+0.5*slab_width).to_astropy()
+        mylog.info(
+            "Adding slab field %s at %g %s" % (k, slab_center.v, slab_center.units)
+        )
+        slab_lo = (slab_center - 0.5 * slab_width).to_astropy()
+        slab_hi = (slab_center + 0.5 * slab_width).to_astropy()
         subcube = cube.spectral_slab(slab_lo, slab_hi)
-        slab_data[k] = YTArray(subcube.filled_data[:,:,:], field_units)
-    width = subcube.header["naxis3"]*cube.header["cdelt3"]
+        slab_data[k] = YTArray(subcube.filled_data[:, :, :], field_units)
+    width = subcube.header["naxis3"] * cube.header["cdelt3"]
     w = subcube.wcs.copy()
     w.wcs.crpix[-1] = 0.5
-    w.wcs.crval[-1] = -0.5*width
+    w.wcs.crval[-1] = -0.5 * width
     fid = FITSImageData(slab_data, wcs=w)
     for hdu in fid:
         hdu.header.pop("RESTFREQ", None)
         hdu.header.pop("RESTFRQ", None)
     ds = FITSDataset(fid, **kwargs)
     return ds
+
 
 def ds9_region(ds, reg, obj=None, field_parameters=None):
     r"""
@@ -148,7 +158,9 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     >>> print(circle_region.quantities.extrema("flux"))
     """
     import pyregion
+
     from yt.frontends.fits.api import EventsFITSDataset
+
     if os.path.exists(reg):
         r = pyregion.open(reg)
     else:
@@ -164,20 +176,23 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
         prefix = "event_"
     else:
         prefix = ""
+
     def _reg_field(field, data):
-        i = data[prefix+"xyz"[ds.lon_axis]].d.astype("int")-1
-        j = data[prefix+"xyz"[ds.lat_axis]].d.astype("int")-1
-        new_mask = mask[i,j]
-        ret = np.zeros(data[prefix+"x"].shape)
-        ret[new_mask] = 1.
+        i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int") - 1
+        j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int") - 1
+        new_mask = mask[i, j]
+        ret = np.zeros(data[prefix + "x"].shape)
+        ret[new_mask] = 1.0
         return ret
-    ds.add_field(("gas", reg_name), sampling_type="cell",  function=_reg_field)
+
+    ds.add_field(("gas", reg_name), sampling_type="cell", function=_reg_field)
     if obj is None:
         obj = ds.all_data()
     if field_parameters is not None:
-        for k,v in field_parameters.items():
-            obj.set_field_parameter(k,v)
+        for k, v in field_parameters.items():
+            obj.set_field_parameter(k, v)
     return obj.cut_region(["obj['%s'] > 0" % (reg_name)])
+
 
 class PlotWindowWCS:
     r"""
@@ -192,17 +207,21 @@ class PlotWindowWCS:
     pw : on-axis PlotWindow instance
         The PlotWindow instance to add celestial axes to.
     """
+
     def __init__(self, pw):
         try:
             # Attempt import from the old WCSAxes package first
             from wcsaxes import WCSAxes
-            issue_deprecation_warning("Support for the standalone 'wcsaxes' "
-                                      "package is deprecated since its"
-                                      "functionality has been merged into"
-                                      "AstroPy, and will be removed in a "
-                                      "future release. It is recommended to "
-                                      "use the version bundled with AstroPy "
-                                      ">= 1.3.") 
+
+            issue_deprecation_warning(
+                "Support for the standalone 'wcsaxes' "
+                "package is deprecated since its"
+                "functionality has been merged into"
+                "AstroPy, and will be removed in a "
+                "future release. It is recommended to "
+                "use the version bundled with AstroPy "
+                ">= 1.3."
+            )
         except ImportError:
             # Try to use the AstroPy version
             WCSAxes = _astropy.wcsaxes.WCSAxes
@@ -224,10 +243,8 @@ class PlotWindowWCS:
             wcs = pw.ds.wcs_2d.wcs
             xax = pw.ds.coordinates.x_axis[pw.data_source.axis]
             yax = pw.ds.coordinates.y_axis[pw.data_source.axis]
-            xlabel = "%s (%s)" % (wcs.ctype[xax].split("-")[0],
-                                  wcs.cunit[xax])
-            ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0],
-                                  wcs.cunit[yax])
+            xlabel = "%s (%s)" % (wcs.ctype[xax].split("-")[0], wcs.cunit[xax])
+            ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0], wcs.cunit[yax])
             fp = pw._font_properties
             wcs_ax.coords[0].set_axislabel(xlabel, fontproperties=fp, minpad=0.5)
             wcs_ax.coords[1].set_axislabel(ylabel, fontproperties=fp, minpad=0.4)
@@ -267,13 +284,16 @@ class PlotWindowWCS:
 
     def _repr_html_(self):
         from yt.visualization._mpl_imports import FigureCanvasAgg
-        ret = ''
+
+        ret = ""
         for k, v in self.plots.items():
             canvas = FigureCanvasAgg(v)
             f = BytesIO()
             canvas.print_figure(f)
             f.seek(0)
             img = base64.b64encode(f.read()).decode()
-            ret += r'<img style="max-width:100%%;max-height:100%%;" ' \
-                   r'src="data:image/png;base64,%s"><br>' % img
+            ret += (
+                r'<img style="max-width:100%%;max-height:100%%;" '
+                r'src="data:image/png;base64,%s"><br>' % img
+            )
         return ret

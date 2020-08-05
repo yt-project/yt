@@ -1,14 +1,12 @@
-from collections import \
-    defaultdict
+from collections import defaultdict
+
 import numpy as np
 
-from yt.funcs import \
-    parse_h5_attr
-from yt.units.yt_array import \
-    uvstack
+from yt.funcs import parse_h5_attr
+from yt.units.yt_array import uvstack
+from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
-from yt.utilities.io_handler import \
-    BaseIOHandler
+
 
 class IOHandlerYTHaloCatalog(BaseIOHandler):
     _dataset_type = "ythalocatalog"
@@ -21,9 +19,9 @@ class IOHandlerYTHaloCatalog(BaseIOHandler):
         chunks = list(chunks)
         data_files = set([])
         # Only support halo reading for now.
-        assert(len(ptf) == 1)
-        assert(list(ptf.keys())[0] == "halos")
-        ptype = 'halos'
+        assert len(ptf) == 1
+        assert list(ptf.keys())[0] == "halos"
+        ptype = "halos"
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -32,27 +30,27 @@ class IOHandlerYTHaloCatalog(BaseIOHandler):
             with h5py.File(data_file.filename, mode="r") as f:
                 units = parse_h5_attr(f[pn % "x"], "units")
                 pos = data_file._get_particle_positions(ptype, f=f)
-                x, y, z = (self.ds.arr(pos[:, i], units)
-                           for i in range(3))
+                x, y, z = (self.ds.arr(pos[:, i], units) for i in range(3))
                 yield "halos", (x, y, z)
 
     def _yield_coordinates(self, data_file):
         pn = "particle_position_%s"
-        with h5py.File(data_file.filename, 'r') as f:
+        with h5py.File(data_file.filename, "r") as f:
             units = parse_h5_attr(f[pn % "x"], "units")
-            x, y, z = (self.ds.arr(f[pn % ax][()].astype("float64"), units)
-                       for ax in 'xyz')
+            x, y, z = (
+                self.ds.arr(f[pn % ax][()].astype("float64"), units) for ax in "xyz"
+            )
             pos = uvstack([x, y, z]).T
-            pos.convert_to_units('code_length')
-            yield 'halos', pos
+            pos.convert_to_units("code_length")
+            yield "halos", pos
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
         data_files = set([])
         # Only support halo reading for now.
-        assert(len(ptf) == 1)
-        assert(list(ptf.keys())[0] == "halos")
+        assert len(ptf) == 1
+        assert list(ptf.keys())[0] == "halos"
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -63,32 +61,34 @@ class IOHandlerYTHaloCatalog(BaseIOHandler):
                 for ptype, field_list in sorted(ptf.items()):
                     units = parse_h5_attr(f[pn % "x"], "units")
                     pos = data_file._get_particle_positions(ptype, f=f)
-                    x, y, z = (self.ds.arr(pos[:, i], units)
-                               for i in range(3))
+                    x, y, z = (self.ds.arr(pos[:, i], units) for i in range(3))
                     mask = selector.select_points(x, y, z, 0.0)
                     del x, y, z
-                    if mask is None: continue
+                    if mask is None:
+                        continue
                     for field in field_list:
                         data = f[field][si:ei][mask].astype("float64")
                         yield (ptype, field), data
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
-        nhalos = data_file.header['num_halos']
+        nhalos = data_file.header["num_halos"]
         if None not in (si, ei):
             nhalos = np.clip(nhalos - si, 0, ei - si)
-        return {'halos': nhalos}
+        return {"halos": nhalos}
 
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, mode="r") as f:
-            fields = [("halos", field) for field in f
-                      if not isinstance(f[field], h5py.Group)]
-            units = dict([(("halos", field),
-                           parse_h5_attr(f[field], "units"))
-                          for field in f])
+            fields = [
+                ("halos", field) for field in f if not isinstance(f[field], h5py.Group)
+            ]
+            units = dict(
+                [(("halos", field), parse_h5_attr(f[field], "units")) for field in f]
+            )
         return fields, units
 
-class HaloDatasetIOHandler():
+
+class HaloDatasetIOHandler:
     """
     Base class for io handlers to load halo member particles.
     """
@@ -117,9 +117,9 @@ class HaloDatasetIOHandler():
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type
-        ptf = defaultdict(list)        # ON-DISK TO READ
-        fsize = defaultdict(lambda: 0) # COUNT RV
-        field_maps = defaultdict(list) # ptypes -> fields
+        ptf = defaultdict(list)  # ON-DISK TO READ
+        fsize = defaultdict(lambda: 0)  # COUNT RV
+        field_maps = defaultdict(list)  # ptypes -> fields
         unions = self.ds.particle_unions
         # What we need is a mapping from particle types to return types
         for field in fields:
@@ -146,11 +146,11 @@ class HaloDatasetIOHandler():
             if field[1] in self._vector_fields:
                 shape = (fsize[field], self._vector_fields[field[1]])
             elif field[1] in self._array_fields:
-                shape = (fsize[field],)+self._array_fields[field[1]]
+                shape = (fsize[field],) + self._array_fields[field[1]]
             elif field in self.ds.scalar_field_list:
                 shape = (1,)
             else:
-                shape = (fsize[field], )
+                shape = (fsize[field],)
             rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
         # Now we read.
@@ -158,34 +158,35 @@ class HaloDatasetIOHandler():
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
                 my_ind = ind[field_f]
-                rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
+                rv[field_f][my_ind : my_ind + vals.shape[0], ...] = vals
                 ind[field_f] += vals.shape[0]
         # Now we need to truncate all our fields, since we allow for
         # over-estimating.
         for field_f in ind:
-            rv[field_f] = rv[field_f][:ind[field_f]]
+            rv[field_f] = rv[field_f][: ind[field_f]]
         return rv
+
 
 class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
     _dataset_type = "ythalo"
 
     def _identify_fields(self, data_file):
         with h5py.File(data_file.filename, mode="r") as f:
-            scalar_fields = [("halos", field) for field in f
-                        if not isinstance(f[field], h5py.Group)]
-            units = dict([(("halos", field),
-                           parse_h5_attr(f[field], "units"))
-                          for field in f])
-            if 'particles' in f:
-                id_fields = [('halos', field) for field in f['particles']]
+            scalar_fields = [
+                ("halos", field) for field in f if not isinstance(f[field], h5py.Group)
+            ]
+            units = dict(
+                [(("halos", field), parse_h5_attr(f[field], "units")) for field in f]
+            )
+            if "particles" in f:
+                id_fields = [("halos", field) for field in f["particles"]]
             else:
                 id_fields = []
 
-        return scalar_fields+id_fields, scalar_fields, id_fields, units
+        return scalar_fields + id_fields, scalar_fields, id_fields, units
 
     def _read_member_fields(self, dobj, member_fields):
-        all_data = defaultdict(lambda: np.empty(dobj.particle_number,
-                                                dtype=np.float64))
+        all_data = defaultdict(lambda: np.empty(dobj.particle_number, dtype=np.float64))
         if not member_fields:
             return all_data
         field_start = 0
@@ -200,8 +201,9 @@ class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
                 for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
                         field_data = all_data[(ptype, field)]
-                        my_data = \
-                          f['particles'][field][start_index:end_index].astype("float64")
+                        my_data = f["particles"][field][start_index:end_index].astype(
+                            "float64"
+                        )
                         field_data[field_start:field_end] = my_data
             field_start = field_end
         return all_data

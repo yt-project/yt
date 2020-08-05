@@ -10,23 +10,28 @@ Geometry selection routines.
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.math cimport sqrt
-from cython cimport floating
-from libc.stdlib cimport malloc, free
-from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
-from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
-from .oct_container cimport OctreeContainer, Oct
+cimport numpy as np
 cimport oct_visitors
-from .oct_visitors cimport cind
-from yt.utilities.lib.volume_container cimport \
-    VolumeContainer
-from yt.utilities.lib.grid_traversal cimport \
-    sampler_function, walk_volume
+from cython cimport floating
+from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
+
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
-from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit, \
-    bounded_morton_dds, morton_neighbors_coarse, morton_neighbors_refined
+from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+from yt.utilities.lib.geometry_utils cimport (bounded_morton_dds,
+                                              decode_morton_64bit,
+                                              encode_morton_64bit,
+                                              morton_neighbors_coarse,
+                                              morton_neighbors_refined)
+from yt.utilities.lib.grid_traversal cimport sampler_function, walk_volume
+from yt.utilities.lib.volume_container cimport VolumeContainer
+
+from .oct_container cimport Oct, OctreeContainer
+from .oct_visitors cimport cind
+
 
 cdef extern from "math.h":
     double exp(double x) nogil
