@@ -1,3 +1,4 @@
+import abc
 import glob
 import os
 
@@ -22,14 +23,14 @@ def register_field_handler(ph):
 DETECTED_FIELDS = {}
 
 
-class RAMSESFieldFileHandlerRegistry(type):
+class RAMSESFieldFileHandlerRegistry(abc.ABCMeta):
     """
     This is a base class that on instantiation registers the file
     handler into the list. Used as a metaclass.
     """
 
     def __new__(meta, name, bases, class_dict):
-        cls = type.__new__(meta, name, bases, class_dict)
+        cls = abc.ABCMeta.__new__(meta, name, bases, class_dict)
         if cls.ftype is not None:
             register_field_handler(cls)
 
@@ -136,7 +137,7 @@ class HandlerMixin:
         return exists
 
 
-class FieldFileHandler(HandlerMixin, metaclass=RAMSESFieldFileHandlerRegistry):
+class FieldFileHandler(abc.ABC, HandlerMixin, metaclass=RAMSESFieldFileHandlerRegistry):
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -167,6 +168,7 @@ class FieldFileHandler(HandlerMixin, metaclass=RAMSESFieldFileHandlerRegistry):
         self.setup_handler(domain)
 
     @classmethod
+    @abc.abstractmethod
     def detect_fields(cls, ds):
         """
         Called once to setup the fields of this type
@@ -179,8 +181,7 @@ class FieldFileHandler(HandlerMixin, metaclass=RAMSESFieldFileHandlerRegistry):
         * field_list: list of (ftype, fname)
             The list of the field present in the file
         """
-        # this function must be implemented by subclasses
-        raise NotImplementedError
+        pass
 
     @classmethod
     def get_detected_fields(cls, ds):

@@ -1,3 +1,4 @@
+import abc
 import os
 
 from yt.config import ytcfg
@@ -18,21 +19,21 @@ def register_particle_handler(ph):
     PARTICLE_HANDLERS.add(ph)
 
 
-class RAMSESParticleFileHandlerRegistry(type):
+class RAMSESParticleFileHandlerRegistry(abc.ABCMeta):
     """
     This is a base class that on instantiation registers the file
     handler into the list. Used as a metaclass.
     """
 
     def __new__(meta, name, bases, class_dict):
-        cls = type.__new__(meta, name, bases, class_dict)
+        cls = abc.ABCMeta.__new__(meta, name, bases, class_dict)
         if cls.ptype is not None:
             register_particle_handler(cls)
 
         cls._unique_registry = {}
         return cls
 
-class ParticleFileHandler(HandlerMixin, metaclass=RAMSESParticleFileHandlerRegistry):
+class ParticleFileHandler(abc.ABC, HandlerMixin, metaclass=RAMSESParticleFileHandlerRegistry):
     '''
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -72,6 +73,7 @@ class ParticleFileHandler(HandlerMixin, metaclass=RAMSESParticleFileHandlerRegis
                 known_fields.append((field, field_type))
             self.known_fields = known_fields
 
+    @abc.abstractmethod
     def read_header(self):
         """
         This function is called once per file. It should:
@@ -89,8 +91,7 @@ class ParticleFileHandler(HandlerMixin, metaclass=RAMSESParticleFileHandlerRegis
             A dictionary that maps `(type, field_name)` to their type
             (character), following Python's struct convention.
         """
-        # this function must be implemented by subclasses
-        raise NotImplementedError
+        pass
 
 
 class DefaultParticleFileHandler(ParticleFileHandler):
