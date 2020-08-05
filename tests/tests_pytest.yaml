@@ -6,7 +6,7 @@ TestAHF:
     - ahf_answers_000.yaml
     - ahf_answers_raw_000.h5
 
-TestAMRVac:
+TestAMRVAC:
     - amrvac_answers_000.yaml
     - amrvac_answers_raw_000.h5
 
