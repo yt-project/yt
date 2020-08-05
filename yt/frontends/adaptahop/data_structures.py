@@ -11,22 +11,17 @@ import os
 import re
 import stat
 
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
-from yt.data_objects.static_output import \
-    Dataset
-from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogFile
-from yt.funcs import \
-    setdefaultattr
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
-from yt.utilities.cython_fortran_utils import FortranFile
+from yt.data_objects.data_containers import YTSelectionContainer
+from yt.data_objects.static_output import Dataset
+from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
+from yt.funcs import setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.units import Mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 
 from .definitions import HEADER_ATTRIBUTES
 from .fields import AdaptaHOPFieldInfo
+
 
 class AdaptaHOPParticleIndex(ParticleIndex):
     def _setup_filenames(self):
@@ -34,15 +29,24 @@ class AdaptaHOPParticleIndex(ParticleIndex):
         ndoms = self.dataset.file_count
         cls = self.dataset._file_class
         if ndoms > 1:
-            self.data_files = \
-              [cls(self.dataset, self.io, template % {'num':i}, i, range=None)
-               for i in range(ndoms)]
+            self.data_files = [
+                cls(self.dataset, self.io, template % {"num": i}, i, range=None)
+                for i in range(ndoms)
+            ]
         else:
-            self.data_files = \
-              [cls(self.dataset, self.io,
-                   self.dataset.parameter_filename, 0, range=None)]
+            self.data_files = [
+                cls(
+                    self.dataset,
+                    self.io,
+                    self.dataset.parameter_filename,
+                    0,
+                    range=None,
+                )
+            ]
         self.total_particles = sum(
-            sum(d.total_particles.values()) for d in self.data_files)
+            sum(d.total_particles.values()) for d in self.data_files
+        )
+
 
 class AdaptaHOPDataset(Dataset):
     _index_class = AdaptaHOPParticleIndex

@@ -188,6 +188,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 self.offset_fields = self.offset_fields.union(set(my_offset_fields))
         return fields, {}
 
+
 class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
     _dataset_type = "gadget_fof_halo_hdf5"
 
@@ -198,9 +199,9 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type
-        ptf = defaultdict(list)        # ON-DISK TO READ
-        fsize = defaultdict(lambda: 0) # COUNT RV
-        field_maps = defaultdict(list) # ptypes -> fields
+        ptf = defaultdict(list)  # ON-DISK TO READ
+        fsize = defaultdict(lambda: 0)  # COUNT RV
+        field_maps = defaultdict(list)  # ptypes -> fields
         unions = self.ds.particle_unions
         # What we need is a mapping from particle types to return types
         for field in fields:
@@ -227,11 +228,11 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             if field[1] in self._vector_fields:
                 shape = (fsize[field], self._vector_fields[field[1]])
             elif field[1] in self._array_fields:
-                shape = (fsize[field],)+self._array_fields[field[1]]
+                shape = (fsize[field],) + self._array_fields[field[1]]
             elif field in self.ds.scalar_field_list:
                 shape = (1,)
             else:
-                shape = (fsize[field], )
+                shape = (fsize[field],)
             rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
         # Now we read.
@@ -239,33 +240,35 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
                 my_ind = ind[field_f]
-                rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
+                rv[field_f][my_ind : my_ind + vals.shape[0], ...] = vals
                 ind[field_f] += vals.shape[0]
         # Now we need to truncate all our fields, since we allow for
         # over-estimating.
         for field_f in ind:
-            rv[field_f] = rv[field_f][:ind[field_f]]
+            rv[field_f] = rv[field_f][: ind[field_f]]
         return rv
 
     def _read_scalar_fields(self, dobj, scalar_fields):
         all_data = {}
-        if not scalar_fields: return all_data
+        if not scalar_fields:
+            return all_data
         pcount = 1
         with h5py.File(dobj.scalar_data_file.filename, mode="r") as f:
             for ptype, field_list in sorted(scalar_fields.items()):
                 for field in field_list:
                     if field == "particle_identifier":
-                        field_data = \
-                          np.arange(dobj.scalar_data_file.total_particles[ptype]) + \
-                          dobj.scalar_data_file.index_start[ptype]
+                        field_data = (
+                            np.arange(dobj.scalar_data_file.total_particles[ptype])
+                            + dobj.scalar_data_file.index_start[ptype]
+                        )
                     elif field in f[ptype]:
                         field_data = f[ptype][field][()].astype("float64")
                     else:
-                        fname = field[:field.rfind("_")]
+                        fname = field[: field.rfind("_")]
                         field_data = f[ptype][fname][()].astype("float64")
                         my_div = field_data.size / pcount
                         if my_div > 1:
-                            findex = int(field[field.rfind("_") + 1:])
+                            findex = int(field[field.rfind("_") + 1 :])
                             field_data = field_data[:, findex]
                     data = np.array([field_data[dobj.scalar_index]])
                     all_data[(ptype, field)] = data
@@ -329,12 +332,14 @@ class IOHandlerGadgetFOFHaloHDF5(IOHandlerGadgetFOFHDF5):
             for ptype in self.ds.particle_types_raw:
                 fields.append((ptype, "particle_identifier"))
                 scalar_fields.append((ptype, "particle_identifier"))
-                my_fields, my_offset_fields = \
-                  subfind_field_list(f[ptype], ptype, data_file.total_particles)
+                my_fields, my_offset_fields = subfind_field_list(
+                    f[ptype], ptype, data_file.total_particles
+                )
                 fields.extend(my_fields)
                 scalar_fields.extend(my_fields)
 
-                if "IDs" not in f: continue
+                if "IDs" not in f:
+                    continue
                 id_fields = [(ptype, field) for field in f["IDs"]]
                 fields.extend(id_fields)
         return fields, scalar_fields, id_fields, {}
@@ -373,7 +378,9 @@ def subfind_field_list(fh, ptype, pcount):
                     fields.append(("Group", fname))
                 offset_fields.append(fname)
             else:
-                mylog.warning("Cannot add field (%s, %s) with size %d." % \
-                              (ptype, fh[field].name, fh[field].size))
+                mylog.warning(
+                    "Cannot add field (%s, %s) with size %d."
+                    % (ptype, fh[field].name, fh[field].size)
+                )
                 continue
     return fields, offset_fields

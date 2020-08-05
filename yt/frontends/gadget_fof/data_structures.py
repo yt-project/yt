@@ -1,39 +1,32 @@
+import os
+import weakref
 from collections import defaultdict
 from functools import partial
 
 import numpy as np
-import os
-import weakref
 
-from yt.data_objects.data_containers import \
-    YTSelectionContainer
-from yt.data_objects.static_output import \
-    ParticleDataset
-from yt.frontends.gadget.data_structures import \
-    _fix_unit_ordering
-from yt.frontends.gadget_fof.fields import \
-    GadgetFOFFieldInfo, \
-    GadgetFOFHaloFieldInfo
-from yt.frontends.halo_catalog.data_structures import \
-    HaloCatalogFile
-from yt.funcs import \
-    only_on_root, \
-    setdefaultattr
-from yt.geometry.particle_geometry_handler import \
-    ParticleIndex
-from yt.utilities.cosmology import \
-    Cosmology
-from yt.utilities.logger import ytLogger as \
-    mylog
+from yt.data_objects.data_containers import YTSelectionContainer
+from yt.data_objects.static_output import ParticleDataset
+from yt.frontends.gadget.data_structures import _fix_unit_ordering
+from yt.frontends.gadget_fof.fields import GadgetFOFFieldInfo, GadgetFOFHaloFieldInfo
+from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
+from yt.funcs import only_on_root, setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
+from yt.utilities.cosmology import Cosmology
+from yt.utilities.logger import ytLogger as mylog
+
 
 class GadgetFOFParticleIndex(ParticleIndex):
     def _calculate_particle_count(self):
         """
         Calculate the total number of each type of particle.
         """
-        self.particle_count = \
-          dict([(ptype, sum([d.total_particles[ptype] for d in self.data_files]))
-                 for ptype in self.ds.particle_types_raw])
+        self.particle_count = dict(
+            [
+                (ptype, sum([d.total_particles[ptype] for d in self.data_files]))
+                for ptype in self.ds.particle_types_raw
+            ]
+        )
 
     def _calculate_particle_index_starts(self):
         # Halo indices are not saved in the file, so we must count by hand.
@@ -41,17 +34,25 @@ class GadgetFOFParticleIndex(ParticleIndex):
         particle_count = defaultdict(int)
         offset_count = 0
         for data_file in self.data_files:
-            data_file.index_start = dict([(ptype, particle_count[ptype]) for
-                                           ptype in data_file.total_particles])
+            data_file.index_start = dict(
+                [(ptype, particle_count[ptype]) for ptype in data_file.total_particles]
+            )
             data_file.offset_start = offset_count
             for ptype in data_file.total_particles:
                 particle_count[ptype] += data_file.total_particles[ptype]
             offset_count += data_file.total_offset
 
-        self._halo_index_start = \
-          dict([(ptype, np.array([data_file.index_start[ptype]
-                                  for data_file in self.data_files]))
-                for ptype in self.ds.particle_types_raw])
+        self._halo_index_start = dict(
+            [
+                (
+                    ptype,
+                    np.array(
+                        [data_file.index_start[ptype] for data_file in self.data_files]
+                    ),
+                )
+                for ptype in self.ds.particle_types_raw
+            ]
+        )
 
     def _calculate_file_offset_map(self):
         # After the FOF is performed, a load-balancing step redistributes halos
@@ -321,6 +322,7 @@ class GadgetFOFDataset(ParticleDataset):
             pass
         return valid
 
+
 class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
     def __init__(self, ds, dataset_type):
         self.real_ds = weakref.proxy(ds.real_ds)
@@ -349,23 +351,21 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         field_list = []
         scalar_field_list = []
         units = {}
-        found_fields = \
-          dict([(ptype, False)
-                for ptype, pnum in self.particle_count.items()
-                if pnum > 0])
+        found_fields = dict(
+            [(ptype, False) for ptype, pnum in self.particle_count.items() if pnum > 0]
+        )
         has_ids = False
 
         for data_file in self.data_files:
             fl, sl, idl, _units = self.io._identify_fields(data_file)
             units.update(_units)
-            field_list.extend([f for f in fl
-                               if f not in field_list])
-            scalar_field_list.extend([f for f in sl
-                                      if f not in scalar_field_list])
+            field_list.extend([f for f in fl if f not in field_list])
+            scalar_field_list.extend([f for f in sl if f not in scalar_field_list])
             for ptype in found_fields:
                 found_fields[ptype] |= data_file.total_particles[ptype]
             has_ids |= len(idl) > 0
-            if all(found_fields.values()) and has_ids: break
+            if all(found_fields.values()) and has_ids:
+                break
 
         self.field_list = field_list
         self.scalar_field_list = scalar_field_list
@@ -378,26 +378,24 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
     def _identify_base_chunk(self, dobj):
         pass
 
-    def _read_particle_fields(self, fields, dobj, chunk = None):
-        if len(fields) == 0: return {}, []
+    def _read_particle_fields(self, fields, dobj, chunk=None):
+        if len(fields) == 0:
+            return {}, []
         fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
-        fields_to_return = self.io._read_particle_selection(
-            dobj, fields_to_read)
+        fields_to_return = self.io._read_particle_selection(dobj, fields_to_read)
         return fields_to_return, fields_to_generate
 
     def _get_halo_file_indices(self, ptype, identifiers):
-        return np.digitize(identifiers,
-            self._halo_index_start[ptype], right=False) - 1
+        return np.digitize(identifiers, self._halo_index_start[ptype], right=False) - 1
 
     def _get_halo_scalar_index(self, ptype, identifier):
         i_scalar = self._get_halo_file_indices(ptype, [identifier])[0]
         scalar_index = identifier - self._halo_index_start[ptype][i_scalar]
         return scalar_index
 
-    def _get_halo_values(self, ptype, identifiers, fields,
-                         f=None):
+    def _get_halo_values(self, ptype, identifiers, fields, f=None):
         """
         Get field values for halos.  IDs are likely to be
         sequential (or at least monotonic), but not necessarily
@@ -409,27 +407,31 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         """
 
         # if a file is already open, don't open it again
-        filename = None if f is None \
-          else f.filename
+        filename = None if f is None else f.filename
 
         data = defaultdict(lambda: np.empty(identifiers.size))
         i_scalars = self._get_halo_file_indices(ptype, identifiers)
         for i_scalar in np.unique(i_scalars):
             target = i_scalars == i_scalar
-            scalar_indices = identifiers - \
-              self._halo_index_start[ptype][i_scalar]
+            scalar_indices = identifiers - self._halo_index_start[ptype][i_scalar]
 
             # only open file if it's not already open
-            my_f = f if self.data_files[i_scalar].filename == filename \
-              else h5py.File(self.data_files[i_scalar].filename, mode="r")
+            my_f = (
+                f
+                if self.data_files[i_scalar].filename == filename
+                else h5py.File(self.data_files[i_scalar].filename, mode="r")
+            )
 
             for field in fields:
-                data[field][target] = \
-                  my_f[os.path.join(ptype, field)][()][scalar_indices[target]]
+                data[field][target] = my_f[os.path.join(ptype, field)][()][
+                    scalar_indices[target]
+                ]
 
-            if self.data_files[i_scalar].filename != filename: my_f.close()
+            if self.data_files[i_scalar].filename != filename:
+                my_f.close()
 
         return data
+
 
 class GadgetFOFHaloDataset(ParticleDataset):
     _index_class = GadgetFOFHaloParticleIndex
@@ -438,13 +440,18 @@ class GadgetFOFHaloDataset(ParticleDataset):
 
     def __init__(self, ds, dataset_type="gadget_fof_halo_hdf5"):
         self.real_ds = ds
-        for attr in ['filename_template', 'file_count',
-                     'particle_types_raw', 'particle_types',
-                     'periodicity']:
+        for attr in [
+            "filename_template",
+            "file_count",
+            "particle_types_raw",
+            "particle_types",
+            "periodicity",
+        ]:
             setattr(self, attr, getattr(self.real_ds, attr))
 
         super(GadgetFOFHaloDataset, self).__init__(
-            self.real_ds.parameter_filename, dataset_type)
+            self.real_ds.parameter_filename, dataset_type
+        )
 
     def print_key_parameters(self):
         pass
@@ -453,18 +460,25 @@ class GadgetFOFHaloDataset(ParticleDataset):
         pass
 
     def _parse_parameter_file(self):
-        for attr in ["cosmological_simulation", "cosmology",
-                     "current_redshift", "current_time",
-                     "dimensionality", "domain_dimensions",
-                     "domain_left_edge", "domain_right_edge",
-                     "domain_width", "hubble_constant",
-                     "omega_lambda", "omega_matter",
-                     "unique_identifier"]:
+        for attr in [
+            "cosmological_simulation",
+            "cosmology",
+            "current_redshift",
+            "current_time",
+            "dimensionality",
+            "domain_dimensions",
+            "domain_left_edge",
+            "domain_right_edge",
+            "domain_width",
+            "hubble_constant",
+            "omega_lambda",
+            "omega_matter",
+            "unique_identifier",
+        ]:
             setattr(self, attr, getattr(self.real_ds, attr))
 
     def set_code_units(self):
-        for unit in ["length", "time", "mass",
-                     "velocity", "magnetic", "temperature"]:
+        for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
             my_unit = "%s_unit" % unit
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
         self.unit_registry = self.real_ds.unit_registry
@@ -474,6 +488,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
 
     def _setup_classes(self):
         self.objects = []
+
 
 class GadgetFOFHaloContainer(YTSelectionContainer):
     """
@@ -555,43 +570,49 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
 
     def __init__(self, ptype, particle_identifier, ds=None):
         if ptype not in ds.particle_types_raw:
-            raise RuntimeError("Possible halo types are %s, supplied \"%s\"." %
-                               (ds.particle_types_raw, ptype))
+            raise RuntimeError(
+                'Possible halo types are %s, supplied "%s".'
+                % (ds.particle_types_raw, ptype)
+            )
 
         self.ptype = ptype
         self._current_particle_type = ptype
         super(GadgetFOFHaloContainer, self).__init__(ds, {})
 
         if ptype == "Subhalo" and isinstance(particle_identifier, tuple):
-            self.group_identifier, self.subgroup_identifier = \
-              particle_identifier
+            self.group_identifier, self.subgroup_identifier = particle_identifier
             my_data = self.index._get_halo_values(
-                "Group", np.array([self.group_identifier]),
-                ["GroupFirstSub"])
-            self.particle_identifier = \
-              np.int64(my_data["GroupFirstSub"][0] + self.subgroup_identifier)
+                "Group", np.array([self.group_identifier]), ["GroupFirstSub"]
+            )
+            self.particle_identifier = np.int64(
+                my_data["GroupFirstSub"][0] + self.subgroup_identifier
+            )
         else:
             self.particle_identifier = particle_identifier
 
         if self.particle_identifier >= self.index.particle_count[ptype]:
-            raise RuntimeError("%s %d requested, but only %d %s objects exist." %
-                               (ptype, particle_identifier,
-                                self.index.particle_count[ptype], ptype))
+            raise RuntimeError(
+                "%s %d requested, but only %d %s objects exist."
+                % (ptype, particle_identifier, self.index.particle_count[ptype], ptype)
+            )
 
         # Find the file that has the scalar values for this halo.
-        i_scalar = self.index._get_halo_file_indices(
-            ptype, [self.particle_identifier])[0]
+        i_scalar = self.index._get_halo_file_indices(ptype, [self.particle_identifier])[
+            0
+        ]
         self.scalar_data_file = self.index.data_files[i_scalar]
 
         # index within halo arrays that corresponds to this halo
         self.scalar_index = self.index._get_halo_scalar_index(
-            ptype, self.particle_identifier)
+            ptype, self.particle_identifier
+        )
 
         halo_fields = ["%sLen" % ptype]
-        if ptype == "Subhalo": halo_fields.append("SubhaloGrNr")
+        if ptype == "Subhalo":
+            halo_fields.append("SubhaloGrNr")
         my_data = self.index._get_halo_values(
-            ptype, np.array([self.particle_identifier]),
-            halo_fields)
+            ptype, np.array([self.particle_identifier]), halo_fields
+        )
         self.particle_number = np.int64(my_data["%sLen" % ptype][0])
 
         if ptype == "Group":
@@ -684,5 +705,4 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
             setattr(self, attr, self[self.ptype, "particle_%s" % attr][0])
 
     def __repr__(self):
-        return "%s_%s_%09d" % \
-          (self.ds, self.ptype, self.particle_identifier)
+        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
