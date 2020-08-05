@@ -28,6 +28,20 @@ class YTOutputNotIdentified(YTException):
         return msg
 
 
+class YTAmbiguousDataType(YTOutputNotIdentified):
+    def __init__(self, filename, candidates):
+        self.filename = filename
+        self.candidates = candidates
+
+    def __str__(self):
+        msg = f"Multiple data type candidates for {self.filename}\n"
+        msg += "The following independent classes were detected as valid :\n"
+        for c in self.candidates:
+            msg += f"{c}\n"
+        msg += "Please report this to https://github.com/yt-project/yt/issues/new"
+        return msg
+
+
 class YTSphereTooSmall(YTException):
     def __init__(self, ds, radius, smallest_cell):
         YTException.__init__(self, ds=ds)

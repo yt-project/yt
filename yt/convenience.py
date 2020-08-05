@@ -2,8 +2,11 @@ import os
 
 # Named imports
 from yt.config import ytcfg
-from yt.funcs import mylog
-from yt.utilities.exceptions import YTOutputNotIdentified, YTSimulationNotIdentified
+from yt.utilities.exceptions import (
+    YTAmbiguousDataType,
+    YTOutputNotIdentified,
+    YTSimulationNotIdentified,
+)
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.parameter_file_storage import (
     output_type_registry,
@@ -42,6 +45,9 @@ def load(fn, *args, **kwargs):
 
     yt.utilities.exceptions.YTOutputNotIdentified
         If fn matches existing files or directories with undetermined format.
+
+    yt.utilities.exceptions.YTAmbiguousDataType
+        If the data format matches more than one class of similar specilization levels.
     """
     fn = os.path.expanduser(fn)
 
@@ -73,9 +79,7 @@ def load(fn, *args, **kwargs):
         return candidates[0](fn, *args, **kwargs)
 
     if len(candidates) > 1:
-        mylog.error("Multiple output type candidates for %s:", fn)
-        for c in candidates:
-            mylog.error("    Possible: %s", c)
+        raise YTAmbiguousDataType(fn, candidates)
 
     raise YTOutputNotIdentified(fn, args, kwargs)
 
