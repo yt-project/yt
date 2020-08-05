@@ -251,10 +251,10 @@ class AMReXParticleHeader:
             self.num_int_base = 2
             self.num_real_base = self.dim
             self.num_real_extra = int(f.readline().strip())
-            for i in range(self.num_real_extra):
+            for _ in range(self.num_real_extra):
                 self.real_component_names.append(f.readline().strip())
             self.num_int_extra = int(f.readline().strip())
-            for i in range(self.num_int_extra):
+            for _ in range(self.num_int_extra):
                 self.int_component_names.append(f.readline().strip())
             self.num_int = self.num_int_base + self.num_int_extra
             self.num_real = self.num_real_base + self.num_real_extra
@@ -829,7 +829,7 @@ class BoxlibDataset(Dataset):
             base_log = np.log2(self.refine_by)
             self.level_offsets = [0]  # level 0 has to have 0 offset
             lo = 0
-            for lm1, rf in enumerate(self.ref_factors):
+            for rf in self.ref_factors:
                 lo += int(np.log2(rf) / base_log) - 1
                 self.level_offsets.append(lo)
         # assert(np.unique(ref_factors).size == 1)
@@ -851,7 +851,7 @@ class BoxlibDataset(Dataset):
         header_file.readline()
         self._header_mesh_start = header_file.tell()
         # Skip the cell size information per level - we'll get this later
-        for i in range(self._max_level + 1):
+        for _ in range(self._max_level + 1):
             header_file.readline()
         # Get the geometry
         next_line = header_file.readline()

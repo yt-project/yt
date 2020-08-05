@@ -65,7 +65,7 @@ class VariousVRTests(TestCase):
 
         angle = 2 * np.pi
         frames = 4
-        for i in range(frames):
+        for _ in range(frames):
             sc.camera.yaw(angle / frames)
             sc.render()
 

@@ -420,7 +420,7 @@ class RAMSESIndex(OctreeIndex):
 
     def _chunk_spatial(self, dobj, ngz, sort=None, preload_fields=None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i, og in enumerate(sobjs):
+        for og in sobjs:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
@@ -670,10 +670,10 @@ class RAMSESDataset(Dataset):
             rheader[p.strip()] = cast(v.strip())
 
         with open(self.parameter_filename) as f:
-            for i in range(6):
+            for _ in range(6):
                 read_rhs(f, int)
             f.readline()
-            for i in range(11):
+            for _ in range(11):
                 read_rhs(f, float)
             f.readline()
             read_rhs(f, str)
@@ -687,7 +687,7 @@ class RAMSESDataset(Dataset):
             self.hilbert_indices = {}
             if rheader["ordering type"] == "hilbert":
                 f.readline()  # header
-                for n in range(rheader["ncpu"]):
+                for _ in range(rheader["ncpu"]):
                     dom, mi, ma = f.readline().split()
                     self.hilbert_indices[int(dom)] = (float(mi), float(ma))
 

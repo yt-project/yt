@@ -244,7 +244,7 @@ def test_ramses_sink():
     ad = ds.all_data()
 
     for field in expected_fields:
-        assert ("sink", "field") not in ds.field_list
+        assert ("sink", field) not in ds.field_list
 
 
 ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"

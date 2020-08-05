@@ -383,7 +383,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
 
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()
-        for width, (xlim, ylim, pwidth, aun) in WIDTH_SPECS.items():
+        for width, (xlim, ylim, pwidth, _aun) in WIDTH_SPECS.items():
             plot = ParticleProjectionPlot(test_ds, 0, "particle_mass", width=width)
 
             xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]

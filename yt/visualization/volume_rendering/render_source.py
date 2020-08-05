@@ -1185,7 +1185,7 @@ class GridSource(LineSource):
         self.data_source = data_source_or_all(data_source)
         corners = []
         levels = []
-        for block, mask in self.data_source.blocks:
+        for block, _mask in self.data_source.blocks:
             block_corners = np.array(
                 [
                     [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
