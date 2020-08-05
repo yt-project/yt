@@ -40,7 +40,8 @@ install:
 build: false
 
 test_script:
-    - "nosetests --with-timer --timer-top-n=20 --nologcapture --with-xunit -sv --traverse-namespace yt --ignore-files test_outputs_pytest"
+    #- "nosetests --with-timer --timer-top-n=20 --nologcapture --with-xunit -sv --traverse-namespace yt --ignore-files test_outputs_pytest"
+    - "pytest -c pytest_unit.ini"
 
 # Enable this to be able to login to the build worker. You can use the
 # `remmina` program in Ubuntu, use the login information that the line below

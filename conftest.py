@@ -92,6 +92,7 @@ def pytest_collection_modifyitems(config, items):
     """
     # Set up the skip marks
     skip_answer = pytest.mark.skip(reason="--with-answer-testing not set.")
+    skip_unit = pytest.mark.skip(reason="Running answer tests, so skipping unit tests.")
     skip_big = pytest.mark.skip(reason="--answer-big-data not set.")
     # Loop over every collected test function
     for item in items:
@@ -105,6 +106,10 @@ def pytest_collection_modifyitems(config, items):
         # option hasn't been set, skip it
         if "big_data" in item.keywords and not config.getoption("--answer-big-data"):
             item.add_marker(skip_big)
+        if "answer_test" not in item.keywords and config.getoption(
+            "--with-answer-testing"
+        ):
+            item.add_marker(skip_unit)
 
 
 @pytest.fixture(scope="function")
