@@ -39,6 +39,10 @@ class RAMSESFieldFileHandlerRegistry(abc.ABCMeta):
 
 
 class HandlerMixin:
+    """This contains all the shared methods to handle RAMSES files.
+
+    This is not supposed to be user-facing.
+    """
     def setup_handler(self, domain):
         """
         Initalize an instance of the class. This automatically sets
