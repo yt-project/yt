@@ -523,16 +523,16 @@ class GadgetSimulation(SimulationTimeSeries):
         ):
             try:
                 ds = load(output)
-                my_storage.result = {
-                    "filename": output,
-                    "time": ds.current_time.in_units("s"),
-                }
-                if ds.cosmological_simulation:
-                    my_storage.result["redshift"] = ds.current_redshift
-            except OSError:
-                pass
-            except YTOutputNotIdentified:
+            except (OSError, YTOutputNotIdentified):
                 mylog.error("Failed to load %s", output)
+                continue
+            my_storage.result = {
+                "filename": output,
+                "time": ds.current_time.in_units("s"),
+            }
+            if ds.cosmological_simulation:
+                my_storage.result["redshift"] = ds.current_redshift
+
         my_outputs = [
             my_output for my_output in my_outputs.values() if my_output is not None
         ]

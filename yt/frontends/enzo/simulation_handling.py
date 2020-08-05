@@ -658,16 +658,15 @@ class EnzoSimulation(SimulationTimeSeries):
             )
             try:
                 ds = load(filename)
-                my_storage.result = {
-                    "filename": filename,
-                    "time": ds.current_time.in_units("s"),
-                }
-                if ds.cosmological_simulation:
-                    my_storage.result["redshift"] = ds.current_redshift
-            except OSError:
-                pass
-            except YTOutputNotIdentified:
+            except (OSError, YTOutputNotIdentified):
                 mylog.error("Failed to load %s", filename)
+                continue
+            my_storage.result = {
+                "filename": filename,
+                "time": ds.current_time.in_units("s"),
+            }
+            if ds.cosmological_simulation:
+                my_storage.result["redshift"] = ds.current_redshift
         mylog.setLevel(llevel)
         my_outputs = [
             my_output for my_output in my_outputs.values() if my_output is not None

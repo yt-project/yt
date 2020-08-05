@@ -91,11 +91,11 @@ class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries
         ):
             try:
                 ds = load(output)
-                my_storage.result = {"filename": output, "num_steps": ds.num_steps}
-            except OSError:
-                pass
-            except YTOutputNotIdentified:
+            except (OSError, YTOutputNotIdentified):
                 mylog.error("Failed to load %s", output)
+                continue
+            my_storage.result = {"filename": output, "num_steps": ds.num_steps}
+
         my_outputs = [
             my_output for my_output in my_outputs.values() if my_output is not None
         ]
