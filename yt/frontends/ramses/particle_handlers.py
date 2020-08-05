@@ -48,8 +48,6 @@ class ParticleFileHandler(
 
     _file_type = "particle"
 
-    _file_type = "particle"
-
     # These properties are static properties
     ptype = None  # The name to give to the particle type
     fname = None  # The name of the file(s).
