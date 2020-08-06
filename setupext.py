@@ -111,15 +111,15 @@ def check_for_openmp():
             if len(output) == nthreads:
                 using_openmp = True
             else:
-                log.warning(
+                log.warn(
                     "Unexpected number of lines from output of test "
-                    "OpenMP program (output was {0})".format(output)
+                    "OpenMP program (output was %s)",
+                    output,
                 )
                 using_openmp = False
         else:
-            log.warning(
-                "Unexpected output from test OpenMP "
-                "program (output was {0})".format(output)
+            log.warn(
+                "Unexpected output from test OpenMP " "program (output was %s)", output
             )
             using_openmp = False
 
@@ -129,9 +129,9 @@ def check_for_openmp():
         os.chdir(start_dir)
 
     if using_openmp:
-        log.warning("Using OpenMP to compile parallel extensions")
+        log.warn("Using OpenMP to compile parallel extensions")
     else:
-        log.warning(
+        log.warn(
             "Unable to compile OpenMP test program so Cython\n"
             "extensions will be compiled without parallel support"
         )
@@ -227,20 +227,21 @@ def read_embree_location():
         exit_code = p.returncode
 
         if exit_code != 0:
-            log.warning(
+            log.warn(
                 "Pyembree is installed, but I could not compile Embree " "test code."
             )
-            log.warning("The error message was: ")
-            log.warning(err)
-            log.warning(fail_msg)
+            log.warn("The error message was: ")
+            log.warn(err)
+            log.warn(fail_msg)
 
         # Clean up
         file.close()
 
     except OSError:
-        log.warning(
+        log.warn(
             "read_embree_location() could not find your C compiler. "
-            "Attempted to use '%s'. " % compiler
+            "Attempted to use '%s'.",
+            compiler,
         )
         return False
 
