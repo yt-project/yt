@@ -25,7 +25,7 @@ class YTOutputNotIdentified(YTException):
             msg += ", %s" % self.args
         if self.kwargs is not None:
             msg += ", %s" % self.kwargs
-        msg += '.'        
+        msg += "."
         return msg
 
 

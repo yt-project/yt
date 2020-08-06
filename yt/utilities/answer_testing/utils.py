@@ -18,11 +18,7 @@ from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.visualization import (
-    particle_plots,
-    plot_window as pw,
-    profile_plotter,
-)
+from yt.visualization import particle_plots, plot_window as pw, profile_plotter
 from yt.visualization.volume_rendering.scene import Scene
 
 
