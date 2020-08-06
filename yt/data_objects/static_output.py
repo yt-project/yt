@@ -36,7 +36,7 @@ from yt.geometry.coordinates.api import (
     SpectralCubeCoordinateHandler,
     SphericalCoordinateHandler,
 )
-from yt.units import UnitContainer, _wrap_display_ytarray
+from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, define_unit
 from yt.units.unit_registry import UnitRegistry
@@ -1059,7 +1059,6 @@ class Dataset(metaclass=RegisteredDataset):
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
-        from yt.units import dimensions as dimensions
 
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
@@ -1090,7 +1089,6 @@ class Dataset(metaclass=RegisteredDataset):
         Creates the unit registry for this dataset.
 
         """
-        from yt.units.dimensions import length
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
@@ -1102,7 +1100,7 @@ class Dataset(metaclass=RegisteredDataset):
                 self.unit_registry.add(
                     new_unit,
                     my_u.base_value / (1 + self.current_redshift),
-                    length,
+                    dimensions.length,
                     "\\rm{%s}/(1+z)" % my_unit,
                     prefixable=True,
                 )
@@ -1359,8 +1357,7 @@ class Dataset(metaclass=RegisteredDataset):
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
             mylog.warning(
-                "Field %s already exists. To override use `force_override=True`.",
-                name,
+                "Field %s already exists. To override use `force_override=True`.", name,
             )
 
         self.field_info.add_field(name, function, sampling_type, **kwargs)
