@@ -933,11 +933,20 @@ class Dataset(metaclass=RegisteredDataset):
         mylog.info("%s value is %0.5e at %0.16f %0.16f %0.16f", ext, val, *coords)
         if to_array:
             if any(x.units.is_dimensionless for x in coords):
-                raise ValueError(
-                    "Can not convert dimensionless coordinates to spatial."
-                    "For non cartesian geometries, please use 'to_array=False'"
+                mylog.warning(
+                    f"dataset {self} has angular coordinates. "
+                    "Use 'to_array=False' to preserve "
+                    "dimensionality in each coordinate."
                 )
-            coords = self.arr(coords, dtype="float64").to("code_length")
+
+            # force conversion to length
+            alt_coords = []
+            for x in coords:
+                alt_coords.append(
+                    self.quan(x.v, "code_length") if x.units.is_dimensionless else x
+                )
+
+            coords = self.arr(alt_coords, dtype="float64").to("code_length")
         return val, coords
 
     def find_max(self, field, source=None, to_array=True):
