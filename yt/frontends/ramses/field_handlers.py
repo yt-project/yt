@@ -492,17 +492,17 @@ class RTFieldFileHandler(FieldFileHandler):
 
         with open(fname, "r") as f:
             # Read nRTvar, nions, ngroups, iions
-            for i in range(4):
+            for _ in range(4):
                 read_rhs(int)
             f.readline()
 
             # Read X and Y fractions
-            for i in range(2):
+            for _ in range(2):
                 read_rhs(float)
             f.readline()
 
             # Reat unit_np, unit_pfd
-            for i in range(2):
+            for _ in range(2):
                 read_rhs(float)
 
             # Read rt_c_frac
@@ -512,7 +512,7 @@ class RTFieldFileHandler(FieldFileHandler):
             f.readline()
 
             # Read n star, t2star, g_star
-            for i in range(3):
+            for _ in range(3):
                 read_rhs(float)
 
             # Touchy part, we have to read the photon group properties

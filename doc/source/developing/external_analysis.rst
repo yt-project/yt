@@ -188,7 +188,7 @@ To build our extension, we would run:
 
 .. code-block:: bash
 
-   $ python2.7 axes_calculator_setup.py build_ext -i
+   $ python axes_calculator_setup.py build_ext -i
 
 Note that since we don't yet have an ``axes_calculator.pyx``, this will fail.
 But once we have it, it ought to run.

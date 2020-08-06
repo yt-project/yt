@@ -7,6 +7,10 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
     _dataset_type = "arepo_hdf5"
 
+    def _generate_smoothing_length(self, data_files, kdtree):
+        # This is handled below in _get_smoothing_length
+        return
+
     def _get_smoothing_length(self, data_file, position_dtype, position_shape):
         ptype = self.ds._sph_ptypes[0]
         ind = int(ptype[-1])
@@ -26,8 +30,3 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
             if position_dtype is not None and dt < position_dtype:
                 dt = position_dtype
             return hsml.astype(dt)
-
-    def _identify_fields(self, data_file):
-        fields, _units = super(IOHandlerArepoHDF5, self)._identify_fields(data_file)
-        fields.append(("PartType0", "smoothing_length"))
-        return fields, _units

@@ -367,7 +367,7 @@ def off_axis_projection(
 
     mylog.debug("Casting rays")
 
-    for i, (grid, mask) in enumerate(data_source.blocks):
+    for (grid, mask) in data_source.blocks:
         data = []
         for f in fields:
             # strip units before multiplying by mask for speed

@@ -78,16 +78,12 @@ class NoseTask(object):
 
 def generate_tasks_input():
     pyver = "py{}{}".format(sys.version_info.major, sys.version_info.minor)
-    if sys.version_info < (3, 0, 0):
-        DROP_TAG = "py3"
-    else:
-        DROP_TAG = "py2"
 
     test_dir = ytcfg.get("yt", "test_data_dir")
     answers_dir = os.path.join(test_dir, "answers")
     with open("tests/tests.yaml", "r") as obj:
         lines = obj.read()
-    data = "\n".join([line for line in lines.split("\n") if DROP_TAG not in line])
+    data = "\n".join([line for line in lines.split("\n") if "py2" not in line])
     tests = yaml.load(data, Loader=yaml.FullLoader)
 
     base_argv = ["-s", "--nologcapture", "--with-xunit"]

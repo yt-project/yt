@@ -61,13 +61,9 @@ def stdchannel_redirected(stdchannel, dest_filename):
 def check_for_openmp():
     """Returns True if local setup supports OpenMP, False otherwise
 
-    Code adapted from astropy_helpers, originally written by Tom 
+    Code adapted from astropy_helpers, originally written by Tom
     Robitaille and Curtis McCully.
     """
-
-    # See https://bugs.python.org/issue25150
-    if sys.version_info[:3] == (3, 5, 0):
-        return False
 
     # Create a temporary directory
     ccompiler = new_compiler()
@@ -147,17 +143,13 @@ def check_for_pyembree(std_libs):
     embree_libs = []
     embree_aliases = {}
     try:
-        fn = resource_filename("pyembree", "rtcore.pxd")
+        _ = resource_filename("pyembree", "rtcore.pxd")
     except ImportError:
         return embree_libs, embree_aliases
 
     embree_prefix = os.path.abspath(read_embree_location())
     embree_inc_dir = os.path.join(embree_prefix, "include")
     embree_lib_dir = os.path.join(embree_prefix, "lib")
-    if in_conda_env():
-        conda_basedir = os.path.dirname(os.path.dirname(sys.executable))
-        embree_inc_dir.append(os.path.join(conda_basedir, "include"))
-        embree_lib_dir.append(os.path.join(conda_basedir, "lib"))
 
     if _platform == "darwin":
         embree_lib_name = "embree.2"
@@ -168,11 +160,17 @@ def check_for_pyembree(std_libs):
     embree_aliases["EMBREE_LIB_DIR"] = [embree_lib_dir]
     embree_aliases["EMBREE_LIBS"] = std_libs + [embree_lib_name]
     embree_libs += ["yt/utilities/lib/embree_mesh/*.pyx"]
+
+    if in_conda_env():
+        conda_basedir = os.path.dirname(os.path.dirname(sys.executable))
+        embree_aliases["EMBREE_INC_DIR"].append(os.path.join(conda_basedir, "include"))
+        embree_aliases["EMBREE_LIB_DIR"].append(os.path.join(conda_basedir, "lib"))
+
     return embree_libs, embree_aliases
 
 
 def in_conda_env():
-    return any(s in sys.version for s in ("Anaconda", "Continuum"))
+    return any(s in sys.version for s in ("Anaconda", "Continuum", "conda-forge"))
 
 
 def read_embree_location():

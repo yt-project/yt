@@ -4,7 +4,7 @@ coverage==4.5.4
 fastcache==1.0.2
 glueviz==0.13.3
 h5py==2.10.0
-ipython==7.1.1
+ipython==7.6.1
 matplotlib==3.3.0
 mock
 nose-timer==1.0.0

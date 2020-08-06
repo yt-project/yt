@@ -494,9 +494,6 @@ class YTQuadTreeProj(YTProj):
     def _mrep(self):
         return MinimalProjectionData(self)
 
-    def hub_upload(self):
-        self._mrep.upload()
-
     def deserialize(self, fields):
         if not ytcfg.getboolean("yt", "serialize"):
             return False
@@ -1545,7 +1542,7 @@ class YTSurface(YTSelectionContainer3D):
             mylog.info("Extracting (sampling: %s)" % (fields,))
         verts = []
         samples = []
-        for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
+        for _io_chunk in parallel_objects(self.data_source.chunks([], "io")):
             for block, mask in self.data_source.blocks:
                 my_verts = self._extract_isocontours_from_grid(
                     block,
@@ -1655,7 +1652,7 @@ class YTSurface(YTSelectionContainer3D):
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
-        for io_chunk in parallel_objects(self.data_source.chunks([], "io")):
+        for _io_chunk in parallel_objects(self.data_source.chunks([], "io")):
             for block, mask in self.data_source.blocks:
                 flux += self._calculate_flux_in_grid(
                     block, mask, field_x, field_y, field_z, fluxing_field

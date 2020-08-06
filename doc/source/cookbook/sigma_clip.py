@@ -10,7 +10,6 @@ ds = yt.load("enzo_tiny_cosmology/RD0009/RD0009")
 # Sigma clipping removes the highest intensity pixels in a volume render,
 # which affects the overall contrast of the image.
 sc = yt.create_scene(ds, field=("gas", "density"))
-sc.render()
 sc.save("clip_0.png")
 sc.save("clip_2.png", sigma_clip=2)
 sc.save("clip_4.png", sigma_clip=4)

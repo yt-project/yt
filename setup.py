@@ -13,11 +13,6 @@ from setupext import (
     install_ccompiler,
 )
 
-if sys.version_info < (3, 5):
-    print("yt currently supports versions newer than Python 3.5")
-    print("certain features may fail unexpectedly and silently with older " "versions.")
-    sys.exit(1)
-
 install_ccompiler()
 
 try:
@@ -140,5 +135,5 @@ if __name__ == "__main__":
         zip_safe=False,
         scripts=["scripts/iyt"],
         ext_modules=[],  # !!! We override this inside build_ext above
-        python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*",
+        python_requires=">=3.6",
     )

@@ -667,7 +667,7 @@ class DualEPS:
         log=False,
         tickcolor=None,
         orientation="right",
-        pos=[0, 0],
+        pos=None,
         shrink=1.0,
     ):
         r"""Places a colorbar adjacent to the current figure.
@@ -702,6 +702,9 @@ class DualEPS:
                        label="Density [cm$^{-3}$]")
         >>> d.save_fig()
         """
+        if pos is None:
+            pos = [0, 0]
+
         if orientation == "right":
             origin = (pos[0] + self.figsize[0] + 0.5, pos[1])
             size = (0.1 * self.figsize[0], self.figsize[1])
@@ -741,7 +744,7 @@ class DualEPS:
 
         # Convert the colormap into a string
         x = np.linspace(1, 0, 256)
-        cm_string = cm.cmap_d[name](x, bytes=True)[:, 0:3].tostring()
+        cm_string = cm.get_cmap[name](x, bytes=True)[:, 0:3].tostring()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
@@ -1084,7 +1087,7 @@ class DualEPS:
         loc=(0.02, 0.98),
         halign=pyx.text.halign.left,
         valign=pyx.text.valign.top,
-        text_opts=[],
+        text_opts=None,
     ):
         r"""Inserts a box with text in the current figure.
 
@@ -1111,6 +1114,8 @@ class DualEPS:
         >>> d.title_box("Halo 1", loc=(0.05,0.95))
         >>> d.save_fig()
         """
+        if text_opts is None:
+            text_opts = []
         tbox = self.canvas.text(
             self.figsize[0] * loc[0],
             self.figsize[1] * loc[1],
@@ -1138,7 +1143,6 @@ class DualEPS:
         --------
         >>> d = DualEPS()
         >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
-        >>> d.save_fig("image1", format="pdf")
         """
         if format == "eps":
             self.canvas.writeEPSfile(filename)
@@ -1284,19 +1288,19 @@ def multiplot(
     if not _yt:
         if xranges is None:
             xranges = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 xranges.append((0, 1))
         if yranges is None:
             yranges = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 yranges.append((0, 1))
         if xlabels is None:
             xlabels = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 xlabels.append("")
         if ylabels is None:
             ylabels = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 ylabels.append("")
 
     d = DualEPS(figsize=figsize)

@@ -58,7 +58,7 @@ class IOHandlerStream(BaseIOHandler):
                 if g.NumberOfParticles == 0:
                     continue
                 gf = self.fields[g.id]
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
@@ -109,7 +109,7 @@ class StreamParticleIOHandler(BaseIOHandler):
         ):
             f = self.fields[data_file.filename]
             # This double-reads
-            for ptype, field_list in sorted(ptf.items()):
+            for ptype in sorted(ptf):
                 yield ptype, (
                     f[ptype, "particle_position_x"],
                     f[ptype, "particle_position_y"],

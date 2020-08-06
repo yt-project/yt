@@ -214,7 +214,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         except urllib.error.HTTPError:
             raise YTNoOldAnswer(url)
         else:
-            for this_try in range(3):
+            for _ in range(3):
                 try:
                     data = resp.read()
                 except Exception:
@@ -780,7 +780,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = []
-    for i in range(2):
+    for _ in range(2):
         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
         os.close(tmpfd)
         fns.append(tmpname)
@@ -820,7 +820,6 @@ class VRImageComparisonTest(AnswerTestingTest):
     def run(self):
         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
         os.close(tmpfd)
-        self.scene.render()
         self.scene.save(tmpname, sigma_clip=1.0)
         image = mpimg.imread(tmpname)
         os.remove(tmpname)

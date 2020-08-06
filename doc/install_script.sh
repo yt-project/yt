@@ -24,9 +24,6 @@ YT_DIR=""
 
 # These options can be set to customize the installation.
 
-INST_PY3=1      # Install Python 3 instead of Python 2. If this is turned on,
-                # all Python packages (including yt) will be installed
-                # in Python 3.
 INST_GIT=1      # Install git or not?  If git is not already installed, yt
                 # cannot be installed from source.
 INST_EMBREE=0   # Install dependencies needed for Embree-accelerated ray tracing
@@ -39,7 +36,6 @@ INST_CARTOPY=0  # Install cartopy?
 INST_NOSE=1     # Install nose?
 INST_NETCDF4=1  # Install netcdf4 and its python bindings?
 INST_POOCH=1    # Install pooch?
-INST_HG=0       # Install Mercurial or not?
 
 # This is the branch we will install from for INST_YT_SOURCE=1
 BRANCH="master"
@@ -133,7 +129,6 @@ function write_config
     echo INST_YT_SOURCE=${INST_YT_SOURCE} > ${CONFIG_FILE}
     echo INST_GIT=${INST_GIT} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
-    echo INST_PY3=${INST_PY3} >> ${CONFIG_FILE}
     echo INST_SCIPY=${INST_SCIPY} >> ${CONFIG_FILE}
     echo INST_EMBREE=${INST_EMBREE} >> ${CONFIG_FILE}
     echo INST_H5PY=${INST_H5PY} >> ${CONFIG_FILE}
@@ -303,10 +298,6 @@ printf "%-18s = %s so I " "INST_YT_SOURCE" "${INST_YT_SOURCE}"
 get_willwont ${INST_YT_SOURCE}
 echo "be compiling yt from source"
 
-printf "%-18s = %s so I " "INST_PY3" "${INST_PY3}"
-get_willwont ${INST_PY3}
-echo "be installing Python 3"
-
 printf "%-18s = %s so I " "INST_GIT" "${INST_GIT}"
 get_willwont ${INST_GIT}
 echo "be installing git"
@@ -383,12 +374,8 @@ function do_exit
     exit 1
 }
 
-if [ $INST_PY3 -eq 1 ]
-then
-     PYTHON_EXEC='python3'
-else 
-     PYTHON_EXEC='python2.7'
-fi
+PYTHON_EXEC='python3'
+
 
 if type -P curl &>/dev/null
 then
@@ -440,12 +427,7 @@ else
     exit 1
 fi
 
-if [ $INST_PY3 -eq 1 ]
-then
-    PY_VERSION='3'
-else
-    PY_VERSION='2'
-fi
+PY_VERSION='3'
 
 MINICONDA_PKG="Miniconda${PY_VERSION}-${MINICONDA_VERSION}-${MINICONDA_OS}-${MINICONDA_ARCH}.sh"
 
@@ -516,10 +498,6 @@ then
     YT_DEPS+=('pooch')
 fi
 YT_DEPS+=('conda-build')
-if [ $INST_PY3 -eq 0 ] && [ $INST_HG -eq 1 ]
-then
-    YT_DEPS+=('mercurial')
-fi
 YT_DEPS+=('sympy')
 
 if [ $INST_NETCDF4 -eq 1 ]
@@ -550,13 +528,6 @@ for YT_DEP in "${YT_DEPS[@]}"; do
     echo "Installing $YT_DEP"
     log_cmd ${DEST_DIR}/bin/conda install -c conda-forge --yes ${YT_DEP}
 done
-
-if [ $INST_PY3 -eq 1 ] && [ $INST_HG -eq 1 ]
-then
-    echo "Installing mercurial"
-    log_cmd ${DEST_DIR}/bin/conda create -y -n py27 python=2.7 mercurial
-    log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
-fi
 
 if [ $INST_YT_SOURCE -eq 1 ]
 then
@@ -594,12 +565,7 @@ fi
 # conda doesn't package pyx, so we install manually with pip
 if [ $INST_PYX -eq 1 ]
 then
-    if [ $INST_PY3 -eq 1 ]
-    then
-        log_cmd ${DEST_DIR}/bin/pip install pyx
-    else
-        log_cmd ${DEST_DIR}/bin/pip install pyx==0.12.1
-    fi
+    log_cmd ${DEST_DIR}/bin/pip install pyx
 fi
 
 if [ $INST_YT_SOURCE -eq 0 ]

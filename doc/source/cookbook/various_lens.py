@@ -32,7 +32,6 @@ cam.switch_orientation(normal_vector=normal_vector, north_vector=north_vector)
 # height of final projection, while width[2] in plane-parallel lens is not used.
 cam.set_width(ds.domain_width * 0.5)
 sc.add_source(vol)
-sc.render()
 sc.save("lens_plane-parallel.png", sigma_clip=6.0)
 
 # Perspective lens
@@ -47,7 +46,6 @@ cam.switch_orientation(normal_vector=normal_vector, north_vector=north_vector)
 # camera and the final image.
 cam.set_width(ds.domain_width * 0.5)
 sc.add_source(vol)
-sc.render()
 sc.save("lens_perspective.png", sigma_clip=6.0)
 
 # Stereo-perspective lens
@@ -61,7 +59,6 @@ cam.set_width(ds.domain_width * 0.5)
 # Set the distance between left-eye and right-eye.
 cam.lens.disparity = ds.domain_width[0] * 1.0e-3
 sc.add_source(vol)
-sc.render()
 sc.save("lens_stereo-perspective.png", sigma_clip=6.0)
 
 # Fisheye lens
@@ -74,7 +71,6 @@ cam.switch_orientation(normal_vector=normal_vector, north_vector=north_vector)
 cam.set_width(ds.domain_width)
 cam.lens.fov = 360.0
 sc.add_source(vol)
-sc.render()
 sc.save("lens_fisheye.png", sigma_clip=6.0)
 
 # Spherical lens
@@ -90,7 +86,6 @@ cam.switch_orientation(normal_vector=normal_vector, north_vector=north_vector)
 # In (stereo)spherical camera, camera width is not used since the entire volume
 # will be rendered
 sc.add_source(vol)
-sc.render()
 sc.save("lens_spherical.png", sigma_clip=6.0)
 
 # Stereo-spherical lens
@@ -107,5 +102,4 @@ cam.switch_orientation(normal_vector=normal_vector, north_vector=north_vector)
 # Set the distance between left-eye and right-eye.
 cam.lens.disparity = ds.domain_width[0] * 1.0e-3
 sc.add_source(vol)
-sc.render()
 sc.save("lens_stereo-spherical.png", sigma_clip=6.0)

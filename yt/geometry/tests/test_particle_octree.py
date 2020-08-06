@@ -37,7 +37,7 @@ def test_add_particles_random():
     for ndom in [1, 2, 4, 8]:
         octree = ParticleOctreeContainer((1, 1, 1), DLE, DRE)
         octree.n_ref = 32
-        for dom, split in enumerate(np.array_split(morton, ndom)):
+        for split in np.array_split(morton, ndom):
             octree.add(split)
         octree.finalize()
         # This visits every oct.
@@ -560,7 +560,7 @@ def fake_decomp_hilbert_gaussian(
         gpos = np.clip(
             np.random.normal(DLE[k] + DW[k] / 2.0, DW[k] / 10.0, npart), DLE[k], DRE[k]
         )
-        for p, ipos in enumerate(gpos):
+        for ipos in gpos:
             for i in range(len(hlist)):
                 if iLE[i, k] <= ipos < iRE[i, k]:
                     pos[count[k], k] = ipos

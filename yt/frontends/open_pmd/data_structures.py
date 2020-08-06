@@ -43,8 +43,12 @@ class OpenPMDGrid(AMRGridPatch):
     pindex = 0
     poffset = 0
 
-    def __init__(self, gid, index, level=-1, fi=0, fo=0, pi=0, po=0, ft=[], pt=[]):
+    def __init__(self, gid, index, level=-1, fi=0, fo=0, pi=0, po=0, ft=None, pt=None):
         AMRGridPatch.__init__(self, gid, filename=index.index_filename, index=index)
+        if ft is None:
+            ft = []
+        if pt is None:
+            pt = []
         self.findex = fi
         self.foffset = fo
         self.pindex = pi
@@ -246,7 +250,7 @@ class OpenPMDHierarchy(GridIndex):
         self.vpg = int(self.dataset.gridsize / 4)  # 4Byte per value (f32)
 
         # Meshes of the same size do not need separate chunks
-        for (shape, spacing, offset, unit_si) in set(self.meshshapes.values()):
+        for shape, *_ in set(self.meshshapes.values()):
             self.num_grids += min(
                 shape[0], int(np.ceil(reduce(mul, shape) * self.vpg ** -1))
             )

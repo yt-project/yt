@@ -318,7 +318,7 @@ class FITSDataset(Dataset):
         self,
         filename,
         dataset_type="fits",
-        auxiliary_files=[],
+        auxiliary_files=None,
         nprocs=None,
         storage_filename=None,
         nan_mask=None,
@@ -328,6 +328,8 @@ class FITSDataset(Dataset):
         unit_system="cgs",
     ):
 
+        if auxiliary_files is None:
+            auxiliary_files = []
         if parameters is None:
             parameters = {}
         parameters["nprocs"] = nprocs
@@ -723,7 +725,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
     def __init__(
         self,
         filename,
-        auxiliary_files=[],
+        auxiliary_files=None,
         nprocs=None,
         storage_filename=None,
         nan_mask=None,
@@ -734,6 +736,8 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         unit_system="cgs",
         z_axis_decomp=None,
     ):
+        if auxiliary_files is None:
+            auxiliary_files = []
         self.spectral_factor = spectral_factor
         if z_axis_decomp is not None:
             issue_deprecation_warning(

@@ -12,7 +12,6 @@ from unyt.exceptions import UnitConversionError, UnitParseError
 import yt.geometry.selection_routines
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
-from yt.fields.derived_field import DerivedField
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
@@ -343,10 +342,8 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         if ngz == 0:
             deps = self._identify_dependencies([field], spatial=True)
             deps = self._determine_fields(deps)
-            for io_chunk in self.chunks([], "io", cache=False):
-                for i, chunk in enumerate(
-                    self.chunks([], "spatial", ngz=0, preload_fields=deps)
-                ):
+            for _io_chunk in self.chunks([], "io", cache=False):
+                for _chunk in self.chunks([], "spatial", ngz=0, preload_fields=deps):
                     o = self._current_chunk.objs[0]
                     if accumulate:
                         rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"), units)
@@ -358,7 +355,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                         )
         else:
             chunks = self.index._chunk(self, "spatial", ngz=ngz)
-            for i, chunk in enumerate(chunks):
+            for chunk in chunks:
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
                     gz.field_parameters = self.field_parameters
@@ -394,8 +391,8 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             size = self._count_particles(ftype)
             rv = self.ds.arr(np.empty(size, dtype="float64"), finfo.units)
             ind = 0
-            for io_chunk in self.chunks([], "io", cache=False):
-                for i, chunk in enumerate(self.chunks(field, "spatial")):
+            for _io_chunk in self.chunks([], "io", cache=False):
+                for _chunk in self.chunks(field, "spatial"):
                     x, y, z = (self[ftype, "particle_position_%s" % ax] for ax in "xyz")
                     if x.size == 0:
                         continue
@@ -414,12 +411,12 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         return rv
 
     def _count_particles(self, ftype):
-        for (f1, f2), val in self.field_data.items():
+        for (f1, _f2), val in self.field_data.items():
             if f1 == ftype:
                 return val.size
         size = 0
-        for io_chunk in self.chunks([], "io", cache=False):
-            for i, chunk in enumerate(self.chunks([], "spatial")):
+        for _io_chunk in self.chunks([], "io", cache=False):
+            for _chunk in self.chunks([], "spatial"):
                 x, y, z = (self[ftype, "particle_position_%s" % ax] for ax in "xyz")
                 if x.size == 0:
                     continue
@@ -665,7 +662,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             need_grid_positions = False
 
         if need_particle_positions:
-            for ax in "xyz":
+            for ax in self.ds.coordinates.axis_order:
                 for ptype in ptypes:
                     p_field = (ptype, "particle_position_%s" % ax)
                     if p_field in self.ds.field_info and p_field not in data:
@@ -673,7 +670,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                         ftypes[p_field] = p_field[0]
                         data[p_field] = self[p_field]
         if need_grid_positions:
-            for ax in "xyz":
+            for ax in self.ds.coordinates.axis_order:
                 g_field = ("index", ax)
                 if g_field in self.ds.field_info and g_field not in data:
                     data_fields.append(g_field)
@@ -1428,6 +1425,49 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
 
+    def _tupleize_field(self, field):
+
+        try:
+            ftype, fname = field.name
+            return ftype, fname
+        except AttributeError:
+            pass
+
+        if iterable(field) and not isinstance(field, str):
+            try:
+                ftype, fname = field
+                if not all(isinstance(_, str) for _ in field):
+                    raise TypeError
+                return ftype, fname
+            except TypeError as e:
+                raise YTFieldNotParseable(field) from e
+            except ValueError:
+                pass
+
+        try:
+            fname = field
+            finfo = self.ds._get_field_info(field)
+            if finfo.sampling_type == "particle":
+                ftype = self._current_particle_type
+                if hasattr(self.ds, "_sph_ptypes"):
+                    ptypes = self.ds._sph_ptypes
+                    if finfo.name[0] in ptypes:
+                        ftype = finfo.name[0]
+                    elif finfo.alias_field and finfo.alias_name[0] in ptypes:
+                        ftype = self._current_fluid_type
+            else:
+                ftype = self._current_fluid_type
+                if (ftype, fname) not in self.ds.field_info:
+                    ftype = self.ds._last_freq[0]
+            return ftype, fname
+        except YTFieldNotFound:
+            pass
+
+        if isinstance(field, str):
+            return "unknown", field
+
+        raise YTFieldNotParseable(field)
+
     def _determine_fields(self, fields):
         fields = ensure_list(fields)
         explicit_fields = []
@@ -1435,45 +1475,22 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             if field in self._container_fields:
                 explicit_fields.append(field)
                 continue
-            if isinstance(field, tuple):
-                if (
-                    len(field) != 2
-                    or not isinstance(field[0], str)
-                    or not isinstance(field[1], str)
-                ):
-                    raise YTFieldNotParseable(field)
-                ftype, fname = field
-                finfo = self.ds._get_field_info(ftype, fname)
-            elif isinstance(field, DerivedField):
-                ftype, fname = field.name
-                finfo = field
-            else:
-                fname = field
-                finfo = self.ds._get_field_info("unknown", fname)
-                if finfo.sampling_type == "particle":
-                    ftype = self._current_particle_type
-                    if hasattr(self.ds, "_sph_ptypes"):
-                        ptypes = self.ds._sph_ptypes
-                        if finfo.name[0] in ptypes:
-                            ftype = finfo.name[0]
-                        elif finfo.alias_field and finfo.alias_name[0] in ptypes:
-                            ftype = self._current_fluid_type
-                else:
-                    ftype = self._current_fluid_type
-                    if (ftype, fname) not in self.ds.field_info:
-                        ftype = self.ds._last_freq[0]
 
-                # really ugly check to ensure that this field really does exist somewhere,
-                # in some naming convention, before returning it as a possible field type
-                if (
-                    (ftype, fname) not in self.ds.field_info
-                    and (ftype, fname) not in self.ds.field_list
-                    and fname not in self.ds.field_list
-                    and (ftype, fname) not in self.ds.derived_field_list
-                    and fname not in self.ds.derived_field_list
-                    and (ftype, fname) not in self._container_fields
-                ):
-                    raise YTFieldNotFound((ftype, fname), self.ds)
+            ftype, fname = self._tupleize_field(field)
+            # print(field, " : ",ftype, fname)
+            finfo = self.ds._get_field_info(ftype, fname)
+
+            # really ugly check to ensure that this field really does exist somewhere,
+            # in some naming convention, before returning it as a possible field type
+            if (
+                (ftype, fname) not in self.ds.field_info
+                and (ftype, fname) not in self.ds.field_list
+                and fname not in self.ds.field_list
+                and (ftype, fname) not in self.ds.derived_field_list
+                and fname not in self.ds.derived_field_list
+                and (ftype, fname) not in self._container_fields
+            ):
+                raise YTFieldNotFound((ftype, fname), self.ds)
 
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
@@ -1499,8 +1516,8 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
 
     @property
     def blocks(self):
-        for io_chunk in self.chunks([], "io"):
-            for i, chunk in enumerate(self.chunks([], "spatial", ngz=0)):
+        for _io_chunk in self.chunks([], "io"):
+            for _chunk in self.chunks([], "spatial", ngz=0):
                 # For grids this will be a grid object, and for octrees it will
                 # be an OctreeSubset.  Note that we delegate to the sub-object.
                 o = self._current_chunk.objs[0]
@@ -2120,7 +2137,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         self.coords = None
         self._grids = None
 
-    def cut_region(self, field_cuts, field_parameters=None, locals={}):
+    def cut_region(self, field_cuts, field_parameters=None, locals=None):
         """
         Return a YTCutRegion, where the a cell is identified as being inside
         the cut region based on the value of one or more fields.  Note that in
@@ -2151,6 +2168,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.cut_region(["obj['temperature'] > 1e6"])
         >>> print(cr.quantities.total_quantity("cell_mass").in_units('Msun'))
         """
+        if locals is None:
+            locals = {}
         cr = self.ds.cut_region(
             self, field_cuts, field_parameters=field_parameters, locals=locals
         )
@@ -2850,7 +2869,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             nj, cids = identify_contours(self, field, cons[level], mv)
             unique_contours = set([])
             for sl_list in cids.values():
-                for sl, ff in sl_list:
+                for _sl, ff in sl_list:
                     unique_contours.update(np.unique(ff))
             contour_key = uuid.uuid4().hex
             # In case we're a cut region already...

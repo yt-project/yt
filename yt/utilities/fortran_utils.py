@@ -52,7 +52,7 @@ def read_attrs(f, attrs, endian="="):
     """
     vv = {}
     net_format = endian
-    for a, n, t in attrs:
+    for _a, n, t in attrs:
         for end in "@=<>":
             t = t.replace(end, "")
         net_format += "".join(["I"] + ([t] * n) + ["I"])
@@ -130,7 +130,7 @@ def read_cattrs(f, attrs, endian="="):
     """
     vv = {}
     net_format = endian
-    for a, n, t in attrs:
+    for _a, n, t in attrs:
         for end in "@=<>":
             t = t.replace(end, "")
         net_format += "".join([t] * n)
@@ -315,7 +315,7 @@ def read_record(f, rspec, endian="="):
     """
     vv = {}
     net_format = endian + "I"
-    for a, n, t in rspec:
+    for _a, n, t in rspec:
         t = t if len(t) == 1 else t[-1]
         net_format += "%s%s" % (n, t)
     net_format += "I"
@@ -331,7 +331,7 @@ def read_record(f, rspec, endian="="):
             s2,
         )
     pos = 0
-    for a, n, t in rspec:
+    for a, n, _t in rspec:
         vv[a] = vals[pos : pos + n]
         pos += n
     return vv

@@ -46,7 +46,6 @@ class LensTest(TestCase):
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
-        sc.render()
         sc.save("test_perspective_%s.png" % self.field[1], sigma_clip=6.0)
 
     def test_stereoperspective_lens(self):
@@ -58,7 +57,6 @@ class LensTest(TestCase):
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
-        sc.render()
         sc.save("test_stereoperspective_%s.png" % self.field[1], sigma_clip=6.0)
 
     def test_fisheye_lens(self):
@@ -73,7 +71,6 @@ class LensTest(TestCase):
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
-        sc.render()
         sc.save("test_fisheye_%s.png" % self.field[1], sigma_clip=6.0)
 
     def test_plane_lens(self):
@@ -86,7 +83,6 @@ class LensTest(TestCase):
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
-        sc.render()
         sc.save("test_plane_%s.png" % self.field[1], sigma_clip=6.0)
 
     def test_spherical_lens(self):
@@ -98,7 +94,6 @@ class LensTest(TestCase):
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
-        sc.render()
         sc.save("test_spherical_%s.png" % self.field[1], sigma_clip=6.0)
 
     def test_stereospherical_lens(self):
@@ -112,5 +107,4 @@ class LensTest(TestCase):
         tf = vol.transfer_function
         tf.grey_opacity = True
         sc.add_source(vol)
-        sc.render()
         sc.save("test_stereospherical_%s.png" % self.field[1], sigma_clip=6.0)

@@ -255,7 +255,7 @@ class IOHandlerInMemory(BaseIOHandler):
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     x, y, z = (
                         self.grids_in_memory[g.id]["particle_position_x"],
                         self.grids_in_memory[g.id]["particle_position_y"],
@@ -298,9 +298,6 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
         ds = f["/Grid%08i/%s" % (grid.id, field)][:]
         f.close()
         return ds.transpose()[:, :, None]
-
-    def modify(self, field):
-        pass
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -358,6 +355,3 @@ class IOHandlerPacked1D(IOHandlerPackedHDF5):
         ds = f["/Grid%08i/%s" % (grid.id, field)][:]
         f.close()
         return ds.transpose()[:, None, None]
-
-    def modify(self, field):
-        pass

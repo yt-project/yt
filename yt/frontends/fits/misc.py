@@ -286,7 +286,7 @@ class PlotWindowWCS:
         from yt.visualization._mpl_imports import FigureCanvasAgg
 
         ret = ""
-        for k, v in self.plots.items():
+        for v in self.plots.values():
             canvas = FigureCanvasAgg(v)
             f = BytesIO()
             canvas.print_figure(f)
