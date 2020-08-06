@@ -134,6 +134,13 @@ class RAMSESDomainFile:
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
+        # update levelmax
+        force_max_level, convention = self.ds._force_max_level
+        if convention == "yt":
+            force_max_level += self.ds.min_level + 1
+        self.amr_header["nlevelmax"] = min(
+            force_max_level, self.amr_header["nlevelmax"]
+        )
         self.amr_offset = f.tell()
         self.local_oct_count = hvals["numbl"][
             self.ds.min_level :, self.domain_id - 1
@@ -371,7 +378,12 @@ class RAMSESIndex(OctreeIndex):
         total_octs = sum(
             dom.local_oct_count for dom in self.domains  # + dom.ngridbound.sum()
         )
-        self.max_level = max(dom.max_level for dom in self.domains)
+        force_max_level, convention = self.ds._force_max_level
+        if convention == "yt":
+            force_max_level += self.ds.min_level + 1
+        self.max_level = min(
+            force_max_level, max(dom.max_level for dom in self.domains)
+        )
         self.num_grids = total_octs
 
     def _detect_output_fields(self):
@@ -521,6 +533,8 @@ class RAMSESDataset(Dataset):
         extra_particle_fields=None,
         cosmological=None,
         bbox=None,
+        max_level=None,
+        max_level_convention=None,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -545,6 +559,10 @@ class RAMSESDataset(Dataset):
         self._extra_particle_fields = extra_particle_fields
         self.force_cosmological = cosmological
         self._bbox = bbox
+
+        self._force_max_level = self._sanitize_max_level(
+            max_level, max_level_convention
+        )
 
         # Infer if the output is organized in groups
         root_folder, group_folder = os.path.split(os.path.split(filename)[0])
@@ -589,6 +607,40 @@ class RAMSESDataset(Dataset):
                 self.fluid_types += (FH.ftype,)
 
         self.storage_filename = storage_filename
+
+    @staticmethod
+    def _sanitize_max_level(max_level, max_level_convention):
+        # NOTE: the initialisation of the dataset class sets
+        #       self.min_level _and_ requires force_max_level
+        #       to be set, so we cannot convert from to yt/ramses
+        #       conventions
+        if max_level is None and max_level_convention is None:
+            return (2 ** 999, "yt")
+
+        # Check max_level is a valid, positive integer
+        if not isinstance(max_level, (int, np.integer)):
+            raise TypeError(
+                f"Expected `max_level` to be a positive integer, got {max_level} "
+                f"with type {type(max_level)} instead."
+            )
+        if max_level < 0:
+            raise ValueError(
+                f"Expected `max_level` to be a positive integer, got {max_level} "
+                "instead."
+            )
+
+        # Check max_level_convention is set and acceptable
+        if max_level_convention is None:
+            raise ValueError(
+                "You specified `max_level` without specifying any `max_level_convention`. "
+                "You have to pick either 'yt' or 'ramses'."
+            )
+        if max_level_convention not in ("ramses", "yt"):
+            raise ValueError(
+                f"Invalid convention {max_level_convention}. "
+                "Valid choices are 'yt' and 'ramses'."
+            )
+        return (max_level, max_level_convention)
 
     def create_field_info(self, *args, **kwa):
         """Extend create_field_info to add the particles types."""
@@ -723,7 +775,11 @@ class RAMSESDataset(Dataset):
             self.omega_lambda = rheader["omega_l"]
             self.omega_matter = rheader["omega_m"]
             self.hubble_constant = rheader["H0"] / 100.0  # This is H100
-        self.max_level = rheader["levelmax"] - self.min_level - 1
+
+        force_max_level, convention = self._force_max_level
+        if convention == "yt":
+            force_max_level += self.min_level + 1
+        self.max_level = min(force_max_level, rheader["levelmax"]) - self.min_level - 1
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters["time"]
