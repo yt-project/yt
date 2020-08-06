@@ -52,12 +52,12 @@ class YTNoDataInObjectError(YTException):
 
 
 class YTFieldNotFound(YTException):
-    def __init__(self, fname, ds):
-        self.fname = fname
+    def __init__(self, field, ds):
+        self.field = field
         self.ds = ds
 
     def __str__(self):
-        return "Could not find field '%s' in %s." % (self.fname, self.ds)
+        return "Could not find field %s in %s." % (self.field, self.ds)
 
 
 class YTParticleTypeNotFound(YTException):
