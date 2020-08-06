@@ -1359,7 +1359,7 @@ class Dataset(metaclass=RegisteredDataset):
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
             mylog.warning(
-                "Field %s already exists. To override use " + "force_override=True.",
+                "Field %s already exists. To override use `force_override=True`.",
                 name,
             )
 
