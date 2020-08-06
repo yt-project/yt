@@ -9,7 +9,7 @@ rho_units = "code_mass / code_length**3"
 
 def velocity_field(comp):
     def _velocity(field, data):
-        return data["athena", "momentum_%s" % comp] / data["athena", "density"]
+        return data["athena", f"momentum_{comp}"] / data["athena", "density"]
 
     return _velocity
 
@@ -37,14 +37,14 @@ class AthenaFieldInfo(FieldInfoContainer):
         unit_system = self.ds.unit_system
         # Add velocity fields
         for comp in "xyz":
-            vel_field = ("athena", "velocity_%s" % comp)
-            mom_field = ("athena", "momentum_%s" % comp)
+            vel_field = ("athena", f"velocity_{comp}")
+            mom_field = ("athena", f"momentum_{comp}")
             if vel_field in self.field_list:
                 self.add_output_field(
                     vel_field, sampling_type="cell", units="code_length/code_time"
                 )
                 self.alias(
-                    ("gas", "velocity_%s" % comp),
+                    ("gas", f"velocity_{comp}"),
                     vel_field,
                     units=unit_system["velocity"],
                 )
@@ -55,7 +55,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                     units="code_mass/code_time/code_length**2",
                 )
                 self.add_field(
-                    ("gas", "velocity_%s" % comp),
+                    ("gas", f"velocity_{comp}"),
                     sampling_type="cell",
                     function=velocity_field(comp),
                     units=unit_system["velocity"],
@@ -151,5 +151,5 @@ class AthenaFieldInfo(FieldInfoContainer):
         )
 
         setup_magnetic_field_aliases(
-            self, "athena", ["cell_centered_B_%s" % ax for ax in "xyz"]
+            self, "athena", [f"cell_centered_B_{ax}" for ax in "xyz"]
         )

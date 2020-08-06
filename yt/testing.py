@@ -232,9 +232,9 @@ def fake_random_ds(
                 else:
                     data["io", field] = (prng.random_sample(size=int(particles)), unit)
         else:
-            for f in ("particle_position_%s" % ax for ax in "xyz"):
+            for f in (f"particle_position_{ax}" for ax in "xyz"):
                 data["io", f] = (prng.random_sample(size=particles), "code_length")
-            for f in ("particle_velocity_%s" % ax for ax in "xyz"):
+            for f in (f"particle_velocity_{ax}" for ax in "xyz"):
                 data["io", f] = (prng.random_sample(size=particles) - 0.5, "cm/s")
             data["io", "particle_mass"] = (prng.random_sample(particles), "g")
     ug = load_uniform_grid(
@@ -279,12 +279,12 @@ def fake_amr_ds(
         for f in fields:
             gdata[f] = prng.random_sample(dims)
         if particles:
-            for i, f in enumerate("particle_position_%s" % ax for ax in "xyz"):
+            for i, f in enumerate(f"particle_position_{ax}" for ax in "xyz"):
                 pdata = prng.random_sample(particles)
                 pdata /= right_edge[i] - left_edge[i]
                 pdata += left_edge[i]
                 gdata["io", f] = (pdata, "code_length")
-            for f in ("particle_velocity_%s" % ax for ax in "xyz"):
+            for f in (f"particle_velocity_{ax}" for ax in "xyz"):
                 gdata["io", f] = (prng.random_sample(particles) - 0.5, "cm/s")
             gdata["io", "particle_mass"] = (prng.random_sample(particles), "g")
         data.append(gdata)
@@ -860,15 +860,15 @@ def units_override_check(fn):
     attrs1 = []
     attrs2 = []
     for u in units_list:
-        unit_attr = getattr(ds1, "%s_unit" % u, None)
+        unit_attr = getattr(ds1, f"{u}_unit", None)
         if unit_attr is not None:
             attrs1.append(unit_attr)
-            units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
+            units_override[f"{u}_unit"] = (unit_attr.v, str(unit_attr.units))
     del ds1
     ds2 = load(fn, units_override=units_override)
     assert len(ds2.units_override) > 0
     for u in units_list:
-        unit_attr = getattr(ds2, "%s_unit" % u, None)
+        unit_attr = getattr(ds2, f"{u}_unit", None)
         if unit_attr is not None:
             attrs2.append(unit_attr)
     assert_equal(attrs1, attrs2)
@@ -993,7 +993,7 @@ def check_results(func):
             su = _rv.sum(dtype="float64")
             si = _rv.size
             ha = hashlib.md5(_rv.tostring()).hexdigest()
-            fn = "func_results_ref_%s.cpkl" % (name)
+            fn = f"func_results_ref_{name}.cpkl"
             with open(fn, "wb") as f:
                 pickle.dump((mi, ma, st, su, si, ha), f)
             return rv
@@ -1023,13 +1023,13 @@ def check_results(func):
                 _rv.size,
                 hashlib.md5(_rv.tostring()).hexdigest(),
             )
-            fn = "func_results_ref_%s.cpkl" % (name)
+            fn = f"func_results_ref_{name}.cpkl"
             if not os.path.exists(fn):
                 print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
                 ref = pickle.load(f)
-            print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
+            print(f"Sizes: {vals[4] == ref[4]} ({vals[4]}, {ref[4]})")
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
             assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
@@ -1147,7 +1147,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     rt = YTArray(rtol)
     if not rt.units.is_dimensionless:
-        raise AssertionError("Units of rtol (%s) are not " "dimensionless" % rt.units)
+        raise AssertionError(f"Units of rtol ({rt.units}) are not dimensionless")
 
     if not isinstance(atol, YTArray):
         at = YTQuantity(atol, des.units)
@@ -1230,9 +1230,7 @@ def requires_backend(backend):
         # needed since None is no longer returned, so we check for the skip
         # exception in the xfail case for that test
         def skip(*args, **kwargs):
-            msg = "`{}` backend not found, skipping: `{}`".format(
-                backend, func.__name__
-            )
+            msg = f"`{backend}` backend not found, skipping: `{func.__name__}`"
             print(msg)
             pytest.skip(msg)
 

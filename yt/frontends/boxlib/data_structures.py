@@ -477,9 +477,9 @@ class BoxlibHierarchy(GridIndex):
         #  * FLOAT data
         #  * FAB ((8, (32 8 23 0 1 9 0 127)),(4, (1 2 3 4)))((0,0) (63,63) (0,0)) 27
         if bpr == endian[0]:
-            dtype = "<f%s" % bpr
+            dtype = f"<f{bpr}"
         elif bpr == endian[-1]:
-            dtype = ">f%s" % bpr
+            dtype = f">f{bpr}"
         else:
             raise ValueError(
                 "FAB header is neither big nor little endian. Perhaps the file is corrupt?"

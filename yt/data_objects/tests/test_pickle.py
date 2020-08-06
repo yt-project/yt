@@ -38,10 +38,10 @@ def test_save_load_pickle():
     # load object
     test_load = pickle.load(open(cpklfile.name, "rb"))
 
-    assert_equal.description = "%s: File was pickle-loaded successfully" % __name__
+    assert_equal.description = f"{__name__}: File was pickle-loaded successfully"
     assert_equal(test_load is not None, True)
     assert_equal.description = (
-        "%s: Length of pickle-loaded connected set object" % __name__
+        f"{__name__}: Length of pickle-loaded connected set object"
     )
     assert_equal(len(contours[1][0]), len(test_load))
 

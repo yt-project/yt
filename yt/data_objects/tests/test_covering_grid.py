@@ -36,10 +36,10 @@ def test_covering_grid():
             dn = ds.refine_by ** level
             cg = ds.covering_grid(level, [0.0, 0.0, 0.0], dn * ds.domain_dimensions)
             # Test coordinate generation
-            assert_equal(np.unique(cg["d%s" % axis_name[0]]).size, 1)
+            assert_equal(np.unique(cg[f"d{axis_name[0]}"]).size, 1)
             xmi = cg[axis_name[0]].min()
             xma = cg[axis_name[0]].max()
-            dx = cg["d%s" % axis_name[0]].flat[0:1]
+            dx = cg[f"d{axis_name[0]}"].flat[0:1]
             edges = ds.arr([[0, 1], [0, 1], [0, 1]], "code_length")
             assert_equal(xmi, edges[0, 0] + dx / 2.0)
             assert_equal(xmi, cg[axis_name[0]][0, 0, 0])
@@ -47,20 +47,20 @@ def test_covering_grid():
             assert_equal(xma, edges[0, 1] - dx / 2.0)
             assert_equal(xma, cg[axis_name[0]][-1, 0, 0])
             assert_equal(xma, cg[axis_name[0]][-1, 1, 1])
-            assert_equal(np.unique(cg["d%s" % axis_name[1]]).size, 1)
+            assert_equal(np.unique(cg[f"d{axis_name[1]}"]).size, 1)
             ymi = cg[axis_name[1]].min()
             yma = cg[axis_name[1]].max()
-            dy = cg["d%s" % axis_name[1]][0]
+            dy = cg[f"d{axis_name[1]}"][0]
             assert_equal(ymi, edges[1, 0] + dy / 2.0)
             assert_equal(ymi, cg[axis_name[1]][0, 0, 0])
             assert_equal(ymi, cg[axis_name[1]][1, 0, 1])
             assert_equal(yma, edges[1, 1] - dy / 2.0)
             assert_equal(yma, cg[axis_name[1]][0, -1, 0])
             assert_equal(yma, cg[axis_name[1]][1, -1, 1])
-            assert_equal(np.unique(cg["d%s" % axis_name[2]]).size, 1)
+            assert_equal(np.unique(cg[f"d{axis_name[2]}"]).size, 1)
             zmi = cg[axis_name[2]].min()
             zma = cg[axis_name[2]].max()
-            dz = cg["d%s" % axis_name[2]][0]
+            dz = cg[f"d{axis_name[2]}"][0]
             assert_equal(zmi, edges[2, 0] + dz / 2.0)
             assert_equal(zmi, cg[axis_name[2]][0, 0, 0])
             assert_equal(zmi, cg[axis_name[2]][1, 1, 0])

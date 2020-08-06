@@ -82,10 +82,10 @@ def load_sample(name=None, specific_file=None, pbar=True):
     if specific_file is None:
         # right now work on loading only untarred files. build out h5 later
         mylog.info("Default to loading %s for %s dataset", file_lookup, name)
-        loaded_file = os.path.join(base_path, "%s.untar" % fileext, name, file_lookup)
+        loaded_file = os.path.join(base_path, f"{fileext}.untar", name, file_lookup)
     else:
         mylog.info("Loading %s for %s dataset", specific_file, name)
-        loaded_file = os.path.join(base_path, "%s.untar" % fileext, name, specific_file)
+        loaded_file = os.path.join(base_path, f"{fileext}.untar", name, specific_file)
 
     return load(loaded_file, **optional_args)
 
@@ -118,7 +118,7 @@ def _validate_sampledata_name(name):
         # Right now we are assuming that any name passed without an explicit
         # extension is packed in a tarball. This logic can be modified later to
         # be more flexible.
-        fileext = "%s.tar.gz" % name
+        fileext = f"{name}.tar.gz"
         basename = name
         extension = "tar"
     elif ext == ".gz":

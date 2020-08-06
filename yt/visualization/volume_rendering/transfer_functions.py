@@ -669,7 +669,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                     else:
                         return r"$0$"
                 else:
-                    return "%.1g" % (val)
+                    return f"{val:.1g}"
             else:
                 return label_fmt % (val)
 
@@ -901,7 +901,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             % (self.x_bounds[0], self.x_bounds[1], self.nbins)
         )
         for f in self.features:
-            disp += "\t%s\n" % str(f)
+            disp += f"\t{str(f)}\n"
         return disp
 
 

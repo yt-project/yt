@@ -55,9 +55,8 @@ def create_scene(data_source, field=None, lens_type="plane-parallel"):
         field = data_source.ds.default_field
         if field not in data_source.ds.derived_field_list:
             raise YTSceneFieldNotFound(
-                """Could not find field '%s' in %s.
+                f"""Could not find field '{field}' in {data_source.ds}.
                   Please specify a field in create_scene()"""
-                % (field, data_source.ds)
             )
         mylog.info("Setting default field to %s", field.__repr__())
 

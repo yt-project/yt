@@ -54,10 +54,10 @@ _default_colormap = ytcfg.get("yt", "default_colormap")
 
 
 def _fix_ds(arg, *args, **kwargs):
-    if os.path.isdir("%s" % arg) and os.path.exists("%s/%s" % (arg, arg)):
-        ds = load("%s/%s" % (arg, arg), *args, **kwargs)
-    elif os.path.isdir("%s.dir" % arg) and os.path.exists("%s.dir/%s" % (arg, arg)):
-        ds = load("%s.dir/%s" % (arg, arg), *args, **kwargs)
+    if os.path.isdir(f"{arg}") and os.path.exists(f"{arg}/{arg}"):
+        ds = load(f"{arg}/{arg}", *args, **kwargs)
+    elif os.path.isdir(f"{arg}.dir") and os.path.exists(f"{arg}.dir/{arg}"):
+        ds = load(f"{arg}.dir/{arg}", *args, **kwargs)
     elif arg.endswith(".index"):
         ds = load(arg[:-10], *args, **kwargs)
     else:
@@ -110,20 +110,20 @@ def _print_installation_information(path):
 
     print()
     print("yt module located at:")
-    print("    %s" % (path))
+    print(f"    {path}")
     if "YT_DEST" in os.environ:
         spath = os.path.join(os.environ["YT_DEST"], "src", "yt-supplemental")
         if os.path.isdir(spath):
             print("The supplemental repositories are located at:")
-            print("    %s" % (spath))
+            print(f"    {spath}")
     print()
     print("The current version of yt is:")
     print()
     print("---")
-    print("Version = %s" % yt.__version__)
+    print(f"Version = {yt.__version__}")
     vstring = get_hg_or_git_version(path)
     if vstring is not None:
-        print("Changeset = %s" % vstring.strip())
+        print(f"Changeset = {vstring.strip()}")
     print("---")
     return vstring
 
@@ -647,7 +647,7 @@ _common_options = dict(
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass=True):
-    uri = "https://api.bitbucket.org/1.0/%s/" % endpoint
+    uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
     # since bitbucket doesn't return the required WWW-Authenticate header when
     # making a request without Authorization, we cannot use the standard urllib2
     # auth handlers; we have to add the requisite header from the start
@@ -657,8 +657,8 @@ def bb_apicall(endpoint, data, use_pass=True):
     if use_pass:
         username = input("Bitbucket Username? ")
         password = getpass.getpass()
-        upw = "%s:%s" % (username, password)
-        req.add_header("Authorization", "Basic %s" % base64.b64encode(upw).strip())
+        upw = f"{username}:{password}"
+        req.add_header("Authorization", f"Basic {base64.b64encode(upw).strip()}")
     return urllib.request.urlopen(req).read()
 
 
@@ -717,12 +717,12 @@ class YTBugreportCmd(YTCommand):
         print("the pastebin and then include the link in this bugreport.")
         if "EDITOR" in os.environ:
             print()
-            print("Press enter to spawn your editor, %s" % os.environ["EDITOR"])
+            print(f"Press enter to spawn your editor, {os.environ['EDITOR']}")
             input()
             tf = tempfile.NamedTemporaryFile(delete=False)
             fn = tf.name
             tf.close()
-            subprocess.call("$EDITOR %s" % fn, shell=True)
+            subprocess.call(f"$EDITOR {fn}", shell=True)
             content = open(fn).read()
             try:
                 os.unlink(fn)
@@ -744,7 +744,7 @@ class YTBugreportCmd(YTCommand):
                     break
                 lines.append(line)
             content = "\n".join(lines)
-        content = "Reporting Version: %s\n\n%s" % (current_version, content)
+        content = f"Reporting Version: {current_version}\n\n{content}"
         endpoint = "repositories/yt_analysis/yt/issues"
         data["content"] = content
         print()
@@ -752,7 +752,7 @@ class YTBugreportCmd(YTCommand):
         print()
         print("Okay, we're going to submit with this:")
         print()
-        print("Summary: %s" % (data["title"]))
+        print(f"Summary: {data['title']}")
         print()
         print("---")
         print(content)
@@ -769,13 +769,13 @@ class YTBugreportCmd(YTCommand):
         import json
 
         retval = json.loads(retval)
-        url = "http://bitbucket.org/yt_analysis/yt/issue/%s" % retval["local_id"]
+        url = f"http://bitbucket.org/yt_analysis/yt/issue/{retval['local_id']}"
         print()
         print("===============================================================")
         print()
         print("Thanks for your bug report!  Together we'll make yt totally bug free!")
         print("You can view bug report here:")
-        print("   %s" % url)
+        print(f"   {url}")
         print()
         print("Keep in touch!")
         print()
@@ -795,7 +795,7 @@ class YTHubRegisterCmd(YTCommand):
             raise YTCommandRequiresModule("requests")
         if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
-            print("{} . Delete this if you want to force a".format(CURRENT_CONFIG_FILE))
+            print(f"{CURRENT_CONFIG_FILE} . Delete this if you want to force a")
             print("new user registration.")
             sys.exit()
         print("Awesome!  Let's start by registering a new user for you.")
@@ -838,7 +838,7 @@ class YTHubRegisterCmd(YTCommand):
             print()
         print()
         print("Okay, press enter to register.  You should receive a welcome")
-        print("message at %s when this is complete." % email)
+        print(f"message at {email} when this is complete.")
         print()
         input()
 
@@ -1165,7 +1165,7 @@ class YTHubStartNotebook(YTCommand):
         # TODO: should happen server-side
         _id = gc._checkResourcePath(args.folderId)
 
-        resp = gc.post("/notebook/{}".format(_id))
+        resp = gc.post(f"/notebook/{_id}")
         try:
             print("Launched! Please visit this URL:")
             print("    https://tmpnb.hub.yt" + resp["url"])
@@ -1186,16 +1186,16 @@ class YTNotebookUploadCmd(YTCommand):
     def __call__(self, args):
         gc = _get_girder_client()
         username = gc.get("/user/me")["login"]
-        gc.upload(args.file, "/user/{}/Public".format(username))
+        gc.upload(args.file, f"/user/{username}/Public")
 
-        _id = gc.resourceLookup("/user/{}/Public/{}".format(username, args.file))["_id"]
+        _id = gc.resourceLookup(f"/user/{username}/Public/{args.file}")["_id"]
         _fid = next(gc.listFile(_id))["_id"]
         hub_url = urlparse(ytcfg.get("yt", "hub_url"))
         print("Upload successful!")
         print()
         print("To access your raw notebook go here:")
         print()
-        print("  {}://{}/#item/{}".format(hub_url.scheme, hub_url.netloc, _id))
+        print(f"  {hub_url.scheme}://{hub_url.netloc}/#item/{_id}")
         print()
         print("To view your notebook go here:")
         print()
@@ -1305,7 +1305,7 @@ class YTPlotCmd(YTCommand):
             if args.zlim:
                 plt.set_zlim(args.field, *args.zlim)
             ensure_dir_exists(args.output)
-            plt.save(os.path.join(args.output, "%s" % (ds)))
+            plt.save(os.path.join(args.output, f"{ds}"))
 
 
 class YTRPDBCmd(YTCommand):
@@ -1391,7 +1391,7 @@ class YTNotebookCmd(YTCommand):
             print("place a line like this inside the [yt] section in your")
             print("yt configuration file at ~/.config/yt/ytrc")
             print()
-            print("notebook_password = %s" % pw)
+            print(f"notebook_password = {pw}")
             print()
         elif args.no_password:
             pw = None
@@ -1408,10 +1408,10 @@ class YTNotebookCmd(YTCommand):
         print()
         print("The notebook is now live at:")
         print()
-        print("     http://127.0.0.1:%s/" % app.port)
+        print(f"     http://127.0.0.1:{app.port}/")
         print()
         print("Recall you can create a new SSH tunnel dynamically by pressing")
-        print("~C and then typing -L%s:localhost:%s" % (app.port, app.port))
+        print(f"~C and then typing -L{app.port}:localhost:{app.port}")
         print("where the first number is the port on your local machine. ")
         print()
         print(
@@ -1519,9 +1519,7 @@ class YTDeleteImageCmd(YTCommand):
     name = "delete_image"
 
     def __call__(self, args):
-        headers = {
-            "Authorization": "Client-ID {}".format(ytcfg.get("yt", "imagebin_api_key"))
-        }
+        headers = {"Authorization": f"Client-ID {ytcfg.get('yt', 'imagebin_api_key')}"}
 
         delete_url = ytcfg.get("yt", "imagebin_delete_url")
         req = urllib.request.Request(
@@ -1558,16 +1556,14 @@ class YTUploadImageCmd(YTCommand):
         if not filename.endswith(".png"):
             print("File must be a PNG file!")
             return 1
-        headers = {
-            "Authorization": "Client-ID {}".format(ytcfg.get("yt", "imagebin_api_key"))
-        }
+        headers = {"Authorization": f"Client-ID {ytcfg.get('yt', 'imagebin_api_key')}"}
 
         image_data = base64.b64encode(open(filename, "rb").read())
         parameters = {
             "image": image_data,
             type: "base64",
             "name": filename,
-            "title": "%s uploaded by yt" % filename,
+            "title": f"{filename} uploaded by yt",
         }
         data = urllib.parse.urlencode(parameters).encode("utf-8")
         req = urllib.request.Request(
@@ -1582,10 +1578,10 @@ class YTUploadImageCmd(YTCommand):
         if "data" in rv and "link" in rv["data"]:
             print()
             print("Image successfully uploaded!  You can find it at:")
-            print("    %s" % (rv["data"]["link"]))
+            print(f"    {rv['data']['link']}")
             print()
             print("If you'd like to delete it, use the following")
-            print("    yt delete_image %s" % rv["data"]["deletehash"])
+            print(f"    yt delete_image {rv['data']['deletehash']}")
             print()
         else:
             print()
@@ -1745,7 +1741,7 @@ class YTSearchCmd(YTCommand):
             records.append(record)
         with open(args.output, "w") as f:
             json.dump(records, f, indent=4)
-        print("Identified %s records output to %s" % (len(records), args.output))
+        print(f"Identified {len(records)} records output to {args.output}")
 
 
 class YTDownloadData(YTCommand):
@@ -1806,25 +1802,25 @@ class YTDownloadData(YTCommand):
             raise RuntimeError(
                 "You need to specify download location. See " "--help for details."
             )
-        data_url = "http://yt-project.org/data/%s" % args.filename
+        data_url = f"http://yt-project.org/data/{args.filename}"
         if args.location in ["test_data_dir", "supp_data_dir"]:
             data_dir = ytcfg.get("yt", args.location)
             if data_dir == "/does/not/exist":
-                raise RuntimeError("'%s' is not configured!" % args.location)
+                raise RuntimeError(f"'{args.location}' is not configured!")
         else:
             data_dir = args.location
         if not os.path.exists(data_dir):
-            print("The directory '%s' does not exist. Creating..." % data_dir)
+            print(f"The directory '{data_dir}' does not exist. Creating...")
             ensure_dir(data_dir)
         data_file = os.path.join(data_dir, args.filename)
         if os.path.exists(data_file) and not args.overwrite:
-            raise IOError("File '%s' exists and overwrite=False!" % data_file)
-        print("Attempting to download file: %s" % args.filename)
+            raise IOError(f"File '{data_file}' exists and overwrite=False!")
+        print(f"Attempting to download file: {args.filename}")
         fn = download_file(data_url, data_file)
 
         if not os.path.exists(fn):
-            raise IOError("The file '%s' did not download!!" % args.filename)
-        print("File: %s downloaded successfully to %s" % (args.filename, data_file))
+            raise IOError(f"The file '{args.filename}' did not download!!")
+        print(f"File: {args.filename} downloaded successfully to {data_file}")
 
     def get_list(self):
         data = (

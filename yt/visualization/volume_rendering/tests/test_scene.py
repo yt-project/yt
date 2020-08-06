@@ -71,7 +71,7 @@ class RotationTest(TestCase):
         tf.map_to_colormap(mi_bound, ma_bound, scale=0.01, colormap="Reds_r")
         sc.render()
         for suffix in ["png", "eps", "ps", "pdf"]:
-            fname = "test_scene.{}".format(suffix)
+            fname = f"test_scene.{suffix}"
             sc.save(fname, sigma_clip=6.0)
             assert_fname(fname)
 

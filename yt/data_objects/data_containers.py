@@ -393,7 +393,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             ind = 0
             for _io_chunk in self.chunks([], "io", cache=False):
                 for _chunk in self.chunks(field, "spatial"):
-                    x, y, z = (self[ftype, "particle_position_%s" % ax] for ax in "xyz")
+                    x, y, z = (self[ftype, f"particle_position_{ax}"] for ax in "xyz")
                     if x.size == 0:
                         continue
                     mask = self._current_chunk.objs[0].select_particles(
@@ -417,7 +417,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         size = 0
         for _io_chunk in self.chunks([], "io", cache=False):
             for _chunk in self.chunks([], "spatial"):
-                x, y, z = (self[ftype, "particle_position_%s" % ax] for ax in "xyz")
+                x, y, z = (self[ftype, f"particle_position_{ax}"] for ax in "xyz")
                 if x.size == 0:
                     continue
                 size += self._current_chunk.objs[0].count_particles(
@@ -626,7 +626,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
 
         """
 
-        keyword = "%s_%s" % (str(self.ds), self._type_name)
+        keyword = f"{str(self.ds)}_{self._type_name}"
         filename = get_output_filename(filename, keyword, ".h5")
 
         data = {}
@@ -664,7 +664,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         if need_particle_positions:
             for ax in self.ds.coordinates.axis_order:
                 for ptype in ptypes:
-                    p_field = (ptype, "particle_position_%s" % ax)
+                    p_field = (ptype, f"particle_position_{ax}")
                     if p_field in self.ds.field_info and p_field not in data:
                         data_fields.append(field)
                         ftypes[p_field] = p_field[0]
@@ -881,7 +881,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                 ##  the UI name
                 if log_flag:
                     units = units[len("log(") : -1]
-                    field = "log{}".format(field)
+                    field = f"log{field}"
 
                 ## perform the unit conversion and take the log if
                 ##  necessary.
@@ -1052,7 +1052,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             r = self.ds.proj(field, axis, data_source=self, method="mip")
             return r
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
 
     def min(self, field, axis=None):
         r"""Compute the minimum of a field.
@@ -1092,7 +1092,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                 "Minimum intensity projection not" " implemented."
             )
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
 
     def std(self, field, weight=None):
         """Compute the variance of a field.
@@ -1264,7 +1264,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         elif axis is None:
             r = self.quantities.weighted_average_quantity(field, weight_field)
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
     def sum(self, field, axis=None):
@@ -1301,7 +1301,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         elif axis is None:
             r = self.quantities.total_quantity(field)
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
     def integrate(self, field, weight=None, axis=None):
@@ -1334,12 +1334,12 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         if axis in self.ds.coordinates.axis_name:
             r = self.ds.proj(field, axis, data_source=self, weight_field=weight_field)
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
     @property
     def _hash(self):
-        s = "%s" % self
+        s = f"{self}"
         try:
             import hashlib
 
@@ -1386,7 +1386,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
 
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.ds)
+        s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
             try:
                 s += ", %s=%s" % (
@@ -1394,7 +1394,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                     getattr(self, i).in_base(unit_system=self.ds.unit_system),
                 )
             except AttributeError:
-                s += ", %s=%s" % (i, getattr(self, i))
+                s += f", {i}={getattr(self, i)}"
         return s
 
     @contextmanager
@@ -1572,7 +1572,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._selector is not None:
             return self._selector
         s_module = getattr(self, "_selector_module", yt.geometry.selection_routines)
-        sclass = getattr(s_module, "%s_selector" % self._type_name, None)
+        sclass = getattr(s_module, f"{self._type_name}_selector", None)
         if sclass is None:
             raise YTDataSelectorNotImplemented(self._type_name)
 
@@ -2720,7 +2720,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             for v1 in verts:
                 f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
             for i in range(len(verts) // 3):
-                f.write("f %s %s %s\n" % (i * 3 + 1, i * 3 + 2, i * 3 + 3))
+                f.write(f"f {i * 3 + 1} {i * 3 + 2} {i * 3 + 3}\n")
             if not hasattr(filename, "write"):
                 f.close()
         if sample_values is not None:
@@ -2880,8 +2880,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
                 if cid == -1:
                     continue
                 contours[level][cid] = base_object.cut_region(
-                    ["obj['contours_%s'] == %s" % (contour_key, cid)],
-                    {"contour_slices_%s" % contour_key: cids},
+                    [f"obj['contours_{contour_key}'] == {cid}"],
+                    {f"contour_slices_{contour_key}": cids},
                 )
         return cons, contours
 
@@ -2957,7 +2957,7 @@ class YTBooleanContainer(YTSelectionContainer3D):
         self.op = op.upper()
         self.dobj1 = dobj1
         self.dobj2 = dobj2
-        name = "Boolean%sSelector" % (self.op,)
+        name = f"Boolean{self.op}Selector"
         sel_cls = getattr(yt.geometry.selection_routines, name)
         self._selector = sel_cls(self)
 
