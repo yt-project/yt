@@ -66,8 +66,6 @@ def test_load_ambiguous_data():
 
     try:
         with tempfile.TemporaryDirectory() as tmpdir:
-            empty_file_path = Path(tmpdir) / "empty_file"
-            empty_file_path.touch()
             assert_raises(YTAmbiguousDataType, load, tmpdir)
     except Exception:
         raise
