@@ -542,7 +542,7 @@ def get_parameterization(fname):
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = []
-    for i in range(2):
+    for _i in range(2):
         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
         os.close(tmpfd)
         fns.append(tmpname)

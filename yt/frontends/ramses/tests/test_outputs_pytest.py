@@ -206,7 +206,7 @@ class TestRamses:
         ds = yt.load(ramsesCosmo)
         ad = ds.all_data()
         for field in expected_fields:
-            assert ("sink", "field") not in ds.field_list
+            assert ("sink", field) not in ds.field_list
 
     @requires_file(ramses_new_format)
     def test_new_format(self):

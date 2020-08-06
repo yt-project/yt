@@ -146,7 +146,11 @@ def big_patch_amr(ds, field, weight, axis, ds_obj):
     return results
 
 
-def generic_array(func, args=[], kwargs={}):
+def generic_array(func, args=None, kwargs=None):
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
     return func(*args, **kwargs)
 
 
@@ -226,8 +230,10 @@ def phase_plot_attribute(
     attr_name,
     attr_args,
     plot_type="PhasePlot",
-    plot_kwargs={},
+    plot_kwargs=None,
 ):
+    if plot_kwargs is None:
+        plot_kwargs = {}
     data_source = ds.all_data()
     plot = utils._create_phase_plot_attribute_plot(
         data_source, x_field, y_field, z_field, plot_type, plot_kwargs
@@ -242,7 +248,11 @@ def phase_plot_attribute(
     return image
 
 
-def generic_image(img_func, args=[], kwargs={}):
+def generic_image(img_func, args=None, kwargs=None):
+    if args is None:
+        args = []
+    if kwargs is None:
+        kwargs = {}
     comp_imgs = []
     tmpdir = tempfile.mkdtemp()
     image_prefix = os.path.join(tmpdir, "test_img")

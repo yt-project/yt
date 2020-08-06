@@ -47,8 +47,8 @@ class TestMoab:
                 DRE = ds.domain_right_edge
                 ray = ds.ray(DLE + offset_1 * DLE.uq, DRE - offset_2 * DRE.uq)
                 assert_almost_equal(ray["dts"].sum(dtype="float64"), 1.0, 8)
-        for i, p1 in enumerate(np.random.random((5, 3))):
-            for j, p2 in enumerate(np.random.random((5, 3))):
+        for _i, p1 in enumerate(np.random.random((5, 3))):
+            for _j, p2 in enumerate(np.random.random((5, 3))):
                 ray = ds.ray(p1, p2)
                 assert_almost_equal(ray["dts"].sum(dtype="float64"), 1.0, 8)
 
