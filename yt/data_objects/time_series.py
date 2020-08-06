@@ -163,7 +163,7 @@ class DatasetSeries:
         try:
             ret._pre_outputs = outputs[:]
         except TypeError:
-            raise YTOutputNotIdentified(outputs, {})
+            raise YTOutputNotIdentified(outputs)
         return ret
 
     def __init__(
