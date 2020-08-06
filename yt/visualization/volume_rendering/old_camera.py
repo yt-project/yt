@@ -2370,7 +2370,7 @@ class StereoSphericalCamera(Camera):
         if self.disparity <= 0.0:
             self.disparity = self.width[0] / 1000.0
             mylog.info(
-                "Warning: Invalid value of disparity; " "now reset it to %f",
+                "Warning: Invalid value of disparity; now reset it to %f",
                 self.disparity,
             )
 

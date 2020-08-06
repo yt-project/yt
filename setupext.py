@@ -119,7 +119,7 @@ def check_for_openmp():
                 using_openmp = False
         else:
             log.warn(
-                "Unexpected output from test OpenMP " "program (output was %s)", output
+                "Unexpected output from test OpenMP program (output was %s)", output
             )
             using_openmp = False
 
