@@ -47,9 +47,7 @@ class ParticleIndex(Index):
 
     def _setup_filenames(self):
         if hasattr(self, "data_files"):
-            raise RuntimeError(
-                "_setup_filenames has already been called. Something is wrong."
-            )
+            pass
 
         template = self.dataset.filename_template
         ndoms = self.dataset.file_count
