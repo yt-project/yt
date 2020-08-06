@@ -50,7 +50,7 @@ class FieldFileHandler:
 
     def __init_subclass__(cls, *args, **kwargs):
         """
-        This ensures that when a new subclass is created, it's registered.
+        Registers subclasses at creation.
         """
         super().__init_subclass__(*args, **kwargs)
         if cls.ftype is not None:
