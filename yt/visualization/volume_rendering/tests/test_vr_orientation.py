@@ -52,7 +52,7 @@ def test_orientation():
         test1.answer_name = test_name
         yield test1
 
-        for i in range(n_frames):
+        for _ in range(n_frames):
             frame += 1
             center = ds.arr([0, 0, 0], "code_length")
             cam.yaw(theta, rot_center=center)
@@ -61,7 +61,7 @@ def test_orientation():
             test2.answer_name = test_name
             yield test2
 
-        for i in range(n_frames):
+        for _ in range(n_frames):
             frame += 1
             theta = np.pi / n_frames
             center = ds.arr([0, 0, 0], "code_length")
@@ -71,7 +71,7 @@ def test_orientation():
             test3.answer_name = test_name
             yield test3
 
-        for i in range(n_frames):
+        for _ in range(n_frames):
             frame += 1
             theta = np.pi / n_frames
             center = ds.arr([0, 0, 0], "code_length")

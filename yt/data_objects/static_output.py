@@ -16,7 +16,7 @@ from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.region_expression import RegionExpression
-from yt.fields.derived_field import DerivedField, ValidateSpatial
+from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
@@ -385,9 +385,6 @@ class Dataset(metaclass=RegisteredDataset):
     @property
     def _skip_cache(self):
         return False
-
-    def hub_upload(self):
-        self._mrep.upload()
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -813,24 +810,32 @@ class Dataset(metaclass=RegisteredDataset):
 
     def _get_field_info(self, ftype, fname=None):
         self.index
+
+        # store the original inputs in case we need to raise an error
+        INPUT = ftype, fname
         if fname is None:
-            if isinstance(ftype, DerivedField):
+            try:
                 ftype, fname = ftype.name
-            else:
+            except AttributeError:
                 ftype, fname = "unknown", ftype
-        guessing_type = False
-        if ftype == "unknown":
-            guessing_type = True
+
+        # storing this condition before altering it
+        guessing_type = ftype == "unknown"
+        if guessing_type:
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
-        if field == self._last_freq:
-            if field not in self.field_info.field_aliases.values():
-                return self._last_finfo
+
+        if (
+            field == self._last_freq
+            and field not in self.field_info.field_aliases.values()
+        ):
+            return self._last_finfo
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
-        if fname in self.field_info:
+
+        try:
             # Sometimes, if guessing_type == True, this will be switched for
             # the type of field it is.  So we look at the field type and
             # determine if we need to change the type.
@@ -847,6 +852,9 @@ class Dataset(metaclass=RegisteredDataset):
                 field = self.default_fluid_type, field[1]
             self._last_freq = field
             return self._last_finfo
+        except KeyError:
+            pass
+
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type:
@@ -860,7 +868,7 @@ class Dataset(metaclass=RegisteredDataset):
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
                     return self._last_finfo
-        raise YTFieldNotFound((ftype, fname), self)
+        raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
         # Called by subclass
@@ -1081,7 +1089,7 @@ class Dataset(metaclass=RegisteredDataset):
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
-        import yt.units.dimensions as dimensions
+        from yt.units import dimensions as dimensions
 
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base

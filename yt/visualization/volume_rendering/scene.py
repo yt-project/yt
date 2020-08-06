@@ -539,7 +539,7 @@ class Scene:
     def _validate(self):
         r"""Validate the current state of the scene."""
 
-        for k, source in self.sources.items():
+        for source in self.sources.values():
             source._validate()
         return
 
@@ -577,11 +577,11 @@ class Scene:
         empty = camera.lens.new_image(camera)
         opaque = ZBuffer(empty, np.full(empty.shape[:2], np.inf))
 
-        for k, source in self.opaque_sources:
+        for _, source in self.opaque_sources:
             source.render(camera, zbuffer=opaque)
             im = source.zbuffer.rgba
 
-        for k, source in self.transparent_sources:
+        for _, source in self.transparent_sources:
             im = source.render(camera, zbuffer=opaque)
             opaque.rgba = im
 
@@ -816,7 +816,7 @@ class Scene:
             The opacity of the mesh lines. Default is 255 (solid).
 
         """
-        for k, source in self.opaque_sources:
+        for _, source in self.opaque_sources:
             if isinstance(source, MeshSource):
                 source.annotate_mesh_lines(color=color, alpha=alpha)
         return self

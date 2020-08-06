@@ -306,7 +306,7 @@ class ARTIOIndex(Index):
         if ngz > 0:
             raise NotImplementedError
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i, og in enumerate(sobjs):
+        for og in sobjs:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:

@@ -299,7 +299,7 @@ class Camera(ParallelAnalysisInterface):
         region = self.data_source
         corners = []
         levels = []
-        for block, mask in region.blocks:
+        for block, _mask in region.blocks:
             block_corners = np.array(
                 [
                     [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
@@ -972,7 +972,7 @@ class Camera(ParallelAnalysisInterface):
         ...     iw.write_bitmap(snapshot, "zoom_%04i.png" % i)
         """
         f = final ** (1.0 / n_steps)
-        for i in range(n_steps):
+        for _ in range(n_steps):
             self.zoom(f)
             yield self.snapshot(clip_ratio=clip_ratio)
 
@@ -1035,7 +1035,7 @@ class Camera(ParallelAnalysisInterface):
             else:
                 dW = self.ds.arr([0.0, 0.0, 0.0], "code_length")
             dx = (final - self.center) * 1.0 / n_steps
-        for i in range(n_steps):
+        for _ in range(n_steps):
             if exponential:
                 self.switch_view(center=self.center * dx, width=self.width * dW)
             else:
@@ -1177,7 +1177,7 @@ class Camera(ParallelAnalysisInterface):
         """
 
         dtheta = (1.0 * theta) / n_steps
-        for i in range(n_steps):
+        for _ in range(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector)
             yield self.snapshot(clip_ratio=clip_ratio)
 
@@ -2220,7 +2220,7 @@ class ProjectionCamera(Camera):
         # Now we have a bounding box.
         data_source = ds.region(self.center, mi, ma)
 
-        for i, (grid, mask) in enumerate(data_source.blocks):
+        for (grid, mask) in data_source.blocks:
             data = [(grid[field] * mask).astype("float64") for field in fields]
             pg = PartitionedGrid(
                 grid.id,

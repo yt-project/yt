@@ -96,9 +96,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
-            for ptype, field_list in sorted(
-                ptf.items(), key=lambda a: poff.get(a[0], -1)
-            ):
+            for ptype in sorted(ptf, key=lambda a: poff.get(a, -1)):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 f.seek(poff[ptype])
@@ -246,7 +244,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             f.seek(ds._header_offset)
             mi = np.array([1e30, 1e30, 1e30], dtype="float64")
             ma = -np.array([1e30, 1e30, 1e30], dtype="float64")
-            for iptype, ptype in enumerate(self._ptypes):
+            for ptype in self._ptypes:
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
                 if count == 0:
@@ -288,7 +286,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def _yield_coordinates(self, data_file, needed_ptype=None):
         with open(data_file.filename, "rb") as f:
             poff = data_file.field_offsets
-            for iptype, ptype in enumerate(self._ptypes):
+            for ptype in self._ptypes:
                 if ptype not in poff:
                     continue
                 f.seek(poff[ptype])
@@ -438,7 +436,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         pos = data_file.ds._header_offset
         global_offsets = {}
         field_offsets = {}
-        for i, ptype in enumerate(self._ptypes):
+        for ptype in self._ptypes:
             if ptype not in self._pdtypes:
                 # This means we don't have any, I think, and so we shouldn't
                 # stick it in the offsets.
