@@ -595,10 +595,10 @@ class PlotWindow(ImagePlotContainer):
             self.ylim = tuple(bounds[2:4])
             if len(bounds) == 6:
                 self.zlim = tuple(bounds[4:6])
-        mylog.info("xlim = %f %f" % self.xlim)
-        mylog.info("ylim = %f %f" % self.ylim)
+        mylog.info("xlim = %f %f", self.xlim[0], self.xlim[1])
+        mylog.info("ylim = %f %f", self.ylim[0], self.ylim[1])
         if hasattr(self, "zlim"):
-            mylog.info("zlim = %f %f" % self.zlim)
+            mylog.info("zlim = %f %f", self.zlim[0], self.zlim[1])
 
     @invalidate_data
     def set_width(self, width, unit=None):
@@ -1156,9 +1156,9 @@ class PWViewerMPL(PlotWindow):
 
                 else:
                     mylog.error(
-                        "Unable to draw cbar minorticks for field {} with transform {} ".format(
-                            f, self._field_transform[f]
-                        )
+                        "Unable to draw cbar minorticks for field %s with transform %s ",
+                        f,
+                        self._field_transform[f],
                     )
                     self._cbar_minorticks[f] = False
 
@@ -1513,7 +1513,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             "geographic",
             "internal_geographic",
         ):
-            mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
+            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
 
         if isinstance(ds, YTSpatialPlotDataset):
@@ -1726,7 +1726,7 @@ class ProjectionPlot(PWViewerMPL):
             "geographic",
             "internal_geographic",
         ):
-            mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
+            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
         # proj_style is deprecated, but if someone specifies then it trumps
         # method.

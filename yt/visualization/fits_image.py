@@ -261,7 +261,7 @@ class FITSImageData:
                     self.field_units[name] = str(funits)
                 else:
                     self.field_units[name] = "dimensionless"
-                mylog.info("Making a FITS image of field %s" % name)
+                mylog.info("Making a FITS image of field %s", name)
                 if isinstance(this_img, ImageArray):
                     if i == 0:
                         self.shape = this_img.shape[::-1]
@@ -845,7 +845,7 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
         unit = ds.get_smallest_appropriate_unit(width[0])
         mylog.info(
             "Making an image of the entire domain, "
-            + "so setting the center to the domain center."
+            "so setting the center to the domain center."
         )
     else:
         width = ds.coordinates.sanitize_width(axis, width, None)

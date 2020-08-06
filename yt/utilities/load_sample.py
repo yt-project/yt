@@ -110,9 +110,7 @@ def _validate_sampledata_name(name):
     """
 
     if not isinstance(name, str):
-        mylog.error(
-            "The argument {} passed to ".format(name) + "load_sample() is not a string."
-        )
+        mylog.error("The argument %s passed to load_sample() is not a string.", name)
 
     # now get the extension if it exists
     base, ext = os.path.splitext(name)

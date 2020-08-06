@@ -241,7 +241,7 @@ class YTRay(YTSelectionContainer1D):
         ).any():
             mylog.warn(
                 "Ray start or end is outside the domain. "
-                + "Returned data will only be for the ray section inside the domain."
+                "Returned data will only be for the ray section inside the domain."
             )
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)

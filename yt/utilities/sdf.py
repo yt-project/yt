@@ -247,7 +247,7 @@ class HTTPDataStruct(DataStruct):
     def build_memmap(self):
         assert self.size != -1
         mylog.info(
-            "Building memmap with offset: %i and size %i" % (self._offset, self.size)
+            "Building memmap with offset: %i and size %i", self._offset, self.size
         )
         self.handle = self.HTTPArray(
             self.filename, dtype=self.dtype, shape=self.size, offset=self._offset
@@ -691,9 +691,7 @@ class SDFIndex:
                     f2 = 1 << int(np.log2(ic_Nmesh - 1) + 1)
                     if f2 != ic_Nmesh:
                         expand_root = 1.0 * f2 / ic_Nmesh - 1.0
-                        mylog.debug(
-                            "Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root)
-                        )
+                        mylog.debug("Expanding: %s, %s, %s", f2, ic_Nmesh, expand_root)
                         rmin *= 1.0 + expand_root
                         rmax *= 1.0 + expand_root
 
@@ -705,10 +703,12 @@ class SDFIndex:
             ) / 2
             self.domain_active_dims = self.domain_dims - 2 * self.domain_buffer
 
-        mylog.debug("MIDX rmin: %s, rmax: %s" % (self.rmin, self.rmax))
+        mylog.debug("MIDX rmin: %s, rmax: %s", self.rmin, self.rmax)
         mylog.debug(
-            "MIDX: domain_width: %s, domain_dims: %s, domain_active_dims: %s "
-            % (self.domain_width, self.domain_dims, self.domain_active_dims)
+            "MIDX: domain_width: %s, domain_dims: %s, domain_active_dims: %s ",
+            self.domain_width,
+            self.domain_dims,
+            self.domain_active_dims,
         )
 
     def spread_bits(self, ival, level=None):
@@ -802,7 +802,7 @@ class SDFIndex:
         # print('Getting data from ileft to iright:',  ileft, iright)
 
         ix, iy, iz = (iright - ileft) * 1j
-        mylog.debug("MIDX IBBOX: %s %s %s %s %s" % (ileft, iright, ix, iy, iz))
+        mylog.debug("MIDX IBBOX: %s %s %s %s %s", ileft, iright, ix, iy, iz)
 
         # plus 1 that is sliced, plus a bit since mgrid is not inclusive
         Z, Y, X = np.mgrid[
@@ -925,7 +925,7 @@ class SDFIndex:
     def iter_data(self, inds, fields):
         num_inds = len(inds)
         num_reads = 0
-        mylog.debug("MIDX Reading %i chunks" % num_inds)
+        mylog.debug("MIDX Reading %i chunks", num_inds)
         i = 0
         while i < num_inds:
             ind = inds[i]
@@ -950,8 +950,11 @@ class SDFIndex:
 
             chunk = slice(base, base + length)
             mylog.debug(
-                "Reading chunk %i of length %i after catting %i starting at %i"
-                % (i, length, combined, ind)
+                "Reading chunk %i of length %i after catting %i starting at %i",
+                i,
+                length,
+                combined,
+                ind,
             )
             num_reads += 1
             if length > 0:
@@ -959,7 +962,7 @@ class SDFIndex:
                 yield data
                 del data
             i += 1
-        mylog.debug("Read %i chunks, batched into %i reads" % (num_inds, num_reads))
+        mylog.debug("Read %i chunks, batched into %i reads", num_inds, num_reads)
 
     def filter_particles(self, myiter, myfilter):
         for data in myiter:
@@ -994,8 +997,7 @@ class SDFIndex:
             # print('Mask shape, sum:', mask.shape, mask.sum())
 
             mylog.debug(
-                "Filtering particles, returning %i out of %i"
-                % (mask.sum(), mask.shape[0])
+                "Filtering particles, returning %i out of %i", mask.sum(), mask.shape[0]
             )
 
             if not np.any(mask):
@@ -1034,8 +1036,7 @@ class SDFIndex:
             mask = ((pos - center) ** 2).sum(axis=1) ** 0.5 < radius
 
             mylog.debug(
-                "Filtering particles, returning %i out of %i"
-                % (mask.sum(), mask.shape[0])
+                "Filtering particles, returning %i out of %i", mask.sum(), mask.shape[0]
             )
 
             if not np.any(mask):
@@ -1060,7 +1061,7 @@ class SDFIndex:
         if pos_fields is None:
             pos_fields = "x", "y", "z"
         xf, yf, zf = pos_fields
-        mylog.debug("Using position fields: %s" % pos_fields)
+        mylog.debug("Using position fields: %s", pos_fields)
 
         # I'm sorry.
         pos = (
@@ -1079,14 +1080,17 @@ class SDFIndex:
         _shift_periodic(pos, left, right, DW)
 
         mylog.debug(
-            "Periodic filtering, %s %s %s %s"
-            % (left, right, pos.min(axis=0), pos.max(axis=0))
+            "Periodic filtering, %s %s %s %s",
+            left,
+            right,
+            pos.min(axis=0),
+            pos.max(axis=0),
         )
         # Now get all particles that are within the bbox
         mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
 
         mylog.debug(
-            "Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0])
+            "Filtering particles, returning %i out of %i", mask.sum(), mask.shape[0]
         )
 
         if np.any(mask):
@@ -1105,7 +1109,7 @@ class SDFIndex:
         and a right.
         """
         _ensure_xyz_fields(fields)
-        mylog.debug("MIDX Loading region from %s to %s" % (left, right))
+        mylog.debug("MIDX Loading region from %s to %s", left, right)
         inds = self.get_bbox(left, right)
         # Need to put left/right in float32 to avoid fp roundoff errors
         # in the bbox later.
@@ -1126,14 +1130,14 @@ class SDFIndex:
         a radius.
         """
         _ensure_xyz_fields(fields)
-        mylog.debug("MIDX Loading spherical region %s to %s" % (center, radius))
+        mylog.debug("MIDX Loading spherical region %s to %s", center, radius)
         inds = self.get_bbox(center - radius, center + radius)
 
         for dd in self.filter_sphere(center, radius, self.iter_data(inds, fields)):
             yield dd
 
     def iter_ibbox_data(self, left, right, fields):
-        mylog.debug("MIDX Loading region from %s to %s" % (left, right))
+        mylog.debug("MIDX Loading region from %s to %s", left, right)
         inds = self.get_ibbox(left, right)
         return self.iter_data(inds, fields)
 
@@ -1157,7 +1161,7 @@ class SDFIndex:
         length = rbase + rlen - lbase
         if length > 0:
             mylog.debug(
-                "Getting contiguous chunk of size %i starting at %i" % (length, lbase)
+                "Getting contiguous chunk of size %i starting at %i", length, lbase
             )
         return self.get_data(slice(lbase, lbase + length), fields)
 
@@ -1170,7 +1174,7 @@ class SDFIndex:
         length = self.indexdata["len"][key] - base
         if length > 0:
             mylog.debug(
-                "Getting contiguous chunk of size %i starting at %i" % (length, base)
+                "Getting contiguous chunk of size %i starting at %i", length, base
             )
         return self.get_data(slice(base, base + length), fields)
 
@@ -1247,7 +1251,7 @@ class SDFIndex:
         """
         cell_iarr = np.array(cell_iarr, dtype="int64")
         lk, rk = self.get_key_bounds(level, cell_iarr)
-        mylog.debug("Reading contiguous chunk from %i to %i" % (lk, rk))
+        mylog.debug("Reading contiguous chunk from %i to %i", lk, rk)
         return self.get_contiguous_chunk(lk, rk, fields)
 
     def get_cell_bbox(self, level, cell_iarr):

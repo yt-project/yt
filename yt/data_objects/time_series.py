@@ -616,7 +616,7 @@ class SimulationTimeSeries(DatasetSeries, metaclass=RegisteredSimulationTimeSeri
                 self._print_attr(a)
         for a in self.key_parameters:
             self._print_attr(a)
-        mylog.info("Total datasets: %d." % len(self.all_outputs))
+        mylog.info("Total datasets: %d.", len(self.all_outputs))
 
     def _print_attr(self, a):
         """

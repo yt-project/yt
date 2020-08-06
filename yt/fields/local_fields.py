@@ -17,8 +17,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
         # Handle the case where the field has already been added.
         if not override and name in self:
             mylog.error(
-                "Field %s already exists. To override use " + "force_override=True.",
-                name,
+                "Field %s already exists. To override use 'force_override=True'.", name,
             )
         if kwargs.setdefault("particle_type", False):
             if sampling_type is not None and sampling_type != "particle":
