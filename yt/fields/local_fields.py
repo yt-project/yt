@@ -23,7 +23,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
         # Handle the case where the field has already been added.
         if not override and name in self:
             mylog.warning(
-                "Field %s already exists. To override use force_override=True.", name,
+                "Field %s already exists. To override use `force_override=True`.", name,
             )
 
         return super(LocalFieldInfoContainer, self).add_field(
