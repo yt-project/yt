@@ -19,9 +19,9 @@ from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.visualization import (
-    particle_plots as particle_plots,
+    particle_plots,
     plot_window as pw,
-    profile_plotter as profile_plotter,
+    profile_plotter,
 )
 from yt.visualization.volume_rendering.scene import Scene
 
