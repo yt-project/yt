@@ -23,20 +23,7 @@ PRESENT_FIELD_FILES = {}
 DETECTED_FIELDS = {}
 
 
-class RAMSESFieldFileHandlerRegistry(type):
-    """
-    This is a base class that on instantiation registers the file
-    handler into the list. Used as a metaclass.
-    """
-
-    def __new__(meta, name, bases, class_dict):
-        cls = type.__new__(meta, name, bases, class_dict)
-        if cls.ftype is not None:
-            register_field_handler(cls)
-        return cls
-
-
-class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
+class FieldFileHandler:
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -60,6 +47,14 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
     field_types = (
         None  # Mapping from field to the type of the data (float, integer, ...)
     )
+
+    def __init_subclass__(cls, *args, **kwargs):
+        """
+        This ensures that when a new subclass is created, it's registered.
+        """
+        super().__init_subclass__(*args, **kwargs)
+        if cls.ftype is not None:
+            register_field_handler(cls)
 
     def __init__(self, domain):
         """

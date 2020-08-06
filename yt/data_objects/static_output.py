@@ -74,13 +74,6 @@ def _unsupported_object(ds, obj_name):
     return _raise_unsupp
 
 
-class RegisteredDataset(abc.ABCMeta):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        output_type_registry[name] = cls
-        mylog.debug("Registering: %s as %s", name, cls)
-
-
 class IndexProxy:
     # This is a simple proxy for Index objects.  It enables backwards
     # compatibility so that operations like .h.sphere, .h.print_stats and
@@ -143,7 +136,7 @@ def requires_index(attr_name):
     return ireq
 
 
-class Dataset(metaclass=RegisteredDataset):
+class Dataset:
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
@@ -197,6 +190,11 @@ class Dataset(metaclass=RegisteredDataset):
         else:
             obj = _cached_datasets[cache_key]
         return obj
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        output_type_registry[cls.__name__] = cls
+        mylog.debug("Registering: %s as %s", cls.__name__, cls)
 
     def __init__(
         self,

@@ -510,6 +510,15 @@ class DatasetSeriesObject:
         )
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if "Simulation" not in cls.__name__:
+            return
+        code_name = cls.__name__[: cls.__name__.find("Simulation")]
+        if code_name:
+            simulation_time_series_registry[code_name] = cls
+            mylog.debug("Registering simulation: %s as %s", code_name, cls)
+
     def eval(self, tasks):
         return self.time_series.eval(tasks, self)
 
@@ -520,16 +529,7 @@ class DatasetSeriesObject:
         return cls(*self._args, **self._kwargs)
 
 
-class RegisteredSimulationTimeSeries(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        code_name = name[: name.find("Simulation")]
-        if code_name:
-            simulation_time_series_registry[code_name] = cls
-            mylog.debug("Registering simulation: %s as %s", code_name, cls)
-
-
-class SimulationTimeSeries(DatasetSeries, metaclass=RegisteredSimulationTimeSeries):
+class SimulationTimeSeries(DatasetSeries):
     def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.
