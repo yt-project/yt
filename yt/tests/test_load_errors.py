@@ -9,14 +9,16 @@ from yt.utilities.exceptions import YTOutputNotIdentified, YTSimulationNotIdenti
 
 def test_load_nonexistent_data():
     with tempfile.TemporaryDirectory() as tmpdir:
-        assert_raises(OSError, load, os.path.join(tmpdir, "not_a_file"))
-        assert_raises(OSError, simulation, os.path.join(tmpdir, "not_a_file"), "Enzo")
+        assert_raises(FileNotFoundError, load, os.path.join(tmpdir, "not_a_file"))
+        assert_raises(
+            FileNotFoundError, simulation, os.path.join(tmpdir, "not_a_file"), "Enzo"
+        )
 
         # this one is a design choice: it is preferable to report the most important
         # problem in an error message (missing data is worse than a typo in
         # simulation_type), so we make sure the error raised is not YTSimulationNotIdentified
         assert_raises(
-            OSError,
+            FileNotFoundError,
             simulation,
             os.path.join(tmpdir, "not_a_file"),
             "unregistered_simulation_type",

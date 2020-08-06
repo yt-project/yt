@@ -658,7 +658,7 @@ class EnzoSimulation(SimulationTimeSeries):
             )
             try:
                 ds = load(filename)
-            except (OSError, YTOutputNotIdentified):
+            except (FileNotFoundError, YTOutputNotIdentified):
                 mylog.error("Failed to load %s", filename)
                 continue
             my_storage.result = {

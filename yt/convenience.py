@@ -40,7 +40,7 @@ def load(fn, *args, **kwargs):
 
     Raises
     ------
-    OSError
+    FileNotFoundError
         If fn does not match any existing file or directory.
 
     yt.utilities.exceptions.YTOutputNotIdentified
@@ -65,7 +65,7 @@ def load(fn, *args, **kwargs):
             msg = f"No such file or directory: {fn}"
             if os.path.exists(data_dir):
                 msg += f"\n(Also tried {alt_fn})"
-            raise OSError(msg)
+            raise FileNotFoundError(msg)
 
     candidates = []
     for cls in output_type_registry.values():
@@ -101,7 +101,7 @@ def simulation(fn, simulation_type, find_outputs=False):
 
     Raises
     ------
-    OSError
+    FileNotFoundError
         If fn is not found.
 
     yt.utilities.exceptions.YTSimulationNotIdentified
@@ -113,7 +113,7 @@ def simulation(fn, simulation_type, find_outputs=False):
         if os.path.exists(alt_fn):
             fn = alt_fn
         else:
-            raise OSError(f"No such file or directory: {fn}")
+            raise FileNotFoundError(f"No such file or directory: {fn}")
 
     try:
         cls = simulation_time_series_registry[simulation_type]

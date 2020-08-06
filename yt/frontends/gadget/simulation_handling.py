@@ -523,7 +523,7 @@ class GadgetSimulation(SimulationTimeSeries):
         ):
             try:
                 ds = load(output)
-            except (OSError, YTOutputNotIdentified):
+            except (FileNotFoundError, YTOutputNotIdentified):
                 mylog.error("Failed to load %s", output)
                 continue
             my_storage.result = {
