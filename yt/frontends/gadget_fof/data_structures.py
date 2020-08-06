@@ -493,6 +493,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
     def _set_code_unit_attributes(self):
         pass
 
+    @classmethod
     def _is_valid(self, *args, **kwargs):
         return False
 
