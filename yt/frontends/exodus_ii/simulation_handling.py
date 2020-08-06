@@ -1,5 +1,4 @@
 import glob
-import os
 
 from yt.convenience import load
 from yt.data_objects.time_series import DatasetSeries, RegisteredSimulationTimeSeries
@@ -90,14 +89,13 @@ class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries
         for my_storage, output in parallel_objects(
             potential_outputs, storage=my_outputs
         ):
-            if os.path.exists(output):
-                try:
-                    ds = load(output)
-                    if ds is not None:
-                        num_steps = ds.num_steps
-                        my_storage.result = {"filename": output, "num_steps": num_steps}
-                except YTOutputNotIdentified:
-                    mylog.error("Failed to load %s", output)
+            try:
+                ds = load(output)
+            except (FileNotFoundError, YTOutputNotIdentified):
+                mylog.error("Failed to load %s", output)
+                continue
+            my_storage.result = {"filename": output, "num_steps": ds.num_steps}
+
         my_outputs = [
             my_output for my_output in my_outputs.values() if my_output is not None
         ]

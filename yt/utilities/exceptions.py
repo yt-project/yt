@@ -14,12 +14,34 @@ class YTException(Exception):
 
 
 class YTOutputNotIdentified(YTException):
-    def __init__(self, args, kwargs):
+    def __init__(self, filename, args=None, kwargs=None):
+        self.filename = filename
         self.args = args
         self.kwargs = kwargs
 
     def __str__(self):
-        return "Supplied %s %s, but could not load!" % (self.args, self.kwargs)
+        msg = "Could not determine input format from %s" % self.filename
+        if self.args is not None:
+            msg += ", %s" % self.args
+        if self.kwargs is not None:
+            msg += ", %s" % self.kwargs
+        msg += "."
+        return msg
+
+
+class YTAmbiguousDataType(YTOutputNotIdentified):
+    def __init__(self, filename, candidates):
+        self.filename = filename
+        self.candidates = candidates
+
+    def __str__(self):
+        msg = f"Multiple data type candidates for {self.filename}\n"
+        msg += "The following independent classes were detected as valid :\n"
+        for c in self.candidates:
+            msg += f"{c}\n"
+        msg += "A possible workaround is to directly instantiate one of the above.\n"
+        msg += "Please report this to https://github.com/yt-project/yt/issues/new"
+        return msg
 
 
 class YTSphereTooSmall(YTException):

@@ -656,18 +656,17 @@ class EnzoSimulation(SimulationTimeSeries):
                 "%s%s" % (dir_key, index),
                 "%s%s" % (output_key, index),
             )
-            if os.path.exists(filename):
-                try:
-                    ds = load(filename)
-                    if ds is not None:
-                        my_storage.result = {
-                            "filename": filename,
-                            "time": ds.current_time.in_units("s"),
-                        }
-                        if ds.cosmological_simulation:
-                            my_storage.result["redshift"] = ds.current_redshift
-                except YTOutputNotIdentified:
-                    mylog.error("Failed to load %s", filename)
+            try:
+                ds = load(filename)
+            except (FileNotFoundError, YTOutputNotIdentified):
+                mylog.error("Failed to load %s", filename)
+                continue
+            my_storage.result = {
+                "filename": filename,
+                "time": ds.current_time.in_units("s"),
+            }
+            if ds.cosmological_simulation:
+                my_storage.result["redshift"] = ds.current_redshift
         mylog.setLevel(llevel)
         my_outputs = [
             my_output for my_output in my_outputs.values() if my_output is not None
