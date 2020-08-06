@@ -273,12 +273,12 @@ class FieldInfoContainer(dict):
         except AttributeError as e:
             raise TypeError("sampling_type should be a string.") from e
 
-        acceptable_samplings =("cell", "particle", "local") 
+        acceptable_samplings = ("cell", "particle", "local")
         if sampling_type not in acceptable_samplings:
             raise ValueError(
                 "Invalid sampling type %s. Valid sampling types are %s",
                 sampling_type,
-                ", ".join(acceptable_samplings)
+                ", ".join(acceptable_samplings),
             )
 
         if particle_type:
