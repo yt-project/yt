@@ -2,6 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 
+from yt.frontends.gadget_fof.io import IOHandlerGadgetFOFHaloHDF5
 from yt.funcs import parse_h5_attr
 from yt.units.yt_array import uvstack
 from yt.utilities.io_handler import BaseIOHandler
@@ -113,58 +114,8 @@ class HaloDatasetIOHandler:
         for field, field_data in all_data.items():
             yield field, field_data
 
-    def _read_particle_selection(self, dobj, fields):
-        rv = {}
-        ind = {}
-        # We first need a set of masks for each particle type
-        ptf = defaultdict(list)  # ON-DISK TO READ
-        fsize = defaultdict(lambda: 0)  # COUNT RV
-        field_maps = defaultdict(list)  # ptypes -> fields
-        unions = self.ds.particle_unions
-        # What we need is a mapping from particle types to return types
-        for field in fields:
-            ftype, fname = field
-            fsize[field] = 0
-            # We should add a check for p.fparticle_unions or something here
-            if ftype in unions:
-                for pt in unions[ftype]:
-                    ptf[pt].append(fname)
-                    field_maps[pt, fname].append(field)
-            else:
-                ptf[ftype].append(fname)
-                field_maps[field].append(field)
-
-        # Now we allocate
-        psize = {dobj.ptype: dobj.particle_number}
-        for field in fields:
-            if field[0] in unions:
-                for pt in unions[field[0]]:
-                    fsize[field] += psize.get(pt, 0)
-            else:
-                fsize[field] += psize.get(field[0], 0)
-        for field in fields:
-            if field[1] in self._vector_fields:
-                shape = (fsize[field], self._vector_fields[field[1]])
-            elif field[1] in self._array_fields:
-                shape = (fsize[field],) + self._array_fields[field[1]]
-            elif field in self.ds.scalar_field_list:
-                shape = (1,)
-            else:
-                shape = (fsize[field],)
-            rv[field] = np.empty(shape, dtype="float64")
-            ind[field] = 0
-        # Now we read.
-        for field_r, vals in self._read_particle_fields(dobj, ptf):
-            # Note that we now need to check the mappings
-            for field_f in field_maps[field_r]:
-                my_ind = ind[field_f]
-                rv[field_f][my_ind : my_ind + vals.shape[0], ...] = vals
-                ind[field_f] += vals.shape[0]
-        # Now we need to truncate all our fields, since we allow for
-        # over-estimating.
-        for field_f in ind:
-            rv[field_f] = rv[field_f][: ind[field_f]]
-        return rv
+    # This will be refactored.
+    _read_particle_selection = IOHandlerGadgetFOFHaloHDF5._read_particle_selection
 
 
 class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
