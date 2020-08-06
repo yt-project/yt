@@ -17,6 +17,9 @@ import pytest
 import yaml
 from matplotlib.testing.compare import compare_images
 
+import yt.visualization.particle_plots as particle_plots
+import yt.visualization.plot_window as pw
+import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
 from yt.convenience import load, simulation
 from yt.data_objects.selection_data_containers import YTRegion
@@ -26,9 +29,6 @@ from yt.testing import assert_equal
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTOutputNotIdentified
 from yt.utilities.on_demand_imports import _h5py as h5py
-import yt.visualization.particle_plots as particle_plots
-import yt.visualization.plot_window as pw
-import yt.visualization.profile_plotter as profile_plotter
 from yt.visualization.volume_rendering.scene import Scene
 
 
