@@ -77,15 +77,7 @@ def _get_ipython_key_completion(ds):
     return tuple_keys + fnames
 
 
-class RegisteredDataContainer(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if hasattr(cls, "_type_name") and not cls._skip_add:
-            name = getattr(cls, "_override_selector_name", cls._type_name)
-            data_object_registry[name] = cls
-
-
-class YTDataContainer(metaclass=RegisteredDataContainer):
+class YTDataContainer:
     """
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
@@ -140,6 +132,12 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         self._set_default_field_parameters()
         for key, val in field_parameters.items():
             self.set_field_parameter(key, val)
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if hasattr(cls, "_type_name") and not cls._skip_add:
+            name = getattr(cls, "_override_selector_name", cls._type_name)
+            data_object_registry[name] = cls
 
     @property
     def pf(self):
