@@ -585,7 +585,7 @@ def construct_octree_mask(prng=RandomState(0x1D3D3D3), refined=None):  # noqa B0
         return refined
 
     # Loop over subcells
-    for subcell in range(8):
+    for _ in range(8):
         # Insert criterion for whether cell should be sub-divided. Here we
         # just use a random number to demonstrate.
         divide = prng.random_sample() < 0.12

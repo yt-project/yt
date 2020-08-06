@@ -108,7 +108,7 @@ class GDFHierarchy(GridIndex):
 
     def _populate_grid_objects(self):
         mask = np.empty(self.grids.size, dtype="int32")
-        for gi, g in enumerate(self.grids):
+        for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
 

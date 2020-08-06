@@ -744,7 +744,7 @@ class DualEPS:
 
         # Convert the colormap into a string
         x = np.linspace(1, 0, 256)
-        cm_string = cm.cmap_d[name](x, bytes=True)[:, 0:3].tostring()
+        cm_string = cm.get_cmap[name](x, bytes=True)[:, 0:3].tostring()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
@@ -1288,19 +1288,19 @@ def multiplot(
     if not _yt:
         if xranges is None:
             xranges = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 xranges.append((0, 1))
         if yranges is None:
             yranges = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 yranges.append((0, 1))
         if xlabels is None:
             xlabels = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 xlabels.append("")
         if ylabels is None:
             ylabels = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 ylabels.append("")
 
     d = DualEPS(figsize=figsize)

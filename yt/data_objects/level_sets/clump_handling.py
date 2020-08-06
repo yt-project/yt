@@ -155,7 +155,7 @@ class Clump(TreeContainer):
         # the unique values of the contours by examining the list here.
         unique_contours = set([])
         for sl_list in cids.values():
-            for sl, ff in sl_list:
+            for _sl, ff in sl_list:
                 unique_contours.update(np.unique(ff))
         contour_key = uuid.uuid4().hex
         base_object = getattr(self.data, "base_object", self.data)

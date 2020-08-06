@@ -52,7 +52,7 @@ class FlaggingGrid:
                 continue
             while not psg.acceptable:
                 new_psgs = []
-                for i, dim in enumerate(np.argsort(psg.dimensions)[::-1]):
+                for dim in np.argsort(psg.dimensions)[::-1]:
                     new_psgs = psg.find_by_zero_signature(dim)
                     if len(new_psgs) > 1:
                         break

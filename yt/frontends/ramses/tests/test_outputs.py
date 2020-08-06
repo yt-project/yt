@@ -8,6 +8,7 @@ from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 from yt.testing import (
     assert_equal,
+    assert_raises,
     requires_file,
     requires_module,
     units_override_check,
@@ -221,9 +222,9 @@ def test_ramses_sink():
         "particle_prop_0_1",
         "particle_prop_0_2",
         "particle_prop_0_3",
-        "particle_prop_1_0",
-        "particle_prop_1_1",
-        "particle_prop_1_2",
+        "particle_prop_0_4",
+        "particle_prop_0_5",
+        "particle_prop_0_6",
         "particle_velocity_x",
         "particle_velocity_y",
         "particle_velocity_z",
@@ -244,7 +245,7 @@ def test_ramses_sink():
     ad = ds.all_data()
 
     for field in expected_fields:
-        assert ("sink", "field") not in ds.field_list
+        assert ("sink", field) not in ds.field_list
 
 
 ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
@@ -561,3 +562,40 @@ def test_field_accession():
     ):
         for field in fields:
             reg[field]
+
+
+@requires_file(output_00080)
+def test_max_level():
+    ds = yt.load(output_00080)
+
+    assert any(ds.r["index", "grid_level"] > 2)
+
+    # Should work
+    for ds in (
+        yt.load(output_00080, max_level=2, max_level_convention="yt"),
+        yt.load(output_00080, max_level=8, max_level_convention="ramses"),
+    ):
+        assert all(ds.r["index", "grid_level"] <= 2)
+        assert any(ds.r["index", "grid_level"] == 2)
+
+
+@requires_file(ramses_new_format)
+def test_invalid_max_level():
+    invalid_value_args = (
+        (1, None),
+        (1, "foo"),
+        (1, "bar"),
+        (-1, "yt"),
+    )
+    for lvl, convention in invalid_value_args:
+        with assert_raises(ValueError):
+            yt.load(output_00080, max_level=lvl, max_level_convention=convention)
+
+    invalid_type_args = (
+        (1.0, "yt"),  # not an int
+        ("invalid", "yt"),
+    )
+    # Should fail with value errors
+    for lvl, convention in invalid_type_args:
+        with assert_raises(TypeError):
+            yt.load(output_00080, max_level=lvl, max_level_convention=convention)

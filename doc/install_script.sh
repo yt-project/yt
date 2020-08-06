@@ -129,7 +129,6 @@ function write_config
     echo INST_YT_SOURCE=${INST_YT_SOURCE} > ${CONFIG_FILE}
     echo INST_GIT=${INST_GIT} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
-    echo INST_PY3=${INST_PY3} >> ${CONFIG_FILE}
     echo INST_SCIPY=${INST_SCIPY} >> ${CONFIG_FILE}
     echo INST_EMBREE=${INST_EMBREE} >> ${CONFIG_FILE}
     echo INST_H5PY=${INST_H5PY} >> ${CONFIG_FILE}
@@ -298,10 +297,6 @@ echo
 printf "%-18s = %s so I " "INST_YT_SOURCE" "${INST_YT_SOURCE}"
 get_willwont ${INST_YT_SOURCE}
 echo "be compiling yt from source"
-
-printf "%-18s = %s so I " "INST_PY3" "${INST_PY3}"
-get_willwont ${INST_PY3}
-echo "be installing Python 3"
 
 printf "%-18s = %s so I " "INST_GIT" "${INST_GIT}"
 get_willwont ${INST_GIT}

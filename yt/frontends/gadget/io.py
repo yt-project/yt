@@ -53,7 +53,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             si, ei = data_file.start, data_file.end
             f = h5py.File(data_file.filename, mode="r")
             # This double-reads
-            for ptype, field_list in sorted(ptf.items()):
+            for ptype in sorted(ptf):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 c = f["/%s/Coordinates" % ptype][si:ei, :].astype("float64")

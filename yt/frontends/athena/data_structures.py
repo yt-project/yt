@@ -443,7 +443,7 @@ class AthenaHierarchy(GridIndex):
                 g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1
             ]
         mylog.debug("Second pass; identifying parents")
-        for i, grid in enumerate(self.grids):  # Second pass
+        for grid in self.grids:  # Second pass
             for child in grid.Children:
                 child.Parent.append(grid)
 
@@ -485,7 +485,7 @@ class AthenaDataset(Dataset):
             units_override = {}
         # This is for backwards-compatibility
         already_warned = False
-        for k, v in list(self.specified_parameters.items()):
+        for k in list(self.specified_parameters.keys()):
             if k.endswith("_unit") and k not in units_override:
                 if not already_warned:
                     mylog.warning(

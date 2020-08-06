@@ -73,7 +73,7 @@ def flip_random_block_bit(block, rs):
 def test_get_block_info():
     rs = np.random.RandomState(45047)
     max_n = 64
-    for i in range(10):
+    for _ in range(10):
         n, l, b = get_random_block_string(max_n=max_n, random_state=rs)
         level, left, right = get_block_info(b, min_dim=1)
         assert level == l
@@ -108,7 +108,7 @@ def test_is_parent():
             max_n = 2 ** i
 
             descriptors = []
-            for j in range(dim):
+            for _ in range(dim):
                 n1, l1, b1 = get_random_block_string(
                     max_n=max_n, random_state=rs, level=0
                 )
@@ -131,7 +131,7 @@ def test_nested_dict_get():
     rs = np.random.RandomState(47988)
     keys = []
     my_dict = None
-    for i in range(5):
+    for _ in range(5):
         k = str(rs.randint(0, high=1000000))
         if my_dict is None:
             v = str(rs.randint(0, high=1000000))

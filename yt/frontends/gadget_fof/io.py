@@ -28,7 +28,7 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, mode="r") as f:
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     coords = data_file._get_particle_positions(ptype, f=f)
                     if coords is None:
                         continue

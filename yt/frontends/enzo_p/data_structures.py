@@ -144,7 +144,7 @@ class EnzoPHierarchy(GridIndex):
         f.seek(0)
         offset = f.tell()
         ngrids = 0
-        for ib in range(nblocks):
+        for _ in range(nblocks):
             my_block = min(fblock_size, file_size - offset)
             buff = f.read(my_block)
             ngrids += buff.count("\n")
@@ -171,11 +171,11 @@ class EnzoPHierarchy(GridIndex):
         child_id = nroot_blocks
 
         last_pid = None
-        for ib in range(nblocks):
+        for _ib in range(nblocks):
             fblock = min(fblock_size, file_size - offset)
             buff = lstr + f.read(fblock)
             bnl = 0
-            for inl in range(buff.count("\n")):
+            for _inl in range(buff.count("\n")):
                 nnl = buff.find("\n", bnl)
                 line = buff[bnl:nnl]
                 block_name, block_file = line.split()

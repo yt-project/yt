@@ -404,7 +404,7 @@ class ProcessorPool:
     def free_all(self):
         for wg in self.workgroups:
             self.free_workgroup(wg)
-        for i in range(len(self.workgroups)):
+        while self.workgroups:
             self.workgroups.pop(0)
 
     @classmethod
@@ -915,7 +915,7 @@ class Communicator:
         MPI.Request.Waitall(hooks)
 
     def mpi_Request_Waititer(self, hooks):
-        for i in range(len(hooks)):
+        for _hook in hooks:
             req = MPI.Request.Waitany(hooks)
             yield req
 
@@ -1351,7 +1351,7 @@ class GroupOwnership(ParallelAnalysisInterface):
         old_item = self.item
         if n == -1:
             n = self.comm.size
-        for i in range(n):
+        for _ in range(n):
             if self.pointer >= self.num_items - self.comm.size:
                 break
             self.owned[self.pointer % self.comm.size] += self.comm.size
@@ -1363,7 +1363,7 @@ class GroupOwnership(ParallelAnalysisInterface):
         old_item = self.item
         if n == -1:
             n = self.comm.size
-        for i in range(n):
+        for _ in range(n):
             if self.pointer == 0:
                 break
             self.owned[(self.pointer - 1) % self.comm.size] -= self.comm.size

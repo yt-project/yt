@@ -27,7 +27,7 @@ class IOHandlerSDF(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             yield "dark_matter", (
                 self._handle["x"],
                 self._handle["y"],
@@ -43,7 +43,7 @@ class IOHandlerSDF(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle["x"]
                 y = self._handle["y"]
@@ -110,7 +110,7 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in data_files:
+        for _data_file in data_files:
             pcount = self._handle["x"].size
             yield "dark_matter", (
                 self._handle["x"][:pcount],
@@ -127,7 +127,7 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in data_files:
+        for _data_file in data_files:
             pcount = self._handle["x"].size
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle["x"][:pcount]
@@ -169,7 +169,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         dle = self.ds.domain_left_edge.in_units("code_length").d
         dre = self.ds.domain_right_edge.in_units("code_length").d
         required_fields = []
-        for ptype, field_list in sorted(ptf.items()):
+        for field_list in sorted(ptf.values()):
             for field in field_list:
                 if field == "mass":
                     continue

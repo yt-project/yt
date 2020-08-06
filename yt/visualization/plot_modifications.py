@@ -779,7 +779,7 @@ class GridBoundaryCallback(PlotCallback):
         else:
             pxs, pys = np.mgrid[0:0:1j, 0:0:1j]
         GLE, GRE, levels, block_ids = [], [], [], []
-        for block, mask in plot.data.blocks:
+        for block, _mask in plot.data.blocks:
             GLE.append(block.LeftEdge.in_units("code_length"))
             GRE.append(block.RightEdge.in_units("code_length"))
             levels.append(block.Level)
