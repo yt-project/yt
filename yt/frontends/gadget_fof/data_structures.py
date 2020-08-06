@@ -433,6 +433,10 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
 
         return data
 
+    def _setup_data_io(self):
+        super(GadgetFOFHaloParticleIndex, self)._setup_data_io()
+        self._create_halo_id_table()
+
 
 class GadgetFOFHaloDataset(ParticleDataset):
     _index_class = GadgetFOFHaloParticleIndex
@@ -479,9 +483,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
             setattr(self, attr, getattr(self.real_ds, attr))
 
     def set_code_units(self):
-        for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
-            my_unit = "%s_unit" % unit
-            setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
+        self._set_code_unit_attributes()
         self.unit_registry = self.real_ds.unit_registry
 
     def __repr__(self):
@@ -491,7 +493,9 @@ class GadgetFOFHaloDataset(ParticleDataset):
         self.objects = []
 
     def _set_code_unit_attributes(self):
-        pass
+        for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
+            my_unit = "%s_unit" % unit
+            setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
