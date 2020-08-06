@@ -384,8 +384,7 @@ class GadgetSimulation(SimulationTimeSeries):
             data_dir = os.path.join(self.directory, self.parameters["OutputDir"])
         if not os.path.exists(data_dir):
             mylog.info(
-                "OutputDir not found at %s, instead using %s."
-                % (data_dir, self.directory)
+                "OutputDir not found at %s, instead using %s.", data_dir, self.directory
             )
             data_dir = self.directory
         self.data_dir = data_dir

@@ -60,10 +60,10 @@ def traceback_writer_hook(file_suffix=""):
 
 def default_mpi_excepthook(exception_type, exception_value, tb):
     traceback.print_tb(tb)
-    mylog.error("%s: %s" % (exception_type.__name__, exception_value))
+    mylog.error("%s: %s", exception_type.__name__, exception_value)
     comm = yt.communication_system.communicators[-1]
     if comm.size > 1:
-        mylog.error("Error occured on rank %d." % comm.rank)
+        mylog.error("Error occured on rank %d.", comm.rank)
     MPI.COMM_WORLD.Abort(1)
 
 

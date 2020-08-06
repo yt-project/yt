@@ -169,18 +169,17 @@ class FITSHierarchy(GridIndex):
                             self._scale_map[fname][1] = hdu.header["bscale"]
                         self.field_list.append(("fits", fname))
                         self.dataset.field_units[fname] = units
-                        mylog.info("Adding field %s to the list of fields." % (fname))
+                        mylog.info("Adding field %s to the list of fields.", fname)
                         if units == "dimensionless":
                             mylog.warning(
-                                "Could not determine dimensions for field %s, "
-                                % (fname)
-                                + "setting to dimensionless."
+                                "Could not determine dimensions for field %s, setting to dimensionless.",
+                                fname,
                             )
                 else:
                     mylog.warning(
-                        "Image block %s does not have " % (hdu.name.lower())
-                        + "the same dimensions as the primary and will not be "
-                        + "available as a field."
+                        "Image block %s does not have the same dimensions as the primary and will not be "
+                        "available as a field.",
+                        hdu.name.lower(),
                     )
 
     def _count_grids(self):
@@ -404,7 +403,7 @@ class FITSDataset(Dataset):
             if len(set(file_units)) == 1:
                 length_factor = self.wcs.wcs.cdelt[0]
                 length_unit = str(file_units[0])
-                mylog.info("Found length units of %s." % length_unit)
+                mylog.info("Found length units of %s.", length_unit)
             else:
                 self.no_cgs_equiv_length = True
                 mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
@@ -590,13 +589,13 @@ class YTFITSDataset(FITSDataset):
                     self.primary_header[short_unit],
                     self.primary_header.comments[short_unit].strip("[]"),
                 )
-                mylog.info("Found %s units of %s." % (unit, u))
+                mylog.info("Found %s units of %s.", unit, u)
             else:
                 if unit == "length":
                     # Falling back to old way of getting units for length
                     # in old files
                     u = self.quan(1.0, str(self.wcs.wcs.cunit[0]))
-                    mylog.info("Found %s units of %s." % (unit, u))
+                    mylog.info("Found %s units of %s.", unit, u)
                 else:
                     # Give up otherwise
                     u = self.quan(1.0, cgs)
@@ -655,7 +654,7 @@ class SkyDataFITSDataset(FITSDataset):
         self.geometry = "spectral_cube"
 
         log_str = "Detected these axes: " + "%s " * len(self.ctypes)
-        mylog.info(log_str % tuple([ctype for ctype in self.ctypes]))
+        mylog.info(log_str, *self.ctypes)
 
         self.lat_axis = np.zeros((end - 1), dtype="bool")
         for p in lat_prefixes:
@@ -783,7 +782,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
                 max(self.domain_dimensions[[self.lon_axis, self.lat_axis]])
             )
             self.spectral_factor /= self.domain_dimensions[self.spec_axis]
-            mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
+            mylog.info("Setting the spectral factor to %f", self.spectral_factor)
         Dz = (
             self.domain_right_edge[self.spec_axis]
             - self.domain_left_edge[self.spec_axis]
@@ -823,7 +822,7 @@ class EventsFITSHierarchy(FITSHierarchy):
         self.field_list = []
         for k, v in ds.events_info.items():
             fname = "event_" + k
-            mylog.info("Adding field %s to the list of fields." % (fname))
+            mylog.info("Adding field %s to the list of fields.", fname)
             self.field_list.append(("io", fname))
             if k in ["x", "y"]:
                 field_unit = "code_length"

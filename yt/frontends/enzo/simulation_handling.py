@@ -513,7 +513,7 @@ class EnzoSimulation(SimulationTimeSeries):
             )
             mylog.info(
                 "    Unable to calculate datasets.  "
-                + "Attempting to search in the current directory"
+                "Attempting to search in the current directory"
             )
             self._find_outputs()
 

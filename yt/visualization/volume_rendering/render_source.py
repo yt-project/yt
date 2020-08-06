@@ -451,7 +451,7 @@ class VolumeSource(RenderSource):
                         raise RuntimeError
 
         for brick in self.volume.traverse(camera.lens.viewpoint):
-            mylog.debug("Using sampler %s" % self.sampler)
+            mylog.debug("Using sampler %s", self.sampler)
             self.sampler(brick, num_threads=self.num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
         mylog.debug("Done casting rays")

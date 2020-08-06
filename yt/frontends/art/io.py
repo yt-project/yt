@@ -300,7 +300,7 @@ def interpolate_ages(
         if current_time:
             tdiff = YTQuantity(b2t(t_stars), "Gyr") - current_time.in_units("Gyr")
             if np.abs(tdiff) > 1e-4:
-                mylog.info("Timestamp mismatch in star " + "particle header: %s", tdiff)
+                mylog.info("Timestamp mismatch in star particle header: %s", tdiff)
         mylog.info("Interpolating ages")
         interp_tb, interp_ages = b2t(data)
         interp_tb = YTArray(interp_tb, "Gyr")

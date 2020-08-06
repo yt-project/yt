@@ -70,7 +70,7 @@ def _render_opengl(
                   Please specify a field in create_scene()"""
                 % (field, dobj.ds)
             )
-        mylog.info("Setting default field to %s" % field.__repr__())
+        mylog.info("Setting default field to %s", field.__repr__())
     if window_size is None:
         window_size = (1024, 1024)
     if cam_position is None:

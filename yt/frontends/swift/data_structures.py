@@ -128,9 +128,9 @@ class SwiftDataset(SPHDataset):
             except KeyError:
                 mylog.warn(
                     (
-                        "Could not find cosmology information in Parameters,"
-                        + " despite having ran with -c signifying a cosmological"
-                        + " run."
+                        "Could not find cosmology information in Parameters, "
+                        "despite having ran with -c signifying a cosmological "
+                        "run."
                     )
                 )
                 mylog.info("Setting up as a non-cosmological run. Check this!")

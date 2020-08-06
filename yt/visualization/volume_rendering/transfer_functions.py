@@ -734,8 +734,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             alpha = a
         self.add_gaussian(v, w, [r, g, b, alpha])
         mylog.debug(
-            "Adding gaussian at %s with width %s and colors %s"
-            % (v, w, (r, g, b, alpha))
+            "Adding gaussian at %s with width %s and colors %s", v, w, (r, g, b, alpha)
         )
 
     def map_to_colormap(
@@ -978,7 +977,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             # Now we set up the scattering
             scat = (johnson_filters[f]["Lchar"] ** -4 / mscat) * anorm
             tf = TransferFunction(rho_bounds)
-            mylog.debug("Adding: %s with relative scattering %s" % (f, scat))
+            mylog.debug("Adding: %s with relative scattering %s", f, scat)
             tf.y *= 0.0
             tf.y += scat
             self.add_field_table(tf, 1, weight_field_id=1)

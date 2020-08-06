@@ -1636,7 +1636,7 @@ def load_hexahedral_mesh(
         array_values = data[fn]
         if array_values.size != connectivity.shape[0]:
             mylog.error(
-                "Dimensions of array must be one fewer than the" + " coordinate set."
+                "Dimensions of array must be one fewer than the coordinate set."
             )
             raise RuntimeError
     grid_left_edges = domain_left_edge
@@ -2169,7 +2169,7 @@ def load_unstructured_mesh(
         array_values = data[fn]
         if array_values.size != connectivity.shape[0]:
             mylog.error(
-                "Dimensions of array must be one fewer than the" + " coordinate set."
+                "Dimensions of array must be one fewer than the coordinate set."
             )
             raise RuntimeError
     grid_left_edges = domain_left_edge

@@ -191,7 +191,7 @@ class FLASHDataset(Dataset):
                 )
                 self.particle_filename = filename.replace("plt_cnt", "part")
                 mylog.info(
-                    "Particle file found: %s" % self.particle_filename.split("/")[-1]
+                    "Particle file found: %s", self.particle_filename.split("/")[-1]
                 )
             except IOError:
                 self._particle_handle = self._handle
@@ -312,8 +312,9 @@ class FLASHDataset(Dataset):
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info(
-                            "{0} {1} overwrites a simulation "
-                            "scalar of the same name".format(hn[:-1], vn)
+                            "%s %s overwrites a simulation scalar of the same name",
+                            hn[:-1],
+                            vn,
                         )
                     if hasattr(pval, "decode"):
                         pval = pval.decode("ascii", "ignore")
@@ -341,8 +342,9 @@ class FLASHDataset(Dataset):
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info(
-                            "{0} {1} overwrites a simulation "
-                            "scalar of the same name".format(hn[:-1], vn)
+                            "%s %s overwrites a simulation scalar of the same name",
+                            hn[:-1],
+                            vn,
                         )
                     if hasattr(pval, "decode"):
                         pval = pval.decode("ascii", "ignore")

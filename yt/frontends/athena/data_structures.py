@@ -158,8 +158,9 @@ class AthenaHierarchy(GridIndex):
                     grid_dims[grid_dims == 0] = 1
                 if np.prod(grid_dims) != grid_ncells:
                     mylog.error(
-                        "product of dimensions %i not equal to number of cells %i"
-                        % (np.prod(grid_dims), grid_ncells)
+                        "product of dimensions %i not equal to number of cells %i",
+                        np.prod(grid_dims),
+                        grid_ncells,
                     )
                     raise TypeError
                 break
@@ -222,8 +223,9 @@ class AthenaHierarchy(GridIndex):
             grid["dimensions"][grid["dimensions"] == 0] = 1
         if np.prod(grid["dimensions"]) != grid["ncells"]:
             mylog.error(
-                "product of dimensions %i not equal to number of cells %i"
-                % (np.prod(grid["dimensions"]), grid["ncells"])
+                "product of dimensions %i not equal to number of cells %i",
+                np.prod(grid["dimensions"]),
+                grid["ncells"],
             )
             raise TypeError
 
@@ -298,8 +300,9 @@ class AthenaHierarchy(GridIndex):
                 gridread["dimensions"][gridread["dimensions"] == 0] = 1
             if np.prod(gridread["dimensions"]) != gridread["ncells"]:
                 mylog.error(
-                    "product of dimensions %i not equal to number of cells %i"
-                    % (np.prod(gridread["dimensions"]), gridread["ncells"])
+                    "product of dimensions %i not equal to number of cells %i",
+                    np.prod(gridread["dimensions"]),
+                    gridread["ncells"],
                 )
                 raise TypeError
             gdims[j, 0] = gridread["dimensions"][0]
@@ -559,8 +562,8 @@ class AthenaDataset(Dataset):
 
         self.domain_left_edge = grid["left_edge"]
         mylog.info(
-            "Temporarily setting domain_right_edge = -domain_left_edge."
-            + " This will be corrected automatically if it is not the case."
+            "Temporarily setting domain_right_edge = -domain_left_edge. "
+            "This will be corrected automatically if it is not the case."
         )
         self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge - self.domain_left_edge

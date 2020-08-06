@@ -238,14 +238,6 @@ def rootonly(func):
     return check_parallel_rank
 
 
-def rootloginfo(*args):
-    from yt.config import ytcfg
-
-    if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0:
-        return
-    mylog.info(*args)
-
-
 class VisibleDeprecationWarning(UserWarning):
     """Visible deprecation warning, adapted from NumPy
 
