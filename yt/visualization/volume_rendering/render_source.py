@@ -631,9 +631,7 @@ class MeshSource(OpaqueSource):
             # to 1st order here, for now.
             if indices.shape[1] == 27:
                 # hexahedral
-                mylog.warning(
-                    "27-node hexes not yet supported, " + "dropping to 1st order."
-                )
+                mylog.warning("27-node hexes not yet supported, dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
 
@@ -664,9 +662,7 @@ class MeshSource(OpaqueSource):
         # low-order geometry.
         if indices.shape[1] == 27:
             # hexahedral
-            mylog.warning(
-                "27-node hexes not yet supported, " + "dropping to 1st order."
-            )
+            mylog.warning("27-node hexes not yet supported, dropping to 1st order.")
             field_data = field_data[:, 0:8]
             indices = indices[:, 0:8]
 

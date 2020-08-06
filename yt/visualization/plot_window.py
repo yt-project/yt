@@ -855,7 +855,7 @@ class PWViewerMPL(PlotWindow):
         elif origin[2] == "native":
             return (self.ds.quan(0.0, "code_length"), self.ds.quan(0.0, "code_length"))
         else:
-            mylog.warning("origin = {0}".format(origin))
+            mylog.warning("origin = %s", origin)
             msg = (
                 'origin keyword "{0}" not recognized, must declare "domain" '
                 'or "center" as the last term in origin.'
@@ -869,7 +869,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[0] == "center":
                 yc = (yllim + yrlim) / 2.0
             else:
-                mylog.warning("origin = {0}".format(origin))
+                mylog.warning("origin = %s", origin)
                 msg = (
                     'origin keyword "{0}" not recognized, must declare "lower" '
                     '"upper" or "center" as the first term in origin.'
@@ -884,7 +884,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[1] == "center":
                 xc = (xllim + xrlim) / 2.0
             else:
-                mylog.warning("origin = {0}".format(origin))
+                mylog.warning("origin = %s", origin)
                 msg = (
                     'origin keyword "{0}" not recognized, must declare "left" '
                     '"right" or "center" as the second term in origin.'
@@ -2376,22 +2376,20 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     if iterable(normal) and not isinstance(normal, str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if "origin" in kwargs:
-            msg = (
+            mylog.warning(
                 "Ignoring 'origin' keyword as it is ill-defined for "
                 "an OffAxisSlicePlot object."
             )
-            mylog.warning(msg)
             del kwargs["origin"]
 
         return OffAxisSlicePlot(ds, normal, fields, *args, **kwargs)
     else:
         # north_vector not used in AxisAlignedSlicePlots; remove it if in kwargs
         if "north_vector" in kwargs:
-            msg = (
+            mylog.warning(
                 "Ignoring 'north_vector' keyword as it is ill-defined for "
                 "an AxisAlignedSlicePlot object."
             )
-            mylog.warning(msg)
             del kwargs["north_vector"]
 
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)

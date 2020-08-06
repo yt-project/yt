@@ -201,7 +201,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
-                    "High order elements not yet supported, " + "dropping to 1st order."
+                    "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
@@ -257,7 +257,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             if field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
-                    "High order elements not yet supported, " + "dropping to 1st order."
+                    "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]

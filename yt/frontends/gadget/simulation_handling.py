@@ -284,7 +284,7 @@ class GadgetSimulation(SimulationTimeSeries):
         if len(init_outputs) == 0 and len(my_outputs) > 0:
             mylog.warning(
                 "Could not find any datasets.  "
-                + "Check the value of OutputDir in your parameter file."
+                "Check the value of OutputDir in your parameter file."
             )
 
         DatasetSeries.__init__(

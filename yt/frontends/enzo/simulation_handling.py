@@ -567,7 +567,7 @@ class EnzoSimulation(SimulationTimeSeries):
             if self.final_time is None:
                 mylog.warning(
                     "Simulation %s has no stop time set, stopping condition "
-                    + "will be based only on cycles.",
+                    "will be based only on cycles.",
                     self.parameter_filename,
                 )
 

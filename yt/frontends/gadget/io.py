@@ -538,8 +538,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                         possible.append(ptype)
                 mylog.warning(
                     "Your Gadget-2 file may have extra "
-                    + "columns or different precision! "
-                    + "(%s diff => %s?)",
+                    "columns or different precision! "
+                    "(%s diff => %s?)",
                     diff,
                     possible,
                 )

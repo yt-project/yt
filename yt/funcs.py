@@ -918,7 +918,7 @@ def get_image_suffix(name):
     if suffix in supported_suffixes or suffix == "":
         return suffix
     else:
-        mylog.warning("Unsupported image suffix requested (%s)" % suffix)
+        mylog.warning("Unsupported image suffix requested (%s)", suffix)
         return ""
 
 

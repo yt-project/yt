@@ -397,16 +397,15 @@ class FITSImageData:
 
             if uq is not None and uq.units.is_code_unit:
                 mylog.warning(
-                    "Cannot use code units of '%s' " % uq.units
-                    + "when creating a FITSImageData instance! "
-                    "Converting to a cgs equivalent."
+                    "Cannot use code units of '%s' "
+                    "when creating a FITSImageData instance! "
+                    "Converting to a cgs equivalent.",
+                    uq.units,
                 )
                 uq.convert_to_cgs()
 
             if attr == "length_unit" and uq.value != 1.0:
-                mylog.warning(
-                    "Converting length units " "from %s to %s." % (uq, uq.units)
-                )
+                mylog.warning("Converting length units " "from %s to %s.", uq, uq.units)
                 uq = YTQuantity(1.0, uq.units)
 
             setattr(self, attr, uq)

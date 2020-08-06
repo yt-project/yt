@@ -209,8 +209,9 @@ class FLASHDataset(Dataset):
                 self._particle_handle = self._handle
                 mylog.warning(
                     "%s and %s are not at the same time. "
-                    % (self.particle_filename, filename)
-                    + "This particle file will not be used."
+                    "This particle file will not be used.",
+                    self.particle_filename,
+                    filename,
                 )
 
         # These should be explicitly obtained from the file, but for now that
@@ -403,7 +404,8 @@ class FLASHDataset(Dataset):
                 if dle[d] == dre[d]:
                     mylog.warning(
                         "Identical domain left edge and right edges "
-                        "along dummy dimension (%i), attempting to read anyway" % d
+                        "along dummy dimension (%i), attempting to read anyway",
+                        d,
                     )
                     dre[d] = dle[d] + 1.0
         if self.dimensionality < 3 and self.geometry == "cylindrical":

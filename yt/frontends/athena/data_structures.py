@@ -493,7 +493,7 @@ class AthenaDataset(Dataset):
                 if not already_warned:
                     mylog.warning(
                         "Supplying unit conversions from the parameters dict is deprecated, "
-                        + "and will be removed in a future release. Use units_override instead."
+                        "and will be removed in a future release. Use units_override instead."
                     )
                     already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)

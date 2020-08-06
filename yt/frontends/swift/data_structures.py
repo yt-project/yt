@@ -126,7 +126,7 @@ class SwiftDataset(SPHDataset):
                 # This is "little h"
                 self.hubble_constant = float(parameters["Cosmology:h"])
             except KeyError:
-                mylog.warn(
+                mylog.warning(
                     (
                         "Could not find cosmology information in Parameters, "
                         "despite having ran with -c signifying a cosmological "

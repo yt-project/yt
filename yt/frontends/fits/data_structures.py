@@ -73,7 +73,7 @@ class FITSHierarchy(GridIndex):
         for k, v in field_from_unit.items():
             if k in units:
                 mylog.warning(
-                    "Guessing this is a %s field based on its units of %s." % (v, k)
+                    "Guessing this is a %s field based on its units of %s.", v, k
                 )
                 return v
         return None
@@ -151,9 +151,11 @@ class FITSHierarchy(GridIndex):
                             dup_field_index[fname] = 1
                         mylog.warning(
                             "This field has the same name as a previously loaded "
-                            + "field. Changing the name from %s to %s_%d. To avoid "
-                            % (fname, fname, dup_field_index[fname])
-                            + " this, change one of the BTYPE header keywords."
+                            "field. Changing the name from %s to %s_%d. To avoid "
+                            "this, change one of the BTYPE header keywords.",
+                            fname,
+                            fname,
+                            dup_field_index[fname],
                         )
                         fname += "_%d" % (dup_field_index[fname])
                     for k in range(naxis4):
@@ -600,8 +602,10 @@ class YTFITSDataset(FITSDataset):
                     # Give up otherwise
                     u = self.quan(1.0, cgs)
                     mylog.warning(
-                        "No unit for %s found. Assuming 1.0 code_%s = 1.0 %s"
-                        % (unit, unit, cgs)
+                        "No unit for %s found. Assuming 1.0 code_%s = 1.0 %s",
+                        unit,
+                        unit,
+                        cgs,
                     )
             setdefaultattr(self, "%s_unit" % unit, u)
 

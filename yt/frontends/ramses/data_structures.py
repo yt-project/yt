@@ -204,7 +204,9 @@ class RAMSESDomainSubset(OctreeSubset):
 
         if num_ghost_zones > 0:
             if not all(ds.periodicity):
-                mylog.warn("Ghost zones will wrongly assume the domain to be periodic.")
+                mylog.warning(
+                    "Ghost zones will wrongly assume the domain to be periodic."
+                )
             # Create a base domain *with no self._base_domain.fwidth
             base_domain = RAMSESDomainSubset(
                 ds.all_data(), domain, ds, over_refine_factor
@@ -764,7 +766,7 @@ class RAMSESDataset(Dataset):
             except ImportError as e:
                 nml = "An error occurred when reading the namelist: %s" % str(e)
             except (ValueError, StopIteration) as e:
-                mylog.warn(
+                mylog.warning(
                     "Could not parse `namelist.txt` file as it was malformed: %s", e
                 )
                 return
