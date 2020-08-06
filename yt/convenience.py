@@ -62,9 +62,9 @@ def load(fn, *args, **kwargs):
         if os.path.exists(alt_fn):
             fn = alt_fn
         else:
-            msg = f"No such file or directory: {fn}"
+            msg = f"No such file or directory: '{fn}'"
             if os.path.exists(data_dir):
-                msg += f"\n(Also tried {alt_fn})"
+                msg += f"\n(Also tried '{alt_fn}')"
             raise FileNotFoundError(msg)
 
     candidates = []
@@ -113,7 +113,7 @@ def simulation(fn, simulation_type, find_outputs=False):
         if os.path.exists(alt_fn):
             fn = alt_fn
         else:
-            raise FileNotFoundError(f"No such file or directory: {fn}")
+            raise FileNotFoundError(f"No such file or directory: '{fn}'")
 
     try:
         cls = simulation_time_series_registry[simulation_type]
