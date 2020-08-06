@@ -10,6 +10,7 @@ from yt.utilities.exceptions import (
     YTOutputNotIdentified,
     YTSimulationNotIdentified,
 )
+from yt.utilities.parameter_file_storage import output_type_registry
 
 
 def test_load_nonexistent_data():
@@ -63,7 +64,14 @@ def test_load_ambiguous_data():
         def _is_valid(cls, *args, **kwargs):
             return True
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        empty_file_path = Path(tmpdir) / "empty_file"
-        empty_file_path.touch()
-        assert_raises(YTAmbiguousDataType, load, tmpdir)
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            empty_file_path = Path(tmpdir) / "empty_file"
+            empty_file_path.touch()
+            assert_raises(YTAmbiguousDataType, load, tmpdir)
+    except Exception:
+        raise
+    finally:
+        # tear down to avoid possible breakage in following tests
+        output_type_registry.pop("FakeDataset")
+        output_type_registry.pop("FakeDataset2")
