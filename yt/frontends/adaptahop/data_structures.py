@@ -32,7 +32,7 @@ class AdaptaHOPParticleIndex(ParticleIndex):
         cls = self.dataset._file_class
         if ndoms > 1:
             self.data_files = [
-                cls(self.dataset, self.io, template % {"num": i}, i, range=None)
+                cls(self.dataset, self.io, template % {"num": i}, i, None)
                 for i in range(ndoms)
             ]
         else:
@@ -42,7 +42,7 @@ class AdaptaHOPParticleIndex(ParticleIndex):
                     self.io,
                     self.dataset.parameter_filename,
                     0,
-                    range=None,
+                    None,
                 )
             ]
         self.total_particles = sum(
