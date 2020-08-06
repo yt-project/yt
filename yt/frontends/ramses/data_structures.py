@@ -615,7 +615,7 @@ class RAMSESDataset(Dataset):
         #       to be set, so we cannot convert from to yt/ramses
         #       conventions
         if max_level is None and max_level_convention is None:
-            return (999, "yt")
+            return (2**999, "yt")
 
         # Check max_level is a valid, positive integer
         if not isinstance(max_level, (int, np.integer)):
