@@ -3,8 +3,13 @@ import tempfile
 from pathlib import Path
 
 from yt.convenience import load, simulation
+from yt.data_objects.static_output import Dataset
 from yt.testing import assert_raises
-from yt.utilities.exceptions import YTOutputNotIdentified, YTSimulationNotIdentified
+from yt.utilities.exceptions import (
+    YTAmbiguousDataType,
+    YTOutputNotIdentified,
+    YTSimulationNotIdentified,
+)
 
 
 def test_load_nonexistent_data():
@@ -43,3 +48,22 @@ def test_load_unidentified_data():
             empty_file_path,
             "unregistered_simulation_type",
         )
+
+
+def test_load_ambiguous_data():
+    # we deliberately setup a situation where two Dataset subclasses
+    # that aren't parents are consisdered valid
+    class FakeDataset(Dataset):
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
+    class FakeDataset2(Dataset):
+        @classmethod
+        def _is_valid(cls, *args, **kwargs):
+            return True
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        empty_file_path = Path(tmpdir) / "empty_file"
+        empty_file_path.touch()
+        assert_raises(YTAmbiguousDataType, load, tmpdir)
