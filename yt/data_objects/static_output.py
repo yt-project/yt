@@ -4,7 +4,6 @@ import itertools
 import os
 import pickle
 import time
-import warnings
 import weakref
 from collections import defaultdict
 from stat import ST_CTIME
@@ -37,7 +36,7 @@ from yt.geometry.coordinates.api import (
     SpectralCubeCoordinateHandler,
     SphericalCoordinateHandler,
 )
-from yt.units import UnitContainer, _wrap_display_ytarray
+from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, define_unit
 from yt.units.unit_registry import UnitRegistry
@@ -1083,8 +1082,6 @@ class Dataset:
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
-        from yt.units import dimensions as dimensions
-
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
         # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
@@ -1114,7 +1111,6 @@ class Dataset:
         Creates the unit registry for this dataset.
 
         """
-        from yt.units.dimensions import length
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
@@ -1126,7 +1122,7 @@ class Dataset:
                 self.unit_registry.add(
                     new_unit,
                     my_u.base_value / (1 + self.current_redshift),
-                    length,
+                    dimensions.length,
                     "\\rm{%s}/(1+z)" % my_unit,
                     prefixable=True,
                 )
@@ -1338,7 +1334,7 @@ class Dataset:
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function=None, sampling_type=None, **kwargs):
+    def add_field(self, name, function, sampling_type, **kwargs):
         """
         Dataset-specific call to add_field
 
@@ -1355,6 +1351,8 @@ class Dataset:
         function : callable
            A function handle that defines the field.  Should accept
            arguments (field, data)
+        sampling_type: str
+           "cell" or "particle" or "local"
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^).
@@ -1362,8 +1360,6 @@ class Dataset:
            Describes whether the field should be logged
         validators : list
            A list of :class:`FieldValidator` objects
-        particle_type : bool
-           Is this a particle (1D) field?
         vector_field : bool
            Describes the dimensionality of the field.  Currently unused.
         display_name : str
@@ -1382,27 +1378,11 @@ class Dataset:
             )
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
-            mylog.error(
-                "Field %s already exists. To override use " + "force_override=True.",
-                name,
+            mylog.warning(
+                "Field %s already exists. To override use `force_override=True`.", name,
             )
-        if kwargs.setdefault("particle_type", False):
-            if sampling_type is not None and sampling_type != "particle":
-                raise RuntimeError(
-                    "Clashing definition of 'sampling_type' and "
-                    "'particle_type'. Note that 'particle_type' is "
-                    "deprecated. Please just use 'sampling_type'."
-                )
-            else:
-                sampling_type = "particle"
-        if sampling_type is None:
-            warnings.warn(
-                "Because 'sampling_type' not specified, yt will "
-                "assume a cell 'sampling_type'",
-                stacklevel=2,
-            )
-            sampling_type = "cell"
-        self.field_info.add_field(name, sampling_type, function=function, **kwargs)
+
+        self.field_info.add_field(name, function, sampling_type, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
@@ -1506,7 +1486,7 @@ class Dataset:
         if method == "count":
             field_name = "%s_count" % ptype
             if ("deposit", field_name) in self.field_info:
-                mylog.warning("The deposited field %s already exists" % field_name)
+                mylog.warning("The deposited field %s already exists", field_name)
                 return ("deposit", field_name)
             else:
                 units = "dimensionless"

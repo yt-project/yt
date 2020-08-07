@@ -831,7 +831,7 @@ class YTDataContainer:
                 for field in this_ptype_fields:
                     if field not in fields_to_include:
                         mylog.warning(
-                            "detected (but did not request) {} {}".format(ptype, field)
+                            "detected (but did not request) %s %s", ptype, field
                         )
 
             ## you must have velocities (and they must be named "Velocities")

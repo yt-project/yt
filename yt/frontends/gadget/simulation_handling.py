@@ -284,7 +284,7 @@ class GadgetSimulation(SimulationTimeSeries):
         if len(init_outputs) == 0 and len(my_outputs) > 0:
             mylog.warning(
                 "Could not find any datasets.  "
-                + "Check the value of OutputDir in your parameter file."
+                "Check the value of OutputDir in your parameter file."
             )
 
         DatasetSeries.__init__(
@@ -384,8 +384,7 @@ class GadgetSimulation(SimulationTimeSeries):
             data_dir = os.path.join(self.directory, self.parameters["OutputDir"])
         if not os.path.exists(data_dir):
             mylog.info(
-                "OutputDir not found at %s, instead using %s."
-                % (data_dir, self.directory)
+                "OutputDir not found at %s, instead using %s.", data_dir, self.directory
             )
             data_dir = self.directory
         self.data_dir = data_dir

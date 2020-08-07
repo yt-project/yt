@@ -191,7 +191,7 @@ class FLASHDataset(Dataset):
                 )
                 self.particle_filename = filename.replace("plt_cnt", "part")
                 mylog.info(
-                    "Particle file found: %s" % self.particle_filename.split("/")[-1]
+                    "Particle file found: %s", self.particle_filename.split("/")[-1]
                 )
             except IOError:
                 self._particle_handle = self._handle
@@ -209,8 +209,9 @@ class FLASHDataset(Dataset):
                 self._particle_handle = self._handle
                 mylog.warning(
                     "%s and %s are not at the same time. "
-                    % (self.particle_filename, filename)
-                    + "This particle file will not be used."
+                    "This particle file will not be used.",
+                    self.particle_filename,
+                    filename,
                 )
 
         # These should be explicitly obtained from the file, but for now that
@@ -312,8 +313,9 @@ class FLASHDataset(Dataset):
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info(
-                            "{0} {1} overwrites a simulation "
-                            "scalar of the same name".format(hn[:-1], vn)
+                            "%s %s overwrites a simulation scalar of the same name",
+                            hn[:-1],
+                            vn,
                         )
                     if hasattr(pval, "decode"):
                         pval = pval.decode("ascii", "ignore")
@@ -341,8 +343,9 @@ class FLASHDataset(Dataset):
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
                         mylog.info(
-                            "{0} {1} overwrites a simulation "
-                            "scalar of the same name".format(hn[:-1], vn)
+                            "%s %s overwrites a simulation scalar of the same name",
+                            hn[:-1],
+                            vn,
                         )
                     if hasattr(pval, "decode"):
                         pval = pval.decode("ascii", "ignore")
@@ -401,7 +404,8 @@ class FLASHDataset(Dataset):
                 if dle[d] == dre[d]:
                     mylog.warning(
                         "Identical domain left edge and right edges "
-                        "along dummy dimension (%i), attempting to read anyway" % d
+                        "along dummy dimension (%i), attempting to read anyway",
+                        d,
                     )
                     dre[d] = dle[d] + 1.0
         if self.dimensionality < 3 and self.geometry == "cylindrical":

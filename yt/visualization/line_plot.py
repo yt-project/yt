@@ -63,7 +63,7 @@ class LineBuffer:
     def __getitem__(self, item):
         if item in self.data:
             return self.data[item]
-        mylog.info("Making a line buffer with %d points of %s" % (self.npoints, item))
+        mylog.info("Making a line buffer with %d points of %s", self.npoints, item)
         self.points, self.data[item] = self.ds.coordinates.pixelize_line(
             item, self.start_point, self.end_point, self.npoints
         )

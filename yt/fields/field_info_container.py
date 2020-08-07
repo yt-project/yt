@@ -1,9 +1,8 @@
-import warnings
 from numbers import Number as numeric_type
 
 import numpy as np
 
-from yt.funcs import mylog, only_on_root
+from yt.funcs import issue_deprecation_warning, mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
 from yt.units.unit_object import Unit
@@ -214,7 +213,7 @@ class FieldInfoContainer(dict):
                 and units != 1.0
             ):
                 mylog.warning(
-                    "Cannot interpret units: %s * %s, " + "setting to dimensionless.",
+                    "Cannot interpret units: %s * %s, setting to dimensionless.",
                     units,
                     args[0],
                 )
@@ -247,7 +246,55 @@ class FieldInfoContainer(dict):
                             alias = "%s_%s" % (alias[:-2], axis_names[2])
                 self.alias((ftype, alias), field)
 
-    def add_field(self, name, sampling_type, function=None, **kwargs):
+    @staticmethod
+    def _sanitize_sampling_type(sampling_type, particle_type=None):
+        """Detect conflicts between deprecated and new parameters to specify the
+        sampling type in a new field.
+
+        This is a helper function to add_field methods.
+
+        Parameters
+        ----------
+        sampling_type: str
+            One of "cell", "particle" or "local" (case insensitive)
+        particle_type: str
+            This is a deprecated argument of the add_field method,
+            which was replaced by sampling_type.
+
+        Raises
+        ------
+        ValueError
+            For unsupported values in sampling_type
+        RuntimeError
+            If conflicting parameters are passed.
+        """
+        try:
+            sampling_type = sampling_type.lower()
+        except AttributeError as e:
+            raise TypeError("sampling_type should be a string.") from e
+
+        acceptable_samplings = ("cell", "particle", "local")
+        if sampling_type not in acceptable_samplings:
+            raise ValueError(
+                "Invalid sampling type %s. Valid sampling types are %s",
+                sampling_type,
+                ", ".join(acceptable_samplings),
+            )
+
+        if particle_type:
+            issue_deprecation_warning(
+                "'particle_type' keyword argument is deprecated in favour "
+                "of the positional argument 'sampling_type'."
+            )
+            if sampling_type != "particle":
+                raise RuntimeError(
+                    "Conflicting values for parameters "
+                    "'sampling_type' and 'particle_type'."
+                )
+
+        return sampling_type
+
+    def add_field(self, name, function, sampling_type, **kwargs):
         """
         Add a new field, along with supplemental metadata, to the list of
         available fields.  This respects a number of arguments, all of which
@@ -262,6 +309,8 @@ class FieldInfoContainer(dict):
         function : callable
            A function handle that defines the field.  Should accept
            arguments (field, data)
+        sampling_type: str
+           "cell" or "particle" or "local"
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^). If set to "auto" the units
@@ -270,8 +319,6 @@ class FieldInfoContainer(dict):
            Describes whether the field should be logged
         validators : list
            A list of :class:`FieldValidator` objects
-        particle_type : bool
-           Is this a particle (1D) field?
         vector_field : bool
            Describes the dimensionality of the field.  Currently unused.
         display_name : str
@@ -290,8 +337,8 @@ class FieldInfoContainer(dict):
                 return create_function
             return
         # add_field can be used in two different ways: it can be called
-        # directly, or used as a decorator. If called directly, the
-        # function will be passed in as an argument, and we simply create
+        # directly, or used as a decorator (as yt.derived_field). If called directly,
+        # the function will be passed in as an argument, and we simply create
         # the derived field and exit. If used as a decorator, function will
         # be None. In that case, we return a function that will be applied
         # to the function that the decorator is applied to.
@@ -308,19 +355,11 @@ class FieldInfoContainer(dict):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
             return
 
-        particle_field = False
+        sampling_type = self._sanitize_sampling_type(
+            sampling_type, particle_type=kwargs.get("particle_type")
+        )
+
         if sampling_type == "particle":
-            particle_field = True
-
-        if kwargs.get("particle_type", False):
-            warnings.warn(
-                "The particle_type keyword argument of add_field has been "
-                'deprecated. Please set sampling_type="particle" instead.',
-                stacklevel=2,
-            )
-            particle_field = True
-
-        if particle_field:
             ftype = "all"
         else:
             ftype = self.ds.default_fluid_type

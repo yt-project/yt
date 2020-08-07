@@ -663,7 +663,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 if abs(val) < 1.0e-3 or abs(val) > 1.0e4:
                     if not val == 0.0:
                         e = np.floor(np.log10(abs(val)))
-                        return r"${:.2f}\times 10^{:d}$".format(val / 10.0 ** e, int(e))
+                        return r"${:.2f}\times 10^{{ {:d} }}$".format(
+                            val / 10.0 ** e, int(e)
+                        )
                     else:
                         return r"$0$"
                 else:
@@ -734,8 +736,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             alpha = a
         self.add_gaussian(v, w, [r, g, b, alpha])
         mylog.debug(
-            "Adding gaussian at %s with width %s and colors %s"
-            % (v, w, (r, g, b, alpha))
+            "Adding gaussian at %s with width %s and colors %s", v, w, (r, g, b, alpha)
         )
 
     def map_to_colormap(
@@ -978,7 +979,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             # Now we set up the scattering
             scat = (johnson_filters[f]["Lchar"] ** -4 / mscat) * anorm
             tf = TransferFunction(rho_bounds)
-            mylog.debug("Adding: %s with relative scattering %s" % (f, scat))
+            mylog.debug("Adding: %s with relative scattering %s", f, scat)
             tf.y *= 0.0
             tf.y += scat
             self.add_field_table(tf, 1, weight_field_id=1)

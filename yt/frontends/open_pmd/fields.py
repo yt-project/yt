@@ -178,7 +178,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                             self._mag_fields.append(ytname)
                         self.known_other_fields += ((ytname, (unit, aliases, None)),)
             for i in self.known_other_fields:
-                mylog.debug("open_pmd - known_other_fields - {}".format(i))
+                mylog.debug("open_pmd - known_other_fields - %s", i)
         except (KeyError, TypeError, AttributeError):
             pass
 
@@ -213,12 +213,12 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     except (KeyError):
                         if recname != "particlePatches":
                             mylog.info(
-                                "open_pmd - {}_{} does not seem to have unitDimension".format(
-                                    pname, recname
-                                )
+                                "open_pmd - %s_%s does not seem to have unitDimension",
+                                pname,
+                                recname,
                             )
             for i in self.known_particle_fields:
-                mylog.debug("open_pmd - known_particle_fields - {}".format(i))
+                mylog.debug("open_pmd - known_particle_fields - %s", i)
         except (KeyError, TypeError, AttributeError):
             pass
 

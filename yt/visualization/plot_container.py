@@ -911,8 +911,8 @@ class ImagePlotContainer(PlotContainer):
                 except AttributeError:
                     # only certain subclasses have a frb attribute they can rely on for inspecting units
                     mylog.warning(
-                        "%s class doesn't support zmin/zmax set as tuples or YTQuantity"
-                        % self.__class__.__name__
+                        "%s class doesn't support zmin/zmax set as tuples or YTQuantity",
+                        self.__class__.__name__,
                     )
                     z = z.value
             return z

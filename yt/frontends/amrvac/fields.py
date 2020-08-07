@@ -41,8 +41,8 @@ def _velocity(field, data, idir, prefix=None):
     mask1 = rho == 0
     if mask1.any():
         mylog.info(
-            "zeros found in %sdensity, patching them to compute corresponding velocity field."
-            % prefix
+            "zeros found in %sdensity, patching them to compute corresponding velocity field.",
+            prefix,
         )
         mask2 = moment == 0
         if not ((mask1 & mask2) == mask1).all():
@@ -132,8 +132,8 @@ class AMRVACFieldInfo(FieldInfoContainer):
             if idust > MAXN_DUST_SPECIES:
                 mylog.error(
                     "Only the first %d dust species are currently read by yt. "
-                    "If you read this, please consider issuing a ticket. "
-                    % MAXN_DUST_SPECIES
+                    "If you read this, please consider issuing a ticket. ",
+                    MAXN_DUST_SPECIES,
                 )
                 break
             self._setup_velocity_fields(idust)

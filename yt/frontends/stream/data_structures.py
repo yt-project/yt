@@ -454,10 +454,6 @@ def assign_particle_data(ds, pdata, bbox):
             num_particles = particle_grid_inds.size
             num_unassigned = num_particles - assigned_particles.size
             if num_unassigned > 0:
-                m = (
-                    "Discarding %s particles (out of %s) that are outside "
-                    "bounding box. "
-                )
                 eps = np.finfo(x.dtype).eps
                 s = np.array(
                     [
@@ -471,8 +467,13 @@ def assign_particle_data(ds, pdata, bbox):
                     [min(bbox[1, 0], s[1, 0]), max(bbox[1, 1], s[1, 1])],
                     [min(bbox[2, 0], s[2, 0]), max(bbox[2, 1], s[2, 1])],
                 ]
-                m += "Set bbox=%s to avoid this in the future."
-                mylog.warning(m % (num_unassigned, num_particles, sug_bbox))
+                mylog.warning(
+                    "Discarding %s particles (out of %s) that are outside "
+                    "bounding box. Set bbox=%s to avoid this in the future.",
+                    num_unassigned,
+                    num_particles,
+                    sug_bbox,
+                )
                 particle_grid_inds = particle_grid_inds[assigned_particles]
                 x = x[assigned_particles]
                 y = y[assigned_particles]
@@ -1636,7 +1637,7 @@ def load_hexahedral_mesh(
         array_values = data[fn]
         if array_values.size != connectivity.shape[0]:
             mylog.error(
-                "Dimensions of array must be one fewer than the" + " coordinate set."
+                "Dimensions of array must be one fewer than the coordinate set."
             )
             raise RuntimeError
     grid_left_edges = domain_left_edge
@@ -2169,7 +2170,7 @@ def load_unstructured_mesh(
         array_values = data[fn]
         if array_values.size != connectivity.shape[0]:
             mylog.error(
-                "Dimensions of array must be one fewer than the" + " coordinate set."
+                "Dimensions of array must be one fewer than the coordinate set."
             )
             raise RuntimeError
     grid_left_edges = domain_left_edge
