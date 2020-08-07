@@ -188,7 +188,6 @@ class GAMERHierarchy(GridIndex):
                         % (grid.id, c.id, grid.RightEdge[d], c.RightEdge[d])
                     )
                     if not grid.LeftEdge[d] <= c.LeftEdge[d]:
-
                         raise ValueError(msgL)
 
                     if not grid.RightEdge[d] >= c.RightEdge[d]:
