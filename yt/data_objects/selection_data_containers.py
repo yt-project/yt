@@ -1121,7 +1121,7 @@ class YTCutRegion(YTSelectionContainer3D):
         locals = self.locals.copy()
         if "obj" in locals:
             raise RuntimeError(
-                "'obj' has been defined in the 'locals' ;"
+                "'obj' has been defined in the 'locals' ; "
                 "this is not supported, please rename the variable."
             )
         locals["obj"] = obj
