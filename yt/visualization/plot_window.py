@@ -1157,7 +1157,9 @@ class PWViewerMPL(PlotWindow):
                 else:
                     mylog.error(
                         "Unable to draw cbar minorticks for field "
-                        "%s with transform %s ", f, self._field_transform[f]
+                        "%s with transform %s ",
+                        f,
+                        self._field_transform[f],
                     )
                     self._cbar_minorticks[f] = False
 

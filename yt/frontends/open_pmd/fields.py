@@ -215,7 +215,9 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         if recname != "particlePatches":
                             mylog.info(
                                 "open_pmd - %s_%s does not seem to have "
-                                "unitDimension", pname, recname
+                                "unitDimension",
+                                pname,
+                                recname,
                             )
             for i in self.known_particle_fields:
                 mylog.debug("open_pmd - known_particle_fields - %s", i)
