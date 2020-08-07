@@ -6,7 +6,7 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.particle_container import ParticleContainer
+from yt.data_objects.index_subobjects.particle_container import ParticleContainer
 from yt.funcs import get_pbar, only_on_root
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import ParticleBitmap

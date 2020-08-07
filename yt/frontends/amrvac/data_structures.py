@@ -13,7 +13,7 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex

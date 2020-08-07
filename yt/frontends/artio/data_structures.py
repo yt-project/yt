@@ -6,7 +6,7 @@ import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.field_data import YTFieldData
-from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.artio import _artio_caller

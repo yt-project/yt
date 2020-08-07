@@ -4,9 +4,9 @@ from itertools import chain, product
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.data_objects.static_output import Dataset
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import ensure_tuple, get_pbar, mylog
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex

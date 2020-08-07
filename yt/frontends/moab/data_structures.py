@@ -3,8 +3,8 @@ import weakref
 
 import numpy as np
 
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.data_objects.static_output import Dataset
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import setdefaultattr
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import HDF5FileHandler

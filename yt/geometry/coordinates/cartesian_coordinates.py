@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
 from yt.units.yt_array import YTArray, uconcatenate, uvstack
 from yt.utilities.lib.pixelization_routines import (

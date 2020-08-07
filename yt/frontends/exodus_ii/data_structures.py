@@ -1,8 +1,8 @@
 import numpy as np
 
+from yt.data_objects.index_subobjects.unstructured_mesh import UnstructuredMesh
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.unions import MeshUnion
-from yt.data_objects.unstructured_mesh import UnstructuredMesh
 from yt.funcs import setdefaultattr
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf

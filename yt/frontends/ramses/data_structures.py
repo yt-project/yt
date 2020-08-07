@@ -6,7 +6,7 @@ from glob import glob
 import numpy as np
 
 from yt.arraytypes import blankRecordArray
-from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
