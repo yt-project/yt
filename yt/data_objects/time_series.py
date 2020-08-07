@@ -155,6 +155,13 @@ class DatasetSeries:
 
     """
 
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        code_name = cls.__name__[: cls.__name__.find("Simulation")]
+        if code_name:
+            simulation_time_series_registry[code_name] = cls
+            mylog.debug("Registering simulation: %s as %s", code_name, cls)
+
     def __new__(cls, outputs, *args, **kwargs):
         if isinstance(outputs, str):
             outputs = get_filenames_from_glob_pattern(outputs)
@@ -508,15 +515,6 @@ class DatasetSeriesObject:
             ]
         )
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
-
-    def __init_subclass__(cls, *args, **kwargs):
-        super().__init_subclass__(*args, **kwargs)
-        if "Simulation" not in cls.__name__:
-            return
-        code_name = cls.__name__[: cls.__name__.find("Simulation")]
-        if code_name:
-            simulation_time_series_registry[code_name] = cls
-            mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
     def eval(self, tasks):
         return self.time_series.eval(tasks, self)
