@@ -823,7 +823,7 @@ Source code style guide
    return value of a function, do not store it in a variable.
  * Add tests for new functionality. When fixing a bug, consider adding a test to
    prevent the bug from recurring.
- * Use f-strings where possible (https://www.python.org/dev/peps/pep-0498/), except 
+ * Use f-strings for string-formatting (https://www.python.org/dev/peps/pep-0498/), except 
    in logging function where the recommended syntax is
    ``mylog.info("Something %s", "value")``.
 
