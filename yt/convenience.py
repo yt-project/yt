@@ -8,7 +8,7 @@ from yt.utilities.exceptions import (
     YTSimulationNotIdentified,
 )
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
-from yt.utilities.parameter_file_storage import (
+from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
 )

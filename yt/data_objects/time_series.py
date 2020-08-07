@@ -9,23 +9,22 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.convenience import load
-from yt.data_objects.analyzer_objects import (
-    AnalysisTask,
-    analysis_task_registry,
-    create_quantity_proxy,
-)
-from yt.data_objects.data_containers import data_object_registry
-from yt.data_objects.derived_quantities import derived_quantity_registry
+from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
 from yt.funcs import ensure_list, issue_deprecation_warning, iterable, mylog
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTException, YTOutputNotIdentified
+from yt.utilities.object_registries import (
+    analysis_task_registry,
+    data_object_registry,
+    derived_quantity_registry,
+    simulation_time_series_registry,
+)
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     communication_system,
     parallel_objects,
     parallel_root_only,
 )
-from yt.utilities.parameter_file_storage import simulation_time_series_registry
 
 
 class AnalysisTaskProxy:

@@ -42,14 +42,13 @@ from yt.utilities.exceptions import (
     YTSpatialFieldUnitError,
 )
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
+from yt.utilities.object_registries import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
 )
 from yt.utilities.parameter_file_storage import ParameterFileStore
 
 from .derived_quantities import DerivedQuantityCollection
-
-data_object_registry = {}
 
 
 def sanitize_weight_field(ds, field, weight):

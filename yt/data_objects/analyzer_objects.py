@@ -1,6 +1,6 @@
 import inspect
 
-analysis_task_registry = {}
+from yt.utilities.object_registries import analysis_task_registry
 
 
 class AnalysisTask:
