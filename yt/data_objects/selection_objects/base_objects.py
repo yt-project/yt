@@ -11,7 +11,6 @@ from yt import YTArray, iterable
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
-from yt.data_objects.selection_objects.boolean_operations import YTBooleanContainer
 from yt.fields.field_exceptions import NeedsGridType
 from yt.funcs import ensure_list, fix_axis, validate_width_tuple
 from yt.geometry.selection_routines import compose_selector
@@ -282,11 +281,19 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self.ds is not other.ds:
             raise YTBooleanObjectsWrongDataset()
         # Should maybe do something with field parameters here
+        from yt.data_objects.selection_objects.boolean_operations import (
+            YTBooleanContainer,
+        )
+
         return YTBooleanContainer("OR", self, other, ds=self.ds)
 
     def __invert__(self):
         # ~obj
         asel = yt.geometry.selection_routines.AlwaysSelector(self.ds)
+        from yt.data_objects.selection_objects.boolean_operations import (
+            YTBooleanContainer,
+        )
+
         return YTBooleanContainer("NOT", self, asel, ds=self.ds)
 
     def __xor__(self, other):
@@ -294,6 +301,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             raise YTBooleanObjectError(other)
         if self.ds is not other.ds:
             raise YTBooleanObjectsWrongDataset()
+        from yt.data_objects.selection_objects.boolean_operations import (
+            YTBooleanContainer,
+        )
+
         return YTBooleanContainer("XOR", self, other, ds=self.ds)
 
     def __and__(self, other):
@@ -301,6 +312,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             raise YTBooleanObjectError(other)
         if self.ds is not other.ds:
             raise YTBooleanObjectsWrongDataset()
+        from yt.data_objects.selection_objects.boolean_operations import (
+            YTBooleanContainer,
+        )
+
         return YTBooleanContainer("AND", self, other, ds=self.ds)
 
     def __add__(self, other):
@@ -311,6 +326,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             raise YTBooleanObjectError(other)
         if self.ds is not other.ds:
             raise YTBooleanObjectsWrongDataset()
+        from yt.data_objects.selection_objects.boolean_operations import (
+            YTBooleanContainer,
+        )
+
         return YTBooleanContainer("NEG", self, other, ds=self.ds)
 
     @contextmanager
