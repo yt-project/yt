@@ -946,7 +946,7 @@ class ImagePlotContainer(PlotContainer):
     def set_cbar_minorticks(self, field, state):
         """Deprecated alias, kept for backward compatibility.
 
-        turn colorbar minor ticks "on" or "off" in the current plot, follwoin *state*
+        turn colorbar minor ticks "on" or "off" in the current plot, following *state*
 
         Parameters
         ----------
