@@ -23,11 +23,11 @@ from yt.utilities.answer_testing import utils
 # the dictionary is empty come pytest configuration time and
 # setting each class' answer_file attribute
 pytest.answer_files = {}
+pytest.answer_dir = os.path.join(ytcfg.get("yt", "test_data_dir"), "answers")
+pytest.array_dir = os.path.join(pytest.answer_dir, "raw_arrays")
 
 # List of answer files
 answer_file_list = "tests/tests_pytest.yaml"
-answer_dir = os.path.join(ytcfg.get("yt", "test_data_dir"), "answers")
-array_dir = os.path.join(answer_dir, "raw_arrays")
 
 
 def pytest_addoption(parser):
@@ -55,6 +55,9 @@ def pytest_addoption(parser):
     parser.addoption(
         "--no-hash", action="store_true",
     )
+    # Tell pytest about the local-dir option in the ini files. This
+    # option is used for creating the answer directory on CI
+    parser.addini("local-dir", "answer directory.")
 
 
 def pytest_configure(config):
@@ -63,11 +66,17 @@ def pytest_configure(config):
     each answer test's answer file (including the changeset number).
     """
     yt._called_from_pytest = True
+    # If test_data_dir has not been set, the default value is
+    # /does/not/exist. If we find that, we check for a value given in
+    # an ini file. If that's not found, pytest will fail.
+    if "does/not/exist" in pytest.answer_dir:
+        pytest.answer_dir = config.getini("local-dir")
+        pytest.array_dir = os.path.join(pytest.answer_dir, "raw_arrays")
     # Make sure that the answers dir exists. If not, try to make it
-    if not os.path.isdir(answer_dir):
-        os.mkdir(answer_dir)
-    if not os.path.isdir(array_dir):
-        os.mkdir(array_dir)
+    if not os.path.isdir(pytest.answer_dir):
+        os.mkdir(pytest.answer_dir)
+    if not os.path.isdir(pytest.array_dir):
+        os.mkdir(pytest.array_dir)
     # Read the list of answer test classes and their associated answer
     # file
     with open(answer_file_list, "r") as f:
@@ -128,25 +137,10 @@ def answer_file(request):
     Assigns the name of the appropriate answer file as an attribute of
     the calling answer test class.
 
-    The answer file is the file that either already contains previously
-    generated answers or else is going to contain newly generated
-    answers. If an answer file already exists, then it cannot be used
-    to hold newly generated answers; a fresh file must be used instead.
-
     Each class that performs answer tests (e.g., TestEnzo) has a
     corresponding answer file. These answer files are stored in
     test_data_dir/answers. The names of the files and their
     corresponding answer class are in ./tests/tests.yaml.
-
-    Parameters:
-    -----------
-        request : pytest.FixtureRequest
-            Provides access to the requesting test context. For
-            example, if an answer class uses this fixture, such as
-            TestEnzo, then request provides access to all of the
-            methods and attributes of the TestEnzo class, since
-            that class is the user of this fixture (the calling
-            context).
 
     Example:
     --------
@@ -160,8 +154,8 @@ def answer_file(request):
     # See if the class being tested is one we know about
     try:
         answer_file, raw_answer_file = pytest.answer_files[request.cls.__name__]
-        answer_file = os.path.join(answer_dir, answer_file)
-        raw_answer_file = os.path.join(array_dir, raw_answer_file)
+        answer_file = os.path.join(pytest.answer_dir, answer_file)
+        raw_answer_file = os.path.join(pytest.array_dir, raw_answer_file)
     except KeyError:
         raise KeyError(
             "Answer file: `{}` not found in list: `{}`.".format(
