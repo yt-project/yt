@@ -52,10 +52,10 @@ of a repository; in this case the fork will live in the space under your
 username on github, rather than the ``yt-project``. If you have never made a
 fork of a repository on github, or are unfamiliar with this process, here is a
 short article about how to do so:
-https://help.github.com/en/github/getting-started-with-github/fork-a-repo . 
+https://help.github.com/en/github/getting-started-with-github/fork-a-repo .
 The documentation for
 ``yt`` lives in the ``doc`` directory in the root of the yt git
-repository. To make a contribution to the yt documentation you will 
+repository. To make a contribution to the yt documentation you will
 make your changes in your own fork of ``yt``.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
@@ -87,7 +87,7 @@ usually we end up accepting.
 
 For more information, see :ref:`contributing-code`, where we spell out how to
 get up and running with a development environment, how to commit, and how to
-use GitHub. When you're ready to share your changes with the community, refer to 
+use GitHub. When you're ready to share your changes with the community, refer to
 :ref:`sharing-changes` to see how to contribute them back upstream.
 
 Online Presence
@@ -337,12 +337,12 @@ revision specifier will not show more recent changes to the repository. An
 alternative option is to use ``checkout`` on a branch. In yt the ``master``
 branch is our primary development branch, so checking out ``master`` should
 return you to the tip (or most up-to-date revision specifier) on the ``master``
-branch. 
+branch.
 
 .. code-block:: bash
-   
+
    $ git checkout master
-   
+
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
 you run yt from the command line or the one that is loaded when you do ``import
@@ -723,8 +723,8 @@ Below are a list of rules for coding style in yt. Some of these rules are
 suggestions are not explicitly enforced, while some are enforced via automated
 testing.
 
-The yt project uses ``flake8`` to report on code correctness (syntax + anti-pattern
-detection), and ``black`` for automated formatting.
+The yt project uses ``flake8`` and ``flynt`` to report on code correctness (syntax +
+anti-pattern detection), and ``black`` for automated formatting.
 
 To check the coding style of your contributions locally you will need to install those
 tools, which can be done for instance with ``pip``:
@@ -738,6 +738,7 @@ Then run the checks from the top level of the repository with
 .. code-block:: bash
 
     $ flake8 yt/
+    $ flynt --fail-on-change --dry-run yt/
     $ black --check
 
 These will respectively print out any ``flake8`` errors or warnings that your newly added
