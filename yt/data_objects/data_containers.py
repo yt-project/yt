@@ -38,6 +38,7 @@ from yt.utilities.exceptions import (
     YTFieldTypeNotFound,
     YTFieldUnitError,
     YTFieldUnitParseError,
+    YTGenerationInProgress,
     YTNonIndexedDataContainer,
     YTSpatialFieldUnitError,
 )
@@ -1527,12 +1528,6 @@ class YTDataContainer:
                 o.field_parameters = cache_fp
 
 
-class GenerationInProgress(Exception):
-    def __init__(self, fields):
-        self.fields = fields
-        super(GenerationInProgress, self).__init__()
-
-
 class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _locked = False
     _sort_by = None
@@ -1675,7 +1670,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
         elif self._locked:
-            raise GenerationInProgress(fields)
+            raise YTGenerationInProgress(fields)
         # Track which ones we want in the end
         ofields = set(list(self.field_data.keys()) + fields_to_get + fields_to_generate)
         # At this point, we want to figure out *all* our dependencies.
@@ -1771,7 +1766,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                     except UnitParseError:
                         raise YTFieldUnitParseError(fi)
                     self.field_data[field] = fd
-                except GenerationInProgress as gip:
+                except YTGenerationInProgress as gip:
                     for f in gip.fields:
                         if f not in fields_to_generate:
                             fields_to_generate.append(f)

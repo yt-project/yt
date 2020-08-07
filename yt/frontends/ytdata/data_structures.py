@@ -5,7 +5,6 @@ from numbers import Number as numeric_type
 
 import numpy as np
 
-from yt.data_objects.data_containers import GenerationInProgress
 from yt.data_objects.grid_patch import AMRGridPatch
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.profiles import (
@@ -21,7 +20,7 @@ from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.units import dimensions
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTQuantity, uconcatenate
-from yt.utilities.exceptions import YTFieldTypeNotFound
+from yt.utilities.exceptions import YTFieldTypeNotFound, YTGenerationInProgress
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
@@ -625,7 +624,7 @@ class YTNonspatialGrid(AMRGridPatch):
         if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
         elif self._locked:
-            raise GenerationInProgress(fields)
+            raise YTGenerationInProgress(fields)
         # Track which ones we want in the end
         ofields = set(list(self.field_data.keys()) + fields_to_get + fields_to_generate)
         # At this point, we want to figure out *all* our dependencies.
