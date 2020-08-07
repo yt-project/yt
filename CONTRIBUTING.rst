@@ -782,7 +782,7 @@ If you wish to automate this process you may be interested in using `pre-commit
 
     $ pre-commit install
 
-So that ``black``, ``flake8`` and ``isort`` will run and update your changes every time
+So that ``black``, ``flynt`, ``flake8`` and ``isort`` will run and update your changes every time
 you commit new code. This setup is not required so you have the option of checking for
 code style only in the late stage of a branch when we need to validate it for merging.
 
@@ -823,6 +823,9 @@ Source code style guide
    return value of a function, do not store it in a variable.
  * Add tests for new functionality. When fixing a bug, consider adding a test to
    prevent the bug from recurring.
+ * Use f-strings where possible (https://www.python.org/dev/peps/pep-0498/), except 
+   in logging function where the recommended syntax is
+   ``mylog.info("Something %s", "value")``.
 
 API Style Guide
 ---------------
