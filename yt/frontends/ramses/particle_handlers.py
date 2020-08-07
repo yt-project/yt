@@ -46,7 +46,7 @@ class ParticleFileHandler:
 
     def __init_subclass__(cls, *args, **kwargs):
         """
-        This ensures that when a new subclass is created, it's registered.
+        Registers a subclass at creation.
         """
         super().__init_subclass__(*args, **kwargs)
         if cls.ptype is not None:
