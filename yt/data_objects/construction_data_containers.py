@@ -9,12 +9,12 @@ from tempfile import NamedTemporaryFile, TemporaryFile
 import numpy as np
 
 from yt.config import ytcfg
-from yt.data_objects.data_containers import (
+from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.selection_objects.base_objects import (
     YTSelectionContainer1D,
     YTSelectionContainer2D,
     YTSelectionContainer3D,
 )
-from yt.data_objects.field_data import YTFieldData
 from yt.extern.tqdm import tqdm
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset

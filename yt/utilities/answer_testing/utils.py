@@ -14,7 +14,7 @@ import yaml
 
 from yt.config import ytcfg
 from yt.convenience import load, simulation
-from yt.data_objects.selection_data_containers import YTRegion
+from yt.data_objects.selection_objects.region import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
 from yt.units.yt_array import YTArray, YTQuantity

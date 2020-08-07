@@ -5,7 +5,7 @@ from functools import partial
 
 import numpy as np
 
-from yt.data_objects.data_containers import YTSelectionContainer
+from yt.data_objects.selection_objects.base_objects import YTSelectionContainer
 from yt.data_objects.static_output import ParticleDataset
 from yt.frontends.gadget.data_structures import _fix_unit_ordering
 from yt.frontends.gadget_fof.fields import GadgetFOFFieldInfo, GadgetFOFHaloFieldInfo

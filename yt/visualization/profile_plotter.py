@@ -8,7 +8,6 @@ from functools import wraps
 import matplotlib
 import numpy as np
 
-from yt.data_objects.data_containers import YTSelectionContainer
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
@@ -16,6 +15,7 @@ from yt.funcs import ensure_list, get_image_suffix, iterable, matplotlib_style_c
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
+from ..data_objects.selection_objects.base_objects import YTSelectionContainer
 from .base_plot_types import ImagePlotMPL, PlotMPL
 from .plot_container import (
     ImagePlotContainer,

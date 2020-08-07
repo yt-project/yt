@@ -5,7 +5,7 @@ import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
 from yt.config import ytcfg
-from yt.data_objects.data_containers import YTSelectionContainer
+from yt.data_objects.selection_objects.base_objects import YTSelectionContainer
 from yt.funcs import iterable
 from yt.geometry.selection_routines import convert_mask_to_indices
 from yt.units.yt_array import YTArray
