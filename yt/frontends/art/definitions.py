@@ -95,7 +95,7 @@ particle_header_struct = [
             "unknown",
         ),
         1,
-        "45sffffi" + "fffffff" + "iiii" + "ffffff" + "396s" + "f",
+        "45sffffifffffffiiiiffffff396sf",
     )
 ]
 

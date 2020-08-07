@@ -851,7 +851,7 @@ class YTHubRegisterCmd(YTCommand):
             admin=False,
         )
         hub_url = ytcfg.get("yt", "hub_url")
-        req = requests.post(hub_url + "/user", data=data)
+        req = requests.post(f"{hub_url}/user", data=data)
 
         if req.ok:
             headers = {"Girder-Token": req.json()["authToken"]["token"]}
@@ -863,7 +863,7 @@ class YTHubRegisterCmd(YTCommand):
         print("User registration successful")
         print("Obtaining API key...")
         req = requests.post(
-            hub_url + "/api_key",
+            f"{hub_url}/api_key",
             headers=headers,
             data={"name": "ytcmd", "active": True},
         )
@@ -893,7 +893,7 @@ class YTInstInfoCmd(YTCommand):
             action="store",
             default=None,
             dest="outputfile",
-            help="File into which the current revision number will be" + "stored",
+            help="File into which the current revision number will bestored",
         ),
     )
     description = """
@@ -1168,7 +1168,7 @@ class YTHubStartNotebook(YTCommand):
         resp = gc.post(f"/notebook/{_id}")
         try:
             print("Launched! Please visit this URL:")
-            print("    https://tmpnb.hub.yt" + resp["url"])
+            print(f"    https://tmpnb.hub.yt{resp['url']}")
             print()
         except (KeyError, TypeError):
             print("Something went wrong. The yt Hub responded with : ")
@@ -1606,7 +1606,7 @@ class YTUploadFileCmd(YTCommand):
 
         fs = iter(FileStreamer(open(args.file, "rb")))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")
-        r = requests.put(upload_url + "/" + os.path.basename(args.file), data=fs)
+        r = requests.put(f"{upload_url}/{os.path.basename(args.file)}", data=fs)
         print()
         print(r.text)
 

@@ -18,7 +18,7 @@ def test_point_selector():
 
     dd = ds.all_data()
     positions = np.array([dd[ax] for ax in "xyz"]).T
-    delta = 0.5 * np.array([dd["d" + ax] for ax in "xyz"]).T
+    delta = 0.5 * np.array([dd[f"d{ax}"] for ax in "xyz"]).T
     # ensure cell centers and corners always return one and
     # only one point object
     for p in positions:

@@ -122,7 +122,7 @@ class IOHandlerART(BaseIOHandler):
                 off = 1.0 / dd
                 tr[field] = rp(fields=[ax])[0] / dd - off
             if fname.startswith(f"particle_velocity_{ax}"):
-                (tr[field],) = rp(["v" + ax])
+                (tr[field],) = rp([f"v{ax}"])
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
@@ -235,7 +235,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
                 off = 1.0 / dd
                 tr[field] = rp(fields=[ax])[0] / dd - off
             if fname.startswith(f"particle_velocity_{ax}"):
-                (tr[field],) = rp(["v" + ax])
+                (tr[field],) = rp([f"v{ax}"])
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
@@ -513,7 +513,7 @@ def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
 
 
 nchem = 8 + 2
-dtyp = np.dtype(">i4,>i8,>i8" + f",>{nchem}f4" + ",>%sf4" % (2) + ",>i4")
+dtyp = np.dtype(f">i4,>i8,>i8,>{nchem}f4{',>%sf4' % 2},>i4")
 
 
 def _read_child_level(

@@ -37,9 +37,11 @@ _dim_finder = [
 # It is different for different dimensionalities, so we make a list
 _endian_regex = r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), \(([0-9 ]+)\)\)\)"
 _header_pattern = [
-    re.compile(_endian_regex + r"\(\((\d+)\) \((\d+)\) \((\d+)\)\) (\d+)\n"),
     re.compile(
-        _endian_regex + r"\(\((\d+,\d+)\) \((\d+,\d+)\) \((\d+,\d+)\)\) (\d+)\n"
+        f"{_endian_regex}\\(\\((\\d+)\\) \\((\\d+)\\) \\((\\d+)\\)\\) (\\d+)\\n"
+    ),
+    re.compile(
+        f"{_endian_regex}\\(\\((\\d+,\\d+)\\) \\((\\d+,\\d+)\\) \\((\\d+,\\d+)\\)\\) (\\d+)\\n"
     ),
     re.compile(
         _endian_regex
@@ -125,7 +127,7 @@ class BoxLibParticleHeader:
     def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
 
         self.particle_type = directory_name
-        header_filename = ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = f"{ds.output_dir}/{directory_name}/Header"
         with open(header_filename, "r") as f:
             self.version_string = f.readline().strip()
 
@@ -231,7 +233,7 @@ class AMReXParticleHeader:
     def __init__(self, ds, directory_name, is_checkpoint, extra_field_names=None):
 
         self.particle_type = directory_name
-        header_filename = ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = f"{ds.output_dir}/{directory_name}/Header"
         self.real_component_names = []
         self.int_component_names = []
         with open(header_filename, "r") as f:
@@ -297,7 +299,7 @@ class AMReXParticleHeader:
 
         self.known_int_fields.extend(
             [
-                (self.particle_type, "particle_" + field)
+                (self.particle_type, f"particle_{field}")
                 for field in self.int_component_names
             ]
         )
@@ -312,7 +314,7 @@ class AMReXParticleHeader:
 
         self.known_real_fields.extend(
             [
-                (self.particle_type, "particle_" + field)
+                (self.particle_type, f"particle_{field}")
                 for field in self.real_component_names
             ]
         )
@@ -410,7 +412,7 @@ class BoxlibHierarchy(GridIndex):
                 self.grid_right_edge[grid_counter + gi, :] = [xhi, yhi, zhi]
             # Now we get to the level header filename, which we open and parse.
             fn = os.path.join(self.dataset.output_dir, next(header_file).strip())
-            level_header_file = open(fn + "_H")
+            level_header_file = open(f"{fn}_H")
             level_dir = os.path.dirname(fn)
             # We skip the first two lines, which contain BoxLib header file
             # version and 'how' the data was written
@@ -563,7 +565,7 @@ class BoxlibHierarchy(GridIndex):
         self.io = io_registry[self.dataset_type](self.dataset)
 
     def _determine_particle_output_type(self, directory_name):
-        header_filename = self.ds.output_dir + "/" + directory_name + "/Header"
+        header_filename = f"{self.ds.output_dir}/{directory_name}/Header"
         with open(header_filename, "r") as f:
             version_string = f.readline().strip()
             if version_string.startswith("Version_Two"):
@@ -1427,7 +1429,7 @@ def _guess_pcast(vals):
 
 
 def _read_raw_field_names(raw_file):
-    header_files = glob.glob(raw_file + "*_H")
+    header_files = glob.glob(f"{raw_file}*_H")
     return [hf.split(os.sep)[-1][:-2] for hf in header_files]
 
 
@@ -1447,7 +1449,7 @@ def _get_active_dimensions(box):
 
 
 def _read_header(raw_file, field):
-    level_files = glob.glob(raw_file + "Level_*")
+    level_files = glob.glob(f"{raw_file}Level_*")
     level_files.sort()
 
     all_boxes = []
@@ -1455,7 +1457,7 @@ def _read_header(raw_file, field):
     all_offsets = []
 
     for level_file in level_files:
-        header_file = level_file + "/" + field + "_H"
+        header_file = f"{level_file}/{field}_H"
         with open(header_file, "r") as f:
 
             f.readline()  # version
@@ -1551,7 +1553,7 @@ class WarpXHierarchy(BoxlibHierarchy):
             self._read_particles(ptype, is_checkpoint)
 
         # Additional WarpX particle information (used to set up species)
-        self.warpx_header = WarpXHeader(self.ds.output_dir + "/WarpXHeader")
+        self.warpx_header = WarpXHeader(f"{self.ds.output_dir}/WarpXHeader")
 
         for key, val in self.warpx_header.data.items():
             if key.startswith("species_"):
@@ -1565,8 +1567,8 @@ class WarpXHierarchy(BoxlibHierarchy):
         super(WarpXHierarchy, self)._detect_output_fields()
 
         # now detect the optional, non-cell-centered fields
-        self.raw_file = self.ds.output_dir + "/raw_fields/"
-        self.raw_fields = _read_raw_field_names(self.raw_file + "Level_0/")
+        self.raw_file = f"{self.ds.output_dir}/raw_fields/"
+        self.raw_fields = _read_raw_field_names(f"{self.raw_file}Level_0/")
         self.field_list += [("raw", f) for f in self.raw_fields]
         self.raw_field_map = {}
         self.ds.nodal_flags = {}
@@ -1656,7 +1658,7 @@ class WarpXDataset(BoxlibDataset):
             periodicity += [True]  # pad to 3D
         self.periodicity = ensure_tuple(periodicity)
 
-        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = glob.glob(f"{self.output_dir}/*/Header")
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
@@ -1711,7 +1713,7 @@ class AMReXDataset(BoxlibDataset):
 
     def _parse_parameter_file(self):
         super(AMReXDataset, self)._parse_parameter_file()
-        particle_types = glob.glob(self.output_dir + "/*/Header")
+        particle_types = glob.glob(f"{self.output_dir}/*/Header")
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1

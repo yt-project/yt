@@ -48,7 +48,7 @@ def test_gizmo_mhd():
 
     # Test component magnetic fields
     for axis in "xyz":
-        f = ad[ptype, fmag + "_" + axis]
+        f = ad[ptype, f"{fmag}_{axis}"]
         assert str(f.units) == "code_magnetic"
         assert f.shape == (409013,)
 

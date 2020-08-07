@@ -265,7 +265,7 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
     @property
     def particle_field_index(self):
 
-        fn = self.ds.fullplotdir[:-4] + "sink"
+        fn = f"{self.ds.fullplotdir[:-4]}sink"
 
         index = parse_orion_sinks(fn)
 
@@ -294,7 +294,7 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
                 particles.append(read(line, field))
             return np.array(particles)
         except AttributeError:
-            fn = grid.ds.fullplotdir[:-4] + "sink"
+            fn = f"{grid.ds.fullplotdir[:-4]}sink"
             with open(fn, "r") as f:
                 lines = f.readlines()
                 self._cached_lines = lines

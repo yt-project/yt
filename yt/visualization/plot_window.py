@@ -894,11 +894,9 @@ class PWViewerMPL(PlotWindow):
         y_in_bounds = yc >= yllim and yc <= yrlim
 
         if not x_in_bounds and not y_in_bounds:
-            msg = (
-                "origin inputs not in bounds of specified coordinate sytem" + "domain."
+            raise RuntimeError(
+                "origin inputs not in bounds of specified coordinate system domain."
             )
-            msg = msg.format(self.origin)
-            raise RuntimeError(msg)
 
         return xc, yc
 
@@ -1041,8 +1039,8 @@ class PWViewerMPL(PlotWindow):
 
             if self.oblique:
                 labels = [
-                    r"$\rm{Image\ x" + axes_unit_labels[0] + "}$",
-                    r"$\rm{Image\ y" + axes_unit_labels[1] + "}$",
+                    f"$\\rm{{Image\\ x{axes_unit_labels[0]}}}$",
+                    f"$\\rm{{Image\\ y{axes_unit_labels[1]}}}$",
                 ]
             else:
                 coordinates = self.ds.coordinates
@@ -1056,8 +1054,8 @@ class PWViewerMPL(PlotWindow):
                         coordinates.axis_default_unit_name[yax],
                     ]
                 labels = [
-                    r"$\rm{" + axis_names[0] + axes_unit_labels[0] + r"}$",
-                    r"$\rm{" + axis_names[1] + axes_unit_labels[1] + r"}$",
+                    f"$\\rm{{{axis_names[0]}{axes_unit_labels[0]}}}$",
+                    f"$\\rm{{{axis_names[1]}{axes_unit_labels[1]}}}$",
                 ]
 
                 if hasattr(coordinates, "axis_field"):
@@ -1104,7 +1102,7 @@ class PWViewerMPL(PlotWindow):
                 if units is None or units == "":
                     pass
                 else:
-                    colorbar_label += r"$\ \ \left(" + units + r"\right)$"
+                    colorbar_label += f"$\\ \\ \\left({units}\\right)$"
 
             parser = MathTextParser("Agg")
             try:
@@ -1209,7 +1207,7 @@ class PWViewerMPL(PlotWindow):
             CallbackMaker = callback_registry[key]
             callback = invalidate_plot(apply_callback(CallbackMaker))
             callback.__doc__ = CallbackMaker.__doc__
-            self.__dict__["annotate_" + cbname] = types.MethodType(callback, self)
+            self.__dict__[f"annotate_{cbname}"] = types.MethodType(callback, self)
 
     def annotate_clear(self, index=None):
         """

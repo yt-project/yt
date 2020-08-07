@@ -267,20 +267,20 @@ class RAMSESFieldInfo(FieldInfoContainer):
         for species in ["H_p1", "He_p1", "He_p2"]:
 
             def _species_density(field, data):
-                return data["gas", species + "_fraction"] * data["gas", "density"]
+                return data["gas", f"{species}_fraction"] * data["gas", "density"]
 
             self.add_field(
-                ("gas", species + "_density"),
+                ("gas", f"{species}_density"),
                 sampling_type="cell",
                 function=_species_density,
                 units=self.ds.unit_system["density"],
             )
 
             def _species_mass(field, data):
-                return data["gas", species + "_density"] * data["index", "cell_volume"]
+                return data["gas", f"{species}_density"] * data["index", "cell_volume"]
 
             self.add_field(
-                ("gas", species + "_mass"),
+                ("gas", f"{species}_mass"),
                 sampling_type="cell",
                 function=_species_mass,
                 units=self.ds.unit_system["mass"],
@@ -350,7 +350,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 if "metal" in name[-1].split("_"):
                     cool = cool * data["metallicity"] / 0.02  # Ramses uses Zsolar=0.02
                 elif "compton" in name[-1].split("_"):
-                    cool = data.ds.arr(rv, unit + "/cm**3")
+                    cool = data.ds.arr(rv, f"{unit}/cm**3")
                     cool = (
                         cool / data["number_density"]
                     )  # Compton cooling/heating is written to file in erg/s

@@ -199,7 +199,7 @@ class FITSImageData:
                 w = _astropy.pywcs.WCS(
                     header=self.hdulist[0].header, key=key, naxis=self.dimensionality
                 )
-                setattr(self, "wcs" + key.strip().lower(), w)
+                setattr(self, f"wcs{key.strip().lower()}", w)
 
             return
 
@@ -414,11 +414,11 @@ class FITSImageData:
             if unit == "magnetic":
                 key = "BFUNIT"
             else:
-                key = unit[0].upper() + "UNIT"
+                key = f"{unit[0].upper()}UNIT"
             if key not in header:
                 continue
             u = YTQuantity(header[key], header.comments[key].strip("[]"))
-            setattr(self, unit + "_unit", u)
+            setattr(self, f"{unit}_unit", u)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
         """
@@ -433,7 +433,7 @@ class FITSImageData:
         if suffix is None:
             self.wcs = wcs
         else:
-            setattr(self, "wcs" + suffix, wcs)
+            setattr(self, f"wcs{suffix}", wcs)
         for img in self.hdulist:
             for k, v in h.items():
                 kk = k
@@ -789,7 +789,7 @@ class FITSImageData:
             scaleq = YTQuantity(sky_scale[0], sky_scale[1])
         if scaleq.units.dimensions != dimensions.angle / dimensions.length:
             raise RuntimeError(
-                f"sky_scale {sky_scale} not in correct " + "dimensions of angle/length!"
+                f"sky_scale {sky_scale} not in correct dimensions of angle/length!"
             )
         deltas = old_wcs.wcs.cdelt
         units = [str(unit) for unit in old_wcs.wcs.cunit]

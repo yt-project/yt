@@ -133,9 +133,7 @@ class FieldNameContainer(object):
                 with _box:
                     display(
                         Markdown(
-                            data="```python\n"
-                            + textwrap.dedent(fobj.get_source())
-                            + "\n```"
+                            data=f"```python\n{textwrap.dedent(fobj.get_source())}\n```"
                         )
                     )
                 values = inspect.getclosurevars(fobj._function).nonlocals

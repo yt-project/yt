@@ -20,7 +20,7 @@ def get_random_block_string(max_n=64, random_state=None, level=None):
         random_state = np.random.RandomState()
 
     max_l = int(np.log2(max_n))
-    form = "%0" + str(max_l) + "d"
+    form = f"%0{str(max_l)}d"
     num10 = random_state.randint(0, high=max_n)
     num2 = form % int(bin(num10)[2:])  # the slice clips the '0b' prefix
 
@@ -30,7 +30,7 @@ def get_random_block_string(max_n=64, random_state=None, level=None):
         my_block = f"{num2[:-level]}:{num2[-level:]}"
     else:
         my_block = num2
-    my_block = "B" + my_block
+    my_block = f"B{my_block}"
 
     return num10, level, my_block
 
@@ -67,7 +67,7 @@ def flip_random_block_bit(block, rs):
         modify_part[flip_index + 1 :],
     )
     descriptors[descr_index] = ":".join(parts)
-    return "B" + "_".join(descriptors)
+    return f"B{'_'.join(descriptors)}"
 
 
 def test_get_block_info():
@@ -114,11 +114,11 @@ def test_is_parent():
                 )
                 n2, l2, b2 = get_random_block_string(max_n=32, random_state=rs, level=0)
                 descriptors.append(f"{b1[1:]}:{b2[1:]}")
-            block = "B" + "_".join(descriptors)
+            block = f"B{'_'.join(descriptors)}"
             # since b2 is computed with max_n=32 in the for-loop, block always
             # has a refined great-great-grandparent
-            parent = "B" + "_".join([elem[:-1] for elem in descriptors])
-            grandparent = "B" + "_".join([elem[:-2] for elem in descriptors])
+            parent = f"B{'_'.join([elem[:-1] for elem in descriptors])}"
+            grandparent = f"B{'_'.join([elem[:-2] for elem in descriptors])}"
 
             assert is_parent(parent, block)
             assert is_parent(grandparent, parent)

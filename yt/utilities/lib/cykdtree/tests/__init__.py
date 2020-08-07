@@ -27,11 +27,10 @@ def assert_less_equal(x, y):
     except:
         if not size_match:
             raise AssertionError(
-                "Shape mismatch\n\n"
-                + f"x.shape: {str(x.shape)}\ny.shape: {str(y.shape)}\n"
+                f"Shape mismatch\n\nx.shape: {str(x.shape)}\ny.shape: {str(y.shape)}\n"
             )
         raise AssertionError(
-            "Variables are not less-equal ordered\n\n" + f"x: {str(x)}\ny: {str(y)}\n"
+            f"Variables are not less-equal ordered\n\nx: {str(x)}\ny: {str(y)}\n"
         )
 
 
@@ -39,9 +38,9 @@ def call_subprocess(np, func, args, kwargs):
     # Create string with arguments & kwargs
     args_str = ""
     for a in args:
-        args_str += str(a) + ","
+        args_str += f"{str(a)},"
     for k, v in kwargs.items():
-        args_str += k + "=" + str(v) + ","
+        args_str += f"{k}={str(v)},"
     if args_str.endswith(","):
         args_str = args_str[:-1]
     cmd = [

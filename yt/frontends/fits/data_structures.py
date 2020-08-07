@@ -414,7 +414,7 @@ class FITSDataset(Dataset):
             setdefaultattr(self, "length_unit", self.quan(length_factor, length_unit))
         for unit, cgs in [("time", "s"), ("mass", "g")]:
             # We set these to cgs for now, but they may have been overridden
-            if getattr(self, unit + "_unit", None) is not None:
+            if getattr(self, f"{unit}_unit", None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
             setdefaultattr(self, f"{unit}_unit", self.quan(1.0, cgs))
@@ -657,7 +657,7 @@ class SkyDataFITSDataset(FITSDataset):
 
         self.geometry = "spectral_cube"
 
-        log_str = "Detected these axes: " + "%s " * len(self.ctypes)
+        log_str = f"Detected these axes: {'%s ' * len(self.ctypes)}"
         mylog.info(log_str, *self.ctypes)
 
         self.lat_axis = np.zeros((end - 1), dtype="bool")
@@ -825,7 +825,7 @@ class EventsFITSHierarchy(FITSHierarchy):
         ds = self.dataset
         self.field_list = []
         for k, v in ds.events_info.items():
-            fname = "event_" + k
+            fname = f"event_{k}"
             mylog.info("Adding field %s to the list of fields.", fname)
             self.field_list.append(("io", fname))
             if k in ["x", "y"]:
@@ -882,16 +882,16 @@ class EventsFITSDataset(SkyDataFITSDataset):
                 if v.lower() in ["x", "y"]:
                     num = k.strip("TTYPE")
                     self.events_info[v.lower()] = (
-                        self.primary_header["TLMIN" + num],
-                        self.primary_header["TLMAX" + num],
-                        self.primary_header["TCTYP" + num],
-                        self.primary_header["TCRVL" + num],
-                        self.primary_header["TCDLT" + num],
-                        self.primary_header["TCRPX" + num],
+                        self.primary_header[f"TLMIN{num}"],
+                        self.primary_header[f"TLMAX{num}"],
+                        self.primary_header[f"TCTYP{num}"],
+                        self.primary_header[f"TCRVL{num}"],
+                        self.primary_header[f"TCDLT{num}"],
+                        self.primary_header[f"TCRPX{num}"],
                     )
                 elif v.lower() in ["energy", "time"]:
                     num = k.strip("TTYPE")
-                    unit = self.primary_header["TUNIT" + num].lower()
+                    unit = self.primary_header[f"TUNIT{num}"].lower()
                     if unit.endswith("ev"):
                         unit = unit.replace("ev", "eV")
                     self.events_info[v.lower()] = unit

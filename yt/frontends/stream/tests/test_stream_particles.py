@@ -412,7 +412,7 @@ def test_load_particles_with_data_source():
 
     # Test code units are parsed correctly
     def get_cu(ds, dim):
-        return ds.quan(1, "code_" + dim)
+        return ds.quan(1, f"code_{dim}")
 
     for dim in ["length", "mass", "time", "velocity", "magnetic"]:
         assert in_cgs(get_cu(ds1, dim)) == in_cgs(get_cu(ds2, dim))

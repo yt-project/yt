@@ -88,16 +88,16 @@ def _iterable_to_string(iterable):
     for elem in iterable:
         # Check for user-defined functions
         if inspect.isfunction(elem):
-            result += "_" + elem.__name__
+            result += f"_{elem.__name__}"
         # Non-string iterables (e.g., lists, tuples, etc.)
         elif not isinstance(elem, str) and hasattr(elem, "__iter__"):
-            result += "_" + _iterable_to_string(elem)
+            result += f"_{_iterable_to_string(elem)}"
         # Non-string non-iterables (ints, floats, etc.)
         elif not isinstance(elem, str) and not hasattr(elem, "__iter__"):
-            result += "_" + str(elem)
+            result += f"_{str(elem)}"
         # Strings
         elif isinstance(elem, str):
-            result += "_" + elem
+            result += f"_{elem}"
     return result
 
 

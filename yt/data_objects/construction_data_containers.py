@@ -500,7 +500,7 @@ class YTQuadTreeProj(YTProj):
         for field in fields:
             self[field] = None
         deserialized_successfully = False
-        store_file = self.ds.parameter_filename + ".yt"
+        store_file = f"{self.ds.parameter_filename}.yt"
         if os.path.isfile(store_file):
             deserialized_successfully = self._mrep.restore(store_file, self.ds)
 
@@ -516,7 +516,7 @@ class YTQuadTreeProj(YTProj):
     def serialize(self):
         if not ytcfg.getboolean("yt", "serialize"):
             return
-        self._mrep.store(self.ds.parameter_filename + ".yt")
+        self._mrep.store(f"{self.ds.parameter_filename}.yt")
 
     def _get_tree(self, nvals):
         xax = self.ds.coordinates.x_axis[self.axis]
@@ -1946,30 +1946,30 @@ class YTSurface(YTSelectionContainer3D):
         if plot_index is None:
             plot_index = 0
         if isinstance(filename, io.IOBase):
-            fobj = filename + ".obj"
-            fmtl = filename + ".mtl"
+            fobj = f"{filename}.obj"
+            fmtl = f"{filename}.mtl"
         else:
             if plot_index == 0:
-                fobj = open(filename + ".obj", "w")
-                fmtl = open(filename + ".mtl", "w")
+                fobj = open(f"{filename}.obj", "w")
+                fmtl = open(f"{filename}.mtl", "w")
                 cc = 1
             else:
                 # read in last vertex
                 linesave = ""
-                for line in fileinput.input(filename + ".obj"):
+                for line in fileinput.input(f"{filename}.obj"):
                     if line[0] == "f":
                         linesave = line
                 p = [m.start() for m in finditer(" ", linesave)]
                 cc = int(linesave[p[len(p) - 1] :]) + 1
-                fobj = open(filename + ".obj", "a")
-                fmtl = open(filename + ".mtl", "a")
+                fobj = open(f"{filename}.obj", "a")
+                fmtl = open(f"{filename}.mtl", "a")
         ftype = [("cind", "uint8"), ("emit", "float")]
         vtype = [("x", "float"), ("y", "float"), ("z", "float")]
         if plot_index == 0:
             fobj.write("# yt OBJ file\n")
             fobj.write("# www.yt-project.org\n")
             fobj.write(
-                "mtllib " + filename + ".mtl\n\n"
+                f"mtllib {filename}.mtl\n\n"
             )  # use this material file for the faces
             fmtl.write("# yt MLT file\n")
             fmtl.write("# www.yt-project.org\n\n")
@@ -2029,11 +2029,9 @@ class YTSurface(YTSelectionContainer3D):
                 v[ax][:] = tmp
         # (1) write all colors per surface to mtl file
         for i in range(0, lut[0].shape[0]):
-            omname = (
-                "material_" + str(i) + "_" + str(plot_index)
-            )  # name of the material
+            omname = f"material_{str(i)}_{str(plot_index)}"  # name of the material
             fmtl.write(
-                "newmtl " + omname + "\n"
+                f"newmtl {omname}\n"
             )  # the specific material (color) for this face
             fmtl.write(f"Ka {0.0:.6f} {0.0:.6f} {0.0:.6f}\n")  # ambient color, keep off
             fmtl.write(
@@ -2053,13 +2051,13 @@ class YTSurface(YTSelectionContainer3D):
         # (3) define faces and materials for each face
         for i in range(0, self.triangles.shape[0]):
             omname = (
-                "material_" + str(f["cind"][i]) + "_" + str(plot_index)
-            )  # which color to use
+                f"material_{str(f['cind'][i])}_{str(plot_index)}"  # which color to use
+            )
             fobj.write(
-                "usemtl " + omname + "\n"
+                f"usemtl {omname}\n"
             )  # which material to use for this face (color)
             fobj.write(
-                "f " + str(cc) + " " + str(cc + 1) + " " + str(cc + 2) + "\n\n"
+                f"f {str(cc)} {str(cc + 1)} {str(cc + 2)}\n\n"
             )  # vertices to color
             cc = cc + 3
         fmtl.close()
@@ -2682,7 +2680,7 @@ class YTOctree(YTSelectionContainer3D):
         ds = self.ds
         if getattr(ds, "tree_filename", None) is None:
             if os.path.exists(ds.parameter_filename):
-                fname = ds.parameter_filename + ".octree"
+                fname = f"{ds.parameter_filename}.octree"
             else:
                 # we don't want to write to disk for in-memory data
                 fname = None

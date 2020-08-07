@@ -51,7 +51,7 @@ def _get_type(vtype, tlen=None):
         else:
             t = np.dtype(t)
     except KeyError:
-        t = eval("np." + vtype)
+        t = eval(f"np.{vtype}")
     return t
 
 
@@ -67,7 +67,7 @@ def _get_struct_vars(line):
     vnames = [ret[-1]] + multiv[1:]
     vnames = [v.strip() for v in vnames]
     for vtype in ret[1:-1]:
-        ctype += " " + vtype
+        ctype += f" {vtype}"
     num = None
     if len(vnames) == 1:
         if "[" in vnames[0]:
@@ -394,12 +394,12 @@ class SDFRead(dict):
             vtype = "str"
 
         try:
-            vval = eval("np." + vtype + f"({vval})")
+            vval = eval(f"np.{vtype}({vval})")
         except AttributeError:
             if vtype not in _types:
                 mylog.warning("Skipping parameter %s", vname)
                 return
-            vval = eval("np." + _types[vtype] + f"({vval})")
+            vval = eval(f"np.{_types[vtype]}({vval})")
 
         self.parameters[vname] = vval
 

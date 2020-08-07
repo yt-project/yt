@@ -345,7 +345,7 @@ class Clump(TreeContainer):
                     if g_field in ds.field_info and g_field not in field_data:
                         field_data[g_field] = self.base[g_field]
                         ftypes[g_field] = "grid"
-                    g_field = ("index", "d" + ax)
+                    g_field = ("index", f"d{ax}")
                     if g_field in ds.field_info and g_field not in field_data:
                         ftypes[g_field] = "grid"
                         field_data[g_field] = self.base[g_field]

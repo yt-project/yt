@@ -33,7 +33,7 @@ class ExtensionImporter:
     def __init__(self, module_choices, wrapper_module):
         self.module_choices = module_choices
         self.wrapper_module = wrapper_module
-        self.prefix = wrapper_module + "."
+        self.prefix = f"{wrapper_module}."
         self.prefix_cutoff = wrapper_module.count(".") + 1
 
     def __eq__(self, other):
@@ -119,6 +119,6 @@ class ExtensionImporter:
         filename = os.path.abspath(tb.tb_frame.f_code.co_filename)
         test_string = os.path.sep + important_module.replace(".", os.path.sep)
         return (
-            test_string + ".py" in filename
-            or test_string + os.path.sep + "__init__.py" in filename
+            f"{test_string}.py" in filename
+            or f"{test_string + os.path.sep}__init__.py" in filename
         )

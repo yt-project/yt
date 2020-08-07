@@ -676,7 +676,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                     data_fields.append(g_field)
                     ftypes[g_field] = "grid"
                     data[g_field] = self[g_field]
-                g_field = ("index", "d" + ax)
+                g_field = ("index", f"d{ax}")
                 if g_field in self.ds.field_info and g_field not in data:
                     data_fields.append(g_field)
                     ftypes[g_field] = "grid"
@@ -2210,11 +2210,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
 
         """
         if units is None:
-            field_cuts = 'obj["' + field + '"] <= ' + str(value)
+            field_cuts = f'obj["{field}"] <= {str(value)}'
         else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") <= ' + str(value)
-            )
+            field_cuts = f'obj["{field}"].in_units("{units}") <= {str(value)}'
         cr = self.cut_region(field_cuts)
         return cr
 
@@ -2254,11 +2252,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
 
         if units is None:
-            field_cuts = 'obj["' + field + '"] > ' + str(value)
+            field_cuts = f'obj["{field}"] > {str(value)}'
         else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") > ' + str(value)
-            )
+            field_cuts = f'obj["{field}"].in_units("{units}") > {str(value)}'
         cr = self.cut_region(field_cuts)
         return cr
 
@@ -2292,11 +2288,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
         if units is None:
-            field_cuts = 'obj["' + field + '"] != ' + str(value)
+            field_cuts = f'obj["{field}"] != {str(value)}'
         else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") != ' + str(value)
-            )
+            field_cuts = f'obj["{field}"].in_units("{units}") != {str(value)}'
         cr = self.cut_region(field_cuts)
         return cr
 
@@ -2329,11 +2323,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
         if units is None:
-            field_cuts = 'obj["' + field + '"] == ' + str(value)
+            field_cuts = f'obj["{field}"] == {str(value)}'
         else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") == ' + str(value)
-            )
+            field_cuts = f'obj["{field}"].in_units("{units}") == {str(value)}'
         cr = self.cut_region(field_cuts)
         return cr
 
@@ -2553,11 +2545,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
         if units is None:
-            field_cuts = 'obj["' + field + '"] >= ' + str(value)
+            field_cuts = f'obj["{field}"] >= {str(value)}'
         else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") >= ' + str(value)
-            )
+            field_cuts = f'obj["{field}"].in_units("{units}") >= {str(value)}'
         cr = self.cut_region(field_cuts)
         return cr
 
@@ -2590,9 +2580,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
         if units is None:
-            field_cuts = '~np.isnan(obj["' + field + '"])'
+            field_cuts = f'~np.isnan(obj["{field}"])'
         else:
-            field_cuts = '~np.isnan(obj["' + field + '"].in_units("' + units + '"))'
+            field_cuts = f'~np.isnan(obj["{field}"].in_units("{units}"))'
         cr = self.cut_region(field_cuts, locals={"np": np})
         return cr
 
@@ -2626,11 +2616,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
         if units is None:
-            field_cuts = 'obj["' + field + '"] < ' + str(value)
+            field_cuts = f'obj["{field}"] < {str(value)}'
         else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") < ' + str(value)
-            )
+            field_cuts = f'obj["{field}"].in_units("{units}") < {str(value)}'
         cr = self.cut_region(field_cuts)
         return cr
 

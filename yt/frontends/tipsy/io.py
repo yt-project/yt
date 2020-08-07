@@ -166,7 +166,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             # we need to open all aux files for chunking to work
             aux_fh = {}
             for afield in self._aux_fields:
-                aux_fh[afield] = open(data_file.filename + "." + afield, "rb")
+                aux_fh[afield] = open(f"{data_file.filename}.{afield}", "rb")
 
             for ptype, field_list in sorted(
                 ptf.items(), key=lambda a: poff.get(a[0], -1)
@@ -369,9 +369,9 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         endian = data_file.ds.endian
         self._aux_pdtypes = {}
         self._aux_fields = []
-        for f in glob.glob(data_file.filename + ".*"):
+        for f in glob.glob(f"{data_file.filename}.*"):
             afield = f.rsplit(".")[-1]
-            filename = data_file.filename + "." + afield
+            filename = f"{data_file.filename}.{afield}"
             if not os.path.exists(filename):
                 continue
             if afield in ["log", "parameter", "kdtree"]:
@@ -380,13 +380,13 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             self._aux_fields.append(afield)
         skip_afields = []
         for afield in self._aux_fields:
-            filename = data_file.filename + "." + afield
+            filename = f"{data_file.filename}.{afield}"
             # We need to do some fairly ugly detection to see what format the
             # auxiliary files are in.  They can be either ascii or binary, and
             # the binary files can be either floats, ints, or doubles.  We're
             # going to use a try-catch cascade to determine the format.
             filesize = os.stat(filename).st_size
-            dtype = np.dtype(endian + "i4")
+            dtype = np.dtype(f"{endian}i4")
             tot_parts_from_file = np.fromfile(filename, dtype, count=1)
             if tot_parts_from_file != tot_parts:
                 with open(filename, "rb") as f:
@@ -400,12 +400,12 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                         raise RuntimeError
                 self._aux_pdtypes[afield] = "ascii"
             elif (filesize - 4) / 8 == tot_parts:
-                self._aux_pdtypes[afield] = np.dtype([("aux", endian + "d")])
+                self._aux_pdtypes[afield] = np.dtype([("aux", f"{endian}d")])
             elif (filesize - 4) / 4 == tot_parts:
                 if afield.startswith("i"):
-                    self._aux_pdtypes[afield] = np.dtype([("aux", endian + "i")])
+                    self._aux_pdtypes[afield] = np.dtype([("aux", f"{endian}i")])
                 else:
-                    self._aux_pdtypes[afield] = np.dtype([("aux", endian + "f")])
+                    self._aux_pdtypes[afield] = np.dtype([("aux", f"{endian}f")])
             else:
                 skip_afields.append(afield)
         for afield in skip_afields:

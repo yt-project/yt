@@ -183,9 +183,9 @@ def test_ramses_rt():
     for specie in species:
         special_fields.extend(
             [
-                ("gas", specie + "_fraction"),
-                ("gas", specie + "_density"),
-                ("gas", specie + "_mass"),
+                ("gas", f"{specie}_fraction"),
+                ("gas", f"{specie}_density"),
+                ("gas", f"{specie}_mass"),
             ]
         )
 

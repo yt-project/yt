@@ -195,9 +195,9 @@ class IOHandlerOrion(IOHandlerBoxlib):
 
     @property
     def particle_filename(self):
-        fn = self.ds.output_dir + "/StarParticles"
+        fn = f"{self.ds.output_dir}/StarParticles"
         if not os.path.exists(fn):
-            fn = self.ds.output_dir + "/SinkParticles"
+            fn = f"{self.ds.output_dir}/SinkParticles"
         self._particle_filename = fn
         return self._particle_filename
 

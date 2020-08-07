@@ -744,7 +744,7 @@ class Camera(ParallelAnalysisInterface):
         )
         label = self.ds._get_field_info(self.fields[0]).get_label()
         if self.log_fields[0]:
-            label = r"$\rm{log}\ $" + label
+            label = f"$\\rm{{log}}\\ ${label}"
         self.transfer_function.vert_cbar(ax=cb.ax, label=label, label_fmt=label_fmt)
 
     def show_mpl(self, im, enhance=True, clear_fig=True):
@@ -2455,7 +2455,7 @@ class StereoSphericalCamera(Camera):
 
     def _render(self, double_check, num_threads, image, sampler, msg):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
-        pbar = get_pbar("Ray casting " + msg, ncells)
+        pbar = get_pbar(f"Ray casting {msg}", ncells)
         total_cells = 0
         if double_check:
             for brick in self.volume.bricks:

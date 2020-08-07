@@ -344,7 +344,7 @@ class LinePlot(PlotContainer):
                 if self._xlabel is not None:
                     x_label = self._xlabel
                 else:
-                    x_label = r"$\rm{Path\ Length" + axes_unit_labels[0] + "}$"
+                    x_label = f"$\\rm{{Path\\ Length{axes_unit_labels[0]}}}$"
 
                 if self._ylabel is not None:
                     y_label = self._ylabel

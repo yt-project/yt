@@ -585,7 +585,7 @@ class Orion2Hierarchy(ChomboHierarchy):
         self.field_list = [("chombo", c) for c in output_fields]
 
         # look for particle fields
-        self.particle_filename = self.index_filename[:-4] + "sink"
+        self.particle_filename = f"{self.index_filename[:-4]}sink"
         if not os.path.exists(self.particle_filename):
             return
         pfield_list = [("io", str(c)) for c in self.io.particle_field_index.keys()]

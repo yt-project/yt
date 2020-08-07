@@ -161,7 +161,7 @@ def strong_scaling(
     axs.set_ylabel("Time (s)")
     axs.legend()
     fig.savefig(fname_plot)
-    print("    " + fname_plot)
+    print(f"    {fname_plot}")
 
 
 def weak_scaling(
@@ -233,4 +233,4 @@ def weak_scaling(
     axs.set_ylabel("Time (s)")
     axs.legend()
     fig.savefig(fname_plot)
-    print("    " + fname_plot)
+    print(f"    {fname_plot}")

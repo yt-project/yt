@@ -2500,7 +2500,7 @@ class TimestampCallback(PlotCallback):
                 # here the time unit will be in brackets on the annotation.
                 # This will most likely be in "code_time".
                 un = self.time_unit.latex_representation()
-                time_unit = r"$\ \ (" + un + r")$"
+                time_unit = f"$\\ \\ ({un})$"
             else:
                 # the 'smallest_appropriate_unit' function will return a
                 # string, so we shouldn't need to format it further.
@@ -2736,7 +2736,7 @@ class ScaleCallback(PlotCallback):
         frameon = self.size_bar_args.pop("frameon", self.draw_inset_box)
         # FontProperties instances use set_<property>() setter functions
         for key, val in self.text_args.items():
-            setter_func = "set_" + key
+            setter_func = f"set_{key}"
             try:
                 getattr(fontproperties, setter_func)(val)
             except AttributeError:

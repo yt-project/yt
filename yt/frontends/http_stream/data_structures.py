@@ -51,7 +51,7 @@ class HTTPStreamDataset(ParticleDataset):
 
         # Here's where we're going to grab the JSON index file
         requests = get_requests()
-        hreq = requests.get(self.base_url + "/yt_index.json")
+        hreq = requests.get(f"{self.base_url}/yt_index.json")
         if hreq.status_code != 200:
             raise RuntimeError
         header = json.loads(hreq.content)
@@ -100,7 +100,7 @@ class HTTPStreamDataset(ParticleDataset):
         requests = get_requests()
         if requests is None:
             return False
-        hreq = requests.get(args[0] + "/yt_index.json")
+        hreq = requests.get(f"{args[0]}/yt_index.json")
         if hreq.status_code == 200:
             return True
         return False

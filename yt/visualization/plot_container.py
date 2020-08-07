@@ -225,7 +225,7 @@ class PlotContainer:
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
-        font_path = matplotlib.get_data_path() + "/fonts/ttf/STIXGeneral.ttf"
+        font_path = f"{matplotlib.get_data_path()}/fonts/ttf/STIXGeneral.ttf"
         self._font_properties = FontProperties(size=fontsize, fname=font_path)
         self._font_color = None
         self._xlabel = None
@@ -355,7 +355,7 @@ class PlotContainer:
         self._data_valid = self._plot_valid = False
 
         for d in "xyz":
-            lim_name = d + "lim"
+            lim_name = f"{d}lim"
             if hasattr(self, lim_name):
                 lim = getattr(self, lim_name)
                 lim = tuple(new_ds.quan(l.value, str(l.units)) for l in lim)
@@ -638,7 +638,7 @@ class PlotContainer:
                     ]
                     unn = self.ds.coordinates.default_unit_label.get(axax, None)
             if unn is not None:
-                axes_unit_labels[i] = r"\ \ \left(" + unn + r"\right)"
+                axes_unit_labels[i] = f"\\ \\ \\left({unn}\\right)"
                 continue
             # Use sympy to factor h out of the unit.  In this context 'un'
             # is a string, so we call the Unit constructor.
@@ -667,15 +667,15 @@ class PlotContainer:
                     un = Unit(un, registry=self.ds.unit_registry)
                     un = un.latex_representation()
                     if hinv:
-                        un = un + r"\,h^{-1}"
+                        un = f"{un}\\,h^{{-1}}"
                     if comoving:
-                        un = un + r"\,(1+z)^{-1}"
+                        un = f"{un}\\,(1+z)^{{-1}}"
                     pp = un[0]
                     if pp in latex_prefixes:
                         symbol_wo_prefix = un[1:]
                         if symbol_wo_prefix in self.ds.unit_registry.prefixable_units:
-                            un = un.replace(pp, "{" + latex_prefixes[pp] + "}", 1)
-                axes_unit_labels[i] = r"\ \ (" + un + ")"
+                            un = un.replace(pp, f"{{{latex_prefixes[pp]}}}", 1)
+                axes_unit_labels[i] = f"\\ \\ ({un})"
         return axes_unit_labels
 
     def hide_colorbar(self, field=None):

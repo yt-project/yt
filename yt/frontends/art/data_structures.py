@@ -185,10 +185,10 @@ class ARTDataset(Dataset):
         """
         base_prefix, base_suffix = filename_pattern["amr"]
         numericstr = file_amr.rsplit("_", 1)[1].replace(base_suffix, "")
-        possibles = glob.glob(os.path.dirname(os.path.abspath(file_amr)) + "/*")
+        possibles = glob.glob(f"{os.path.dirname(os.path.abspath(file_amr))}/*")
         for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
-            if getattr(self, "_file_" + filetype, None) is not None:
+            if getattr(self, f"_file_{filetype}", None) is not None:
                 continue
             match = None
             for possible in possibles:
@@ -197,9 +197,9 @@ class ARTDataset(Dataset):
                         match = possible
             if match is not None:
                 mylog.info("discovered %s:%s", filetype, match)
-                setattr(self, "_file_" + filetype, match)
+                setattr(self, f"_file_{filetype}", match)
             else:
-                setattr(self, "_file_" + filetype, None)
+                setattr(self, f"_file_{filetype}", None)
 
     def __repr__(self):
         return self._file_amr.split("/")[-1]
@@ -323,7 +323,7 @@ class ARTDataset(Dataset):
             ls_nonzero = np.append(lspecies[0], ls_nonzero)
             self.star_type = len(ls_nonzero)
             mylog.info("Discovered %i species of particles", len(ls_nonzero))
-            info_str = "Particle populations: " + "%9i " * len(ls_nonzero)
+            info_str = f"Particle populations: {'%9i ' * len(ls_nonzero)}"
             mylog.info(info_str, *ls_nonzero)
             self._particle_type_counts = dict(zip(self.particle_types_raw, ls_nonzero))
             for k, v in particle_header_vals.items():
@@ -469,10 +469,10 @@ class DarkMatterARTDataset(ARTDataset):
         """
         base_prefix, base_suffix = filename_pattern["particle_data"]
         aexpstr = file_particle.rsplit("s0", 1)[1].replace(base_suffix, "")
-        possibles = glob.glob(os.path.dirname(os.path.abspath(file_particle)) + "/*")
+        possibles = glob.glob(f"{os.path.dirname(os.path.abspath(file_particle))}/*")
         for filetype, (prefix, suffix) in filename_pattern.items():
             # if this attribute is already set skip it
-            if getattr(self, "_file_" + filetype, None) is not None:
+            if getattr(self, f"_file_{filetype}", None) is not None:
                 continue
             match = None
             for possible in possibles:
@@ -481,9 +481,9 @@ class DarkMatterARTDataset(ARTDataset):
                         match = possible
             if match is not None:
                 mylog.info("discovered %s:%s", filetype, match)
-                setattr(self, "_file_" + filetype, match)
+                setattr(self, f"_file_{filetype}", match)
             else:
-                setattr(self, "_file_" + filetype, None)
+                setattr(self, f"_file_{filetype}", None)
 
     def __repr__(self):
         return self._file_particle.split("/")[-1]
@@ -615,7 +615,7 @@ class DarkMatterARTDataset(ARTDataset):
         ls_nonzero = np.append(lspecies[0], ls_nonzero)
         self.star_type = len(ls_nonzero)
         mylog.info("Discovered %i species of particles", len(ls_nonzero))
-        info_str = "Particle populations: " + "%9i " * len(ls_nonzero)
+        info_str = f"Particle populations: {'%9i ' * len(ls_nonzero)}"
         mylog.info(info_str, *ls_nonzero)
         for k, v in particle_header_vals.items():
             if k in self.parameters.keys():
@@ -685,7 +685,7 @@ class DarkMatterARTDataset(ARTDataset):
         with open(f, "rb") as fh:
             try:
                 amr_prefix, amr_suffix = filename_pattern["amr"]
-                possibles = glob.glob(os.path.dirname(os.path.abspath(f)) + "/*")
+                possibles = glob.glob(f"{os.path.dirname(os.path.abspath(f))}/*")
                 for possible in possibles:
                     if possible.endswith(amr_suffix):
                         if os.path.basename(possible).startswith(amr_prefix):

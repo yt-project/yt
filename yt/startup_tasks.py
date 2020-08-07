@@ -110,7 +110,7 @@ parser.add_argument(
 parser.add_argument(
     "--paste-detailed",
     action=SetExceptionHandling,
-    help="Paste a detailed traceback with local variables to " + "paste.yt-project.org",
+    help="Paste a detailed traceback with local variables to paste.yt-project.org",
     nargs=0,
 )
 parser.add_argument(
@@ -162,7 +162,7 @@ else:
 if parallel_capable:
     pass
 elif (
-    exe_name in ["mpi4py", "embed_enzo", "python" + sys.version[:3] + "-mpi"]
+    exe_name in ["mpi4py", "embed_enzo", f"python{sys.version[:3]}-mpi"]
     or "_parallel" in dir(sys)
     or any(["ipengine" in arg for arg in sys.argv])
     or any(["cluster-id" in arg for arg in sys.argv])

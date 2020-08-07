@@ -68,7 +68,7 @@ def read_attrs(f, attrs, endian="="):
         v = [vals.pop(0) for i in range(n)]
         s2 = vals.pop(0)
         if s1 != s2:
-            size = struct.calcsize(endian + "I" + "".join(n * [t]) + "I")
+            size = struct.calcsize(f"{endian}I{''.join(n * [t])}I")
             raise IOError(
                 "An error occured while reading a Fortran record. "
                 "Got a different size at the beginning and at the "
@@ -240,7 +240,7 @@ def skip(f, n=1, endian="="):
     >>> skip(f, 3)
     """
     skipped = np.zeros(n, dtype=np.int32)
-    fmt = endian + "I"
+    fmt = f"{endian}I"
     fmt_size = struct.calcsize(fmt)
     for i in range(n):
         size = f.read(fmt_size)
@@ -314,7 +314,7 @@ def read_record(f, rspec, endian="="):
     >>> rv = read_record(f, header)
     """
     vv = {}
-    net_format = endian + "I"
+    net_format = f"{endian}I"
     for _a, n, t in rspec:
         t = t if len(t) == 1 else t[-1]
         net_format += f"{n}{t}"

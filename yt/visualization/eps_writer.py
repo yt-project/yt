@@ -45,7 +45,7 @@ def pyxize_label(string):
     else:
         result = string
     result = result.replace("$", "")
-    result = r"$" + result + r"$"
+    result = f"${result}$"
     return result
 
 
@@ -877,7 +877,7 @@ class DualEPS:
                     units = _unit.latex_representation()
                     # PyX does not support \frac because it's based on TeX.
                     units = pyxize_label(units)
-                    _zlabel += r" (" + units + r")"
+                    _zlabel += f" ({units})"
                 except NotImplementedError:
                     print("Colorbar label not available")
                     _zlabel = ""
@@ -1149,9 +1149,9 @@ class DualEPS:
         elif format == "pdf":
             self.canvas.writePDFfile(filename)
         elif format == "png":
-            self.canvas.writeGSfile(filename + ".png", "png16m", resolution=resolution)
+            self.canvas.writeGSfile(f"{filename}.png", "png16m", resolution=resolution)
         elif format == "jpg":
-            self.canvas.writeGSfile(filename + ".jpeg", "jpeg", resolution=resolution)
+            self.canvas.writeGSfile(f"{filename}.jpeg", "jpeg", resolution=resolution)
         else:
             raise RuntimeError(f"format {format} unknown.")
 

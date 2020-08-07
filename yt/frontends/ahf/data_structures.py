@@ -15,7 +15,7 @@ from .fields import AHFHalosFieldInfo
 class AHFHalosFile(HaloCatalogFile):
     def __init__(self, ds, io, filename, file_id, range=None):
         root, _ = os.path.splitext(filename)
-        candidates = glob.glob(root + "*.AHF_halos")
+        candidates = glob.glob(f"{root}*.AHF_halos")
         if len(candidates) == 1:
             filename = candidates[0]
         else:
@@ -65,7 +65,7 @@ class AHFHalosDataset(Dataset):
         hubble_constant=1.0,
     ):
         root, _ = os.path.splitext(filename)
-        self.log_filename = root + ".log"
+        self.log_filename = f"{root}.log"
         self.hubble_constant = hubble_constant
 
         self.n_ref = n_ref

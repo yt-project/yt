@@ -55,7 +55,7 @@ class FLASHHierarchy(GridIndex):
         ]
         if "/particle names" in self._particle_handle:
             self.field_list += [
-                ("io", "particle_" + s[0].decode("ascii", "ignore").strip())
+                ("io", f"particle_{s[0].decode('ascii', 'ignore').strip()}")
                 for s in self._particle_handle["/particle names"][:]
             ]
 

@@ -410,12 +410,12 @@ class ImageArray(YTArray):
         """
         if png:
             if not filename.endswith(".png"):
-                filename = filename + ".png"
+                filename = f"{filename}.png"
             if len(self.shape) > 2:
                 self.write_png(filename)
             else:
                 self.write_image(filename)
         if hdf5:
             if not filename.endswith(".h5"):
-                filename = filename + ".h5"
+                filename = f"{filename}.h5"
             self.write_hdf5(filename, dataset_name)

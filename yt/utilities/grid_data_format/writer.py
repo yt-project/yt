@@ -144,7 +144,7 @@ def _write_fields_to_gdf(
         try:
             sg = g.create_group(field_name)
         except ValueError:
-            print("Error - File already contains field called " + field_name)
+            print(f"Error - File already contains field called {field_name}")
             sys.exit(1)
 
         # grab the display name and units from the field info container.
@@ -328,7 +328,7 @@ def _create_new_gdf(
 
     g = f.create_group("dataset_units")
     for u in ["length", "time", "mass", "velocity", "magnetic"]:
-        unit_name = u + "_unit"
+        unit_name = f"{u}_unit"
         if unit_name in dataset_units:
             value, units = dataset_units[unit_name]
         else:

@@ -37,7 +37,7 @@ def migrate_config():
     print(f"Writing a new config file to: {CURRENT_CONFIG_FILE}")
     write_config()
     print(f"Backing up the old config file: {_OLD_CONFIG_FILE}.bak")
-    os.rename(_OLD_CONFIG_FILE, _OLD_CONFIG_FILE + ".bak")
+    os.rename(_OLD_CONFIG_FILE, f"{_OLD_CONFIG_FILE}.bak")
 
     old_config_dir = os.path.dirname(_OLD_CONFIG_FILE)
     try:
@@ -50,7 +50,7 @@ def migrate_config():
             )
             print(f"Backing up the old plugin file: {_OLD_CONFIG_FILE}.bak")
             plugin_file = os.path.join(old_config_dir, plugin_file)
-            os.rename(plugin_file, plugin_file + ".bak")
+            os.rename(plugin_file, f"{plugin_file}.bak")
     except configparser.NoOptionError:
         pass
 

@@ -24,7 +24,7 @@ def _get_ion_mass_frac(ion, ftype, itab, data):
 
     # mass fraction for the element
     # --------------------------------------------------------
-    m_frac = data[ftype, symbol + "_fraction"]
+    m_frac = data[ftype, f"{symbol}_fraction"]
 
     # get nH and T for lookup
     # --------------------------------------------------------
@@ -172,10 +172,10 @@ class OWLSFieldInfo(SPHFieldInfo):
                     symbol = ion[0:1].capitalize()
                     roman = int(ion[1:])
 
-                if (ptype, symbol + "_fraction") not in self.field_aliases:
+                if (ptype, f"{symbol}_fraction") not in self.field_aliases:
                     continue
 
-                pstr = "_p" + str(roman - 1)
+                pstr = f"_p{str(roman - 1)}"
                 yt_ion = symbol + pstr
 
                 # add particle field
@@ -194,7 +194,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
             add_species_field_by_density(self, ptype, "H_p1")
             for sfx in ["mass", "density", "number_density"]:
-                fname = "H_p1_" + sfx
+                fname = f"H_p1_{sfx}"
                 self.alias(("gas", fname), (ptype, fname))
 
             def _el_number_density(field, data):
@@ -223,10 +223,10 @@ class OWLSFieldInfo(SPHFieldInfo):
                     symbol = ion[0:1].capitalize()
                     roman = int(ion[1:])
 
-                if (ptype, symbol + "_fraction") not in self.field_aliases:
+                if (ptype, f"{symbol}_fraction") not in self.field_aliases:
                     continue
 
-                pstr = "_p" + str(roman - 1)
+                pstr = f"_p{str(roman - 1)}"
                 yt_ion = symbol + pstr
 
                 for sfx in smoothed_suffixes:
@@ -249,16 +249,16 @@ class OWLSFieldInfo(SPHFieldInfo):
                 symbol = ion[0:1].capitalize()
                 roman = int(ion[1:])
 
-            if (ptype, symbol + "_fraction") not in self.field_aliases:
+            if (ptype, f"{symbol}_fraction") not in self.field_aliases:
                 continue
 
-            pstr = "_p" + str(roman - 1)
+            pstr = f"_p{str(roman - 1)}"
             yt_ion = symbol + pstr
             ftype = ptype
 
             # add ion density and mass field for this species
             # ------------------------------------------------
-            fname = yt_ion + "_density"
+            fname = f"{yt_ion}_density"
             dens_func = self._create_ion_density_func(ftype, ion)
             self.add_field(
                 (ftype, fname),
@@ -268,7 +268,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             )
             self._show_field_errors.append((ftype, fname))
 
-            fname = yt_ion + "_mass"
+            fname = f"{yt_ion}_mass"
             mass_func = self._create_ion_mass_func(ftype, ion)
             self.add_field(
                 (ftype, fname),
@@ -290,7 +290,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             return _func
 
         ion_path = self._get_owls_ion_data_dir()
-        fname = os.path.join(ion_path, ion + ".hdf5")
+        fname = os.path.join(ion_path, f"{ion}.hdf5")
         itab = oit.IonTableOWLS(fname)
         return get_owls_ion_density_field(ion, ftype, itab)
 
@@ -306,7 +306,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             return _func
 
         ion_path = self._get_owls_ion_data_dir()
-        fname = os.path.join(ion_path, ion + ".hdf5")
+        fname = os.path.join(ion_path, f"{ion}.hdf5")
         itab = oit.IonTableOWLS(fname)
         return get_owls_ion_mass_field(ion, ftype, itab)
 
@@ -344,10 +344,10 @@ class OWLSFieldInfo(SPHFieldInfo):
 
         if not os.path.exists(owls_ion_path):
             mylog.info(txt, data_url, data_dir)
-            fname = data_dir + "/" + data_file
+            fname = f"{data_dir}/{data_file}"
             download_file(os.path.join(data_url, data_file), fname)
 
-            cmnd = "cd " + data_dir + "; " + "tar xf " + data_file
+            cmnd = f"cd {data_dir}; tar xf {data_file}"
             os.system(cmnd)
 
         if not os.path.exists(owls_ion_path):

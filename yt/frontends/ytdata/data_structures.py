@@ -74,7 +74,7 @@ class SavedDataset(Dataset):
                 "time",
                 "velocity",
             ]:
-                cu = "code_" + dim
+                cu = f"code_{dim}"
                 if cu not in self.unit_registry:
                     self.unit_registry.add(cu, 1.0, getattr(dimensions, dim))
             if "code_magnetic" not in self.unit_registry:

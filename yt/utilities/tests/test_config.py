@@ -12,7 +12,7 @@ from yt.config import _OLD_CONFIG_FILE, CONFIG_DIR, CURRENT_CONFIG_FILE, YTConfi
 from yt.fields.tests.test_fields_plugins import TEST_PLUGIN_FILE
 
 _TEST_PLUGIN = "_test_plugin.py"
-_DUMMY_CFG = ["[yt]", "loglevel = 49", "pluginfilename = " + _TEST_PLUGIN]
+_DUMMY_CFG = ["[yt]", "loglevel = 49", f"pluginfilename = {_TEST_PLUGIN}"]
 
 
 @contextlib.contextmanager
@@ -35,7 +35,7 @@ class SysExitException(Exception):
 def setUpModule():
     for cfgfile in (CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE):
         if os.path.exists(cfgfile):
-            os.rename(cfgfile, cfgfile + ".bak_test")
+            os.rename(cfgfile, f"{cfgfile}.bak_test")
 
             if cfgfile == CURRENT_CONFIG_FILE:
                 yt.utilities.configure.CONFIG = YTConfigParser()
@@ -45,8 +45,8 @@ def setUpModule():
 
 def tearDownModule():
     for cfgfile in (CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE):
-        if os.path.exists(cfgfile + ".bak_test"):
-            os.rename(cfgfile + ".bak_test", cfgfile)
+        if os.path.exists(f"{cfgfile}.bak_test"):
+            os.rename(f"{cfgfile}.bak_test", cfgfile)
 
 
 class TestYTConfig(unittest.TestCase):
@@ -132,7 +132,7 @@ class TestYTConfigMigration(TestYTConfig):
         for base_prefix in ("", CONFIG_DIR, old_config_dir):
             potential_plugin_file = os.path.join(base_prefix, my_plugin_name)
             if os.path.isfile(potential_plugin_file):
-                os.rename(potential_plugin_file, potential_plugin_file + ".bak_test")
+                os.rename(potential_plugin_file, f"{potential_plugin_file}.bak_test")
 
         plugin_file = os.path.join(old_config_dir, my_plugin_name)
         with open(plugin_file, "w") as fh:
@@ -141,8 +141,8 @@ class TestYTConfigMigration(TestYTConfig):
     def tearDown(self):
         if os.path.exists(CURRENT_CONFIG_FILE):
             os.remove(CURRENT_CONFIG_FILE)
-        if os.path.exists(_OLD_CONFIG_FILE + ".bak"):
-            os.remove(_OLD_CONFIG_FILE + ".bak")
+        if os.path.exists(f"{_OLD_CONFIG_FILE}.bak"):
+            os.remove(f"{_OLD_CONFIG_FILE}.bak")
 
         my_plugin_name = _TEST_PLUGIN
         plugin_file = os.path.join(CONFIG_DIR, my_plugin_name)
@@ -152,8 +152,8 @@ class TestYTConfigMigration(TestYTConfig):
         old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
         for base_prefix in ("", CONFIG_DIR, old_config_dir):
             potential_plugin_file = os.path.join(base_prefix, my_plugin_name)
-            if os.path.isfile(potential_plugin_file + ".bak_test"):
-                os.rename(potential_plugin_file + ".bak_test", potential_plugin_file)
+            if os.path.isfile(f"{potential_plugin_file}.bak_test"):
+                os.rename(f"{potential_plugin_file}.bak_test", potential_plugin_file)
 
     def testConfigMigration(self):
         old_config_dir = os.path.dirname(_OLD_CONFIG_FILE)
@@ -168,10 +168,10 @@ class TestYTConfigMigration(TestYTConfig):
 
         self.assertTrue(os.path.exists(CURRENT_CONFIG_FILE))
         self.assertFalse(os.path.exists(_OLD_CONFIG_FILE))
-        self.assertTrue(os.path.exists(_OLD_CONFIG_FILE + ".bak"))
+        self.assertTrue(os.path.exists(f"{_OLD_CONFIG_FILE}.bak"))
         self.assertTrue(os.path.exists(os.path.join(new_config_dir, _TEST_PLUGIN)))
         self.assertTrue(
-            os.path.exists(os.path.join(old_config_dir, _TEST_PLUGIN + ".bak"))
+            os.path.exists(os.path.join(old_config_dir, f"{_TEST_PLUGIN}.bak"))
         )
 
         with open(CURRENT_CONFIG_FILE, "r") as fh:

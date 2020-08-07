@@ -179,7 +179,7 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
         i = data[prefix + "xyz"[ds.lon_axis]].d.astype("int") - 1
         j = data[prefix + "xyz"[ds.lat_axis]].d.astype("int") - 1
         new_mask = mask[i, j]
-        ret = np.zeros(data[prefix + "x"].shape)
+        ret = np.zeros(data[f"{prefix}x"].shape)
         ret[new_mask] = 1.0
         return ret
 

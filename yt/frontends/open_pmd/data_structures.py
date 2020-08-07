@@ -98,8 +98,8 @@ class OpenPMDHierarchy(GridIndex):
                     spec = list(f[bp + pp].keys())[0]
                 else:
                     spec = ptype
-                axis = list(f[bp + pp + "/" + spec + "/position"].keys())[0]
-                pos = f[bp + pp + "/" + spec + "/position/" + axis]
+                axis = list(f[f"{bp + pp}/{spec}/position"].keys())[0]
+                pos = f[f"{bp + pp}/{spec}/position/{axis}"]
                 if is_const_component(pos):
                     result[ptype] = pos.attrs["shape"]
                 else:
@@ -130,7 +130,7 @@ class OpenPMDHierarchy(GridIndex):
                 try:
                     mesh = meshes[mname]
                     for axis in mesh.keys():
-                        mesh_fields.append(mname.replace("_", "-") + "_" + axis)
+                        mesh_fields.append(f"{mname.replace('_', '-')}_{axis}")
                 except AttributeError:
                     # This is a h5.Dataset (i.e. no axes)
                     mesh_fields.append(mname.replace("_", "-"))
@@ -148,7 +148,7 @@ class OpenPMDHierarchy(GridIndex):
                     if is_const_component(record):
                         # Record itself (e.g. particle_mass) is constant
                         particle_fields.append(
-                            pname.replace("_", "-") + "_" + recname.replace("_", "-")
+                            f"{pname.replace('_', '-')}_{recname.replace('_', '-')}"
                         )
                     elif "particlePatches" not in recname:
                         try:
@@ -168,9 +168,7 @@ class OpenPMDHierarchy(GridIndex):
                         except AttributeError:
                             # Record is a dataset, does not have axes (e.g. weighting)
                             particle_fields.append(
-                                pname.replace("_", "-")
-                                + "_"
-                                + recname.replace("_", "-")
+                                f"{pname.replace('_', '-')}_{recname.replace('_', '-')}"
                             )
                             pass
                     else:
@@ -181,7 +179,7 @@ class OpenPMDHierarchy(GridIndex):
                     [
                         (
                             str(field).split("_")[0],
-                            ("particle_" + "_".join(str(field).split("_")[1:])),
+                            f"particle_{'_'.join(str(field).split('_')[1:])}",
                         )
                         for field in particle_fields
                     ]
@@ -190,7 +188,7 @@ class OpenPMDHierarchy(GridIndex):
                 # Only one particle species, fall back to "io"
                 self.field_list.extend(
                     [
-                        ("io", ("particle_" + "_".join(str(field).split("_")[1:])))
+                        ("io", (f"particle_{'_'.join(str(field).split('_')[1:])}"))
                         for field in particle_fields
                     ]
                 )
@@ -234,15 +232,15 @@ class OpenPMDHierarchy(GridIndex):
                     for (patch, size) in enumerate(
                         species["/particlePatches/numParticles"]
                     ):
-                        self.numparts[pname + "#" + str(patch)] = size
+                        self.numparts[f"{pname}#{str(patch)}"] = size
                 else:
                     axis = list(species["/position"].keys())[0]
-                    if is_const_component(species["/position/" + axis]):
-                        self.numparts[pname] = species["/position/" + axis].attrs[
+                    if is_const_component(species[f"/position/{axis}"]):
+                        self.numparts[pname] = species[f"/position/{axis}"].attrs[
                             "shape"
                         ]
                     else:
-                        self.numparts[pname] = species["/position/" + axis].len()
+                        self.numparts[pname] = species[f"/position/{axis}"].len()
         except (KeyError, TypeError, AttributeError):
             pass
 
@@ -352,22 +350,22 @@ class OpenPMDHierarchy(GridIndex):
             if "#" in species:
                 # This is a particlePatch
                 spec = species.split("#")
-                patch = f[bp + pp + "/" + spec[0] + "/particlePatches"]
+                patch = f[f"{bp + pp}/{spec[0]}/particlePatches"]
                 domain_dimension = np.ones(3, dtype=np.int32)
                 for (ind, axis) in enumerate(list(patch["extent"].keys())):
-                    domain_dimension[ind] = patch["extent/" + axis][()][int(spec[1])]
+                    domain_dimension[ind] = patch[f"extent/{axis}"][()][int(spec[1])]
                 num_grids = int(np.ceil(count * self.vpg ** -1))
                 gle = []
                 for axis in patch["offset"].keys():
                     gle.append(
-                        get_component(patch, "offset/" + axis, int(spec[1]), 1)[0]
+                        get_component(patch, f"offset/{axis}", int(spec[1]), 1)[0]
                     )
                 gle = np.asarray(gle)
                 gle = np.append(gle, np.zeros(3 - len(gle)))
                 gre = []
                 for axis in patch["extent"].keys():
                     gre.append(
-                        get_component(patch, "extent/" + axis, int(spec[1]), 1)[0]
+                        get_component(patch, f"extent/{axis}", int(spec[1]), 1)[0]
                     )
                 gre = np.asarray(gre)
                 gre = np.append(gre, np.ones(3 - len(gre)))
@@ -489,7 +487,7 @@ class OpenPMDDataset(Dataset):
             mylog.info("Found %s iterations in file", len(iterations))
         elif "fileBased" in encoding:
             itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
-            regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
+            regex = f"^{itformat.replace('%T', '[0-9]+')}$"
             if path == "":
                 mylog.warning(
                     "For file based iterations, please use absolute file paths!"

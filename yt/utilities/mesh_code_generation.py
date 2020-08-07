@@ -7,7 +7,7 @@ fun_signature = """cdef void %s(double* fx,
                        double* vertices,
                        double* phys_x) nogil"""
 
-fun_dec_template = fun_signature + " \n"
+fun_dec_template = f"{fun_signature} \n"
 fun_def_template = (
     """@cython.boundscheck(False)
 @cython.wraparound(False)
@@ -23,7 +23,7 @@ jac_signature_3D = """cdef void %s(double* rcol,
                        double* vertices,
                        double* phys_x) nogil"""
 
-jac_dec_template_3D = jac_signature_3D + " \n"
+jac_dec_template_3D = f"{jac_signature_3D} \n"
 jac_def_template_3D = (
     """@cython.boundscheck(False)
 @cython.wraparound(False)
@@ -37,7 +37,7 @@ jac_signature_2D = """cdef void %s(double* rcol,
                        double* x,
                        double* vertices,
                        double* phys_x) nogil"""
-jac_dec_template_2D = jac_signature_2D + " \n"
+jac_dec_template_2D = f"{jac_signature_2D} \n"
 jac_def_template_2D = (
     """@cython.boundscheck(False)
 @cython.wraparound(False)
@@ -122,15 +122,15 @@ class MeshCodeGenerator:
 
         function_code = self.function_header
         for i in range(self.num_dim):
-            function_code += "\t" + ccode(self.f[i, 0], self.fx[i, 0]) + "\n"
+            function_code += f"	{ccode(self.f[i, 0], self.fx[i, 0])}\n"
 
         jacobian_code = self.jacobian_header
         for i in range(self.num_dim):
-            jacobian_code += "\t" + ccode(self.J[i, 0], self.rcol[i, 0]) + "\n"
-            jacobian_code += "\t" + ccode(self.J[i, 1], self.scol[i, 0]) + "\n"
+            jacobian_code += f"	{ccode(self.J[i, 0], self.rcol[i, 0])}\n"
+            jacobian_code += f"	{ccode(self.J[i, 1], self.scol[i, 0])}\n"
             if self.num_dim == 2:
                 continue
-            jacobian_code += "\t" + ccode(self.J[i, 2], self.tcol[i, 0]) + "\n"
+            jacobian_code += f"	{ccode(self.J[i, 2], self.tcol[i, 0])}\n"
 
         return function_code, jacobian_code
 

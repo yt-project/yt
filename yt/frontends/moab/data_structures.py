@@ -154,7 +154,7 @@ class PyneMoabHex8Dataset(Dataset):
         unit_system="cgs",
     ):
         self.fluid_types += ("pyne",)
-        filename = "pyne_mesh_" + str(id(pyne_mesh))
+        filename = f"pyne_mesh_{str(id(pyne_mesh))}"
         self.pyne_mesh = pyne_mesh
         Dataset.__init__(
             self,

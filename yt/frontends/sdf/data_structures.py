@@ -78,7 +78,7 @@ class SDFDataset(ParticleDataset):
             prefix += "midx_"
         if filename.startswith("http"):
             prefix += "http_"
-        dataset_type = prefix + "sdf_particles"
+        dataset_type = f"{prefix}sdf_particles"
         super(SDFDataset, self).__init__(
             filename,
             dataset_type=dataset_type,

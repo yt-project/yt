@@ -25,7 +25,7 @@ def setUpModule():
     for base_prefix in ("", CONFIG_DIR, old_config_dir):
         potential_plugin_file = os.path.join(base_prefix, my_plugin_name)
         if os.path.isfile(potential_plugin_file):
-            os.rename(potential_plugin_file, potential_plugin_file + ".bak_test")
+            os.rename(potential_plugin_file, f"{potential_plugin_file}.bak_test")
 
     plugin_file = os.path.join(CONFIG_DIR, my_plugin_name)
     with open(plugin_file, "w") as fh:
@@ -51,7 +51,7 @@ class TestPluginFile(unittest.TestCase):
         for base_prefix in ("", CONFIG_DIR, old_config_dir):
             potential_plugin_file = os.path.join(base_prefix, my_plugin_name)
             if os.path.isfile(potential_plugin_file):
-                os.rename(potential_plugin_file, potential_plugin_file + ".bak_test")
+                os.rename(potential_plugin_file, f"{potential_plugin_file}.bak_test")
 
         plugin_file = os.path.join(CONFIG_DIR, my_plugin_name)
         with open(plugin_file, "w") as fh:
@@ -66,8 +66,8 @@ class TestPluginFile(unittest.TestCase):
         old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
         for base_prefix in ("", CONFIG_DIR, old_config_dir):
             potential_plugin_file = os.path.join(base_prefix, my_plugin_name)
-            if os.path.isfile(potential_plugin_file + ".bak_test"):
-                os.rename(potential_plugin_file + ".bak_test", potential_plugin_file)
+            if os.path.isfile(f"{potential_plugin_file}.bak_test"):
+                os.rename(f"{potential_plugin_file}.bak_test", potential_plugin_file)
         del yt.myfunc
 
     def testCustomField(self):

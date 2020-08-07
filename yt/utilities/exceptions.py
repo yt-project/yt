@@ -258,7 +258,7 @@ class YTNoFilenamesMatchPattern(YTException):
         self.pattern = pattern
 
     def __str__(self):
-        return "No filenames were found to match the pattern: " + f"'{self.pattern}'"
+        return f"No filenames were found to match the pattern: '{self.pattern}'"
 
 
 class YTNoOldAnswer(YTException):
@@ -266,7 +266,7 @@ class YTNoOldAnswer(YTException):
         self.path = path
 
     def __str__(self):
-        return "There is no old answer available.\n" + str(self.path)
+        return f"There is no old answer available.\n{str(self.path)}"
 
 
 class YTNoAnswerNameSpecified(YTException):
@@ -595,7 +595,7 @@ class YTInvalidUnitEquivalence(Exception):
 
 class YTPlotCallbackError(Exception):
     def __init__(self, callback, error):
-        self.callback = "annotate_" + callback
+        self.callback = f"annotate_{callback}"
         self.error = error
 
     def __str__(self):
@@ -737,9 +737,10 @@ class YTProfileDataShape(YTException):
 
     def __str__(self):
         return (
-            "Profile fields must have same shape: %s has "
-            + "shape %s and %s has shape %s."
-        ) % (self.field1, self.shape1, self.field2, self.shape2)
+            "Profile fields must have same shape: "
+            f"{self.field1} has shape {self.shape1} and "
+            f"{self.field2} has shape {self.shape2}."
+        )
 
 
 class YTBooleanObjectError(YTException):

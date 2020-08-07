@@ -20,14 +20,14 @@ def get_header(istream):
     istream.seek(0)
     h = {}
 
-    fmt = ALIGN + "i"
+    fmt = f"{ALIGN}i"
     [h["datfile_version"]] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
 
     if h["datfile_version"] < 3:
         raise IOError("Unsupported AMRVAC .dat file version: %d", h["datfile_version"])
 
     # Read scalar data at beginning of file
-    fmt = ALIGN + 9 * "i" + "d"
+    fmt = f"{ALIGN + 9 * 'i'}d"
     hdr = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
     [
         h["offset_tree"],
@@ -65,7 +65,7 @@ def get_header(istream):
         h["geometry"] = b"".join(hdr).strip().decode()
 
         # Read staggered flag
-        fmt = ALIGN + "i"  # Fortran logical is 4 byte int
+        fmt = f"{ALIGN}i"  # Fortran logical is 4 byte int
         h["staggered"] = bool(struct.unpack(fmt, istream.read(struct.calcsize(fmt)))[0])
 
     # Read w_names
@@ -82,7 +82,7 @@ def get_header(istream):
     h["physics_type"] = b"".join(hdr).strip().decode()
 
     # Read number of physics-defined parameters
-    fmt = ALIGN + "i"
+    fmt = f"{ALIGN}i"
     [n_pars] = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
 
     # First physics-parameter values are given, then their names

@@ -23,7 +23,7 @@ def add_coloring_to_emit_ansi(fn):
             color = "\x1b[35m"  # pink
         else:
             color = "\x1b[0m"  # normal
-        ln = color + args[0].levelname + "\x1b[0m"
+        ln = f"{color + args[0].levelname}[0m"
         args[0].levelname = ln
         return fn(*args)
 
