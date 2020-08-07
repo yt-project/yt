@@ -37,13 +37,7 @@ class AdaptaHOPParticleIndex(ParticleIndex):
             ]
         else:
             self.data_files = [
-                cls(
-                    self.dataset,
-                    self.io,
-                    self.dataset.parameter_filename,
-                    0,
-                    None,
-                )
+                cls(self.dataset, self.io, self.dataset.parameter_filename, 0, None,)
             ]
         self.total_particles = sum(
             sum(d.total_particles.values()) for d in self.data_files
