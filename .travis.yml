@@ -96,7 +96,7 @@ jobs:
     - stage: Lint
       name: "flynt"
       python: 3.6
-      script: flynt --fail-on-change -n yt/
+      script: flynt --fail-on-change --dry-run yt/
 
     - stage: tests
       name: "Python: 3.6 Minimal Dependency Unit Tests"
