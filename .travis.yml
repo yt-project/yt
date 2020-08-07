@@ -93,6 +93,11 @@ jobs:
       python: 3.6
       script: black --check yt/
 
+    - stage: Lint
+      name: "flynt"
+      python: 3.6
+      script: flynt --fail-on-change -n
+
     - stage: tests
       name: "Python: 3.6 Minimal Dependency Unit Tests"
       python: 3.6
