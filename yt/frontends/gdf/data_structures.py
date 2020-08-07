@@ -221,8 +221,8 @@ class GDFDataset(Dataset):
                 if unit_name in h5f["/field_types"]:
                     if unit_name in self.field_units:
                         mylog.warning(
-                            "'field_units' was overridden by 'dataset_units/%s'"
-                            % (unit_name)
+                            "'field_units' was overridden by 'dataset_units/%s'",
+                            unit_name,
                         )
                     self.field_units[unit_name] = str(unit)
         else:

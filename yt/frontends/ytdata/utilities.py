@@ -65,7 +65,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
 
     """
 
-    mylog.info("Saving field data to yt dataset: %s." % filename)
+    mylog.info("Saving field data to yt dataset: %s.", filename)
 
     if extra_attrs is None:
         extra_attrs = {}

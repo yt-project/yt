@@ -87,7 +87,7 @@ class PerformanceCounters:
                     i,
                     self.counters[i],
                 )
-        mylog.info("\n" + line)
+        mylog.info("\n%s", line)
 
     def exit(self):
         if self._on:

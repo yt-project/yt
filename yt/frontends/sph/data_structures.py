@@ -93,7 +93,7 @@ class SPHParticleIndex(ParticleIndex):
 
         if fname is not None:
             if os.path.exists(fname):
-                mylog.info("Loading KDTree from %s" % os.path.basename(fname))
+                mylog.info("Loading KDTree from %s", os.path.basename(fname))
                 kdtree = PyKDTree.from_file(fname)
                 if kdtree.data_version != self.ds._file_hash:
                     mylog.info("Detected hash mismatch, regenerating KDTree")
@@ -110,7 +110,7 @@ class SPHParticleIndex(ParticleIndex):
             self._kdtree = None
             return
         positions = np.concatenate(positions)
-        mylog.info("Allocating KDTree for %s particles" % positions.shape[0])
+        mylog.info("Allocating KDTree for %s particles", positions.shape[0])
         self._kdtree = PyKDTree(
             positions.astype("float64"),
             left_edge=self.ds.domain_left_edge,

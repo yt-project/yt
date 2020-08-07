@@ -201,7 +201,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
-                    "High order elements not yet supported, " + "dropping to 1st order."
+                    "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
@@ -257,7 +257,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             if field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
-                    "High order elements not yet supported, " + "dropping to 1st order."
+                    "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
@@ -396,8 +396,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             weight_field=chunk[weight].in_units(wounits),
                         )
                     mylog.info(
-                        "Making a fixed resolution buffer of (%s) %d by %d"
-                        % (weight, size[0], size[1])
+                        "Making a fixed resolution buffer of (%s) %d by %d",
+                        weight,
+                        size[0],
+                        size[1],
                     )
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([weight], chunk)

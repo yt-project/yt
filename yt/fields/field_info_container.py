@@ -213,7 +213,7 @@ class FieldInfoContainer(dict):
                 and units != 1.0
             ):
                 mylog.warning(
-                    "Cannot interpret units: %s * %s, " + "setting to dimensionless.",
+                    "Cannot interpret units: %s * %s, setting to dimensionless.",
                     units,
                     args[0],
                 )

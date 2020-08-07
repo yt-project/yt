@@ -262,7 +262,7 @@ class GAMERDataset(Dataset):
             if len(self.units_override) == 0:
                 mylog.warning(
                     "Cannot determine code units ==> "
-                    + "Use units_override to specify the units"
+                    "Use units_override to specify the units"
                 )
 
             for unit, value, cgs in [

@@ -399,8 +399,8 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "Metallicity",
                     ]
             mylog.debug(
-                "No fields specified by user; automatically setting fields array to %s"
-                % str(fields)
+                "No fields specified by user; automatically setting fields array to %s",
+                fields,
             )
 
         # Allow some wiggle room for users to add too many variables
@@ -409,7 +409,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             fields.append("var" + str(len(fields)))
             count_extra += 1
         if count_extra > 0:
-            mylog.debug("Detected %s extra fluid fields." % count_extra)
+            mylog.debug("Detected %s extra fluid fields.", count_extra)
         cls.field_list = [(cls.ftype, e) for e in fields]
 
         cls.set_detected_fields(ds, fields)

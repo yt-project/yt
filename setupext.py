@@ -113,13 +113,13 @@ def check_for_openmp():
             else:
                 log.warn(
                     "Unexpected number of lines from output of test "
-                    "OpenMP program (output was {0})".format(output)
+                    "OpenMP program (output was %s)",
+                    output,
                 )
                 using_openmp = False
         else:
             log.warn(
-                "Unexpected output from test OpenMP "
-                "program (output was {0})".format(output)
+                "Unexpected output from test OpenMP program (output was %s)", output
             )
             using_openmp = False
 
@@ -240,7 +240,8 @@ def read_embree_location():
     except OSError:
         log.warn(
             "read_embree_location() could not find your C compiler. "
-            "Attempted to use '%s'. " % compiler
+            "Attempted to use '%s'.",
+            compiler,
         )
         return False
 

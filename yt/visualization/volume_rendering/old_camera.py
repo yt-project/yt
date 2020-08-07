@@ -1937,7 +1937,7 @@ class MosaicCamera(Camera):
         dy = self.width[1]
         offi = self.imi + 0.5
         offj = self.imj + 0.5
-        mylog.info("Mosaic offset: %f %f" % (offi, offj))
+        mylog.info("Mosaic offset: %f %f", offi, offj)
         global_center = self.center
         self.center = self.origin
         self.center += offi * dx * self.orienter.unit_vectors[0]
@@ -1981,7 +1981,7 @@ class MosaicCamera(Camera):
             self.initialize_source()
 
             self.imi, self.imj = xy
-            mylog.debug("Working on: %i %i" % (self.imi, self.imj))
+            mylog.debug("Working on: %i %i", self.imi, self.imj)
             self._setup_box_properties(
                 self.width, self.center, self.orienter.unit_vectors
             )
@@ -2370,8 +2370,8 @@ class StereoSphericalCamera(Camera):
         if self.disparity <= 0.0:
             self.disparity = self.width[0] / 1000.0
             mylog.info(
-                "Warning: Invalid value of disparity; "
-                "now reset it to %f" % self.disparity
+                "Warning: Invalid value of disparity; now reset it to %f",
+                self.disparity,
             )
 
     def get_sampler_args(self, image):

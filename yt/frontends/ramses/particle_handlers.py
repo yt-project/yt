@@ -271,12 +271,12 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         fd.close()
 
         if iextra > 0 and not self.ds._warned_extra_fields["io"]:
-            w = (
+            mylog.warning(
                 "Detected %s extra particle fields assuming kind "
                 "`double`. Consider using the `extra_particle_fields` "
-                "keyword argument if you have unexpected behavior."
+                "keyword argument if you have unexpected behavior.",
+                iextra,
             )
-            mylog.warning(w % iextra)
             self.ds._warned_extra_fields["io"] = True
 
         self.field_offsets = field_offsets

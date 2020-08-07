@@ -289,7 +289,7 @@ class ARTIOIndex(Index):
                     )
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
-                mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
+                mylog.info("Created %d chunks for ARTIO", len(list_sfc_ranges))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _data_size(self, dobj, dobjs):

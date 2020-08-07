@@ -196,9 +196,9 @@ class AMRVACDataset(Dataset):
 
             if namelist_gamma is not None and self.gamma != namelist_gamma:
                 mylog.error(
-                    "Inconsistent values in gamma: datfile {}, parfiles {}".format(
-                        self.gamma, namelist_gamma
-                    )
+                    "Inconsistent values in gamma: datfile %s, parfiles %s",
+                    self.gamma,
+                    namelist_gamma,
                 )
 
             if "method_list" in namelist:
@@ -312,8 +312,8 @@ class AMRVACDataset(Dataset):
         elif self.parameters["datfile_version"] > 4:
             # py38: walrus here
             mylog.error(
-                "No 'geometry' flag found in datfile with version %d >4."
-                % self.parameters["datfile_version"]
+                "No 'geometry' flag found in datfile with version %d >4.",
+                self.parameters["datfile_version"],
             )
 
         if self._geometry_override is not None:
@@ -329,8 +329,8 @@ class AMRVACDataset(Dataset):
                     )
             except ValueError:
                 mylog.error(
-                    "Unable to parse geometry_override '%s' (will be ignored)."
-                    % self._geometry_override
+                    "Unable to parse geometry_override '%s' (will be ignored).",
+                    self._geometry_override,
                 )
 
         if self.geometry is None:

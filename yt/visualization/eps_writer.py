@@ -607,12 +607,12 @@ class DualEPS:
             if field is None:
                 self.field = list(plot.plots.keys())[0]
                 mylog.warning(
-                    "No field specified.  Choosing first field (%s)" % str(self.field)
+                    "No field specified.  Choosing first field (%s)", self.field
                 )
             else:
                 self.field = plot.data_source._determine_fields(field)[0]
             if self.field not in plot.plots.keys():
-                raise RuntimeError("Field '%s' does not exist!" % str(self.field))
+                raise RuntimeError("Field '%s' does not exist!", self.field)
             if isinstance(plot, PlotWindow):
                 plot.hide_colorbar()
                 plot.hide_axes()
@@ -1447,8 +1447,8 @@ def multiplot(
                     xpos = xpos0
                 else:
                     mylog.warning(
-                        "Unknown colorbar location %s. "
-                        "No colorbar displayed." % orientation
+                        "Unknown colorbar location %s. No colorbar displayed.",
+                        orientation,
                     )
                     orientation = None  # Marker for interior plot
 

@@ -58,9 +58,7 @@ class RAMSESDomainFile:
         field_handlers = [FH(self) for FH in get_field_handlers() if FH.any_exist(ds)]
         self.field_handlers = field_handlers
         for fh in field_handlers:
-            mylog.debug(
-                "Detected fluid type %s in domain_id=%s" % (fh.ftype, domain_id)
-            )
+            mylog.debug("Detected fluid type %s in domain_id=%s", fh.ftype, domain_id)
             fh.detect_fields(ds)
             # self._add_ftype(fh.ftype)
 
@@ -71,7 +69,7 @@ class RAMSESDomainFile:
         self.particle_handlers = particle_handlers
         for ph in particle_handlers:
             mylog.debug(
-                "Detected particle type %s in domain_id=%s" % (ph.ptype, domain_id)
+                "Detected particle type %s in domain_id=%s", ph.ptype, domain_id
             )
             ph.read_header()
             # self._add_ptype(ph.ptype)
@@ -213,7 +211,9 @@ class RAMSESDomainSubset(OctreeSubset):
 
         if num_ghost_zones > 0:
             if not all(ds.periodicity):
-                mylog.warn("Ghost zones will wrongly assume the domain to be periodic.")
+                mylog.warning(
+                    "Ghost zones will wrongly assume the domain to be periodic."
+                )
             # Create a base domain *with no self._base_domain.fwidth
             base_domain = RAMSESDomainSubset(
                 ds.all_data(), domain, ds, over_refine_factor
@@ -661,7 +661,7 @@ class RAMSESDataset(Dataset):
                 )
 
             for k in particle_families.keys():
-                mylog.info("Adding particle_type: %s" % k)
+                mylog.info("Adding particle_type: %s", k)
                 self.add_particle_filter("%s" % k)
 
     def __repr__(self):
@@ -822,9 +822,8 @@ class RAMSESDataset(Dataset):
             except ImportError as e:
                 nml = "An error occurred when reading the namelist: %s" % str(e)
             except (ValueError, StopIteration) as e:
-                mylog.warn(
-                    "Could not parse `namelist.txt` file as it was malformed: %s"
-                    % str(e)
+                mylog.warning(
+                    "Could not parse `namelist.txt` file as it was malformed: %s", e
                 )
                 return
 

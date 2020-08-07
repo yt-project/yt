@@ -505,7 +505,7 @@ class YTQuadTreeProj(YTProj):
             deserialized_successfully = self._mrep.restore(store_file, self.ds)
 
             if deserialized_successfully:
-                mylog.info("Using previous projection data from %s" % store_file)
+                mylog.info("Using previous projection data from %s", store_file)
                 for field, field_data in self._mrep.field_data.items():
                     self[field] = field_data
         if not deserialized_successfully:
@@ -1539,7 +1539,7 @@ class YTSurface(YTSelectionContainer3D):
             fields = fields[0]
         # Now we have a "fields" value that is either a string or None
         if fields is not None:
-            mylog.info("Extracting (sampling: %s)" % (fields,))
+            mylog.info("Extracting (sampling: %s)", fields)
         verts = []
         samples = []
         for _io_chunk in parallel_objects(self.data_source.chunks([], "io")):
@@ -2544,19 +2544,19 @@ class YTSurface(YTSelectionContainer3D):
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
         except requests.exceptions.RequestException as e:
-            mylog.error("An error occured: {}".format(e))
+            mylog.error("An error occured: %s", e)
             return
 
         result = r.json()
 
         if r.status_code != requests.codes.created:
-            mylog.error("Upload to SketchFab failed with error: {}".format(result))
+            mylog.error("Upload to SketchFab failed with error: %s", result)
             return
 
         model_uid = result["uid"]
         model_url = SKETCHFAB_MODEL_URL + model_uid
         if model_uid:
-            mylog.info("Model uploaded to: {}".format(model_url))
+            mylog.info("Model uploaded to: %s", model_url)
         else:
             mylog.error("Problem uploading.")
 
@@ -2657,7 +2657,7 @@ class YTOctree(YTSelectionContainer3D):
             self._octree = None
             return
 
-        mylog.info("Allocating Octree for %s particles" % positions.shape[0])
+        mylog.info("Allocating Octree for %s particles", positions.shape[0])
         self.loaded = False
         self._octree = CyOctree(
             positions.astype("float64", copy=False),
@@ -2670,7 +2670,7 @@ class YTOctree(YTSelectionContainer3D):
         )
 
         if fname is not None:
-            mylog.info("Saving octree to file %s" % os.path.basename(fname))
+            mylog.info("Saving octree to file %s", os.path.basename(fname))
             self._octree.save(fname)
 
     @property
@@ -2697,7 +2697,7 @@ class YTOctree(YTSelectionContainer3D):
             self._generate_tree(fname)
         else:
             self.loaded = True
-            mylog.info("Loading octree from %s" % os.path.basename(fname))
+            mylog.info("Loading octree from %s", os.path.basename(fname))
             self._octree = CyOctree()
             self._octree.load(fname)
             if self._octree.data_version != self.ds._file_hash:
