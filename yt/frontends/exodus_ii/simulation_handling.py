@@ -21,7 +21,7 @@ class ExodusIISimulation(DatasetSeries):
     Examples
     --------
     >>> import yt
-    >>> sim = yt.simulation("demo_second", "ExodusII")
+    >>> sim = yt.load_simulation("demo_second", "ExodusII")
     >>> sim.get_time_series()
     >>> for ds in sim:
     ...     print(ds.current_time)

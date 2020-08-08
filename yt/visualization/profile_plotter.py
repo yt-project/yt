@@ -193,7 +193,7 @@ class ProfilePlot:
 
     This creates profiles from a time series object.
 
-    >>> es = yt.simulation("AMRCosmology.enzo", "Enzo")
+    >>> es = yt.load_simulation("AMRCosmology.enzo", "Enzo")
     >>> es.get_time_series()
 
     >>> profiles = []
@@ -463,8 +463,8 @@ class ProfilePlot:
         Examples
         --------
 
-        >>> from yt import simulation
-        >>> es = simulation("AMRCosmology.enzo", "Enzo")
+        >>> from yt import load_simulation
+        >>> es = load_simulation("AMRCosmology.enzo", "Enzo")
         >>> es.get_time_series()
 
         >>> profiles = []

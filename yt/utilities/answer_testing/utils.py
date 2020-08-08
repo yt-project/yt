@@ -13,10 +13,10 @@ import pytest
 import yaml
 
 from yt.config import ytcfg
-from yt.convenience import load, simulation
 from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
+from yt.loaders import load, load_simulation
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.visualization import particle_plots, plot_window as pw, profile_plotter
 from yt.visualization.volume_rendering.scene import Scene
@@ -322,7 +322,7 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
     if file_check:
         return os.path.isfile(os.path.join(path, sim_fn))
     try:
-        simulation(sim_fn, sim_type)
+        load_simulation(sim_fn, sim_type)
     except FileNotFoundError:
         return False
     return True

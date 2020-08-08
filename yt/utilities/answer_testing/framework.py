@@ -22,10 +22,10 @@ from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 
 from yt.config import ytcfg
-from yt.convenience import load, simulation
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
 from yt.funcs import get_pbar
+from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
     assert_almost_equal,
@@ -323,7 +323,7 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
     if file_check:
         return os.path.isfile(os.path.join(path, sim_fn)) and result_storage is not None
     try:
-        simulation(sim_fn, sim_type)
+        load_simulation(sim_fn, sim_type)
     except FileNotFoundError:
         if ytcfg.getboolean("yt", "requires_ds_strict"):
             if result_storage is not None:
@@ -354,7 +354,9 @@ def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):
         raise IOError
     if os.path.exists(sim_fn) or not path:
         path = "."
-    return simulation(os.path.join(path, sim_fn), sim_type, find_outputs=find_outputs)
+    return load_simulation(
+        os.path.join(path, sim_fn), sim_type, find_outputs=find_outputs
+    )
 
 
 class AnswerTestingTest:

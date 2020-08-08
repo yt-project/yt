@@ -85,7 +85,7 @@ def load(fn, *args, **kwargs):
     raise YTOutputNotIdentified(fn, args, kwargs)
 
 
-def simulation(fn, simulation_type, find_outputs=False):
+def load_simulation(fn, simulation_type, find_outputs=False):
     """
     Load a simulation time series object of the specified simulation type.
 
@@ -122,3 +122,15 @@ def simulation(fn, simulation_type, find_outputs=False):
         raise YTSimulationNotIdentified(simulation_type)
 
     return cls(fn, find_outputs=find_outputs)
+
+
+def simulation(fn, simulation_type, find_outputs=False):
+    from yt.funcs import issue_deprecation_warning
+
+    issue_deprecation_warning(
+        "yt.simulation is a deprecated alias for yt.load_simulation"
+        "and will be removed in a future version of yt."
+    )
+    return load_simulation(
+        fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
+    )
