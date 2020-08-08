@@ -164,7 +164,7 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     communication_system,
 )
 
-from yt.convenience import load, simulation
+from yt.convenience import load, load_simulation, simulation
 
 from yt.utilities.load_sample import load_sample
 
