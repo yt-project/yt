@@ -7,6 +7,7 @@ import pickle
 import shutil
 import tempfile
 import unittest
+from typing import Any, Optional
 
 import matplotlib
 import numpy as np
@@ -799,7 +800,7 @@ def requires_module(module):
 
     def ftrue(func):
         @functools.wraps(func)
-        def true_wrapper(*args, **kwargs):
+        def true_wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
             return func(*args, **kwargs)
 
         return true_wrapper
@@ -824,7 +825,7 @@ def requires_file(req_file):
 
     def ftrue(func):
         @functools.wraps(func)
-        def true_wrapper(*args, **kwargs):
+        def true_wrapper(*args: Any, **kwargs: Any) -> Optional[Any]:
             return func(*args, **kwargs)
 
         return true_wrapper
@@ -840,7 +841,7 @@ def requires_file(req_file):
 
 def disable_dataset_cache(func):
     @functools.wraps(func)
-    def newfunc(*args, **kwargs):
+    def newfunc(*args: str, **kwargs: Any) -> Optional[Any]:
         restore_cfg_state = False
         if ytcfg.get("yt", "skip_dataset_cache") == "False":
             ytcfg["yt", "skip_dataset_cache"] = "True"
@@ -853,7 +854,7 @@ def disable_dataset_cache(func):
 
 
 @disable_dataset_cache
-def units_override_check(fn):
+def units_override_check(fn: str) -> None:
     units_list = ["length", "time", "mass", "velocity", "magnetic", "temperature"]
     ds1 = load(fn)
     units_override = {}

@@ -5,7 +5,7 @@ from .physical_ratios import _primordial_mass_fraction
 
 
 class ChemicalFormula:
-    def __init__(self, formula_string):
+    def __init__(self, formula_string: str) -> None:
         # See YTEP-0003 for information on the format.
         self.formula_string = formula_string
         self.elements = []

@@ -1,5 +1,19 @@
-import numpy as np
+from typing import Any, Callable, List, Optional, Union
 
+import numpy as np
+from unyt.array import unyt_array, unyt_quantity
+from unyt.unit_object import Unit
+
+from yt.data_objects.selection_data_containers import YTRegion
+from yt.fields.derived_field import (
+    DerivedField,
+    NeedsParameter,
+    ValidateParameter,
+    ValidateSpatial,
+)
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.data_structures import RAMSESDomainSubset
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.funcs import iterable, just_one
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
@@ -12,10 +26,8 @@ from yt.utilities.math_utils import (
     get_sph_theta_component,
 )
 
-from .derived_field import NeedsParameter, ValidateParameter, ValidateSpatial
 
-
-def get_bulk(data, basename, unit):
+def get_bulk(data: FieldDetector, basename: str, unit: unyt_quantity) -> unyt_array:
     if data.has_field_parameter("bulk_%s" % basename):
         bulk = data.get_field_parameter("bulk_%s" % basename)
     else:
@@ -24,14 +36,14 @@ def get_bulk(data, basename, unit):
 
 
 def create_magnitude_field(
-    registry,
-    basename,
-    field_units,
-    ftype="gas",
-    slice_info=None,
-    validators=None,
-    sampling_type=None,
-):
+    registry: RAMSESFieldInfo,
+    basename: str,
+    field_units: Unit,
+    ftype: str = "gas",
+    slice_info: Optional[Any] = None,
+    validators: Union[List[ValidateParameter], List[ValidateSpatial], None] = None,
+    sampling_type: Optional[str] = None,
+) -> None:
 
     axis_order = registry.ds.coordinates.axis_order
 
@@ -40,7 +52,9 @@ def create_magnitude_field(
     if sampling_type is None:
         sampling_type = "local"
 
-    def _magnitude(field, data):
+    def _magnitude(
+        field: DerivedField, data: Union[FieldDetector, RAMSESDomainSubset]
+    ) -> Union[unyt_array, unyt_quantity]:
         fn = field_components[0]
         if data.has_field_parameter("bulk_%s" % basename):
             fn = (fn[0], "relative_%s" % fn[1])
@@ -63,15 +77,22 @@ def create_magnitude_field(
 
 
 def create_relative_field(
-    registry, basename, field_units, ftype="gas", slice_info=None, validators=None
-):
+    registry: RAMSESFieldInfo,
+    basename: str,
+    field_units: Unit,
+    ftype: str = "gas",
+    slice_info: Optional[Any] = None,
+    validators: List[ValidateParameter] = None,
+) -> None:
 
     axis_order = registry.ds.coordinates.axis_order
 
     field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
 
-    def relative_vector(ax):
-        def _relative_vector(field, data):
+    def relative_vector(ax: str) -> Callable:
+        def _relative_vector(
+            field: DerivedField, data: Union[YTRegion, FieldDetector]
+        ) -> unyt_array:
             iax = axis_order.index(ax)
             d = data[field_components[iax]]
             bulk = get_bulk(data, basename, d.unit_quantity)
@@ -89,7 +110,13 @@ def create_relative_field(
         )
 
 
-def create_los_field(registry, basename, field_units, ftype="gas", slice_info=None):
+def create_los_field(
+    registry: RAMSESFieldInfo,
+    basename: str,
+    field_units: Unit,
+    ftype: str = "gas",
+    slice_info: Optional[Any] = None,
+) -> None:
     axis_order = registry.ds.coordinates.axis_order
 
     validators = [
@@ -99,7 +126,7 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
 
     field_comps = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
 
-    def _los_field(field, data):
+    def _los_field(field: DerivedField, data: FieldDetector) -> unyt_array:
         if data.has_field_parameter("bulk_%s" % basename):
             fns = [(fc[0], "relative_%s" % fc[1]) for fc in field_comps]
         else:
@@ -125,14 +152,19 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
 
 
 def create_squared_field(
-    registry, basename, field_units, ftype="gas", slice_info=None, validators=None
-):
+    registry: RAMSESFieldInfo,
+    basename: str,
+    field_units: Unit,
+    ftype: str = "gas",
+    slice_info: Optional[Any] = None,
+    validators: List[Union[ValidateParameter, ValidateSpatial]] = None,
+) -> None:
 
     axis_order = registry.ds.coordinates.axis_order
 
     field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
 
-    def _squared(field, data):
+    def _squared(field: DerivedField, data: FieldDetector) -> unyt_array:
         fn = field_components[0]
         if data.has_field_parameter("bulk_%s" % basename):
             fn = (fn[0], "relative_%s" % fn[1])
@@ -151,7 +183,13 @@ def create_squared_field(
     )
 
 
-def create_vector_fields(registry, basename, field_units, ftype="gas", slice_info=None):
+def create_vector_fields(
+    registry: RAMSESFieldInfo,
+    basename: str,
+    field_units: Unit,
+    ftype: str = "gas",
+    slice_info: Optional[Any] = None,
+) -> None:
     from yt.units.unit_object import Unit
 
     # slice_info would be the left, the right, and the factor.
@@ -196,7 +234,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
     if not is_curvilinear(registry.ds.geometry):
 
         # The following fields are invalid for curvilinear geometries
-        def _spherical_radius_component(field, data):
+        def _spherical_radius_component(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             """The spherical radius component of the vector field
 
             Relative to the coordinate system defined by the *normal* vector,
@@ -229,13 +269,13 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             registry, basename, field_units, ftype=ftype, slice_info=slice_info
         )
 
-        def _radial(field, data):
+        def _radial(field: DerivedField, data: FieldDetector) -> unyt_array:
             return data[ftype, "%s_spherical_radius" % basename]
 
-        def _radial_absolute(field, data):
+        def _radial_absolute(field: DerivedField, data: FieldDetector) -> unyt_array:
             return np.abs(data[ftype, "%s_spherical_radius" % basename])
 
-        def _tangential(field, data):
+        def _tangential(field: DerivedField, data: FieldDetector) -> unyt_array:
             return np.sqrt(
                 data[ftype, "%s_spherical_theta" % basename] ** 2.0
                 + data[ftype, "%s_spherical_phi" % basename] ** 2.0
@@ -263,7 +303,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             units=field_units,
         )
 
-        def _spherical_theta_component(field, data):
+        def _spherical_theta_component(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             """The spherical theta component of the vector field
 
             Relative to the coordinate system defined by the *normal* vector,
@@ -289,7 +331,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             ],
         )
 
-        def _spherical_phi_component(field, data):
+        def _spherical_phi_component(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             """The spherical phi component of the vector field
 
             Relative to the coordinate system defined by the *normal* vector,
@@ -314,8 +358,8 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             ],
         )
 
-        def _cp_vectors(ax):
-            def _cp_val(field, data):
+        def _cp_vectors(ax: str) -> Callable:
+            def _cp_val(field: DerivedField, data: FieldDetector) -> unyt_array:
                 vec = data.get_field_parameter("cp_%s_vec" % (ax))
                 tr = data[xn[0], "relative_%s" % xn[1]] * vec.d[0]
                 tr += data[yn[0], "relative_%s" % yn[1]] * vec.d[1]
@@ -332,7 +376,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                 units=field_units,
             )
 
-        def _divergence(field, data):
+        def _divergence(field: DerivedField, data: FieldDetector) -> unyt_array:
             ds = div_fac * just_one(data["index", "dx"])
             f = data[xn[0], "relative_%s" % xn[1]][sl_right, 1:-1, 1:-1] / ds
             f -= data[xn[0], "relative_%s" % xn[1]][sl_left, 1:-1, 1:-1] / ds
@@ -346,7 +390,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             new_field[1:-1, 1:-1, 1:-1] = f
             return new_field
 
-        def _divergence_abs(field, data):
+        def _divergence_abs(field: DerivedField, data: FieldDetector) -> unyt_array:
             return np.abs(data[ftype, "%s_divergence" % basename])
 
         field_units = Unit(field_units, registry=registry.ds.unit_registry)
@@ -367,7 +411,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             units=div_units,
         )
 
-        def _tangential_over_magnitude(field, data):
+        def _tangential_over_magnitude(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             tr = (
                 data[ftype, "tangential_%s" % basename]
                 / data[ftype, "%s_magnitude" % basename]
@@ -381,7 +427,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             take_log=False,
         )
 
-        def _cylindrical_radius_component(field, data):
+        def _cylindrical_radius_component(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             """The cylindrical radius component of the vector field
 
             Relative to the coordinate system defined by the *normal* vector,
@@ -402,7 +450,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             validators=[ValidateParameter("normal")],
         )
 
-        def _cylindrical_radial(field, data):
+        def _cylindrical_radial(field: DerivedField, data: FieldDetector) -> unyt_array:
             """This field is deprecated and will be removed in a future version"""
             return data[ftype, "%s_cylindrical_radius" % basename]
 
@@ -413,7 +461,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             units=field_units,
         )
 
-        def _cylindrical_radial_absolute(field, data):
+        def _cylindrical_radial_absolute(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             """This field is deprecated and will be removed in a future version"""
             return np.abs(data[ftype, "%s_cylindrical_radius" % basename])
 
@@ -425,7 +475,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             validators=[ValidateParameter("normal")],
         )
 
-        def _cylindrical_theta_component(field, data):
+        def _cylindrical_theta_component(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             """The cylindrical theta component of the vector field
 
             Relative to the coordinate system defined by the *normal* vector,
@@ -451,11 +503,15 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             ],
         )
 
-        def _cylindrical_tangential(field, data):
+        def _cylindrical_tangential(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             """This field is deprecated and will be removed in a future release"""
             return data[ftype, "%s_cylindrical_theta" % basename]
 
-        def _cylindrical_tangential_absolute(field, data):
+        def _cylindrical_tangential_absolute(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             """This field is deprecated and will be removed in a future release"""
             return np.abs(data[ftype, "cylindrical_tangential_%s" % basename])
 
@@ -473,7 +529,9 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             units=field_units,
         )
 
-        def _cylindrical_z_component(field, data):
+        def _cylindrical_z_component(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             """The cylindrical z component of the vector field
 
             Relative to the coordinate system defined by the *normal* vector,
@@ -601,20 +659,20 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
 
 
 def create_averaged_field(
-    registry,
-    basename,
-    field_units,
-    ftype="gas",
-    slice_info=None,
-    validators=None,
-    weight="mass",
-):
+    registry: RAMSESFieldInfo,
+    basename: str,
+    field_units: Unit,
+    ftype: str = "gas",
+    slice_info: Optional[Any] = None,
+    validators: Optional[Any] = None,
+    weight: str = "mass",
+) -> None:
 
     if validators is None:
         validators = []
     validators += [ValidateSpatial(1, [(ftype, basename)])]
 
-    def _averaged_field(field, data):
+    def _averaged_field(field: DerivedField, data: FieldDetector) -> unyt_array:
         nx, ny, nz = data[(ftype, basename)].shape
         new_field = data.ds.arr(
             np.zeros((nx - 2, ny - 2, nz - 2), dtype=np.float64),

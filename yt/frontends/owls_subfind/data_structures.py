@@ -1,6 +1,7 @@
 import glob
 import os
 from collections import defaultdict
+from typing import Any
 
 import numpy as np
 
@@ -201,7 +202,7 @@ class OWLSSubfindDataset(ParticleDataset):
         setdefaultattr(self, "time_unit", self.quan(time_unit[0], time_unit[1]))
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         need_groups = ["Constants", "Header", "Parameters", "Units", "FOF"]
         veto_groups = []
         valid = True

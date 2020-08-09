@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 
 from yt.frontends.gadget.api import GadgetHDF5Dataset
@@ -41,7 +43,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         self.gamma = 5.0 / 3.0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         need_groups = ["Header", "Config"]
         veto_groups = ["FOF", "Group", "Subhalo"]
         valid = True

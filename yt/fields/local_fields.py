@@ -1,3 +1,6 @@
+from typing import Any, Optional
+
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.funcs import iterable
 from yt.utilities.logger import ytLogger as mylog
 
@@ -45,7 +48,9 @@ def derived_field(name, sampling_type, **kwargs):
 
 
 @register_field_plugin
-def setup_local_fields(registry, ftype="gas", slice_info=None):
+def setup_local_fields(
+    registry: RAMSESFieldInfo, ftype: str = "gas", slice_info: Optional[Any] = None
+) -> None:
     # This is easy.  We just update with the contents of the local_fields field
     # info container, and since they are not mutable in any real way, we are
     # fine.

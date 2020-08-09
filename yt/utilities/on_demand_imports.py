@@ -1,4 +1,6 @@
 import sys
+from abc import ABCMeta
+from typing import Callable
 
 from pkg_resources import parse_version
 
@@ -365,7 +367,7 @@ class h5py_imports:
     _File = None
 
     @property
-    def File(self):
+    def File(self) -> ABCMeta:
         if self._err:
             raise self._err
         if self._File is None:
@@ -613,7 +615,7 @@ class f90nml_imports(object):
         except ImportError:
             self._module = NotAModule(self._name)
 
-    def __getattr__(self, attr):
+    def __getattr__(self, attr: str) -> Callable:
         return getattr(self._module, attr)
 
 

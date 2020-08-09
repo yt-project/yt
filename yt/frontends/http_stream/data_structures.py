@@ -1,5 +1,6 @@
 import json
 import time
+from typing import Any
 
 import numpy as np
 
@@ -94,7 +95,7 @@ class HTTPStreamDataset(ParticleDataset):
         self.conversion_factors["density"] = density_unit
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].startswith("http://"):
             return False
         requests = get_requests()

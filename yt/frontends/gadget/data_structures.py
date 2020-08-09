@@ -1,8 +1,11 @@
 import os
 import stat
 import struct
+from typing import Any, Dict, List, Tuple
 
 import numpy as np
+from _io import BufferedReader
+from mypy_extensions import NoReturn
 
 from yt.data_objects.static_output import ParticleFile
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
@@ -28,7 +31,7 @@ def _fix_unit_ordering(unit):
     return unit
 
 
-def _byte_swap_32(x):
+def _byte_swap_32(x: int) -> int:
     return struct.unpack(">I", struct.pack("<I", x))[0]
 
 
@@ -42,7 +45,7 @@ class GadgetBinaryHeader:
 
     _placeholder_keys = ["unused", "empty"]
 
-    def __init__(self, filename, header_spec):
+    def __init__(self, filename: str, header_spec: str) -> None:
         self.filename = filename
         if isinstance(header_spec, str):
             header_spec = [header_spec]
@@ -76,7 +79,7 @@ class GadgetBinaryHeader:
                 )
 
     @property
-    def gadget_format(self):
+    def gadget_format(self) -> NoReturn:
         """Determine Gadget snapshot format and endianness.
 
         The difference between Gadget snapshot format 1 and 2 can be told from
@@ -115,10 +118,23 @@ class GadgetBinaryHeader:
         return offset
 
     @property
-    def size(self):
+    def size(self) -> List[int]:
         """Header size in bytes."""
 
-        def single_header_size(single_header_spec):
+        def single_header_size(
+            single_header_spec: Tuple[
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+            ]
+        ) -> int:
             return sum(
                 field[1] * np.dtype(field[2]).itemsize for field in single_header_spec
             )
@@ -149,14 +165,14 @@ class GadgetBinaryHeader:
                 hvals[i] = hvals[i][0]
         return hvals
 
-    def open(self):
+    def open(self) -> BufferedReader:
         """Open snapshot file."""
         for filename in [self.filename, self.filename + ".0"]:
             if os.path.exists(filename):
                 return open(filename, "rb")
         raise RuntimeError("Snapshot file %s does not exist." % self.filename)
 
-    def validate(self):
+    def validate(self) -> bool:
         """Validate data integrity."""
         try:
             self.open().close()
@@ -328,7 +344,20 @@ class GadgetDataset(SPHDataset):
             self.mu = mean_molecular_weight
 
     @classmethod
-    def _setup_binary_spec(cls, spec, spec_dict):
+    def _setup_binary_spec(
+        cls, spec: str, spec_dict: Dict[str, Tuple[Tuple[str, int, str], ...]]
+    ) -> Tuple[
+        Tuple[str, int, str],
+        Tuple[str, int, str],
+        Tuple[str, int, str],
+        Tuple[str, int, str],
+        Tuple[str, int, str],
+        Tuple[str, int, str],
+        Tuple[str, int, str],
+        Tuple[str, int, str],
+        Tuple[str, int, str],
+        Tuple[str, int, str],
+    ]:
         if isinstance(spec, str):
             _hs = ()
             for hs in spec.split("+"):
@@ -521,7 +550,7 @@ class GadgetDataset(SPHDataset):
         self.specific_energy_unit = self.quan(*specific_energy_unit)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         if "header_spec" in kwargs:
             header_spec = kwargs["header_spec"]
         else:
@@ -660,7 +689,7 @@ class GadgetHDF5Dataset(GadgetDataset):
         self.specific_energy_unit = self.quan(specific_energy_unit_cgs, "(cm/s)**2")
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         need_groups = ["Header"]
         veto_groups = ["FOF", "Group", "Subhalo"]
         valid = True

@@ -1,3 +1,4 @@
+from typing import Any
 from uuid import uuid4
 
 import numpy as np
@@ -162,7 +163,7 @@ class SwiftDataset(SPHDataset):
         return
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         """
         Checks to see if the file is a valid output from SWIFT.
         This requires the file to have the Code attribute set in the

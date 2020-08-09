@@ -1,7 +1,9 @@
 import contextlib
 import os
+from typing import Any, Iterator, Union
 
 import numpy as np
+from _io import TextIOWrapper
 
 from yt.data_objects.static_output import ParticleDataset, ParticleFile
 from yt.funcs import get_requests, setdefaultattr
@@ -13,7 +15,9 @@ from .fields import SDFFieldInfo
 
 
 @contextlib.contextmanager
-def safeopen(*args, **kwargs):
+def safeopen(
+    *args: str, **kwargs: Any
+) -> Iterator[Union[Iterator, Iterator[TextIOWrapper]]]:
     with open(*args, **kwargs) as f:
         yield f
 
@@ -182,7 +186,7 @@ class SDFDataset(ParticleDataset):
         setdefaultattr(self, "mass_unit", self.quan(float(factor), unit))
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         sdf_header = kwargs.get("sdf_header", args[0])
         if sdf_header.startswith("http"):
             requests = get_requests()

@@ -5,6 +5,7 @@ import string
 import time
 import weakref
 from collections import defaultdict
+from typing import Any
 
 import numpy as np
 
@@ -971,7 +972,7 @@ class EnzoDataset(Dataset):
         setdefaultattr(self, "magnetic_unit", self.quan(magnetic_unit, "gauss"))
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         if ("%s" % (args[0])).endswith(".hierarchy"):
             return True
         return os.path.exists("%s.hierarchy" % args[0])
@@ -1057,7 +1058,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         return enzo
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         return False
 
 

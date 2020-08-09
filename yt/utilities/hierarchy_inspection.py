@@ -2,9 +2,14 @@
 import inspect
 from collections import Counter
 from functools import reduce
+from typing import List
+
+from yt.data_objects.static_output import RegisteredDataset
 
 
-def find_lowest_subclasses(candidates):
+def find_lowest_subclasses(
+    candidates: List[RegisteredDataset],
+) -> List[RegisteredDataset]:
     """
     This function takes a list of classes, and returns only the ones that are
     are not super classes of any others in the list. i.e. the ones that are at

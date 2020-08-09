@@ -1,6 +1,13 @@
-import numpy as np
+from typing import Any, Optional, Union
 
-from yt.fields.derived_field import ValidateParameter
+import numpy as np
+from sympy.core.mul import Mul
+from unyt.array import unyt_array
+
+from yt.data_objects.selection_data_containers import YTRegion
+from yt.fields.derived_field import DerivedField, ValidateParameter
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.units import dimensions
 from yt.units.yt_array import ustack
 from yt.utilities.math_utils import get_sph_phi_component, get_sph_theta_component
@@ -9,7 +16,9 @@ from .field_plugin_registry import register_field_plugin
 
 
 @register_field_plugin
-def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
+def setup_magnetic_field_fields(
+    registry: RAMSESFieldInfo, ftype: str = "gas", slice_info: Optional[Any] = None
+) -> None:
     ds = registry.ds
 
     unit_system = ds.unit_system
@@ -22,13 +31,15 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     u = registry[ftype, "magnetic_field_%s" % axis_names[0]].units
 
-    def mag_factors(dims):
+    def mag_factors(dims: Mul) -> float:
         if dims == dimensions.magnetic_field_cgs:
             return 4.0 * np.pi
         elif dims == dimensions.magnetic_field_mks:
             return ds.units.physical_constants.mu_0
 
-    def _magnetic_field_strength(field, data):
+    def _magnetic_field_strength(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         xm = "relative_magnetic_field_%s" % axis_names[0]
         ym = "relative_magnetic_field_%s" % axis_names[1]
         zm = "relative_magnetic_field_%s" % axis_names[2]
@@ -45,7 +56,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         units=u,
     )
 
-    def _magnetic_energy(field, data):
+    def _magnetic_energy(field: DerivedField, data: FieldDetector) -> unyt_array:
         B = data[ftype, "magnetic_field_strength"]
         return 0.5 * B * B / mag_factors(B.units.dimensions)
 
@@ -56,14 +67,14 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["pressure"],
     )
 
-    def _plasma_beta(field, data):
+    def _plasma_beta(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "pressure"] / data[ftype, "magnetic_energy"]
 
     registry.add_field(
         (ftype, "plasma_beta"), sampling_type="local", function=_plasma_beta, units=""
     )
 
-    def _magnetic_pressure(field, data):
+    def _magnetic_pressure(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "magnetic_energy"]
 
     registry.add_field(
@@ -75,7 +86,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     if registry.ds.geometry == "cartesian":
 
-        def _magnetic_field_poloidal(field, data):
+        def _magnetic_field_poloidal(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             normal = data.get_field_parameter("normal")
 
             Bfields = ustack(
@@ -91,7 +104,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
             return get_sph_theta_component(Bfields, theta, phi, normal)
 
-        def _magnetic_field_toroidal(field, data):
+        def _magnetic_field_toroidal(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             normal = data.get_field_parameter("normal")
 
             Bfields = ustack(
@@ -164,7 +179,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         ],
     )
 
-    def _alfven_speed(field, data):
+    def _alfven_speed(
+        field: DerivedField, data: Union[YTRegion, FieldDetector]
+    ) -> unyt_array:
         B = data[ftype, "magnetic_field_strength"]
         return B / np.sqrt(mag_factors(B.units.dimensions) * data[ftype, "density"])
 
@@ -175,7 +192,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["velocity"],
     )
 
-    def _mach_alfven(field, data):
+    def _mach_alfven(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "velocity_magnitude"] / data[ftype, "alfven_speed"]
 
     registry.add_field(
@@ -195,7 +212,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     )
     rm_units = registry.ds.quan(1.0, "rad/m**2").units / unit_system["length"]
 
-    def _rotation_measure(field, data):
+    def _rotation_measure(field: DerivedField, data: FieldDetector) -> unyt_array:
         return (
             rm_scale
             * data[ftype, "magnetic_field_los"]

@@ -10,6 +10,7 @@ import os
 import stat
 import struct
 import weakref
+from typing import Any
 
 import numpy as np
 
@@ -221,7 +222,7 @@ class AMRVACDataset(Dataset):
         self.refine_by = 2
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         """At load time, check whether data is recognized as AMRVAC formatted."""
         # required class method
         validation = False

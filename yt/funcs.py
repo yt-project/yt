@@ -22,11 +22,18 @@ from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from math import ceil, floor
 from numbers import Number as numeric_type
+from typing import Any, Callable, List, Optional, Set, Union
+from weakref import ReferenceType
 
 import matplotlib
 import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array, unyt_quantity
 
+from yt.data_objects.data_containers import RegisteredDataContainer
+from yt.data_objects.static_output import Dataset, RegisteredDataset
 from yt.extern.tqdm import tqdm
+from yt.frontends.ramses.data_structures import RAMSESDataset
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
@@ -34,7 +41,7 @@ from yt.utilities.logger import ytLogger as mylog
 # Some functions for handling sequences and other types
 
 
-def iterable(obj):
+def iterable(obj: Any) -> bool:
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
@@ -46,7 +53,7 @@ def iterable(obj):
     return True
 
 
-def ensure_list(obj):
+def ensure_list(obj: Any) -> Any:
     """
     This function ensures that *obj* is a list.  Typically used to convert a
     string to a list, for instance ensuring the *fields* as an argument is a
@@ -97,7 +104,7 @@ def read_struct(f, fmt):
     return struct.unpack(fmt, s)
 
 
-def just_one(obj):
+def just_one(obj: unyt_array) -> unyt_quantity:
     # If we have an iterable, sometimes we only want one item
     if hasattr(obj, "flat"):
         if isinstance(obj, YTArray):
@@ -442,7 +449,7 @@ def get_pbar(title, maxval, parallel=False):
     return pbar
 
 
-def only_on_root(func, *args, **kwargs):
+def only_on_root(func: Callable, *args: Any, **kwargs: Any) -> Optional[Any]:
     """
     This function accepts a *func*, a set of *args* and *kwargs* and then only
     on the root processor calls the function.  All other processors get "None"
@@ -846,7 +853,10 @@ def get_yt_supp():
     return supp_path
 
 
-def fix_length(length, ds):
+def fix_length(
+    length: Union[list, tuple, str, numeric_type, YTArray],
+    ds: Union[ReferenceType[Dataset], Dataset],
+) -> unyt_array:
     registry = ds.unit_registry
     if isinstance(length, YTArray):
         if registry is not None:
@@ -1011,12 +1021,12 @@ _all_cap_re = re.compile("([a-z0-9])([A-Z])")
 
 
 @lru_cache(maxsize=128, typed=False)
-def camelcase_to_underscore(name):
+def camelcase_to_underscore(name: str) -> str:
     s1 = _first_cap_re.sub(r"\1_\2", name)
     return _all_cap_re.sub(r"\1_\2", s1).lower()
 
 
-def set_intersection(some_list):
+def set_intersection(some_list: List[List[str]]) -> Set[str]:
     if len(some_list) == 0:
         return set([])
     # This accepts a list of iterables, which we get the intersection of.
@@ -1299,7 +1309,9 @@ def get_interactivity():
     return interactivity
 
 
-def setdefaultattr(obj, name, value):
+def setdefaultattr(
+    obj: RAMSESDataset, name: str, value: unyt_quantity
+) -> unyt_quantity:
     """Set attribute with *name* on *obj* with *value* if it doesn't exist yet
 
     Analogous to dict.setdefault
@@ -1356,7 +1368,7 @@ def array_like_field(data, x, field):
         return data.ds.quan(x, units)
 
 
-def validate_3d_array(obj):
+def validate_3d_array(obj: Union[ndarray, unyt_array]) -> None:
     if not iterable(obj) or len(obj) != 3:
         raise TypeError(
             "Expected an array of size (3,), received '%s' of "
@@ -1364,7 +1376,7 @@ def validate_3d_array(obj):
         )
 
 
-def validate_float(obj):
+def validate_float(obj: float) -> None:
     """Validates if the passed argument is a float value.
 
     Raises an exception if `obj` is a single float value
@@ -1416,7 +1428,7 @@ def validate_float(obj):
         )
 
 
-def validate_iterable(obj):
+def validate_iterable(obj: Optional[Any]) -> None:
     if obj is not None and not iterable(obj):
         raise TypeError(
             "Expected an iterable object,"
@@ -1424,7 +1436,10 @@ def validate_iterable(obj):
         )
 
 
-def validate_object(obj, data_type):
+def validate_object(
+    obj: Optional[ReferenceType[Dataset]],
+    data_type: Union[type, RegisteredDataContainer, RegisteredDataset],
+) -> None:
     if obj is not None and not isinstance(obj, data_type):
         raise TypeError(
             "Expected an object of '%s' type, received '%s'"
@@ -1444,7 +1459,7 @@ def validate_axis(ds, axis):
         )
 
 
-def validate_center(center):
+def validate_center(center: Union[List[float], ndarray, unyt_array]) -> None:
     if isinstance(center, str):
         c = center.lower()
         if (

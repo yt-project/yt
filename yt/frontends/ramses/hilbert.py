@@ -1,7 +1,12 @@
+from typing import List, Union
+
 import numpy as np
+from numpy import int64, ndarray
+
+from yt.frontends.ramses.data_structures import RAMSESDataset
 
 
-def hilbert3d(X, bit_length):
+def hilbert3d(X: Union[List[int], List[int64]], bit_length: int) -> ndarray:
     """Compute the order using Hilbert indexing.
 
     Arguments
@@ -259,7 +264,7 @@ def hilbert3d(X, bit_length):
     return order
 
 
-def get_cpu_list(ds, X):
+def get_cpu_list(ds: RAMSESDataset, X: List[List[float]]) -> List[int]:
     """
     Return the list of the CPU intersecting with the positions
     given. Note that it will be 0-indexed.

@@ -1,8 +1,10 @@
 import csv
 import os.path
 from itertools import islice
+from typing import Any, Dict
 
 from yt.config import ytcfg
+from yt.frontends.ramses.data_structures import RAMSESDataset
 from yt.funcs import mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_simple_proxy,
@@ -98,7 +100,7 @@ class ParameterFileStore:
             if self._records[h]["ctid"] == ctid:
                 return self._convert_ds(self._records[h])
 
-    def _adapt_ds(self, ds):
+    def _adapt_ds(self, ds: RAMSESDataset) -> Dict[str, Any]:
         """ This turns a dataset into a CSV entry. """
         return dict(
             bn=ds.basename,
@@ -127,7 +129,7 @@ class ParameterFileStore:
         self._records[ds._hash()]["last_seen"] = ds._instantiated
         return ds
 
-    def check_ds(self, ds):
+    def check_ds(self, ds: RAMSESDataset) -> None:
         """
         This will ensure that the dataset (*ds*) handed to it is
         recorded in the storage unit.  In doing so, it will update path
@@ -143,7 +145,7 @@ class ParameterFileStore:
             self.wipe_hash(hash)
             self.insert_ds(ds)
 
-    def insert_ds(self, ds):
+    def insert_ds(self, ds: RAMSESDataset) -> None:
         """ This will insert a new *ds* and flush the database to disk. """
         self._records[ds._hash()] = self._adapt_ds(ds)
         self.flush_db()
@@ -158,7 +160,7 @@ class ParameterFileStore:
         del self._records[hash]
         self.flush_db()
 
-    def flush_db(self):
+    def flush_db(self) -> None:
         """ This flushes the storage to disk. """
         if self._read_only:
             return

@@ -1,3 +1,5 @@
+from typing import Any, Optional
+
 import numpy as np
 
 from yt.data_objects.static_output import Dataset
@@ -374,7 +376,7 @@ class ExodusIIDataset(Dataset):
         return mi, ma
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> Optional[Any]:
         warn_netcdf(args[0])
         try:
             from netCDF4 import Dataset

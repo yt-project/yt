@@ -2,6 +2,7 @@ import glob
 import os
 import struct
 import weakref
+from typing import Any
 
 import numpy as np
 
@@ -369,7 +370,7 @@ class ARTDataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
@@ -667,7 +668,7 @@ class DarkMatterARTDataset(ARTDataset):
         pass
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.

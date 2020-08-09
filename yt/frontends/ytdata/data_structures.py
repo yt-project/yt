@@ -2,6 +2,7 @@ import os
 import weakref
 from collections import defaultdict
 from numbers import Number as numeric_type
+from typing import Any
 
 import numpy as np
 
@@ -296,7 +297,7 @@ class YTDataContainerDataset(YTDataset):
         return self._data_obj
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].endswith(".h5"):
             return False
         with h5py.File(args[0], mode="r") as f:
@@ -343,7 +344,7 @@ class YTDataLightRayDataset(YTDataContainerDataset):
                 self.light_ray_solution[i][field_name] = self.parameters[field][i]
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].endswith(".h5"):
             return False
         with h5py.File(args[0], mode="r") as f:
@@ -375,7 +376,7 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
                 self.parameters["weight_field"] = tuple(self.parameters["weight_field"])
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].endswith(".h5"):
             return False
         with h5py.File(args[0], mode="r") as f:
@@ -550,7 +551,7 @@ class YTGridDataset(YTDataset):
                 self.field_info.alias(("gas", field), ("grid", field))
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].endswith(".h5"):
             return False
         with h5py.File(args[0], mode="r") as f:
@@ -769,7 +770,7 @@ class YTNonspatialDataset(YTGridDataset):
         mylog.warning("Geometric data selection not available for this dataset type.")
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].endswith(".h5"):
             return False
         with h5py.File(args[0], mode="r") as f:
@@ -885,7 +886,7 @@ class YTProfileDataset(YTNonspatialDataset):
         super(YTProfileDataset, self).print_key_parameters()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].endswith(".h5"):
             return False
         with h5py.File(args[0], mode="r") as f:
@@ -967,7 +968,7 @@ class YTClumpTreeDataset(YTNonspatialDataset):
         return self._leaves
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].endswith(".h5"):
             return False
         with h5py.File(args[0], mode="r") as f:

@@ -1,8 +1,12 @@
 import os
+from typing import Callable, Optional, Tuple, Union
 
 import numpy as np
+from unyt.array import unyt_array, unyt_quantity
 
 from yt import units
+from yt.data_objects.selection_data_containers import YTRegion
+from yt.fields.derived_field import DerivedField
 from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.ramses.io import convert_ramses_ages
@@ -140,10 +144,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("BH_efficiency", ("", [], None)),
     )
 
-    def setup_particle_fields(self, ptype):
+    def setup_particle_fields(self, ptype: str) -> None:
         super(RAMSESFieldInfo, self).setup_particle_fields(ptype)
 
-        def particle_age(field, data):
+        def particle_age(field: DerivedField, data: FieldDetector) -> unyt_array:
             msg = (
                 "The RAMSES particle_age field has been deprecated since "
                 "it did not actually represent particle ages in all "
@@ -167,7 +171,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             units=self.ds.unit_system["time"],
         )
 
-        def star_age(field, data):
+        def star_age(field: DerivedField, data: FieldDetector) -> unyt_quantity:
             if data.ds.cosmological_simulation:
                 conformal_age = data[ptype, "conformal_birth_time"]
                 formation_time = convert_ramses_ages(data.ds, conformal_age)
@@ -183,8 +187,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
             units=self.ds.unit_system["time"],
         )
 
-    def setup_fluid_fields(self):
-        def _temperature(field, data):
+    def setup_fluid_fields(self) -> None:
+        def _temperature(
+            field: DerivedField, data: Union[YTRegion, FieldDetector]
+        ) -> unyt_array:
             rv = data["gas", "pressure"] / data["gas", "density"]
             rv *= mass_hydrogen_cgs / boltzmann_constant_cgs
             return rv
@@ -206,10 +212,12 @@ class RAMSESFieldInfo(FieldInfoContainer):
         if ("gas", "magnetic_field_x_left") in self:
             self.create_magnetic_fields()
 
-    def create_magnetic_fields(self):
+    def create_magnetic_fields(self) -> None:
         # Calculate cell-centred magnetic fields from face-centred
-        def mag_field(ax):
-            def _mag_field(field, data):
+        def mag_field(ax: str) -> Callable:
+            def _mag_field(
+                field: DerivedField, data: Union[YTRegion, FieldDetector]
+            ) -> unyt_array:
                 return (
                     data["magnetic_field_%s_left" % ax]
                     + data["magnetic_field_%s_right" % ax]
@@ -225,7 +233,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 units=self.ds.unit_system["magnetic_field_cgs"],
             )
 
-        def _divB(field, data):
+        def _divB(
+            field: DerivedField, data: Union[YTRegion, FieldDetector]
+        ) -> unyt_array:
             """Calculate magnetic field divergence"""
             out = np.zeros_like(data["magnetic_field_x_right"])
             for ax in data.ds.coordinates.axis_order:
@@ -243,7 +253,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             / self.ds.unit_system["length"],
         )
 
-    def create_rt_fields(self):
+    def create_rt_fields(self) -> None:
         self.ds.fluid_types += ("rt",)
         p = RTFieldFileHandler.get_rt_parameters(self.ds).copy()
         p.update(self.ds.parameters)
@@ -253,7 +263,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         ########################################
         # Adding the fields in the hydro_* files
-        def _temp_IR(field, data):
+        def _temp_IR(
+            field: DerivedField, data: Union[YTRegion, FieldDetector]
+        ) -> unyt_array:
             rv = data["gas", "pres_IR"] / data["gas", "density"]
             rv *= mass_hydrogen_cgs / boltzmann_constant_cgs
             return rv
@@ -266,7 +278,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
         )
         for species in ["H_p1", "He_p1", "He_p2"]:
 
-            def _species_density(field, data):
+            def _species_density(
+                field: DerivedField, data: FieldDetector
+            ) -> unyt_array:
                 return data["gas", species + "_fraction"] * data["gas", "density"]
 
             self.add_field(
@@ -276,7 +290,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 units=self.ds.unit_system["density"],
             )
 
-            def _species_mass(field, data):
+            def _species_mass(
+                field: DerivedField, data: Union[YTRegion, FieldDetector]
+            ) -> unyt_array:
                 return data["gas", species + "_density"] * data["index", "cell_volume"]
 
             self.add_field(
@@ -288,8 +304,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         ########################################
         # Adding the fields in the rt_ files
-        def gen_pdens(igroup):
-            def _photon_density(field, data):
+        def gen_pdens(igroup: int) -> Callable:
+            def _photon_density(field: DerivedField, data: FieldDetector) -> unyt_array:
                 rv = data["ramses-rt", "Photon_density_%s" % (igroup + 1)] * dens_conv
                 return rv
 
@@ -305,8 +321,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         flux_conv = p["unit_pf"] / units.cm ** 2 / units.s
 
-        def gen_flux(key, igroup):
-            def _photon_flux(field, data):
+        def gen_flux(key: str, igroup: int) -> Callable:
+            def _photon_flux(field: DerivedField, data: FieldDetector) -> unyt_array:
                 rv = (
                     data["ramses-rt", "Photon_flux_%s_%s" % (key, igroup + 1)]
                     * flux_conv
@@ -327,7 +343,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                     units=flux_unit,
                 )
 
-    def create_cooling_fields(self):
+    def create_cooling_fields(self) -> None:
         num = os.path.basename(self.ds.parameter_filename).split(".")[0].split("_")[1]
         filename = "%s/cooling_%05i.out" % (
             os.path.dirname(self.ds.parameter_filename),
@@ -339,8 +355,14 @@ class RAMSESFieldInfo(FieldInfoContainer):
             return
 
         # Function to create the cooling fields
-        def _create_field(name, interp_object, unit):
-            def _func(field, data):
+        def _create_field(
+            name: Tuple[str, str],
+            interp_object: BilinearFieldInterpolator,
+            unit: Optional[str],
+        ) -> None:
+            def _func(
+                field: DerivedField, data: Union[YTRegion, FieldDetector]
+            ) -> unyt_array:
                 shape = data["temperature"].shape
                 d = {
                     "lognH": np.log10(_X * data["density"] / mh).ravel(),
@@ -398,7 +420,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         _create_field(("gas", "mu"), interp, tvals["mu"]["unit"])
 
         # Add the number density field, based on mu
-        def _number_density(field, data):
+        def _number_density(field: DerivedField, data: FieldDetector) -> unyt_array:
             return data[("gas", "density")] / mp / data["mu"]
 
         self.add_field(
@@ -420,14 +442,16 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 _create_field(("gas", key), interp, tvals[key]["unit"])
 
         # Add total cooling and heating fields
-        def _all_cool(field, data):
+        def _all_cool(
+            field: DerivedField, data: Union[YTRegion, FieldDetector]
+        ) -> unyt_array:
             return (
                 data["cooling_primordial"]
                 + data["cooling_metal"]
                 + data["cooling_compton"]
             )
 
-        def _all_heat(field, data):
+        def _all_heat(field: DerivedField, data: FieldDetector) -> unyt_array:
             return data["heating_primordial"] + data["heating_compton"]
 
         self.add_field(
@@ -444,7 +468,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         )
 
         # Add net cooling fields
-        def _net_cool(field, data):
+        def _net_cool(field: DerivedField, data: FieldDetector) -> unyt_array:
             return data["cooling_total"] - data["heating_total"]
 
         self.add_field(

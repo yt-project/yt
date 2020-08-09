@@ -1,7 +1,13 @@
 from collections import defaultdict
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
+from numpy import int32, ndarray
+from unyt.array import unyt_array, unyt_quantity
 
+from yt.frontends.ramses.data_structures import RAMSESDataset, RAMSESDomainSubset
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.selection_routines import OctreeSubsetSelector, RegionSelector
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import (
     YTFieldTypeNotFound,
@@ -15,7 +21,7 @@ from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 from .definitions import VAR_DESC_RE, VERSION_RE
 
 
-def convert_ramses_ages(ds, conformal_ages):
+def convert_ramses_ages(ds: RAMSESDataset, conformal_ages: unyt_array) -> unyt_quantity:
     tf = ds.t_frw
     dtau = ds.dtau
     tauf = ds.tau_frw
@@ -40,7 +46,14 @@ def convert_ramses_ages(ds, conformal_ages):
     return (tsim - t) * t_scale
 
 
-def _ramses_particle_file_handler(fname, foffsets, data_types, subset, fields, count):
+def _ramses_particle_file_handler(
+    fname: str,
+    foffsets: Dict[Tuple[str, str], int],
+    data_types: Dict[Tuple[str, str], str],
+    subset: RAMSESDomainSubset,
+    fields: filter,
+    count: int32,
+) -> Dict[Tuple[str, str], ndarray]:
     """General file handler, called by _read_particle_subset
 
     Parameters
@@ -85,7 +98,13 @@ def _ramses_particle_file_handler(fname, foffsets, data_types, subset, fields, c
 class IOHandlerRAMSES(BaseIOHandler):
     _dataset_type = "ramses"
 
-    def _read_fluid_selection(self, chunks, selector, fields, size):
+    def _read_fluid_selection(
+        self,
+        chunks: Iterator,
+        selector: Union[OctreeSubsetSelector, RegionSelector],
+        fields: List[Tuple[str, str]],
+        size: Optional[Any],
+    ) -> Dict[Tuple[str, str], ndarray]:
         tr = defaultdict(list)
 
         # Set of field types
@@ -130,7 +149,11 @@ class IOHandlerRAMSES(BaseIOHandler):
 
         return d
 
-    def _read_particle_coords(self, chunks, ptf):
+    def _read_particle_coords(
+        self, chunks: List[YTDataChunk], ptf: Dict
+    ) -> Iterator[
+        Union[Iterator, Iterator[Tuple[str, Tuple[ndarray, ndarray, ndarray]]]]
+    ]:
         pn = "particle_position_%s"
         fields = [
             (ptype, "particle_position_%s" % ax)
@@ -147,7 +170,9 @@ class IOHandlerRAMSES(BaseIOHandler):
                         rv[ptype, pn % "z"],
                     )
 
-    def _read_particle_fields(self, chunks, ptf, selector):
+    def _read_particle_fields(
+        self, chunks: List[YTDataChunk], ptf: Dict, selector: RegionSelector
+    ) -> Iterator[Union[Iterator, Iterator[Tuple[Tuple[str, str], ndarray]]]]:
         pn = "particle_position_%s"
         chunks = list(chunks)
         fields = [
@@ -169,7 +194,9 @@ class IOHandlerRAMSES(BaseIOHandler):
                         data = np.asarray(rv.pop((ptype, field))[mask], "=f8")
                         yield (ptype, field), data
 
-    def _read_particle_subset(self, subset, fields):
+    def _read_particle_subset(
+        self, subset: RAMSESDomainSubset, fields: List[Tuple[str, str]]
+    ) -> Dict[Tuple[str, str], ndarray]:
         """Read the particle files."""
         tr = {}
 
@@ -209,7 +236,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         return tr
 
 
-def _read_part_file_descriptor(fname):
+def _read_part_file_descriptor(fname: str) -> List[Tuple[str, str]]:
     """
     Read a file descriptor and returns the array of the fields found.
     """
@@ -265,7 +292,7 @@ def _read_part_file_descriptor(fname):
     return fields
 
 
-def _read_fluid_file_descriptor(fname):
+def _read_fluid_file_descriptor(fname: str) -> List[Tuple[str, str]]:
     """
     Read a file descriptor and returns the array of the fields found.
     """

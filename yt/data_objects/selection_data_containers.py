@@ -1,4 +1,8 @@
+from typing import Any, List, Optional, Union
+
 import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array
 
 from yt.data_objects.data_containers import (
     YTSelectionContainer,
@@ -741,14 +745,14 @@ class YTRegion(YTSelectionContainer3D):
 
     def __init__(
         self,
-        center,
-        left_edge,
-        right_edge,
-        fields=None,
-        ds=None,
-        field_parameters=None,
-        data_source=None,
-    ):
+        center: Union[ndarray, unyt_array],
+        left_edge: Union[ndarray, unyt_array],
+        right_edge: Union[ndarray, unyt_array],
+        fields: Optional[Any] = None,
+        ds: weakproxy = None,
+        field_parameters: Optional[Any] = None,
+        data_source: Optional[Any] = None,
+    ) -> None:
         if center is not None:
             validate_center(center)
         validate_3d_array(left_edge)
@@ -826,8 +830,13 @@ class YTSphere(YTSelectionContainer3D):
     _con_args = ("center", "radius")
 
     def __init__(
-        self, center, radius, ds=None, field_parameters=None, data_source=None
-    ):
+        self,
+        center: List[float],
+        radius: float,
+        ds: weakproxy = None,
+        field_parameters: Optional[Any] = None,
+        data_source: Optional[Any] = None,
+    ) -> None:
         validate_center(center)
         validate_float(radius)
         validate_object(ds, Dataset)

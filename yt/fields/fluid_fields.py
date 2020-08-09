@@ -1,8 +1,16 @@
-import numpy as np
+from typing import Any, Callable, Optional, Tuple, Union
 
+import numpy as np
+from mypy_extensions import NoReturn
+from unyt.array import unyt_array
+from unyt.unit_object import Unit
+
+from yt.fields.derived_field import DerivedField
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.data_structures import RAMSESDomainSubset
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.funcs import mylog
 from yt.geometry.geometry_handler import is_curvilinear
-from yt.units.unit_object import Unit
 from yt.utilities.chemical_formulas import default_mu
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 
@@ -16,7 +24,9 @@ from .vector_operations import (
 
 
 @register_field_plugin
-def setup_fluid_fields(registry, ftype="gas", slice_info=None):
+def setup_fluid_fields(
+    registry: RAMSESFieldInfo, ftype: str = "gas", slice_info: Optional[Any] = None
+) -> None:
     pc = registry.ds.units.physical_constants
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
@@ -45,7 +55,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         registry, "magnetic_field", unit_system[mag_units], ftype, slice_info
     )
 
-    def _cell_mass(field, data):
+    def _cell_mass(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "density"] * data[ftype, "cell_volume"]
 
     registry.add_field(
@@ -56,7 +66,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
     registry.alias((ftype, "mass"), (ftype, "cell_mass"))
 
-    def _sound_speed(field, data):
+    def _sound_speed(field: DerivedField, data: FieldDetector) -> unyt_array:
         tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, "density"]
         return np.sqrt(tr)
 
@@ -67,7 +77,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["velocity"],
     )
 
-    def _radial_mach_number(field, data):
+    def _radial_mach_number(field: DerivedField, data: FieldDetector) -> unyt_array:
         """ Radial component of M{|v|/c_sound} """
         tr = data[ftype, "radial_velocity"] / data[ftype, "sound_speed"]
         return np.abs(tr)
@@ -79,7 +89,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _kin_energy(field, data):
+    def _kin_energy(field: DerivedField, data: FieldDetector) -> unyt_array:
         v = obtain_relative_velocity_vector(data)
         return 0.5 * data[ftype, "density"] * (v ** 2).sum(axis=0)
 
@@ -91,7 +101,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         validators=[ValidateParameter("bulk_velocity")],
     )
 
-    def _mach_number(field, data):
+    def _mach_number(field: DerivedField, data: FieldDetector) -> unyt_array:
         """ M{|v|/c_sound} """
         return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]
 
@@ -99,7 +109,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         (ftype, "mach_number"), sampling_type="local", function=_mach_number, units=""
     )
 
-    def _courant_time_step(field, data):
+    def _courant_time_step(field: DerivedField, data: FieldDetector) -> unyt_array:
         t1 = data[ftype, "dx"] / (
             data[ftype, "sound_speed"] + np.abs(data[ftype, "velocity_x"])
         )
@@ -119,7 +129,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["time"],
     )
 
-    def _pressure(field, data):
+    def _pressure(field: DerivedField, data: FieldDetector) -> NoReturn:
         """ M{(Gamma-1.0)*rho*E} """
         tr = (data.ds.gamma - 1.0) * (
             data[ftype, "density"] * data[ftype, "thermal_energy"]
@@ -133,7 +143,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["pressure"],
     )
 
-    def _kT(field, data):
+    def _kT(field: DerivedField, data: FieldDetector) -> unyt_array:
         return (pc.kboltz * data[ftype, "temperature"]).in_units("keV")
 
     registry.add_field(
@@ -144,7 +154,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         display_name="Temperature",
     )
 
-    def _metallicity(field, data):
+    def _metallicity(field: DerivedField, data: FieldDetector) -> NoReturn:
         return data[ftype, "metal_density"] / data[ftype, "density"]
 
     registry.add_field(
@@ -154,7 +164,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         units="Zsun",
     )
 
-    def _metal_mass(field, data):
+    def _metal_mass(field: DerivedField, data: FieldDetector) -> unyt_array:
         Z = data[ftype, "metallicity"].to("dimensionless")
         return Z * data[ftype, "mass"]
 
@@ -177,7 +187,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
     else:
 
-        def _number_density(field, data):
+        def _number_density(field: DerivedField, data: FieldDetector) -> unyt_array:
             mu = getattr(data.ds, "mu", default_mu)
             return data[ftype, "density"] / (pc.mh * mu)
 
@@ -188,7 +198,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["number_density"],
     )
 
-    def _mean_molecular_weight(field, data):
+    def _mean_molecular_weight(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "density"] / (pc.mh * data[ftype, "number_density"])
 
     registry.add_field(
@@ -216,7 +226,12 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
 
 
-def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
+def setup_gradient_fields(
+    registry: RAMSESFieldInfo,
+    grad_field: Tuple[str, str],
+    field_units: Unit,
+    slice_info: Optional[Any] = None,
+) -> None:
 
     geom = registry.ds.geometry
     if is_curvilinear(geom):
@@ -235,11 +250,13 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
         sl_left, sl_right, div_fac = slice_info
     slice_3d = (slice(1, -1), slice(1, -1), slice(1, -1))
 
-    def grad_func(axi, ax):
+    def grad_func(axi: int, ax: str) -> Callable:
         slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi + 1 :]
         slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi + 1 :]
 
-        def func(field, data):
+        def func(
+            field: DerivedField, data: Union[FieldDetector, RAMSESDomainSubset]
+        ) -> unyt_array:
             block_order = getattr(data, "_block_order", "C")
             if block_order == "F":
                 # Fortran-ordering: we need to swap axes here and

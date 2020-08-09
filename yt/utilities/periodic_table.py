@@ -148,7 +148,7 @@ class PeriodicTable:
             self.elements_by_name[name] = e
             self.elements_by_symbol[symbol] = e
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Element:
         if isinstance(key, (np.number, numbers.Number)):
             d = self.elements_by_number
         elif isinstance(key, str):

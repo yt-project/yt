@@ -1,6 +1,9 @@
 import os
+from typing import Set, Union
 
 from yt.config import ytcfg
+from yt.frontends.ramses.data_structures import RAMSESDataset, RAMSESDomainFile
+from yt.frontends.ramses.particle_handlers import RAMSESParticleFileHandlerRegistry
 from yt.funcs import mylog
 from yt.utilities.cython_fortran_utils import FortranFile
 
@@ -10,7 +13,7 @@ PARTICLE_HANDLERS = set()
 PRESENT_PART_FILES = {}
 
 
-def get_particle_handlers():
+def get_particle_handlers() -> Set[RAMSESParticleFileHandlerRegistry]:
     return PARTICLE_HANDLERS
 
 
@@ -57,7 +60,7 @@ class ParticleFileHandler(metaclass=RAMSESParticleFileHandlerRegistry):
     )
     local_particle_count = None  # The number of particle in the domain
 
-    def __init__(self, ds, domain):
+    def __init__(self, ds: weakproxy, domain: RAMSESDomainFile) -> None:
         """
         Initalize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
@@ -111,7 +114,7 @@ class ParticleFileHandler(metaclass=RAMSESParticleFileHandlerRegistry):
             self.known_fields = known_fields
 
     @property
-    def exists(self):
+    def exists(self) -> bool:
         """
         This function should return True if the *file* the instance
         exists. It is called for each file of the type found on the
@@ -123,7 +126,7 @@ class ParticleFileHandler(metaclass=RAMSESParticleFileHandlerRegistry):
         return os.path.exists(self.fname)
 
     @property
-    def has_part_descriptor(self):
+    def has_part_descriptor(self) -> bool:
         """
         This function should return True if a *file descriptor*
         exists.
@@ -134,7 +137,7 @@ class ParticleFileHandler(metaclass=RAMSESParticleFileHandlerRegistry):
         return os.path.exists(self.file_descriptor)
 
     @classmethod
-    def any_exist(cls, ds):
+    def any_exist(cls, ds: Union[weakproxy, RAMSESDataset]) -> bool:
         """
         This function should return True if the kind of particle
         represented by the class exists in the dataset. It takes as
@@ -213,7 +216,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         ("particle_refinement_level", "i"),
     ]
 
-    def read_header(self):
+    def read_header(self) -> None:
         if not self.exists:
             self.field_offsets = {}
             self.field_types = {}
@@ -317,7 +320,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
         ("BH_efficiency", "d"),
     ]
 
-    def read_header(self):
+    def read_header(self) -> None:
         if not self.exists:
             self.field_offsets = {}
             self.field_types = {}

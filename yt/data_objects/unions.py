@@ -1,14 +1,16 @@
+from typing import Iterator, List, Union
+
 from yt.funcs import ensure_list
 
 
 class Union:
     _union_type = ""
 
-    def __init__(self, name, sub_types):
+    def __init__(self, name: str, sub_types: List[str]) -> None:
         self.name = name
         self.sub_types = ensure_list(sub_types)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Union[Iterator, Iterator[str]]]:
         for st in self.sub_types:
             yield st
 

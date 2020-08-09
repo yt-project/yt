@@ -1,7 +1,12 @@
+from typing import Any, Optional
+
+from unyt.unit_registry import UnitRegistry
 from unyt.unit_systems import *
 
 
-def create_code_unit_system(unit_registry, current_mks_unit=None):
+def create_code_unit_system(
+    unit_registry: UnitRegistry, current_mks_unit: Optional[Any] = None
+) -> UnitSystem:
     code_unit_system = UnitSystem(
         unit_registry.unit_system_id,
         "code_length",

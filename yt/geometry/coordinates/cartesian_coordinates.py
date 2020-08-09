@@ -1,6 +1,14 @@
-import numpy as np
+from typing import Tuple, Union
 
+import numpy as np
+from unyt.array import unyt_array
+
+from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.fields.derived_field import DerivedField
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.data_structures import RAMSESDataset
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.funcs import mylog
 from yt.units.yt_array import YTArray, uconcatenate, uvstack
 from yt.utilities.lib.pixelization_routines import (
@@ -89,10 +97,12 @@ def all_data(data, ptype, fields, kdtree=False):
 class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
 
-    def __init__(self, ds, ordering=("x", "y", "z")):
+    def __init__(
+        self, ds: RAMSESDataset, ordering: Tuple[str, str, str] = ("x", "y", "z")
+    ) -> None:
         super(CartesianCoordinateHandler, self).__init__(ds, ordering)
 
-    def setup_fields(self, registry):
+    def setup_fields(self, registry: RAMSESFieldInfo) -> None:
         for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi)
             registry.add_field(
@@ -128,7 +138,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
                 units="code_length",
             )
 
-        def _cell_volume(field, data):
+        def _cell_volume(
+            field: DerivedField, data: Union[YTRegion, FieldDetector]
+        ) -> unyt_array:
             rv = data["index", "dx"].copy(order="K")
             rv *= data["index", "dy"]
             rv *= data["index", "dz"]

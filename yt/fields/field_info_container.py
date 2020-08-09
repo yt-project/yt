@@ -1,7 +1,11 @@
 from numbers import Number as numeric_type
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple
 
 import numpy as np
+from mypy_extensions import NoReturn
 
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.data_structures import RAMSESDataset
 from yt.funcs import issue_deprecation_warning, mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
@@ -20,7 +24,7 @@ from .particle_fields import (
 )
 
 
-def tupleize(inp):
+def tupleize(inp: Tuple[str, str]) -> Tuple[str, str]:
     if isinstance(inp, tuple):
         return inp
     # prepending with a '?' ensures that the sort order is the same in py2 and
@@ -45,7 +49,12 @@ class FieldInfoContainer(dict):
     known_particle_fields = ()
     extra_union_fields = ()
 
-    def __init__(self, ds, field_list, slice_info=None):
+    def __init__(
+        self,
+        ds: RAMSESDataset,
+        field_list: List[Tuple[str, str]],
+        slice_info: Optional[Any] = None,
+    ) -> None:
         self._show_field_errors = []
         self.ds = ds
         # Now we start setting things up.
@@ -62,7 +71,7 @@ class FieldInfoContainer(dict):
     def setup_fluid_fields(self):
         pass
 
-    def setup_fluid_index_fields(self):
+    def setup_fluid_index_fields(self) -> None:
         # Now we get all our index types and set up aliases to them
         if self.ds is None:
             return
@@ -75,7 +84,9 @@ class FieldInfoContainer(dict):
                     continue
                 self.alias((ftype, f), ("index", f))
 
-    def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):
+    def setup_particle_fields(
+        self, ptype: str, ftype: str = "gas", num_neighbors: int = 64
+    ) -> None:
         skip_output_units = ("code_length",)
         for f, (units, aliases, dn) in sorted(self.known_particle_fields):
             units = self.ds.field_units.get((ptype, f), units)
@@ -141,7 +152,7 @@ class FieldInfoContainer(dict):
             )
         self.setup_smoothed_fields(ptype, num_neighbors=num_neighbors, ftype=ftype)
 
-    def setup_extra_union_fields(self, ptype="all"):
+    def setup_extra_union_fields(self, ptype: str = "all") -> None:
         if ptype != "all":
             raise RuntimeError(
                 "setup_extra_union_fields is currently"
@@ -150,7 +161,9 @@ class FieldInfoContainer(dict):
         for units, field in self.extra_union_fields:
             add_union_field(self, ptype, field, units)
 
-    def setup_smoothed_fields(self, ptype, num_neighbors=64, ftype="gas"):
+    def setup_smoothed_fields(
+        self, ptype: str, num_neighbors: int = 64, ftype: str = "gas"
+    ) -> None:
         # We can in principle compute this, but it is not yet implemented.
         if (ptype, "density") not in self or not hasattr(self.ds, "_sph_ptypes"):
             return
@@ -174,7 +187,7 @@ class FieldInfoContainer(dict):
                 self.alias(alias, source)
 
     # Collect the names for all aliases if geometry is curvilinear
-    def get_aliases_gallery(self):
+    def get_aliases_gallery(self) -> List:
         aliases_gallery = []
         known_other_fields = dict(self.known_other_fields)
         if self.curvilinear:
@@ -187,7 +200,7 @@ class FieldInfoContainer(dict):
                     aliases_gallery.append(alias)
         return aliases_gallery
 
-    def setup_fluid_aliases(self, ftype="gas"):
+    def setup_fluid_aliases(self, ftype: str = "gas") -> None:
         known_other_fields = dict(self.known_other_fields)
 
         # For non-Cartesian geometry, convert alias of vector fields to
@@ -294,7 +307,13 @@ class FieldInfoContainer(dict):
 
         return sampling_type
 
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self,
+        name: Tuple[str, str],
+        function: Callable,
+        sampling_type: str,
+        **kwargs: Any,
+    ) -> Optional[Any]:
         """
         Add a new field, along with supplemental metadata, to the list of
         available fields.  This respects a number of arguments, all of which
@@ -373,14 +392,16 @@ class FieldInfoContainer(dict):
         else:
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
 
-    def load_all_plugins(self, ftype="gas"):
+    def load_all_plugins(self, ftype: str = "gas") -> None:
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)
             only_on_root(mylog.debug, "Loaded %s (%s new fields)", n, len(loaded))
         self.find_dependencies(loaded)
 
-    def load_plugin(self, plugin_name, ftype="gas", skip_check=False):
+    def load_plugin(
+        self, plugin_name: str, ftype: str = "gas", skip_check: bool = False
+    ) -> List[Tuple[str, str]]:
         if callable(plugin_name):
             f = plugin_name
         else:
@@ -390,7 +411,9 @@ class FieldInfoContainer(dict):
         loaded = [n for n, v in set(self.items()).difference(orig)]
         return loaded
 
-    def find_dependencies(self, loaded):
+    def find_dependencies(
+        self, loaded: List[Tuple[str, str]]
+    ) -> Tuple[List[Tuple[str, str]], List]:
         deps, unavailable = self.check_derived_fields(loaded)
         self.ds.field_dependencies.update(deps)
         # Note we may have duplicated
@@ -398,11 +421,18 @@ class FieldInfoContainer(dict):
         self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
         return loaded, unavailable
 
-    def add_output_field(self, name, sampling_type, **kwargs):
+    def add_output_field(
+        self, name: Tuple[str, str], sampling_type: str, **kwargs: Any
+    ) -> None:
         kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
-    def alias(self, alias_name, original_name, units=None):
+    def alias(
+        self,
+        alias_name: Tuple[str, str],
+        original_name: Tuple[str, str],
+        units: Optional[Any] = None,
+    ) -> None:
         if original_name not in self:
             return
         if units is None:
@@ -430,7 +460,7 @@ class FieldInfoContainer(dict):
             return False
         return key in self.fallback
 
-    def __missing__(self, key):
+    def __missing__(self, key: str) -> NoReturn:
         if self.fallback is None:
             raise KeyError("No field named %s" % (key,))
         return self.fallback[key]
@@ -442,27 +472,29 @@ class FieldInfoContainer(dict):
         obj.name = name
         return obj
 
-    def __contains__(self, key):
+    def __contains__(self, key: Tuple[str, str]) -> bool:
         if dict.__contains__(self, key):
             return True
         if self.fallback is None:
             return False
         return key in self.fallback
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[Tuple[str, str]]:
         for f in dict.__iter__(self):
             yield f
         if self.fallback is not None:
             for f in self.fallback:
                 yield f
 
-    def keys(self):
+    def keys(self) -> dict_keys:
         keys = dict.keys(self)
         if self.fallback:
             keys += list(self.fallback.keys())
         return keys
 
-    def check_derived_fields(self, fields_to_check=None):
+    def check_derived_fields(
+        self, fields_to_check: Optional[List[Tuple[str, str]]] = None
+    ) -> Tuple[Dict[Tuple[str, str], FieldDetector], List]:
         deps = {}
         unavailable = []
         fields_to_check = fields_to_check or list(self.keys())

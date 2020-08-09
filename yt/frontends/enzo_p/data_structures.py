@@ -1,6 +1,7 @@
 import io as io
 import os
 import warnings
+from typing import Any
 
 import numpy as np
 
@@ -465,7 +466,7 @@ class EnzoPDataset(Dataset):
         return self.basename[: -len(self._suffix)]
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         fn = args[0]
         ddir = os.path.dirname(fn)
         if not fn.endswith(cls._suffix):

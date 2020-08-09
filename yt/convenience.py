@@ -1,7 +1,9 @@
 import os
+from typing import Any
 
 # Named imports
 from yt.config import ytcfg
+from yt.frontends.ramses.data_structures import RAMSESDataset
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
     YTOutputNotIdentified,
@@ -14,7 +16,7 @@ from yt.utilities.parameter_file_storage import (
 )
 
 
-def load(fn, *args, **kwargs):
+def load(fn: str, *args: Any, **kwargs: Any) -> RAMSESDataset:
     """
     Load a Dataset or DatasetSeries object.
     The data format is automatically discovered, and the exact return type is the

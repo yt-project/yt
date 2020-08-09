@@ -1,4 +1,5 @@
 import numpy as np
+from unyt.array import unyt_quantity
 
 from yt.fields.field_detector import FieldDetector
 from yt.geometry.geometry_handler import Index
@@ -8,11 +9,11 @@ from yt.utilities.logger import ytLogger as mylog
 class OctreeIndex(Index):
     """The Index subclass for oct AMR datasets"""
 
-    def _setup_geometry(self):
+    def _setup_geometry(self) -> None:
         mylog.debug("Initializing Octree Geometry Handler.")
         self._initialize_oct_handler()
 
-    def get_smallest_dx(self):
+    def get_smallest_dx(self) -> unyt_quantity:
         """
         Returns (in code units) the smallest cell size in the simulation.
         """

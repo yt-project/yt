@@ -1,5 +1,9 @@
+from typing import Any, Union
+
 import numpy as np
 
+from yt.data_objects.selection_data_containers import YTRegion
+from yt.frontends.ramses.data_structures import RAMSESDomainSubset
 from yt.funcs import camelcase_to_underscore, ensure_list
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTParticleTypeNotFound
@@ -39,7 +43,7 @@ class RegisteredDerivedQuantity(type):
 class DerivedQuantity(ParallelAnalysisInterface, metaclass=RegisteredDerivedQuantity):
     num_vals = -1
 
-    def __init__(self, data_source):
+    def __init__(self, data_source: Union[YTRegion, RAMSESDomainSubset]) -> None:
         self.data_source = data_source
 
     def count_values(self, *args, **kwargs):
@@ -81,14 +85,14 @@ class DerivedQuantityCollection:
             setattr(inst, camelcase_to_underscore(f), inst[f])
         return inst
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         dq = derived_quantity_registry[key]
         # Instantiate here, so we can pass it the data object
         # Note that this means we instantiate every time we run help, etc
         # I have made my peace with this.
         return dq(self.data_source)
 
-    def keys(self):
+    def keys(self) -> dict_keys:
         return derived_quantity_registry.keys()
 
 

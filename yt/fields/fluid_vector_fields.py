@@ -1,6 +1,12 @@
-import numpy as np
+from typing import Any, Optional
 
-from yt.fields.derived_field import ValidateParameter, ValidateSpatial
+import numpy as np
+from mypy_extensions import NoReturn
+from unyt.array import unyt_array
+
+from yt.fields.derived_field import DerivedField, ValidateParameter, ValidateSpatial
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.funcs import just_one
 from yt.geometry.geometry_handler import is_curvilinear
 
@@ -9,7 +15,9 @@ from .vector_operations import create_magnitude_field, create_squared_field
 
 
 @register_field_plugin
-def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
+def setup_fluid_vector_fields(
+    registry: RAMSESFieldInfo, ftype: str = "gas", slice_info: Optional[Any] = None
+) -> None:
     # Current implementation for gradient is not valid for curvilinear geometries
     if is_curvilinear(registry.ds.geometry):
         return
@@ -29,21 +37,21 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         sl_left, sl_right, div_fac = slice_info
     sl_center = slice(1, -1, None)
 
-    def _baroclinic_vorticity_x(field, data):
+    def _baroclinic_vorticity_x(field: DerivedField, data: FieldDetector) -> unyt_array:
         rho2 = data[ftype, "density"].astype(np.float64) ** 2
         return (
             data[ftype, "pressure_gradient_y"] * data[ftype, "density_gradient_z"]
             - data[ftype, "pressure_gradient_z"] * data[ftype, "density_gradient_z"]
         ) / rho2
 
-    def _baroclinic_vorticity_y(field, data):
+    def _baroclinic_vorticity_y(field: DerivedField, data: FieldDetector) -> unyt_array:
         rho2 = data[ftype, "density"].astype(np.float64) ** 2
         return (
             data[ftype, "pressure_gradient_z"] * data[ftype, "density_gradient_x"]
             - data[ftype, "pressure_gradient_x"] * data[ftype, "density_gradient_z"]
         ) / rho2
 
-    def _baroclinic_vorticity_z(field, data):
+    def _baroclinic_vorticity_z(field: DerivedField, data: FieldDetector) -> unyt_array:
         rho2 = data[ftype, "density"].astype(np.float64) ** 2
         return (
             data[ftype, "pressure_gradient_x"] * data[ftype, "density_gradient_y"]
@@ -70,7 +78,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         validators=bv_validators,
     )
 
-    def _vorticity_x(field, data):
+    def _vorticity_x(field: DerivedField, data: FieldDetector) -> unyt_array:
         vz = data[ftype, "relative_velocity_z"]
         vy = data[ftype, "relative_velocity_y"]
         f = (vz[sl_center, sl_right, sl_center] - vz[sl_center, sl_left, sl_center]) / (
@@ -83,7 +91,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
 
-    def _vorticity_y(field, data):
+    def _vorticity_y(field: DerivedField, data: FieldDetector) -> unyt_array:
         vx = data[ftype, "relative_velocity_x"]
         vz = data[ftype, "relative_velocity_z"]
         f = (vx[sl_center, sl_center, sl_right] - vx[sl_center, sl_center, sl_left]) / (
@@ -96,7 +104,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         new_field[sl_center, sl_center, sl_center] = f
         return new_field
 
-    def _vorticity_z(field, data):
+    def _vorticity_z(field: DerivedField, data: FieldDetector) -> unyt_array:
         vx = data[ftype, "relative_velocity_x"]
         vy = data[ftype, "relative_velocity_y"]
         f = (vy[sl_right, sl_center, sl_center] - vy[sl_left, sl_center, sl_center]) / (
@@ -141,13 +149,13 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         validators=vort_validators,
     )
 
-    def _vorticity_stretching_x(field, data):
+    def _vorticity_stretching_x(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_x"]
 
-    def _vorticity_stretching_y(field, data):
+    def _vorticity_stretching_y(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_y"]
 
-    def _vorticity_stretching_z(field, data):
+    def _vorticity_stretching_z(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_z"]
 
     for ax in "xyz":
@@ -169,19 +177,19 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         validators=vort_validators,
     )
 
-    def _vorticity_growth_x(field, data):
+    def _vorticity_growth_x(field: DerivedField, data: FieldDetector) -> unyt_array:
         return (
             -data[ftype, "vorticity_stretching_x"]
             - data[ftype, "baroclinic_vorticity_x"]
         )
 
-    def _vorticity_growth_y(field, data):
+    def _vorticity_growth_y(field: DerivedField, data: FieldDetector) -> unyt_array:
         return (
             -data[ftype, "vorticity_stretching_y"]
             - data[ftype, "baroclinic_vorticity_y"]
         )
 
-    def _vorticity_growth_z(field, data):
+    def _vorticity_growth_z(field: DerivedField, data: FieldDetector) -> unyt_array:
         return (
             -data[ftype, "vorticity_stretching_z"]
             - data[ftype, "baroclinic_vorticity_z"]
@@ -197,7 +205,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             validators=vort_validators,
         )
 
-    def _vorticity_growth_magnitude(field, data):
+    def _vorticity_growth_magnitude(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         result = np.sqrt(
             data[ftype, "vorticity_growth_x"] ** 2
             + data[ftype, "vorticity_growth_y"] ** 2
@@ -221,7 +231,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         take_log=False,
     )
 
-    def _vorticity_growth_magnitude_absolute(field, data):
+    def _vorticity_growth_magnitude_absolute(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         return np.sqrt(
             data[ftype, "vorticity_growth_x"] ** 2
             + data[ftype, "vorticity_growth_y"] ** 2
@@ -236,7 +248,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         validators=vort_validators,
     )
 
-    def _vorticity_growth_timescale(field, data):
+    def _vorticity_growth_timescale(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         domegax_dt = data[ftype, "vorticity_x"] / data[ftype, "vorticity_growth_x"]
         domegay_dt = data[ftype, "vorticity_y"] / data[ftype, "vorticity_growth_y"]
         domegaz_dt = data[ftype, "vorticity_z"] / data[ftype, "vorticity_growth_z"]
@@ -254,7 +268,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
     # With radiation pressure
     ########################################################################
 
-    def _vorticity_radiation_pressure_x(field, data):
+    def _vorticity_radiation_pressure_x(
+        field: DerivedField, data: FieldDetector
+    ) -> NoReturn:
         rho = data[ftype, "density"].astype(np.float64)
         return (
             data[ftype, "radiation_acceleration_y"] * data[ftype, "density_gradient_z"]
@@ -262,7 +278,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             * data[ftype, "density_gradient_y"]
         ) / rho
 
-    def _vorticity_radiation_pressure_y(field, data):
+    def _vorticity_radiation_pressure_y(
+        field: DerivedField, data: FieldDetector
+    ) -> NoReturn:
         rho = data[ftype, "density"].astype(np.float64)
         return (
             data[ftype, "radiation_acceleration_z"] * data[ftype, "density_gradient_x"]
@@ -270,7 +288,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             * data[ftype, "density_gradient_z"]
         ) / rho
 
-    def _vorticity_radiation_pressure_z(field, data):
+    def _vorticity_radiation_pressure_z(
+        field: DerivedField, data: FieldDetector
+    ) -> NoReturn:
         rho = data[ftype, "density"].astype(np.float64)
         return (
             data[ftype, "radiation_acceleration_x"] * data[ftype, "density_gradient_y"]
@@ -308,21 +328,27 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         validators=vrp_validators,
     )
 
-    def _vorticity_radiation_pressure_growth_x(field, data):
+    def _vorticity_radiation_pressure_growth_x(
+        field: DerivedField, data: FieldDetector
+    ) -> NoReturn:
         return (
             -data[ftype, "vorticity_stretching_x"]
             - data[ftype, "baroclinic_vorticity_x"]
             - data[ftype, "vorticity_radiation_pressure_x"]
         )
 
-    def _vorticity_radiation_pressure_growth_y(field, data):
+    def _vorticity_radiation_pressure_growth_y(
+        field: DerivedField, data: FieldDetector
+    ) -> NoReturn:
         return (
             -data[ftype, "vorticity_stretching_y"]
             - data[ftype, "baroclinic_vorticity_y"]
             - data[ftype, "vorticity_radiation_pressure_y"]
         )
 
-    def _vorticity_radiation_pressure_growth_z(field, data):
+    def _vorticity_radiation_pressure_growth_z(
+        field: DerivedField, data: FieldDetector
+    ) -> NoReturn:
         return (
             -data[ftype, "vorticity_stretching_z"]
             - data[ftype, "baroclinic_vorticity_z"]
@@ -339,7 +365,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             validators=vrp_validators,
         )
 
-    def _vorticity_radiation_pressure_growth_magnitude(field, data):
+    def _vorticity_radiation_pressure_growth_magnitude(
+        field: DerivedField, data: FieldDetector
+    ) -> NoReturn:
         result = np.sqrt(
             data[ftype, "vorticity_radiation_pressure_growth_x"] ** 2
             + data[ftype, "vorticity_radiation_pressure_growth_y"] ** 2
@@ -363,7 +391,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         take_log=False,
     )
 
-    def _vorticity_radiation_pressure_growth_magnitude_absolute(field, data):
+    def _vorticity_radiation_pressure_growth_magnitude_absolute(
+        field: DerivedField, data: FieldDetector
+    ) -> NoReturn:
         return np.sqrt(
             data[ftype, "vorticity_radiation_pressure_growth_x"] ** 2
             + data[ftype, "vorticity_radiation_pressure_growth_y"] ** 2
@@ -378,7 +408,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         validators=vrp_validators,
     )
 
-    def _vorticity_radiation_pressure_growth_timescale(field, data):
+    def _vorticity_radiation_pressure_growth_timescale(
+        field: DerivedField, data: FieldDetector
+    ) -> NoReturn:
         domegax_dt = (
             data[ftype, "vorticity_x"]
             / data[ftype, "vorticity_radiation_pressure_growth_x"]
@@ -401,7 +433,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         validators=vrp_validators,
     )
 
-    def _shear(field, data):
+    def _shear(field: DerivedField, data: FieldDetector) -> unyt_array:
         """
         Shear is defined as [(dvx/dy + dvy/dx)^2 + (dvz/dy + dvy/dz)^2 +
                              (dvx/dz + dvz/dx)^2 ]^(0.5)
@@ -457,7 +489,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["frequency"],
     )
 
-    def _shear_criterion(field, data):
+    def _shear_criterion(field: DerivedField, data: FieldDetector) -> unyt_array:
         """
         Divide by c_s to leave shear in units of length**-1, which
         can be compared against the inverse of the local cell size (1/dx)
@@ -483,7 +515,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         ],
     )
 
-    def _shear_mach(field, data):
+    def _shear_mach(field: DerivedField, data: FieldDetector) -> unyt_array:
         """
         Dimensionless shear (shear_mach) is defined nearly the same as shear,
         except that it is scaled by the local dx/dy/dz and the local sound speed.

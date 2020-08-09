@@ -53,7 +53,7 @@ class UnitContainer:
 
     """
 
-    def __init__(self, registry):
+    def __init__(self, registry: UnitRegistry) -> None:
         self.unit_symbols = _SymbolContainer(registry)
         self.physical_constants = _ConstantContainer(registry)
 

@@ -1,6 +1,9 @@
 import copy
 from contextlib import contextmanager
+from typing import Callable, Iterator, List, Tuple
 
+from yt.data_objects.selection_data_containers import YTRegion
+from yt.fields.derived_field import DerivedField
 from yt.fields.field_info_container import NullFunc, TranslationFunc
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTIllDefinedFilter
@@ -18,14 +21,16 @@ dfi = DummyFieldInfo()
 
 
 class ParticleFilter:
-    def __init__(self, name, function, requires, filtered_type):
+    def __init__(
+        self, name: str, function: Callable, requires: List[str], filtered_type: str
+    ) -> None:
         self.name = name
         self.function = function
         self.requires = requires[:]
         self.filtered_type = filtered_type
 
     @contextmanager
-    def apply(self, dobj):
+    def apply(self, dobj: YTRegion) -> Iterator:
         with dobj._chunked_read(dobj._current_chunk):
             with dobj._field_type_state(self.filtered_type, dfi):
                 # We won't be storing the field data from the whole read, so we
@@ -44,7 +49,7 @@ class ParticleFilter:
                 d = tr[filter]
             dobj.field_data[self.name, f[1]] = d
 
-    def available(self, field_list):
+    def available(self, field_list: List[Tuple[str, str]]) -> bool:
         # Note that this assumes that all the fields in field_list have the
         # same form as the 'requires' attributes.  This won't be true if the
         # fields are implicitly "all" or something.
@@ -57,7 +62,9 @@ class ParticleFilter:
             if (self.filtered_type, field) not in field_list
         )
 
-    def wrap_func(self, field_name, old_fi):
+    def wrap_func(
+        self, field_name: Tuple[str, str], old_fi: DerivedField
+    ) -> DerivedField:
         new_fi = copy.copy(old_fi)
         new_fi.name = (self.name, field_name[1])
         if old_fi._function == NullFunc:
@@ -67,7 +74,12 @@ class ParticleFilter:
         return new_fi
 
 
-def add_particle_filter(name, function, requires=None, filtered_type="all"):
+def add_particle_filter(
+    name: str,
+    function: Callable,
+    requires: List[str] = None,
+    filtered_type: str = "all",
+) -> None:
     r"""Create a new particle filter in the global namespace of filters
 
     A particle filter is a short name that corresponds to an algorithm for

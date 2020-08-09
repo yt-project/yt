@@ -1,6 +1,7 @@
 import configparser
 import os
 import warnings
+from typing import Any, Tuple
 
 ytcfg_defaults = dict(
     serialize="False",
@@ -112,13 +113,13 @@ if not os.path.exists(CURRENT_CONFIG_FILE):
 
 
 class YTConfigParser(configparser.ConfigParser):
-    def __setitem__(self, key, val):
+    def __setitem__(self, key: Tuple[str, str], val: str) -> None:
         self.set(key[0], key[1], val)
 
     def __getitem__(self, key):
         self.get(key[0], key[1])
 
-    def get(self, section, option, *args, **kwargs):
+    def get(self, section: str, option: str, *args: Any, **kwargs: Any) -> str:
         val = super(YTConfigParser, self).get(section, option, *args, **kwargs)
         return os.path.expanduser(os.path.expandvars(val))
 

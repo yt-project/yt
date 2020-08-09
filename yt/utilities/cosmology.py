@@ -1,6 +1,9 @@
 import functools
+from typing import Any, Callable, Optional, Union
 
 import numpy as np
+from numpy import float64, ndarray
+from unyt.array import unyt_quantity
 
 from yt.funcs import issue_deprecation_warning
 from yt.units import dimensions
@@ -69,17 +72,17 @@ class Cosmology:
 
     def __init__(
         self,
-        hubble_constant=0.71,
-        omega_matter=0.27,
-        omega_lambda=0.73,
-        omega_radiation=0.0,
-        omega_curvature=0.0,
-        unit_registry=None,
-        unit_system="cgs",
-        use_dark_factor=False,
-        w_0=-1.0,
-        w_a=0.0,
-    ):
+        hubble_constant: float = 0.71,
+        omega_matter: float = 0.27,
+        omega_lambda: float = 0.73,
+        omega_radiation: float = 0.0,
+        omega_curvature: float = 0.0,
+        unit_registry: Optional[Any] = None,
+        unit_system: str = "cgs",
+        use_dark_factor: bool = False,
+        w_0: float = -1.0,
+        w_a: float = 0.0,
+    ) -> None:
         self.omega_matter = float(omega_matter)
         self.omega_radiation = float(omega_radiation)
         self.omega_lambda = float(omega_lambda)
@@ -108,7 +111,7 @@ class Cosmology:
         self.w_0 = w_0
         self.w_a = w_a
 
-    def hubble_distance(self):
+    def hubble_distance(self) -> unyt_quantity:
         r"""
         The distance corresponding to c / h, where c is the speed of light
         and h is the Hubble parameter in units of 1 / time.
@@ -117,7 +120,7 @@ class Cosmology:
             self.unit_system
         )
 
-    def comoving_radial_distance(self, z_i, z_f):
+    def comoving_radial_distance(self, z_i: int, z_f: float) -> unyt_quantity:
         r"""
         The comoving distance along the line of sight to on object at redshift,
         z_f, viewed at a redshift, z_i.
@@ -141,7 +144,7 @@ class Cosmology:
             self.hubble_distance() * trapzint(self.inverse_expansion_factor, z_i, z_f)
         ).in_base(self.unit_system)
 
-    def comoving_transverse_distance(self, z_i, z_f):
+    def comoving_transverse_distance(self, z_i: int, z_f: float) -> unyt_quantity:
         r"""
         When multiplied by some angle, the distance between two objects
         observed at redshift, z_f, with an angular separation given by that
@@ -261,7 +264,7 @@ class Cosmology:
                 4 * np.pi * np.power(self.comoving_transverse_distance(z_i, z_f), 3) / 3
             ).in_base(self.unit_system)
 
-    def angular_diameter_distance(self, z_i, z_f):
+    def angular_diameter_distance(self, z_i: float, z_f: float) -> unyt_quantity:
         r"""
         Following Hogg (1999), the angular diameter distance is 'the ratio of
         an object's physical transverse size to its angular size in radians.'
@@ -399,7 +402,7 @@ class Cosmology:
             self.unit_system
         )
 
-    def critical_density(self, z):
+    def critical_density(self, z: float) -> unyt_quantity:
         r"""
         The density required for closure of the Universe at a given
         redshift in the proper frame.
@@ -422,7 +425,7 @@ class Cosmology:
             self.unit_system
         )
 
-    def hubble_parameter(self, z):
+    def hubble_parameter(self, z: float) -> unyt_quantity:
         r"""
         The value of the Hubble parameter at a given redshift.
 
@@ -444,7 +447,7 @@ class Cosmology:
     def age_integrand(self, z):
         return 1.0 / (z + 1) / self.expansion_factor(z)
 
-    def expansion_factor(self, z):
+    def expansion_factor(self, z: Union[float, ndarray]) -> Union[float64, ndarray]:
         r"""
         The ratio between the Hubble parameter at a given redshift and
         redshift zero.
@@ -470,7 +473,7 @@ class Cosmology:
             + self.omega_lambda * dark_factor
         )
 
-    def inverse_expansion_factor(self, z):
+    def inverse_expansion_factor(self, z: ndarray) -> ndarray:
         return 1.0 / self.expansion_factor(z)
 
     def path_length_function(self, z):
@@ -656,14 +659,14 @@ class Cosmology:
     _quan = None
 
     @property
-    def quan(self):
+    def quan(self) -> Callable:
         if self._quan is not None:
             return self._quan
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
 
-def trapzint(f, a, b, bins=10000):
+def trapzint(f: Callable, a: int, b: float, bins: int = 10000) -> float64:
     zbins = np.logspace(np.log10(a + 1), np.log10(b + 1), bins) - 1
     return np.trapz(f(zbins[:-1]), x=zbins[:-1], dx=np.diff(zbins))
 

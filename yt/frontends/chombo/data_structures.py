@@ -1,6 +1,7 @@
 import os
 import re
 import weakref
+from typing import Any
 
 import numpy as np
 
@@ -23,7 +24,7 @@ from .fields import (
 )
 
 
-def is_chombo_hdf5(fn):
+def is_chombo_hdf5(fn: str) -> bool:
     try:
         with h5py.File(fn, mode="r") as fileh:
             valid = "Chombo_global" in fileh["/"]
@@ -358,7 +359,7 @@ class ChomboDataset(Dataset):
         return R_index - L_index
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
 
         if not is_chombo_hdf5(args[0]):
             return False
@@ -553,7 +554,7 @@ class PlutoDataset(ChomboDataset):
         self._determine_current_time()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
 
         if not is_chombo_hdf5(args[0]):
             return False
@@ -712,7 +713,7 @@ class Orion2Dataset(ChomboDataset):
                 self.gamma = np.float64(vals)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
 
         if not is_chombo_hdf5(args[0]):
             return False
@@ -780,7 +781,7 @@ class ChomboPICDataset(ChomboDataset):
             self._field_info_class = ChomboPICFieldInfo2D
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
 
         warn_h5py(args[0])
 

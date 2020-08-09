@@ -1,5 +1,6 @@
 import glob
 import os
+from typing import Any
 
 import numpy as np
 
@@ -118,7 +119,7 @@ class AHFHalosDataset(Dataset):
         self.current_time = cosmo.lookback_time(param["z"], 1e6).in_units("s")
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         filename = args[0]
         if not filename.endswith(".parameter"):
             return False

@@ -2,17 +2,28 @@ import os
 import weakref
 from collections import defaultdict
 from glob import glob
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
+from weakref import ReferenceType
 
 import numpy as np
+from _io import TextIOWrapper
+from numpy import ndarray
 
 from yt.arraytypes import blankRecordArray
 from yt.data_objects.octree_subset import OctreeSubset
-from yt.data_objects.particle_filters import add_particle_filter
+from yt.data_objects.particle_filters import ParticleFilter, add_particle_filter
+from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.static_output import Dataset
+from yt.frontends.ramses.field_handlers import (
+    GravFieldFileHandler,
+    HydroFieldFileHandler,
+    RTFieldFileHandler,
+)
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.oct_container import RAMSESOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
+from yt.geometry.selection_routines import OctreeSubsetSelector, RegionSelector
 from yt.utilities.cython_fortran_utils import FortranFile as fpu
 from yt.utilities.lib.cosmology_time import friedman
 from yt.utilities.on_demand_imports import _f90nml as f90nml
@@ -30,7 +41,7 @@ class RAMSESDomainFile:
     _last_mask = None
     _last_selector_id = None
 
-    def __init__(self, ds, domain_id):
+    def __init__(self, ds: ReferenceType[RAMSESDataset], domain_id: int) -> None:
         self.ds = ds
         self.domain_id = domain_id
 
@@ -95,7 +106,7 @@ class RAMSESDomainFile:
         return lvl_count
 
     @property
-    def amr_file(self):
+    def amr_file(self) -> fpu:
         if hasattr(self, "_amr_file"):
             self._amr_file.seek(0)
             return self._amr_file
@@ -105,7 +116,7 @@ class RAMSESDomainFile:
         f.seek(0)
         return f
 
-    def _read_amr_header(self):
+    def _read_amr_header(self) -> None:
         hvals = {}
         f = self.amr_file
         f.seek(0)
@@ -145,7 +156,7 @@ class RAMSESDomainFile:
         ].sum()
         self.total_oct_count = hvals["numbl"][self.ds.min_level :, :].sum(axis=0)
 
-    def _read_amr(self):
+    def _read_amr(self) -> None:
         """Open the oct file, read in octs level-by-level.
            For each oct, only the position, index, level and domain
            are needed - its position in the octree is found automatically.
@@ -180,7 +191,7 @@ class RAMSESDomainFile:
         # Close AMR file
         f.close()
 
-    def included(self, selector):
+    def included(self, selector: Union[OctreeSubsetSelector, RegionSelector]) -> bool:
         if getattr(selector, "domain_id", None) is not None:
             return selector.domain_id == self.domain_id
         domain_ids = self.oct_handler.domain_identify(selector)
@@ -196,13 +207,13 @@ class RAMSESDomainSubset(OctreeSubset):
 
     def __init__(
         self,
-        base_region,
-        domain,
-        ds,
-        over_refine_factor=1,
-        num_ghost_zones=0,
-        base_grid=None,
-    ):
+        base_region: YTRegion,
+        domain: RAMSESDomainFile,
+        ds: ReferenceType[RAMSESDataset],
+        over_refine_factor: int = 1,
+        num_ghost_zones: int = 0,
+        base_grid: Optional[Any] = None,
+    ) -> None:
         super(RAMSESDomainSubset, self).__init__(
             base_region, domain, ds, over_refine_factor, num_ghost_zones
         )
@@ -225,7 +236,15 @@ class RAMSESDomainSubset(OctreeSubset):
                 " was called with num_ghost_zones=%s" % num_ghost_zones
             )
 
-    def _fill_no_ghostzones(self, fd, fields, selector, file_handler):
+    def _fill_no_ghostzones(
+        self,
+        fd: fpu,
+        fields: List[Tuple[str, str]],
+        selector: RegionSelector,
+        file_handler: Union[
+            GravFieldFileHandler, HydroFieldFileHandler, RTFieldFileHandler
+        ],
+    ) -> Dict[str, ndarray]:
         ndim = self.ds.dimensionality
         # Here we get a copy of the file, which we skip through and read the
         # bits we want.
@@ -261,8 +280,13 @@ class RAMSESDomainSubset(OctreeSubset):
         return data
 
     def _fill_with_ghostzones(
-        self, fd, fields, selector, file_handler, num_ghost_zones
-    ):
+        self,
+        fd: fpu,
+        fields: List[Tuple[str, str]],
+        selector: OctreeSubsetSelector,
+        file_handler: HydroFieldFileHandler,
+        num_ghost_zones: int,
+    ) -> Dict[str, ndarray]:
         ndim = self.ds.dimensionality
         ncpu = self.ds.parameters["ncpu"]
         # Here we get a copy of the file, which we skip through and read the
@@ -307,7 +331,7 @@ class RAMSESDomainSubset(OctreeSubset):
         return tr
 
     @property
-    def fwidth(self):
+    def fwidth(self) -> ndarray:
         fwidth = super(RAMSESDomainSubset, self).fwidth
         if self._num_ghost_zones > 0:
             fwidth = fwidth.reshape(-1, 8, 3)
@@ -340,7 +364,15 @@ class RAMSESDomainSubset(OctreeSubset):
 
         return fcoords
 
-    def fill(self, fd, fields, selector, file_handler):
+    def fill(
+        self,
+        fd: fpu,
+        fields: List[Tuple[str, str]],
+        selector: Union[OctreeSubsetSelector, RegionSelector],
+        file_handler: Union[
+            GravFieldFileHandler, HydroFieldFileHandler, RTFieldFileHandler
+        ],
+    ) -> Dict[str, ndarray]:
         if self._num_ghost_zones == 0:
             return self._fill_no_ghostzones(fd, fields, selector, file_handler)
         else:
@@ -348,7 +380,9 @@ class RAMSESDomainSubset(OctreeSubset):
                 fd, fields, selector, file_handler, self._num_ghost_zones
             )
 
-    def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
+    def retrieve_ghost_zones(
+        self, ngz: int, fields: List, smoothed: bool = False
+    ) -> RAMSESDomainSubset:
         new_subset = RAMSESDomainSubset(
             self.base_region, self.domain, self.ds, num_ghost_zones=ngz, base_grid=self
         )
@@ -357,7 +391,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
 
 class RAMSESIndex(OctreeIndex):
-    def __init__(self, ds, dataset_type="ramses"):
+    def __init__(self, ds: RAMSESDataset, dataset_type: str = "ramses") -> None:
         self.fluid_field_list = ds._fields_in_file
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
@@ -368,7 +402,7 @@ class RAMSESIndex(OctreeIndex):
         self.float_type = np.float64
         super(RAMSESIndex, self).__init__(ds, dataset_type)
 
-    def _initialize_oct_handler(self):
+    def _initialize_oct_handler(self) -> None:
         if self.ds._bbox is not None:
             cpu_list = get_cpu_list(self.dataset, self.dataset._bbox)
         else:
@@ -386,7 +420,7 @@ class RAMSESIndex(OctreeIndex):
         )
         self.num_grids = total_octs
 
-    def _detect_output_fields(self):
+    def _detect_output_fields(self) -> None:
         dsl = set([])
 
         # Get the detected particle fields
@@ -408,7 +442,7 @@ class RAMSESIndex(OctreeIndex):
 
         self.field_list = self.particle_field_list + self.fluid_field_list
 
-    def _identify_base_chunk(self, dobj):
+    def _identify_base_chunk(self, dobj: Union[YTRegion, RAMSESDomainSubset]) -> None:
         if getattr(dobj, "_chunk_info", None) is None:
             domains = [dom for dom in self.domains if dom.included(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
@@ -426,11 +460,19 @@ class RAMSESIndex(OctreeIndex):
             dobj._chunk_info = subsets
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
-    def _chunk_all(self, dobj):
+    def _chunk_all(
+        self, dobj: Union[YTRegion, RAMSESDomainSubset]
+    ) -> Iterator[Union[Iterator, Iterator[YTDataChunk]]]:
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         yield YTDataChunk(dobj, "all", oobjs, None)
 
-    def _chunk_spatial(self, dobj, ngz, sort=None, preload_fields=None):
+    def _chunk_spatial(
+        self,
+        dobj: YTRegion,
+        ngz: int,
+        sort: Optional[Any] = None,
+        preload_fields: Optional[List[Tuple[str, str]]] = None,
+    ) -> Iterator[Union[Iterator, Iterator[YTDataChunk]]]:
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for og in sobjs:
             if ngz > 0:
@@ -439,7 +481,12 @@ class RAMSESIndex(OctreeIndex):
                 g = og
             yield YTDataChunk(dobj, "spatial", [g], None)
 
-    def _chunk_io(self, dobj, cache=True, local_only=False):
+    def _chunk_io(
+        self,
+        dobj: Union[YTRegion, RAMSESDomainSubset],
+        cache: bool = True,
+        local_only: bool = False,
+    ) -> Iterator[Union[Iterator, Iterator[YTDataChunk]]]:
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
         for subset in oobjs:
             yield YTDataChunk(dobj, "io", [subset], None, cache=cache)
@@ -460,7 +507,7 @@ class RAMSESIndex(OctreeIndex):
                 level
             ]
 
-    def _get_particle_type_counts(self):
+    def _get_particle_type_counts(self) -> Dict[str, Any]:
         npart = 0
         npart = {k: 0 for k in self.ds.particle_types if k != "all"}
         for dom in self.domains:
@@ -524,18 +571,18 @@ class RAMSESDataset(Dataset):
 
     def __init__(
         self,
-        filename,
-        dataset_type="ramses",
-        fields=None,
-        storage_filename=None,
-        units_override=None,
-        unit_system="cgs",
-        extra_particle_fields=None,
-        cosmological=None,
-        bbox=None,
-        max_level=None,
-        max_level_convention=None,
-    ):
+        filename: str,
+        dataset_type: str = "ramses",
+        fields: Optional[Any] = None,
+        storage_filename: Optional[Any] = None,
+        units_override: Optional[Dict[str, Tuple[ndarray, str]]] = None,
+        unit_system: str = "cgs",
+        extra_particle_fields: Optional[List[Tuple[str, str]]] = None,
+        cosmological: Optional[bool] = None,
+        bbox: Optional[Any] = None,
+        max_level: Optional[float] = None,
+        max_level_convention: Optional[str] = None,
+    ) -> None:
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
             fields = field_aliases[fields]
@@ -609,7 +656,9 @@ class RAMSESDataset(Dataset):
         self.storage_filename = storage_filename
 
     @staticmethod
-    def _sanitize_max_level(max_level, max_level_convention):
+    def _sanitize_max_level(
+        max_level: Optional[float], max_level_convention: Optional[str]
+    ) -> Tuple[int, str]:
         # NOTE: the initialisation of the dataset class sets
         #       self.min_level _and_ requires force_max_level
         #       to be set, so we cannot convert from to yt/ramses
@@ -642,15 +691,15 @@ class RAMSESDataset(Dataset):
             )
         return (max_level, max_level_convention)
 
-    def create_field_info(self, *args, **kwa):
+    def create_field_info(self, *args: Any, **kwa: Any) -> None:
         """Extend create_field_info to add the particles types."""
         super(RAMSESDataset, self).create_field_info(*args, **kwa)
         # Register particle filters
         if ("io", "particle_family") in self.field_list:
             for fname, value in particle_families.items():
 
-                def loc(val):
-                    def closure(pfilter, data):
+                def loc(val: int) -> Callable:
+                    def closure(pfilter: ParticleFilter, data: YTRegion) -> ndarray:
                         filter = data[(pfilter.filtered_type, "particle_family")] == val
                         return filter
 
@@ -664,10 +713,10 @@ class RAMSESDataset(Dataset):
                 mylog.info("Adding particle_type: %s", k)
                 self.add_particle_filter("%s" % k)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return self.basename.rsplit(".", 1)[0]
 
-    def _set_code_unit_attributes(self):
+    def _set_code_unit_attributes(self) -> None:
         """
         Generates the conversion to various physical _units based on the parameter file
         """
@@ -703,7 +752,7 @@ class RAMSESDataset(Dataset):
         # Only the length unit get scales by a factor of boxlen
         setdefaultattr(self, "length_unit", self.quan(length_unit * boxlen, "cm"))
 
-    def _parse_parameter_file(self):
+    def _parse_parameter_file(self) -> None:
         # hardcoded for now
         # These should be explicitly obtained from the file, but for now that
         # will wait until a reorganization of the source tree and better
@@ -716,7 +765,7 @@ class RAMSESDataset(Dataset):
         # We now execute the same logic Oliver's code does
         rheader = {}
 
-        def read_rhs(f, cast):
+        def read_rhs(f: TextIOWrapper, cast: type) -> None:
             line = f.readline().replace("\n", "")
             p, v = line.split("=")
             rheader[p.strip()] = cast(v.strip())
@@ -812,7 +861,7 @@ class RAMSESDataset(Dataset):
         # Read namelist.txt file (if any)
         self.read_namelist()
 
-    def read_namelist(self):
+    def read_namelist(self) -> None:
         """Read the namelist.txt file in the output folder, if present"""
         namelist_file = os.path.join(self.root_folder, "namelist.txt")
         if os.path.exists(namelist_file):
@@ -830,7 +879,7 @@ class RAMSESDataset(Dataset):
             self.parameters["namelist"] = nml
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not os.path.basename(args[0]).startswith("info_"):
             return False
         fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")

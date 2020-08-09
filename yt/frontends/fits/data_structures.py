@@ -4,6 +4,7 @@ import uuid
 import warnings
 import weakref
 from collections import defaultdict
+from typing import Any, Optional, Tuple
 
 import numpy as np
 import numpy.core.defchararray as np_char
@@ -260,7 +261,7 @@ def find_primary_header(fileh):
     return header, first_image
 
 
-def check_fits_valid(args):
+def check_fits_valid(args: Tuple[str]) -> Optional[Any]:
     ext = args[0].rsplit(".", 1)[-1]
     if ext.upper() in ("GZ", "FZ"):
         # We don't know for sure that there will be > 1
@@ -285,7 +286,7 @@ def check_fits_valid(args):
     return None
 
 
-def check_sky_coords(args, ndim):
+def check_sky_coords(args: Tuple[str], ndim: int) -> bool:
     fileh = check_fits_valid(args)
     if fileh is not None:
         try:
@@ -528,7 +529,7 @@ class FITSDataset(Dataset):
         self.lon_name = "X"
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         fileh = check_fits_valid(args)
         if fileh is None:
             return False
@@ -626,7 +627,7 @@ class YTFITSDataset(FITSDataset):
         self.domain_right_edge = domain_right_edge
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         fileh = check_fits_valid(args)
         if fileh is None:
             return False
@@ -699,7 +700,7 @@ class SkyDataFITSDataset(FITSDataset):
             self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         return check_sky_coords(args, 2)
 
 
@@ -816,7 +817,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         return self.arr((pv.v - self._p0) * self._dz + self._z0, self.spec_unit)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         return check_sky_coords(args, 3)
 
 
@@ -922,7 +923,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.wcs_2d = self.wcs
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         fileh = check_fits_valid(args)
         if fileh is not None:
             try:

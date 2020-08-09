@@ -1,6 +1,9 @@
 import math
+from typing import Tuple, Union
 
 import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array, unyt_quantity
 
 from yt.units.yt_array import YTArray
 
@@ -331,7 +334,9 @@ def rotate_vector_3D(a, dim, angle):
         return np.dot(R, a.T).T
 
 
-def modify_reference_frame(CoM, L, P=None, V=None):
+def modify_reference_frame(
+    CoM: unyt_array, L: unyt_array, P: unyt_array = None, V: unyt_array = None
+) -> Tuple[unyt_array, unyt_array, unyt_array]:
     r"""Rotates and translates data into a new reference frame to make
     calculations easier.
 
@@ -660,7 +665,7 @@ def compute_cylindrical_radius(CoM, L, P, V):
     return np.sqrt((P * P).sum(axis=1))
 
 
-def ortho_find(vec1):
+def ortho_find(vec1: unyt_array) -> Tuple[ndarray, ndarray, ndarray]:
     r"""Find two complementary orthonormal vectors to a given vector.
 
     For any given non-zero vector, there are infinite pairs of vectors
@@ -1312,14 +1317,16 @@ def rotation_matrix_to_quaternion(rot_matrix):
     return np.array([w, x, y, z])
 
 
-def get_sph_r(coords):
+def get_sph_r(coords: ndarray) -> ndarray:
     # The spherical coordinates radius is simply the magnitude of the
     # coordinate vector.
 
     return np.sqrt(np.sum(coords ** 2, axis=0))
 
 
-def resize_vector(vector, vector_array):
+def resize_vector(
+    vector: Union[ndarray, unyt_array], vector_array: Union[ndarray, unyt_array]
+) -> Union[ndarray, unyt_array]:
     if len(vector_array.shape) == 4:
         res_vector = np.resize(vector, (3, 1, 1, 1))
     else:
@@ -1327,7 +1334,7 @@ def resize_vector(vector, vector_array):
     return res_vector
 
 
-def normalize_vector(vector):
+def normalize_vector(vector: unyt_array) -> unyt_array:
     # this function normalizes
     # an input vector
 
@@ -1337,7 +1344,7 @@ def normalize_vector(vector):
     return vector
 
 
-def get_sph_theta(coords, normal):
+def get_sph_theta(coords: Union[ndarray, unyt_array], normal: unyt_array) -> ndarray:
     # The angle (theta) with respect to the normal (J), is the arccos
     # of the dot product of the normal with the normalized coordinate
     # vector.
@@ -1362,7 +1369,9 @@ def get_sph_theta(coords, normal):
     return ret
 
 
-def get_sph_phi(coords, normal):
+def get_sph_phi(
+    coords: Union[ndarray, unyt_array], normal: unyt_array
+) -> Union[ndarray, unyt_quantity]:
     # We have freedom with respect to what axis (xprime) to define
     # the disk angle. Here I've chosen to use the axis that is
     # perpendicular to the normal and the y-axis. When normal ==
@@ -1389,7 +1398,7 @@ def get_sph_phi(coords, normal):
     return np.arctan2(Py, Px)
 
 
-def get_cyl_r(coords, normal):
+def get_cyl_r(coords: Union[ndarray, unyt_array], normal: unyt_array) -> ndarray:
     # The cross product of the normal (J) with a coordinate vector
     # gives a vector of magnitude equal to the cylindrical radius.
 
@@ -1403,7 +1412,9 @@ def get_cyl_r(coords, normal):
     return np.sqrt(np.sum(JcrossCoords ** 2, axis=0))
 
 
-def get_cyl_z(coords, normal):
+def get_cyl_z(
+    coords: Union[ndarray, unyt_array], normal: unyt_array
+) -> Union[unyt_array, unyt_quantity]:
     # The dot product of the normal (J) with the coordinate vector
     # gives the cylindrical height.
 
@@ -1416,13 +1427,17 @@ def get_cyl_z(coords, normal):
     return np.sum(J * coords, axis=0)
 
 
-def get_cyl_theta(coords, normal):
+def get_cyl_theta(
+    coords: Union[ndarray, unyt_array], normal: unyt_array
+) -> Union[ndarray, unyt_quantity]:
     # This is identical to the spherical phi component
 
     return get_sph_phi(coords, normal)
 
 
-def get_cyl_r_component(vectors, theta, normal):
+def get_cyl_r_component(
+    vectors: unyt_array, theta: Union[ndarray, unyt_quantity], normal: unyt_array
+) -> Union[unyt_array, unyt_quantity]:
     # The r of a vector is the vector dotted with rhat
 
     normal = normalize_vector(normal)
@@ -1440,7 +1455,9 @@ def get_cyl_r_component(vectors, theta, normal):
     return np.sum(vectors * rhat, axis=0)
 
 
-def get_cyl_theta_component(vectors, theta, normal):
+def get_cyl_theta_component(
+    vectors: unyt_array, theta: Union[ndarray, unyt_quantity], normal: unyt_array
+) -> Union[unyt_array, unyt_quantity]:
     # The theta component of a vector is the vector dotted with thetahat
     normal = normalize_vector(normal)
     (zprime, xprime, yprime) = ortho_find(normal)
@@ -1457,7 +1474,9 @@ def get_cyl_theta_component(vectors, theta, normal):
     return np.sum(vectors * thetahat, axis=0)
 
 
-def get_cyl_z_component(vectors, normal):
+def get_cyl_z_component(
+    vectors: unyt_array, normal: unyt_array
+) -> Union[unyt_array, unyt_quantity]:
     # The z component of a vector is the vector dotted with zhat
     normal = normalize_vector(normal)
     (zprime, xprime, yprime) = ortho_find(normal)
@@ -1470,7 +1489,12 @@ def get_cyl_z_component(vectors, normal):
     return np.sum(vectors * zhat, axis=0)
 
 
-def get_sph_r_component(vectors, theta, phi, normal):
+def get_sph_r_component(
+    vectors: unyt_array,
+    theta: ndarray,
+    phi: Union[ndarray, unyt_quantity],
+    normal: unyt_array,
+) -> Union[unyt_array, unyt_quantity]:
     # The r component of a vector is the vector dotted with rhat
     normal = normalize_vector(normal)
     (zprime, xprime, yprime) = ortho_find(normal)
@@ -1495,7 +1519,9 @@ def get_sph_r_component(vectors, theta, phi, normal):
     return np.sum(vectors * rhat, axis=0)
 
 
-def get_sph_phi_component(vectors, phi, normal):
+def get_sph_phi_component(
+    vectors: unyt_array, phi: Union[ndarray, unyt_quantity], normal: unyt_array
+) -> Union[unyt_array, unyt_quantity]:
     # The phi component of a vector is the vector dotted with phihat
     normal = normalize_vector(normal)
     (zprime, xprime, yprime) = ortho_find(normal)
@@ -1512,7 +1538,12 @@ def get_sph_phi_component(vectors, phi, normal):
     return np.sum(vectors * phihat, axis=0)
 
 
-def get_sph_theta_component(vectors, theta, phi, normal):
+def get_sph_theta_component(
+    vectors: unyt_array,
+    theta: ndarray,
+    phi: Union[ndarray, unyt_quantity],
+    normal: unyt_array,
+) -> Union[unyt_array, unyt_quantity]:
     # The theta component of a vector is the vector dotted with thetahat
     normal = normalize_vector(normal)
     (zprime, xprime, yprime) = ortho_find(normal)

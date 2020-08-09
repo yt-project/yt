@@ -1,8 +1,13 @@
 import weakref
 from numbers import Number
+from typing import Callable, Tuple, Union
 
 import numpy as np
+from unyt.array import unyt_array
 
+from yt.fields.derived_field import DerivedField
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.data_structures import RAMSESDataset, RAMSESDomainSubset
 from yt.funcs import fix_unitary, iterable, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
@@ -12,20 +17,24 @@ def _unknown_coord(field, data):
     raise YTCoordinateNotImplemented
 
 
-def _get_coord_fields(axi, units="code_length"):
-    def _dds(field, data):
+def _get_coord_fields(
+    axi: int, units: str = "code_length"
+) -> Tuple[Callable, Callable]:
+    def _dds(
+        field: DerivedField, data: Union[FieldDetector, RAMSESDomainSubset]
+    ) -> unyt_array:
         rv = data.ds.arr(data.fwidth[..., axi].copy(), units)
         return data._reshape_vals(rv)
 
-    def _coords(field, data):
+    def _coords(field: DerivedField, data: FieldDetector) -> unyt_array:
         rv = data.ds.arr(data.fcoords[..., axi].copy(), units)
         return data._reshape_vals(rv)
 
     return _dds, _coords
 
 
-def _get_vert_fields(axi, units="code_length"):
-    def _vert(field, data):
+def _get_vert_fields(axi: int, units: str = "code_length") -> Callable:
+    def _vert(field: DerivedField, data: FieldDetector) -> unyt_array:
         rv = data.ds.arr(data.fcoords_vertex[..., axi].copy(), units)
         return rv
 
@@ -64,7 +73,7 @@ def validate_iterable_width(width, ds, unit=None):
 class CoordinateHandler:
     name = None
 
-    def __init__(self, ds, ordering):
+    def __init__(self, ds: RAMSESDataset, ordering: Tuple[str, str, str]) -> None:
         self.ds = weakref.proxy(ds)
         self.axis_order = ordering
 

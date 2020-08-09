@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 from yt.frontends.gadget.data_structures import GadgetHDF5Dataset
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -10,7 +11,7 @@ class GizmoDataset(GadgetHDF5Dataset):
     _field_info_class = GizmoFieldInfo
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         need_groups = ["Header"]
         veto_groups = ["FOF", "Group", "Subhalo"]
         valid = True

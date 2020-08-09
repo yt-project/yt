@@ -1,7 +1,11 @@
-import numpy as np
+from typing import Callable, List, Tuple
 
-from yt.fields.derived_field import ValidateParameter, ValidateSpatial
+import numpy as np
+from unyt.array import unyt_array, unyt_quantity
+
+from yt.fields.derived_field import DerivedField, ValidateParameter, ValidateSpatial
 from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.funcs import issue_deprecation_warning
 from yt.units.yt_array import uconcatenate, ucross
 from yt.utilities.lib.misc_utilities import (
@@ -76,12 +80,14 @@ def _field_concat_slice(fname, axi):
     return _AllFields
 
 
-def particle_deposition_functions(ptype, coord_name, mass_name, registry):
+def particle_deposition_functions(
+    ptype: str, coord_name: str, mass_name: str, registry: RAMSESFieldInfo
+) -> List[Tuple[str, str]]:
     unit_system = registry.ds.unit_system
     orig = set(registry.keys())
     ptype_dn = ptype.replace("_", " ").title()
 
-    def particle_count(field, data):
+    def particle_count(field: DerivedField, data: FieldDetector) -> unyt_array:
         pos = data[ptype, coord_name]
         d = data.deposit(pos, method="count")
         return data.apply_units(d, field.units)
@@ -95,7 +101,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         display_name=r"\mathrm{%s Count}" % ptype_dn,
     )
 
-    def particle_mass(field, data):
+    def particle_mass(field: DerivedField, data: FieldDetector) -> unyt_array:
         pos = data[ptype, coord_name]
         pmass = data[ptype, mass_name]
         pmass.convert_to_units(field.units)
@@ -111,7 +117,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         units=unit_system["mass"],
     )
 
-    def particle_density(field, data):
+    def particle_density(field: DerivedField, data: FieldDetector) -> unyt_array:
         pos = data[ptype, coord_name]
         pos.convert_to_units("code_length")
         mass = data[ptype, mass_name]
@@ -130,7 +136,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         units=unit_system["density"],
     )
 
-    def particle_cic(field, data):
+    def particle_cic(field: DerivedField, data: FieldDetector) -> unyt_array:
         pos = data[ptype, coord_name]
         d = data.deposit(pos, [data[ptype, mass_name]], method="cic")
         d = data.apply_units(d, data[ptype, mass_name].units)
@@ -146,8 +152,10 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         units=unit_system["density"],
     )
 
-    def _get_density_weighted_deposit_field(fname, units, method):
-        def _deposit_field(field, data):
+    def _get_density_weighted_deposit_field(
+        fname: str, units: str, method: str
+    ) -> Callable:
+        def _deposit_field(field: DerivedField, data: FieldDetector) -> unyt_array:
             """
             Create a grid field for particle quantities weighted by particle
             mass, using cloud-in-cell deposit.
@@ -192,7 +200,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
 
     # Now some translation functions.
 
-    def particle_ones(field, data):
+    def particle_ones(field: DerivedField, data: FieldDetector) -> unyt_array:
         v = np.ones(data[ptype, coord_name].shape[0], dtype="float64")
         return data.apply_units(v, field.units)
 
@@ -204,7 +212,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
         display_name=r"Particle Count",
     )
 
-    def particle_mesh_ids(field, data):
+    def particle_mesh_ids(field: DerivedField, data: FieldDetector) -> unyt_array:
         pos = data[ptype, coord_name]
         ids = np.zeros(pos.shape[0], dtype="float64") - 1
         # This is float64 in name only.  It will be properly cast inside the
@@ -257,14 +265,16 @@ def particle_scalar_functions(ptype, coord_name, vel_name, registry):
         )
 
 
-def particle_vector_functions(ptype, coord_names, vel_names, registry):
+def particle_vector_functions(
+    ptype: str, coord_names: List[str], vel_names: List[str], registry: RAMSESFieldInfo
+) -> None:
 
     unit_system = registry.ds.unit_system
 
     # This will column_stack a set of scalars to create vector fields.
 
-    def _get_vec_func(_ptype, names):
-        def particle_vectors(field, data):
+    def _get_vec_func(_ptype: str, names: List[str]) -> Callable:
+        def particle_vectors(field: DerivedField, data: FieldDetector) -> unyt_array:
             v = [data[_ptype, name].in_units(field.units) for name in names]
             return data.ds.arr(np.column_stack(v), v[0].units)
 
@@ -285,7 +295,9 @@ def particle_vector_functions(ptype, coord_names, vel_names, registry):
     )
 
 
-def get_angular_momentum_components(ptype, data, spos, svel):
+def get_angular_momentum_components(
+    ptype: str, data: FieldDetector, spos: str, svel: str
+) -> Tuple[unyt_array, unyt_array, unyt_array]:
     if data.has_field_parameter("normal"):
         normal = data.get_field_parameter("normal")
     else:
@@ -298,11 +310,16 @@ def get_angular_momentum_components(ptype, data, spos, svel):
 
 
 def standard_particle_fields(
-    registry, ptype, spos="particle_position_%s", svel="particle_velocity_%s"
-):
+    registry: RAMSESFieldInfo,
+    ptype: str,
+    spos: str = "particle_position_%s",
+    svel: str = "particle_velocity_%s",
+) -> None:
     unit_system = registry.ds.unit_system
 
-    def _particle_velocity_magnitude(field, data):
+    def _particle_velocity_magnitude(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """ M{|v|} """
         return np.sqrt(
             data[ptype, "relative_%s" % (svel % "x")] ** 2
@@ -318,7 +335,9 @@ def standard_particle_fields(
         units=unit_system["velocity"],
     )
 
-    def _particle_specific_angular_momentum(field, data):
+    def _particle_specific_angular_momentum(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """Calculate the angular of a particle velocity.
 
         Returns a vector for each particle.
@@ -339,11 +358,17 @@ def standard_particle_fields(
         validators=[ValidateParameter("center")],
     )
 
-    def _get_spec_ang_mom_comp(axi, ax, _ptype):
-        def _particle_specific_angular_momentum_component(field, data):
+    def _get_spec_ang_mom_comp(
+        axi: int, ax: str, _ptype: str
+    ) -> Tuple[Callable, Callable]:
+        def _particle_specific_angular_momentum_component(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_array:
             return data[_ptype, "particle_specific_angular_momentum"][:, axi]
 
-        def _particle_angular_momentum_component(field, data):
+        def _particle_angular_momentum_component(
+            field: DerivedField, data: FieldDetector
+        ) -> unyt_quantity:
             return (
                 data[_ptype, "particle_mass"]
                 * data[ptype, "particle_specific_angular_momentum_%s" % ax]
@@ -371,7 +396,9 @@ def standard_particle_fields(
             validators=[ValidateParameter("center")],
         )
 
-    def _particle_angular_momentum(field, data):
+    def _particle_angular_momentum(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         am = (
             data[ptype, "particle_mass"]
             * data[ptype, "particle_specific_angular_momentum"].T
@@ -394,7 +421,7 @@ def standard_particle_fields(
         ftype=ptype,
     )
 
-    def _particle_radius(field, data):
+    def _particle_radius(field: DerivedField, data: FieldDetector) -> unyt_array:
         """The spherical radius component of the particle positions
 
         Relative to the coordinate system defined by the *normal* vector,
@@ -410,7 +437,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("center")],
     )
 
-    def _relative_particle_position(field, data):
+    def _relative_particle_position(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """The cartesian particle positions in a rotated reference frame
 
         Relative to the coordinate system defined by *center* field parameter.
@@ -420,7 +449,9 @@ def standard_particle_fields(
         field_names = [(ptype, "particle_position_%s" % ax) for ax in "xyz"]
         return obtain_position_vector(data, field_names=field_names).T
 
-    def _particle_position_relative(field, data):
+    def _particle_position_relative(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         if not isinstance(data, FieldDetector):
             issue_deprecation_warning(
                 "The 'particle_position_relative' field has been deprecated in "
@@ -443,7 +474,9 @@ def standard_particle_fields(
             validators=[ValidateParameter("normal"), ValidateParameter("center")],
         )
 
-    def _relative_particle_velocity(field, data):
+    def _relative_particle_velocity(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """The vector particle velocities in an arbitrary coordinate system
 
         Relative to the coordinate system defined by the *bulk_velocity*
@@ -454,7 +487,9 @@ def standard_particle_fields(
         field_names = [(ptype, "particle_velocity_%s" % ax) for ax in "xyz"]
         return obtain_relative_velocity_vector(data, field_names=field_names).T
 
-    def _particle_velocity_relative(field, data):
+    def _particle_velocity_relative(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         if not isinstance(data, FieldDetector):
             issue_deprecation_warning(
                 "The 'particle_velocity_relative' field has been deprecated in "
@@ -477,11 +512,11 @@ def standard_particle_fields(
             validators=[ValidateParameter("normal"), ValidateParameter("center")],
         )
 
-    def _get_coord_funcs_relative(axi, _ptype):
-        def _particle_pos_rel(field, data):
+    def _get_coord_funcs_relative(axi: int, _ptype: str) -> Tuple[Callable, Callable]:
+        def _particle_pos_rel(field: DerivedField, data: FieldDetector) -> unyt_array:
             return data[_ptype, "relative_particle_position"][:, axi]
 
-        def _particle_vel_rel(field, data):
+        def _particle_vel_rel(field: DerivedField, data: FieldDetector) -> unyt_array:
             return data[_ptype, "relative_particle_velocity"][:, axi]
 
         return _particle_vel_rel, _particle_pos_rel
@@ -523,7 +558,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_position_radius(field, data):
+    def _particle_spherical_position_radius(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """This field is deprecated and will be removed in a future release"""
         return data[ptype, "particle_position_spherical_radius"]
 
@@ -535,7 +572,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_position_spherical_theta(field, data):
+    def _particle_position_spherical_theta(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """The spherical theta coordinate of the particle positions.
 
         Relative to the coordinate system defined by the *normal* vector
@@ -553,7 +592,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("center"), ValidateParameter("normal")],
     )
 
-    def _particle_spherical_position_theta(field, data):
+    def _particle_spherical_position_theta(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """This field is deprecated and will be removed in a future release"""
         return data[ptype, "particle_position_spherical_theta"]
 
@@ -565,7 +606,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_position_spherical_phi(field, data):
+    def _particle_position_spherical_phi(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """The spherical phi component of the particle positions
 
         Relative to the coordinate system defined by the *normal* vector
@@ -583,7 +626,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_position_phi(field, data):
+    def _particle_spherical_position_phi(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """This field is deprecated and will be removed in a future release"""
         return data[ptype, "particle_position_spherical_phi"]
 
@@ -595,7 +640,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("center"), ValidateParameter("normal")],
     )
 
-    def _particle_velocity_spherical_radius(field, data):
+    def _particle_velocity_spherical_radius(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """The spherical radius component of the particle velocities in an
          arbitrary coordinate system
 
@@ -618,7 +665,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_velocity_radius(field, data):
+    def _particle_spherical_velocity_radius(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """This field is deprecated and will be removed in a future release"""
         return data[ptype, "particle_velocity_spherical_radius"]
 
@@ -640,7 +689,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_velocity_spherical_theta(field, data):
+    def _particle_velocity_spherical_theta(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """The spherical theta component of the particle velocities in an
          arbitrary coordinate system
 
@@ -663,7 +714,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_velocity_theta(field, data):
+    def _particle_spherical_velocity_theta(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """This field is deprecated and will be removed in a future release"""
         return data[ptype, "particle_velocity_spherical_theta"]
 
@@ -675,7 +728,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_velocity_spherical_phi(field, data):
+    def _particle_velocity_spherical_phi(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """The spherical phi component of the particle velocities
 
         Relative to the coordinate system defined by the *normal* vector,
@@ -696,7 +751,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_spherical_velocity_phi(field, data):
+    def _particle_spherical_velocity_phi(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """This field is deprecated and will be removed in a future release"""
         return data[ptype, "particle_spherical_velocity_theta"]
 
@@ -708,7 +765,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_position_cylindrical_radius(field, data):
+    def _particle_position_cylindrical_radius(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """The cylindrical radius component of the particle positions
 
         Relative to the coordinate system defined by the *normal* vector
@@ -727,7 +786,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_position_cylindrical_theta(field, data):
+    def _particle_position_cylindrical_theta(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """The cylindrical theta component of the particle positions
 
         Relative to the coordinate system defined by the *normal* vector
@@ -745,7 +806,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("center"), ValidateParameter("normal")],
     )
 
-    def _particle_position_cylindrical_z(field, data):
+    def _particle_position_cylindrical_z(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         """The cylindrical z component of the particle positions
 
         Relative to the coordinate system defined by the *normal* vector
@@ -764,7 +827,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_velocity_cylindrical_radius(field, data):
+    def _particle_velocity_cylindrical_radius(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """The cylindrical radius component of the particle velocities
 
         Relative to the coordinate system defined by the *normal* vector,
@@ -785,7 +850,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_velocity_cylindrical_theta(field, data):
+    def _particle_velocity_cylindrical_theta(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """The cylindrical theta component of the particle velocities
 
         Relative to the coordinate system defined by the *normal* vector,
@@ -806,7 +873,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_cylindrical_velocity_theta(field, data):
+    def _particle_cylindrical_velocity_theta(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """This field is deprecated and will be removed in a future release"""
         return data[ptype, "particle_velocity_cylindrical_theta"]
 
@@ -818,7 +887,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_velocity_cylindrical_z(field, data):
+    def _particle_velocity_cylindrical_z(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """The cylindrical z component of the particle velocities
 
         Relative to the coordinate system defined by the *normal* vector,
@@ -837,7 +908,9 @@ def standard_particle_fields(
         validators=[ValidateParameter("normal"), ValidateParameter("center")],
     )
 
-    def _particle_cylindrical_velocity_z(field, data):
+    def _particle_cylindrical_velocity_z(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_quantity:
         """This field is deprecated and will be removed in a future release"""
         return data[ptype, "particle_velocity_cylindrical_z"]
 

@@ -1,5 +1,6 @@
 import os
 import weakref
+from typing import Any
 
 import numpy as np
 
@@ -647,7 +648,7 @@ class AthenaDataset(Dataset):
         self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         try:
             if "vtk" in args[0]:
                 return True

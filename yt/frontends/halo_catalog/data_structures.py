@@ -1,4 +1,5 @@
 import glob
+from typing import Any
 
 import numpy as np
 
@@ -136,7 +137,7 @@ class HaloCatalogDataset(SavedDataset):
         super(HaloCatalogDataset, self)._parse_parameter_file()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].endswith(".h5"):
             return False
         with h5py.File(args[0], mode="r") as f:

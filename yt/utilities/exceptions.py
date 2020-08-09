@@ -1,7 +1,10 @@
 # We don't need to import 'exceptions'
 import os.path
+from typing import Tuple
 
 from unyt.exceptions import UnitOperationError
+
+from yt.frontends.ramses.data_structures import RAMSESDataset
 
 
 class YTException(Exception):
@@ -74,7 +77,7 @@ class YTNoDataInObjectError(YTException):
 
 
 class YTFieldNotFound(YTException):
-    def __init__(self, field, ds):
+    def __init__(self, field: Tuple[str, str], ds: RAMSESDataset) -> None:
         self.field = field
         self.ds = ds
 

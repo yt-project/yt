@@ -1,5 +1,6 @@
 import glob
 import os
+from typing import Any
 
 import numpy as np
 
@@ -112,7 +113,7 @@ class RockstarDataset(ParticleDataset):
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         if not args[0].endswith(".bin"):
             return False
         with open(args[0], "rb") as f:

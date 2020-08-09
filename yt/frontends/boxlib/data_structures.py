@@ -4,6 +4,7 @@ import os
 import re
 from collections import namedtuple
 from stat import ST_CTIME
+from typing import Any
 
 import numpy as np
 
@@ -672,7 +673,7 @@ class BoxlibDataset(Dataset):
         return None
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
@@ -1040,7 +1041,7 @@ class OrionDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
@@ -1126,7 +1127,7 @@ class CastroDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
@@ -1221,7 +1222,7 @@ class MaestroDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
@@ -1326,7 +1327,7 @@ class NyxDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
@@ -1620,7 +1621,7 @@ class WarpXDataset(BoxlibDataset):
         )
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         # fill our args
         output_dir = args[0]
         # boxlib datasets are always directories
@@ -1719,5 +1720,5 @@ class AMReXDataset(BoxlibDataset):
             self.particle_types_raw = self.particle_types
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         return False

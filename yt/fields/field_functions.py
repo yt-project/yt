@@ -1,9 +1,12 @@
 import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array
 
+from yt.fields.field_detector import FieldDetector
 from yt.utilities.lib.misc_utilities import obtain_position_vector
 
 
-def get_radius(data, field_prefix, ftype):
+def get_radius(data: FieldDetector, field_prefix: str, ftype: str) -> unyt_array:
     unit_system = data.ds.unit_system
     center = data.get_field_parameter("center").in_base(unit_system.name)
     DW = (data.ds.domain_right_edge - data.ds.domain_left_edge).in_base(
@@ -40,7 +43,7 @@ def get_radius(data, field_prefix, ftype):
     return radius
 
 
-def get_periodic_rvec(data):
+def get_periodic_rvec(data: FieldDetector) -> ndarray:
     coords = obtain_position_vector(data).d
     if sum(data.ds.periodicity) == 0:
         return coords

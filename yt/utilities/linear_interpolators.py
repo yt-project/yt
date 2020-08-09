@@ -1,4 +1,7 @@
+from typing import Dict, List, Tuple
+
 import numpy as np
+from numpy import ndarray
 
 import yt.utilities.lib.interpolators as lib
 from yt.funcs import mylog
@@ -67,7 +70,13 @@ class UnilinearFieldInterpolator:
 
 
 class BilinearFieldInterpolator:
-    def __init__(self, table, boundaries, field_names, truncate=False):
+    def __init__(
+        self,
+        table: ndarray,
+        boundaries: Tuple[ndarray, ndarray],
+        field_names: List[str],
+        truncate: bool = False,
+    ) -> None:
         r"""Initialize a 2D interpolator for field data.
 
         table : array
@@ -116,7 +125,7 @@ class BilinearFieldInterpolator:
             )
             raise ValueError
 
-    def __call__(self, data_object):
+    def __call__(self, data_object: Dict[str, ndarray]) -> ndarray:
         orig_shape = data_object[self.x_name].shape
         x_vals = data_object[self.x_name].ravel().astype("float64")
         y_vals = data_object[self.y_name].ravel().astype("float64")

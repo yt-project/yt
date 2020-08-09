@@ -1,6 +1,7 @@
 import os
 import weakref
 from itertools import chain, product
+from typing import Any
 
 import numpy as np
 
@@ -367,7 +368,7 @@ class AthenaPPDataset(Dataset):
         self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         try:
             if args[0].endswith("athdf"):
                 return True

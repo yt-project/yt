@@ -1,7 +1,12 @@
 from collections import defaultdict
+from typing import Any, Dict, Optional, Tuple, Union
 
 import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array
+from unyt.unit_object import Unit
 
+from yt.frontends.ramses.data_structures import RAMSESDataset
 from yt.units.yt_array import YTArray
 
 from .field_exceptions import NeedsGridType
@@ -30,7 +35,13 @@ class FieldDetector(defaultdict):
     _id_offset = 0
     domain_id = 0
 
-    def __init__(self, nd=16, ds=None, flat=False, field_parameters=None):
+    def __init__(
+        self,
+        nd: int = 16,
+        ds: RAMSESDataset = None,
+        flat: bool = False,
+        field_parameters: Optional[Dict[str, unyt_array]] = None,
+    ) -> None:
         self.nd = nd
         self.flat = flat
         self._spatial = not flat
@@ -91,14 +102,16 @@ class FieldDetector(defaultdict):
                 + 1e-4 * np.random.random((nd * nd * nd)),
             )
 
-    def _reshape_vals(self, arr):
+    def _reshape_vals(self, arr: unyt_array) -> unyt_array:
         if not self._spatial:
             return arr
         if len(arr.shape) == 3:
             return arr
         return arr.reshape(self.ActiveDimensions, order="C")
 
-    def __missing__(self, item):
+    def __missing__(
+        self, item: Union[Tuple[str, str], str]
+    ) -> Union[float, ndarray, unyt_array]:
         if not isinstance(item, tuple):
             field = ("unknown", item)
         else:
@@ -189,7 +202,7 @@ class FieldDetector(defaultdict):
         # We allow this to pass through.
         return
 
-    def deposit(self, *args, **kwargs):
+    def deposit(self, *args: Any, **kwargs: Any) -> ndarray:
         from yt.data_objects.static_output import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
 
@@ -213,7 +226,7 @@ class FieldDetector(defaultdict):
     def particle_operation(self, *args, **kwargs):
         return None
 
-    def _read_data(self, field_name):
+    def _read_data(self, field_name: Tuple[str, str]) -> unyt_array:
         self.requested.append(field_name)
         finfo = self.ds._get_field_info(*field_name)
         if finfo.sampling_type == "particle":
@@ -225,7 +238,9 @@ class FieldDetector(defaultdict):
             registry=self.ds.unit_registry,
         )
 
-    def get_field_parameter(self, param, default=0.0):
+    def get_field_parameter(
+        self, param: str, default: float = 0.0
+    ) -> Union[float, unyt_array]:
         if self.field_parameters and param in self.field_parameters:
             return self.field_parameters[param]
         self.requested_parameters.append(param)
@@ -262,14 +277,16 @@ class FieldDetector(defaultdict):
     _num_ghost_zones = 0
     id = 1
 
-    def apply_units(self, arr, units):
+    def apply_units(
+        self, arr: Union[ndarray, unyt_array], units: Union[str, Unit]
+    ) -> unyt_array:
         return self.ds.arr(arr, units=units)
 
-    def has_field_parameter(self, param):
+    def has_field_parameter(self, param: str) -> bool:
         return param in self.field_parameters
 
     @property
-    def fcoords(self):
+    def fcoords(self) -> unyt_array:
         fc = np.array(
             np.mgrid[0 : 1 : self.nd * 1j, 0 : 1 : self.nd * 1j, 0 : 1 : self.nd * 1j]
         )
@@ -280,7 +297,7 @@ class FieldDetector(defaultdict):
         return self.ds.arr(fc, units="code_length")
 
     @property
-    def fcoords_vertex(self):
+    def fcoords_vertex(self) -> unyt_array:
         fc = np.random.random((self.nd, self.nd, self.nd, 8, 3))
         if self.flat:
             fc.shape = (self.nd * self.nd * self.nd, 8, 3)
@@ -300,14 +317,14 @@ class FieldDetector(defaultdict):
         return ic
 
     @property
-    def ires(self):
+    def ires(self) -> ndarray:
         ir = np.ones(self.nd ** 3, dtype="int64")
         if not self.flat:
             ir.shape = (self.nd, self.nd, self.nd)
         return ir
 
     @property
-    def fwidth(self):
+    def fwidth(self) -> unyt_array:
         fw = np.ones((self.nd ** 3, 3), dtype="float64") / self.nd
         if not self.flat:
             fw.shape = (self.nd, self.nd, self.nd, 3)

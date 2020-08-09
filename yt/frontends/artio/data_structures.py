@@ -1,6 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
+from typing import Any
 
 import numpy as np
 
@@ -501,7 +502,7 @@ class ARTIODataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         from sys import version
 
         # a valid artio header file starts with a prefix and ends with .art

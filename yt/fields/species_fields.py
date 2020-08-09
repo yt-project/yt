@@ -1,8 +1,12 @@
 import re
+from typing import Any, List, Optional
 
 import numpy as np
+from unyt.array import unyt_array
 
+from yt.fields.derived_field import DerivedField
 from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.funcs import issue_deprecation_warning
 from yt.utilities.chemical_formulas import ChemicalFormula
@@ -197,7 +201,7 @@ def add_deprecated_species_alias(registry, ftype, alias_species, species, suffix
     )
 
 
-def add_nuclei_density_fields(registry, ftype):
+def add_nuclei_density_fields(registry: RAMSESFieldInfo, ftype: str) -> None:
     unit_system = registry.ds.unit_system
     elements = _get_all_elements(registry.species_names)
     for element in elements:
@@ -236,7 +240,7 @@ def add_nuclei_density_fields(registry, ftype):
         )
 
 
-def _default_nuclei_density(field, data):
+def _default_nuclei_density(field: DerivedField, data: FieldDetector) -> unyt_array:
     ftype = field.name[0]
     element = field.name[1][: field.name[1].find("_")]
     amu_cgs = data.ds.units.physical_constants.amu_cgs
@@ -286,7 +290,7 @@ def _nuclei_density(field, data):
     return field_data
 
 
-def _get_all_elements(species_list):
+def _get_all_elements(species_list: List) -> List:
     elements = []
     for species in species_list:
         for item in re.findall("[A-Z][a-z]?|[0-9]+", species):
@@ -306,7 +310,9 @@ def _get_element_multiple(compound, element):
 
 
 @register_field_plugin
-def setup_species_fields(registry, ftype="gas", slice_info=None):
+def setup_species_fields(
+    registry: RAMSESFieldInfo, ftype: str = "gas", slice_info: Optional[Any] = None
+) -> None:
     for species in registry.species_names:
         # These are all the species we should be looking for fractions or
         # densities of.

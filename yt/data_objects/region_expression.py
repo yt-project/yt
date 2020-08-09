@@ -1,5 +1,10 @@
 import weakref
+from typing import Tuple
 
+from unyt.array import unyt_array
+
+from yt.data_objects.selection_data_containers import YTRegion
+from yt.frontends.ramses.data_structures import RAMSESDataset
 from yt.funcs import obj_length
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import YTDimensionalityError, YTFieldNotParseable
@@ -11,16 +16,16 @@ from .data_containers import _get_ipython_key_completion
 class RegionExpression:
     _all_data = None
 
-    def __init__(self, ds):
+    def __init__(self, ds: RAMSESDataset) -> None:
         self.ds = weakref.proxy(ds)
 
     @property
-    def all_data(self):
+    def all_data(self) -> YTRegion:
         if self._all_data is None:
             self._all_data = self.ds.all_data()
         return self._all_data
 
-    def __getitem__(self, item):
+    def __getitem__(self, item: Tuple[str, str]) -> unyt_array:
         # At first, we will only implement this as accepting a slice that is
         # (optionally) unitful corresponding to a specific set of coordinates
         # that result in a rectangular prism or a slice.

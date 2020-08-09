@@ -5,14 +5,23 @@ import uuid
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import Any, Iterator, List, Optional, Tuple, Union
+from weakref import ReferenceType
 
 import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry.selection_routines
 from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.particle_filters import DummyFieldInfo
 from yt.data_objects.profiles import create_profile
+from yt.data_objects.selection_data_containers import YTRegion
+from yt.data_objects.static_output import Dataset
+from yt.fields.derived_field import DerivedField
 from yt.fields.field_exceptions import NeedsGridType
+from yt.frontends.ramses.data_structures import RAMSESDomainSubset, RAMSESIndex
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
     ensure_list,
@@ -22,7 +31,13 @@ from yt.funcs import (
     mylog,
     validate_width_tuple,
 )
-from yt.geometry.selection_routines import compose_selector
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.selection_routines import (
+    OctreeSubsetSelector,
+    RegionSelector,
+    SphereSelector,
+    compose_selector,
+)
 from yt.units import dimensions as ytdims
 from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -102,7 +117,11 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
     _field_cache = None
     _index = None
 
-    def __init__(self, ds, field_parameters):
+    def __init__(
+        self,
+        ds: Union[ReferenceType[Dataset], Dataset],
+        field_parameters: Optional[Any],
+    ) -> None:
         """
         Typically this is never called directly, but only due to inheritance.
         It associates a :class:`~yt.data_objects.static_output.Dataset` with the class,
@@ -146,7 +165,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         return getattr(self, "ds", None)
 
     @property
-    def index(self):
+    def index(self) -> RAMSESIndex:
         if self._index is not None:
             return self._index
         self._index = self.ds.index
@@ -162,7 +181,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
 
         pdb.set_trace()
 
-    def _set_default_field_parameters(self):
+    def _set_default_field_parameters(self) -> None:
         self.field_parameters = {}
         for k, v in self._default_field_parameters.items():
             self.set_field_parameter(k, v)
@@ -182,7 +201,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         except AttributeError:
             return self.ds.arr(arr, units=units)
 
-    def _set_center(self, center):
+    def _set_center(self, center: Union[List[float], ndarray, unyt_array]) -> None:
         if center is None:
             self.center = None
             return
@@ -211,7 +230,9 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             self.center = self.ds.arr(center, "code_length", dtype="float64")
         self.set_field_parameter("center", self.center)
 
-    def get_field_parameter(self, name, default=None):
+    def get_field_parameter(
+        self, name: str, default: Optional[Any] = None
+    ) -> unyt_array:
         """
         This is typically only used by derived field functions, but
         it returns parameters used to generate fields.
@@ -221,14 +242,14 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         else:
             return default
 
-    def set_field_parameter(self, name, val):
+    def set_field_parameter(self, name: str, val: unyt_array) -> None:
         """
         Here we set up dictionaries that get passed up and down and ultimately
         to derived fields.
         """
         self.field_parameters[name] = val
 
-    def has_field_parameter(self, name):
+    def has_field_parameter(self, name: str) -> bool:
         """
         Checks if a field parameter is set.
         """
@@ -246,13 +267,13 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         """
         return key in self.field_data
 
-    def keys(self):
+    def keys(self) -> list:
         return self.field_data.keys()
 
-    def _reshape_vals(self, arr):
+    def _reshape_vals(self, arr: unyt_array) -> unyt_array:
         return arr
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[Tuple[str, str], str]) -> unyt_array:
         """
         Returns a single field.  Will add if necessary.
         """
@@ -294,7 +315,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             key = self._determine_fields(key)[0]
         del self.field_data[key]
 
-    def _generate_field(self, field):
+    def _generate_field(self, field: Tuple[str, str]) -> Any:
         ftype, fname = field
         finfo = self.ds._get_field_info(*field)
         with self._field_type_state(ftype, finfo):
@@ -308,7 +329,9 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
                 raise YTCouldNotGenerateField(field, self.ds)
             return tr
 
-    def _generate_fluid_field(self, field):
+    def _generate_fluid_field(
+        self, field: Tuple[str, str]
+    ) -> Union[ndarray, unyt_array]:
         # First we check the validator
         ftype, fname = field
         finfo = self.ds._get_field_info(ftype, fname)
@@ -325,7 +348,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             rv = finfo(gen_obj)
         return rv
 
-    def _generate_spatial_fluid(self, field, ngz):
+    def _generate_spatial_fluid(self, field: Tuple[str, str], ngz: int) -> unyt_array:
         finfo = self.ds._get_field_info(*field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
@@ -375,7 +398,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             rv = uconcatenate(outputs)
         return rv
 
-    def _generate_particle_field(self, field):
+    def _generate_particle_field(self, field: Tuple[str, str]) -> unyt_array:
         # First we check the validator
         ftype, fname = field
         if self._current_chunk is None or self._current_chunk.chunk_type != "spatial":
@@ -1411,7 +1434,12 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         self.field_parameters = old_field_parameters
 
     @contextmanager
-    def _field_type_state(self, ftype, finfo, obj=None):
+    def _field_type_state(
+        self,
+        ftype: str,
+        finfo: Union[DummyFieldInfo, DerivedField],
+        obj: Union[None, YTRegion, RAMSESDomainSubset] = None,
+    ) -> Iterator:
         if obj is None:
             obj = self
         old_particle_type = obj._current_particle_type
@@ -1425,7 +1453,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
 
-    def _tupleize_field(self, field):
+    def _tupleize_field(self, field: Union[Tuple[str, str], str]) -> Tuple[str, str]:
 
         try:
             ftype, fname = field.name
@@ -1468,7 +1496,9 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
 
         raise YTFieldNotParseable(field)
 
-    def _determine_fields(self, fields):
+    def _determine_fields(
+        self, fields: Union[List[Tuple[str, str]], List[str], Tuple[str, str]]
+    ) -> List[Tuple[str, str]]:
         fields = ensure_list(fields)
         explicit_fields = []
         for field in fields:
@@ -1531,7 +1561,7 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
 
 
 class GenerationInProgress(Exception):
-    def __init__(self, fields):
+    def __init__(self, fields: List[Tuple[str, str]]) -> None:
         self.fields = fields
         super(GenerationInProgress, self).__init__()
 
@@ -1546,7 +1576,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _max_level = None
     _min_level = None
 
-    def __init__(self, ds, field_parameters, data_source=None):
+    def __init__(
+        self,
+        ds: Union[ReferenceType[Dataset], Dataset],
+        field_parameters: Optional[Any],
+        data_source: Optional[Any] = None,
+    ) -> None:
         ParallelAnalysisInterface.__init__(self)
         super(YTSelectionContainer, self).__init__(ds, field_parameters)
         self._data_source = data_source
@@ -1568,7 +1603,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.quantities = DerivedQuantityCollection(self)
 
     @property
-    def selector(self):
+    def selector(self) -> Union[OctreeSubsetSelector, RegionSelector, SphereSelector]:
         if self._selector is not None:
             return self._selector
         s_module = getattr(self, "_selector_module", yt.geometry.selection_routines)
@@ -1584,7 +1619,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             self._selector = sclass(self)
         return self._selector
 
-    def chunks(self, fields, chunking_style, **kwargs):
+    def chunks(
+        self, fields: List, chunking_style: str, **kwargs: Any
+    ) -> Iterator[Union[Iterator, Iterator[YTRegion]]]:
         # This is an iterator that will yield the necessary chunks.
         self.get_data()  # Ensure we have built ourselves
         if fields is None:
@@ -1603,7 +1640,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 # NOTE: we yield before releasing the context
                 yield self
 
-    def _identify_dependencies(self, fields_to_get, spatial=False):
+    def _identify_dependencies(
+        self, fields_to_get: List[Tuple[str, str]], spatial: bool = False
+    ) -> List[Tuple[str, str]]:
         inspected = 0
         fields_to_get = fields_to_get[:]
         for field in itertools.cycle(fields_to_get):
@@ -1629,7 +1668,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             fields_to_get += deps
         return sorted(fields_to_get)
 
-    def get_data(self, fields=None):
+    def get_data(
+        self, fields: Union[List[Tuple[str, str]], None, Tuple[str, str]] = None
+    ) -> None:
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if fields is None:
@@ -1717,7 +1758,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             if field not in ofields:
                 self.field_data.pop(field)
 
-    def _generate_fields(self, fields_to_generate):
+    def _generate_fields(self, fields_to_generate: List[Tuple[str, str]]) -> None:
         index = 0
         with self._field_lock():
             # At this point, we assume that any fields that are necessary to
@@ -1818,7 +1859,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         return YTBooleanContainer("NEG", self, other, ds=self.ds)
 
     @contextmanager
-    def _field_lock(self):
+    def _field_lock(self) -> Iterator:
         self._locked = True
         yield
         self._locked = False
@@ -1851,7 +1892,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.size = old_size
 
     @contextmanager
-    def _chunked_read(self, chunk):
+    def _chunked_read(self, chunk: YTDataChunk) -> Iterator:
         # There are several items that need to be swapped out
         # field_data, size, shape
         obj_field_data = []
@@ -1871,7 +1912,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 obj.field_data = obj_field_data.pop(0)
 
     @contextmanager
-    def _activate_cache(self):
+    def _activate_cache(self) -> Iterator:
         cache = self._field_cache or {}
         old_fields = {}
         for field in (f for f in cache if f in self.field_data):
@@ -1902,13 +1943,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         return self._current_chunk.fcoords
 
     @property
-    def ires(self):
+    def ires(self) -> ndarray:
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         return self._current_chunk.ires
 
     @property
-    def fwidth(self):
+    def fwidth(self) -> unyt_array:
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         return self._current_chunk.fwidth
@@ -1920,7 +1961,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         return self._current_chunk.fcoords_vertex
 
     @property
-    def max_level(self):
+    def max_level(self) -> int:
         if self._max_level is None:
             try:
                 return self.ds.max_level
@@ -1940,7 +1981,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self._max_level = value
 
     @property
-    def min_level(self):
+    def min_level(self) -> int:
         if self._min_level is None:
             try:
                 return 0
@@ -2132,7 +2173,13 @@ class YTSelectionContainer3D(YTSelectionContainer):
     _num_ghost_zones = 0
     _dimensionality = 3
 
-    def __init__(self, center, ds, field_parameters=None, data_source=None):
+    def __init__(
+        self,
+        center: Union[List[float], ndarray, unyt_array],
+        ds: Union[ReferenceType[Dataset], Dataset],
+        field_parameters: Optional[Any] = None,
+        data_source: Optional[Any] = None,
+    ) -> None:
         super(YTSelectionContainer3D, self).__init__(ds, field_parameters, data_source)
         self._set_center(center)
         self.coords = None

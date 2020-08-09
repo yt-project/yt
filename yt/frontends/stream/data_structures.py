@@ -5,6 +5,7 @@ import weakref
 from collections import defaultdict
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
+from typing import Any
 
 import numpy as np
 
@@ -346,7 +347,7 @@ class StreamDataset(Dataset):
             setattr(self, attr, uq)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         return False
 
     @property

@@ -1,11 +1,47 @@
 # These functions are RAMSES-specific
 import re
+from typing import Any, Dict, Iterator, Tuple, Union
+
+from numpy import int32
 
 from yt.config import ytcfg
 from yt.funcs import mylog
 
 
-def ramses_header(hvals):
+def ramses_header(
+    hvals: Dict[str, Any]
+) -> Iterator[
+    Union[
+        Iterator,
+        Iterator[
+            Tuple[
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+            ]
+        ],
+        Iterator[
+            Tuple[
+                Tuple[str, int32, str],
+                Tuple[str, int32, str],
+                Tuple[str, int, str],
+                Tuple[str, int32, str],
+                Tuple[str, int32, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str],
+                Tuple[str, int, str, bool],
+            ]
+        ],
+    ]
+]:
     header = (
         ("ncpu", 1, "i"),
         ("ndim", 1, "i"),

@@ -1,9 +1,14 @@
 import os
+from typing import Union
 
 import numpy as np
+from unyt.array import unyt_array
 
 import yt
 from yt.config import ytcfg
+from yt.data_objects.selection_data_containers import YTRegion
+from yt.fields.derived_field import DerivedField
+from yt.fields.field_detector import FieldDetector
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 from yt.testing import (
@@ -53,12 +58,12 @@ def test_output_00080():
 
 
 @requires_file(output_00080)
-def test_RAMSESDataset():
+def test_RAMSESDataset() -> None:
     assert isinstance(data_dir_load(output_00080), RAMSESDataset)
 
 
 @requires_file(output_00080)
-def test_units_override():
+def test_units_override() -> None:
     units_override_check(output_00080)
 
 
@@ -66,7 +71,7 @@ ramsesNonCosmo = "DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt"
 
 
 @requires_file(ramsesNonCosmo)
-def test_non_cosmo_detection():
+def test_non_cosmo_detection() -> None:
     ds = yt.load(ramsesNonCosmo, cosmological=False)
     assert_equal(ds.cosmological_simulation, 0)
 
@@ -78,7 +83,7 @@ def test_non_cosmo_detection():
 
 
 @requires_file(ramsesNonCosmo)
-def test_unit_non_cosmo():
+def test_unit_non_cosmo() -> None:
     for force_cosmo in [False, None]:
         ds = yt.load(ramsesNonCosmo, cosmological=force_cosmo)
 
@@ -93,7 +98,7 @@ ramsesCosmo = "output_00080/info_00080.txt"
 
 
 @requires_file(ramsesCosmo)
-def test_cosmo_detection():
+def test_cosmo_detection() -> None:
     ds = yt.load(ramsesCosmo, cosmological=True)
     assert_equal(ds.cosmological_simulation, 1)
 
@@ -105,7 +110,7 @@ def test_cosmo_detection():
 
 
 @requires_file(ramsesCosmo)
-def test_unit_cosmo():
+def test_unit_cosmo() -> None:
     for force_cosmo in [True, None]:
         ds = yt.load(ramsesCosmo, cosmological=force_cosmo)
 
@@ -120,7 +125,7 @@ ramsesExtraFieldsSmall = "ramses_extra_fields_small/output_00001"
 
 
 @requires_file(ramsesExtraFieldsSmall)
-def test_extra_fields():
+def test_extra_fields() -> None:
     extra_fields = [("particle_family", "I"), ("particle_pointer", "I")]
     ds = yt.load(
         os.path.join(ramsesExtraFieldsSmall, "info_00001.txt"),
@@ -138,7 +143,7 @@ def test_extra_fields():
 
 
 @requires_file(ramsesExtraFieldsSmall)
-def test_extra_fields_2():
+def test_extra_fields_2() -> None:
     extra_fields = ["particle_extra_field_%s" % (i + 1) for i in range(2)]
     ds = yt.load(os.path.join(ramsesExtraFieldsSmall, "info_00001.txt"))
 
@@ -154,7 +159,7 @@ ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
 
 
 @requires_file(ramses_rt)
-def test_ramses_rt():
+def test_ramses_rt() -> None:
     ds = yt.load(ramses_rt)
     ad = ds.all_data()
 
@@ -198,7 +203,7 @@ ramses_sink = "ramses_sink_00016/output_00016/info_00016.txt"
 
 
 @requires_file(ramses_sink)
-def test_ramses_sink():
+def test_ramses_sink() -> None:
     expected_fields = [
         "BH_bondi_accretion",
         "BH_eddington_accretion",
@@ -252,7 +257,7 @@ ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
 
 
 @requires_file(ramses_new_format)
-def test_new_format():
+def test_new_format() -> None:
     expected_particle_fields = [
         ("star", "particle_identity"),
         ("star", "particle_level"),
@@ -282,7 +287,7 @@ def test_new_format():
 
 
 @requires_file(ramses_sink)
-def test_ramses_part_count():
+def test_ramses_part_count() -> None:
     ds = yt.load(ramses_sink)
     pcount = ds.particle_type_counts
 
@@ -291,7 +296,7 @@ def test_ramses_part_count():
 
 
 @requires_file(ramsesCosmo)
-def test_custom_particle_def():
+def test_custom_particle_def() -> None:
     ytcfg.add_section("ramses-particles")
     ytcfg[
         "ramses-particles", "fields"
@@ -309,7 +314,7 @@ def test_custom_particle_def():
     """
     ds = yt.load(ramsesCosmo)
 
-    def check_unit(array, unit):
+    def check_unit(array: unyt_array, unit: str) -> None:
         assert str(array.in_cgs().units) == unit
 
     try:
@@ -323,7 +328,7 @@ def test_custom_particle_def():
 
 
 @requires_file(ramsesCosmo)
-def test_custom_hydro_def():
+def test_custom_hydro_def() -> None:
     ytcfg.add_section("ramses-hydro")
     ytcfg[
         "ramses-hydro", "fields"
@@ -337,7 +342,7 @@ def test_custom_hydro_def():
     """
     ds = yt.load(ramsesCosmo)
 
-    def check_unit(array, unit):
+    def check_unit(array: unyt_array, unit: str) -> None:
         assert str(array.in_cgs().units) == unit
 
     try:
@@ -351,7 +356,7 @@ def test_custom_hydro_def():
 
 
 @requires_file(output_00080)
-def test_grav_detection():
+def test_grav_detection() -> None:
     ds = yt.load(output_00080)
 
     # Test detection
@@ -366,7 +371,7 @@ def test_grav_detection():
 
 @requires_file(ramses_sink)
 @requires_file(output_00080)
-def test_ramses_field_detection():
+def test_ramses_field_detection() -> None:
     ds1 = yt.load(ramses_rt)
 
     assert "ramses" not in DETECTED_FIELDS
@@ -395,7 +400,7 @@ def test_ramses_field_detection():
 @requires_file(ramses_new_format)
 @requires_file(ramsesCosmo)
 @requires_file(ramsesNonCosmo)
-def test_formation_time():
+def test_formation_time() -> None:
     extra_particle_fields = [
         ("particle_birth_time", "d"),
         ("particle_metallicity", "d"),
@@ -429,7 +434,7 @@ def test_formation_time():
 
 
 @requires_file(ramses_new_format)
-def test_cooling_fields():
+def test_cooling_fields() -> None:
 
     # Test the field is being loaded correctly
     ds = yt.load(ramses_new_format)
@@ -461,7 +466,7 @@ def test_cooling_fields():
     assert ("gas", "HeII_number_density") in ds.derived_field_list
     assert ("gas", "HeIII_number_density") in ds.derived_field_list
 
-    def check_unit(array, unit):
+    def check_unit(array: unyt_array, unit: str) -> None:
         assert str(array.in_cgs().units) == unit
 
     check_unit(ds.r[("gas", "cooling_total")], "cm**5*g/s**3")
@@ -472,12 +477,14 @@ def test_cooling_fields():
 
 
 @requires_file(ramses_rt)
-def test_ramses_mixed_files():
+def test_ramses_mixed_files() -> None:
     # Test that one can use derived fields that depend on different
     # files (here hydro and rt files)
     ds = yt.load(ramses_rt)
 
-    def _mixed_field(field, data):
+    def _mixed_field(
+        field: DerivedField, data: Union[YTRegion, FieldDetector]
+    ) -> unyt_array:
         return data["rt", "photon_density_1"] / data["gas", "H_nuclei_density"]
 
     ds.add_field(("gas", "mixed_files"), function=_mixed_field, sampling_type="cell")
@@ -490,7 +497,7 @@ ramses_empty_record = "ramses_empty_record/output_00003/info_00003.txt"
 
 
 @requires_file(ramses_empty_record)
-def test_ramses_empty_record():
+def test_ramses_empty_record() -> None:
     # Test that yt can load datasets with empty records
     ds = yt.load(ramses_empty_record)
 
@@ -503,7 +510,7 @@ def test_ramses_empty_record():
 
 @requires_file(ramses_new_format)
 @requires_module("f90nml")
-def test_namelist_reading():
+def test_namelist_reading() -> None:
     ds = data_dir_load(ramses_new_format)
     namelist_fname = os.path.join(ds.directory, "namelist.txt")
     with open(namelist_fname, "r") as f:
@@ -517,7 +524,7 @@ def test_namelist_reading():
 @requires_file(ramses_empty_record)
 @requires_file(output_00080)
 @requires_module("f90nml")
-def test_namelist_reading_should_not_fail():
+def test_namelist_reading_should_not_fail() -> None:
 
     for ds_name in (ramses_empty_record, output_00080):
         # Test that the reading does not fail for malformed namelist.txt files
@@ -529,7 +536,7 @@ ramses_mhd_128 = "ramses_mhd_128/output_00027/info_00027.txt"
 
 
 @requires_file(ramses_mhd_128)
-def test_magnetic_field_aliasing():
+def test_magnetic_field_aliasing() -> None:
     # Test if RAMSES magnetic fields are correctly aliased to yt magnetic fields and if
     # derived magnetic quantities are calculated
     ds = data_dir_load(ramses_mhd_128)
@@ -546,7 +553,7 @@ def test_magnetic_field_aliasing():
 
 
 @requires_file(output_00080)
-def test_field_accession():
+def test_field_accession() -> None:
     ds = yt.load(output_00080)
     fields = [
         ("gas", "density"),  # basic ones
@@ -565,7 +572,7 @@ def test_field_accession():
 
 
 @requires_file(output_00080)
-def test_max_level():
+def test_max_level() -> None:
     ds = yt.load(output_00080)
 
     assert any(ds.r["index", "grid_level"] > 2)
@@ -580,7 +587,7 @@ def test_max_level():
 
 
 @requires_file(ramses_new_format)
-def test_invalid_max_level():
+def test_invalid_max_level() -> None:
     invalid_value_args = (
         (1, None),
         (1, "foo"),

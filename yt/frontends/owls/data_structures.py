@@ -1,4 +1,5 @@
 import os
+from typing import Any
 
 import yt.units
 from yt.frontends.gadget.data_structures import GadgetHDF5Dataset
@@ -31,7 +32,7 @@ class OWLSDataset(GadgetHDF5Dataset):
         self._set_owls_eagle_units()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         need_groups = ["Constants", "Header", "Parameters", "Units"]
         veto_groups = [
             "SUBFIND",
