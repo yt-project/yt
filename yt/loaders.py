@@ -14,4 +14,4 @@ from .frontends.stream.api import (
     load_uniform_grid,
     load_unstructured_mesh,
 )
-from .utilities import load_sample
+from .utilities.load_sample import load_sample
