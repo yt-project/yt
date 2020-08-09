@@ -5,7 +5,7 @@ import unittest
 
 import numpy as np
 
-from yt.frontends.stream.data_structures import load_particles, load_uniform_grid
+from yt.frontends.stream.loaders import load_particles, load_uniform_grid
 from yt.testing import assert_equal, assert_raises
 from yt.utilities.exceptions import (
     YTInconsistentGridFieldShape,

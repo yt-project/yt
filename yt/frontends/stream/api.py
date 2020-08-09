@@ -5,11 +5,11 @@ from .data_structures import (
     StreamHandler,
     StreamHierarchy,
     hexahedral_connectivity,
-    refine_amr,
 )
-
-"""
-from yt.loaders import (
+from .definitions import refine_amr
+from .fields import StreamFieldInfo
+from .io import IOHandlerStream
+from .loaders import (
     load_amr_grids,
     load_hexahedral_mesh,
     load_octree,
@@ -17,6 +17,3 @@ from yt.loaders import (
     load_uniform_grid,
     load_unstructured_mesh,
 )
-"""
-from .fields import StreamFieldInfo
-from .io import IOHandlerStream
