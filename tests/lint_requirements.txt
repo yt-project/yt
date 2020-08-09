@@ -5,4 +5,4 @@ pyflakes==2.2.0
 isort==5.2.1   # keep in sync with .pre-commit-config.yaml
 black==19.10b0
 flake8-bugbear
--e git+https://github.com/cphyc/flynt.git@dry-run-mode#egg=flynt
+-e git+https://github.com/ikamensh/flynt.git@mastere#egg=flynt
