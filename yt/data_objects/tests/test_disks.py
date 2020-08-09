@@ -51,7 +51,7 @@ def test_bad_disk_input():
     desired = (
         "Expected an object of 'yt.data_objects.static_output.Dataset' "
         "type, received "
-        "'yt.data_objects.selection_data_containers.YTRegion'"
+        "'yt.data_objects.selection_objects.region.YTRegion'"
     )
     assert_equal(str(ex.exception), desired)
 
