@@ -240,7 +240,7 @@ def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level, callbac
     ----------
     base_ds : ~yt.data_objects.static_output.Dataset
         This is any static output.  It can also be a stream static output, for
-        instance as returned by load_uniform_data.
+        instance as returned by `yt.loaders.load_uniform_data`.
     refinement_critera : list of :class:`~yt.utilities.flagging_methods.FlaggingMethod`
         These criteria will be applied in sequence to identify cells that need
         to be refined.
