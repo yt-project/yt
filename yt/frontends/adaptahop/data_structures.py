@@ -22,7 +22,7 @@ from yt.funcs import setdefaultattr
 from yt.units import Mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 
-from ...data_objects.selection_objects.base_objects import YTSelectionContainer
+from yt.data_objects.selection_objects.base_objects import YTSelectionContainer
 from .definitions import HEADER_ATTRIBUTES
 from .fields import AdaptaHOPFieldInfo
 

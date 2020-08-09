@@ -285,7 +285,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
 
-        from ...data_objects.selection_objects.slices import YTSlice
+        from yt.data_objects.selection_objects.slices import YTSlice
 
         # We should be using fcoords
         field = data_source._determine_fields(field)[0]
