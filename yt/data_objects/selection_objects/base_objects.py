@@ -22,7 +22,7 @@ from yt.utilities.exceptions import (
     YTDimensionalityError,
     YTFieldUnitError,
     YTFieldUnitParseError,
-    YTGenerationInProgress,
+    GenerationInProgress,
 )
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.logger import ytLogger as mylog
@@ -173,7 +173,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
             return
         elif self._locked:
-            raise YTGenerationInProgress(fields)
+            raise GenerationInProgress(fields)
         # Track which ones we want in the end
         ofields = set(list(self.field_data.keys()) + fields_to_get + fields_to_generate)
         # At this point, we want to figure out *all* our dependencies.
@@ -270,7 +270,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                     except UnitParseError:
                         raise YTFieldUnitParseError(fi)
                     self.field_data[field] = fd
-                except YTGenerationInProgress as gip:
+                except GenerationInProgress as gip:
                     for f in gip.fields:
                         if f not in fields_to_generate:
                             fields_to_generate.append(f)

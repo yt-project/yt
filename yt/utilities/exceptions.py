@@ -874,7 +874,7 @@ class YTArrayTooLargeToDisplay(YTException):
         return msg
 
 
-class YTGenerationInProgress(Exception):
+class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
-        super(YTGenerationInProgress, self).__init__()
+        super(GenerationInProgress, self).__init__()
