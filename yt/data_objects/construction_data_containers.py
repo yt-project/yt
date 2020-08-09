@@ -19,10 +19,10 @@ from yt.data_objects.field_data import YTFieldData
 from yt.extern.tqdm import tqdm
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.frontends.stream.api import load_uniform_grid
 from yt.funcs import ensure_list, get_memory_usage, iterable, mylog, only_on_root
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
+from yt.loaders import load_uniform_grid
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import (

@@ -8,10 +8,10 @@ from functools import wraps
 import numpy as np
 
 from yt.config import ytcfg
-from yt.convenience import load
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
 from yt.funcs import ensure_list, issue_deprecation_warning, iterable, mylog
+from yt.loaders import load
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTException, YTOutputNotIdentified
 from yt.utilities.object_registries import (

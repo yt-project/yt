@@ -2,7 +2,7 @@ import os
 import shutil
 import tempfile
 
-from yt.convenience import load
+from yt.loaders import load
 from yt.testing import assert_fname, fake_random_ds, requires_file, requires_module
 from yt.utilities.answer_testing.framework import data_dir_load
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot

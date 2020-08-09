@@ -8,8 +8,8 @@ If not, it will download it.
 import os
 
 import yt.utilities.sample_data as sd
-from yt.convenience import load
 from yt.funcs import mylog
+from yt.loaders import load
 from yt.utilities.on_demand_imports import _pooch as pch
 
 

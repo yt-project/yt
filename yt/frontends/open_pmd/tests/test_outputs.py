@@ -2,8 +2,8 @@ from itertools import product
 
 import numpy as np
 
-from yt.convenience import load
 from yt.frontends.open_pmd.data_structures import OpenPMDDataset
+from yt.loaders import load
 from yt.testing import (
     assert_almost_equal,
     assert_array_equal,

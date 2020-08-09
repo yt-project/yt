@@ -149,7 +149,7 @@ def remote_io(ds, wg, pool):
 
 
 def io_nodes(fn, n_io, n_work, func, *args, **kwargs):
-    from yt.mods import load
+    from yt.loaders import load
 
     pool, wg = ProcessorPool.from_sizes([(n_io, "io"), (n_work, "work")])
     rv = None
