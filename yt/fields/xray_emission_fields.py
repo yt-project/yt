@@ -83,7 +83,7 @@ class XrayEmissivityIntegrator:
     def __init__(self, table_type, redshift=0.0, data_dir=None, use_metals=True):
 
         filename = _get_data_file(table_type, data_dir=data_dir)
-        only_on_root(mylog.info, f"Loading emissivity data from {filename}.")
+        only_on_root(mylog.info, "Loading emissivity data from %s", filename)
         in_file = h5py.File(filename, mode="r")
         if "info" in in_file.attrs:
             only_on_root(mylog.info, parse_h5_attr(in_file, "info"))
