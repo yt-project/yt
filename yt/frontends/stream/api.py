@@ -8,11 +8,3 @@ from .data_structures import (
 )
 from .fields import StreamFieldInfo
 from .io import IOHandlerStream
-from .loaders import (
-    load_amr_grids,
-    load_hexahedral_mesh,
-    load_octree,
-    load_particles,
-    load_uniform_grid,
-    load_unstructured_mesh,
-)

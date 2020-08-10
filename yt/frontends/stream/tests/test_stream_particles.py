@@ -1,7 +1,7 @@
 import numpy as np
 
 import yt.utilities.initial_conditions as ic
-from yt.frontends.stream.api import load_particles, load_uniform_grid
+from yt.loaders import load_particles, load_uniform_grid
 from yt.testing import assert_equal, fake_particle_ds, fake_sph_orientation_ds
 
 # Field information
