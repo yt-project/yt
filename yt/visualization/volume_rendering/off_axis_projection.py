@@ -299,7 +299,7 @@ def off_axis_projection(
     data_source.ds.index
     if item is None:
         field = data_source.ds.field_list[0]
-        mylog.info("Setting default field to %s" % field.__repr__())
+        mylog.info("Setting default field to %s", field.__repr__())
 
     funits = data_source.ds._get_field_info(item).units
 

@@ -68,7 +68,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
             if unit in handle["/Header"].attrs:
                 uvals[unit] = handle["/Header"].attrs[unit]
             else:
-                mylog.warning("Arepo header is missing %s!" % unit)
+                mylog.warning("Arepo header is missing %s!", unit)
                 missing = True
         handle.close()
         if missing:

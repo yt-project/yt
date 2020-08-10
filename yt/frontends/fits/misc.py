@@ -54,7 +54,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
     for (emin, emax) in ebounds:
         cfunc = _make_counts(emin, emax)
         fname = "counts_%s-%s" % (emin, emax)
-        mylog.info("Creating counts field %s." % fname)
+        mylog.info("Creating counts field %s.", fname)
         ds.add_field(
             (ftype, fname),
             sampling_type="cell",
@@ -114,9 +114,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
             slab_center = YTQuantity(v[0], v[1])
         else:
             slab_center = v
-        mylog.info(
-            "Adding slab field %s at %g %s" % (k, slab_center.v, slab_center.units)
-        )
+        mylog.info("Adding slab field %s at %g %s", k, slab_center.v, slab_center.units)
         slab_lo = (slab_center - 0.5 * slab_width).to_astropy()
         slab_hi = (slab_center + 0.5 * slab_width).to_astropy()
         subcube = cube.spectral_slab(slab_lo, slab_hi)

@@ -132,8 +132,10 @@ class FixedResolutionBuffer:
         if item in self.data:
             return self.data[item]
         mylog.info(
-            "Making a fixed resolution buffer of (%s) %d by %d"
-            % (item, self.buff_size[0], self.buff_size[1])
+            "Making a fixed resolution buffer of (%s) %d by %d",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
         )
         bounds = []
         for b in self.bounds:
@@ -626,8 +628,10 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         if item in self.data:
             return self.data[item]
         mylog.info(
-            "Making a fixed resolution buffer of (%s) %d by %d"
-            % (item, self.buff_size[0], self.buff_size[1])
+            "Making a fixed resolution buffer of (%s) %d by %d",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
         )
         dd = self.data_source
         width = self.ds.arr(
@@ -685,8 +689,10 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             return self.data[item]
 
         mylog.info(
-            "Splatting (%s) onto a %d by %d mesh"
-            % (item, self.buff_size[0], self.buff_size[1])
+            "Splatting (%s) onto a %d by %d mesh",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
         )
 
         bounds = []

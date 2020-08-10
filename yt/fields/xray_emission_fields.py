@@ -26,9 +26,9 @@ def _get_data_file(table_type, data_dir=None):
         data_dir = supp_data_dir if os.path.exists(supp_data_dir) else "."
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
-        msg = (
-            "Failed to find emissivity data file %s! " % data_file
-            + "Please download from %s!" % data_url
+        msg = "Failed to find emissivity data file %s! Please download from %s" % (
+            data_file,
+            data_url,
         )
         mylog.error(msg)
         raise IOError(msg)
@@ -373,6 +373,7 @@ def add_xray_emissivity_field(
 
         fields += [ei_name, i_name]
 
-    [mylog.info("Adding ('%s','%s') field." % field) for field in fields]
+    for field in fields:
+        mylog.info("Adding ('%s','%s') field.", field[0], field[1])
 
     return fields
