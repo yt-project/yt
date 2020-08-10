@@ -8,12 +8,15 @@ flagging_method_registry = {}
 class RegisteredFlaggingMethod(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
+
+
+class FlaggingMethod:
+    _skip_add = False
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
         if hasattr(cls, "_type_name") and not cls._skip_add:
             flagging_method_registry[cls._type_name] = cls
-
-
-class FlaggingMethod(metaclass=RegisteredFlaggingMethod):
-    _skip_add = False
 
 
 class OverDensity(FlaggingMethod):

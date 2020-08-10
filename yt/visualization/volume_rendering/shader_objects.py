@@ -133,14 +133,7 @@ class ShaderProgram:
         GL.glDisableVertexAttribArray(loc)
 
 
-class RegisteredShader(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if getattr(cls, "_shader_name", None) is not None:
-            known_shaders[cls._shader_name] = cls
-
-
-class Shader(metaclass=RegisteredShader):
+class Shader:
     """
     Creates a shader from source
 
@@ -157,6 +150,11 @@ class Shader(metaclass=RegisteredShader):
     _shader = None
     _source = None
     _shader_name = None
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if getattr(cls, "_shader_name", None) is not None:
+            known_shaders[cls._shader_name] = cls
 
     def __init__(self, source=None):
         if source:
