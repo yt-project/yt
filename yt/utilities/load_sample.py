@@ -62,11 +62,13 @@ def load_sample(name=None, specific_file=None, pbar=True):
             mylog.warning("tqdm is not installed, progress bar can not be displayed.")
 
     if extension == "h5":
-        fname = fetch_noncompressed_file(fileext, fido, downloader=downloader)
+        processor = pch.pooch.Untar()
     else:
         # we are going to assume most files that exist on the hub are
         # compressed in .tar folders. Some may not.
-        fname = fetch_compressed_file(fileext, fido, downloader=downloader)
+        processor = None
+
+    fname = fido.fido.fetch(name, processor=processor, downloader=downloader)
 
     # The `folder_path` variable is used here to notify the user where the
     # files have been unpacked to. However, we can't assume this is reliable
@@ -141,19 +143,3 @@ def _validate_sampledata_name(name):
         fileext = name
         basename = base
     return fileext, basename, extension
-
-
-def fetch_compressed_file(name, fido, downloader=None):
-    """
-    Load a large compressed file from the data registry
-    """
-    fname = fido.fido.fetch(name, processor=pch.pooch.Untar(), downloader=downloader)
-    return fname
-
-
-def fetch_noncompressed_file(name, fido, downloader=None):
-    """
-    Load an uncompressed file from the data registry
-    """
-    fname = fido.fido.fetch(name, downloader=downloader)
-    return fname
