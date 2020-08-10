@@ -48,7 +48,10 @@ from yt.startup_tasks import parser, subparsers  # isort: skip # noqa: E402
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
 if ytcfg.getboolean("yt", "loadfieldplugins"):
-    enable_plugins()
+    try:
+        enable_plugins()
+    except FileNotFoundError:
+        pass
 
 _default_colormap = ytcfg.get("yt", "default_colormap")
 
