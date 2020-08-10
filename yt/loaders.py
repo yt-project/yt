@@ -21,11 +21,11 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.lib.misc_utilities import get_box_grids_level
-from yt.utilities.on_demand_imports import _pooch as pch
-from yt.utilities.parameter_file_storage import (
+from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
 )
+from yt.utilities.on_demand_imports import _pooch as pch
 
 # --- Loaders for known data formats ---
 

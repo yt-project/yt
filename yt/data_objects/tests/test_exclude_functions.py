@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.frontends.stream.loaders import load_uniform_grid
+from yt.loaders import load_uniform_grid
 from yt.testing import assert_equal, fake_random_ds
 
 
