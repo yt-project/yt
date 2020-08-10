@@ -282,10 +282,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
         self, data_source, field, bounds, size, antialias, dim, periodic
     ):
         from yt.data_objects.construction_data_containers import YTParticleProj
+        from yt.data_objects.selection_objects.slices import YTSlice
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
-
-        from yt.data_objects.selection_objects.slices import YTSlice
 
         # We should be using fcoords
         field = data_source._determine_fields(field)[0]

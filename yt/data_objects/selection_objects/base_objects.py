@@ -16,13 +16,13 @@ from yt.funcs import ensure_list, fix_axis, validate_width_tuple
 from yt.geometry.selection_routines import compose_selector
 from yt.units import dimensions as ytdims
 from yt.utilities.exceptions import (
+    GenerationInProgress,
     YTBooleanObjectError,
     YTBooleanObjectsWrongDataset,
     YTDataSelectorNotImplemented,
     YTDimensionalityError,
     YTFieldUnitError,
     YTFieldUnitParseError,
-    GenerationInProgress,
 )
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
 from yt.utilities.logger import ytLogger as mylog
