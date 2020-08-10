@@ -1,4 +1,5 @@
 from contextlib import contextmanager
+from itertools import product, repeat
 
 import numpy as np
 
@@ -618,14 +619,11 @@ class OctreeSubsetBlockSlice:
                 orig_field = cg[field]
                 nocts = orig_field.shape[-1]
                 new_field = np.zeros((3, 3, 3, nocts), order="F")
-                new_field += orig_field[1:, 1:, 1:]
-                new_field += orig_field[:-1, 1:, 1:]
-                new_field += orig_field[1:, :-1, 1:]
-                new_field += orig_field[1:, 1:, :-1]
-                new_field += orig_field[:-1, 1:, :-1]
-                new_field += orig_field[1:, :-1, :-1]
-                new_field += orig_field[:-1, :-1, 1:]
-                new_field += orig_field[:-1, :-1, :-1]
+
+                # Compute vertex-centred data as mean of 8 neighbours cell data
+                slices = (slice(1, None), slice(None, -1))
+                for slx, sly, slz in product(*repeat(slices, 3)):
+                    new_field += orig_field[slx, sly, slz]
                 new_field *= 0.125
 
                 new_fields[field] = self.ds.arr(new_field, finfo.output_units)
