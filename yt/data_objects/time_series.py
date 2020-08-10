@@ -425,6 +425,8 @@ class DatasetSeries:
     _dataset_cls = None
 
     def _load(self, output_fn, **kwargs):
+        from yt.loaders import load
+
         if self._dataset_cls is not None:
             return self._dataset_cls(output_fn, **kwargs)
         elif self._mixed_dataset_types:

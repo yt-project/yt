@@ -5,31 +5,155 @@ This module gathers all user-facing functions with a `load_` prefix.
 # note: in the future, functions could be moved here instead
 # in which case, this file should be removed from flake8 ignore list in setup.cfg
 
+import os
+
 import numpy as np
 
-from yt.frontends.exodus_ii.util import get_num_pseudo_dims
-from yt.frontends.stream.data_structures import (
-    StreamDataset,
-    StreamDictFieldHandler,
-    StreamHandler,
-    StreamHexahedralDataset,
-    StreamOctreeDataset,
-    StreamParticlesDataset,
-    StreamUnstructuredMeshDataset,
-)
-from yt.frontends.stream.definitions import (
-    assign_particle_data,
-    process_data,
-    set_particle_types,
-)
+from yt.config import ytcfg
 from yt.funcs import ensure_list, issue_deprecation_warning
 from yt.utilities.decompose import decompose_array, get_psize
-from yt.utilities.exceptions import YTIllDefinedAMR
+from yt.utilities.exceptions import (
+    YTAmbiguousDataType,
+    YTIllDefinedAMR,
+    YTOutputNotIdentified,
+    YTSimulationNotIdentified,
+)
+from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.lib.misc_utilities import get_box_grids_level
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.parameter_file_storage import (
+    output_type_registry,
+    simulation_time_series_registry,
+)
 
-from .convenience import load, load_simulation, simulation
-from .utilities.load_sample import load_sample
+from .utilities.load_sample import load_sample  # noqa F401
+
+# --- Loaders for known data formats ---
+
+
+def load(fn, *args, **kwargs):
+    """
+    Load a Dataset or DatasetSeries object.
+    The data format is automatically discovered, and the exact return type is the
+    corresponding subclass of :class:`yt.data_objects.static_output.Dataset`.
+    A :class:`yt.data_objects.time_series.DatasetSeries` is created if the first
+    argument is a pattern.
+
+    Parameters
+    ----------
+    fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
+        A path to the data location. This can be a file name, directory name, a glob
+        pattern, or a url (for data types that support it).
+
+    Additional arguments, if any, are passed down to the return class.
+
+    Returns
+    -------
+    :class:`yt.data_objects.static_output.Dataset` object
+        If fn is a single path, create a Dataset from the appropriate subclass.
+
+    :class:`yt.data_objects.time_series.DatasetSeries`
+        If fn is a glob pattern (i.e. containing wildcards '[]?!*'), create a series.
+
+    Raises
+    ------
+    FileNotFoundError
+        If fn does not match any existing file or directory.
+
+    yt.utilities.exceptions.YTOutputNotIdentified
+        If fn matches existing files or directories with undetermined format.
+
+    yt.utilities.exceptions.YTAmbiguousDataType
+        If the data format matches more than one class of similar specilization levels.
+    """
+    fn = os.path.expanduser(fn)
+
+    if any(wildcard in fn for wildcard in "[]?!*"):
+        from yt.data_objects.time_series import DatasetSeries
+
+        return DatasetSeries(fn, *args, **kwargs)
+
+    # Unless the dataset starts with http, look for it using the path or relative to the data dir (in this order).
+    if not (os.path.exists(fn) or fn.startswith("http")):
+        data_dir = ytcfg.get("yt", "test_data_dir")
+        alt_fn = os.path.join(data_dir, fn)
+        if os.path.exists(alt_fn):
+            fn = alt_fn
+        else:
+            msg = f"No such file or directory: '{fn}'."
+            if os.path.exists(data_dir):
+                msg += f"\n(Also tried '{alt_fn}')."
+            raise FileNotFoundError(msg)
+
+    candidates = []
+    for cls in output_type_registry.values():
+        if cls._is_valid(fn, *args, **kwargs):
+            candidates.append(cls)
+
+    # Find only the lowest subclasses, i.e. most specialised front ends
+    candidates = find_lowest_subclasses(candidates)
+
+    if len(candidates) == 1:
+        return candidates[0](fn, *args, **kwargs)
+
+    if len(candidates) > 1:
+        raise YTAmbiguousDataType(fn, candidates)
+
+    raise YTOutputNotIdentified(fn, args, kwargs)
+
+
+def load_simulation(fn, simulation_type, find_outputs=False):
+    """
+    Load a simulation time series object of the specified simulation type.
+
+    Parameters
+    ----------
+    fn : str, os.Pathlike, or byte (types supported by os.path.expandusers)
+        Name of the data file or directory.
+
+    simulation_type : str
+        E.g. 'Enzo'
+
+    find_outputs : bool
+        Defaults to False
+
+    Raises
+    ------
+    FileNotFoundError
+        If fn is not found.
+
+    yt.utilities.exceptions.YTSimulationNotIdentified
+        If simulation_type is unknown.
+    """
+
+    if not os.path.exists(fn):
+        alt_fn = os.path.join(ytcfg.get("yt", "test_data_dir"), fn)
+        if os.path.exists(alt_fn):
+            fn = alt_fn
+        else:
+            raise FileNotFoundError(f"No such file or directory: '{fn}'")
+
+    try:
+        cls = simulation_time_series_registry[simulation_type]
+    except KeyError:
+        raise YTSimulationNotIdentified(simulation_type)
+
+    return cls(fn, find_outputs=find_outputs)
+
+
+def simulation(fn, simulation_type, find_outputs=False):
+    from yt.funcs import issue_deprecation_warning
+
+    issue_deprecation_warning(
+        "yt.simulation is a deprecated alias for yt.load_simulation"
+        "and will be removed in a future version of yt."
+    )
+    return load_simulation(
+        fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
+    )
+
+
+# --- Loaders for generic ("stream") data ---
 
 
 def load_uniform_grid(
@@ -109,6 +233,16 @@ def load_uniform_grid(
     YTArray([ 0.87568064,  0.33686453,  0.70467189, ...,  0.70439916,
             0.97506269,  0.03047113]) g/cm**3
     """
+    from yt.frontends.stream.data_structures import (
+        StreamDataset,
+        StreamDictFieldHandler,
+        StreamHandler,
+    )
+    from yt.frontends.stream.definitions import (
+        assign_particle_data,
+        process_data,
+        set_particle_types,
+    )
 
     domain_dimensions = np.array(domain_dimensions)
     if bbox is None:
@@ -317,6 +451,12 @@ def load_amr_grids(
     ...
     >>> ds = load_amr_grids(grid_data, [32, 32, 32], length_unit=1.0)
     """
+    from yt.frontends.stream.data_structures import (
+        StreamDataset,
+        StreamDictFieldHandler,
+        StreamHandler,
+    )
+    from yt.frontends.stream.definitions import process_data, set_particle_types
 
     domain_dimensions = np.array(domain_dimensions)
     ngrids = len(grid_data)
@@ -498,6 +638,12 @@ def load_particles(
     >>> ds = load_particles(data, 3.08e24, bbox=bbox)
 
     """
+    from yt.frontends.stream.data_structures import (
+        StreamDictFieldHandler,
+        StreamHandler,
+        StreamParticlesDataset,
+    )
+    from yt.frontends.stream.definitions import process_data, set_particle_types
 
     domain_dimensions = np.ones(3, "int32")
     nprocs = 1
@@ -654,6 +800,12 @@ def load_hexahedral_mesh(
         ("spherical", ("theta", "phi", "r")).
 
     """
+    from yt.frontends.stream.data_structures import (
+        StreamDictFieldHandler,
+        StreamHandler,
+        StreamHexahedralDataset,
+    )
+    from yt.frontends.stream.definitions import process_data, set_particle_types
 
     domain_dimensions = np.ones(3, "int32") * 2
     nprocs = 1
@@ -802,6 +954,12 @@ def load_octree(
     ...                     partial_coverage=0)
 
     """
+    from yt.frontends.stream.data_structures import (
+        StreamDictFieldHandler,
+        StreamHandler,
+        StreamOctreeDataset,
+    )
+    from yt.frontends.stream.definitions import process_data, set_particle_types
 
     if not isinstance(octree_mask, np.ndarray) or octree_mask.dtype != np.uint8:
         raise TypeError("octree_mask should be a Numpy array with type uint8")
@@ -981,6 +1139,13 @@ def load_unstructured_mesh(
       ...                                elem_data=elem_data,
       ...                                node_data=node_data)
     """
+    from yt.frontends.exodus_ii.util import get_num_pseudo_dims
+    from yt.frontends.stream.data_structures import (
+        StreamDictFieldHandler,
+        StreamHandler,
+        StreamUnstructuredMeshDataset,
+    )
+    from yt.frontends.stream.definitions import process_data, set_particle_types
 
     dimensionality = coordinates.shape[1]
     domain_dimensions = np.ones(3, "int32") * 2

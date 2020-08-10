@@ -9,7 +9,6 @@ import os
 
 import yt.utilities.sample_data as sd
 from yt.funcs import mylog
-from yt.loaders import load
 from yt.utilities.on_demand_imports import _pooch as pch
 
 
@@ -38,6 +37,8 @@ def load_sample(name=None, specific_file=None, pbar=True):
         display a progress bar
 
     """
+    from yt.loaders import load
+
     fido = sd.Fido()
     if name is None:
         keys = []
