@@ -1,5 +1,5 @@
+from yt.loaders import _validate_sampledata_name
 from yt.testing import assert_equal
-from yt.utilities.load_sample import _validate_sampledata_name
 
 names = {
     "t1": {
