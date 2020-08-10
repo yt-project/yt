@@ -2,12 +2,7 @@ import numpy as np
 
 import yt.utilities.flagging_methods as fm
 import yt.utilities.initial_conditions as ic
-from yt.frontends.stream.api import (
-    load_amr_grids,
-    load_particles,
-    load_uniform_grid,
-    refine_amr,
-)
+from yt.frontends.stream.api import load_amr_grids, load_particles, load_uniform_grid
 from yt.testing import assert_equal, fake_particle_ds, fake_sph_orientation_ds
 
 # Field information
@@ -32,7 +27,7 @@ def test_stream_particles():
     # Check that all of this runs ok without particles
 
     ug0 = load_uniform_grid({"density": dens}, domain_dims, 1.0, nprocs=8)
-    amr0 = refine_amr(ug0, rc, fo, 3)
+    amr0 = ug0.refine_amr(rc, fo, 3)
 
     grid_data = []
 
@@ -116,7 +111,7 @@ def test_stream_particles():
 
     # Now refine this
 
-    amr1 = refine_amr(ug1, rc, fo, 3)
+    amr1 = ug1.refine_amr(rc, fo, 3)
     for field in sorted(ug1.field_list):
         assert field in amr1.field_list
 
@@ -263,7 +258,7 @@ def test_stream_particles():
 
     # Now refine this
 
-    amr3 = refine_amr(ug3, rc, fo, 3)
+    amr3 = ug3.refine_amr(rc, fo, 3)
     for field in sorted(ug3.field_list):
         assert field in amr3.field_list
 

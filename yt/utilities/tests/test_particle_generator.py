@@ -2,7 +2,6 @@ import numpy as np
 
 import yt.utilities.flagging_methods as fm
 import yt.utilities.initial_conditions as ic
-from yt.frontends.stream.definitions import refine_amr
 from yt.loaders import load_uniform_grid
 from yt.testing import assert_almost_equal, assert_equal
 from yt.units.yt_array import uconcatenate
@@ -22,7 +21,7 @@ def test_particle_generator():
     ug = load_uniform_grid(fields, domain_dims, 1.0)
     fo = [ic.BetaModelSphere(1.0, 0.1, 0.5, [0.5, 0.5, 0.5], {"density": (10.0)})]
     rc = [fm.flagging_method_registry["overdensity"](4.0)]
-    ds = refine_amr(ug, rc, fo, 3)
+    ds = ug.refine_amr(rc, fo, 3)
 
     # Now generate particles from density
 
