@@ -1164,11 +1164,15 @@ class YTCutRegion(YTSelectionContainer3D):
             ],
             axis=1,
         ).value
-        levels = self[("index", "grid_level")].astype("int32").value
-        levelmin = levels.min()
-        levelmax = levels.max()
 
         mask = np.zeros(ppos.shape[0], dtype=bool)
+
+        levels = self[("index", "grid_level")].astype("int32").value
+        if levels.size == 0:
+            return mask
+
+        levelmin = levels.min()
+        levelmax = levels.max()
 
         for lvl in range(levelmax, levelmin - 1, -1):
             # Filter out cells not in the current level
