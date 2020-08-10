@@ -1,12 +1,10 @@
 import abc
 import os
-import pickle
 import weakref
 
 import numpy as np
 
 from yt.config import ytcfg
-from yt.funcs import iterable
 from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
@@ -146,29 +144,6 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         self._data_file.close()
         del self._data_file
         self._data_file = h5py.File(self.__data_filename, self._data_mode)
-
-    def save_object(self, obj, name):
-        """
-        Save an object (*obj*) to the data_file using the Pickle protocol,
-        under the name *name* on the node /Objects.
-        """
-        s = pickle.dumps(obj, protocol=-1)
-        self.save_data(np.array(s, dtype="c"), "/Objects", name, force=True)
-
-    def load_object(self, name):
-        """
-        Load and return and object from the data_file using the Pickle protocol,
-        under the name *name* on the node /Objects.
-        """
-        obj = self.get_data("/Objects", name)
-        if obj is None:
-            return
-        obj = pickle.loads(obj.value)
-        if iterable(obj) and len(obj) == 2:
-            obj = obj[1]  # Just the object, not the ds
-        if hasattr(obj, "_fix_pickle"):
-            obj._fix_pickle()
-        return obj
 
     def get_data(self, node, name):
         """
