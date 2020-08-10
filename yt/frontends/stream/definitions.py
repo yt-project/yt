@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from yt.funcs import issue_deprecation_warning, iterable
+from yt.funcs import iterable
 from yt.geometry.grid_container import GridTree, MatchPointsToGrids
 from yt.utilities.exceptions import (
     YTInconsistentGridFieldShape,
@@ -228,18 +228,6 @@ def process_data(data, grid_dims=None):
     else:
         number_of_particles = 0
     return field_units, data, number_of_particles
-
-
-def refine_amr(base_ds, refinement_criteria, fluid_operators, max_level, callback=None):
-    issue_deprecation_warning(
-        "yt.refine_amr is now a method of the StreamDataset class"
-    )
-    return base_ds.refine_amr(
-        refinement_criteria=refinement_criteria,
-        fluid_operators=fluid_operators,
-        max_level=max_level,
-        callback=callback,
-    )
 
 
 def set_particle_types(data):

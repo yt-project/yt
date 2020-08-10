@@ -6,7 +6,6 @@ from .data_structures import (
     StreamHierarchy,
     hexahedral_connectivity,
 )
-from .definitions import refine_amr
 from .fields import StreamFieldInfo
 from .io import IOHandlerStream
 from .loaders import (
