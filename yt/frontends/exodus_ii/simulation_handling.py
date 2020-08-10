@@ -1,14 +1,14 @@
 import glob
 
 from yt.convenience import load
-from yt.data_objects.time_series import DatasetSeries, RegisteredSimulationTimeSeries
+from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import only_on_root
 from yt.utilities.exceptions import YTOutputNotIdentified
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 
 
-class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries):
+class ExodusIISimulation(DatasetSeries):
     r"""
     Initialize an ExodusII Simulation object.
 

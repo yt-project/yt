@@ -11,7 +11,6 @@ from stat import ST_CTIME
 import numpy as np
 
 from yt.config import ytcfg
-from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.region_expression import RegionExpression
@@ -51,12 +50,9 @@ from yt.utilities.exceptions import (
     YTObjectNotImplemented,
 )
 from yt.utilities.minimal_representation import MinimalDataset
+from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
-from yt.utilities.parameter_file_storage import (
-    NoParameterShelf,
-    ParameterFileStore,
-    output_type_registry,
-)
+from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -71,13 +67,6 @@ def _unsupported_object(ds, obj_name):
         raise YTObjectNotImplemented(ds, obj_name)
 
     return _raise_unsupp
-
-
-class RegisteredDataset(abc.ABCMeta):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        output_type_registry[name] = cls
-        mylog.debug("Registering: %s as %s", name, cls)
 
 
 class IndexProxy:
@@ -142,7 +131,7 @@ def requires_index(attr_name):
     return ireq
 
 
-class Dataset(metaclass=RegisteredDataset):
+class Dataset:
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
@@ -196,6 +185,11 @@ class Dataset(metaclass=RegisteredDataset):
         else:
             obj = _cached_datasets[cache_key]
         return obj
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        output_type_registry[cls.__name__] = cls
+        mylog.debug("Registering: %s as %s", cls.__name__, cls)
 
     def __init__(
         self,

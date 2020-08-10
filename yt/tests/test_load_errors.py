@@ -10,7 +10,7 @@ from yt.utilities.exceptions import (
     YTOutputNotIdentified,
     YTSimulationNotIdentified,
 )
-from yt.utilities.parameter_file_storage import output_type_registry
+from yt.utilities.object_registries import output_type_registry
 
 
 def test_load_nonexistent_data():
