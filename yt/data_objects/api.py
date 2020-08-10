@@ -1,6 +1,5 @@
 from . import construction_data_containers as __cdc, selection_data_containers as __sdc
 from .analyzer_objects import AnalysisTask, analysis_task
-from .data_containers import data_object_registry
 from .image_array import ImageArray
 from .index_subobjects import AMRGridPatch, OctreeSubset
 from .particle_filters import add_particle_filter, particle_filter

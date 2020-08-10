@@ -1,6 +1,5 @@
 import itertools
 import os
-import shelve
 import uuid
 import weakref
 from collections import defaultdict
@@ -42,14 +41,13 @@ from yt.utilities.exceptions import (
     YTSpatialFieldUnitError,
 )
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
+from yt.utilities.object_registries import data_object_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
 )
 from yt.utilities.parameter_file_storage import ParameterFileStore
 
 from .derived_quantities import DerivedQuantityCollection
-
-data_object_registry = {}
 
 
 def sanitize_weight_field(ds, field, weight):
@@ -77,15 +75,7 @@ def _get_ipython_key_completion(ds):
     return tuple_keys + fnames
 
 
-class RegisteredDataContainer(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if hasattr(cls, "_type_name") and not cls._skip_add:
-            name = getattr(cls, "_override_selector_name", cls._type_name)
-            data_object_registry[name] = cls
-
-
-class YTDataContainer(metaclass=RegisteredDataContainer):
+class YTDataContainer:
     """
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
@@ -140,6 +130,12 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
         self._set_default_field_parameters()
         for key, val in field_parameters.items():
             self.set_field_parameter(key, val)
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if hasattr(cls, "_type_name") and not cls._skip_add:
+            name = getattr(cls, "_override_selector_name", cls._type_name)
+            data_object_registry[name] = cls
 
     @property
     def pf(self):
@@ -505,21 +501,6 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             for line in range(field_data.shape[1]):
                 field_data[:, line].tofile(fid, sep="\t", format=format)
                 fid.write("\n")
-
-    def save_object(self, name, filename=None):
-        """
-        Save an object.  If *filename* is supplied, it will be stored in
-        a :mod:`shelve` file of that name.  Otherwise, it will be stored via
-        :meth:`yt.data_objects.api.GridIndex.save_object`.
-        """
-        if filename is not None:
-            ds = shelve.open(filename, protocol=-1)
-            if name in ds:
-                mylog.info("Overwriting %s in %s", name, filename)
-            ds[name] = self
-            ds.close()
-        else:
-            self.index.save_object(self, name)
 
     def to_dataframe(self, fields):
         r"""Export a data object to a :class:`~pandas.DataFrame`.

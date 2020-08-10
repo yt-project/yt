@@ -3,14 +3,13 @@ import numpy as np
 from yt.funcs import camelcase_to_underscore, ensure_list
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTParticleTypeNotFound
+from yt.utilities.object_registries import derived_quantity_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
     parallel_objects,
 )
 from yt.utilities.physical_constants import gravitational_constant_cgs
 from yt.utilities.physical_ratios import HUGE
-
-derived_quantity_registry = {}
 
 
 def get_position_fields(field, data):
@@ -29,18 +28,16 @@ def get_position_fields(field, data):
     return position_fields
 
 
-class RegisteredDerivedQuantity(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if name != "DerivedQuantity":
-            derived_quantity_registry[name] = cls
-
-
-class DerivedQuantity(ParallelAnalysisInterface, metaclass=RegisteredDerivedQuantity):
+class DerivedQuantity(ParallelAnalysisInterface):
     num_vals = -1
 
     def __init__(self, data_source):
         self.data_source = data_source
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if cls.__name__ != "DerivedQuantity":
+            derived_quantity_registry[cls.__name__] = cls
 
     def count_values(self, *args, **kwargs):
         return
