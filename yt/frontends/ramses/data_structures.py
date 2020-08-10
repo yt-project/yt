@@ -350,7 +350,12 @@ class RAMSESDomainSubset(OctreeSubset):
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         if smoothed:
-            raise NotImplementedError
+            mylog.warning(
+                f"{self}.retrieve_ghost_zones was called with the "
+                f"`smoothed` argument set to True. This is not supported, "
+                "ignoring it."
+            )
+            smoothed = False
 
         new_subset = RAMSESDomainSubset(
             self.base_region, self.domain, self.ds, num_ghost_zones=ngz, base_grid=self
