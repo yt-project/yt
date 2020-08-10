@@ -1,6 +1,5 @@
 import itertools
 import os
-import shelve
 import uuid
 import weakref
 from collections import defaultdict
@@ -505,21 +504,6 @@ class YTDataContainer(metaclass=RegisteredDataContainer):
             for line in range(field_data.shape[1]):
                 field_data[:, line].tofile(fid, sep="\t", format=format)
                 fid.write("\n")
-
-    def save_object(self, name, filename=None):
-        """
-        Save an object.  If *filename* is supplied, it will be stored in
-        a :mod:`shelve` file of that name.  Otherwise, it will be stored via
-        :meth:`yt.data_objects.api.GridIndex.save_object`.
-        """
-        if filename is not None:
-            ds = shelve.open(filename, protocol=-1)
-            if name in ds:
-                mylog.info("Overwriting %s in %s", name, filename)
-            ds[name] = self
-            ds.close()
-        else:
-            self.index.save_object(self, name)
 
     def to_dataframe(self, fields):
         r"""Export a data object to a :class:`~pandas.DataFrame`.
