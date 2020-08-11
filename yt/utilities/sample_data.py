@@ -26,7 +26,7 @@ from yt.utilities.on_demand_imports import _pooch as pooch
 _extensions_to_strip = (".tgz", ".tar.gz", ".gz")
 
 
-class PoochSomething:
+class PoochHandle:
     r"""
     Container for a pooch object used to fetch remote data that isn't
     already stored locally.

@@ -25,7 +25,7 @@ from yt.utilities.object_registries import (
     simulation_time_series_registry,
 )
 from yt.utilities.on_demand_imports import _pooch as pooch
-from yt.utilities.sample_data import PoochSomething, _extensions_to_strip
+from yt.utilities.sample_data import PoochHandle, _extensions_to_strip
 
 # --- Loaders for known data formats ---
 
@@ -1311,7 +1311,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
 
     """
 
-    fido = PoochSomething()
+    fido = PoochHandle()
 
     if fn is None:
         keys = []
