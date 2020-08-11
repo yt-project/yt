@@ -176,3 +176,16 @@ from yt.utilities.math_utils import ortho_find, quartiles, periodic_position
 from yt.units.unit_systems import UnitSystem, unit_system_registry
 
 _called_from_pytest = False
+
+
+def _check_deprecated_parameters():
+    from yt.config import ytcfg
+    from yt.funcs import issue_deprecation_warning
+
+    if ytcfg.getboolean("yt", "loadfieldplugins"):
+        issue_deprecation_warning(
+            "Found deprecated parameter 'loadfieldplugins' parameter in yt rcfile."
+        )
+
+
+_check_deprecated_parameters()

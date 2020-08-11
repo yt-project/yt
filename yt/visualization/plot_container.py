@@ -499,7 +499,7 @@ class PlotContainer:
         if suffix is None:
             suffix = get_image_suffix(name)
             if suffix != "":
-                for k, v in self.plots.items():
+                for v in self.plots.values():
                     names.append(v.save(name, mpl_kwargs))
                 return names
         if hasattr(self.data_source, "axis"):
@@ -555,7 +555,7 @@ class PlotContainer:
         """
         interactivity = self.plots[list(self.plots.keys())[0]].interactivity
         if interactivity:
-            for k, v in sorted(self.plots.items()):
+            for v in sorted(self.plots.values()):
                 v.show()
         else:
             if "__IPYTHON__" in dir(builtins):
@@ -911,8 +911,8 @@ class ImagePlotContainer(PlotContainer):
                 except AttributeError:
                     # only certain subclasses have a frb attribute they can rely on for inspecting units
                     mylog.warning(
-                        "%s class doesn't support zmin/zmax set as tuples or YTQuantity"
-                        % self.__class__.__name__
+                        "%s class doesn't support zmin/zmax set as tuples or YTQuantity",
+                        self.__class__.__name__,
                     )
                     z = z.value
             return z

@@ -30,7 +30,7 @@ class IOHandlerSwift(IOHandlerSPH):
             si, ei = sub_file.start, sub_file.end
             f = h5py.File(sub_file.filename, "r")
             # This double-reads
-            for ptype, field_list in sorted(ptf.items()):
+            for ptype in sorted(ptf):
                 if sub_file.total_particles[ptype] == 0:
                     continue
                 pos = f["/%s/Coordinates" % ptype][si:ei, :]

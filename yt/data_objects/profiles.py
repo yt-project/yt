@@ -143,7 +143,7 @@ been deprecated, use profile.standard_deviation instead."""
         # We use our main comm here
         # This also will fill _field_data
 
-        for i, field in enumerate(fields):
+        for i, _field in enumerate(fields):
             # q values are returned as q * weight but we want just q
             temp_storage.qvalues[..., i][
                 temp_storage.used
@@ -173,7 +173,7 @@ been deprecated, use profile.standard_deviation instead."""
             all_weight[all_store[p].used] += all_store[p].weight_values[
                 all_store[p].used
             ]
-            for i, field in enumerate(fields):
+            for i, _field in enumerate(fields):
                 all_val[..., i][all_store[p].used] += all_store[p].values[..., i][
                     all_store[p].used
                 ]
@@ -938,7 +938,7 @@ class ParticleProfile(Profile2D):
         elif self.deposition == "cic":
             func = CICDeposit_2
 
-        for fi, field in enumerate(fields):
+        for fi, _field in enumerate(fields):
             if self.weight_field is None:
                 deposit_vals = fdata[:, fi]
             else:

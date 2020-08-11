@@ -158,8 +158,9 @@ class AthenaHierarchy(GridIndex):
                     grid_dims[grid_dims == 0] = 1
                 if np.prod(grid_dims) != grid_ncells:
                     mylog.error(
-                        "product of dimensions %i not equal to number of cells %i"
-                        % (np.prod(grid_dims), grid_ncells)
+                        "product of dimensions %i not equal to number of cells %i",
+                        np.prod(grid_dims),
+                        grid_ncells,
                     )
                     raise TypeError
                 break
@@ -222,8 +223,9 @@ class AthenaHierarchy(GridIndex):
             grid["dimensions"][grid["dimensions"] == 0] = 1
         if np.prod(grid["dimensions"]) != grid["ncells"]:
             mylog.error(
-                "product of dimensions %i not equal to number of cells %i"
-                % (np.prod(grid["dimensions"]), grid["ncells"])
+                "product of dimensions %i not equal to number of cells %i",
+                np.prod(grid["dimensions"]),
+                grid["ncells"],
             )
             raise TypeError
 
@@ -298,8 +300,9 @@ class AthenaHierarchy(GridIndex):
                 gridread["dimensions"][gridread["dimensions"] == 0] = 1
             if np.prod(gridread["dimensions"]) != gridread["ncells"]:
                 mylog.error(
-                    "product of dimensions %i not equal to number of cells %i"
-                    % (np.prod(gridread["dimensions"]), gridread["ncells"])
+                    "product of dimensions %i not equal to number of cells %i",
+                    np.prod(gridread["dimensions"]),
+                    gridread["ncells"],
                 )
                 raise TypeError
             gdims[j, 0] = gridread["dimensions"][0]
@@ -443,7 +446,7 @@ class AthenaHierarchy(GridIndex):
                 g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1
             ]
         mylog.debug("Second pass; identifying parents")
-        for i, grid in enumerate(self.grids):  # Second pass
+        for grid in self.grids:  # Second pass
             for child in grid.Children:
                 child.Parent.append(grid)
 
@@ -485,12 +488,12 @@ class AthenaDataset(Dataset):
             units_override = {}
         # This is for backwards-compatibility
         already_warned = False
-        for k, v in list(self.specified_parameters.items()):
+        for k in list(self.specified_parameters.keys()):
             if k.endswith("_unit") and k not in units_override:
                 if not already_warned:
                     mylog.warning(
                         "Supplying unit conversions from the parameters dict is deprecated, "
-                        + "and will be removed in a future release. Use units_override instead."
+                        "and will be removed in a future release. Use units_override instead."
                     )
                     already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)
@@ -559,8 +562,8 @@ class AthenaDataset(Dataset):
 
         self.domain_left_edge = grid["left_edge"]
         mylog.info(
-            "Temporarily setting domain_right_edge = -domain_left_edge."
-            + " This will be corrected automatically if it is not the case."
+            "Temporarily setting domain_right_edge = -domain_left_edge. "
+            "This will be corrected automatically if it is not the case."
         )
         self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge - self.domain_left_edge

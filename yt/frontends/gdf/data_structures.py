@@ -108,7 +108,7 @@ class GDFHierarchy(GridIndex):
 
     def _populate_grid_objects(self):
         mask = np.empty(self.grids.size, dtype="int32")
-        for gi, g in enumerate(self.grids):
+        for g in self.grids:
             g._prepare_grid()
             g._setup_dx()
 
@@ -221,8 +221,8 @@ class GDFDataset(Dataset):
                 if unit_name in h5f["/field_types"]:
                     if unit_name in self.field_units:
                         mylog.warning(
-                            "'field_units' was overridden by 'dataset_units/%s'"
-                            % (unit_name)
+                            "'field_units' was overridden by 'dataset_units/%s'",
+                            unit_name,
                         )
                     self.field_units[unit_name] = str(unit)
         else:

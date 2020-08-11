@@ -238,14 +238,6 @@ def rootonly(func):
     return check_parallel_rank
 
 
-def rootloginfo(*args):
-    from yt.config import ytcfg
-
-    if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0:
-        return
-    mylog.info(*args)
-
-
 class VisibleDeprecationWarning(UserWarning):
     """Visible deprecation warning, adapted from NumPy
 
@@ -926,7 +918,7 @@ def get_image_suffix(name):
     if suffix in supported_suffixes or suffix == "":
         return suffix
     else:
-        mylog.warning("Unsupported image suffix requested (%s)" % suffix)
+        mylog.warning("Unsupported image suffix requested (%s)", suffix)
         return ""
 
 
@@ -1125,8 +1117,8 @@ def enable_plugins(pluginfilename=None):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
-            mylog.error("Could not find a global system plugin file.")
-            return
+            raise FileNotFoundError("Could not find a global system plugin file.")
+
         if _fn.startswith(old_config_dir):
             mylog.warning(
                 "Your plugin file is located in a deprecated directory. "

@@ -9,6 +9,7 @@ AMRVAC data structures
 import os
 import stat
 import struct
+import warnings
 import weakref
 
 import numpy as np
@@ -57,6 +58,18 @@ class AMRVACGrid(AMRGridPatch):
         start_index = (self.LeftEdge - self.ds.domain_left_edge) / self.dds
         self.start_index = np.rint(start_index).astype("int64").ravel()
         return self.start_index
+
+    def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):
+        if smoothed:
+            warnings.warn(
+                "ghost-zones interpolation/smoothing is not "
+                "currently supported for AMRVAC data.",
+                category=RuntimeWarning,
+            )
+            smoothed = False
+        return super(AMRVACGrid, self).retrieve_ghost_zones(
+            n_zones, fields, all_levels=all_levels, smoothed=smoothed
+        )
 
 
 class AMRVACHierarchy(GridIndex):
@@ -196,9 +209,9 @@ class AMRVACDataset(Dataset):
 
             if namelist_gamma is not None and self.gamma != namelist_gamma:
                 mylog.error(
-                    "Inconsistent values in gamma: datfile {}, parfiles {}".format(
-                        self.gamma, namelist_gamma
-                    )
+                    "Inconsistent values in gamma: datfile %s, parfiles %s",
+                    self.gamma,
+                    namelist_gamma,
                 )
 
             if "method_list" in namelist:
@@ -312,8 +325,8 @@ class AMRVACDataset(Dataset):
         elif self.parameters["datfile_version"] > 4:
             # py38: walrus here
             mylog.error(
-                "No 'geometry' flag found in datfile with version %d >4."
-                % self.parameters["datfile_version"]
+                "No 'geometry' flag found in datfile with version %d >4.",
+                self.parameters["datfile_version"],
             )
 
         if self._geometry_override is not None:
@@ -329,8 +342,8 @@ class AMRVACDataset(Dataset):
                     )
             except ValueError:
                 mylog.error(
-                    "Unable to parse geometry_override '%s' (will be ignored)."
-                    % self._geometry_override
+                    "Unable to parse geometry_override '%s' (will be ignored).",
+                    self._geometry_override,
                 )
 
         if self.geometry is None:

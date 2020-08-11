@@ -299,7 +299,7 @@ def off_axis_projection(
     data_source.ds.index
     if item is None:
         field = data_source.ds.field_list[0]
-        mylog.info("Setting default field to %s" % field.__repr__())
+        mylog.info("Setting default field to %s", field.__repr__())
 
     funits = data_source.ds._get_field_info(item).units
 
@@ -367,7 +367,7 @@ def off_axis_projection(
 
     mylog.debug("Casting rays")
 
-    for i, (grid, mask) in enumerate(data_source.blocks):
+    for (grid, mask) in data_source.blocks:
         data = []
         for f in fields:
             # strip units before multiplying by mask for speed

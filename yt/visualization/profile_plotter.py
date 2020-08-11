@@ -355,10 +355,10 @@ class ProfilePlot:
         ret = ""
         unique = set(self.plots.values())
         if len(unique) < len(self.plots):
-            iters = zip(range(len(unique)), sorted(unique))
+            iters = sorted(unique)
         else:
-            iters = self.plots.items()
-        for uid, plot in iters:
+            iters = self.plots.values()
+        for plot in iters:
             with matplotlib_style_context():
                 img = plot._repr_png_()
             img = base64.b64encode(img).decode()
@@ -1074,8 +1074,9 @@ class PhasePlot(ImagePlotContainer):
                     positive_values = data[data > 0.0]
                     if len(positive_values) == 0:
                         mylog.warning(
-                            "Profiled field %s has no positive "
-                            "values.  Max = %f." % (f, np.nanmax(data))
+                            "Profiled field %s has no positive " "values.  Max = %f.",
+                            f,
+                            np.nanmax(data),
                         )
                         mylog.warning("Switching to linear colorbar scaling.")
                         zmin = np.nanmin(data)
@@ -1303,7 +1304,7 @@ class PhasePlot(ImagePlotContainer):
             if suffix is None:
                 suffix = get_image_suffix(name)
                 if suffix != "":
-                    for k, v in self.plots.items():
+                    for v in self.plots.values():
                         names.append(v.save(name, mpl_kwargs))
                     return names
                 else:

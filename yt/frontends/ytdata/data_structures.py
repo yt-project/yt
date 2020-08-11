@@ -106,6 +106,9 @@ class SavedDataset(Dataset):
         for attr in self._con_attrs:
             setattr(self, attr, self.parameters.get(attr))
 
+        if self.geometry is None:
+            self.geometry = "cartesian"
+
     def _with_parameter_file_open(self, f):
         # This allows subclasses to access the parameter file
         # while it's still open to get additional information.
@@ -164,6 +167,7 @@ class YTDataset(SavedDataset):
         "omega_lambda",
         "dimensionality",
         "domain_dimensions",
+        "geometry",
         "periodicity",
         "domain_left_edge",
         "domain_right_edge",

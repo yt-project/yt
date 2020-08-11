@@ -317,9 +317,8 @@ class AthenaPPDataset(Dataset):
 
         self._field_map = {}
         k = 0
-        for (i, dname), num_var in zip(
-            enumerate(self._handle.attrs["DatasetNames"]),
-            self._handle.attrs["NumVariables"],
+        for dname, num_var in zip(
+            self._handle.attrs["DatasetNames"], self._handle.attrs["NumVariables"],
         ):
             for j in range(num_var):
                 fname = self._handle.attrs["VariableNames"][k].decode("ascii", "ignore")

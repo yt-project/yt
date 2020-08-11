@@ -70,7 +70,7 @@ def get_header(istream):
 
     # Read w_names
     w_names = []
-    for i in range(h["nw"]):
+    for _ in range(h["nw"]):
         fmt = ALIGN + NAME_LEN * "c"
         hdr = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
         w_names.append(b"".join(hdr).strip().decode())

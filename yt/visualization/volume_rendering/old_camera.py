@@ -5,7 +5,6 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
-from yt.data_objects.data_containers import data_object_registry
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, iterable, mylog
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -24,6 +23,7 @@ from yt.utilities.lib.image_samplers import (
 from yt.utilities.lib.misc_utilities import lines
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.math_utils import get_rotation_matrix
+from yt.utilities.object_registries import data_object_registry
 from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
@@ -299,7 +299,7 @@ class Camera(ParallelAnalysisInterface):
         region = self.data_source
         corners = []
         levels = []
-        for block, mask in region.blocks:
+        for block, _mask in region.blocks:
             block_corners = np.array(
                 [
                     [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
@@ -972,7 +972,7 @@ class Camera(ParallelAnalysisInterface):
         ...     iw.write_bitmap(snapshot, "zoom_%04i.png" % i)
         """
         f = final ** (1.0 / n_steps)
-        for i in range(n_steps):
+        for _ in range(n_steps):
             self.zoom(f)
             yield self.snapshot(clip_ratio=clip_ratio)
 
@@ -1035,7 +1035,7 @@ class Camera(ParallelAnalysisInterface):
             else:
                 dW = self.ds.arr([0.0, 0.0, 0.0], "code_length")
             dx = (final - self.center) * 1.0 / n_steps
-        for i in range(n_steps):
+        for _ in range(n_steps):
             if exponential:
                 self.switch_view(center=self.center * dx, width=self.width * dW)
             else:
@@ -1177,7 +1177,7 @@ class Camera(ParallelAnalysisInterface):
         """
 
         dtheta = (1.0 * theta) / n_steps
-        for i in range(n_steps):
+        for _ in range(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector)
             yield self.snapshot(clip_ratio=clip_ratio)
 
@@ -1937,7 +1937,7 @@ class MosaicCamera(Camera):
         dy = self.width[1]
         offi = self.imi + 0.5
         offj = self.imj + 0.5
-        mylog.info("Mosaic offset: %f %f" % (offi, offj))
+        mylog.info("Mosaic offset: %f %f", offi, offj)
         global_center = self.center
         self.center = self.origin
         self.center += offi * dx * self.orienter.unit_vectors[0]
@@ -1981,7 +1981,7 @@ class MosaicCamera(Camera):
             self.initialize_source()
 
             self.imi, self.imj = xy
-            mylog.debug("Working on: %i %i" % (self.imi, self.imj))
+            mylog.debug("Working on: %i %i", self.imi, self.imj)
             self._setup_box_properties(
                 self.width, self.center, self.orienter.unit_vectors
             )
@@ -2220,7 +2220,7 @@ class ProjectionCamera(Camera):
         # Now we have a bounding box.
         data_source = ds.region(self.center, mi, ma)
 
-        for i, (grid, mask) in enumerate(data_source.blocks):
+        for (grid, mask) in data_source.blocks:
             data = [(grid[field] * mask).astype("float64") for field in fields]
             pg = PartitionedGrid(
                 grid.id,
@@ -2370,8 +2370,8 @@ class StereoSphericalCamera(Camera):
         if self.disparity <= 0.0:
             self.disparity = self.width[0] / 1000.0
             mylog.info(
-                "Warning: Invalid value of disparity; "
-                "now reset it to %f" % self.disparity
+                "Warning: Invalid value of disparity; now reset it to %f",
+                self.disparity,
             )
 
     def get_sampler_args(self, image):

@@ -47,14 +47,7 @@ def _verify_geometry(func):
     return _check_geometry
 
 
-class RegisteredCallback(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        callback_registry[name] = cls
-        cls.__call__ = _verify_geometry(cls.__call__)
-
-
-class PlotCallback(metaclass=RegisteredCallback):
+class PlotCallback:
     # _supported_geometries is set by subclasses of PlotCallback to a tuple of
     # strings corresponding to the names of the geometries that a callback
     # supports.  By default it is None, which means it supports everything.
@@ -63,6 +56,11 @@ class PlotCallback(metaclass=RegisteredCallback):
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
     _supported_geometries = None
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        callback_registry[cls.__name__] = cls
+        cls.__call__ = _verify_geometry(cls.__call__)
 
     def __init__(self, *args, **kwargs):
         pass
@@ -779,7 +777,7 @@ class GridBoundaryCallback(PlotCallback):
         else:
             pxs, pys = np.mgrid[0:0:1j, 0:0:1j]
         GLE, GRE, levels, block_ids = [], [], [], []
-        for block, mask in plot.data.blocks:
+        for block, _mask in plot.data.blocks:
             GLE.append(block.LeftEdge.in_units("code_length"))
             GRE.append(block.RightEdge.in_units("code_length"))
             levels.append(block.Level)

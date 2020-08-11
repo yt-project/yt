@@ -47,8 +47,11 @@ from yt.startup_tasks import parser, subparsers  # isort: skip # noqa: E402
 
 # loading field plugins for backward compatibility, since this module
 # used to do "from yt.mods import *"
-if ytcfg.getboolean("yt", "loadfieldplugins"):
+
+try:
     enable_plugins()
+except FileNotFoundError:
+    pass
 
 _default_colormap = ytcfg.get("yt", "default_colormap")
 
@@ -1719,7 +1722,7 @@ class YTSearchCmd(YTCommand):
     name = "search"
 
     def __call__(self, args):
-        from yt.utilities.parameter_file_storage import output_type_registry
+        from yt.utilities.object_registries import output_type_registry
 
         candidates = []
         for base, dirs, files in os.walk(".", followlinks=True):

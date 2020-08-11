@@ -659,13 +659,11 @@ class GadgetFOFHaloContainer(YTSelectionContainer):
             parent_subhalos = my_data["GroupNsubs"][0]
 
             mylog.debug(
-                "Subhalo %d is subgroup %s of %d in group %d."
-                % (
-                    self.particle_identifier,
-                    self.subgroup_identifier,
-                    parent_subhalos,
-                    self.group_identifier,
-                )
+                "Subhalo %d is subgroup %s of %d in group %d.",
+                self.particle_identifier,
+                self.subgroup_identifier,
+                parent_subhalos,
+                self.group_identifier,
             )
 
             # ids of the sibling subhalos that come before this one

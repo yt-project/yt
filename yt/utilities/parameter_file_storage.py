@@ -4,12 +4,11 @@ from itertools import islice
 
 from yt.config import ytcfg
 from yt.funcs import mylog
+from yt.utilities.object_registries import output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_simple_proxy,
 )
 
-output_type_registry = {}
-simulation_time_series_registry = {}
 _field_names = ("hash", "bn", "fp", "tt", "ctid", "class_name", "last_seen")
 
 
@@ -198,30 +197,3 @@ class ParameterFileStore:
             else:
                 v["last_seen"] = float(v["last_seen"])
         return db
-
-
-class ObjectStorage:
-    pass
-
-
-class EnzoRunDatabase:
-    conn = None
-
-    def __init__(self, path=None):
-        if path is None:
-            path = ytcfg.get("yt", "enzo_db")
-            if len(path) == 0:
-                raise RuntimeError
-        import sqlite3
-
-        self.conn = sqlite3.connect(path)
-
-    def find_uuid(self, u):
-        cursor = self.conn.execute(
-            "select ds_path from enzo_outputs where dset_uuid = '%s'" % (u)
-        )
-        # It's a 'unique key'
-        result = cursor.fetchone()
-        if result is None:
-            return None
-        return result[0]

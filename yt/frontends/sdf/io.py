@@ -27,7 +27,7 @@ class IOHandlerSDF(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             yield "dark_matter", (
                 self._handle["x"],
                 self._handle["y"],
@@ -43,7 +43,7 @@ class IOHandlerSDF(BaseIOHandler):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
+        for _data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle["x"]
                 y = self._handle["y"]
@@ -92,8 +92,9 @@ class IOHandlerSDF(BaseIOHandler):
         pcount = self._handle["x"].size
         if pcount > 1e9:
             mylog.warning(
-                "About to load %i particles into memory. " % (pcount)
-                + "You may want to consider a midx-enabled load"
+                "About to load %i particles into memory. "
+                "You may want to consider a midx-enabled load",
+                pcount,
             )
         return {"dark_matter": pcount}
 
@@ -110,7 +111,7 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in data_files:
+        for _data_file in data_files:
             pcount = self._handle["x"].size
             yield "dark_matter", (
                 self._handle["x"][:pcount],
@@ -127,7 +128,7 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
         assert len(data_files) == 1
-        for data_file in data_files:
+        for _data_file in data_files:
             pcount = self._handle["x"].size
             for ptype, field_list in sorted(ptf.items()):
                 x = self._handle["x"][:pcount]
@@ -169,7 +170,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         dle = self.ds.domain_left_edge.in_units("code_length").d
         dre = self.ds.domain_right_edge.in_units("code_length").d
         required_fields = []
-        for ptype, field_list in sorted(ptf.items()):
+        for field_list in sorted(ptf.values()):
             for field in field_list:
                 if field == "mass":
                     continue
@@ -236,8 +237,9 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         pcount_estimate = self.ds.midx.get_nparticles_bbox(dle, dre)
         if pcount_estimate > 1e9:
             mylog.warning(
-                "Filtering %i particles to find total." % pcount_estimate
-                + " You may want to reconsider your bounding box."
+                "Filtering %i particles to find total. "
+                "You may want to reconsider your bounding box.",
+                pcount_estimate,
             )
         pcount = 0
         for dd in self.ds.midx.iter_bbox_data(dle, dre, ["x"]):
