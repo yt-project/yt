@@ -723,8 +723,8 @@ Below are a list of rules for coding style in yt. Some of these rules are
 suggestions are not explicitly enforced, while some are enforced via automated
 testing.
 
-The yt project uses ``flake8`` and ``flynt`` to report on code correctness (syntax +
-anti-pattern detection), and ``black`` for automated formatting.
+The yt project uses ``flake8`` to report on code correctness (syntax +
+anti-pattern detection), and ``isort``, ``black`` and ``flynt`` for automated formatting.
 
 To check the coding style of your contributions locally you will need to install those
 tools, which can be done for instance with ``pip``:
@@ -738,8 +738,9 @@ Then run the checks from the top level of the repository with
 .. code-block:: bash
 
     $ flake8 yt/
+    $ black --check yt/
+    $ isort --check yt/
     $ flynt --fail-on-change --dry-run yt/
-    $ black --check
 
 These will respectively print out any ``flake8`` errors or warnings that your newly added
 code triggers, and a list of files that are currenlty not compliant with ``black``. Note
