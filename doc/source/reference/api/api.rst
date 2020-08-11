@@ -446,14 +446,15 @@ Loading Data
 
 .. autosummary::
 
-   ~yt.convenience.load
-   ~yt.convenience.simulation
-   ~yt.frontends.stream.data_structures.load_uniform_grid
-   ~yt.frontends.stream.data_structures.load_amr_grids
-   ~yt.frontends.stream.data_structures.load_particles
-   ~yt.frontends.stream.data_structures.load_octree
-   ~yt.frontends.stream.data_structures.load_hexahedral_mesh
-   ~yt.frontends.stream.data_structures.load_unstructured_mesh
+   ~yt.loaders.load
+   ~yt.loaders.simulation
+   ~yt.loaders.load_uniform_grid
+   ~yt.loaders.load_amr_grids
+   ~yt.loaders.load_particles
+   ~yt.loaders.load_octree
+   ~yt.loaders.load_hexahedral_mesh
+   ~yt.loaders.load_unstructured_mesh
+   ~yt.loaders.load_sample
 
 Derived Datatypes
 -----------------
