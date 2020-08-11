@@ -58,7 +58,8 @@ class PoochHandle:
                 return self._registry[item + ext]
         raise KeyError(item)
 
-    def _validate_sample_fname(self, name):
+    @staticmethod
+    def _validate_sample_fname(name):
         """
         format name of sample data passed to function, accepts a named string
         argument and parses it to determine the sample data name, what type of

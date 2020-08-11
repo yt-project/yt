@@ -1,5 +1,5 @@
-from yt.loaders import _validate_sampledata_name
 from yt.testing import assert_equal
+from yt.utilities.sample_data import PoochHandle
 
 names = {
     "t1": {
@@ -47,7 +47,9 @@ names = {
 
 def test_name_validator():
     for test in names:
-        fileext, bname, ext = _validate_sampledata_name(names[test]["load_name"])
+        fileext, bname, ext = PoochHandle._validate_sampledata_name(
+            names[test]["load_name"]
+        )
         expected_answers = names[test]["answers"]
         assert_equal(fileext, expected_answers["fileext"])
         assert_equal(bname, expected_answers["basename"])
