@@ -946,7 +946,7 @@ def test_knn_direct(seed=1):
     rad = np.arange(N, dtype=np.float64)
     pos = np.vstack(3 * [rad ** 2 / 3.0]).T
     sort_shf = np.arange(N, dtype=np.uint64)
-    for i in range(20):
+    for _ in range(20):
         np.random.shuffle(sort_shf)
         sort_ans = np.argsort(sort_shf)[:k]
         sort_out = knn_direct(pos[sort_shf, :], k, sort_ans[0], idx)

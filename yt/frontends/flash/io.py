@@ -10,14 +10,14 @@ from yt.utilities.lib.geometry_utils import compute_morton
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
 def particle_sequences(grids):
     g_iter = sorted(grids, key=lambda g: g.id)
-    for k, g in groupby(enumerate(g_iter), lambda i_x: i_x[0] - i_x[1].id):
+    for _k, g in groupby(enumerate(g_iter), lambda i_x: i_x[0] - i_x[1].id):
         seq = list(v[1] for v in g)
         yield seq[0], seq[-1]
 
 
 def grid_sequences(grids):
     g_iter = sorted(grids, key=lambda g: g.id)
-    for k, g in groupby(enumerate(g_iter), lambda i_x1: i_x1[0] - i_x1[1].id):
+    for _k, g in groupby(enumerate(g_iter), lambda i_x1: i_x1[0] - i_x1[1].id):
         seq = list(v[1] for v in g)
         yield seq
 

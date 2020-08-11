@@ -137,7 +137,7 @@ class Tree:
 
         # Calculate the Volume
         vol = self.trunk.kd_sum_volume()
-        mylog.debug("AMRKDTree volume = %e" % vol)
+        mylog.debug("AMRKDTree volume = %e", vol)
         self.trunk.kd_node_check()
 
     def sum_cells(self, all_cells=False):
@@ -629,7 +629,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 n.create_split(splitdims[i], splitposs[i])
 
         mylog.info(
-            "AMRKDTree rebuilt, Final Volume: %e" % self.tree.trunk.kd_sum_volume()
+            "AMRKDTree rebuilt, Final Volume: %e", self.tree.trunk.kd_sum_volume()
         )
         return self.tree.trunk
 

@@ -19,14 +19,18 @@ def register_particle_handler(ph):
     PARTICLE_HANDLERS.add(ph)
 
 
-class RegisteredRAMSESParticleFileHandler(abc.ABCMeta):
+class RegisteredRAMSESParticleFileHandler(abc.ABC):
     """
     This is a base class that on instantiation registers the file
     handler into the list. Used as a metaclass.
     """
 
-    def __new__(meta, name, bases, class_dict):
-        cls = abc.ABCMeta.__new__(meta, name, bases, class_dict)
+    def __init_subclass__(cls, *args, **kwargs):
+        """
+        Registers subclasses at creation.
+        """
+        super().__init_subclass__(*args, **kwargs)
+
         if cls.ptype is not None:
             register_particle_handler(cls)
 
@@ -34,9 +38,7 @@ class RegisteredRAMSESParticleFileHandler(abc.ABCMeta):
         return cls
 
 
-class ParticleFileHandler(
-    abc.ABC, HandlerMixin, metaclass=RegisteredRAMSESParticleFileHandler
-):
+class ParticleFileHandler(abc.ABC, HandlerMixin, RegisteredRAMSESParticleFileHandler):
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -184,12 +186,12 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         fd.close()
 
         if iextra > 0 and not self.ds._warned_extra_fields["io"]:
-            w = (
+            mylog.warning(
                 "Detected %s extra particle fields assuming kind "
                 "`double`. Consider using the `extra_particle_fields` "
-                "keyword argument if you have unexpected behavior."
+                "keyword argument if you have unexpected behavior.",
+                iextra,
             )
-            mylog.warning(w % iextra)
             self.ds._warned_extra_fields["io"] = True
 
         self.field_offsets = field_offsets
@@ -263,9 +265,10 @@ class SinkParticleFileHandler(ParticleFileHandler):
         else:
             fields = list(self.known_fields)
 
+        # Note: this follows RAMSES convention.
         for i in range(self.ds.dimensionality * 2 + 1):
-            for j in range(self.ds.max_level, self.ds.min_level):
-                fields.append(("particle_prop_%s_%s" % (i, j), "d"))
+            for ilvl in range(self.ds.max_level + 1):
+                fields.append(("particle_prop_%s_%s" % (ilvl, i), "d"))
 
         field_offsets = {}
         _pfields = {}

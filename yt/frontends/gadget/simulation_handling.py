@@ -284,7 +284,7 @@ class GadgetSimulation(SimulationTimeSeries):
         if len(init_outputs) == 0 and len(my_outputs) > 0:
             mylog.warning(
                 "Could not find any datasets.  "
-                + "Check the value of OutputDir in your parameter file."
+                "Check the value of OutputDir in your parameter file."
             )
 
         DatasetSeries.__init__(
@@ -384,8 +384,7 @@ class GadgetSimulation(SimulationTimeSeries):
             data_dir = os.path.join(self.directory, self.parameters["OutputDir"])
         if not os.path.exists(data_dir):
             mylog.info(
-                "OutputDir not found at %s, instead using %s."
-                % (data_dir, self.directory)
+                "OutputDir not found at %s, instead using %s.", data_dir, self.directory
             )
             data_dir = self.directory
         self.data_dir = data_dir
@@ -521,18 +520,18 @@ class GadgetSimulation(SimulationTimeSeries):
         for my_storage, output in parallel_objects(
             potential_outputs, storage=my_outputs
         ):
-            if os.path.exists(output):
-                try:
-                    ds = load(output)
-                    if ds is not None:
-                        my_storage.result = {
-                            "filename": output,
-                            "time": ds.current_time.in_units("s"),
-                        }
-                        if ds.cosmological_simulation:
-                            my_storage.result["redshift"] = ds.current_redshift
-                except YTOutputNotIdentified:
-                    mylog.error("Failed to load %s", output)
+            try:
+                ds = load(output)
+            except (FileNotFoundError, YTOutputNotIdentified):
+                mylog.error("Failed to load %s", output)
+                continue
+            my_storage.result = {
+                "filename": output,
+                "time": ds.current_time.in_units("s"),
+            }
+            if ds.cosmological_simulation:
+                my_storage.result["redshift"] = ds.current_redshift
+
         my_outputs = [
             my_output for my_output in my_outputs.values() if my_output is not None
         ]

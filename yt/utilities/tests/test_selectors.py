@@ -145,7 +145,7 @@ def test_cutting_plane_selector():
     assert all(ds.periodicity)
 
     # test cutting plane against orthogonal plane
-    for i, d in enumerate("xyz"):
+    for i in range(3):
         norm = np.zeros(3)
         norm[i] = 1.0
 

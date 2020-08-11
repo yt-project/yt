@@ -155,7 +155,7 @@ class Clump(TreeContainer):
         # the unique values of the contours by examining the list here.
         unique_contours = set([])
         for sl_list in cids.values():
-            for sl, ff in sl_list:
+            for _sl, ff in sl_list:
                 unique_contours.update(np.unique(ff))
         contour_key = uuid.uuid4().hex
         base_object = getattr(self.data, "base_object", self.data)
@@ -411,9 +411,7 @@ class Clump(TreeContainer):
 
 
 def find_clumps(clump, min_val, max_val, d_clump):
-    mylog.info(
-        "Finding clumps: min: %e, max: %e, step: %f" % (min_val, max_val, d_clump)
-    )
+    mylog.info("Finding clumps: min: %e, max: %e, step: %f", min_val, max_val, d_clump)
     if min_val >= max_val:
         return
     clump.find_children(min_val, max_val=max_val)
@@ -423,7 +421,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
 
     elif len(clump.children) > 0:
         these_children = []
-        mylog.info("Investigating %d children." % len(clump.children))
+        mylog.info("Investigating %d children.", len(clump.children))
         for child in clump.children:
             find_clumps(child, min_val * d_clump, max_val, d_clump)
             if len(child.children) > 0:
@@ -432,19 +430,19 @@ def find_clumps(clump, min_val, max_val, d_clump):
                 these_children.append(child)
             else:
                 mylog.info(
-                    ("Eliminating invalid, childless clump with " + "%d cells.")
-                    % len(child.data["ones"])
+                    "Eliminating invalid, childless clump with %d cells.",
+                    len(child.data["ones"]),
                 )
         if len(these_children) > 1:
             mylog.info(
-                "%d of %d children survived."
-                % (len(these_children), len(clump.children))
+                "%d of %d children survived.", len(these_children), len(clump.children)
             )
             clump.children = these_children
         elif len(these_children) == 1:
             mylog.info(
-                ("%d of %d children survived, linking its " + "children to parent.")
-                % (len(these_children), len(clump.children))
+                "%d of %d children survived, linking its children to parent.",
+                len(these_children),
+                len(clump.children),
             )
             clump.children = these_children[0].children
             for child in clump.children:
@@ -452,8 +450,9 @@ def find_clumps(clump, min_val, max_val, d_clump):
                 child.data.parent = clump.data
         else:
             mylog.info(
-                "%d of %d children survived, erasing children."
-                % (len(these_children), len(clump.children))
+                "%d of %d children survived, erasing children.",
+                len(these_children),
+                len(clump.children),
             )
             clump.children = []
 

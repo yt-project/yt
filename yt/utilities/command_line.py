@@ -1719,7 +1719,7 @@ class YTSearchCmd(YTCommand):
     name = "search"
 
     def __call__(self, args):
-        from yt.utilities.parameter_file_storage import output_type_registry
+        from yt.utilities.object_registries import output_type_registry
 
         candidates = []
         for base, dirs, files in os.walk(".", followlinks=True):

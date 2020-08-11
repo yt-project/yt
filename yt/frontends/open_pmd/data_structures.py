@@ -250,7 +250,7 @@ class OpenPMDHierarchy(GridIndex):
         self.vpg = int(self.dataset.gridsize / 4)  # 4Byte per value (f32)
 
         # Meshes of the same size do not need separate chunks
-        for (shape, spacing, offset, unit_si) in set(self.meshshapes.values()):
+        for shape, *_ in set(self.meshshapes.values()):
             self.num_grids += min(
                 shape[0], int(np.ceil(reduce(mul, shape) * self.vpg ** -1))
             )
@@ -465,7 +465,7 @@ class OpenPMDDataset(Dataset):
             if len(particles) > 1:
                 # Only use on-disk particle names if there is more than one species
                 self.particle_types = particles
-            mylog.debug("self.particle_types: {}".format(self.particle_types))
+            mylog.debug("self.particle_types: %s", self.particle_types)
             self.particle_types_raw = self.particle_types
             self.particle_types = tuple(self.particle_types)
         except (KeyError, TypeError, AttributeError):
@@ -486,7 +486,7 @@ class OpenPMDDataset(Dataset):
         encoding = handle.attrs["iterationEncoding"].decode()
         if "groupBased" in encoding:
             iterations = list(handle["/data"].keys())
-            mylog.info("Found {} iterations in file".format(len(iterations)))
+            mylog.info("Found %s iterations in file", len(iterations))
         elif "fileBased" in encoding:
             itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
             regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
@@ -498,12 +498,12 @@ class OpenPMDDataset(Dataset):
             for filename in listdir(path):
                 if match(regex, filename):
                     iterations.append(filename)
-            mylog.info("Found {} iterations in directory".format(len(iterations)))
+            mylog.info("Found %s iterations in directory", len(iterations))
 
         if len(iterations) == 0:
             mylog.warning("No iterations found!")
         if "groupBased" in encoding and len(iterations) > 1:
-            mylog.warning("Only chose to load one iteration ({})".format(iteration))
+            mylog.warning("Only chose to load one iteration (%s)", iteration)
 
         self.base_path = "/data/{}/".format(iteration)
         try:
@@ -512,8 +512,8 @@ class OpenPMDDataset(Dataset):
         except (KeyError):
             if self.standard_version <= StrictVersion("1.1.0"):
                 mylog.info(
-                    "meshesPath not present in file."
-                    " Assuming file contains no meshes and has a domain extent of 1m^3!"
+                    "meshesPath not present in file. "
+                    "Assuming file contains no meshes and has a domain extent of 1m^3!"
                 )
                 self.meshes_path = None
             else:

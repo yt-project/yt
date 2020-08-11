@@ -4,7 +4,6 @@ import itertools
 import os
 import pickle
 import time
-import warnings
 import weakref
 from collections import defaultdict
 from stat import ST_CTIME
@@ -12,11 +11,10 @@ from stat import ST_CTIME
 import numpy as np
 
 from yt.config import ytcfg
-from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.region_expression import RegionExpression
-from yt.fields.derived_field import DerivedField, ValidateSpatial
+from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
@@ -38,7 +36,7 @@ from yt.geometry.coordinates.api import (
     SpectralCubeCoordinateHandler,
     SphericalCoordinateHandler,
 )
-from yt.units import UnitContainer, _wrap_display_ytarray
+from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, define_unit
 from yt.units.unit_registry import UnitRegistry
@@ -52,12 +50,9 @@ from yt.utilities.exceptions import (
     YTObjectNotImplemented,
 )
 from yt.utilities.minimal_representation import MinimalDataset
+from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
-from yt.utilities.parameter_file_storage import (
-    NoParameterShelf,
-    ParameterFileStore,
-    output_type_registry,
-)
+from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -72,13 +67,6 @@ def _unsupported_object(ds, obj_name):
         raise YTObjectNotImplemented(ds, obj_name)
 
     return _raise_unsupp
-
-
-class RegisteredDataset(abc.ABCMeta):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        output_type_registry[name] = cls
-        mylog.debug("Registering: %s as %s", name, cls)
 
 
 class IndexProxy:
@@ -143,7 +131,7 @@ def requires_index(attr_name):
     return ireq
 
 
-class Dataset(metaclass=RegisteredDataset):
+class Dataset:
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
@@ -197,6 +185,11 @@ class Dataset(metaclass=RegisteredDataset):
         else:
             obj = _cached_datasets[cache_key]
         return obj
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        output_type_registry[cls.__name__] = cls
+        mylog.debug("Registering: %s as %s", cls.__name__, cls)
 
     def __init__(
         self,
@@ -810,24 +803,32 @@ class Dataset(metaclass=RegisteredDataset):
 
     def _get_field_info(self, ftype, fname=None):
         self.index
+
+        # store the original inputs in case we need to raise an error
+        INPUT = ftype, fname
         if fname is None:
-            if isinstance(ftype, DerivedField):
+            try:
                 ftype, fname = ftype.name
-            else:
+            except AttributeError:
                 ftype, fname = "unknown", ftype
-        guessing_type = False
-        if ftype == "unknown":
-            guessing_type = True
+
+        # storing this condition before altering it
+        guessing_type = ftype == "unknown"
+        if guessing_type:
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
-        if field == self._last_freq:
-            if field not in self.field_info.field_aliases.values():
-                return self._last_finfo
+
+        if (
+            field == self._last_freq
+            and field not in self.field_info.field_aliases.values()
+        ):
+            return self._last_finfo
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
-        if fname in self.field_info:
+
+        try:
             # Sometimes, if guessing_type == True, this will be switched for
             # the type of field it is.  So we look at the field type and
             # determine if we need to change the type.
@@ -844,6 +845,9 @@ class Dataset(metaclass=RegisteredDataset):
                 field = self.default_fluid_type, field[1]
             self._last_freq = field
             return self._last_finfo
+        except KeyError:
+            pass
+
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type:
@@ -857,7 +861,7 @@ class Dataset(metaclass=RegisteredDataset):
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
                     return self._last_finfo
-        raise YTFieldNotFound((ftype, fname), self)
+        raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
         # Called by subclass
@@ -1078,8 +1082,6 @@ class Dataset(metaclass=RegisteredDataset):
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
-        import yt.units.dimensions as dimensions
-
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
         # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
@@ -1109,7 +1111,6 @@ class Dataset(metaclass=RegisteredDataset):
         Creates the unit registry for this dataset.
 
         """
-        from yt.units.dimensions import length
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
@@ -1121,7 +1122,7 @@ class Dataset(metaclass=RegisteredDataset):
                 self.unit_registry.add(
                     new_unit,
                     my_u.base_value / (1 + self.current_redshift),
-                    length,
+                    dimensions.length,
                     "\\rm{%s}/(1+z)" % my_unit,
                     prefixable=True,
                 )
@@ -1333,7 +1334,7 @@ class Dataset(metaclass=RegisteredDataset):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function=None, sampling_type=None, **kwargs):
+    def add_field(self, name, function, sampling_type, **kwargs):
         """
         Dataset-specific call to add_field
 
@@ -1350,6 +1351,8 @@ class Dataset(metaclass=RegisteredDataset):
         function : callable
            A function handle that defines the field.  Should accept
            arguments (field, data)
+        sampling_type: str
+           "cell" or "particle" or "local"
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^).
@@ -1357,8 +1360,6 @@ class Dataset(metaclass=RegisteredDataset):
            Describes whether the field should be logged
         validators : list
            A list of :class:`FieldValidator` objects
-        particle_type : bool
-           Is this a particle (1D) field?
         vector_field : bool
            Describes the dimensionality of the field.  Currently unused.
         display_name : str
@@ -1377,27 +1378,11 @@ class Dataset(metaclass=RegisteredDataset):
             )
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
-            mylog.error(
-                "Field %s already exists. To override use " + "force_override=True.",
-                name,
+            mylog.warning(
+                "Field %s already exists. To override use `force_override=True`.", name,
             )
-        if kwargs.setdefault("particle_type", False):
-            if sampling_type is not None and sampling_type != "particle":
-                raise RuntimeError(
-                    "Clashing definition of 'sampling_type' and "
-                    "'particle_type'. Note that 'particle_type' is "
-                    "deprecated. Please just use 'sampling_type'."
-                )
-            else:
-                sampling_type = "particle"
-        if sampling_type is None:
-            warnings.warn(
-                "Because 'sampling_type' not specified, yt will "
-                "assume a cell 'sampling_type'",
-                stacklevel=2,
-            )
-            sampling_type = "cell"
-        self.field_info.add_field(name, sampling_type, function=function, **kwargs)
+
+        self.field_info.add_field(name, function, sampling_type, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
@@ -1501,7 +1486,7 @@ class Dataset(metaclass=RegisteredDataset):
         if method == "count":
             field_name = "%s_count" % ptype
             if ("deposit", field_name) in self.field_info:
-                mylog.warning("The deposited field %s already exists" % field_name)
+                mylog.warning("The deposited field %s already exists", field_name)
                 return ("deposit", field_name)
             else:
                 units = "dimensionless"

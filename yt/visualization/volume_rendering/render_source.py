@@ -451,7 +451,7 @@ class VolumeSource(RenderSource):
                         raise RuntimeError
 
         for brick in self.volume.traverse(camera.lens.viewpoint):
-            mylog.debug("Using sampler %s" % self.sampler)
+            mylog.debug("Using sampler %s", self.sampler)
             self.sampler(brick, num_threads=self.num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
         mylog.debug("Done casting rays")
@@ -631,9 +631,7 @@ class MeshSource(OpaqueSource):
             # to 1st order here, for now.
             if indices.shape[1] == 27:
                 # hexahedral
-                mylog.warning(
-                    "27-node hexes not yet supported, " + "dropping to 1st order."
-                )
+                mylog.warning("27-node hexes not yet supported, dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
 
@@ -664,9 +662,7 @@ class MeshSource(OpaqueSource):
         # low-order geometry.
         if indices.shape[1] == 27:
             # hexahedral
-            mylog.warning(
-                "27-node hexes not yet supported, " + "dropping to 1st order."
-            )
+            mylog.warning("27-node hexes not yet supported, dropping to 1st order.")
             field_data = field_data[:, 0:8]
             indices = indices[:, 0:8]
 
@@ -1185,7 +1181,7 @@ class GridSource(LineSource):
         self.data_source = data_source_or_all(data_source)
         corners = []
         levels = []
-        for block, mask in self.data_source.blocks:
+        for block, _mask in self.data_source.blocks:
             block_corners = np.array(
                 [
                     [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],

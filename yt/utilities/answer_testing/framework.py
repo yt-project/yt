@@ -16,14 +16,11 @@ import urllib
 import zlib
 from collections import defaultdict
 
-import matplotlib.image as mpimg
 import numpy as np
+from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 
-import yt.visualization.particle_plots as particle_plots
-import yt.visualization.plot_window as pw
-import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
 from yt.convenience import load, simulation
 from yt.data_objects.static_output import Dataset
@@ -36,13 +33,13 @@ from yt.testing import (
     assert_rel_equal,
 )
 from yt.utilities.command_line import get_yt_version
-from yt.utilities.exceptions import (
-    YTCloudError,
-    YTNoAnswerNameSpecified,
-    YTNoOldAnswer,
-    YTOutputNotIdentified,
-)
+from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
+from yt.visualization import (
+    particle_plots as particle_plots,
+    plot_window as pw,
+    profile_plotter as profile_plotter,
+)
 
 mylog = logging.getLogger("nose.plugins.answer-testing")
 run_big_data = False
@@ -214,7 +211,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         except urllib.error.HTTPError:
             raise YTNoOldAnswer(url)
         else:
-            for this_try in range(3):
+            for _ in range(3):
                 try:
                     data = resp.read()
                 except Exception:
@@ -307,7 +304,7 @@ def can_run_ds(ds_fn, file_check=False):
         return os.path.isfile(os.path.join(path, ds_fn)) and result_storage is not None
     try:
         load(ds_fn)
-    except YTOutputNotIdentified:
+    except FileNotFoundError:
         if ytcfg.getboolean("yt", "requires_ds_strict"):
             if result_storage is not None:
                 result_storage["tainted"] = True
@@ -327,7 +324,7 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
         return os.path.isfile(os.path.join(path, sim_fn)) and result_storage is not None
     try:
         simulation(sim_fn, sim_type)
-    except YTOutputNotIdentified:
+    except FileNotFoundError:
         if ytcfg.getboolean("yt", "requires_ds_strict"):
             if result_storage is not None:
                 result_storage["tainted"] = True
@@ -780,7 +777,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = []
-    for i in range(2):
+    for _ in range(2):
         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
         os.close(tmpfd)
         fns.append(tmpname)

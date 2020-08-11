@@ -681,7 +681,7 @@ johnson_filters = dict(
     ),
 )
 
-for filter, vals in johnson_filters.items():
+for vals in johnson_filters.values():
     wavelen = vals["wavelen"]
     trans = vals["trans"]
     vals["Lchar"] = wavelen[np.argmax(trans)]

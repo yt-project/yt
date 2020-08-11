@@ -23,14 +23,18 @@ def register_field_handler(ph):
 DETECTED_FIELDS = {}
 
 
-class RegisteredRAMSESFieldFileHandler(abc.ABCMeta):
+class RegisteredRAMSESFieldFileHandler(abc.ABC):
     """
     This is a base class that on instantiation registers the file
     handler into the list. Used as a metaclass.
     """
 
-    def __new__(meta, name, bases, class_dict):
-        cls = abc.ABCMeta.__new__(meta, name, bases, class_dict)
+    def __init_subclass__(cls, *args, **kwargs):
+        """
+        Registers subclasses at creation.
+        """
+        super().__init_subclass__(*args, **kwargs)
+
         if cls.ftype is not None:
             register_field_handler(cls)
 
@@ -38,7 +42,7 @@ class RegisteredRAMSESFieldFileHandler(abc.ABCMeta):
         return cls
 
 
-class HandlerMixin:
+class HandlerMixin(abc.ABC):
     """This contains all the shared methods to handle RAMSES files.
 
     This is not supposed to be user-facing.
@@ -142,9 +146,7 @@ class HandlerMixin:
         return exists
 
 
-class FieldFileHandler(
-    abc.ABC, HandlerMixin, metaclass=RegisteredRAMSESFieldFileHandler
-):
+class FieldFileHandler(abc.ABC, HandlerMixin, RegisteredRAMSESFieldFileHandler):
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -421,8 +423,8 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "Metallicity",
                     ]
             mylog.debug(
-                "No fields specified by user; automatically setting fields array to %s"
-                % str(fields)
+                "No fields specified by user; automatically setting fields array to %s",
+                fields,
             )
 
         # Allow some wiggle room for users to add too many variables
@@ -431,7 +433,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             fields.append("var" + str(len(fields)))
             count_extra += 1
         if count_extra > 0:
-            mylog.debug("Detected %s extra fluid fields." % count_extra)
+            mylog.debug("Detected %s extra fluid fields.", count_extra)
         cls.field_list = [(cls.ftype, e) for e in fields]
 
         cls.set_detected_fields(ds, fields)
@@ -514,17 +516,17 @@ class RTFieldFileHandler(FieldFileHandler):
 
         with open(fname, "r") as f:
             # Read nRTvar, nions, ngroups, iions
-            for i in range(4):
+            for _ in range(4):
                 read_rhs(int)
             f.readline()
 
             # Read X and Y fractions
-            for i in range(2):
+            for _ in range(2):
                 read_rhs(float)
             f.readline()
 
             # Reat unit_np, unit_pfd
-            for i in range(2):
+            for _ in range(2):
                 read_rhs(float)
 
             # Read rt_c_frac
@@ -534,7 +536,7 @@ class RTFieldFileHandler(FieldFileHandler):
             f.readline()
 
             # Read n star, t2star, g_star
-            for i in range(3):
+            for _ in range(3):
                 read_rhs(float)
 
             # Touchy part, we have to read the photon group properties

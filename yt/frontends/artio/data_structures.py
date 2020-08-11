@@ -289,7 +289,7 @@ class ARTIOIndex(Index):
                     )
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
-                mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
+                mylog.info("Created %d chunks for ARTIO", len(list_sfc_ranges))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _data_size(self, dobj, dobjs):
@@ -306,7 +306,7 @@ class ARTIOIndex(Index):
         if ngz > 0:
             raise NotImplementedError
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i, og in enumerate(sobjs):
+        for og in sobjs:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:

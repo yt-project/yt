@@ -5,7 +5,9 @@ from distutils.version import LooseVersion
 from numbers import Number
 
 import matplotlib
+import matplotlib.pyplot as plt
 import numpy as np
+from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
 from yt.data_objects.image_array import ImageArray
@@ -593,10 +595,10 @@ class PlotWindow(ImagePlotContainer):
             self.ylim = tuple(bounds[2:4])
             if len(bounds) == 6:
                 self.zlim = tuple(bounds[4:6])
-        mylog.info("xlim = %f %f" % self.xlim)
-        mylog.info("ylim = %f %f" % self.ylim)
+        mylog.info("xlim = %f %f", self.xlim[0], self.xlim[1])
+        mylog.info("ylim = %f %f", self.ylim[0], self.ylim[1])
         if hasattr(self, "zlim"):
-            mylog.info("zlim = %f %f" % self.zlim)
+            mylog.info("zlim = %f %f", self.zlim[0], self.zlim[1])
 
     @invalidate_data
     def set_width(self, width, unit=None):
@@ -853,7 +855,7 @@ class PWViewerMPL(PlotWindow):
         elif origin[2] == "native":
             return (self.ds.quan(0.0, "code_length"), self.ds.quan(0.0, "code_length"))
         else:
-            mylog.warning("origin = {0}".format(origin))
+            mylog.warning("origin = %s", origin)
             msg = (
                 'origin keyword "{0}" not recognized, must declare "domain" '
                 'or "center" as the last term in origin.'
@@ -867,7 +869,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[0] == "center":
                 yc = (yllim + yrlim) / 2.0
             else:
-                mylog.warning("origin = {0}".format(origin))
+                mylog.warning("origin = %s", origin)
                 msg = (
                     'origin keyword "{0}" not recognized, must declare "lower" '
                     '"upper" or "center" as the first term in origin.'
@@ -882,7 +884,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[1] == "center":
                 xc = (xllim + xrlim) / 2.0
             else:
-                mylog.warning("origin = {0}".format(origin))
+                mylog.warning("origin = %s", origin)
                 msg = (
                     'origin keyword "{0}" not recognized, must declare "left" '
                     '"right" or "center" as the second term in origin.'
@@ -1154,9 +1156,9 @@ class PWViewerMPL(PlotWindow):
 
                 else:
                     mylog.error(
-                        "Unable to draw cbar minorticks for field {} with transform {} ".format(
-                            f, self._field_transform[f]
-                        )
+                        "Unable to draw cbar minorticks for field %s with transform %s ",
+                        f,
+                        self._field_transform[f],
                     )
                     self._cbar_minorticks[f] = False
 
@@ -1278,6 +1280,87 @@ class PWViewerMPL(PlotWindow):
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]
+
+    def export_to_mpl_figure(
+        self,
+        nrows_ncols,
+        axes_pad=1.0,
+        label_mode="L",
+        cbar_location="right",
+        cbar_size="5%",
+        cbar_mode="each",
+        cbar_pad="0%",
+    ):
+        r"""
+        Creates a matplotlib figure object with the specified axes arrangement, nrows_ncols,
+        and maps the underlying figures to the matplotlib axes.  Note that all of these
+        parameters are fed directly to the matplotlib ImageGrid class to create the new figure
+        layout.
+
+        Parameters
+        ----------
+
+        nrows_ncols : tuple
+           the number of rows and columns of the axis grid (e.g., nrows_ncols=(2,2,))
+        axes_pad : float
+           padding between axes in inches
+        label_mode : one of "L", "1", "all"
+           arrangement of axes that are labeled
+        cbar_location : one of "left", "right", "bottom", "top"
+           where to place the colorbar
+        cbar_size : string (percentage)
+           scaling of the colorbar (e.g., "5%")
+        cbar_mode : one of "each", "single", "edge", None
+           how to represent the colorbar
+        cbar_pad : string (percentage)
+           padding between the axis and colorbar (e.g. "5%")
+
+        Returns
+        -------
+
+        The return is a matplotlib figure object.
+
+        Examples
+        --------
+
+        >>> import yt
+        >>> ds = yt.load_sample("IsolatedGalaxy")
+        >>> fields = ['density', 'velocity_x', 'velocity_y', 'velocity_magnitude']
+        >>> p = yt.SlicePlot(ds, 'z', fields)
+        >>> p.set_log('velocity_x', False)
+        >>> p.set_log('velocity_y', False)
+        >>> fig = p.export_to_mpl_figure((2,2))
+        >>> fig.tight_layout()
+        >>> fig.savefig("test.png")
+
+        """
+
+        fig = plt.figure()
+        grid = ImageGrid(
+            fig,
+            111,
+            nrows_ncols=nrows_ncols,
+            axes_pad=axes_pad,
+            label_mode=label_mode,
+            cbar_location=cbar_location,
+            cbar_size=cbar_size,
+            cbar_mode=cbar_mode,
+            cbar_pad=cbar_pad,
+        )
+
+        fields = self.fields
+        if len(fields) > len(grid):
+            raise IndexError("not enough axes for the number of fields")
+
+        for i, f in enumerate(self.fields):
+            plot = self.plots[f]
+            plot.figure = fig
+            plot.axes = grid[i].axes
+            plot.cax = grid.cbar_axes[i]
+
+        self._setup_plots()
+
+        return fig
 
 
 class AxisAlignedSlicePlot(PWViewerMPL):
@@ -1430,7 +1513,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             "geographic",
             "internal_geographic",
         ):
-            mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
+            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
 
         if isinstance(ds, YTSpatialPlotDataset):
@@ -1643,7 +1726,7 @@ class ProjectionPlot(PWViewerMPL):
             "geographic",
             "internal_geographic",
         ):
-            mylog.info("Setting origin='native' for %s geometry." % ds.geometry)
+            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
         # proj_style is deprecated, but if someone specifies then it trumps
         # method.
@@ -2293,22 +2376,20 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     if iterable(normal) and not isinstance(normal, str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if "origin" in kwargs:
-            msg = (
+            mylog.warning(
                 "Ignoring 'origin' keyword as it is ill-defined for "
                 "an OffAxisSlicePlot object."
             )
-            mylog.warning(msg)
             del kwargs["origin"]
 
         return OffAxisSlicePlot(ds, normal, fields, *args, **kwargs)
     else:
         # north_vector not used in AxisAlignedSlicePlots; remove it if in kwargs
         if "north_vector" in kwargs:
-            msg = (
+            mylog.warning(
                 "Ignoring 'north_vector' keyword as it is ill-defined for "
                 "an AxisAlignedSlicePlot object."
             )
-            mylog.warning(msg)
             del kwargs["north_vector"]
 
         return AxisAlignedSlicePlot(ds, normal, fields, *args, **kwargs)

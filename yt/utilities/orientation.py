@@ -62,9 +62,7 @@ class Orientation:
         normal_vector, north_vector = _validate_unit_vectors(
             normal_vector, north_vector
         )
-        mylog.debug(
-            "Setting normalized vectors" + str(normal_vector) + str(north_vector)
-        )
+        mylog.debug("Setting normalized vectors %s %s", normal_vector, north_vector)
         # Now we set up our various vectors
         normal_vector /= np.sqrt(np.dot(normal_vector, normal_vector))
         if north_vector is None:
