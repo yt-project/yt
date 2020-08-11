@@ -462,7 +462,16 @@ class GridIndex(Index, abc.ABC):
 
             i, j, k = np.floor((pos - data.LeftEdge) / data.dds).astype("int64").T
 
-            return field_values[i, j, k]
+            # Make sure all particles are within the current grid, otherwise return nan
+            maxi, maxj, maxk = field_values.shape
+
+            mask = (i < maxi) & (j < maxj) & (k < maxk)
+            mask &= (i >= 0) & (j >= 0) & (k >= 0)
+
+            result = np.full_like(i, np.nan, dtype="float64")
+            result[mask] = field_values[i[mask], j[mask], k[mask]]
+
+            return data.ds.arr(result, field_values.units)
 
         self.ds.add_field(
             (ptype, field_name),
