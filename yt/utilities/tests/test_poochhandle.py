@@ -47,7 +47,7 @@ names = {
 
 def test_name_validator():
     for test in names:
-        fileext, bname, ext = PoochHandle._validate_sampledata_name(
+        fileext, bname, ext = PoochHandle._validate_sample_fname(
             names[test]["load_name"]
         )
         expected_answers = names[test]["answers"]
