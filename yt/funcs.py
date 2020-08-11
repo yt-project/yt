@@ -1117,8 +1117,8 @@ def enable_plugins(pluginfilename=None):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
-            mylog.error("Could not find a global system plugin file.")
-            return
+            raise FileNotFoundError("Could not find a global system plugin file.")
+
         if _fn.startswith(old_config_dir):
             mylog.warning(
                 "Your plugin file is located in a deprecated directory. "

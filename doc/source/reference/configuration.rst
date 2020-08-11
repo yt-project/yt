@@ -82,7 +82,6 @@ used internally.
 * ``coloredlogs`` (default: ``False``): Should logs be colored?
 * ``default_colormap`` (default: ``arbre``): What colormap should be used by
   default for yt-produced images?
-* ``loadfieldplugins`` (default: ``True``): Do we want to load the plugin file?
 * ``pluginfilename``  (default ``my_plugins.py``) The name of our plugin file.
 * ``logfile`` (default: ``False``): Should we output to a log file in the
   filesystem?
