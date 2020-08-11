@@ -150,8 +150,8 @@ class YTOrthoRay(YTSelectionContainer1D):
         self.px_ax = xax
         self.py_ax = yax
         # Even though we may not be using x,y,z we use them here.
-        self.px_dx = "d%s" % ("xyz"[self.px_ax])
-        self.py_dx = "d%s" % ("xyz"[self.py_ax])
+        self.px_dx = f"d{'xyz'[self.px_ax]}"
+        self.py_dx = f"d{'xyz'[self.py_ax]}"
         # Convert coordinates to code length.
         if isinstance(coords[0], YTQuantity):
             self.px = self.ds.quan(coords[0]).to("code_length")
@@ -884,7 +884,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
         points = fix_length(points, ds)
         if len(points) < 2:
             raise YTException(
-                "Not enough points. Expected at least 2, got %s" % len(points)
+                f"Not enough points. Expected at least 2, got {len(points)}"
             )
         mylog.debug("Building minimal sphere around points.")
         mb = _miniball.Miniball(points)

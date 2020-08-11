@@ -19,7 +19,7 @@ class AnalysisTask:
 
     def __repr__(self):
         # Stolen from YTDataContainer.__repr__
-        s = "%s: " % (self.__class__.__name__)
+        s = f"{self.__class__.__name__}: "
         s += ", ".join(["%s=%s" % (i, getattr(self, i)) for i in self._params])
         return s
 
@@ -66,7 +66,7 @@ class QuantityProxy(AnalysisTask):
 
     def __repr__(self):
         # Stolen from YTDataContainer.__repr__
-        s = "%s: " % (self.__class__.__name__)
+        s = f"{self.__class__.__name__}: "
         s += ", ".join(["%s" % [arg for arg in self.args]])
         s += ", ".join(["%s=%s" % (k, v) for k, v in self.kwargs.items()])
         return s

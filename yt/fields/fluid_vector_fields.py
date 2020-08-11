@@ -52,11 +52,11 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
 
     bv_validators = [ValidateSpatial(1, [(ftype, "density"), (ftype, "pressure")])]
     for ax in "xyz":
-        n = "baroclinic_vorticity_%s" % ax
+        n = f"baroclinic_vorticity_{ax}"
         registry.add_field(
             (ftype, n),
             sampling_type="cell",
-            function=eval("_%s" % n),
+            function=eval(f"_{n}"),
             validators=bv_validators,
             units=unit_system["frequency"] ** 2,
         )
@@ -110,16 +110,16 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         return new_field
 
     vort_validators = [
-        ValidateSpatial(1, [(ftype, "velocity_%s" % d) for d in "xyz"]),
+        ValidateSpatial(1, [(ftype, f"velocity_{d}") for d in "xyz"]),
         ValidateParameter("bulk_velocity"),
     ]
 
     for ax in "xyz":
-        n = "vorticity_%s" % ax
+        n = f"vorticity_{ax}"
         registry.add_field(
             (ftype, n),
             sampling_type="cell",
-            function=eval("_%s" % n),
+            function=eval(f"_{n}"),
             units=unit_system["frequency"],
             validators=vort_validators,
         )
@@ -151,11 +151,11 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         return data[ftype, "velocity_divergence"] * data[ftype, "vorticity_z"]
 
     for ax in "xyz":
-        n = "vorticity_stretching_%s" % ax
+        n = f"vorticity_stretching_{ax}"
         registry.add_field(
             (ftype, n),
             sampling_type="cell",
-            function=eval("_%s" % n),
+            function=eval(f"_{n}"),
             units=unit_system["frequency"] ** 2,
             validators=vort_validators,
         )
@@ -188,11 +188,11 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         )
 
     for ax in "xyz":
-        n = "vorticity_growth_%s" % ax
+        n = f"vorticity_growth_{ax}"
         registry.add_field(
             (ftype, n),
             sampling_type="cell",
-            function=eval("_%s" % n),
+            function=eval(f"_{n}"),
             units=unit_system["frequency"] ** 2,
             validators=vort_validators,
         )
@@ -206,8 +206,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         dot = data.ds.arr(np.zeros(result.shape), "")
         for ax in "xyz":
             dot += (
-                data[ftype, "vorticity_%s" % ax]
-                * data[ftype, "vorticity_growth_%s" % ax]
+                data[ftype, f"vorticity_{ax}"] * data[ftype, f"vorticity_growth_{ax}"]
             ).to_ndarray()
         result = np.sign(dot) * result
         return result
@@ -290,11 +289,11 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         )
     ]
     for ax in "xyz":
-        n = "vorticity_radiation_pressure_%s" % ax
+        n = f"vorticity_radiation_pressure_{ax}"
         registry.add_field(
             (ftype, n),
             sampling_type="cell",
-            function=eval("_%s" % n),
+            function=eval(f"_{n}"),
             units=unit_system["frequency"] ** 2,
             validators=vrp_validators,
         )
@@ -330,11 +329,11 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         )
 
     for ax in "xyz":
-        n = "vorticity_radiation_pressure_growth_%s" % ax
+        n = f"vorticity_radiation_pressure_growth_{ax}"
         registry.add_field(
             (ftype, n),
             sampling_type="cell",
-            function=eval("_%s" % n),
+            function=eval(f"_{n}"),
             units=unit_system["frequency"] ** 2,
             validators=vrp_validators,
         )
@@ -348,8 +347,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         dot = data.ds.arr(np.zeros(result.shape), "")
         for ax in "xyz":
             dot += (
-                data[ftype, "vorticity_%s" % ax]
-                * data[ftype, "vorticity_growth_%s" % ax]
+                data[ftype, f"vorticity_{ax}"] * data[ftype, f"vorticity_growth_{ax}"]
             ).to_ndarray()
         result = np.sign(dot) * result
         return result

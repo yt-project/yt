@@ -79,7 +79,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     if ptype != "io":
                         if g.NumberOfActiveParticles[ptype] == 0:
                             continue
-                        pds = ds.get("Particles/%s" % ptype)
+                        pds = ds.get(f"Particles/{ptype}")
                     else:
                         pds = ds
                     pn = _particle_position_names.get(ptype, r"particle_position_%s")

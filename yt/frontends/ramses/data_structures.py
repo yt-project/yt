@@ -38,7 +38,7 @@ class RAMSESDomainFile:
         rootdir = ds.root_folder
         basedir = os.path.abspath(os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (basedir, num, domain_id)
-        part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
+        part_file_descriptor = f"{basedir}/part_file_descriptor.txt"
         if ds.num_groups > 0:
             igroup = ((domain_id - 1) // ds.group_size) + 1
             basename = "%s/group_%05i/%%s_%s.out%05i" % (
@@ -50,7 +50,7 @@ class RAMSESDomainFile:
         else:
             basename = "%s/%%s_%s.out%05i" % (basedir, num, domain_id)
         for t in ["grav", "amr"]:
-            setattr(self, "%s_fn" % t, basename % t)
+            setattr(self, f"{t}_fn", basename % t)
         self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
 
@@ -485,7 +485,7 @@ class RAMSESIndex(OctreeIndex):
 
         header = "%3s\t%14s\t%14s" % ("level", "# cells", "# cells^3")
         print(header)
-        print("%s" % (len(header.expandtabs()) * "-"))
+        print(f"{len(header.expandtabs()) * '-'}")
         for level in range(self.dataset.min_level + self.dataset.max_level + 2):
             print(
                 "% 3i\t% 14i\t% 14i"
@@ -662,7 +662,7 @@ class RAMSESDataset(Dataset):
 
             for k in particle_families.keys():
                 mylog.info("Adding particle_type: %s", k)
-                self.add_particle_filter("%s" % k)
+                self.add_particle_filter(f"{k}")
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -820,7 +820,7 @@ class RAMSESDataset(Dataset):
                 with open(namelist_file, "r") as f:
                     nml = f90nml.read(f)
             except ImportError as e:
-                nml = "An error occurred when reading the namelist: %s" % str(e)
+                nml = f"An error occurred when reading the namelist: {str(e)}"
             except (ValueError, StopIteration) as e:
                 mylog.warning(
                     "Could not parse `namelist.txt` file as it was malformed: %s", e

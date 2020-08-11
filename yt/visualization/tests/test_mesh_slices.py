@@ -30,7 +30,7 @@ def compare(ds, field, idir, test_prefix, test_name, decimals=12, annotate=False
         image_file = sl.save(filename_prefix)
         return image_file
 
-    slice_image.__name__ = "slice_{}".format(test_prefix)
+    slice_image.__name__ = f"slice_{test_prefix}"
     test = GenericImageTest(ds, slice_image, decimals)
     test.prefix = test_prefix
     test.answer_name = test_name
@@ -41,7 +41,7 @@ def compare(ds, field, idir, test_prefix, test_name, decimals=12, annotate=False
 def test_mesh_slices_amr():
     ds = fake_amr_ds()
     for field in ds.field_list:
-        prefix = "%s_%s_%s" % (field[0], field[1], 0)
+        prefix = f"{field[0]}_{field[1]}_{0}"
         yield compare(ds, field, 0, test_prefix=prefix, test_name="mesh_slices_amr")
 
 
@@ -54,7 +54,7 @@ def test_mesh_slices_tetrahedral():
 
     for field in ds.field_list:
         for idir in [0, 1, 2]:
-            prefix = "%s_%s_%s" % (field[0], field[1], idir)
+            prefix = f"{field[0]}_{field[1]}_{idir}"
             yield compare(
                 ds,
                 field,
@@ -78,7 +78,7 @@ def test_mesh_slices_hexahedral():
 
     for field in ds.field_list:
         for idir in [0, 1, 2]:
-            prefix = "%s_%s_%s" % (field[0], field[1], idir)
+            prefix = f"{field[0]}_{field[1]}_{idir}"
             yield compare(
                 ds,
                 field,

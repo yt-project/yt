@@ -33,7 +33,7 @@ def setup_poynting_vector(self):
 
     for ax in "xyz":
         self.add_field(
-            ("openPMD", "poynting_vector_%s" % ax),
+            ("openPMD", f"poynting_vector_{ax}"),
             sampling_type="cell",
             function=_get_poyn(ax),
             units="W/m**2",
@@ -65,7 +65,7 @@ def setup_velocity(self, ptype):
     def _get_vel(axis):
         def velocity(field, data):
             c = speed_of_light
-            momentum = data[ptype, "particle_momentum_{}".format(axis)]
+            momentum = data[ptype, f"particle_momentum_{axis}"]
             mass = data[ptype, "particle_mass"]
             weighting = data[ptype, "particle_weighting"]
             return momentum / np.sqrt(
@@ -76,7 +76,7 @@ def setup_velocity(self, ptype):
 
     for ax in "xyz":
         self.add_field(
-            (ptype, "particle_velocity_%s" % ax),
+            (ptype, f"particle_velocity_{ax}"),
             sampling_type="particle",
             function=_get_vel(ax),
             units="m/s",
@@ -87,15 +87,15 @@ def setup_absolute_positions(self, ptype):
     def _abs_pos(axis):
         def ap(field, data):
             return np.add(
-                data[ptype, "particle_positionCoarse_{}".format(axis)],
-                data[ptype, "particle_positionOffset_{}".format(axis)],
+                data[ptype, f"particle_positionCoarse_{axis}"],
+                data[ptype, f"particle_positionOffset_{axis}"],
             )
 
         return ap
 
     for ax in "xyz":
         self.add_field(
-            (ptype, "particle_position_%s" % ax),
+            (ptype, f"particle_position_{ax}"),
             sampling_type="particle",
             function=_abs_pos(ax),
             units="m",

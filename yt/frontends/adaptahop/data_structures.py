@@ -290,6 +290,6 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         ds = self.halo_ds
         # Add position, mass, velocity member functions
         for attr_name in ("mass", "position", "velocity"):
-            setattr(self, attr_name, ds.r["halos", "particle_%s" % attr_name][ihalo])
+            setattr(self, attr_name, ds.r["halos", f"particle_{attr_name}"][ihalo])
         # Add members
         self.member_ids = self.halo_ds.index.io.members(ihalo).astype(np.int64)

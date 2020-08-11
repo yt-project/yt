@@ -271,7 +271,7 @@ class GAMERDataset(Dataset):
                 ("mass", 1.0, "g"),
                 ("magnetic", np.sqrt(4.0 * np.pi), "gauss"),
             ]:
-                setdefaultattr(self, "%s_unit" % unit, self.quan(value, cgs))
+                setdefaultattr(self, f"{unit}_unit", self.quan(value, cgs))
 
                 if len(self.units_override) == 0:
                     mylog.warning("Assuming %8s unit = %f %s", unit, value, cgs)
