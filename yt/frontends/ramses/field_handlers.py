@@ -23,25 +23,6 @@ def register_field_handler(ph):
 DETECTED_FIELDS = {}
 
 
-class RegisteredRAMSESFieldFileHandler:
-    """
-    This is a base class that on instantiation registers the file
-    handler into the list. Used as a metaclass.
-    """
-
-    def __init_subclass__(cls, *args, **kwargs):
-        """
-        Registers subclasses at creation.
-        """
-        super().__init_subclass__(*args, **kwargs)
-
-        if cls.ftype is not None:
-            register_field_handler(cls)
-
-        cls._unique_registry = {}
-        return cls
-
-
 class HandlerMixin:
     """This contains all the shared methods to handle RAMSES files.
 
@@ -146,7 +127,7 @@ class HandlerMixin:
         return exists
 
 
-class FieldFileHandler(abc.ABC, HandlerMixin, RegisteredRAMSESFieldFileHandler):
+class FieldFileHandler(abc.ABC, HandlerMixin):
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -172,6 +153,18 @@ class FieldFileHandler(abc.ABC, HandlerMixin, RegisteredRAMSESFieldFileHandler):
     field_types = (
         None  # Mapping from field to the type of the data (float, integer, ...)
     )
+
+    def __init_subclass__(cls, *args, **kwargs):
+        """
+        Registers subclasses at creation.
+        """
+        super().__init_subclass__(*args, **kwargs)
+
+        if cls.ftype is not None:
+            register_field_handler(cls)
+
+        cls._unique_registry = {}
+        return cls
 
     def __init__(self, domain):
         self.setup_handler(domain)

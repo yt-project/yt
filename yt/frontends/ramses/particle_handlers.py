@@ -19,26 +19,7 @@ def register_particle_handler(ph):
     PARTICLE_HANDLERS.add(ph)
 
 
-class RegisteredRAMSESParticleFileHandler:
-    """
-    This is a base class that on instantiation registers the file
-    handler into the list. Used as a metaclass.
-    """
-
-    def __init_subclass__(cls, *args, **kwargs):
-        """
-        Registers subclasses at creation.
-        """
-        super().__init_subclass__(*args, **kwargs)
-
-        if cls.ptype is not None:
-            register_particle_handler(cls)
-
-        cls._unique_registry = {}
-        return cls
-
-
-class ParticleFileHandler(abc.ABC, HandlerMixin, RegisteredRAMSESParticleFileHandler):
+class ParticleFileHandler(abc.ABC, HandlerMixin):
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -65,6 +46,18 @@ class ParticleFileHandler(abc.ABC, HandlerMixin, RegisteredRAMSESParticleFileHan
         None  # Mapping from field to the type of the data (float, integer, ...)
     )
     local_particle_count = None  # The number of particle in the domain
+
+    def __init_subclass__(cls, *args, **kwargs):
+        """
+        Registers subclasses at creation.
+        """
+        super().__init_subclass__(*args, **kwargs)
+
+        if cls.ptype is not None:
+            register_particle_handler(cls)
+
+        cls._unique_registry = {}
+        return cls
 
     def __init__(self, domain):
         self.setup_handler(domain)
