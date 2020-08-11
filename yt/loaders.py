@@ -1285,14 +1285,14 @@ def load_unstructured_mesh(
 # If not, it will download it.
 
 
-def load_sample(name=None, specific_file=None, pbar=True):
+def load_sample(fn=None, specific_file=None, pbar=True):
     """
     Load sample data with yt. Simple wrapper around yt.load to include fetching
     data with pooch.
 
     Parameters
     ----------
-    name : str or None
+    fn : str or None
         The name of the sample data to load. This is generally the name of the
         folder of the dataset. For IsolatedGalaxy, the name would be
         `IsolatedGalaxy`.  If `None` is supplied, the return value
@@ -1313,7 +1313,7 @@ def load_sample(name=None, specific_file=None, pbar=True):
 
     fido = PoochSomething()
 
-    if name is None:
+    if fn is None:
         keys = []
         for key in fido._registry:
             for ext in _extensions_to_strip:
@@ -1323,7 +1323,10 @@ def load_sample(name=None, specific_file=None, pbar=True):
         return keys
 
     base_path = fido.pooch_obj.path
-    fileext, name, extension = _validate_sampledata_name(name)
+
+    registered_fname, name, extension = _validate_sample_fname(
+        fn
+    )  # todo: make this part of the class
 
     downloader = None
     if pbar:
@@ -1341,32 +1344,38 @@ def load_sample(name=None, specific_file=None, pbar=True):
         # compressed in .tar folders. Some may not.
         processor = None
 
-    fname = fido.pooch_obj.fetch(name, processor=processor, downloader=downloader)
+    storage_fname = fido.pooch_obj.fetch(
+        registered_fname, processor=processor, downloader=downloader
+    )
 
     # The `folder_path` variable is used here to notify the user where the
     # files have been unpacked to. However, we can't assume this is reliable
     # because in some cases the common path will overlap with the `load_name`
     # variable of the file.
-    folder_path = os.path.commonprefix(fname)
+    folder_path = os.path.commonprefix(storage_fname)
     mylog.info("Files located at %s", folder_path)
 
     # Location of the file to load automatically, registered in the Fido class
-    info = fido[fileext]
+    info = fido[registered_fname]
     file_lookup = info["load_name"]
     optional_args = info["load_kwargs"]
 
     if specific_file is None:
         # right now work on loading only untarred files. build out h5 later
         mylog.info("Default to loading %s for %s dataset", file_lookup, name)
-        loaded_file = os.path.join(base_path, "%s.untar" % fileext, name, file_lookup)
+        loaded_file = os.path.join(
+            base_path, "%s.untar" % registered_fname, name, file_lookup
+        )
     else:
         mylog.info("Loading %s for %s dataset", specific_file, name)
-        loaded_file = os.path.join(base_path, "%s.untar" % fileext, name, specific_file)
+        loaded_file = os.path.join(
+            base_path, "%s.untar" % registered_fname, name, specific_file
+        )
 
     return load(loaded_file, **optional_args)
 
 
-def _validate_sampledata_name(name):
+def _validate_sample_fname(name):
     """
     format name of sample data passed to function, accepts a named string
     argument and parses it to determine the sample data name, what type of
