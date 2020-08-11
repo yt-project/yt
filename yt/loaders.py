@@ -1324,7 +1324,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
 
     base_path = fido.pooch_obj.path
 
-    registered_fname, name, extension = _validate_sample_fname(
+    registered_fname, name, extension = fido._validate_sample_fname(
         fn
     )  # todo: make this part of the class
 
@@ -1373,55 +1373,3 @@ def load_sample(fn=None, specific_file=None, pbar=True):
         )
 
     return load(loaded_file, **optional_args)
-
-
-def _validate_sample_fname(name):
-    """
-    format name of sample data passed to function, accepts a named string
-    argument and parses it to determine the sample data name, what type of
-    extension it has, or other relevant information.
-
-    returns
-    -------
-    fileext : str
-        The name of the sample data, with the file extension
-        example: "IsolatedGalaxy.tar.gz"
-    basename : str
-        The name of the sample data, without the file extension
-        example: "IsolatedGalaxy"
-    extension : str
-        name of extension of remote sample data
-        example: "h5" or "tar"
-    """
-
-    if not isinstance(name, str):
-        mylog.error("The argument %s passed to load_sample() is not a string.", name)
-
-    # now get the extension if it exists
-    base, ext = os.path.splitext(name)
-    if ext == "":
-        # Right now we are assuming that any name passed without an explicit
-        # extension is packed in a tarball. This logic can be modified later to
-        # be more flexible.
-        fileext = "%s.tar.gz" % name
-        basename = name
-        extension = "tar"
-    elif ext == ".gz":
-        fileext = name
-        basename = os.path.splitext(base)[0]
-        extension = "tar"
-    elif ext in [".h5", ".hdf5"]:
-        fileext = name
-        basename = base
-        extension = "h5"
-    else:
-        mylog.info(
-            """extension of %s for dataset %s is unexpected. the `load_data`
-            function  may not work as expected""",
-            ext,
-            name,
-        )
-        extension = ext
-        fileext = name
-        basename = base
-    return fileext, basename, extension
