@@ -39,7 +39,7 @@ from yt.geometry.coordinates.api import (
     SphericalCoordinateHandler,
 )
 from yt.units import UnitContainer, _wrap_display_ytarray
-from yt.units.dimensions import current_mks
+from yt.units.dimensions import current_mks, length
 from yt.units.unit_object import Unit, define_unit
 from yt.units.unit_registry import UnitRegistry
 from yt.units.unit_systems import create_code_unit_system, unit_system_registry
@@ -1110,47 +1110,52 @@ class Dataset(metaclass=RegisteredDataset):
         Creates the unit registry for this dataset.
 
         """
-        from yt.units.dimensions import length
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.modify("h", self.hubble_constant)
-            # Comoving lengths
-            for my_unit in ["m", "pc", "AU", "au"]:
-                new_unit = "%scm" % my_unit
-                my_u = Unit(my_unit, registry=self.unit_registry)
-                self.unit_registry.add(
-                    new_unit,
-                    my_u.base_value / (1 + self.current_redshift),
-                    length,
-                    "\\rm{%s}/(1+z)" % my_unit,
-                    prefixable=True,
-                )
-            self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
+            if getattr(self, "current_redshift", None):
+                # Comoving lengths
+                for my_unit in ["m", "pc", "AU", "au"]:
+                    new_unit = "%scm" % my_unit
+                    my_u = Unit(my_unit, registry=self.unit_registry)
+                    self.unit_registry.add(
+                        new_unit,
+                        my_u.base_value / (1 + self.current_redshift),
+                        length,
+                        "\\rm{%s}/(1+z)" % my_unit,
+                        prefixable=True,
+                    )
+                self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
 
         self.set_code_units()
 
     def setup_cosmology(self):
-        if getattr(self, "cosmological_simulation", False):
-            # this dataset is cosmological, add a cosmology object
+        """
+        If this dataset is cosmological, add a cosmology object.
+        """
+        if not getattr(self, "cosmological_simulation", False):
+            return
 
-            # Set dynamical dark energy parameters
-            use_dark_factor = getattr(self, "use_dark_factor", False)
-            w_0 = getattr(self, "w_0", -1.0)
-            w_a = getattr(self, "w_a", 0.0)
+        # Set dynamical dark energy parameters
+        use_dark_factor = getattr(self, "use_dark_factor", False)
+        w_0 = getattr(self, "w_0", -1.0)
+        w_a = getattr(self, "w_a", 0.0)
 
-            # many frontends do not set this
-            setdefaultattr(self, "omega_radiation", 0.0)
+        # many frontends do not set this
+        setdefaultattr(self, "omega_radiation", 0.0)
 
-            self.cosmology = Cosmology(
-                hubble_constant=self.hubble_constant,
-                omega_matter=self.omega_matter,
-                omega_lambda=self.omega_lambda,
-                omega_radiation=self.omega_radiation,
-                use_dark_factor=use_dark_factor,
-                w_0=w_0,
-                w_a=w_a,
-            )
+        self.cosmology = Cosmology(
+            hubble_constant=self.hubble_constant,
+            omega_matter=self.omega_matter,
+            omega_lambda=self.omega_lambda,
+            omega_radiation=self.omega_radiation,
+            use_dark_factor=use_dark_factor,
+            w_0=w_0,
+            w_a=w_a,
+        )
+
+        if getattr(self, "current_redshift", None):
             self.critical_density = self.cosmology.critical_density(
                 self.current_redshift
             )
