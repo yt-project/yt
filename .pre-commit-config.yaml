@@ -11,10 +11,7 @@
     rev: '3.8.1'  # keep in sync with tests/lint_requirements.txt
     hooks:
     -   id: flake8
--   repo: local
+-   repo: https://github.com/ikamensh/flynt/
+    rev: '0.51'
     hooks:
     -   id: flynt
-        name: flynt
-        entry: flynt
-        language: system
-        types: [python]
