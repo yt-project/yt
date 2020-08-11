@@ -23,7 +23,7 @@ def register_field_handler(ph):
 DETECTED_FIELDS = {}
 
 
-class RegisteredRAMSESFieldFileHandler(abc.ABC):
+class RegisteredRAMSESFieldFileHandler:
     """
     This is a base class that on instantiation registers the file
     handler into the list. Used as a metaclass.
@@ -42,7 +42,7 @@ class RegisteredRAMSESFieldFileHandler(abc.ABC):
         return cls
 
 
-class HandlerMixin(abc.ABC):
+class HandlerMixin:
     """This contains all the shared methods to handle RAMSES files.
 
     This is not supposed to be user-facing.

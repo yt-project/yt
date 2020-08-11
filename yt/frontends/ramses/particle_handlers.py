@@ -19,7 +19,7 @@ def register_particle_handler(ph):
     PARTICLE_HANDLERS.add(ph)
 
 
-class RegisteredRAMSESParticleFileHandler(abc.ABC):
+class RegisteredRAMSESParticleFileHandler:
     """
     This is a base class that on instantiation registers the file
     handler into the list. Used as a metaclass.
