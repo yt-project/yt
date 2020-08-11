@@ -9,7 +9,6 @@ import os
 
 import numpy as np
 
-import yt.utilities.sample_data as sd
 from yt.config import ytcfg
 from yt.funcs import ensure_list, issue_deprecation_warning, mylog
 from yt.utilities.decompose import decompose_array, get_psize
@@ -25,7 +24,8 @@ from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
 )
-from yt.utilities.on_demand_imports import _pooch as pch
+from yt.utilities.on_demand_imports import _pooch as pooch
+from yt.utilities.sample_data import PoochSomething, _extensions_to_strip
 
 # --- Loaders for known data formats ---
 
@@ -1311,17 +1311,18 @@ def load_sample(name=None, specific_file=None, pbar=True):
 
     """
 
-    fido = sd.Fido()
+    fido = PoochSomething()
+
     if name is None:
         keys = []
         for key in fido._registry:
-            for ext in sd._extensions_to_strip:
+            for ext in _extensions_to_strip:
                 if key.endswith(ext):
                     key = key[: -len(ext)]
             keys.append(key)
         return keys
 
-    base_path = fido.fido.path
+    base_path = fido.pooch_obj.path
     fileext, name, extension = _validate_sampledata_name(name)
 
     downloader = None
@@ -1329,18 +1330,18 @@ def load_sample(name=None, specific_file=None, pbar=True):
         try:
             import tqdm  # noqa: F401
 
-            downloader = pch.pooch.HTTPDownloader(progressbar=True)
+            downloader = pooch.HTTPDownloader(progressbar=True)
         except ImportError:
             mylog.warning("tqdm is not installed, progress bar can not be displayed.")
 
     if extension == "h5":
-        processor = pch.pooch.Untar()
+        processor = pooch.Untar()
     else:
         # we are going to assume most files that exist on the hub are
         # compressed in .tar folders. Some may not.
         processor = None
 
-    fname = fido.fido.fetch(name, processor=processor, downloader=downloader)
+    fname = fido.pooch_obj.fetch(name, processor=processor, downloader=downloader)
 
     # The `folder_path` variable is used here to notify the user where the
     # files have been unpacked to. However, we can't assume this is reliable

@@ -9,7 +9,7 @@ import os
 import pkg_resources
 
 from yt.config import ytcfg
-from yt.utilities.on_demand_imports import _pooch as pch
+from yt.utilities.on_demand_imports import _pooch as pooch
 
 ## The format of the data registry json:
 ##
@@ -25,7 +25,7 @@ from yt.utilities.on_demand_imports import _pooch as pch
 _extensions_to_strip = (".tgz", ".tar.gz", ".gz")
 
 
-class Fido:
+class PoochSomething:
     r"""
     Container for a pooch object used to fetch remote data that isn't
     already stored locally.
@@ -38,8 +38,8 @@ class Fido:
             if os.path.isdir(ytcfg.get("yt", "test_data_dir")):
                 cache_dir = ytcfg.get("yt", "test_data_dir")
             else:
-                cache_dir = pch.pooch.os_cache("yt")
-        self.fido = pch.pooch.create(
+                cache_dir = pooch.pooch.os_cache("yt")
+        self.pooch_obj = pooch.pooch.create(
             path=cache_dir,
             registry={_: self._registry[_]["hash"] for _ in self._registry},
             urls={_: self._registry[_]["url"] for _ in self._registry},
