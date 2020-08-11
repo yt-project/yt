@@ -98,7 +98,7 @@ jobs:
       python: 3.6
       script: |
         flynt -h | head -n 1
-        flynt --fail-on-change --dry-run yt/
+        flynt --fail-on-change --dry-run -e yt/extern yt/
 
     - stage: tests
       name: "Python: 3.6 Minimal Dependency Unit Tests"

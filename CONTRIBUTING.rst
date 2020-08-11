@@ -740,7 +740,7 @@ Then run the checks from the top level of the repository with
     $ flake8 yt/
     $ black --check yt/
     $ isort --check yt/
-    $ flynt --fail-on-change --dry-run yt/
+    $ flynt --fail-on-change --dry-run -e yt/extern yt/
 
 These will respectively print out any ``flake8`` errors or warnings that your newly added
 code triggers, and a list of files that are currenlty not compliant with ``black``. Note
