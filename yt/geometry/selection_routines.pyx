@@ -999,14 +999,16 @@ cdef class RegionSelector(SelectorObject):
             else:
                 if LE[i] < DLE[i] or RE[i] > DRE[i]:
                     raise RuntimeError(
-                        "Error: yt attempted to read outside the boundaries of "
+                        "yt attempted to read outside the boundaries of "
                         "a non-periodic domain along dimension %s.\n"
                         "Region left edge = %s, Region right edge = %s\n"
                         "Dataset left edge = %s, Dataset right edge = %s\n\n"
                         "This commonly happens when trying to compute ghost cells "
                         "up to the domain boundary. Two possible solutions are to "
-                        "load a smaller region that does not border the edge or "
-                        "override the periodicity for this dataset." % \
+                        "select a smaller region that does not border domain edge "
+                        "(see https://yt-project.org/docs/analyzing/objects.html?highlight=region)\n"
+                        "or override the periodicity with e.g\n"
+                        "ds.periodicity = 3*[True]" % \
                         (i, dobj.left_edge[i], dobj.right_edge[i],
                          dobj.ds.domain_left_edge[i], dobj.ds.domain_right_edge[i])
                     )
