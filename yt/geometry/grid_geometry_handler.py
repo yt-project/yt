@@ -468,7 +468,7 @@ class GridIndex(Index, abc.ABC):
             mask = (i < maxi) & (j < maxj) & (k < maxk)
             mask &= (i >= 0) & (j >= 0) & (k >= 0)
 
-            result = np.full_like(field_value, np.nan, dtype="float64")
+            result = np.full_like(field_values, np.nan, dtype="float64")
             result[mask] = field_values[i[mask], j[mask], k[mask]]
 
             return data.ds.arr(result, field_values.units)
