@@ -357,12 +357,12 @@ class HaloDataset(ParticleDataset):
 
     def set_code_units(self):
         for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
-            my_unit = "%s_unit" % unit
+            my_unit = f"{unit}_unit"
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
         self.unit_registry = self.real_ds.unit_registry
 
     def __repr__(self):
-        return "%s" % self.real_ds
+        return f"{self.real_ds}"
 
     def _setup_classes(self):
         self.objects = []
@@ -401,8 +401,7 @@ class HaloContainer(YTSelectionContainer):
     def __init__(self, ptype, particle_identifier, ds=None):
         if ptype not in ds.particle_types_raw:
             raise RuntimeError(
-                'Possible halo types are %s, supplied "%s".'
-                % (ds.particle_types_raw, ptype)
+                f'Possible halo types are {ds.particle_types_raw}, supplied "{ptype}".'
             )
 
         self.ptype = ptype
