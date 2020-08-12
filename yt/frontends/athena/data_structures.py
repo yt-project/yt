@@ -188,7 +188,7 @@ class AthenaHierarchy(GridIndex):
                 field = str23(splitup[1])
                 dtype = str23(splitup[-1]).lower()
                 for ax in "xyz":
-                    field_map[("athena", "%s_%s" % (field, ax))] = (
+                    field_map[("athena", f"{field}_{ax}")] = (
                         "vector",
                         f.tell() - read_table_offset,
                         dtype,
@@ -237,18 +237,16 @@ class AthenaHierarchy(GridIndex):
             dataset_dir = dataset_dir[:-3]
 
         gridlistread = sglob(
-            os.path.join(dataset_dir, "id*/%s-id*%s" % (dname[4:-9], dname[-9:]))
+            os.path.join(dataset_dir, f"id*/{dname[4:-9]}-id*{dname[-9:]}")
         )
         gridlistread.insert(0, self.index_filename)
         if "id0" in dname:
             gridlistread += sglob(
-                os.path.join(
-                    dataset_dir, "id*/lev*/%s*-lev*%s" % (dname[4:-9], dname[-9:])
-                )
+                os.path.join(dataset_dir, f"id*/lev*/{dname[4:-9]}*-lev*{dname[-9:]}")
             )
         else:
             gridlistread += sglob(
-                os.path.join(dataset_dir, "lev*/%s*-lev*%s" % (dname[:-9], dname[-9:]))
+                os.path.join(dataset_dir, f"lev*/{dname[:-9]}*-lev*{dname[-9:]}")
             )
         ndots = dname.count(".")
         gridlistread = [
@@ -506,7 +504,7 @@ class AthenaDataset(Dataset):
         )
         self.filename = filename
         if storage_filename is None:
-            storage_filename = "%s.yt" % filename.split("/")[-1]
+            storage_filename = f"{filename.split('/')[-1]}.yt"
         self.storage_filename = storage_filename
         self.backup_filename = self.filename[:-4] + "_backup.gdf"
         # Unfortunately we now have to mandate that the index gets
@@ -526,7 +524,7 @@ class AthenaDataset(Dataset):
             if getattr(self, unit + "_unit", None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
-            setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+            setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
             4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
         )
@@ -611,17 +609,15 @@ class AthenaDataset(Dataset):
             dataset_dir = dataset_dir[:-3]
 
         gridlistread = sglob(
-            os.path.join(dataset_dir, "id*/%s-id*%s" % (dname[4:-9], dname[-9:]))
+            os.path.join(dataset_dir, f"id*/{dname[4:-9]}-id*{dname[-9:]}")
         )
         if "id0" in dname:
             gridlistread += sglob(
-                os.path.join(
-                    dataset_dir, "id*/lev*/%s*-lev*%s" % (dname[4:-9], dname[-9:])
-                )
+                os.path.join(dataset_dir, f"id*/lev*/{dname[4:-9]}*-lev*{dname[-9:]}")
             )
         else:
             gridlistread += sglob(
-                os.path.join(dataset_dir, "lev*/%s*-lev*%s" % (dname[:-9], dname[-9:]))
+                os.path.join(dataset_dir, f"lev*/{dname[:-9]}*-lev*{dname[-9:]}")
             )
         ndots = dname.count(".")
         gridlistread = [

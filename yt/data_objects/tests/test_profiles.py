@@ -33,7 +33,7 @@ def test_profiles():
     for nb in [8, 16, 32, 64]:
         for input_units in ["mks", "cgs"]:
             (rmi, rma), (tmi, tma), (dmi, dma) = [
-                getattr(ex, "in_%s" % input_units)()
+                getattr(ex, f"in_{input_units}")()
                 for ex in dd.quantities["Extrema"](
                     ["density", "temperature", "dinosaurs"]
                 )

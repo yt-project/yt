@@ -5,7 +5,6 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
-from yt.data_objects.data_containers import data_object_registry
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, iterable, mylog
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -24,6 +23,7 @@ from yt.utilities.lib.image_samplers import (
 from yt.utilities.lib.misc_utilities import lines
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.math_utils import get_rotation_matrix
+from yt.utilities.object_registries import data_object_registry
 from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
@@ -1648,7 +1648,7 @@ class HEALpixCamera(Camera):
         if self.comm.rank == 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             if label is None:
-                label = "Projected %s" % (self.fields[0])
+                label = f"Projected {self.fields[0]}"
             if clim is not None:
                 cmin, cmax = clim
             else:

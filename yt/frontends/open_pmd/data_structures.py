@@ -505,7 +505,7 @@ class OpenPMDDataset(Dataset):
         if "groupBased" in encoding and len(iterations) > 1:
             mylog.warning("Only chose to load one iteration (%s)", iteration)
 
-        self.base_path = "/data/{}/".format(iteration)
+        self.base_path = f"/data/{iteration}/"
         try:
             self.meshes_path = self._handle["/"].attrs["meshesPath"].decode()
             handle[self.base_path + self.meshes_path]
@@ -654,7 +654,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
             self._setup_function(o)
             return o
         else:
-            raise KeyError("Unknown iteration {}".format(key))
+            raise KeyError(f"Unknown iteration {key}")
 
     def _load(self, it, **kwargs):
         return OpenPMDDataset(self.filename, iteration=it)

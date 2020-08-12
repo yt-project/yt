@@ -359,8 +359,7 @@ class PlotWindow(ImagePlotContainer):
         """
         if len(deltas) != 2:
             raise RuntimeError(
-                "The pan function accepts a two-element sequence.\n"
-                "Received %s." % (deltas,)
+                f"The pan function accepts a two-element sequence.\nReceived {deltas}."
             )
         if isinstance(deltas[0], Number) and isinstance(deltas[1], Number):
             deltas = (
@@ -426,8 +425,7 @@ class PlotWindow(ImagePlotContainer):
         new_unit = ensure_list(new_unit)
         if len(field) > 1 and len(new_unit) != len(field):
             raise RuntimeError(
-                "Field list {} and unit "
-                "list {} are incompatible".format(field, new_unit)
+                f"Field list {field} and unit list {new_unit} are incompatible"
             )
         for f, u in zip(field, new_unit):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
@@ -966,7 +964,7 @@ class PWViewerMPL(PlotWindow):
                         "values.  Max = %f." % (f, np.nanmax(image))
                     )
                 elif not np.any(np.isfinite(image)):
-                    msg = "Plot image for field %s is filled with NaNs." % (f,)
+                    msg = f"Plot image for field {f} is filled with NaNs."
                 elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
                     msg = (
                         "Plot image for field %s has both positive "
@@ -1520,7 +1518,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             slc = ds.all_data()
             slc.axis = axis
             if slc.axis != ds.parameters["axis"]:
-                raise RuntimeError("Original slice axis is %s." % ds.parameters["axis"])
+                raise RuntimeError(f"Original slice axis is {ds.parameters['axis']}.")
         else:
             slc = ds.slice(
                 axis,
@@ -1751,7 +1749,7 @@ class ProjectionPlot(PWViewerMPL):
             proj.axis = axis
             if proj.axis != ds.parameters["axis"]:
                 raise RuntimeError(
-                    "Original projection axis is %s." % ds.parameters["axis"]
+                    f"Original projection axis is {ds.parameters['axis']}."
                 )
             if weight_field is not None:
                 proj.weight_field = proj._determine_fields(weight_field)[0]
@@ -2510,9 +2508,7 @@ def plot_2d(
         axis = "phi"
     else:
         raise NotImplementedError(
-            "plot_2d does not yet support datasets with {} geometries".format(
-                ds.geometry
-            )
+            f"plot_2d does not yet support datasets with {ds.geometry} geometries"
         )
     # Part of the convenience of plot_2d is to eliminate the use of the
     # superfluous coordinate, so we do that also with the center argument

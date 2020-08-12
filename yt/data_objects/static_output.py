@@ -11,7 +11,6 @@ from stat import ST_CTIME
 import numpy as np
 
 from yt.config import ytcfg
-from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.region_expression import RegionExpression
@@ -51,12 +50,9 @@ from yt.utilities.exceptions import (
     YTObjectNotImplemented,
 )
 from yt.utilities.minimal_representation import MinimalDataset
+from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
-from yt.utilities.parameter_file_storage import (
-    NoParameterShelf,
-    ParameterFileStore,
-    output_type_registry,
-)
+from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -71,13 +67,6 @@ def _unsupported_object(ds, obj_name):
         raise YTObjectNotImplemented(ds, obj_name)
 
     return _raise_unsupp
-
-
-class RegisteredDataset(abc.ABCMeta):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        output_type_registry[name] = cls
-        mylog.debug("Registering: %s as %s", name, cls)
 
 
 class IndexProxy:
@@ -142,7 +131,7 @@ def requires_index(attr_name):
     return ireq
 
 
-class Dataset(metaclass=RegisteredDataset):
+class Dataset:
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
@@ -196,6 +185,11 @@ class Dataset(metaclass=RegisteredDataset):
         else:
             obj = _cached_datasets[cache_key]
         return obj
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        output_type_registry[cls.__name__] = cls
+        mylog.debug("Registering: %s as %s", cls.__name__, cls)
 
     def __init__(
         self,
@@ -309,7 +303,7 @@ class Dataset(metaclass=RegisteredDataset):
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
         for attr in ("center", "width", "left_edge", "right_edge"):
-            n = "domain_%s" % attr
+            n = f"domain_{attr}"
             v = getattr(self, n)
             if not isinstance(v, YTArray) and v is not None:
                 # Note that we don't add on _ipython_display_ here because
@@ -325,7 +319,7 @@ class Dataset(metaclass=RegisteredDataset):
         return self.basename
 
     def _hash(self):
-        s = "%s;%s;%s" % (self.basename, self.current_time, self.unique_identifier)
+        s = f"{self.basename};{self.current_time};{self.unique_identifier}"
         try:
             import hashlib
 
@@ -619,7 +613,7 @@ class Dataset(metaclass=RegisteredDataset):
         available_formats = {"ionization_label": ("plus_minus", "roman_numeral")}
         if format_property in available_formats:
             if value in available_formats[format_property]:
-                setattr(self, "_%s_format" % format_property, value)
+                setattr(self, f"_{format_property}_format", value)
             else:
                 raise ValueError(
                     "{0} not an acceptable value for format_property "
@@ -1123,7 +1117,7 @@ class Dataset(metaclass=RegisteredDataset):
             self.unit_registry.modify("h", self.hubble_constant)
             # Comoving lengths
             for my_unit in ["m", "pc", "AU", "au"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 my_u = Unit(my_unit, registry=self.unit_registry)
                 self.unit_registry.add(
                     new_unit,
@@ -1223,14 +1217,14 @@ class Dataset(metaclass=RegisteredDataset):
             ("magnetic", "gauss"),
             ("temperature", "K"),
         ]:
-            val = self.units_override.get("%s_unit" % unit, None)
+            val = self.units_override.get(f"{unit}_unit", None)
             if val is not None:
                 if isinstance(val, YTQuantity):
                     val = (val.v, str(val.units))
                 elif not isinstance(val, tuple):
                     val = (val, cgs)
                 mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
-                setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
+                setattr(self, f"{unit}_unit", self.quan(val[0], val[1]))
 
     _units = None
     _unit_system_id = None
@@ -1490,7 +1484,7 @@ class Dataset(metaclass=RegisteredDataset):
         field_name = field_name % (ptype, deposit_field.replace("particle_", ""))
 
         if method == "count":
-            field_name = "%s_count" % ptype
+            field_name = f"{ptype}_count"
             if ("deposit", field_name) in self.field_info:
                 mylog.warning("The deposited field %s already exists", field_name)
                 return ("deposit", field_name)
@@ -1598,7 +1592,7 @@ class Dataset(metaclass=RegisteredDataset):
         # Now we make a list of the fields that were just made, to check them
         # and to return them
         grad_fields = [
-            (ftype, input_field + "_gradient_%s" % suffix)
+            (ftype, input_field + f"_gradient_{suffix}")
             for suffix in self.coordinates.axis_order
         ]
         grad_fields.append((ftype, input_field + "_gradient_magnitude"))

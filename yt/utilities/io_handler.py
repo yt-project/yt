@@ -19,24 +19,22 @@ def _make_io_key(args, *_args, **kwargs):
     return _make_key((obj.id, field), *_args, **kwargs)
 
 
-class RegisteredIOHandler(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if hasattr(cls, "_dataset_type"):
-            io_registry[cls._dataset_type] = cls
-        if use_caching and hasattr(cls, "_read_obj_field"):
-            cls._read_obj_field = lru_cache(
-                maxsize=use_caching, typed=True, make_key=_make_io_key
-            )(cls._read_obj_field)
-
-
-class BaseIOHandler(metaclass=RegisteredIOHandler):
+class BaseIOHandler:
     _vector_fields = ()
     _dataset_type = None
     _particle_reader = False
     _cache_on = False
     _misses = 0
     _hits = 0
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if hasattr(cls, "_dataset_type"):
+            io_registry[cls._dataset_type] = cls
+        if use_caching and hasattr(cls, "_read_obj_field"):
+            cls._read_obj_field = lru_cache(
+                maxsize=use_caching, typed=True, make_key=_make_io_key
+            )(cls._read_obj_field)
 
     def __init__(self, ds):
         self.queue = defaultdict(dict)

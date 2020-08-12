@@ -122,7 +122,7 @@ class TestYTConfigMigration(TestYTConfig):
 
         with open(_OLD_CONFIG_FILE, "w") as fh:
             for line in _DUMMY_CFG:
-                fh.write("{}\n".format(line))
+                fh.write(f"{line}\n")
 
         if os.path.exists(CURRENT_CONFIG_FILE):
             os.remove(CURRENT_CONFIG_FILE)

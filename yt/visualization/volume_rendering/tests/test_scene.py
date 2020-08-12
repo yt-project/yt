@@ -69,17 +69,14 @@ class RotationTest(TestCase):
         mi_bound = ((ma - mi) * (0.10)) + mi
         ma_bound = ((ma - mi) * (0.90)) + mi
         tf.map_to_colormap(mi_bound, ma_bound, scale=0.01, colormap="Reds_r")
-        sc.render()
-        for suffix in ["png", "eps", "ps", "pdf"]:
-            fname = "test_scene.{}".format(suffix)
-            sc.save(fname, sigma_clip=6.0)
-            assert_fname(fname)
+        fname = "test_scene.pdf"
+        sc.save(fname, sigma_clip=6.0)
+        assert_fname(fname)
 
-        nrot = 2
-        for i in range(nrot):
-            sc.camera.pitch(2 * np.pi / nrot)
-            sc.render()
-            sc.save("test_rot_%04i.png" % i, sigma_clip=6.0)
+        fname = "test_rot.png"
+        sc.camera.pitch(np.pi)
+        sc.save(fname, sigma_clip=6.0)
+        assert_fname(fname)
 
 
 def test_annotations():

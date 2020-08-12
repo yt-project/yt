@@ -9,6 +9,7 @@ AMRVAC data structures
 import os
 import stat
 import struct
+import warnings
 import weakref
 
 import numpy as np
@@ -57,6 +58,18 @@ class AMRVACGrid(AMRGridPatch):
         start_index = (self.LeftEdge - self.ds.domain_left_edge) / self.dds
         self.start_index = np.rint(start_index).astype("int64").ravel()
         return self.start_index
+
+    def retrieve_ghost_zones(self, n_zones, fields, all_levels=False, smoothed=False):
+        if smoothed:
+            warnings.warn(
+                "ghost-zones interpolation/smoothing is not "
+                "currently supported for AMRVAC data.",
+                category=RuntimeWarning,
+            )
+            smoothed = False
+        return super(AMRVACGrid, self).retrieve_ghost_zones(
+            n_zones, fields, all_levels=all_levels, smoothed=smoothed
+        )
 
 
 class AMRVACHierarchy(GridIndex):

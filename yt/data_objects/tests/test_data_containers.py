@@ -1,5 +1,4 @@
 import os
-import shelve
 import shutil
 import tempfile
 import unittest
@@ -77,24 +76,6 @@ class TestDataContainers(unittest.TestCase):
 
         assert_equal(keys, file_row_1)
         assert_array_equal(data, file_row_2)
-
-    def test_save_object(self):
-        ds = fake_random_ds(16)
-        sp = ds.sphere(ds.domain_center, 0.25)
-        sp.save_object("my_sphere_1", filename="test_save_obj")
-        obj = shelve.open("test_save_obj", protocol=-1)
-        loaded_sphere = obj["my_sphere_1"][1]
-        obj.close()
-        assert_array_equal(loaded_sphere.center, sp.center)
-        assert_equal(loaded_sphere.radius, sp.radius)
-        for k in loaded_sphere._key_fields:
-            assert_array_equal(loaded_sphere[k], sp[k])
-
-        # Object is saved but retrieval is not working
-        # sp.save_object("my_sphere_2")
-        # loaded_sphere = ds.index.load_object("my_sphere_2")
-        # for k in loaded_sphere._key_fields:
-        #     assert_array_equal(loaded_sphere[k], sp[k])
 
     @requires_module("pandas")
     def test_to_dataframe(self):

@@ -211,15 +211,15 @@ class RAMSESFieldInfo(FieldInfoContainer):
         def mag_field(ax):
             def _mag_field(field, data):
                 return (
-                    data["magnetic_field_%s_left" % ax]
-                    + data["magnetic_field_%s_right" % ax]
+                    data[f"magnetic_field_{ax}_left"]
+                    + data[f"magnetic_field_{ax}_right"]
                 ) / 2
 
             return _mag_field
 
         for ax in self.ds.coordinates.axis_order:
             self.add_field(
-                ("gas", "magnetic_field_%s" % ax),
+                ("gas", f"magnetic_field_{ax}"),
                 sampling_type="cell",
                 function=mag_field(ax),
                 units=self.ds.unit_system["magnetic_field_cgs"],
@@ -230,8 +230,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
             out = np.zeros_like(data["magnetic_field_x_right"])
             for ax in data.ds.coordinates.axis_order:
                 out += (
-                    data["magnetic_field_%s_right" % ax]
-                    - data["magnetic_field_%s_left" % ax]
+                    data[f"magnetic_field_{ax}_right"]
+                    - data[f"magnetic_field_{ax}_left"]
                 )
             return out / data["dx"]
 
@@ -290,14 +290,14 @@ class RAMSESFieldInfo(FieldInfoContainer):
         # Adding the fields in the rt_ files
         def gen_pdens(igroup):
             def _photon_density(field, data):
-                rv = data["ramses-rt", "Photon_density_%s" % (igroup + 1)] * dens_conv
+                rv = data["ramses-rt", f"Photon_density_{igroup + 1}"] * dens_conv
                 return rv
 
             return _photon_density
 
         for igroup in range(ngroups):
             self.add_field(
-                ("rt", "photon_density_%s" % (igroup + 1)),
+                ("rt", f"photon_density_{igroup + 1}"),
                 sampling_type="cell",
                 function=gen_pdens(igroup),
                 units=self.ds.unit_system["number_density"],
@@ -307,10 +307,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         def gen_flux(key, igroup):
             def _photon_flux(field, data):
-                rv = (
-                    data["ramses-rt", "Photon_flux_%s_%s" % (key, igroup + 1)]
-                    * flux_conv
-                )
+                rv = data["ramses-rt", f"Photon_flux_{key}_{igroup + 1}"] * flux_conv
                 return rv
 
             return _photon_flux
@@ -321,7 +318,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         for key in "xyz":
             for igroup in range(ngroups):
                 self.add_field(
-                    ("rt", "photon_flux_%s_%s" % (key, igroup + 1)),
+                    ("rt", f"photon_flux_{key}_{igroup + 1}"),
                     sampling_type="cell",
                     function=gen_flux(key, igroup),
                     units=flux_unit,

@@ -163,7 +163,7 @@ class OctreeSubset(YTSelectionContainer):
         # Here we perform our particle deposition.
         if fields is None:
             fields = []
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
@@ -346,7 +346,7 @@ class OctreeSubset(YTSelectionContainer):
             fields = []
         if index_fields is None:
             index_fields = []
-        cls = getattr(particle_smooth, "%s_smooth" % method, None)
+        cls = getattr(particle_smooth, f"{method}_smooth", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
@@ -447,7 +447,7 @@ class OctreeSubset(YTSelectionContainer):
         pdom_ind = particle_octree.domain_ind(self.selector)
         if fields is None:
             fields = []
-        cls = getattr(particle_smooth, "%s_smooth" % method, None)
+        cls = getattr(particle_smooth, f"{method}_smooth", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
@@ -586,7 +586,7 @@ class OctreeSubsetBlockSlice:
         # Cache some attributes
         for attr in ["ires", "icoords", "fcoords", "fwidth"]:
             v = getattr(octree_subset, attr)
-            setattr(self, "_%s" % attr, octree_subset._reshape_vals(v))
+            setattr(self, f"_{attr}", octree_subset._reshape_vals(v))
 
     def __iter__(self):
         for i in range(self._ires.shape[-1]):
