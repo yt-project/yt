@@ -174,13 +174,14 @@ class FITSHierarchy(GridIndex):
                         mylog.info("Adding field %s to the list of fields.", fname)
                         if units == "dimensionless":
                             mylog.warning(
-                                "Could not determine dimensions for field %s, setting to dimensionless.",
+                                "Could not determine dimensions for field %s, "
+                                "setting to dimensionless.",
                                 fname,
                             )
                 else:
                     mylog.warning(
-                        "Image block %s does not have the same dimensions as the primary and will not be "
-                        "available as a field.",
+                        "Image block %s does not have the same dimensions "
+                        "as the primary and will not be available as a field.",
                         hdu.name.lower(),
                     )
 
