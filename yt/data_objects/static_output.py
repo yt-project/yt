@@ -1125,7 +1125,7 @@ class Dataset:
                         new_unit,
                         my_u.base_value / (1 + self.current_redshift),
                         dimensions.length,
-                        f"\\rm\{{my_unit}\}/(1+z)",
+                        "\\rm\{%s\}/(1+z)" % my_unit,
                         prefixable=True,
                     )
                 self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
