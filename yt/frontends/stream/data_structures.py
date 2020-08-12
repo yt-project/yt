@@ -439,9 +439,13 @@ def assign_particle_data(ds, pdata, bbox):
             grid = {"number_of_particles": 0}
             grid_pdata.append(grid)
 
+        particle_index_fields = [
+            f"particle_position_{ax}" for ax in ds.coordinates.axis_order
+        ]
         for ptype in ds.particle_types_raw:
             if (ptype, "particle_position_x") in pdata:
-                x, y, z = (pdata[ptype, f"particle_position_{ax}"] for ax in "xyz")
+                # we call them x, y, z even though they may be different field names
+                x, y, z = (pdata[ptype, pi_field] for pi_field in particle_index_fields)
             elif (ptype, "particle_position") in pdata:
                 x, y, z = pdata[ptype, "particle_position"].T
             else:

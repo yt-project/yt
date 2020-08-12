@@ -62,7 +62,10 @@ class IOHandlerStream(BaseIOHandler):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for ax in "xyz")
+                        x, y, z = (
+                            gf[ptype, f"particle_position_{ax}"]
+                            for ax in self.ds.coordinates.axis_order
+                        )
                     yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -76,7 +79,10 @@ class IOHandlerStream(BaseIOHandler):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for ax in "xyz")
+                        x, y, z = (
+                            gf[ptype, f"particle_position_{ax}"]
+                            for ax in self.ds.coordinates.axis_order
+                        )
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None:
                         continue
