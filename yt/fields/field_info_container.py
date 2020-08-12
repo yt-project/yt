@@ -1,9 +1,7 @@
 from numbers import Number as numeric_type
 
 import numpy as np
-from unyt.exceptions import UnitConversionError
 
-from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import issue_deprecation_warning, mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
