@@ -1,5 +1,5 @@
 from yt import load
-from yt.testing import requires_file
+from yt.testing import fake_amr_ds, requires_file
 
 
 def do_field_type(ft):
@@ -31,3 +31,9 @@ def test_field_name_container():
     for field_type in ds.fields:
         assert field_type in ds.fields
         do_field_type(field_type)
+
+
+def test_no_vertex_fields_in_structured_ds():
+    ds = fake_amr_ds()
+    vertex_fields = [(ft, fn) for ft, fn in ds.derived_field_list if "vertex" in fn]
+    assert not vertex_fields
