@@ -51,7 +51,7 @@ class HaloCatalogTest(TempDirTest):
         fn = fake_halo_catalog(data)
         ds = yt_load(fn)
 
-        assert isinstance(ds, YTHaloCatalogDataset)
+        assert type(ds) is YTHaloCatalogDataset
 
         for field in fields:
             f1 = data[field].in_base()
@@ -83,7 +83,7 @@ class HaloCatalogTest(TempDirTest):
         fn = fake_halo_catalog(data)
         ds = yt_load(fn)
 
-        assert isinstance(ds, YTHaloCatalogDataset)
+        assert type(ds) is YTHaloCatalogDataset
 
         for field in ["particle_mass"]:
             f1 = data[field].in_base()
