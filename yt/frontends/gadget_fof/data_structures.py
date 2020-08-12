@@ -498,7 +498,8 @@ class GadgetFOFHaloDataset(ParticleDataset):
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, *args, **kwargs):
+         # This class is not meant to be instanciated by yt.load()
         return False
 
 

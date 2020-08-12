@@ -148,7 +148,7 @@ class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
             if pcount == 0:
                 continue
             field_end = field_start + end_index - start_index
-            with h5py.File(data_file.filename, "r") as f:
+            with h5py.File(data_file.filename, mode="r") as f:
                 for ptype, field_list in sorted(member_fields.items()):
                     for field in field_list:
                         field_data = all_data[(ptype, field)]
@@ -163,7 +163,7 @@ class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
         all_data = {}
         if not scalar_fields:
             return all_data
-        with h5py.File(dobj.scalar_data_file.filename, "r") as f:
+        with h5py.File(dobj.scalar_data_file.filename, mode="r") as f:
             for ptype, field_list in sorted(scalar_fields.items()):
                 for field in field_list:
                     data = np.array([f[field][dobj.scalar_index]]).astype("float64")

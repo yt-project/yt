@@ -1119,13 +1119,13 @@ class Dataset:
             if getattr(self, "current_redshift", None):
                 # Comoving lengths
                 for my_unit in ["m", "pc", "AU", "au"]:
-                    new_unit = "%scm" % my_unit
+                    new_unit = f"{my_unit}cm"
                     my_u = Unit(my_unit, registry=self.unit_registry)
                     self.unit_registry.add(
                         new_unit,
                         my_u.base_value / (1 + self.current_redshift),
                         dimensions.length,
-                        "\\rm{%s}/(1+z)" % my_unit,
+                        f"\\rm\{{my_unit}\}/(1+z)",
                         prefixable=True,
                     )
                 self.unit_registry.modify("a", 1 / (1 + self.current_redshift))

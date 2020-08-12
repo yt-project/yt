@@ -108,14 +108,13 @@ def test_halo_quantities():
         hid = int(ad["halos", "particle_identifier"][i])
         halo = ds.halo("halos", hid)
         for field in ["mass", "position", "velocity"]:
-            v1 = ad["halos", "particle_%s" % field][i]
+            v1 = ad["halos", f"particle_{field][i]}"
             v2 = getattr(halo, field)
             assert_allclose_units(
-                v1, v2, rtol=1e-15, err_msg="Halo %d %s field mismatch." % (hid, field)
+                v1, v2, rtol=1e-15, err_msg="Halo {hid} {field} field mismatch."
             )
 
 
-t46 = "tiny_fof_halos/DD0046/DD0046.0.h5"
 
 
 @requires_file(t46)
