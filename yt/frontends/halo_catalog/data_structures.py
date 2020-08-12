@@ -474,7 +474,7 @@ class HaloContainer(YTSelectionContainer):
         )
 
     def __repr__(self):
-        return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)
+        return f"{self.ds}_{self.ptype}_{self.particle_identifier:09d}"
 
 
 class YTHaloCatalogHaloContainer(HaloContainer):
