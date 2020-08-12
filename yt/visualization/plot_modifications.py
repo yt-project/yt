@@ -791,7 +791,7 @@ class GridBoundaryCallback(PlotCallback):
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
 
-        # sorts the four arrays in order of ascending level - this makes images look nicer
+        # sort the four arrays in order of ascending level, this makes images look nicer
         new_indices = np.argsort(levels)
         levels = levels[new_indices]
         GLE = GLE[new_indices]
@@ -1776,7 +1776,8 @@ class HaloCatalogCallback(PlotCallback):
 
     Parameters
     ----------
-    halo_catalog : Dataset, DataContainer, or ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
+    halo_catalog : Dataset, DataContainer,
+                   or ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
         The object containing halos to be overplotted. This can
         be a HaloCatalog object, a loaded halo catalog dataset,
         or a data container from a halo catalog dataset.
@@ -2349,13 +2350,10 @@ class TimestampCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
 
-            "data" -- the 3D dataset coordinates
-
-            "plot" -- the 2D coordinates defined by the actual plot limits
-
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
-
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
+        - "data": 3D dataset coordinates
+        - "plot": 2D coordinates defined by the actual plot limits
+        - "axis": MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
+        - "figure": MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     time_offset : float, (value, unit) tuple, or YTQuantity, optional
         Apply an offset to the time shown in the annotation from the
@@ -2583,13 +2581,10 @@ class ScaleCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
 
-            "data" -- the 3D dataset coordinates
-
-            "plot" -- the 2D coordinates defined by the actual plot limits
-
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
-
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
+        - "data": 3D dataset coordinates
+        - "plot": 2D coordinates defined by the actual plot limits
+        - "axis": MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
+        - "figure": MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     text_args : dictionary, optional
         A dictionary of parameters to used to update the font_properties

@@ -134,7 +134,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     References
     ----------
     * http://yt-project.org/docs/dev/analyzing/fields.html
-    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures
+    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures  # NOQA E501
     * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md
     * [1] http://yt-project.org/docs/dev/reference/field_list.html#universal-fields
     """
@@ -152,7 +152,8 @@ class OpenPMDFieldInfo(FieldInfoContainer):
             for fname in fields.keys():
                 field = fields[fname]
                 if isinstance(field, h5.Dataset) or is_const_component(field):
-                    # Don't consider axes. This appears to be a vector field of single dimensionality
+                    # Don't consider axes.
+                    # This appears to be a vector field of single dimensionality
                     ytname = str("_".join([fname.replace("_", "-")]))
                     parsed = parse_unit_dimension(
                         np.asarray(field.attrs["unitDimension"], dtype=np.int)
@@ -195,7 +196,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         if ytattrib == "position":
                             # Symbolically rename position to preserve yt's
                             # interpretation of the pfield particle_position is later
-                            # derived in setup_absolute_positions in the way yt expects it
+                            # derived in setup_absolute_positions in the way yt expects
                             ytattrib = "positionCoarse"
                         if isinstance(record, h5.Dataset) or is_const_component(record):
                             name = ["particle", ytattrib]
@@ -213,7 +214,8 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     except (KeyError):
                         if recname != "particlePatches":
                             mylog.info(
-                                "open_pmd - %s_%s does not seem to have unitDimension",
+                                "open_pmd - %s_%s does not seem to have "
+                                "unitDimension",
                                 pname,
                                 recname,
                             )
@@ -237,7 +239,8 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         """Defines which derived particle fields to create.
 
-        This will be called for every entry in `OpenPMDDataset``'s ``self.particle_types``.
+        This will be called for every entry in
+        `OpenPMDDataset``'s ``self.particle_types``.
         If a field can not be calculated, it will simply be skipped.
         """
         setup_absolute_positions(self, ptype)

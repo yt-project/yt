@@ -608,7 +608,8 @@ _common_options = dict(
         type=float,
         dest="halo_radius",
         default=0.1,
-        help="Constant radius for profiling halos if using hop output files with no radius entry. Default: 0.1.",
+        help="Constant radius for profiling halos if using hop output files with no "
+        + "radius entry. Default: 0.1.",
     ),
     halo_radius_units=dict(
         longname="--halo_radius_units",
@@ -616,7 +617,8 @@ _common_options = dict(
         type=str,
         dest="halo_radius_units",
         default="1",
-        help="Units for radius used with --halo_radius flag. Default: '1' (code units).",
+        help="Units for radius used with --halo_radius flag. "
+        + "Default: '1' (code units).",
     ),
     halo_hop_style=dict(
         longname="--halo_hop_style",
@@ -624,7 +626,8 @@ _common_options = dict(
         type=str,
         dest="halo_hop_style",
         default="new",
-        help="Style of hop output file.  'new' for yt_hop files and 'old' for enzo_hop files.",
+        help="Style of hop output file. "
+        + "'new' for yt_hop files and 'old' for enzo_hop files.",
     ),
     halo_dataset=dict(
         longname="--halo_dataset",

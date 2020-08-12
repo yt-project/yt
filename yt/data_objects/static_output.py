@@ -284,13 +284,15 @@ class Dataset:
     @abc.abstractmethod
     def _parse_parameter_file(self):
         # set up various attributes from self.parameter_filename
-        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
+        # for a full description of what is required here see
+        # yt.frontends._skeleton.SkeletonDataset
         pass
 
     @abc.abstractmethod
     def _set_code_unit_attributes(self):
         # set up code-units to physical units normalization factors
-        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
+        # for a full description of what is required here see
+        # yt.frontends._skeleton.SkeletonDataset
         pass
 
     def _set_derived_attrs(self):
@@ -1579,8 +1581,9 @@ class Dataset:
          ('gas', 'temperature_gradient_z'),
          ('gas', 'temperature_gradient_magnitude')]
 
-        Note that the above example assumes ds.geometry == 'cartesian'. In general, the function
-        will create gradients components along the axes of the dataset coordinate system.
+        Note that the above example assumes ds.geometry == 'cartesian'. In general,
+        the function will create gradients components along the axes of the dataset
+        coordinate system.
         For instance, with cylindrical data, one gets 'temperature_gradient_<r,theta,z>'
         """
         self.index

@@ -625,8 +625,9 @@ class Cosmology:
         note that there's a typo in his eq. There should be no negative sign).
 
         At the moment, this only works using the parameterization given in Linder 2002
-        eq. 7: w(a) = w0 + wa(1 - a) = w0 + wa * z / (1+z). This gives rise to an analytic
-        expression. It is also only functional for Gadget simulations, at the moment.
+        eq. 7: w(a) = w0 + wa(1 - a) = w0 + wa * z / (1+z). This gives rise to an
+        analytic expression.
+        It is also only functional for Gadget simulations, at the moment.
 
         Parameters
         ----------

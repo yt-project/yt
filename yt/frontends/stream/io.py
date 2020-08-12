@@ -17,9 +17,6 @@ class IOHandlerStream(BaseIOHandler):
 
     def _read_data_set(self, grid, field):
         # This is where we implement processor-locking
-        # if grid.id not in self.grids_in_memory:
-        #    mylog.error("Was asked for %s but I have %s", grid.id, self.grids_in_memory.keys())
-        #    raise KeyError
         tr = self.fields[grid.id][field]
         # If it's particles, we copy.
         if len(tr.shape) == 1:

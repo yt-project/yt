@@ -420,8 +420,8 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         return self._field_list, {}
 
     def _calculate_particle_offsets(self, data_file, pcounts):
-        # This computes the offsets for each particle type into a "data_file."  Note that
-        # the term "data_file" here is a bit overloaded, and also refers to a
+        # This computes the offsets for each particle type into a "data_file."
+        # Note that the term "data_file" here is a bit overloaded, and also refers to a
         # "chunk" of particles inside a data file.
         # data_file.start represents the *particle count* that we should start at.
         #

@@ -9,7 +9,8 @@ def parse_unit_dimension(unit_dimension):
     Parameters
     ----------
     unit_dimension : array_like
-        integer array of length 7 with one entry for the dimensional component of every SI unit
+        integer array of length 7 with one entry for the dimensional component of every
+        SI unit
 
         [0] length L,
         [1] mass M,
@@ -21,7 +22,9 @@ def parse_unit_dimension(unit_dimension):
 
     References
     ----------
-    .. https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#unit-systems-and-dimensionality
+    ..
+    https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md#unit-systems-and-dimensionality  # NOQA E501
+
 
     Returns
     -------
@@ -101,17 +104,9 @@ def get_component(group, component_name, index=0, offset=None):
         else:
             shape[0] = offset
         # component is constant, craft an array by hand
-        # mylog.debug(
-        #    "open_pmd - get_component: {}/{} [const {}]".format(group.name, component_name, shape)
-        # )
         return np.full(shape, record_component.attrs["value"] * unit_si)
     else:
         if offset is not None:
             offset += index
         # component is a dataset, return it (possibly masked)
-        # mylog.debug(
-        #    "open_pmd - get_component: {}/{}[{}:{}]".format(
-        #        group.name, component_name, index, offset
-        #    )
-        # )
         return np.multiply(record_component[index:offset], unit_si)

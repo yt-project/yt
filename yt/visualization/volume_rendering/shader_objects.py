@@ -24,11 +24,11 @@ class ShaderProgram:
     ----------
 
     vertex_shader : string
-                    or :class:`yt.visualization.volume_rendering.shader_objects.VertexShader`
+        or :class:`yt.visualization.volume_rendering.shader_objects.VertexShader`
         The vertex shader used in the Interactive Data Visualization pipeline.
 
     fragment_shader : string
-                      or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
+        or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
         The fragment shader used in the Interactive Data Visualization pipeline.
     """
 

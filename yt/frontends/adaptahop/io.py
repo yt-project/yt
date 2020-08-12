@@ -209,7 +209,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         # Make sure halos are loaded in increasing halo_id order
         assert np.all(np.diff(offset_map[:, 0]) > 0)
 
-        # Cache particle positions as one do not expect a (very) large number of halos anyway
+        # Cache particle positions as one do not expect a large number of halos anyway
         self._particle_positions = data
         self._offsets = offset_map
         return data

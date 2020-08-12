@@ -49,7 +49,8 @@ class AdaptaHOPDataset(Dataset):
         self.over_refine_factor = over_refine_factor
         if parent_ds is None:
             raise RuntimeError(
-                "The AdaptaHOP frontend requires a parent dataset to be passed as `parent_ds`."
+                "The AdaptaHOP frontend requires a parent dataset "
+                "to be passed as `parent_ds`."
             )
         self.parent_ds = parent_ds
 
@@ -178,8 +179,10 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
     --------
 
     >>> import yt
-    >>> ds = yt.load('output_00080_halos/tree_bricks080', parent_ds=yt.load('output_00080/info_00080.txt'))
-    >>>
+    >>> ds = yt.load(
+    ...      'output_00080_halos/tree_bricks080',
+    ...       parent_ds=yt.load('output_00080/info_00080.txt')
+    ... )
     >>> ds.halo(1, ptype='io')
     >>> print(halo.mass)
     119.22804260253906 100000000000.0*Msun
