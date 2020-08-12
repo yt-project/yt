@@ -89,7 +89,7 @@ class PoochHandle:
             # Right now we are assuming that any name passed without an explicit
             # extension is packed in a tarball. This logic can be modified later to
             # be more flexible.
-            fileext = "%s.tar.gz" % name
+            fileext = f"{name}.tar.gz"
             basename = name
             extension = "tar"
         elif ext == ".gz":

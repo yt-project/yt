@@ -69,7 +69,7 @@ def assign_particle_data(ds, pdata, bbox):
 
         for ptype in ds.particle_types_raw:
             if (ptype, "particle_position_x") in pdata:
-                x, y, z = (pdata[ptype, "particle_position_%s" % ax] for ax in "xyz")
+                x, y, z = (pdata[ptype, f"particle_position_{ax}"] for ax in "xyz")
             elif (ptype, "particle_position") in pdata:
                 x, y, z = pdata[ptype, "particle_position"].T
             else:

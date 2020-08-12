@@ -1364,12 +1364,12 @@ def load_sample(fn=None, specific_file=None, pbar=True):
         # right now work on loading only untarred files. build out h5 later
         mylog.info("Default to loading %s for %s dataset", file_lookup, name)
         loaded_file = os.path.join(
-            base_path, "%s.untar" % registered_fname, name, file_lookup
+            base_path, f"{registered_fname}.untar", name, file_lookup
         )
     else:
         mylog.info("Loading %s for %s dataset", specific_file, name)
         loaded_file = os.path.join(
-            base_path, "%s.untar" % registered_fname, name, specific_file
+            base_path, f"{registered_fname}.untar", name, specific_file
         )
 
     return load(loaded_file, **optional_args)
