@@ -3,6 +3,7 @@ import numpy as np
 from yt.fields.derived_field import ValidateParameter, ValidateSpatial
 from yt.funcs import just_one
 from yt.geometry.geometry_handler import is_curvilinear
+from yt.utilities.exceptions import YTDimensionalityError
 
 from .field_plugin_registry import register_field_plugin
 from .vector_operations import create_magnitude_field, create_squared_field
@@ -408,17 +409,20 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         (it's just like vorticity except add the derivative pairs instead
          of subtracting them)
         """
-        if data.ds.dimensionality > 1:
-            vx = data[ftype, "relative_velocity_x"]
-            vy = data[ftype, "relative_velocity_y"]
-            dvydx = (
-                vy[sl_right, sl_center, sl_center] - vy[sl_left, sl_center, sl_center]
-            ) / (div_fac * just_one(data["index", "dx"]))
-            dvxdy = (
-                vx[sl_center, sl_right, sl_center] - vx[sl_center, sl_left, sl_center]
-            ) / (div_fac * just_one(data["index", "dy"]))
-            f = (dvydx + dvxdy) ** 2.0
-            del dvydx, dvxdy
+        if data.ds.dimensionality == 1:
+            raise YTDimensionalityError("shear is meaningless in 1D")
+
+        vx = data[ftype, "relative_velocity_x"]
+        vy = data[ftype, "relative_velocity_y"]
+        dvydx = (
+            vy[sl_right, sl_center, sl_center] - vy[sl_left, sl_center, sl_center]
+        ) / (div_fac * just_one(data["index", "dx"]))
+        dvxdy = (
+            vx[sl_center, sl_right, sl_center] - vx[sl_center, sl_left, sl_center]
+        ) / (div_fac * just_one(data["index", "dy"]))
+        f = (dvydx + dvxdy) ** 2.0
+        del dvydx, dvxdy
+
         if data.ds.dimensionality > 2:
             vz = data[ftype, "relative_velocity_z"]
             dvzdy = (
