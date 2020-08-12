@@ -28,8 +28,8 @@ from yt.utilities.lib.geometry_utils cimport (
     morton_neighbors_coarse,
     morton_neighbors_refined,
 )
-from yt.utilities.lib.grid_traversal cimport sampler_function, walk_volume
 from yt.utilities.lib.volume_container cimport VolumeContainer
+from yt.utilities.lib.grid_traversal cimport sampler_function, volume_walker, get_volume_walker
 
 from .oct_container cimport Oct, OctreeContainer
 from .oct_visitors cimport cind
@@ -1713,9 +1713,11 @@ cdef class RaySelector(SelectorObject):
     cdef np.float64_t p1[3]
     cdef np.float64_t p2[3]
     cdef np.float64_t vec[3]
+    cdef volume_walker walk_volume
 
     def __init__(self, dobj):
         cdef int i
+        self.walk_volume = get_volume_walker(dobj.ds.geometry)
         _ensure_code(dobj.start_point)
         _ensure_code(dobj.end_point)
         for i in range(3):
@@ -1751,7 +1753,7 @@ cdef class RaySelector(SelectorObject):
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
             vc.dims[i] = dt.shape[i]
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia, NULL, 1.0)
         for i in range(dt.shape[0]):
             for j in range(dt.shape[1]):
                 for k in range(dt.shape[2]):
@@ -1789,7 +1791,7 @@ cdef class RaySelector(SelectorObject):
             vc.dds[i] = gobj.dds[i]
             vc.idds[i] = 1.0/gobj.dds[i]
             vc.dims[i] = dt.shape[i]
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia, NULL, 1.0)
         tr = np.zeros(ia.hits, dtype="float64")
         dtr = np.zeros(ia.hits, dtype="float64")
         ni = 0
@@ -1853,7 +1855,7 @@ cdef class RaySelector(SelectorObject):
                 vc.idds[j] = 1.0/vc.dds[j]
                 vc.dims[j] = 1
             t[0,0,0] = dt[0,0,0] = -1
-            walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+            self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia, NULL, 1.0)
             if dt[0,0,0] >= 0:
                 tr[ni] = t[0,0,0]
                 dtr[ni] = dt[0,0,0]
@@ -1912,7 +1914,7 @@ cdef class RaySelector(SelectorObject):
         ia.dt = dt
         ia.child_mask = cm
         ia.hits = 0
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia)
+        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> ia, NULL, 1.0)
         rv = 0
         if ia.hits > 0:
             rv = 1
@@ -1940,7 +1942,7 @@ cdef class RaySelector(SelectorObject):
         ia.dt = &dt
         ia.child_mask = &cm
         ia.hits = 0
-        walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia)
+        self.walk_volume(&vc, self.p1, self.vec, dt_sampler, <void*> &ia, NULL, 1.0)
         if ia.hits > 0:
             return 2 # a box of non-zero volume cannot be inside a ray
         return 0

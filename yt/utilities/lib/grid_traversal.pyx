@@ -41,16 +41,18 @@ from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, 
 
 DEF Nch = 4
 
+
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int walk_volume(VolumeContainer *vc,
+cdef int walk_volume_cartesian(VolumeContainer *vc,
                      np.float64_t v_pos[3],
                      np.float64_t v_dir[3],
                      sampler_function *sample,
                      void *data,
-                     np.float64_t *return_t = NULL,
-                     np.float64_t max_t = 1.0) nogil:
+                     np.float64_t *return_t,
+                     np.float64_t max_t) nogil:
     cdef int cur_ind[3]
     cdef int step[3]
     cdef int x, y, i, hit, direction
@@ -370,4 +372,11 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
             vp[i,j,2] = cos(theta)
     return vp
 
+
+cdef volume_walker get_volume_walker(str geometry) nogil:
+    with gil:
+        if geometry == "cartesian":
+            return walk_volume_cartesian
+        else:
+            raise NotImplementedError
 
