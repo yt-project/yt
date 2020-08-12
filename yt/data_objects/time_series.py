@@ -55,22 +55,6 @@ def get_ds_prop(propname):
     return cls
 
 
-def get_filenames_from_glob_pattern(outputs):
-    """
-    Helper function to DatasetSeries.__new__
-    handle a special case where "outputs" is assumed to be really a pattern string
-    """
-    pattern = outputs
-    epattern = os.path.expanduser(pattern)
-    data_dir = ytcfg.get("yt", "test_data_dir")
-    # if not match if found from the current work dir,
-    # we try to match the pattern from the test data dir
-    file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
-    if not file_list:
-        raise OSError(f"No match found for pattern : {pattern}")
-    return sorted(file_list)
-
-
 attrs = (
     "refine_by",
     "dimensionality",
@@ -164,7 +148,7 @@ class DatasetSeries:
 
     def __new__(cls, outputs, *args, **kwargs):
         try:
-            outputs = get_filenames_from_glob_pattern(outputs)
+            outputs = cls._get_filenames_from_glob_pattern(outputs)
         except TypeError:
             pass
         ret = super(DatasetSeries, cls).__new__(cls)
@@ -201,6 +185,22 @@ class DatasetSeries:
             )
         self.parallel = parallel
         self.kwargs = kwargs
+
+    @staticmethod
+    def _get_filenames_from_glob_pattern(outputs):
+        """
+        Helper function to DatasetSeries.__new__
+        handle a special case where "outputs" is assumed to be really a pattern string
+        """
+        pattern = outputs
+        epattern = os.path.expanduser(pattern)
+        data_dir = ytcfg.get("yt", "test_data_dir")
+        # if not match if found from the current work dir,
+        # we try to match the pattern from the test data dir
+        file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
+        if not file_list:
+            raise OSError(f"No match found for pattern : {pattern}")
+        return sorted(file_list)
 
     def __iter__(self):
         # We can make this fancier, but this works

@@ -2,7 +2,7 @@ import os
 import tempfile
 from pathlib import Path
 
-from yt.data_objects.time_series import DatasetSeries, get_filenames_from_glob_pattern
+from yt.data_objects.time_series import DatasetSeries
 from yt.testing import assert_raises
 from yt.utilities.exceptions import YTOutputNotIdentified
 
@@ -15,17 +15,18 @@ def test_pattern_expansion():
             (Path(tmpdir) / file).touch()
 
         pattern = os.path.join(tmpdir, "fake_data_file_*")
-        found = get_filenames_from_glob_pattern(pattern)
+        found = DatasetSeries._get_filenames_from_glob_pattern(pattern)
         assert found == [os.path.join(tmpdir, file) for file in file_list]
 
-        found2 = get_filenames_from_glob_pattern(Path(pattern))
+        found2 = DatasetSeries._get_filenames_from_glob_pattern(Path(pattern))
         assert found2 == found
 
 
 def test_no_match_pattern():
     with tempfile.TemporaryDirectory() as tmpdir:
         pattern = os.path.join(tmpdir, "fake_data_file_*")
-        assert_raises(OSError, get_filenames_from_glob_pattern, pattern)
+        assert_raises(OSError, DatasetSeries._get_filenames_from_glob_pattern, pattern)
+
 
 def test_init_fake_dataseries():
 
