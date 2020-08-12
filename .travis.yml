@@ -104,7 +104,7 @@ jobs:
       python: 3.6
       script: |
         flynt -h | head -n 1 # this is a workaround to print only the version number
-        flynt --fail-on-change --dry-run -e yt/extern yt/
+        flynt yt/ --fail-on-change --dry-run -e yt/extern
 
     - stage: tests
       name: "Python: 3.6 Minimal Dependency Unit Tests"
