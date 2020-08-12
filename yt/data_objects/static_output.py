@@ -1250,7 +1250,7 @@ class Dataset(abc.ABC):
         invalid_keys_found = set(units_override.keys()) - valid_keys
         if invalid_keys_found:
             raise ValueError(
-                "units_override contains invalid keys: {}".format(invalid_keys_found)
+                f"units_override contains invalid keys: {invalid_keys_found}"
             )
 
     default_units = {
@@ -1306,7 +1306,7 @@ class Dataset(abc.ABC):
                 )
             if 1 / uo[key].value == np.inf:
                 raise ValueError(
-                    "Invalid 0 normalisation factor in units_override for %s." % key
+                    f"Invalid 0 normalisation factor in units_override for {key}."
                 )
         return uo
 
