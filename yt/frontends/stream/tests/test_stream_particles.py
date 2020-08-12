@@ -456,3 +456,65 @@ def test_stream_sph_projection():
     image = frb["gas", "density"]
     assert image.max() > 0
     assert image.shape == (256, 256)
+
+
+def test_stream_non_cartesian_particles_unigrid():
+    r, theta, phi = np.mgrid[0.0:1.0:64j, 0.0 : np.pi : 64j, 0.0 : 2.0 * np.pi : 64j]
+    ind = np.random.randint(0, 64 * 64 * 64, size=1000)
+
+    particle_position_r = r.ravel()[ind]
+    particle_position_theta = theta.ravel()[ind]
+    particle_position_phi = phi.ravel()[ind]
+
+    ds = load_uniform_grid(
+        {
+            "density": r,
+            "temperature": phi,
+            "entropy": phi,
+            "particle_position_r": particle_position_r,
+            "particle_position_theta": particle_position_theta,
+            "particle_position_phi": particle_position_phi,
+        },
+        (64, 64, 64),
+        bbox=np.array([[0.0, 1.0], [0.0, np.pi], [0.0, 2.0 * np.pi]]),
+        geometry="spherical",
+    )
+
+    dd = ds.all_data()
+    assert_equal(dd["particle_position_r"].v, particle_position_r)
+    assert_equal(dd["particle_position_phi"].v, particle_position_phi)
+    assert_equal(dd["particle_position_theta"].v, particle_position_theta)
+
+
+def test_stream_non_cartesian_particles_amr():
+    r, theta, phi = np.mgrid[0.0:1.0:64j, 0.0 : np.pi : 64j, 0.0 : 2.0 * np.pi : 64j]
+    ind = np.random.randint(0, 64 * 64 * 64, size=1000)
+
+    particle_position_r = r.ravel()[ind]
+    particle_position_theta = theta.ravel()[ind]
+    particle_position_phi = phi.ravel()[ind]
+
+    ds = load_amr_grids(
+        [
+            {
+                "density": r,
+                "temperature": phi,
+                "entropy": phi,
+                "particle_position_r": particle_position_r,
+                "particle_position_theta": particle_position_theta,
+                "particle_position_phi": particle_position_phi,
+                "dimensions": [64, 64, 64],
+                "level": 0,
+                "left_edge": [0.0, 0.0, 0.0],
+                "right_edge": [1.0, np.pi, 2.0 * np.pi],
+            }
+        ],
+        (64, 64, 64),
+        bbox=np.array([[0.0, 1.0], [0.0, np.pi], [0.0, 2.0 * np.pi]]),
+        geometry="spherical",
+    )
+
+    dd = ds.all_data()
+    assert_equal(dd["particle_position_r"].v, particle_position_r)
+    assert_equal(dd["particle_position_phi"].v, particle_position_phi)
+    assert_equal(dd["particle_position_theta"].v, particle_position_theta)
