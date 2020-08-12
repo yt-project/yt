@@ -1,9 +1,7 @@
 from numbers import Number as numeric_type
 
 import numpy as np
-from unyt.exceptions import UnitConversionError
 
-from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import issue_deprecation_warning, mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
@@ -473,7 +471,7 @@ class FieldInfoContainer(dict):
             try:
                 # fd: field detector
                 fd = fi.get_dependencies(ds=self.ds)
-            except (YTFieldNotFound, NeedsConfiguration, UnitConversionError) as e:
+            except Exception as e:
                 if field in self._show_field_errors:
                     raise
                 if not isinstance(e, YTFieldNotFound):

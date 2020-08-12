@@ -1,5 +1,5 @@
 from yt import load
-from yt.testing import fake_amr_ds, requires_file
+from yt.testing import fake_amr_ds, fake_hexahedral_ds, requires_file
 
 
 def do_field_type(ft):
@@ -33,7 +33,25 @@ def test_field_name_container():
         do_field_type(field_type)
 
 
-def test_no_vertex_fields_in_structured_ds():
+def test_vertex_fields_only_in_unstructured_ds():
+    def get_vertex_fields(ds):
+        return [(ft, fn) for ft, fn in ds.derived_field_list if "vertex" in fn]
+
     ds = fake_amr_ds()
-    vertex_fields = [(ft, fn) for ft, fn in ds.derived_field_list if "vertex" in fn]
+    vertex_fields = get_vertex_fields(ds)
     assert not vertex_fields
+
+    ds = fake_hexahedral_ds()
+    actual = get_vertex_fields(ds)
+    expected = [
+        ("all", "vertex_x"),
+        ("all", "vertex_y"),
+        ("all", "vertex_z"),
+        ("connect1", "vertex_x"),
+        ("connect1", "vertex_y"),
+        ("connect1", "vertex_z"),
+        ("index", "vertex_x"),
+        ("index", "vertex_y"),
+        ("index", "vertex_z"),
+    ]
+    assert actual == expected
