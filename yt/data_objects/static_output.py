@@ -304,7 +304,7 @@ class Dataset:
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
         for attr in ("center", "width", "left_edge", "right_edge"):
-            n = "domain_%s" % attr
+            n = f"domain_{attr}"
             v = getattr(self, n)
             if not isinstance(v, YTArray) and v is not None:
                 # Note that we don't add on _ipython_display_ here because
@@ -320,7 +320,7 @@ class Dataset:
         return self.basename
 
     def _hash(self):
-        s = "%s;%s;%s" % (self.basename, self.current_time, self.unique_identifier)
+        s = f"{self.basename};{self.current_time};{self.unique_identifier}"
         try:
             import hashlib
 
@@ -614,7 +614,7 @@ class Dataset:
         available_formats = {"ionization_label": ("plus_minus", "roman_numeral")}
         if format_property in available_formats:
             if value in available_formats[format_property]:
-                setattr(self, "_%s_format" % format_property, value)
+                setattr(self, f"_{format_property}_format", value)
             else:
                 raise ValueError(
                     "{0} not an acceptable value for format_property "
@@ -1125,7 +1125,7 @@ class Dataset:
                         new_unit,
                         my_u.base_value / (1 + self.current_redshift),
                         dimensions.length,
-                        "\\rm\{%s\}/(1+z)" % my_unit,
+                        "\\rm{%s}/(1+z)" % my_unit,
                         prefixable=True,
                     )
                 self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
@@ -1225,14 +1225,14 @@ class Dataset:
             ("magnetic", "gauss"),
             ("temperature", "K"),
         ]:
-            val = self.units_override.get("%s_unit" % unit, None)
+            val = self.units_override.get(f"{unit}_unit", None)
             if val is not None:
                 if isinstance(val, YTQuantity):
                     val = (val.v, str(val.units))
                 elif not isinstance(val, tuple):
                     val = (val, cgs)
                 mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
-                setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
+                setattr(self, f"{unit}_unit", self.quan(val[0], val[1]))
 
     _units = None
     _unit_system_id = None
@@ -1492,7 +1492,7 @@ class Dataset:
         field_name = field_name % (ptype, deposit_field.replace("particle_", ""))
 
         if method == "count":
-            field_name = "%s_count" % ptype
+            field_name = f"{ptype}_count"
             if ("deposit", field_name) in self.field_info:
                 mylog.warning("The deposited field %s already exists", field_name)
                 return ("deposit", field_name)
@@ -1600,7 +1600,7 @@ class Dataset:
         # Now we make a list of the fields that were just made, to check them
         # and to return them
         grad_fields = [
-            (ftype, input_field + "_gradient_%s" % suffix)
+            (ftype, input_field + f"_gradient_{suffix}")
             for suffix in self.coordinates.axis_order
         ]
         grad_fields.append((ftype, input_field + "_gradient_magnitude"))

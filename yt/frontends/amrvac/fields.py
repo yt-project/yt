@@ -36,7 +36,7 @@ def _velocity(field, data, idir, prefix=None):
     if prefix is None:
         prefix = ""
     moment = data["gas", "%smoment_%d" % (prefix, idir)]
-    rho = data["gas", "%sdensity" % prefix]
+    rho = data["gas", f"{prefix}density"]
 
     mask1 = rho == 0
     if mask1.any():
@@ -109,7 +109,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
             velocity_fn = functools.partial(_velocity, idir=idir, prefix=dust_label)
             functools.update_wrapper(velocity_fn, _velocity)
             self.add_field(
-                ("gas", "%svelocity_%s" % (dust_label, alias)),
+                ("gas", f"{dust_label}velocity_{alias}"),
                 function=velocity_fn,
                 units=us["velocity"],
                 dimensions=dimensions.velocity,
@@ -117,11 +117,11 @@ class AMRVACFieldInfo(FieldInfoContainer):
             )
             self.alias(
                 ("gas", "%svelocity_%d" % (dust_label, idir)),
-                ("gas", "%svelocity_%s" % (dust_label, alias)),
+                ("gas", f"{dust_label}velocity_{alias}"),
                 units=us["velocity"],
             )
             self.alias(
-                ("gas", "%smoment_%s" % (dust_label, alias)),
+                ("gas", f"{dust_label}moment_{alias}"),
                 ("gas", "%smoment_%d" % (dust_label, idir)),
                 units=us["density"] * us["velocity"],
             )
@@ -169,7 +169,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     def setup_fluid_fields(self):
 
-        setup_magnetic_field_aliases(self, "amrvac", ["mag%s" % ax for ax in "xyz"])
+        setup_magnetic_field_aliases(self, "amrvac", [f"mag{ax}" for ax in "xyz"])
         self._setup_velocity_fields()  # gas velocities
         self._setup_dust_fields()  # dust derived fields (including velocities)
 
@@ -194,9 +194,9 @@ class AMRVACFieldInfo(FieldInfoContainer):
             def _magnetic_energy_density(field, data):
                 emag = 0.5 * data["gas", "magnetic_1"] ** 2
                 for idim in "23":
-                    if not ("amrvac", "b%s" % idim) in self.field_list:
+                    if not ("amrvac", f"b{idim}") in self.field_list:
                         break
-                    emag += 0.5 * data["gas", "magnetic_%s" % idim] ** 2
+                    emag += 0.5 * data["gas", f"magnetic_{idim}"] ** 2
                 # important note: in AMRVAC the magnetic field is defined in units where mu0 = 1,
                 # such that
                 # Emag = 0.5*B**2 instead of Emag = 0.5*B**2 / mu0

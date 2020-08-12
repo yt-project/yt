@@ -14,6 +14,7 @@ ytcfg_defaults = dict(
     inline="False",
     numthreads="-1",
     __withintesting="False",
+    __withinpytest="False",
     __parallel="False",
     __global_parallel_rank="0",
     __global_parallel_size="1",
@@ -90,7 +91,7 @@ if os.path.exists(_OLD_CONFIG_FILE):
                 # We changed them all to lowercase
                 if option.lower() in ytcfg_defaults:
                     new_cp.set("yt", option, cp.get(section, option))
-                    print("Setting %s to %s" % (option, cp.get(section, option)))
+                    print(f"Setting {option} to {cp.get(section, option)}")
         open(_OLD_CONFIG_FILE + ".old", "w").write(f)
         new_cp.write(open(_OLD_CONFIG_FILE, "w"))
 

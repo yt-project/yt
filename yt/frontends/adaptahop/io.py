@@ -82,7 +82,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                 continue
             ptype = "halos"
             field_list0 = sorted(ptf[ptype], key=_find_attr_position)
-            field_list_pos = ["raw_position_%s" % k for k in "xyz"]
+            field_list_pos = [f"raw_position_{k}" for k in "xyz"]
             field_list = sorted(
                 set(field_list0 + field_list_pos), key=_find_attr_position
             )

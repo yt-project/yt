@@ -490,7 +490,7 @@ add_colormap("turbo_r", _turbo_r_data)
 # Add colormaps from cmocean, if it's installed
 if cmocean is not None:
     cmo_cmapnames = cmocean.cm.cmapnames
-    cmo_cmapnames += ["%s_r" % name for name in cmo_cmapnames]
+    cmo_cmapnames += [f"{name}_r" for name in cmo_cmapnames]
     for cmname in cmo_cmapnames:
         cm = getattr(cmocean.cm, cmname)
         # cmocean has a colormap named 'algae', so let's avoid overwriting

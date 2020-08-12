@@ -284,7 +284,7 @@ class StreamDataset(Dataset):
         self.geometry = geometry
         self.stream_handler = stream_handler
         self._find_particle_types()
-        name = "InMemoryParameterFile_%s" % uuid.uuid4().hex
+        name = f"InMemoryParameterFile_{uuid.uuid4().hex}"
         from yt.data_objects.static_output import _cached_datasets
 
         _cached_datasets[name] = self
@@ -342,7 +342,7 @@ class StreamDataset(Dataset):
             elif isinstance(unit, tuple):
                 uq = self.quan(unit[0], unit[1])
             else:
-                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
+                raise RuntimeError(f"{attr} ({unit}) is invalid.")
             setattr(self, attr, uq)
 
     @classmethod
@@ -441,7 +441,7 @@ def assign_particle_data(ds, pdata, bbox):
 
         for ptype in ds.particle_types_raw:
             if (ptype, "particle_position_x") in pdata:
-                x, y, z = (pdata[ptype, "particle_position_%s" % ax] for ax in "xyz")
+                x, y, z = (pdata[ptype, f"particle_position_{ax}"] for ax in "xyz")
             elif (ptype, "particle_position") in pdata:
                 x, y, z = pdata[ptype, "particle_position"].T
             else:

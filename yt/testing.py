@@ -13,7 +13,6 @@ import numpy as np
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
-import yt
 from yt.config import ytcfg
 from yt.convenience import load
 from yt.funcs import iterable
@@ -232,9 +231,9 @@ def fake_random_ds(
                 else:
                     data["io", field] = (prng.random_sample(size=int(particles)), unit)
         else:
-            for f in ("particle_position_%s" % ax for ax in "xyz"):
+            for f in (f"particle_position_{ax}" for ax in "xyz"):
                 data["io", f] = (prng.random_sample(size=particles), "code_length")
-            for f in ("particle_velocity_%s" % ax for ax in "xyz"):
+            for f in (f"particle_velocity_{ax}" for ax in "xyz"):
                 data["io", f] = (prng.random_sample(size=particles) - 0.5, "cm/s")
             data["io", "particle_mass"] = (prng.random_sample(particles), "g")
     ug = load_uniform_grid(
@@ -279,12 +278,12 @@ def fake_amr_ds(
         for f in fields:
             gdata[f] = prng.random_sample(dims)
         if particles:
-            for i, f in enumerate("particle_position_%s" % ax for ax in "xyz"):
+            for i, f in enumerate(f"particle_position_{ax}" for ax in "xyz"):
                 pdata = prng.random_sample(particles)
                 pdata /= right_edge[i] - left_edge[i]
                 pdata += left_edge[i]
                 gdata["io", f] = (pdata, "code_length")
-            for f in ("particle_velocity_%s" % ax for ax in "xyz"):
+            for f in (f"particle_velocity_{ax}" for ax in "xyz"):
                 gdata["io", f] = (prng.random_sample(particles) - 0.5, "cm/s")
             gdata["io", "particle_mass"] = (prng.random_sample(particles), "g")
         data.append(gdata)
@@ -860,15 +859,15 @@ def units_override_check(fn):
     attrs1 = []
     attrs2 = []
     for u in units_list:
-        unit_attr = getattr(ds1, "%s_unit" % u, None)
+        unit_attr = getattr(ds1, f"{u}_unit", None)
         if unit_attr is not None:
             attrs1.append(unit_attr)
-            units_override["%s_unit" % u] = (unit_attr.v, str(unit_attr.units))
+            units_override[f"{u}_unit"] = (unit_attr.v, str(unit_attr.units))
     del ds1
     ds2 = load(fn, units_override=units_override)
     assert len(ds2.units_override) > 0
     for u in units_list:
-        unit_attr = getattr(ds2, "%s_unit" % u, None)
+        unit_attr = getattr(ds2, f"{u}_unit", None)
         if unit_attr is not None:
             attrs2.append(unit_attr)
     assert_equal(attrs1, attrs2)
@@ -877,61 +876,56 @@ def units_override_check(fn):
 # This is an export of the 40 grids in IsolatedGalaxy that are of level 4 or
 # lower.  It's just designed to give a sample AMR index to deal with.
 _amr_grid_index = [
-    [0, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [32, 32, 32],],
-    [1, [0.25, 0.21875, 0.25], [0.5, 0.5, 0.5], [16, 18, 16],],
-    [1, [0.5, 0.21875, 0.25], [0.75, 0.5, 0.5], [16, 18, 16],],
-    [1, [0.21875, 0.5, 0.25], [0.5, 0.75, 0.5], [18, 16, 16],],
-    [1, [0.5, 0.5, 0.25], [0.75, 0.75, 0.5], [16, 16, 16],],
-    [1, [0.25, 0.25, 0.5], [0.5, 0.5, 0.75], [16, 16, 16],],
-    [1, [0.5, 0.25, 0.5], [0.75, 0.5, 0.75], [16, 16, 16],],
-    [1, [0.25, 0.5, 0.5], [0.5, 0.75, 0.75], [16, 16, 16],],
-    [1, [0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [16, 16, 16],],
-    [2, [0.5, 0.5, 0.5], [0.71875, 0.71875, 0.71875], [28, 28, 28],],
-    [3, [0.5, 0.5, 0.5], [0.6640625, 0.65625, 0.6796875], [42, 40, 46],],
-    [4, [0.5, 0.5, 0.5], [0.59765625, 0.6015625, 0.6015625], [50, 52, 52],],
-    [2, [0.28125, 0.5, 0.5], [0.5, 0.734375, 0.71875], [28, 30, 28],],
-    [3, [0.3359375, 0.5, 0.5], [0.5, 0.671875, 0.6640625], [42, 44, 42],],
-    [4, [0.40625, 0.5, 0.5], [0.5, 0.59765625, 0.59765625], [48, 50, 50],],
-    [2, [0.5, 0.28125, 0.5], [0.71875, 0.5, 0.71875], [28, 28, 28],],
-    [3, [0.5, 0.3359375, 0.5], [0.671875, 0.5, 0.6640625], [44, 42, 42],],
-    [4, [0.5, 0.40625, 0.5], [0.6015625, 0.5, 0.59765625], [52, 48, 50],],
-    [2, [0.28125, 0.28125, 0.5], [0.5, 0.5, 0.71875], [28, 28, 28],],
-    [3, [0.3359375, 0.3359375, 0.5], [0.5, 0.5, 0.671875], [42, 42, 44],],
+    [0, [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [32, 32, 32]],
+    [1, [0.25, 0.21875, 0.25], [0.5, 0.5, 0.5], [16, 18, 16]],
+    [1, [0.5, 0.21875, 0.25], [0.75, 0.5, 0.5], [16, 18, 16]],
+    [1, [0.21875, 0.5, 0.25], [0.5, 0.75, 0.5], [18, 16, 16]],
+    [1, [0.5, 0.5, 0.25], [0.75, 0.75, 0.5], [16, 16, 16]],
+    [1, [0.25, 0.25, 0.5], [0.5, 0.5, 0.75], [16, 16, 16]],
+    [1, [0.5, 0.25, 0.5], [0.75, 0.5, 0.75], [16, 16, 16]],
+    [1, [0.25, 0.5, 0.5], [0.5, 0.75, 0.75], [16, 16, 16]],
+    [1, [0.5, 0.5, 0.5], [0.75, 0.75, 0.75], [16, 16, 16]],
+    [2, [0.5, 0.5, 0.5], [0.71875, 0.71875, 0.71875], [28, 28, 28]],
+    [3, [0.5, 0.5, 0.5], [0.6640625, 0.65625, 0.6796875], [42, 40, 46]],
+    [4, [0.5, 0.5, 0.5], [0.59765625, 0.6015625, 0.6015625], [50, 52, 52]],
+    [2, [0.28125, 0.5, 0.5], [0.5, 0.734375, 0.71875], [28, 30, 28]],
+    [3, [0.3359375, 0.5, 0.5], [0.5, 0.671875, 0.6640625], [42, 44, 42]],
+    [4, [0.40625, 0.5, 0.5], [0.5, 0.59765625, 0.59765625], [48, 50, 50]],
+    [2, [0.5, 0.28125, 0.5], [0.71875, 0.5, 0.71875], [28, 28, 28]],
+    [3, [0.5, 0.3359375, 0.5], [0.671875, 0.5, 0.6640625], [44, 42, 42]],
+    [4, [0.5, 0.40625, 0.5], [0.6015625, 0.5, 0.59765625], [52, 48, 50]],
+    [2, [0.28125, 0.28125, 0.5], [0.5, 0.5, 0.71875], [28, 28, 28]],
+    [3, [0.3359375, 0.3359375, 0.5], [0.5, 0.5, 0.671875], [42, 42, 44]],
     [
         4,
         [0.46484375, 0.37890625, 0.50390625],
         [0.4765625, 0.390625, 0.515625],
         [6, 6, 6],
     ],
-    [4, [0.40625, 0.40625, 0.5], [0.5, 0.5, 0.59765625], [48, 48, 50],],
-    [2, [0.5, 0.5, 0.28125], [0.71875, 0.71875, 0.5], [28, 28, 28],],
-    [3, [0.5, 0.5, 0.3359375], [0.6796875, 0.6953125, 0.5], [46, 50, 42],],
-    [4, [0.5, 0.5, 0.40234375], [0.59375, 0.6015625, 0.5], [48, 52, 50],],
-    [2, [0.265625, 0.5, 0.28125], [0.5, 0.71875, 0.5], [30, 28, 28],],
-    [3, [0.3359375, 0.5, 0.328125], [0.5, 0.65625, 0.5], [42, 40, 44],],
-    [4, [0.40234375, 0.5, 0.40625], [0.5, 0.60546875, 0.5], [50, 54, 48],],
-    [2, [0.5, 0.265625, 0.28125], [0.71875, 0.5, 0.5], [28, 30, 28],],
-    [3, [0.5, 0.3203125, 0.328125], [0.6640625, 0.5, 0.5], [42, 46, 44],],
-    [4, [0.5, 0.3984375, 0.40625], [0.546875, 0.5, 0.5], [24, 52, 48],],
-    [4, [0.546875, 0.41796875, 0.4453125], [0.5625, 0.4375, 0.5], [8, 10, 28],],
-    [
-        4,
-        [0.546875, 0.453125, 0.41796875],
-        [0.5546875, 0.48046875, 0.4375],
-        [4, 14, 10],
-    ],
-    [4, [0.546875, 0.4375, 0.4375], [0.609375, 0.5, 0.5], [32, 32, 32],],
-    [4, [0.546875, 0.4921875, 0.41796875], [0.56640625, 0.5, 0.4375], [10, 4, 10],],
+    [4, [0.40625, 0.40625, 0.5], [0.5, 0.5, 0.59765625], [48, 48, 50]],
+    [2, [0.5, 0.5, 0.28125], [0.71875, 0.71875, 0.5], [28, 28, 28]],
+    [3, [0.5, 0.5, 0.3359375], [0.6796875, 0.6953125, 0.5], [46, 50, 42]],
+    [4, [0.5, 0.5, 0.40234375], [0.59375, 0.6015625, 0.5], [48, 52, 50]],
+    [2, [0.265625, 0.5, 0.28125], [0.5, 0.71875, 0.5], [30, 28, 28]],
+    [3, [0.3359375, 0.5, 0.328125], [0.5, 0.65625, 0.5], [42, 40, 44]],
+    [4, [0.40234375, 0.5, 0.40625], [0.5, 0.60546875, 0.5], [50, 54, 48]],
+    [2, [0.5, 0.265625, 0.28125], [0.71875, 0.5, 0.5], [28, 30, 28]],
+    [3, [0.5, 0.3203125, 0.328125], [0.6640625, 0.5, 0.5], [42, 46, 44]],
+    [4, [0.5, 0.3984375, 0.40625], [0.546875, 0.5, 0.5], [24, 52, 48]],
+    [4, [0.546875, 0.41796875, 0.4453125], [0.5625, 0.4375, 0.5], [8, 10, 28]],
+    [4, [0.546875, 0.453125, 0.41796875], [0.5546875, 0.48046875, 0.4375], [4, 14, 10]],
+    [4, [0.546875, 0.4375, 0.4375], [0.609375, 0.5, 0.5], [32, 32, 32]],
+    [4, [0.546875, 0.4921875, 0.41796875], [0.56640625, 0.5, 0.4375], [10, 4, 10]],
     [
         4,
         [0.546875, 0.48046875, 0.41796875],
         [0.5703125, 0.4921875, 0.4375],
         [12, 6, 10],
     ],
-    [4, [0.55859375, 0.46875, 0.43359375], [0.5703125, 0.48046875, 0.4375], [6, 6, 2],],
-    [2, [0.265625, 0.28125, 0.28125], [0.5, 0.5, 0.5], [30, 28, 28],],
-    [3, [0.328125, 0.3359375, 0.328125], [0.5, 0.5, 0.5], [44, 42, 44],],
-    [4, [0.4140625, 0.40625, 0.40625], [0.5, 0.5, 0.5], [44, 48, 48],],
+    [4, [0.55859375, 0.46875, 0.43359375], [0.5703125, 0.48046875, 0.4375], [6, 6, 2]],
+    [2, [0.265625, 0.28125, 0.28125], [0.5, 0.5, 0.5], [30, 28, 28]],
+    [3, [0.328125, 0.3359375, 0.328125], [0.5, 0.5, 0.5], [44, 42, 44]],
+    [4, [0.4140625, 0.40625, 0.40625], [0.5, 0.5, 0.5], [44, 48, 48]],
 ]
 
 
@@ -993,7 +987,7 @@ def check_results(func):
             su = _rv.sum(dtype="float64")
             si = _rv.size
             ha = hashlib.md5(_rv.tostring()).hexdigest()
-            fn = "func_results_ref_%s.cpkl" % (name)
+            fn = f"func_results_ref_{name}.cpkl"
             with open(fn, "wb") as f:
                 pickle.dump((mi, ma, st, su, si, ha), f)
             return rv
@@ -1023,13 +1017,13 @@ def check_results(func):
                 _rv.size,
                 hashlib.md5(_rv.tostring()).hexdigest(),
             )
-            fn = "func_results_ref_%s.cpkl" % (name)
+            fn = f"func_results_ref_{name}.cpkl"
             if not os.path.exists(fn):
                 print("Answers need to be created with --answer-reference .")
                 return False
             with open(fn, "rb") as f:
                 ref = pickle.load(f)
-            print("Sizes: %s (%s, %s)" % (vals[4] == ref[4], vals[4], ref[4]))
+            print(f"Sizes: {vals[4] == ref[4]} ({vals[4]}, {ref[4]})")
             assert_allclose(vals[0], ref[0], 1e-8, err_msg="min")
             assert_allclose(vals[1], ref[1], 1e-8, err_msg="max")
             assert_allclose(vals[2], ref[2], 1e-8, err_msg="std")
@@ -1147,7 +1141,7 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     rt = YTArray(rtol)
     if not rt.units.is_dimensionless:
-        raise AssertionError("Units of rtol (%s) are not " "dimensionless" % rt.units)
+        raise AssertionError(f"Units of rtol ({rt.units}) are not dimensionless")
 
     if not isinstance(atol, YTArray):
         at = YTQuantity(atol, des.units)
@@ -1230,13 +1224,11 @@ def requires_backend(backend):
         # needed since None is no longer returned, so we check for the skip
         # exception in the xfail case for that test
         def skip(*args, **kwargs):
-            msg = "`{}` backend not found, skipping: `{}`".format(
-                backend, func.__name__
-            )
+            msg = f"`{backend}` backend not found, skipping: `{func.__name__}`"
             print(msg)
             pytest.skip(msg)
 
-        if yt._called_from_pytest:
+        if ytcfg.getboolean("yt", "__withinpytest"):
             return skip
         else:
             return lambda: None

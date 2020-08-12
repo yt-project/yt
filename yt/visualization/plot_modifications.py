@@ -360,8 +360,8 @@ class VelocityCallback(PlotCallback):
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = "velocity_%s" % axis_names[xax]
-                yv = "velocity_%s" % axis_names[yax]
+                xv = f"velocity_{axis_names[xax]}"
+                yv = f"velocity_{axis_names[yax]}"
 
             qcb = QuiverCallback(
                 xv,
@@ -437,8 +437,8 @@ class MagFieldCallback(PlotCallback):
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = "magnetic_field_%s" % axis_names[xax]
-                yv = "magnetic_field_%s" % axis_names[yax]
+                xv = f"magnetic_field_{axis_names[xax]}"
+                yv = f"magnetic_field_{axis_names[yax]}"
 
             qcb = QuiverCallback(
                 xv,
@@ -505,7 +505,7 @@ class QuiverCallback(PlotCallback):
                 return data[field_name] - data.ds.arr(vector_value, field_units)
 
             plot.data.ds.add_field(
-                ("gas", "transformed_%s" % field_name),
+                ("gas", f"transformed_{field_name}"),
                 sampling_type="cell",
                 function=_transformed_field,
                 units=field_units,
@@ -516,8 +516,8 @@ class QuiverCallback(PlotCallback):
             # We create a relative vector field
             transform(self.field_x, self.bv_x)
             transform(self.field_y, self.bv_y)
-            field_x = "transformed_%s" % self.field_x
-            field_y = "transformed_%s" % self.field_y
+            field_x = f"transformed_{self.field_x}"
+            field_y = f"transformed_{self.field_y}"
         else:
             field_x, field_y = self.field_x, self.field_y
 
@@ -1214,8 +1214,8 @@ class ClumpContourCallback(PlotCallback):
 
         xf = plot.data.ds.coordinates.axis_name[px_index]
         yf = plot.data.ds.coordinates.axis_name[py_index]
-        dxf = "d%s" % xf
-        dyf = "d%s" % yf
+        dxf = f"d{xf}"
+        dyf = f"d{yf}"
 
         ny, nx = plot.image._A.shape
         buff = np.zeros((nx, ny), dtype="float64")
@@ -1228,7 +1228,7 @@ class ClumpContourCallback(PlotCallback):
                 ftype = "grid"
             else:
                 raise RuntimeError(
-                    "Unknown field type for object of type %s." % type(clump)
+                    f"Unknown field type for object of type {type(clump)}."
                 )
 
             xf_copy = clump[ftype, xf].copy().in_units("code_length")
@@ -1926,9 +1926,9 @@ class HaloCatalogCallback(PlotCallback):
         axis_names = plot.data.ds.coordinates.axis_name
         xax = plot.data.ds.coordinates.x_axis[data.axis]
         yax = plot.data.ds.coordinates.y_axis[data.axis]
-        field_x = "%s_%s" % (self.center_field_prefix, axis_names[xax])
-        field_y = "%s_%s" % (self.center_field_prefix, axis_names[yax])
-        field_z = "%s_%s" % (self.center_field_prefix, axis_names[data.axis])
+        field_x = f"{self.center_field_prefix}_{axis_names[xax]}"
+        field_y = f"{self.center_field_prefix}_{axis_names[yax]}"
+        field_z = f"{self.center_field_prefix}_{axis_names[data.axis]}"
 
         # Set up scales for pixel size and original data
         pixel_scale = self._pixel_scale(plot)[0]
@@ -1985,7 +1985,7 @@ class HaloCatalogCallback(PlotCallback):
 
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
-            texts = ["{:g}".format(float(dat)) for dat in annotate_dat]
+            texts = [f"{float(dat):g}" for dat in annotate_dat]
             labels = []
             for pos_x, pos_y, t in zip(px, py, texts):
                 labels.append(plot._axes.text(pos_x, pos_y, t, **self.text_args))
@@ -2064,8 +2064,8 @@ class ParticleCallback(PlotCallback):
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]
         axis_names = plot.data.ds.coordinates.axis_name
-        field_x = "particle_position_%s" % axis_names[xax]
-        field_y = "particle_position_%s" % axis_names[yax]
+        field_x = f"particle_position_{axis_names[xax]}"
+        field_y = f"particle_position_{axis_names[yax]}"
         pt = self.ptype
         self.periodic_x = plot.data.ds.periodicity[xax]
         self.periodic_y = plot.data.ds.periodicity[yax]

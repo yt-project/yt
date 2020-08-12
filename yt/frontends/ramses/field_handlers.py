@@ -75,7 +75,7 @@ class FieldFileHandler:
             igroup = ((domain.domain_id - 1) // ds.group_size) + 1
             full_path = os.path.join(
                 basename,
-                "group_{:05d}".format(igroup),
+                f"group_{igroup:05d}",
                 self.fname.format(iout=iout, icpu=domain.domain_id),
             )
         else:
@@ -87,8 +87,7 @@ class FieldFileHandler:
             self.fname = full_path
         else:
             raise FileNotFoundError(
-                "Could not find fluid file (type: %s). Tried %s"
-                % (self.ftype, full_path)
+                f"Could not find fluid file (type: {self.ftype}). Tried {full_path}"
             )
 
         if self.file_descriptor is not None:
@@ -437,10 +436,10 @@ class GravFieldFileHandler(FieldFileHandler):
         ndim = ds.dimensionality
 
         if nvar == ndim + 1:
-            fields = ["potential"] + ["%s-acceleration" % k for k in "xyz"[:ndim]]
+            fields = ["potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
             ndetected = ndim
         else:
-            fields = ["%s-acceleration" % k for k in "xyz"[:ndim]]
+            fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
             ndetected = ndim
 
         if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
@@ -448,7 +447,7 @@ class GravFieldFileHandler(FieldFileHandler):
             ds._warned_extra_fields["gravity"] = True
 
             for i in range(nvar - ndetected):
-                fields.append("var%s" % i)
+                fields.append(f"var{i}")
 
         cls.field_list = [(cls.ftype, e) for e in fields]
 

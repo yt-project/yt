@@ -120,8 +120,8 @@ class FieldInfoContainer(dict):
                 self.pop((ptype, "particle_position"))
             particle_vector_functions(
                 ptype,
-                ["particle_position_%s" % ax for ax in "xyz"],
-                ["particle_velocity_%s" % ax for ax in "xyz"],
+                [f"particle_position_{ax}" for ax in "xyz"],
+                [f"particle_velocity_{ax}" for ax in "xyz"],
                 self,
             )
         particle_deposition_functions(ptype, "particle_position", "particle_mass", self)
@@ -206,7 +206,7 @@ class FieldInfoContainer(dict):
             units = self.ds.field_units.get(field[1], units)
             units = self.ds.field_units.get(field, units)
             if not isinstance(units, str) and args[0] != "":
-                units = "((%s)*%s)" % (args[0], units)
+                units = f"(({args[0]})*{units})"
             if (
                 isinstance(units, (numeric_type, np.number, np.ndarray))
                 and args[0] == ""
@@ -233,17 +233,17 @@ class FieldInfoContainer(dict):
                         to_convert = False
                     else:
                         for suffix in ["x", "y", "z"]:
-                            if "%s_%s" % (alias[:-2], suffix) not in aliases_gallery:
+                            if f"{alias[:-2]}_{suffix}" not in aliases_gallery:
                                 to_convert = False
                                 break
                         to_convert = True
                     if to_convert:
                         if alias[-2:] == "_x":
-                            alias = "%s_%s" % (alias[:-2], axis_names[0])
+                            alias = f"{alias[:-2]}_{axis_names[0]}"
                         elif alias[-2:] == "_y":
-                            alias = "%s_%s" % (alias[:-2], axis_names[1])
+                            alias = f"{alias[:-2]}_{axis_names[1]}"
                         elif alias[-2:] == "_z":
-                            alias = "%s_%s" % (alias[:-2], axis_names[2])
+                            alias = f"{alias[:-2]}_{axis_names[2]}"
                 self.alias((ftype, alias), field)
 
     @staticmethod
@@ -432,7 +432,7 @@ class FieldInfoContainer(dict):
 
     def __missing__(self, key):
         if self.fallback is None:
-            raise KeyError("No field named %s" % (key,))
+            raise KeyError(f"No field named {key}")
         return self.fallback[key]
 
     @classmethod

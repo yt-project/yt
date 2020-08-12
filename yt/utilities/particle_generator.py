@@ -22,7 +22,7 @@ class ParticleGenerator:
         ]
         self.field_list.append((ptype, "particle_index"))
         self.field_units = dict(
-            ((ptype, "particle_position_%s" % ax), "code_length") for ax in "xyz"
+            ((ptype, f"particle_position_{ax}"), "code_length") for ax in "xyz"
         )
         self.field_units[ptype, "particle_index"] = ""
         self.ptype = ptype

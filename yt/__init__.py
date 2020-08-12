@@ -175,8 +175,6 @@ from yt.utilities.math_utils import ortho_find, quartiles, periodic_position
 
 from yt.units.unit_systems import UnitSystem, unit_system_registry
 
-_called_from_pytest = False
-
 
 def _check_deprecated_parameters():
     from yt.config import ytcfg

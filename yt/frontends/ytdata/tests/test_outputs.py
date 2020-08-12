@@ -63,7 +63,7 @@ class YTDataFieldTest(AnswerTestingTest):
         return np.array([num_e, avg])
 
     def compare(self, new_result, old_result):
-        err_msg = "YTData field values for %s not equal." % (self.field,)
+        err_msg = f"YTData field values for {self.field} not equal."
         if self.decimals is None:
             assert_equal(new_result, old_result, err_msg=err_msg, verbose=True)
         else:

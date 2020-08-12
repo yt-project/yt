@@ -34,21 +34,21 @@ def migrate_config():
         print("Old config not found.")
         sys.exit()
     CONFIG.read(_OLD_CONFIG_FILE)
-    print("Writing a new config file to: {}".format(CURRENT_CONFIG_FILE))
+    print(f"Writing a new config file to: {CURRENT_CONFIG_FILE}")
     write_config()
-    print("Backing up the old config file: {}.bak".format(_OLD_CONFIG_FILE))
+    print(f"Backing up the old config file: {_OLD_CONFIG_FILE}.bak")
     os.rename(_OLD_CONFIG_FILE, _OLD_CONFIG_FILE + ".bak")
 
     old_config_dir = os.path.dirname(_OLD_CONFIG_FILE)
     try:
         plugin_file = CONFIG.get("yt", "pluginfilename")
         if plugin_file and os.path.exists(os.path.join(old_config_dir, plugin_file)):
-            print("Migrating plugin file {} to new location".format(plugin_file))
+            print(f"Migrating plugin file {plugin_file} to new location")
             shutil.copyfile(
                 os.path.join(old_config_dir, plugin_file),
                 os.path.join(os.path.dirname(CURRENT_CONFIG_FILE), plugin_file),
             )
-            print("Backing up the old plugin file: {}.bak".format(_OLD_CONFIG_FILE))
+            print(f"Backing up the old plugin file: {_OLD_CONFIG_FILE}.bak")
             plugin_file = os.path.join(old_config_dir, plugin_file)
             os.rename(plugin_file, plugin_file + ".bak")
     except configparser.NoOptionError:
