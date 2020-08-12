@@ -1119,7 +1119,7 @@ class Dataset:
             if getattr(self, "current_redshift", None):
                 # Comoving lengths
                 for my_unit in ["m", "pc", "AU", "au"]:
-                    new_unit = "%scm" % my_unit
+                    new_unit = f"{my_unit}cm"
                     my_u = Unit(my_unit, registry=self.unit_registry)
                     self.unit_registry.add(
                         new_unit,
