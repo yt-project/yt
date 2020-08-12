@@ -598,7 +598,7 @@ class YTPlotCallbackError(Exception):
         self.callback = "annotate_" + callback
 
     def __str__(self):
-        return "%s callback failed" % self.callback
+        return f"{self.callback} callback failed"
 
 
 class YTPixelizeError(YTException):
