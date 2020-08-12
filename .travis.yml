@@ -103,7 +103,7 @@ jobs:
       name: "flynt"
       python: 3.6
       script: |
-        flynt -h | head -n 1 # this is a workaround to print only the version number
+        flynt --version
         flynt yt/ --fail-on-change --dry-run -e yt/extern
 
     - stage: tests
