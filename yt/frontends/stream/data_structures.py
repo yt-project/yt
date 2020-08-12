@@ -393,8 +393,12 @@ def assign_particle_data(ds, pdata, bbox):
     will overwrite any existing particle data, so be careful!
     """
 
+    particle_index_fields = [
+        f"particle_position_{ax}" for ax in ds.coordinates.axis_order
+    ]
     for ptype in ds.particle_types_raw:
-        check_fields = [(ptype, "particle_position_x"), (ptype, "particle_position")]
+        check_fields = [(ptype, pi_field) for pi_field in particle_index_fields]
+        check_fields.append((ptype, "particle_position"))
         if all(f not in pdata for f in check_fields):
             pdata_ftype = {}
             for f in [k for k in sorted(pdata)]:
