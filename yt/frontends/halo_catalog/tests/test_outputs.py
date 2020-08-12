@@ -114,9 +114,6 @@ def test_halo_quantities():
                 v1, v2, rtol=1e-15, err_msg="Halo {hid} {field} field mismatch."
             )
 
-
-
-
 @requires_file(t46)
 @requires_module("h5py")
 def test_halo_particles():

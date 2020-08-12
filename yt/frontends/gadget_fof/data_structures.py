@@ -499,7 +499,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-         # This class is not meant to be instanciated by yt.load()
+        # This class is not meant to be instanciated by yt.load()
         return False
 
 
