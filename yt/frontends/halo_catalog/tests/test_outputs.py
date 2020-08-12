@@ -5,7 +5,6 @@ from yt.frontends.halo_catalog.data_structures import YTHaloCatalogDataset
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.testing import (
     TempDirTest,
-    assert_allclose_units,
     assert_array_equal,
     assert_equal,
     requires_file,
@@ -108,11 +107,9 @@ def test_halo_quantities():
         hid = int(ad["halos", "particle_identifier"][i])
         halo = ds.halo("halos", hid)
         for field in ["mass", "position", "velocity"]:
-            v1 = ad["halos", f"particle_{field][i]}"
+            v1 = ad["halos", f"particle_{field}"][i]
             v2 = getattr(halo, field)
-            assert_allclose_units(
-                v1, v2, rtol=1e-15, err_msg="Halo {hid} {field} field mismatch."
-            )
+            assert_equal(v1, v2, err_msg=f"Halo {hid} {field} field mismatch.")
 
 @requires_file(t46)
 @requires_module("h5py")
