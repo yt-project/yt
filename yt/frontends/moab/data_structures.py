@@ -121,15 +121,20 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
         super(PyneMeshHex8Hierarchy, self).__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
-        from itaps import iBase, iMesh
+        from pymoab import core, types
 
         ents = list(self.pyne_mesh.structured_iterate_vertex())
-        coords = self.pyne_mesh.mesh.getVtxCoords(ents).astype("float64")
-        vind = self.pyne_mesh.mesh.rootSet.getAdjEntIndices(
-            iBase.Type.region, iMesh.Topology.hexahedron, iBase.Type.vertex
-        )[1].indices.data.astype("int64")
-        # Divide by float so it throws an error if it's not 8
-        vind.shape = (vind.shape[0] / 8.0, 8)
+        coords = self.pyne_mesh.mesh.get_coords(ents).astype("float64")
+        hexes = self.pyne_mesh.mesh.get_entities_by_type(0, types.MBHEX)
+        vind = []
+        for h in hexes:
+            adj = self.pyne_mesh.mesh.get_adjacencies(h,
+                                                      0,
+                                                      create_if_missing = True,
+                                                      op_type=types.UNION)
+            vind += list(adj)
+        vind = np.asarray(vind)
+        vind.shape = (int(vind.shape[0] / 8), 8)
         self.meshes = [PyneHex8Mesh(0, self.index_filename, vind, coords, self)]
 
     def _detect_output_fields(self):
@@ -174,13 +179,10 @@ class PyneMoabHex8Dataset(Dataset):
         setdefaultattr(self, "mass_unit", self.quan(1.0, "g"))
 
     def _parse_parameter_file(self):
-        #  not sure if this import has side-effects so I'm not deleting it
-        from itaps import iBase  # NOQA
-
         ents = list(self.pyne_mesh.structured_iterate_vertex())
-        coords = self.pyne_mesh.mesh.getVtxCoords(ents)
-        self.domain_left_edge = coords[0]
-        self.domain_right_edge = coords[-1]
+        coords = self.pyne_mesh.mesh.get_coords(ents)
+        self.domain_left_edge = coords[0:3]
+        self.domain_right_edge = coords[-3:]
         self.domain_dimensions = self.domain_right_edge - self.domain_left_edge
         self.refine_by = 2
         self.dimensionality = len(self.domain_dimensions)
