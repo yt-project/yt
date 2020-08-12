@@ -1190,7 +1190,7 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
     except AttributeError as e:
         raise NotImplementedError(
             f"'{algorithm}' not available!  Available algorithms: {hashlib.algorithms}"
-        )
+        ) from e
 
     filesize = os.path.getsize(infile)
     iterations = int(float(filesize) / float(BLOCKSIZE))
