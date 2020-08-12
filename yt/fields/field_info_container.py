@@ -1,7 +1,9 @@
 from numbers import Number as numeric_type
 
 import numpy as np
+from unyt.exceptions import UnitConversionError
 
+from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import issue_deprecation_warning, mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
@@ -469,8 +471,9 @@ class FieldInfoContainer(dict):
         for field in fields_to_check:
             fi = self[field]
             try:
+                # fd: field detector
                 fd = fi.get_dependencies(ds=self.ds)
-            except Exception as e:
+            except (YTFieldNotFound, NeedsConfiguration, UnitConversionError) as e:
                 if field in self._show_field_errors:
                     raise
                 if not isinstance(e, YTFieldNotFound):
@@ -493,6 +496,18 @@ class FieldInfoContainer(dict):
             fd.requested = set(fd.requested)
             deps[field] = fd
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
+
+        # now populate the derived field list with results
+        # this violates isolation principles and should be refactored
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
+        dfl = list(sorted(dfl, key=tupleize))
+        if not hasattr(self.ds.index, "meshes"):
+            # the meshes attribute characterizes a unstructured-mesh data structure
+
+            # ideally this fitlering should not be required
+            # and this could maybe be handled in fi.get_dependencies
+            # but it's a lot easier to do here
+            dfl = [(ft, fn) for ft, fn in dfl if "vertex" not in fn]
+
+        self.ds.derived_field_list = dfl
         return deps, unavailable
