@@ -411,6 +411,8 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         """
         if data.ds.dimensionality == 1:
             raise YTDimensionalityError("shear is meaningless in 1D")
+        if data.ds.geometry != "cartesian":
+            raise NotImplementedError("shear is only supported in cartesian geometries")
 
         vx = data[ftype, "relative_velocity_x"]
         vy = data[ftype, "relative_velocity_y"]
