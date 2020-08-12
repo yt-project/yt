@@ -459,7 +459,11 @@ def test_stream_sph_projection():
 
 
 def test_stream_non_cartesian_particles_unigrid():
-    r, theta, phi = np.mgrid[0.0:1.0:64j, 0.0 : np.pi : 64j, 0.0 : 2.0 * np.pi : 64j]
+    eps = 1e-6
+    r, theta, phi = np.mgrid[
+        0.0 : 1.0 - eps : 64j, 0.0 : np.pi - eps : 64j, 0.0 : 2.0 * np.pi - eps : 64j
+    ]
+    np.random.seed(0x4D3D3D3)
     ind = np.random.randint(0, 64 * 64 * 64, size=1000)
 
     particle_position_r = r.ravel()[ind]
@@ -487,7 +491,11 @@ def test_stream_non_cartesian_particles_unigrid():
 
 
 def test_stream_non_cartesian_particles_amr():
-    r, theta, phi = np.mgrid[0.0:1.0:64j, 0.0 : np.pi : 64j, 0.0 : 2.0 * np.pi : 64j]
+    eps = 1e-6
+    r, theta, phi = np.mgrid[
+        0.0 : 1.0 - eps : 64j, 0.0 : np.pi - eps : 64j, 0.0 : 2.0 * np.pi - eps : 64j
+    ]
+    np.random.seed(0x4D3D3D3)
     ind = np.random.randint(0, 64 * 64 * 64, size=1000)
 
     particle_position_r = r.ravel()[ind]
