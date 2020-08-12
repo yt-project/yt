@@ -109,6 +109,7 @@ def test_halo_quantities():
             v2 = getattr(halo, field)
             assert_equal(v1, v2, err_msg=f"Halo {hid} {field} field mismatch.")
 
+
 @requires_file(t46)
 @requires_module("h5py")
 def test_halo_particles():
