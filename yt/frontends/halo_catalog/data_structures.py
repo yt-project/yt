@@ -215,9 +215,6 @@ class YTHaloParticleIndex(ParticleIndex):
             ]
         )
 
-    def _create_halo_id_table(self):
-        pass
-
     def _detect_output_fields(self):
         field_list = []
         scalar_field_list = []
@@ -314,7 +311,6 @@ class YTHaloParticleIndex(ParticleIndex):
             setattr(self, attr, getattr(self.real_ds.index, attr))
 
         self._calculate_particle_index_starts()
-        self._create_halo_id_table()
 
 
 class HaloDataset(ParticleDataset):
