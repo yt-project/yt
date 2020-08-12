@@ -22,7 +22,7 @@ def test_schema_validation():
 
     for schema in valid_schemas:
         uo = Dataset._sanitize_units_override(schema)
-        for k, v in uo.items():
+        for v in uo.values():
             q = mock_quan(v)  # check that no error (TypeError) is raised
             q.to("pc")  # check that q is a length
 
