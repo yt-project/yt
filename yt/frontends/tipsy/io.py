@@ -115,7 +115,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
     @property
     def hsml_filename(self):
-        return "%s-%s" % (self.ds.parameter_filename, "hsml")
+        return f"{self.ds.parameter_filename}-{'hsml'}"
 
     def _generate_smoothing_length(self, data_files, kdtree):
         if os.path.exists(self.hsml_filename):
@@ -330,7 +330,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         pds = {}
         for ptype, field in cls._fields:
             dtbase = field_dtypes.get(field, "f")
-            ff = "%s%s" % (endian, dtbase)
+            ff = f"{endian}{dtbase}"
             if field in cls._vector_fields:
                 dt = (field, [("x", ff), ("y", ff), ("z", ff)])
             else:

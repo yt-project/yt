@@ -112,7 +112,7 @@ def pixelized_projection_values(ds, axis, field, weight_field=None, dobj_type=No
     d = frb.data
     for f in proj.field_data:
         # Sometimes f will be a tuple.
-        d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
+        d[f"{f}_sum"] = proj.field_data[f].sum(dtype="float64")
     # This is to try and remove python-specific anchors in the yaml
     # answer file. Also, using __repr__() results in weird strings
     # of strings that make comparison fail even though the data is

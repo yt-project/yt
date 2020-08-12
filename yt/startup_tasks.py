@@ -92,7 +92,7 @@ class YTParser(argparse.ArgumentParser):
         and then exits.
         """
         self.print_help(sys.stderr)
-        self.exit(2, "%s: error: %s\n" % (self.prog, message))
+        self.exit(2, f"{self.prog}: error: {message}\n")
 
 
 parser = YTParser(description="yt command line arguments")

@@ -311,8 +311,8 @@ def strip_colormap_data(
         cmaps = [cmaps]
     for cmap_name in sorted(cmaps):
         vals = rcm._extract_lookup_table(cmap_name)
-        f.write("### %s ###\n\n" % (cmap_name))
-        f.write("color_map_luts['%s'] = \\\n" % (cmap_name))
+        f.write(f"### {cmap_name} ###\n\n")
+        f.write(f"color_map_luts['{cmap_name}'] = \\\n")
         f.write("   (\n")
         for v in vals:
             f.write(pprint.pformat(v, indent=3))
@@ -443,7 +443,7 @@ def write_projection(
 
     if suffix == "":
         suffix = ".png"
-        filename = "%s%s" % (filename, suffix)
+        filename = f"{filename}{suffix}"
     mylog.info("Saving plot %s", filename)
     if suffix == ".pdf":
         canvas = FigureCanvasPdf(fig)

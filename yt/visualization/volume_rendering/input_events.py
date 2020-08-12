@@ -82,7 +82,7 @@ class EventCollection:
         if not callable(func):
             func = event_registry[func]
         if isinstance(key, str):
-            key = getattr(glfw, "KEY_%s" % key.upper())
+            key = getattr(glfw, f"KEY_{key.upper()}")
         if isinstance(action, str):
             action = getattr(glfw, action.upper())
         if not isinstance(mods, tuple):
@@ -90,7 +90,7 @@ class EventCollection:
         mod = 0
         for m in mods:
             if isinstance(m, str):
-                m = getattr(glfw, "MOD_%s" % m.upper())
+                m = getattr(glfw, f"MOD_{m.upper()}")
             elif m is None:
                 m = 0
             mod |= m
@@ -248,7 +248,7 @@ def cmap_cycle(event_coll, event):
     cmap = cm.get_cmap(random.choice(cmap))
     event_coll.camera.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
     event_coll.camera.cmap_new = True
-    print("Setting colormap to {}".format(cmap.name))
+    print(f"Setting colormap to {cmap.name}")
     return True
 
 
@@ -350,7 +350,7 @@ def print_help(event_coll, event):
         key_map[glfw.__dict__.get(key)] = key[4:]
     for cb in (f for f in sorted(event_coll.key_callbacks) if isinstance(f, tuple)):
         for e in event_coll.key_callbacks[cb]:
-            print("%s - %s" % (key_map[cb[0]], e.__doc__))
+            print(f"{key_map[cb[0]]} - {e.__doc__}")
     return False
 
 

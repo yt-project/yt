@@ -48,7 +48,7 @@ class SPHDataset(ParticleDataset):
     @num_neighbors.setter
     def num_neighbors(self, value):
         if value < 0:
-            raise ValueError("Negative value not allowed: %s" % value)
+            raise ValueError(f"Negative value not allowed: {value}")
         self._num_neighbors = value
 
     @property

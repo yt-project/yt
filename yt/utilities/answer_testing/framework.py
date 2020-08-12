@@ -100,7 +100,7 @@ class AnswerTesting(Plugin):
             try:
                 version = get_yt_version()
             except Exception:
-                version = "UNKNOWN%s" % (time.time())
+                version = f"UNKNOWN{time.time()}"
         self._my_version = version
         return self._my_version
 
@@ -245,7 +245,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         for i, ds_name in enumerate(result_storage):
             pb.update(i)
             rs = pickle.dumps(result_storage[ds_name])
-            object_name = "%s_%s" % (self.answer_name, ds_name)
+            object_name = f"{self.answer_name}_{ds_name}"
             if object_name in c.get_object_names():
                 obj = c.get_object(object_name)
                 c.delete_object(obj)
@@ -265,7 +265,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         # Store data using shelve
         ds = shelve.open(self.answer_name, protocol=-1)
         for ds_name in result_storage:
-            answer_name = "%s" % ds_name
+            answer_name = f"{ds_name}"
             if answer_name in ds:
                 mylog.info("Overwriting %s", answer_name)
             ds[answer_name] = result_storage[ds_name]
@@ -275,7 +275,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         if self.reference_name is None:
             return default
         # Read data using shelve
-        answer_name = "%s" % ds_name
+        answer_name = f"{ds_name}"
         ds = shelve.open(self.reference_name, protocol=-1)
         try:
             result = ds[answer_name]
@@ -388,8 +388,8 @@ class AnswerTestingTest:
         # nosetests command line arguments. In this case, set the answer_name
         # from the `answer_name` keyword in the test case
         if self.options.answer_name is None:
-            pyver = "py{}{}".format(sys.version_info.major, sys.version_info.minor)
-            self.answer_name = "{}_{}".format(pyver, self.answer_name)
+            pyver = f"py{sys.version_info.major}{sys.version_info.minor}"
+            self.answer_name = f"{pyver}_{self.answer_name}"
 
             answer_store_dir = os.path.realpath(self.options.output_dir)
             ref_name = os.path.join(
@@ -411,7 +411,7 @@ class AnswerTestingTest:
             # Compare test generated values against the golden answer
             dd = self.reference_storage.get(self.storage_name)
             if dd is None or self.description not in dd:
-                raise YTNoOldAnswer("%s : %s" % (self.storage_name, self.description))
+                raise YTNoOldAnswer(f"{self.storage_name} : {self.description}")
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
@@ -422,7 +422,7 @@ class AnswerTestingTest:
     @property
     def storage_name(self):
         if self.prefix != "":
-            return "%s_%s" % (self.prefix, self.ds)
+            return f"{self.prefix}_{self.ds}"
         return str(self.ds)
 
     def compare(self, new_result, old_result):
@@ -502,7 +502,7 @@ class FieldValuesTest(AnswerTestingTest):
         return [avg, mi, ma]
 
     def compare(self, new_result, old_result):
-        err_msg = "Field values for %s not equal." % (self.field,)
+        err_msg = f"Field values for {self.field} not equal."
         if hasattr(new_result, "d"):
             new_result = new_result.d
         if hasattr(old_result, "d"):
@@ -541,7 +541,7 @@ class AllFieldValuesTest(AnswerTestingTest):
         return obj[self.field]
 
     def compare(self, new_result, old_result):
-        err_msg = "All field values for %s not equal." % self.field
+        err_msg = f"All field values for {self.field} not equal."
         if hasattr(new_result, "d"):
             new_result = new_result.d
         if hasattr(old_result, "d"):
@@ -651,7 +651,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.
-            d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
+            d[f"{f}_sum"] = proj.field_data[f].sum(dtype="float64")
         return d
 
     def compare(self, new_result, old_result):
@@ -795,7 +795,7 @@ def compare_image_lists(new_result, old_result, decimals):
                     if line.endswith(".png")
                 ]
                 for fn in tempfiles:
-                    sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
+                    sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
                 sys.stderr.write("\n")
         assert_equal(results, None, results)
         for fn in fns:
@@ -1055,8 +1055,8 @@ class AxialPixelizationTest(AnswerTestingTest):
             # Wipe out invalid values (fillers)
             pix_x[~np.isfinite(pix_x)] = 0.0
             pix_y[~np.isfinite(pix_y)] = 0.0
-            rv["%s_x" % axis] = pix_x
-            rv["%s_y" % axis] = pix_y
+            rv[f"{axis}_x"] = pix_x
+            rv[f"{axis}_y"] = pix_y
         return rv
 
     def compare(self, new_result, old_result):

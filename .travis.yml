@@ -81,17 +81,30 @@ jobs:
     - stage: Lint
       name: "flake8"
       python: 3.6
-      script: flake8 yt/
+      script: |
+        flake8 --version
+        flake8 yt/
 
     - stage: Lint
       name: "isort"
       python: 3.6
-      script: isort . --check --diff
+      script: |
+        isort --version
+        isort . --check --diff
 
     - stage: Lint
       name: "black"
       python: 3.6
-      script: black --check yt/
+      script: |
+        black --version
+        black --check yt/
+
+    - stage: Lint
+      name: "flynt"
+      python: 3.6
+      script: |
+        flynt -h | head -n 1 # this is a workaround to print only the version number
+        flynt yt/ --fail-on-change --dry-run -e yt/extern
 
     - stage: tests
       name: "Python: 3.6 Minimal Dependency Unit Tests"

@@ -261,7 +261,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
         # Note: this follows RAMSES convention.
         for i in range(self.ds.dimensionality * 2 + 1):
             for ilvl in range(self.ds.max_level + 1):
-                fields.append(("particle_prop_%s_%s" % (ilvl, i), "d"))
+                fields.append((f"particle_prop_{ilvl}_{i}", "d"))
 
         field_offsets = {}
         _pfields = {}

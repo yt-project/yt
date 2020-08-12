@@ -20,11 +20,11 @@ class YTOutputNotIdentified(YTException):
         self.kwargs = kwargs
 
     def __str__(self):
-        msg = "Could not determine input format from %s" % self.filename
+        msg = f"Could not determine input format from {self.filename}"
         if self.args is not None:
-            msg += ", %s" % self.args
+            msg += ", {self.args}"
         if self.kwargs is not None:
-            msg += ", %s" % self.kwargs
+            msg += f", {self.kwargs}"
         msg += "."
         return msg
 
@@ -59,7 +59,7 @@ class YTAxesNotOrthogonalError(YTException):
         self.axes = axes
 
     def __str__(self):
-        return "The supplied axes are not orthogonal.  %s" % (self.axes)
+        return f"The supplied axes are not orthogonal.  {self.axes}"
 
 
 class YTNoDataInObjectError(YTException):
@@ -79,7 +79,7 @@ class YTFieldNotFound(YTException):
         self.ds = ds
 
     def __str__(self):
-        return "Could not find field %s in %s." % (self.field, self.ds)
+        return f"Could not find field {self.field} in {self.ds}."
 
 
 class YTParticleTypeNotFound(YTException):
@@ -88,7 +88,7 @@ class YTParticleTypeNotFound(YTException):
         self.ds = ds
 
     def __str__(self):
-        return "Could not find particle_type '%s' in %s." % (self.fname, self.ds)
+        return f"Could not find particle_type '{self.fname}' in {self.ds}."
 
 
 class YTSceneFieldNotFound(YTException):
@@ -97,7 +97,7 @@ class YTSceneFieldNotFound(YTException):
 
 class YTCouldNotGenerateField(YTFieldNotFound):
     def __str__(self):
-        return "Could field '%s' in %s could not be generated." % (self.fname, self.ds)
+        return f"Could field '{self.fname}' in {self.ds} could not be generated."
 
 
 class YTFieldTypeNotFound(YTException):
@@ -113,7 +113,7 @@ class YTFieldTypeNotFound(YTException):
                 + "Try adding this field with particle_type=True."
             ) % self.ftype
         else:
-            return "Could not find field type '%s'." % (self.ftype)
+            return f"Could not find field type '{self.ftype}'."
 
 
 class YTSimulationNotIdentified(YTException):
@@ -122,7 +122,7 @@ class YTSimulationNotIdentified(YTException):
         self.sim_type = sim_type
 
     def __str__(self):
-        return "Simulation time-series type %s not defined." % self.sim_type
+        return f"Simulation time-series type {self.sim_type} not defined."
 
 
 class YTCannotParseFieldDisplayName(YTException):
@@ -167,7 +167,7 @@ class MissingParameter(YTException):
         self.parameter = parameter
 
     def __str__(self):
-        return "dataset %s is missing %s parameter." % (self.ds, self.parameter)
+        return f"dataset {self.ds} is missing {self.parameter} parameter."
 
 
 class NoStoppingCondition(YTException):
@@ -191,7 +191,7 @@ class YTGeometryNotSupported(YTException):
         self.geom = geom
 
     def __str__(self):
-        return "We don't currently support %s geometry" % self.geom
+        return f"We don't currently support {self.geom} geometry"
 
 
 class YTCoordinateNotImplemented(YTException):
@@ -208,7 +208,7 @@ class YTUnitNotRecognized(YTException):
         self.unit = unit
 
     def __str__(self):
-        return "This dataset doesn't recognize %s" % self.unit
+        return f"This dataset doesn't recognize {self.unit}"
 
 
 class YTFieldUnitError(YTException):
@@ -258,9 +258,7 @@ class YTNoFilenamesMatchPattern(YTException):
         self.pattern = pattern
 
     def __str__(self):
-        return "No filenames were found to match the pattern: " + "'%s'" % (
-            self.pattern
-        )
+        return "No filenames were found to match the pattern: " + f"'{self.pattern}'"
 
 
 class YTNoOldAnswer(YTException):
@@ -315,7 +313,7 @@ class EnzoTestOutputFileNonExistent(YTException):
     def __str__(self):
         return (
             "Enzo test output file (OutputLog) not generated for: "
-            + "'%s'" % (self.testname)
+            + f"'{self.testname}'"
             + ".\nTest did not complete."
         )
 
@@ -338,16 +336,14 @@ class YTTooManyVertices(YTException):
         self.fn = fn
 
     def __str__(self):
-        s = "There are too many vertices (%s) to upload to Sketchfab. " % (self.nv)
-        s += "Your model has been saved as %s .  You should upload manually." % (
-            self.fn
-        )
+        s = f"There are too many vertices ({self.nv}) to upload to Sketchfab. "
+        s += f"Your model has been saved as {self.fn} .  You should upload manually."
         return s
 
 
 class YTInvalidWidthError(YTException):
     def __init__(self, width):
-        self.error = "width (%s) is invalid" % str(width)
+        self.error = f"width ({str(width)}) is invalid"
 
     def __str__(self):
         return str(self.error)
@@ -358,7 +354,7 @@ class YTFieldNotParseable(YTException):
         self.field = field
 
     def __str__(self):
-        return "Cannot identify field %s" % (self.field,)
+        return f"Cannot identify field {self.field}"
 
 
 class YTDataSelectorNotImplemented(YTException):
@@ -366,7 +362,7 @@ class YTDataSelectorNotImplemented(YTException):
         self.class_name = class_name
 
     def __str__(self):
-        return "Data selector '%s' not implemented." % (self.class_name)
+        return f"Data selector '{self.class_name}' not implemented."
 
 
 class YTParticleDepositionNotImplemented(YTException):
@@ -374,7 +370,7 @@ class YTParticleDepositionNotImplemented(YTException):
         self.class_name = class_name
 
     def __str__(self):
-        return "Particle deposition method '%s' not implemented." % (self.class_name)
+        return f"Particle deposition method '{self.class_name}' not implemented."
 
 
 class YTDomainOverflow(YTException):
@@ -399,7 +395,7 @@ class YTIntDomainOverflow(YTException):
         self.dd = dd
 
     def __str__(self):
-        return "Integer domain overflow: %s in %s" % (self.dims, self.dd)
+        return f"Integer domain overflow: {self.dims} in {self.dd}"
 
 
 class YTIllDefinedFilter(YTException):
@@ -509,14 +505,10 @@ class YTDuplicateFieldInProfile(Exception):
         self.old_spec = old_spec
 
     def __str__(self):
-        r = """Field %s already exists with field spec:
-               %s
+        r = f"""Field {self.field} already exists with field spec:
+               {self.old_spec}
                But being asked to add it with:
-               %s""" % (
-            self.field,
-            self.old_spec,
-            self.new_spec,
-        )
+               {self.new_spec}"""
         return r
 
 
@@ -526,11 +518,8 @@ class YTInvalidPositionArray(Exception):
         self.dimensions = dimensions
 
     def __str__(self):
-        r = """Position arrays must be length and shape (N,3).
-               But this one has %s and %s.""" % (
-            self.dimensions,
-            self.shape,
-        )
+        r = f"""Position arrays must be length and shape (N,3).
+               But this one has {self.dimensions} and {self.shape}."""
         return r
 
 
@@ -552,11 +541,9 @@ class YTMixedCutRegion(Exception):
         self.field = field
 
     def __str__(self):
-        r = """Can't mix particle/discrete and fluid/mesh conditions or
-               quantities.  Field: %s and Conditions specified:
-            """ % (
-            self.field,
-        )
+        r = f"""Can't mix particle/discrete and fluid/mesh conditions or
+               quantities.  Field: {self.field} and Conditions specified:
+            """
         r += "\n".join([c for c in self.conditions])
         return r
 
@@ -566,7 +553,7 @@ class YTGDFAlreadyExists(Exception):
         self.filename = filename
 
     def __str__(self):
-        return "A file already exists at %s and overwrite=False." % self.filename
+        return f"A file already exists at {self.filename} and overwrite=False."
 
 
 class YTNonIndexedDataContainer(YTException):
@@ -630,10 +617,7 @@ class YTDimensionalityError(YTException):
         self.right = right
 
     def __str__(self):
-        return "Dimensionality specified was %s but we need %s" % (
-            self.wrong,
-            self.right,
-        )
+        return f"Dimensionality specified was {self.wrong} but we need {self.right}"
 
 
 class YTInvalidShaderType(YTException):
@@ -641,7 +625,7 @@ class YTInvalidShaderType(YTException):
         self.source = source
 
     def __str__(self):
-        return "Can't identify shader_type for file '%s.'" % (self.source)
+        return f"Can't identify shader_type for file '{self.source}.'"
 
 
 class YTInvalidFieldType(YTException):
@@ -667,7 +651,7 @@ class YTUnknownUniformKind(YTException):
         self.kind = kind
 
     def __str__(self):
-        return "Can't determine kind specification for %s" % (self.kind)
+        return f"Can't determine kind specification for {self.kind}"
 
 
 class YTUnknownUniformSize(YTException):
@@ -675,7 +659,7 @@ class YTUnknownUniformSize(YTException):
         self.size_spec = size_spec
 
     def __str__(self):
-        return "Can't determine size specification for %s" % (self.size_spec)
+        return f"Can't determine size specification for {self.size_spec}"
 
 
 class YTDataTypeUnsupported(YTException):
@@ -684,8 +668,8 @@ class YTDataTypeUnsupported(YTException):
         self.this = this
 
     def __str__(self):
-        v = "This operation is not supported for data of geometry %s; " % self.this
-        v += "It supports data of geometries %s" % (self.supported,)
+        v = f"This operation is not supported for data of geometry {self.this}; "
+        v += f"It supports data of geometries {self.supported}"
         return v
 
 
@@ -697,7 +681,7 @@ class YTBoundsDefinitionError(YTException):
     def __str__(self):
         v = "This operation has encountered a bounds error: "
         v += self.message
-        v += " Specified bounds are '%s'." % (self.bounds,)
+        v += f" Specified bounds are '{self.bounds}'."
         return v
 
 
@@ -763,7 +747,7 @@ class YTBooleanObjectError(YTException):
         self.bad_object = bad_object
 
     def __str__(self):
-        v = "Supplied:\n%s\nto a boolean operation" % (self.bad_object)
+        v = f"Supplied:\n{self.bad_object}\nto a boolean operation"
         v += " but it is not a YTSelectionContainer3D object."
         return v
 
@@ -804,7 +788,7 @@ class YTInconsistentGridFieldShape(YTException):
     def __str__(self):
         msg = "Not all grid-based fields have the same shape!\n"
         for name, shape in self.shapes:
-            msg += "    Field {} has shape {}.\n".format(name, shape)
+            msg += f"    Field {name} has shape {shape}.\n"
         return msg
 
 
@@ -819,7 +803,7 @@ class YTInconsistentParticleFieldShape(YTException):
         )
         for name, shape in self.shapes:
             field = (self.ptype, name)
-            msg += "    Field {} has shape {}.\n".format(field, shape)
+            msg += f"    Field {field} has shape {shape}.\n"
         return msg
 
 
@@ -830,11 +814,11 @@ class YTInconsistentGridFieldShapeGridDims(YTException):
 
     def __str__(self):
         msg = "Not all grid-based fields match the grid dimensions! "
-        msg += "Grid dims are {}, ".format(self.grid_dims)
+        msg += f"Grid dims are {self.grid_dims}, "
         msg += "and the following fields have shapes that do not match them:\n"
         for name, shape in self.shapes:
             if shape != self.grid_dims:
-                msg += "    Field {} has shape {}.\n".format(name, shape)
+                msg += f"    Field {name} has shape {shape}.\n"
         return msg
 
 
@@ -843,22 +827,22 @@ class YTCommandRequiresModule(YTException):
         self.module = module
 
     def __str__(self):
-        msg = 'This command requires "%s" to be installed.\n\n' % self.module
-        msg += 'Please install "%s" with the package manager ' % self.module
+        msg = f'This command requires "{self.module}" to be installed.\n\n'
+        msg += f'Please install "{self.module}" with the package manager '
         msg += "appropriate for your python environment, e.g.:\n"
-        msg += "  conda install %s\n" % self.module
+        msg += f"  conda install {self.module}\n"
         msg += "or:\n"
-        msg += "  pip install %s\n" % self.module
+        msg += f"  pip install {self.module}\n"
         return msg
 
 
 class YTModuleRemoved(Exception):
     def __init__(self, name, new_home=None, info=None):
-        message = "The %s module has been removed from yt." % name
+        message = f"The {name} module has been removed from yt."
         if new_home is not None:
-            message += "\nIt has been moved to %s." % new_home
+            message += f"\nIt has been moved to {new_home}."
         if info is not None:
-            message += "\nFor more information, see %s." % info
+            message += f"\nFor more information, see {info}."
         Exception.__init__(self, message)
 
 
@@ -868,7 +852,7 @@ class YTArrayTooLargeToDisplay(YTException):
         self.max_size = max_size
 
     def __str__(self):
-        msg = "The requested array is of size %s.\n" % self.size
+        msg = f"The requested array is of size {self.size}.\n"
         msg += "We do not support displaying arrays larger\n"
-        msg += "than size %s." % self.max_size
+        msg += f"than size {self.max_size}."
         return msg

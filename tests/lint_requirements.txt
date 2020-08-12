@@ -5,3 +5,4 @@ pyflakes==2.2.0
 isort==5.2.1   # keep in sync with .pre-commit-config.yaml
 black==19.10b0
 flake8-bugbear
+flynt==0.51   # keep in sync with .pre-commit-config.yaml

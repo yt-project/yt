@@ -17,10 +17,10 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     axis_names = registry.ds.coordinates.axis_order
 
-    if (ftype, "magnetic_field_%s" % axis_names[0]) not in registry:
+    if (ftype, f"magnetic_field_{axis_names[0]}") not in registry:
         return
 
-    u = registry[ftype, "magnetic_field_%s" % axis_names[0]].units
+    u = registry[ftype, f"magnetic_field_{axis_names[0]}"].units
 
     def mag_factors(dims):
         if dims == dimensions.magnetic_field_cgs:
@@ -29,9 +29,9 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             return ds.units.physical_constants.mu_0
 
     def _magnetic_field_strength(field, data):
-        xm = "relative_magnetic_field_%s" % axis_names[0]
-        ym = "relative_magnetic_field_%s" % axis_names[1]
-        zm = "relative_magnetic_field_%s" % axis_names[2]
+        xm = f"relative_magnetic_field_{axis_names[0]}"
+        ym = f"relative_magnetic_field_{axis_names[1]}"
+        zm = f"relative_magnetic_field_{axis_names[2]}"
 
         B2 = (data[ftype, xm]) ** 2 + (data[ftype, ym]) ** 2 + (data[ftype, zm]) ** 2
 
@@ -280,7 +280,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
 
         for ax, fd in zip(registry.ds.coordinates.axis_order, ds_fields):
             registry.add_field(
-                (ftype, "magnetic_field_%s" % ax),
+                (ftype, f"magnetic_field_{ax}"),
                 sampling_type=sampling_type,
                 function=mag_field(fd),
                 units=units,
@@ -294,7 +294,7 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
             return _mag_field
 
         for ax in registry.ds.coordinates.axis_order:
-            fname = "particle_magnetic_field_%s" % ax
+            fname = f"particle_magnetic_field_{ax}"
             registry.add_field(
                 (ds_ftype, fname),
                 sampling_type=sampling_type,
@@ -303,4 +303,4 @@ def setup_magnetic_field_aliases(registry, ds_ftype, ds_fields, ftype="gas"):
             )
             sph_ptypes = getattr(registry.ds, "_sph_ptypes", tuple())
             if ds_ftype in sph_ptypes:
-                registry.alias((ftype, "magnetic_field_%s" % ax), (ds_ftype, fname))
+                registry.alias((ftype, f"magnetic_field_{ax}"), (ds_ftype, fname))

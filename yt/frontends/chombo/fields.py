@@ -67,13 +67,13 @@ class Orion2FieldInfo(ChomboFieldInfo):
     def setup_particle_fields(self, ptype):
         def _get_vel(axis):
             def velocity(field, data):
-                return data["particle_momentum_%s" % axis] / data["particle_mass"]
+                return data[f"particle_momentum_{axis}"] / data["particle_mass"]
 
             return velocity
 
         for ax in "xyz":
             self.add_field(
-                (ptype, "particle_velocity_%s" % ax),
+                (ptype, f"particle_velocity_{ax}"),
                 sampling_type="particle",
                 function=_get_vel(ax),
                 units="code_length/code_time",
@@ -127,13 +127,13 @@ class Orion2FieldInfo(ChomboFieldInfo):
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data["momentum_%s" % axis] / data["density"]
+                return data[f"momentum_{axis}"] / data["density"]
 
             return velocity
 
         for ax in "xyz":
             self.add_field(
-                ("gas", "velocity_%s" % ax),
+                ("gas", f"velocity_{ax}"),
                 sampling_type="cell",
                 function=_get_vel(ax),
                 units=unit_system["velocity"],
@@ -182,7 +182,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
         )
 
         setup_magnetic_field_aliases(
-            self, "chombo", ["%s-magnfield" % ax for ax in "XYZ"]
+            self, "chombo", [f"{ax}-magnfield" for ax in "XYZ"]
         )
 
 
@@ -234,8 +234,8 @@ class ChomboPICFieldInfo3D(FieldInfoContainer):
             for alias in aliases:
                 self.alias((ptype, alias), (ptype, f), units=output_units)
 
-        ppos_fields = ["particle_position_%s" % ax for ax in "xyz"]
-        pvel_fields = ["particle_velocity_%s" % ax for ax in "xyz"]
+        ppos_fields = [f"particle_position_{ax}" for ax in "xyz"]
+        pvel_fields = [f"particle_velocity_{ax}" for ax in "xyz"]
         particle_vector_functions(ptype, ppos_fields, pvel_fields, self)
 
         particle_deposition_functions(ptype, "particle_position", "particle_mass", self)
@@ -394,4 +394,4 @@ class PlutoFieldInfo(ChomboFieldInfo):
     def setup_fluid_fields(self):
         from yt.fields.magnetic_field import setup_magnetic_field_aliases
 
-        setup_magnetic_field_aliases(self, "chombo", ["bx%s" % ax for ax in [1, 2, 3]])
+        setup_magnetic_field_aliases(self, "chombo", [f"bx{ax}" for ax in [1, 2, 3]])
