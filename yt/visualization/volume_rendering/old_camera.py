@@ -1648,7 +1648,7 @@ class HEALpixCamera(Camera):
         if self.comm.rank == 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             if label is None:
-                label = "Projected %s" % (self.fields[0])
+                label = f"Projected {self.fields[0]}"
             if clim is not None:
                 cmin, cmax = clim
             else:

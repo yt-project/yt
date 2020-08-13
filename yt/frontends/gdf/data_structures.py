@@ -185,7 +185,7 @@ class GDFDataset(Dataset):
         # This should be improved.
         h5f = h5py.File(self.parameter_filename, mode="r")
         for field_name in h5f["/field_types"]:
-            current_field = h5f["/field_types/%s" % field_name]
+            current_field = h5f[f"/field_types/{field_name}"]
             if "field_to_cgs" in current_field.attrs:
                 field_conv = current_field.attrs["field_to_cgs"]
                 self.field_units[field_name] = just_one(field_conv)
@@ -201,7 +201,7 @@ class GDFDataset(Dataset):
 
         if "dataset_units" in h5f:
             for unit_name in h5f["/dataset_units"]:
-                current_unit = h5f["/dataset_units/%s" % unit_name]
+                current_unit = h5f[f"/dataset_units/{unit_name}"]
                 value = current_unit.value
                 unit = current_unit.attrs["unit"]
                 # need to convert to a Unit object and check dimensions

@@ -11,7 +11,7 @@ def _grid_dname(grid_id):
 
 
 def _field_dname(grid_id, field_name):
-    return "%s/%s" % (_grid_dname(grid_id), field_name)
+    return f"{_grid_dname(grid_id)}/{field_name}"
 
 
 # TODO all particle bits were removed

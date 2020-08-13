@@ -29,8 +29,8 @@ class OpenPMDGrid(AMRGridPatch):
     """Represents chunk of data on-disk.
 
     This defines the index and offset for every mesh and particle type.
-    It also defines parents and children grids. Since openPMD does not have multiple levels of refinement,
-    there are no parents or children for any grid.
+    It also defines parents and children grids. Since openPMD does not have multiple
+    levels of refinement there are no parents or children for any grid.
     """
 
     _id_offset = 0
@@ -112,8 +112,9 @@ class OpenPMDHierarchy(GridIndex):
     def _detect_output_fields(self):
         """Populates ``self.field_list`` with native fields (mesh and particle) on disk.
 
-        Each entry is a tuple of two strings. The first element is the on-disk fluid type or particle type.
-        The second element is the name of the field in yt. This string is later used for accessing the data.
+        Each entry is a tuple of two strings. The first element is the on-disk fluid
+        type or particle type. The second element is the name of the field in yt.
+        This string is later used for accessing the data.
         Convention suggests that the on-disk fluid type should be "openPMD",
         the on-disk particle type (for a single species of particles) is "io"
         or (for multiple species of particles) the particle name on-disk.
@@ -152,8 +153,8 @@ class OpenPMDHierarchy(GridIndex):
                         )
                     elif "particlePatches" not in recname:
                         try:
-                            # Create a field for every axis (x,y,z) of every property (position)
-                            # of every species (electrons)
+                            # Create a field for every axis (x,y,z) of every
+                            # property (position) of every species (electrons)
                             axes = list(record.keys())
                             if str(recname) == "position":
                                 recname = "positionCoarse"
@@ -176,7 +177,8 @@ class OpenPMDHierarchy(GridIndex):
                     else:
                         pass
             if len(list(particles.keys())) > 1:
-                # There is more than one particle species, use the specific names as field types
+                # There is more than one particle species,
+                # use the specific names as field types
                 self.field_list.extend(
                     [
                         (
@@ -386,7 +388,8 @@ class OpenPMDHierarchy(GridIndex):
                 particle_names = []
                 for (pname, size) in self.numparts.items():
                     if size == count:
-                        # Since this is not part of a particlePatch, we can include multiple same-sized ptypes
+                        # Since this is not part of a particlePatch,
+                        # we can include multiple same-sized ptypes
                         particle_names.append(str(pname))
                         handled_ptypes.append(str(pname))
             else:
@@ -426,9 +429,10 @@ class OpenPMDDataset(Dataset):
 
     Notes
     -----
-    It is assumed that all meshes cover the same region. Their resolution can be different.
-    It is assumed that all particles reside in this same region exclusively.
-    It is assumed that the particle and mesh positions are *absolute* with respect to the simulation origin.
+    It is assumed that
+    - all meshes cover the same region. Their resolution can be different.
+    - all particles reside in this same region exclusively.
+    - particle and mesh positions are *absolute* with respect to the simulation origin.
     """
 
     _index_class = OpenPMDHierarchy
@@ -505,7 +509,7 @@ class OpenPMDDataset(Dataset):
         if "groupBased" in encoding and len(iterations) > 1:
             mylog.warning("Only chose to load one iteration (%s)", iteration)
 
-        self.base_path = "/data/{}/".format(iteration)
+        self.base_path = f"/data/{iteration}/"
         try:
             self.meshes_path = self._handle["/"].attrs["meshesPath"].decode()
             handle[self.base_path + self.meshes_path]
@@ -535,7 +539,8 @@ class OpenPMDDataset(Dataset):
         """Handle conversion between different physical units and the code units.
 
         Every dataset in openPMD can have different code <-> physical scaling.
-        The individual factor is obtained by multiplying with "unitSI" reading getting data from disk.
+        The individual factor is obtained by multiplying with "unitSI" reading getting
+        data from disk.
         """
         setdefaultattr(self, "length_unit", self.quan(1.0, "m"))
         setdefaultattr(self, "mass_unit", self.quan(1.0, "kg"))
@@ -654,7 +659,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
             self._setup_function(o)
             return o
         else:
-            raise KeyError("Unknown iteration {}".format(key))
+            raise KeyError(f"Unknown iteration {key}")
 
     def _load(self, it, **kwargs):
         return OpenPMDDataset(self.filename, iteration=it)

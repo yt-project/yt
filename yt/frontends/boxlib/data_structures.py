@@ -471,18 +471,21 @@ class BoxlibHierarchy(GridIndex):
             _header_pattern[self.dimensionality - 1].search(header).groups()
         )
         # Note that previously we were using a different value for BPR than we
-        # use now.  Here is an example set of information directly from BoxLib:
-        #  * DOUBLE data
-        #  * FAB ((8, (64 11 52 0 1 12 0 1023)),(8, (1 2 3 4 5 6 7 8)))((0,0) (63,63) (0,0)) 27
-        #  * FLOAT data
-        #  * FAB ((8, (32 8 23 0 1 9 0 127)),(4, (1 2 3 4)))((0,0) (63,63) (0,0)) 27
+        # use now.  Here is an example set of information directly from BoxLib
+        """
+        * DOUBLE data
+        * FAB ((8, (64 11 52 0 1 12 0 1023)),(8, (1 2 3 4 5 6 7 8)))((0,0) (63,63) (0,0)) 27  # NOQA: E501
+        * FLOAT data
+        * FAB ((8, (32 8 23 0 1 9 0 127)),(4, (1 2 3 4)))((0,0) (63,63) (0,0)) 27
+        """
         if bpr == endian[0]:
-            dtype = "<f%s" % bpr
+            dtype = f"<f{bpr}"
         elif bpr == endian[-1]:
-            dtype = ">f%s" % bpr
+            dtype = f">f{bpr}"
         else:
             raise ValueError(
-                "FAB header is neither big nor little endian. Perhaps the file is corrupt?"
+                "FAB header is neither big nor little endian. "
+                "Perhaps the file is corrupt?"
             )
 
         mylog.debug("FAB header suggests dtype of %s", dtype)
@@ -721,10 +724,10 @@ class BoxlibDataset(Dataset):
             if param == "amr.n_cell":
                 vals = self.domain_dimensions = np.array(vals.split(), dtype="int32")
 
-                # For 1D and 2D simulations in BoxLib usually only the relevant dimensions
-                # have a specified number of zones, but yt requires domain_dimensions to
-                # have three elements, with 1 in the additional slots if we're not in 3D,
-                # so append them as necessary.
+                # For 1D and 2D simulations in BoxLib usually only the relevant
+                # dimensions have a specified number of zones, but yt requires
+                # domain_dimensions to have three elements, with 1 in the additional
+                # slots if we're not in 3D, so append them as necessary.
 
                 if len(vals) == 1:
                     vals = self.domain_dimensions = np.array([vals[0], 1, 1])
@@ -1157,8 +1160,10 @@ class CastroDataset(BoxlibDataset):
                     p, v = line.strip().split(":")
                     self.parameters[p] = v.strip()
                 if "git describe" in line or "git hash" in line:
-                    # Castro release 17.02 and later - line format: codename git describe:  the-hash
-                    # Castro before release 17.02    - line format: codename git hash:  the-hash
+                    # Castro release 17.02 and later
+                    #    line format: codename git describe:  the-hash
+                    # Castro before release 17.02
+                    #    line format: codename git hash:  the-hash
                     fields = line.split(":")
                     self.parameters[fields[0]] = fields[1].strip()
                 line = next(f)

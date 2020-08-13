@@ -312,13 +312,13 @@ class SDFRead(dict):
     def write(self, filename):
         f = open(filename, "w")
         f.write("# SDF 1.0\n")
-        f.write("parameter byteorder = %s;\n" % (self.parameters["byteorder"]))
+        f.write(f"parameter byteorder = {self.parameters['byteorder']};\n")
         for c in self.comments:
             if "\x0c" in c:
                 continue
             if "SDF 1.0" in c:
                 continue
-            f.write("%s" % c)
+            f.write(f"{c}")
         for k, v in sorted(self.parameters.items()):
             if k == "byteorder":
                 continue
@@ -327,9 +327,9 @@ class SDFRead(dict):
             except Exception:
                 t = type(v).__name__
             if t == str.__name__:
-                f.write('parameter %s = "%s";\n' % (k, v))
+                f.write(f'parameter {k} = "{v}";\n')
             else:
-                f.write("%s %s = %s;\n" % (t, k, v))
+                f.write(f"{t} {k} = {v};\n")
 
         struct_order = []
         for s in self.structs:
@@ -338,7 +338,7 @@ class SDFRead(dict):
             for var in s.dtype.descr:
                 k, v = var[0], _rev_types[var[1]]
                 to_write.append(k)
-                f.write("\t%s %s;\n" % (v, k))
+                f.write(f"\t{v} {k};\n")
             f.write("}[%i];\n" % s.size)
             struct_order.append(to_write)
         f.write("#\x0c\n")
@@ -346,13 +346,13 @@ class SDFRead(dict):
         return struct_order, f
 
     def __repr__(self):
-        disp = "<SDFRead Object> file: %s\n" % self.filename
+        disp = f"<SDFRead Object> file: {self.filename}\n"
         disp += "parameters: \n"
         for k, v in self.parameters.items():
-            disp += "\t%s: %s\n" % (k, v)
+            disp += f"\t{k}: {v}\n"
         disp += "arrays: \n"
         for k, v in self.items():
-            disp += "\t%s[%s]\n" % (k, v.size)
+            disp += f"\t{k}[{v.size}]\n"
         return disp
 
     def parse_header(self):
@@ -394,12 +394,12 @@ class SDFRead(dict):
             vtype = "str"
 
         try:
-            vval = eval("np." + vtype + "(%s)" % vval)
+            vval = eval("np." + vtype + f"({vval})")
         except AttributeError:
             if vtype not in _types:
                 mylog.warning("Skipping parameter %s", vname)
                 return
-            vval = eval("np." + _types[vtype] + "(%s)" % vval)
+            vval = eval("np." + _types[vtype] + f"({vval})")
 
         self.parameters[vname] = vval
 
@@ -414,7 +414,7 @@ class SDFRead(dict):
                 str_types.append((v, vtype))
             l = ascfile.readline()
         num = l.strip("}[]")
-        num = num.strip("\;\\\n]")
+        num = num.strip("\;\\\n]")  # NOQA B005
         if len(num) == 0:
             # We need to compute the number of records.  The DataStruct will
             # handle this.
@@ -897,8 +897,8 @@ class SDFIndex:
         return data
 
     def get_next_nonzero_chunk(self, key, stop=None):
-        # These next two while loops are to squeeze the keys if they are empty. Would be better
-        # to go through and set base equal to the last non-zero base, i think.
+        # These next two while loops are to squeeze the keys if they are empty.
+        # Would be better to go through and set base equal to the last non-zero base.
         if stop is None:
             stop = self._max_key
         while key < stop:
@@ -910,8 +910,8 @@ class SDFIndex:
         return key
 
     def get_previous_nonzero_chunk(self, key, stop=None):
-        # These next two while loops are to squeeze the keys if they are empty. Would be better
-        # to go through and set base equal to the last non-zero base, i think.
+        # These next two while loops are to squeeze the keys if they are empty.
+        # Would be better to go through and set base equal to the last non-zero base.
         if stop is None:
             stop = self.indexdata["index"][0]
         while key > stop:

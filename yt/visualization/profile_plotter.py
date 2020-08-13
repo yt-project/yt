@@ -289,14 +289,14 @@ class ProfilePlot:
             iters = self.plots.items()
         if not suffix:
             suffix = "png"
-        suffix = ".%s" % suffix
+        suffix = f".{suffix}"
         fullname = False
         if name is None:
             if len(self.profiles) == 1:
                 prefix = self.profiles[0].ds
             else:
                 prefix = "Multi-data"
-            name = "%s%s" % (prefix, suffix)
+            name = f"{prefix}{suffix}"
         else:
             sfx = get_image_suffix(name)
             if sfx != "":
@@ -313,9 +313,9 @@ class ProfilePlot:
             if isinstance(uid, tuple):
                 uid = uid[1]
             if fullname:
-                fns.append("%s%s" % (prefix, suffix))
+                fns.append(f"{prefix}{suffix}")
             else:
-                fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
+                fns.append(f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}")
             mylog.info("Saving %s", fns[-1])
             with matplotlib_style_context():
                 plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
@@ -548,7 +548,7 @@ class ProfilePlot:
             elif field in self.profiles[0].field_data:
                 self.y_log[field] = log
             else:
-                raise KeyError("Field %s not in profile plot!" % (field))
+                raise KeyError(f"Field {field} not in profile plot!")
         return self
 
     @invalidate_plot
@@ -571,7 +571,7 @@ class ProfilePlot:
             if field in self.profiles[0].field_data:
                 self.y_title[field] = label
             else:
-                raise KeyError("Field %s not in profile plot!" % (field))
+                raise KeyError(f"Field {field} not in profile plot!")
 
         return self
 
@@ -607,7 +607,7 @@ class ProfilePlot:
             elif fd[1] in self.profiles[0].field_map:
                 profile.set_field_unit(field, unit)
             else:
-                raise KeyError("Field %s not in profile plot!" % (field))
+                raise KeyError(f"Field {field} not in profile plot!")
         return self
 
     @invalidate_plot
@@ -1292,7 +1292,7 @@ class PhasePlot(ImagePlotContainer):
             _f = f
             if isinstance(f, tuple):
                 _f = _f[1]
-            middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
+            middle = f"2d-Profile_{xfn}_{yfn}_{_f}"
             splitname = os.path.split(name)
             if splitname[0] != "" and not os.path.isdir(splitname[0]):
                 os.makedirs(splitname[0])
@@ -1309,7 +1309,7 @@ class PhasePlot(ImagePlotContainer):
                     return names
                 else:
                     suffix = "png"
-            fn = "%s_%s.%s" % (prefix, middle, suffix)
+            fn = f"{prefix}_{middle}.{suffix}"
             names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
         return names
@@ -1451,7 +1451,7 @@ class PhasePlot(ImagePlotContainer):
             elif field in p.field_data:
                 self.z_log[field] = log
             else:
-                raise KeyError("Field %s not in phase plot!" % (field))
+                raise KeyError(f"Field {field} not in phase plot!")
         return self
 
     @invalidate_plot
@@ -1475,7 +1475,7 @@ class PhasePlot(ImagePlotContainer):
             self.profile.set_field_unit(field, unit)
             self.plots[field].zmin, self.plots[field].zmax = (None, None)
         else:
-            raise KeyError("Field %s not in phase plot!" % (field))
+            raise KeyError(f"Field {field} not in phase plot!")
         return self
 
     @invalidate_plot

@@ -224,13 +224,13 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         def _get_vel(axis):
             def velocity(field, data):
-                return data["particle_momentum_%s" % axis] / data["particle_mass"]
+                return data[f"particle_momentum_{axis}"] / data["particle_mass"]
 
             return velocity
 
         for ax in "xyz":
             self.add_field(
-                (ptype, "particle_velocity_%s" % ax),
+                (ptype, f"particle_velocity_{ax}"),
                 sampling_type="particle",
                 function=_get_vel(ax),
                 units="code_length/code_time",
@@ -268,13 +268,13 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_momentum_to_velocity(self):
         def _get_vel(axis):
             def velocity(field, data):
-                return data["%smom" % axis] / data["density"]
+                return data[f"{axis}mom"] / data["density"]
 
             return velocity
 
         for ax in "xyz":
             self.add_field(
-                ("gas", "velocity_%s" % ax),
+                ("gas", f"velocity_{ax}"),
                 sampling_type="cell",
                 function=_get_vel(ax),
                 units=self.ds.unit_system["velocity"],
@@ -283,13 +283,13 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_velocity_to_momentum(self):
         def _get_mom(axis):
             def momentum(field, data):
-                return data["%svel" % axis] * data["density"]
+                return data[f"{axis}vel"] * data["density"]
 
             return momentum
 
         for ax in "xyz":
             self.add_field(
-                ("gas", "momentum_%s" % ax),
+                ("gas", f"momentum_{ax}"),
                 sampling_type="cell",
                 function=_get_mom(ax),
                 units=mom_units,
@@ -352,11 +352,11 @@ class CastroFieldInfo(FieldInfoContainer):
                 # We have a fraction
                 nice_name, tex_label = _nice_species_name(field)
                 self.alias(
-                    ("gas", "%s_fraction" % nice_name), ("boxlib", field), units=""
+                    ("gas", f"{nice_name}_fraction"), ("boxlib", field), units=""
                 )
-                func = _create_density_func(("gas", "%s_fraction" % nice_name))
+                func = _create_density_func(("gas", f"{nice_name}_fraction"))
                 self.add_field(
-                    name=("gas", "%s_density" % nice_name),
+                    name=("gas", f"{nice_name}_density"),
                     sampling_type="cell",
                     function=func,
                     units=self.ds.unit_system["density"],
@@ -465,11 +465,11 @@ class MaestroFieldInfo(FieldInfoContainer):
                     display_name=tex_label,
                 )
                 self.alias(
-                    ("gas", "%s_fraction" % nice_name), ("boxlib", field), units=""
+                    ("gas", f"{nice_name}_fraction"), ("boxlib", field), units=""
                 )
-                func = _create_density_func(("gas", "%s_fraction" % nice_name))
+                func = _create_density_func(("gas", f"{nice_name}_fraction"))
                 self.add_field(
-                    name=("gas", "%s_density" % nice_name),
+                    name=("gas", f"{nice_name}_density"),
                     sampling_type="cell",
                     function=func,
                     units=unit_system["density"],
@@ -501,7 +501,7 @@ class MaestroFieldInfo(FieldInfoContainer):
                     display_name=display_name,
                 )
                 self.alias(
-                    ("gas", "%s_creation_rate" % nice_name),
+                    ("gas", f"{nice_name}_creation_rate"),
                     ("boxlib", field),
                     units=unit_system["frequency"],
                 )

@@ -284,13 +284,15 @@ class Dataset:
     @abc.abstractmethod
     def _parse_parameter_file(self):
         # set up various attributes from self.parameter_filename
-        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
+        # for a full description of what is required here see
+        # yt.frontends._skeleton.SkeletonDataset
         pass
 
     @abc.abstractmethod
     def _set_code_unit_attributes(self):
         # set up code-units to physical units normalization factors
-        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
+        # for a full description of what is required here see
+        # yt.frontends._skeleton.SkeletonDataset
         pass
 
     def _set_derived_attrs(self):
@@ -303,7 +305,7 @@ class Dataset:
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
         for attr in ("center", "width", "left_edge", "right_edge"):
-            n = "domain_%s" % attr
+            n = f"domain_{attr}"
             v = getattr(self, n)
             if not isinstance(v, YTArray) and v is not None:
                 # Note that we don't add on _ipython_display_ here because
@@ -319,7 +321,7 @@ class Dataset:
         return self.basename
 
     def _hash(self):
-        s = "%s;%s;%s" % (self.basename, self.current_time, self.unique_identifier)
+        s = f"{self.basename};{self.current_time};{self.unique_identifier}"
         try:
             import hashlib
 
@@ -613,7 +615,7 @@ class Dataset:
         available_formats = {"ionization_label": ("plus_minus", "roman_numeral")}
         if format_property in available_formats:
             if value in available_formats[format_property]:
-                setattr(self, "_%s_format" % format_property, value)
+                setattr(self, f"_{format_property}_format", value)
             else:
                 raise ValueError(
                     "{0} not an acceptable value for format_property "
@@ -1117,7 +1119,7 @@ class Dataset:
             self.unit_registry.modify("h", self.hubble_constant)
             # Comoving lengths
             for my_unit in ["m", "pc", "AU", "au"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 my_u = Unit(my_unit, registry=self.unit_registry)
                 self.unit_registry.add(
                     new_unit,
@@ -1217,14 +1219,14 @@ class Dataset:
             ("magnetic", "gauss"),
             ("temperature", "K"),
         ]:
-            val = self.units_override.get("%s_unit" % unit, None)
+            val = self.units_override.get(f"{unit}_unit", None)
             if val is not None:
                 if isinstance(val, YTQuantity):
                     val = (val.v, str(val.units))
                 elif not isinstance(val, tuple):
                     val = (val, cgs)
                 mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
-                setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
+                setattr(self, f"{unit}_unit", self.quan(val[0], val[1]))
 
     _units = None
     _unit_system_id = None
@@ -1484,7 +1486,7 @@ class Dataset:
         field_name = field_name % (ptype, deposit_field.replace("particle_", ""))
 
         if method == "count":
-            field_name = "%s_count" % ptype
+            field_name = f"{ptype}_count"
             if ("deposit", field_name) in self.field_info:
                 mylog.warning("The deposited field %s already exists", field_name)
                 return ("deposit", field_name)
@@ -1579,8 +1581,9 @@ class Dataset:
          ('gas', 'temperature_gradient_z'),
          ('gas', 'temperature_gradient_magnitude')]
 
-        Note that the above example assumes ds.geometry == 'cartesian'. In general, the function
-        will create gradients components along the axes of the dataset coordinate system.
+        Note that the above example assumes ds.geometry == 'cartesian'. In general,
+        the function will create gradients components along the axes of the dataset
+        coordinate system.
         For instance, with cylindrical data, one gets 'temperature_gradient_<r,theta,z>'
         """
         self.index
@@ -1592,7 +1595,7 @@ class Dataset:
         # Now we make a list of the fields that were just made, to check them
         # and to return them
         grad_fields = [
-            (ftype, input_field + "_gradient_%s" % suffix)
+            (ftype, input_field + f"_gradient_{suffix}")
             for suffix in self.coordinates.axis_order
         ]
         grad_fields.append((ftype, input_field + "_gradient_magnitude"))

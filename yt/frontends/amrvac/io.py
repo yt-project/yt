@@ -89,15 +89,17 @@ class AMRVACIOHandler(BaseIOHandler):
         Returns
         -------
         data_dict : dict
-            keys are the (ftype, fname) tuples and values are arrays that have been masked using
-            whatever selector method is appropriate. Arrays have dtype float64.
+            keys are the (ftype, fname) tuples, values are arrays that have been masked
+            using whatever selector method is appropriate. Arrays have dtype float64.
         """
 
         # @Notes from Niels:
         # The chunks list has YTDataChunk objects containing the different grids.
-        # The list of grids can be obtained by doing eg. grids_list = chunks[0].objs or chunks[1].objs etc.
-        # Every element in "grids_list" is then an AMRVACGrid object, and has hence all attributes of a grid
-        #    (Level, ActiveDimensions, LeftEdge, etc.)
+        # The list of grids can be obtained by doing eg.
+        # grids_list = chunks[0].objs or chunks[1].objs etc.
+        # Every element in "grids_list" is then an AMRVACGrid object,
+        # and has hence all attributes of a grid :
+        # (Level, ActiveDimensions, LeftEdge, etc.)
 
         chunks = list(chunks)
         data_dict = {}  # <- return variable

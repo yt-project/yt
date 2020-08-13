@@ -35,8 +35,4 @@ class SigmaClipTest(TestCase):
     def test_sigma_clip(self):
         ds = fake_random_ds(32)
         sc = yt.create_scene(ds)
-        im = sc.render()
-        sc.save("raw.png")
         sc.save("clip_2.png", sigma_clip=2)
-        sc.save("clip_4.png", sigma_clip=4.0)
-        return im, sc

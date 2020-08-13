@@ -92,8 +92,8 @@ class ExporterTests(TestCase):
                 color_field_min=mi,
             )
 
-            assert os.path.exists("%s.obj" % basename)
-            assert os.path.exists("%s.mtl" % basename)
+            assert os.path.exists(f"{basename}.obj")
+            assert os.path.exists(f"{basename}.mtl")
 
         def _Emissivity(field, data):
             return data["density"] * data["density"] * np.sqrt(data["temperature"])
@@ -117,8 +117,8 @@ class ExporterTests(TestCase):
             )
 
             basename = "my_galaxy_emis"
-            assert os.path.exists("%s.obj" % basename)
-            assert os.path.exists("%s.mtl" % basename)
+            assert os.path.exists(f"{basename}.obj")
+            assert os.path.exists(f"{basename}.mtl")
 
 
 def test_correct_output_unit_fake_ds():

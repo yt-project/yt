@@ -141,7 +141,7 @@ class GadgetFOFHDF5File(HaloCatalogFile):
         else:
             close = False
 
-        pos = f[ptype]["%sPos" % ptype][()].astype("float64")
+        pos = f[ptype][f"{ptype}Pos"][()].astype("float64")
 
         if close:
             f.close()
@@ -240,7 +240,7 @@ class GadgetFOFDataset(ParticleDataset):
             )
         )
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        self.filename_template = f"{prefix}.%(num)i.{suffix}"
         self.file_count = self.parameters["NumFiles"]
         self.particle_types = ("Group", "Subhalo")
         self.particle_types_raw = ("Group", "Subhalo")
@@ -493,11 +493,11 @@ class GadgetFOFHaloDataset(ParticleDataset):
 
     def _set_code_unit_attributes(self):
         for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
-            my_unit = "%s_unit" % unit
+            my_unit = f"{unit}_unit"
             setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
 
     def __repr__(self):
-        return "%s" % self.real_ds
+        return f"{self.real_ds}"
 
     def _setup_classes(self):
         self.objects = []
@@ -584,8 +584,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     def __init__(self, ptype, particle_identifier, ds=None):
         if ptype not in ds.particle_types_raw:
             raise RuntimeError(
-                'Possible halo types are %s, supplied "%s".'
-                % (ds.particle_types_raw, ptype)
+                f'Possible halo types are {ds.particle_types_raw}, supplied "{ptype}".'
             )
 
         self.ptype = ptype
@@ -620,13 +619,13 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
             ptype, self.particle_identifier
         )
 
-        halo_fields = ["%sLen" % ptype]
+        halo_fields = [f"{ptype}Len"]
         if ptype == "Subhalo":
             halo_fields.append("SubhaloGrNr")
         my_data = self.index._get_halo_values(
             ptype, np.array([self.particle_identifier]), halo_fields
         )
-        self.particle_number = np.int64(my_data["%sLen" % ptype][0])
+        self.particle_number = np.int64(my_data[f"{ptype}Len"][0])
 
         if ptype == "Group":
             self.group_identifier = self.particle_identifier
@@ -713,7 +712,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         self.field_data_end = self.field_data_end.astype(np.int64)
 
         for attr in ["mass", "position", "velocity"]:
-            setattr(self, attr, self[self.ptype, "particle_%s" % attr][0])
+            setattr(self, attr, self[self.ptype, f"particle_{attr}"][0])
 
     def __repr__(self):
         return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)

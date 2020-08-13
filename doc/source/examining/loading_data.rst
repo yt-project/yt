@@ -6,7 +6,7 @@ Loading Data
 This section contains information on how to load data into yt, as well as
 some important caveats about different data formats.
 
-:: _loading-sample-data:
+.. _loading-sample-data:
 
 Sample Data
 -----------
@@ -40,7 +40,8 @@ This will return a list of possible filenames; more information can be accessed 
 AMRVAC Data
 -----------
 
-.. note:
+.. note::
+
    This frontend is brand new and may be subject to rapid change in the
    near future.
 
@@ -144,7 +145,8 @@ Appropriate errors are thrown for other combinations.
 * "stretched grids" as defined in AMRVAC have no correspondance in yt,
   hence will never be supported.
 
-.. note
+.. note::
+
    Ghost cells exist in .dat files but never read by yt.
 
 .. _loading-art-data:
@@ -247,7 +249,8 @@ Athena Data
 Athena 4.x VTK data is supported and cared for by John ZuHone. Both uniform grid
 and SMR datasets are supported.
 
-.. note:
+.. note::
+
    yt also recognizes Fargo3D data written to VTK files as
    Athena data, but support for Fargo3D data is preliminary.
 
@@ -1278,11 +1281,10 @@ and units.
 
 .. code-block:: python
 
-
    bbox = [[-600.0, 600.0], [-600.0, 600.0], [-600.0, 600.0]]
    unit_base = {
        'length': (1.0, 'kpc'),
-       'velocity: (1.0, 'km/s'),
+       'velocity': (1.0, 'km/s'),
        'mass': (1.0, 'Msun')
    }
 
@@ -1336,13 +1338,14 @@ of this format:
 
 .. code-block:: python
 
-   default = ( "Coordinates",
-               "Velocities",
-               "ParticleIDs",
-               "Mass",
-               ("InternalEnergy", "Gas"),
-               ("Density", "Gas"),
-               ("SmoothingLength", "Gas"),
+   default = (
+       "Coordinates",
+       "Velocities",
+       "ParticleIDs",
+       "Mass",
+       ("InternalEnergy", "Gas"),
+       ("Density", "Gas"),
+       ("SmoothingLength", "Gas"),
    )
 
 This is the default specification used by the Gadget frontend.  It means that
@@ -1354,14 +1357,15 @@ this:
 
 .. code-block:: python
 
-   my_field_def = ( "Coordinates",
-               "Velocities",
-               "ParticleIDs",
-               ("Metallicity", "Halo"),
-               "Mass",
-               ("InternalEnergy", "Gas"),
-               ("Density", "Gas"),
-               ("SmoothingLength", "Gas"),
+   my_field_def = (
+       "Coordinates",
+       "Velocities",
+       "ParticleIDs",
+       ("Metallicity", "Halo"),
+       "Mass",
+       ("InternalEnergy", "Gas"),
+       ("Density", "Gas"),
+       ("SmoothingLength", "Gas"),
    )
 
 To save time, you can utilize the plugins file for yt and use it to add items
@@ -1534,7 +1538,7 @@ data like this:
    import yt
    ds = yt.load("InteractingJets/jet_000002")
 
-For simulations without units (i.e., OPT__UNIT = 0), you can supply conversions 
+For simulations without units (i.e., ``OPT__UNIT = 0``), you can supply conversions
 for length, time, and mass to ``load`` using the ``units_override`` 
 functionality:
 
@@ -1554,8 +1558,8 @@ data.
 
 .. rubric:: Caveats
 
-* GAMER data in raw binary format (i.e., OPT__OUTPUT_TOTAL = C-binary) is not 
-supported.
+* GAMER data in raw binary format (i.e., ``OPT__OUTPUT_TOTAL = "C-binary"``) is not
+  supported.
 
 .. _loading-amr-data:
 
@@ -1812,7 +1816,7 @@ To load multiple meshes, you can do:
    sl = yt.SlicePlot(ds, 'z', ('all', 'test'))
 
 Note that you must respect the field naming convention that fields on the first
-mesh will have the type 'connect1', fields on the second will have 'connect2', etc...
+mesh will have the type ``connect1``, fields on the second will have ``connect2``, etc...
 
 .. rubric:: Caveats
 
@@ -2492,6 +2496,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
 
 
       .. code-block:: python
+
           import yt
 
           # Assuming RAMSES' levelmin=6, i.e. the structure is full
@@ -2727,11 +2732,11 @@ parameters:
 If you wish to set the unit system directly, you can do so by using the
 ``unit_base`` keyword in the load statement.
 
- .. code-block:: python
+.. code-block:: python
 
-    import yt
+   import yt
 
-    ds = yt.load(filename, unit_base={'length', (1.0, 'Mpc')})
+   ds = yt.load(filename, unit_base={'length', (1.0, 'Mpc')})
 
 See the documentation for the
 :class:`~yt.frontends.tipsy.data_structures.TipsyDataset` class for more
@@ -2745,7 +2750,7 @@ use keyword ``cosmology_parameters`` when loading your data set to indicate to
 yt that it is a cosmological data set. If you do not wish to set any
 non-default cosmological parameters, you may pass an empty dictionary.
 
- .. code-block:: python
+.. code-block:: python
 
-    import yt
-    ds = yt.load(filename, cosmology_parameters={})
+   import yt
+   ds = yt.load(filename, cosmology_parameters={})

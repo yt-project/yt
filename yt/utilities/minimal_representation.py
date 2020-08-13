@@ -91,7 +91,7 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
     def _return_filtered_object(self, attrs):
         new_attrs = tuple(attr for attr in self._attr_list if attr not in attrs)
         new_class = type(
-            "Filtered%s" % self.__class__.__name__,
+            f"Filtered{self.__class__.__name__}",
             (FilteredRepresentation,),
             {"_attr_list": new_attrs},
         )

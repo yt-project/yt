@@ -115,7 +115,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
     @property
     def hsml_filename(self):
-        return "%s-%s" % (self.ds.parameter_filename, "hsml")
+        return f"{self.ds.parameter_filename}-{'hsml'}"
 
     def _generate_smoothing_length(self, data_files, kdtree):
         if os.path.exists(self.hsml_filename):
@@ -330,7 +330,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         pds = {}
         for ptype, field in cls._fields:
             dtbase = field_dtypes.get(field, "f")
-            ff = "%s%s" % (endian, dtbase)
+            ff = f"{endian}{dtbase}"
             if field in cls._vector_fields:
                 dt = (field, [("x", ff), ("y", ff), ("z", ff)])
             else:
@@ -420,8 +420,8 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         return self._field_list, {}
 
     def _calculate_particle_offsets(self, data_file, pcounts):
-        # This computes the offsets for each particle type into a "data_file."  Note that
-        # the term "data_file" here is a bit overloaded, and also refers to a
+        # This computes the offsets for each particle type into a "data_file."
+        # Note that the term "data_file" here is a bit overloaded, and also refers to a
         # "chunk" of particles inside a data file.
         # data_file.start represents the *particle count* that we should start at.
         #

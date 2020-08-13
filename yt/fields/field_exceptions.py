@@ -8,7 +8,7 @@ class NeedsGridType(ValidationException):
         self.fields = fields
 
     def __str__(self):
-        return "(%s, %s)" % (self.ghost_zones, self.fields)
+        return f"({self.ghost_zones}, {self.fields})"
 
 
 class NeedsOriginalGrid(NeedsGridType):
@@ -21,7 +21,7 @@ class NeedsDataField(ValidationException):
         self.missing_fields = missing_fields
 
     def __str__(self):
-        return "(%s)" % (self.missing_fields)
+        return f"({self.missing_fields})"
 
 
 class NeedsProperty(ValidationException):
@@ -29,7 +29,7 @@ class NeedsProperty(ValidationException):
         self.missing_properties = missing_properties
 
     def __str__(self):
-        return "(%s)" % (self.missing_properties)
+        return f"({self.missing_properties})"
 
 
 class NeedsParameter(ValidationException):
@@ -37,7 +37,7 @@ class NeedsParameter(ValidationException):
         self.missing_parameters = missing_parameters
 
     def __str__(self):
-        return "(%s)" % (self.missing_parameters)
+        return f"({self.missing_parameters})"
 
 
 class NeedsConfiguration(ValidationException):
@@ -46,7 +46,7 @@ class NeedsConfiguration(ValidationException):
         self.value = value
 
     def __str__(self):
-        return "(Needs %s = %s)" % (self.parameter, self.value)
+        return f"(Needs {self.parameter} = {self.value})"
 
 
 class FieldUnitsError(Exception):

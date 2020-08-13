@@ -75,7 +75,7 @@ class GadgetSimulation(SimulationTimeSeries):
                 )
             # Comoving lengths
             for my_unit in ["m", "pc", "AU"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 # technically not true, but should be ok
                 self.unit_registry.add(
                     new_unit,
@@ -405,7 +405,7 @@ class GadgetSimulation(SimulationTimeSeries):
             count = "*"
         else:
             count = "%03d" % index
-        filename = "%s_%s%s" % (self.parameters["SnapshotFileBase"], count, suffix)
+        filename = f"{self.parameters['SnapshotFileBase']}_{count}{suffix}"
         return os.path.join(self.data_dir, filename)
 
     def _get_all_outputs(self, find_outputs=False):
@@ -545,5 +545,5 @@ class GadgetSimulation(SimulationTimeSeries):
         mylog.info("Writing redshift output list to %s.", filename)
         f = open(filename, "w")
         for output in outputs:
-            f.write("%f\n" % (1.0 / (1.0 + output["redshift"])))
+            f.write(f"{1.0 / (1.0 + output['redshift']):f}\n")
         f.close()

@@ -19,7 +19,7 @@ def compare(ds, im, test_prefix, test_name=None, decimals=12):
     def mesh_render_image_func(filename_prefix):
         return im.write_image(filename_prefix)
 
-    mesh_render_image_func.__name__ = "func_{}".format(test_prefix)
+    mesh_render_image_func.__name__ = f"func_{test_prefix}"
     test = GenericImageTest(ds, mesh_render_image_func, decimals)
     test.prefix = test_prefix
     test.answer_name = test_name
@@ -70,7 +70,7 @@ def test_fake_hexahedral_ds_render():
     for field in field_list:
         sc = create_scene(ds, field)
         im = sc.render()
-        test_prefix = "yt_render_fake_hexahedral_%s_%s" % (field[0], field[1])
+        test_prefix = f"yt_render_fake_hexahedral_{field[0]}_{field[1]}"
         yield compare(
             ds, im, test_prefix=test_prefix, test_name="fake_hexahedral_ds_render"
         )
@@ -85,9 +85,7 @@ def hex8_render(engine, field):
     ds = data_dir_load(hex8, kwargs={"step": -1})
     sc = create_scene(ds, field)
     im = sc.render()
-    return compare(
-        ds, im, "%s_render_answers_hex8_%s_%s" % (engine, field[0], field[1])
-    )
+    return compare(ds, im, f"{engine}_render_answers_hex8_{field[0]}_{field[1]}")
 
 
 @requires_ds(hex8)
@@ -112,9 +110,7 @@ def tet4_render(engine, field):
     ds = data_dir_load(tet4, kwargs={"step": -1})
     sc = create_scene(ds, field)
     im = sc.render()
-    return compare(
-        ds, im, "%s_render_answers_tet4_%s_%s" % (engine, field[0], field[1])
-    )
+    return compare(ds, im, f"{engine}_render_answers_tet4_{field[0]}_{field[1]}")
 
 
 @requires_ds(tet4)
@@ -139,9 +135,7 @@ def hex20_render(engine, field):
     ds = data_dir_load(hex20, kwargs={"step": -1})
     sc = create_scene(ds, field)
     im = sc.render()
-    return compare(
-        ds, im, "%s_render_answers_hex20_%s_%s" % (engine, field[0], field[1])
-    )
+    return compare(ds, im, f"{engine}_render_answers_hex20_{field[0]}_{field[1]}")
 
 
 @requires_ds(hex20)
@@ -166,9 +160,7 @@ def wedge6_render(engine, field):
     ds = data_dir_load(wedge6, kwargs={"step": -1})
     sc = create_scene(ds, field)
     im = sc.render()
-    return compare(
-        ds, im, "%s_render_answers_wedge6_%s_%s" % (engine, field[0], field[1])
-    )
+    return compare(ds, im, f"{engine}_render_answers_wedge6_{field[0]}_{field[1]}")
 
 
 @requires_ds(wedge6)
@@ -195,9 +187,7 @@ def tet10_render(engine, field):
     ms = sc.get_source(0)
     ms.color_bounds = (-0.01, 0.2)
     im = sc.render()
-    return compare(
-        ds, im, "%s_render_answers_tet10_%s_%s" % (engine, field[0], field[1])
-    )
+    return compare(ds, im, f"{engine}_render_answers_tet10_{field[0]}_{field[1]}")
 
 
 @requires_ds(tet10)
@@ -224,7 +214,7 @@ def perspective_mesh_render(engine):
     cam.set_position(cam_pos, north_vector)
     cam.resolution = (800, 800)
     im = sc.render()
-    return compare(ds, im, "%s_perspective_mesh_render" % engine)
+    return compare(ds, im, f"{engine}_perspective_mesh_render")
 
 
 @requires_ds(hex8)
@@ -255,7 +245,7 @@ def composite_mesh_render(engine):
     sc.add_source(ms1)
     sc.add_source(ms2)
     im = sc.render()
-    return compare(ds, im, "%s_composite_mesh_render" % engine)
+    return compare(ds, im, f"{engine}_composite_mesh_render")
 
 
 @requires_ds(hex8)
