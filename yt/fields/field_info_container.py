@@ -487,22 +487,39 @@ class FieldInfoContainer(dict):
         for field in fields_to_check:
             fi = self[field]
             try:
+                # Here we except a very large number of unrelated exceptions.
+                # This is a code smell and indicates that the single line in the try
+                # block does too much, or has an impredictible behaviour.
+                # Each exception caught is likely covering a bug somewhere in the test
+                # suite. They are sorted so it's easier to keep track of.
+                # In order to solve these, open a PR with one (and preferably only one)
+                # of those deactivated, then see which tests fail and solve the
+                # underlying issues locally.
+
                 # fd: field detector
                 fd = fi.get_dependencies(ds=self.ds)
             except (
+                # Yt errors
+                # those are probably fine (but should be checked)
                 YTFieldNotFound,
-                NeedsConfiguration,
-                UnitConversionError,
                 YTDomainOverflow,
                 YTCoordinateNotImplemented,
+                NeedsConfiguration,
+                # unyt errors
+                # those denote unsanitized data passed down to unyt and should be fixed
                 UnitOperationError,
+                UnitConversionError,
+                # builtin errors
+                # those are probably fine (but should be checked)
+                TypeError,
                 ValueError,
                 IndexError,
                 AttributeError,
                 KeyError,
+                # other builtin errors
+                # code smells -> those are very likely bugs
                 UnboundLocalError,  # This should be fixed in #2850
                 RecursionError,
-                TypeError,
             ) as e:
                 if field in self._show_field_errors:
                     raise
