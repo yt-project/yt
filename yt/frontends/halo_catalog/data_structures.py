@@ -240,6 +240,12 @@ class YTHaloParticleIndex(ParticleIndex):
         ds.particle_types_raw = ds.particle_types
 
     def _get_halo_file_indices(self, ptype, identifiers):
+        """
+        Get the index of the data file list where this halo lives.
+
+        Digitize returns i such that bins[i-1] <= x < bins[i], so we subtract
+        one because we will open data file i.
+        """
         return np.digitize(identifiers, self._halo_index_start[ptype], right=False) - 1
 
     def _get_halo_scalar_index(self, ptype, identifier):
