@@ -125,6 +125,7 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
 
         ents = list(self.pyne_mesh.structured_iterate_vertex())
         coords = self.pyne_mesh.mesh.get_coords(ents).astype("float64")
+        coords = np.reshape(coords, (int(len(coords)/3), 3))
         hexes = self.pyne_mesh.mesh.get_entities_by_type(0, types.MBHEX)
         vind = []
         for h in hexes:
@@ -133,7 +134,7 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
                                                       create_if_missing = True,
                                                       op_type=types.UNION)
             vind += list(adj)
-        vind = np.asarray(vind)
+        vind = np.asarray(vind, dtype=np.int64)
         vind.shape = (int(vind.shape[0] / 8), 8)
         self.meshes = [PyneHex8Mesh(0, self.index_filename, vind, coords, self)]
 
