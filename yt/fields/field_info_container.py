@@ -499,13 +499,29 @@ class FieldInfoContainer(dict):
         # this violates isolation principles and should be refactored
         dfl = set(self.ds.derived_field_list).union(deps.keys())
         dfl = list(sorted(dfl, key=tupleize))
+
         if not hasattr(self.ds.index, "meshes"):
             # the meshes attribute characterizes a unstructured-mesh data structure
 
             # ideally this fitlering should not be required
             # and this could maybe be handled in fi.get_dependencies
             # but it's a lot easier to do here
-            dfl = [(ft, fn) for ft, fn in dfl if "vertex" not in fn]
+
+            filtered_dfl = []
+            for field in dfl:
+                try:
+                    ftype, fname = field
+                    if "vertex" in fname:
+                        continue
+                except ValueError:
+                    # in very rare cases, there can a field represented by a single
+                    # string, like "emissivity"
+                    # this try block _should_ be removed and the error fixed upstream
+                    # for reference, a test that would break is
+                    # yt/data_objects/tests/test_fluxes.py::ExporterTests
+                    pass
+                filtered_dfl.append(field)
+            dfl = filtered_dfl
 
         self.ds.derived_field_list = dfl
         return deps, unavailable
