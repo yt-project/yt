@@ -121,18 +121,17 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
         super(PyneMeshHex8Hierarchy, self).__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
-        from pymoab import core, types
+        from pymoab import types
 
         ents = list(self.pyne_mesh.structured_iterate_vertex())
         coords = self.pyne_mesh.mesh.get_coords(ents).astype("float64")
-        coords = np.reshape(coords, (int(len(coords)/3), 3))
+        coords = np.reshape(coords, (int(len(coords) / 3), 3))
         hexes = self.pyne_mesh.mesh.get_entities_by_type(0, types.MBHEX)
         vind = []
         for h in hexes:
-            adj = self.pyne_mesh.mesh.get_adjacencies(h,
-                                                      0,
-                                                      create_if_missing = True,
-                                                      op_type=types.UNION)
+            adj = self.pyne_mesh.mesh.get_adjacencies(
+                h, 0, create_if_missing=True, op_type=types.UNION
+            )
             vind += list(adj)
         vind = np.asarray(vind, dtype=np.int64)
         vind.shape = (int(vind.shape[0] / 8), 8)
