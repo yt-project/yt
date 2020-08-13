@@ -1116,7 +1116,7 @@ class Dataset:
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.modify("h", self.hubble_constant)
-            if getattr(self, "current_redshift", None):
+            if getattr(self, "current_redshift", None) is not None:
                 # Comoving lengths
                 for my_unit in ["m", "pc", "AU", "au"]:
                     new_unit = f"{my_unit}cm"
@@ -1157,7 +1157,7 @@ class Dataset:
             w_a=w_a,
         )
 
-        if getattr(self, "current_redshift", None):
+        if getattr(self, "current_redshift", None) is not None:
             self.critical_density = self.cosmology.critical_density(
                 self.current_redshift
             )
