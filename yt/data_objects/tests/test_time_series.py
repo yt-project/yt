@@ -25,7 +25,9 @@ def test_pattern_expansion():
 def test_no_match_pattern():
     with tempfile.TemporaryDirectory() as tmpdir:
         pattern = os.path.join(tmpdir, "fake_data_file_*")
-        assert_raises(OSError, DatasetSeries._get_filenames_from_glob_pattern, pattern)
+        assert_raises(
+            FileNotFoundError, DatasetSeries._get_filenames_from_glob_pattern, pattern
+        )
 
 
 def test_init_fake_dataseries():
@@ -56,7 +58,7 @@ def test_init_fake_dataseries():
         assert ts._pre_outputs == pfile_list
 
         # rejected input type (str repr of a list) "[file1, file2, ...]"
-        assert_raises(OSError, DatasetSeries, str(file_list))
+        assert_raises(FileNotFoundError, DatasetSeries, str(file_list))
 
         # finally, check that ts[0] fails to actually load
         assert_raises(YTOutputNotIdentified, ts.__getitem__, 0)
