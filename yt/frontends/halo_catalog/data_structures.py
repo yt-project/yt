@@ -203,28 +203,20 @@ class YTHaloParticleIndex(ParticleIndex):
                 particle_count[ptype] += data_file.total_particles[ptype]
             offset_count += getattr(data_file, "total_offset", 0)
 
-        self._halo_index_start = dict(
-            [
-                (
-                    ptype,
-                    np.array(
-                        [data_file.index_start[ptype] for data_file in self.data_files]
-                    ),
-                )
-                for ptype in self.ds.particle_types_raw
-            ]
-        )
+        self._halo_index_start = {}
+        for ptype in self.ds.particle_types_raw:
+            d = [data_file.index_start[ptype] for data_file in self.data_files]
+            self._halo_index_start.update({ptype: np.array(d)})
 
     def _detect_output_fields(self):
         field_list = []
         scalar_field_list = []
         units = {}
-        pc = dict(
-            [
-                (ptype, sum([d.total_particles[ptype] for d in self.data_files]))
-                for ptype in self.ds.particle_types_raw
-            ]
-        )
+
+        pc = {}
+        for ptype in self.ds.particle_types_raw:
+            d = [df.total_particles[ptype] for df in self.data_files]
+            pc.update({ptype: sum(d)})
         found_fields = dict([(ptype, False) for ptype, pnum in pc.items() if pnum > 0])
         has_ids = False
 
