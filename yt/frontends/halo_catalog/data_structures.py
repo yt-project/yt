@@ -264,6 +264,7 @@ class YTHaloParticleIndex(ParticleIndex):
         data = defaultdict(lambda: np.empty(identifiers.size))
         i_scalars = self._get_halo_file_indices(ptype, identifiers)
         for i_scalar in np.unique(i_scalars):
+            # mask array to get field data for this halo
             target = i_scalars == i_scalar
             scalar_indices = identifiers - self._halo_index_start[ptype][i_scalar]
 
@@ -291,10 +292,10 @@ class YTHaloParticleIndex(ParticleIndex):
         return fh[field][indices]
 
     def _read_particle_fields(self, fields, dobj, chunk=None):
-        if len(fields) == 0:
+        if not fields:
             return {}, []
         fields_to_read, fields_to_generate = self._split_fields(fields)
-        if len(fields_to_read) == 0:
+        if not fields_to_read:
             return {}, fields_to_generate
         fields_to_return = self.io._read_particle_selection(dobj, fields_to_read)
         return fields_to_return, fields_to_generate
@@ -383,6 +384,7 @@ class YTHaloDataset(HaloDataset):
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
+        # We don't ever want this to be loaded by yt.load.
         return False
 
 
