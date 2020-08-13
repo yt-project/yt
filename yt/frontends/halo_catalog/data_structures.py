@@ -31,9 +31,6 @@ class HaloCatalogParticleIndex(ParticleIndex):
                     range=None,
                 )
             ]
-        self.total_particles = sum(
-            sum(d.total_particles.values()) for d in self.data_files
-        )
 
 
 class HaloCatalogFile(ParticleFile):
