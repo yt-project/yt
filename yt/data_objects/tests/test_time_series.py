@@ -32,7 +32,7 @@ def test_no_match_pattern():
 
 def test_init_fake_dataseries():
 
-    file_list = ["fake_data_file_{}".format(str(i).zfill(4)) for i in range(10)]
+    file_list = [f"fake_data_file_{str(i).zfill(4)}" for i in range(10)]
     with tempfile.TemporaryDirectory() as tmpdir:
         pfile_list = [Path(tmpdir) / file for file in file_list]
         sfile_list = [os.path.join(tmpdir, f) for f in file_list]
