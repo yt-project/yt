@@ -3,7 +3,7 @@ import numpy as np
 from yt.fields.derived_field import ValidateParameter, ValidateSpatial
 from yt.funcs import just_one
 from yt.geometry.geometry_handler import is_curvilinear
-from yt.utilities.exceptions import YTDimensionalityError
+from yt.utilities.exceptions import YTDimensionalityError, YTFieldNotFound
 
 from .field_plugin_registry import register_field_plugin
 from .vector_operations import create_magnitude_field, create_squared_field
@@ -409,13 +409,18 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         (it's just like vorticity except add the derivative pairs instead
          of subtracting them)
         """
-        if data.ds.dimensionality == 1:
-            raise YTDimensionalityError("shear is meaningless in 1D")
+
         if data.ds.geometry != "cartesian":
             raise NotImplementedError("shear is only supported in cartesian geometries")
 
-        vx = data[ftype, "relative_velocity_x"]
-        vy = data[ftype, "relative_velocity_y"]
+        try:
+            vx = data[ftype, "relative_velocity_x"]
+            vy = data[ftype, "relative_velocity_y"]
+        except YTFieldNotFound as e:
+            raise YTDimensionalityError(
+                "shear computation requires 2 velocity components"
+            ) from e
+
         dvydx = (
             vy[sl_right, sl_center, sl_center] - vy[sl_left, sl_center, sl_center]
         ) / (div_fac * just_one(data["index", "dx"]))
@@ -425,7 +430,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         f = (dvydx + dvxdy) ** 2.0
         del dvydx, dvxdy
 
-        if data.ds.dimensionality > 2:
+        try:
             vz = data[ftype, "relative_velocity_z"]
             dvzdy = (
                 vz[sl_center, sl_right, sl_center] - vz[sl_center, sl_left, sl_center]
@@ -443,6 +448,10 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             ) / (div_fac * just_one(data["index", "dx"]))
             f += (dvxdz + dvzdx) ** 2.0
             del dvxdz, dvzdx
+        except YTFieldNotFound:
+            # the absence of a z velocity component is not blocking
+            pass
+
         np.sqrt(f, out=f)
         new_field = data.ds.arr(np.zeros_like(data[ftype, "velocity_x"]), f.units)
         new_field[sl_center, sl_center, sl_center] = f
