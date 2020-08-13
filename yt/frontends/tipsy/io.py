@@ -117,7 +117,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def hsml_filename(self):
         return f"{self.ds.parameter_filename}-{'hsml'}"
 
-    def _generate_smoothing_length(self, data_files, kdtree):
+    def _generate_smoothing_length(self, index):
         if os.path.exists(self.hsml_filename):
             with open(self.hsml_filename, "rb") as f:
                 file_hash = struct.unpack("q", f.read(struct.calcsize("q")))[0]
@@ -126,13 +126,14 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             else:
                 return
         positions = []
-        for data_file in data_files:
+        for data_file in index.data_files:
             for _, ppos in self._yield_coordinates(
                 data_file, needed_ptype=self.ds._sph_ptypes[0]
             ):
                 positions.append(ppos)
         if positions == []:
             return
+        kdtree = index.kdtree
         positions = np.concatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
         hsml = hsml[np.argsort(kdtree.idx)]
