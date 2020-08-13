@@ -71,7 +71,7 @@ class ParticleFileHandler:
             igroup = ((domain.domain_id - 1) // ds.group_size) + 1
             full_path = os.path.join(
                 basename,
-                "group_{:05d}".format(igroup),
+                f"group_{igroup:05d}",
                 self.fname.format(iout=iout, icpu=domain.domain_id),
             )
         else:
@@ -83,8 +83,7 @@ class ParticleFileHandler:
             self.fname = full_path
         else:
             raise FileNotFoundError(
-                "Could not find particle file (type: %s). Tried %s"
-                % (self.ptype, full_path)
+                f"Could not find particle file (type: {self.ptype}). Tried {full_path}"
             )
 
         if self.file_descriptor is not None:
@@ -348,7 +347,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
         # Note: this follows RAMSES convention.
         for i in range(self.ds.dimensionality * 2 + 1):
             for ilvl in range(self.ds.max_level + 1):
-                fields.append(("particle_prop_%s_%s" % (ilvl, i), "d"))
+                fields.append((f"particle_prop_{ilvl}_{i}", "d"))
 
         field_offsets = {}
         _pfields = {}

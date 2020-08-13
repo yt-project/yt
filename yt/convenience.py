@@ -56,7 +56,8 @@ def load(fn, *args, **kwargs):
 
         return DatasetSeries(fn, *args, **kwargs)
 
-    # Unless the dataset starts with http, look for it using the path or relative to the data dir (in this order).
+    # Unless the dataset starts with http,
+    # look for it using the path or relative to the data dir (in this order).
     if not (os.path.exists(fn) or fn.startswith("http")):
         data_dir = ytcfg.get("yt", "test_data_dir")
         alt_fn = os.path.join(data_dir, fn)

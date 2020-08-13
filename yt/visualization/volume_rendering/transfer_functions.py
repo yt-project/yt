@@ -237,7 +237,8 @@ class TransferFunction:
 
     def __repr__(self):
         disp = (
-            "<Transfer Function Object>: x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s"
+            "<Transfer Function Object>: "
+            "x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s"
             % (self.x_bounds[0], self.x_bounds[1], self.nbins, self.features)
         )
         return disp
@@ -669,7 +670,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                     else:
                         return r"$0$"
                 else:
-                    return "%.1g" % (val)
+                    return f"{val:.1g}"
             else:
                 return label_fmt % (val)
 
@@ -901,7 +902,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             % (self.x_bounds[0], self.x_bounds[1], self.nbins)
         )
         for f in self.features:
-            disp += "\t%s\n" % str(f)
+            disp += f"\t{str(f)}\n"
         return disp
 
 

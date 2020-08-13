@@ -66,9 +66,8 @@ def _render_opengl(
         field = dobj.ds.default_field
         if field not in dobj.ds.derived_field_list:
             raise YTSceneFieldNotFound(
-                """Could not find field '%s' in %s.
+                f"""Could not find field '{field}' in {dobj.ds}.
                   Please specify a field in create_scene()"""
-                % (field, dobj.ds)
             )
         mylog.info("Setting default field to %s", field.__repr__())
     if window_size is None:

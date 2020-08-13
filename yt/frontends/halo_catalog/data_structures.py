@@ -85,7 +85,7 @@ class HaloCatalogHDF5File(HaloCatalogFile):
         pcount = self.header["num_halos"]
         pos = np.empty((pcount, 3), dtype="float64")
         for i, ax in enumerate("xyz"):
-            pos[:, i] = f["particle_position_%s" % ax][()]
+            pos[:, i] = f[f"particle_position_{ax}"][()]
 
         if close:
             f.close()
@@ -129,7 +129,7 @@ class HaloCatalogDataset(SavedDataset):
         self.domain_dimensions = np.ones(self.dimensionality, "int32")
         self.periodicity = (True, True, True)
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
-        self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
+        self.filename_template = f"{prefix}.%(num)s{self._suffix}"
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
         self.particle_types = "halos"
         self.particle_types_raw = "halos"

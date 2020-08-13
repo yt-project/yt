@@ -20,9 +20,10 @@ def test_load_nonexistent_data():
             FileNotFoundError, simulation, os.path.join(tmpdir, "not_a_file"), "Enzo"
         )
 
-        # this one is a design choice: it is preferable to report the most important
-        # problem in an error message (missing data is worse than a typo in
-        # simulation_type), so we make sure the error raised is not YTSimulationNotIdentified
+        # this one is a design choice:
+        # it is preferable to report the most important problem in an error message
+        # (missing data is worse than a typo insimulation_type)
+        # so we make sure the error raised is not YTSimulationNotIdentified
         assert_raises(
             FileNotFoundError,
             simulation,

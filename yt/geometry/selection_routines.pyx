@@ -1473,10 +1473,19 @@ cdef class SliceSelector(SelectorObject):
     cdef int axis
     cdef np.float64_t coord
     cdef int ax, ay
+    cdef int reduced_dimensionality
 
     def __init__(self, dobj):
         self.axis = dobj.axis
         self.coord = _ensure_code(dobj.coord)
+        # If we have a reduced dimensionality dataset, we want to avoid any
+        # checks against it in the axes that are beyond its dimensionality.
+        # This means that if we have a 2D dataset, *all* slices along z will
+        # select all the zones.
+        if self.axis >= dobj.ds.dimensionality:
+            self.reduced_dimensionality = 1
+        else:
+            self.reduced_dimensionality = 0
 
         self.ax = (self.axis+1) % 3
         self.ay = (self.axis+2) % 3
@@ -1529,6 +1538,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        if self.reduced_dimensionality == 1:
+            return 1
         if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
            and pos[self.axis] - 0.5*dds[self.axis] - grid_eps <= self.coord:
             return 1
@@ -1542,6 +1553,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        if self.reduced_dimensionality == 1:
+            return 1
         cdef np.float64_t dist = self.periodic_difference(
             pos[self.axis], self.coord, self.axis)
         if dist*dist < radius*radius:
@@ -1553,6 +1566,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        if self.reduced_dimensionality == 1:
+            return 1
         if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
             return 1
         return 0
@@ -1562,6 +1577,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        if self.reduced_dimensionality == 1:
+            return 2
         if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
             return 2 # a box with non-zero volume can't be inside a plane
         return 0

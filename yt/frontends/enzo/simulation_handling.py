@@ -82,7 +82,7 @@ class EnzoSimulation(SimulationTimeSeries):
                 )
             # Comoving lengths
             for my_unit in ["m", "pc", "AU"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 # technically not true, but should be ok
                 self.unit_registry.add(
                     new_unit,
@@ -573,7 +573,8 @@ class EnzoSimulation(SimulationTimeSeries):
 
     def _set_parameter_defaults(self):
         """
-        Set some default parameters to avoid problems if they are not in the parameter file.
+        Set some default parameters to avoid problems
+        if they are not in the parameter file.
         """
 
         self.parameters["GlobalDir"] = self.directory
@@ -602,7 +603,7 @@ class EnzoSimulation(SimulationTimeSeries):
         # look for time outputs.
         potential_time_outputs = glob.glob(
             os.path.join(
-                self.parameters["GlobalDir"], "%s*" % self.parameters["DataDumpDir"]
+                self.parameters["GlobalDir"], f"{self.parameters['DataDumpDir']}*"
             )
         )
         self.all_time_outputs = self._check_for_outputs(potential_time_outputs)
@@ -611,7 +612,7 @@ class EnzoSimulation(SimulationTimeSeries):
         # look for redshift outputs.
         potential_redshift_outputs = glob.glob(
             os.path.join(
-                self.parameters["GlobalDir"], "%s*" % self.parameters["RedshiftDumpDir"]
+                self.parameters["GlobalDir"], f"{self.parameters['RedshiftDumpDir']}*"
             )
         )
         self.all_redshift_outputs = self._check_for_outputs(potential_redshift_outputs)
@@ -653,8 +654,8 @@ class EnzoSimulation(SimulationTimeSeries):
             index = output[output.find(dir_key) + len(dir_key) :]
             filename = os.path.join(
                 self.parameters["GlobalDir"],
-                "%s%s" % (dir_key, index),
-                "%s%s" % (output_key, index),
+                f"{dir_key}{index}",
+                f"{output_key}{index}",
             )
             try:
                 ds = load(filename)

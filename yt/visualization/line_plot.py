@@ -232,11 +232,17 @@ class LinePlot(PlotContainer):
 
         Example
         --------
-        >>> ds = yt.load('SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e', step=-1)
+        >>> ds = yt.load(
+        >>>          'SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e',
+        >>>          step=-1
+        >>> )
         >>> fields = [field for field in ds.field_list if field[0] == 'all']
-        >>> lines = []
-        >>> lines.append(yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'))
-        >>> lines.append(yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5'))
+        >>> lines = [
+        ...    yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'),
+        ...    yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5')
+        ... ]
+        >>> lines.append()
+
         >>> plot = yt.LinePlot.from_lines(ds, fields, lines)
         >>> plot.save()
 

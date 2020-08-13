@@ -30,7 +30,7 @@ class ExodusIISimulation(DatasetSeries):
 
     def __init__(self, simulation_directory, find_outputs=False):
         self.simulation_directory = simulation_directory
-        fn_pattern = "%s/*" % self.simulation_directory
+        fn_pattern = f"{self.simulation_directory}/*"
         potential_outputs = glob.glob(fn_pattern)
         self.all_outputs = self._check_for_outputs(potential_outputs)
         self.all_outputs.sort(key=lambda obj: obj["filename"])

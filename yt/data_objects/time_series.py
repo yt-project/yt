@@ -68,7 +68,7 @@ def get_filenames_from_glob_pattern(outputs):
     # we try to match the pattern from the test data dir
     file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
     if not file_list:
-        raise OSError("No match found for pattern : {}".format(pattern))
+        raise OSError(f"No match found for pattern : {pattern}")
     return sorted(file_list)
 
 
@@ -473,8 +473,8 @@ class DatasetSeries:
 
         Note
         ----
-        This function will fail if there are duplicate particle ids or if some of the particle
-        disappear.
+        This function will fail if there are duplicate particle ids or if some of the
+        particle disappear.
         """
         return ParticleTrajectories(
             self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype

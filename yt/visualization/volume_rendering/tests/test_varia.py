@@ -63,11 +63,8 @@ class VariousVRTests(TestCase):
     def test_rotation_volume_rendering(self):
         im, sc = yt.volume_render(self.ds)
 
-        angle = 2 * np.pi
-        frames = 4
-        for _ in range(frames):
-            sc.camera.yaw(angle / frames)
-            sc.render()
+        sc.camera.yaw(np.pi)
+        sc.render()
 
     def test_simple_volume_rendering(self):
         im, sc = yt.volume_render(self.ds, sigma_clip=4.0)

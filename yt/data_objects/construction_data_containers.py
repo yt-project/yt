@@ -343,7 +343,7 @@ class YTProj(YTSelectionContainer2D):
                 path_length_unit = Unit(registry=self.ds.unit_registry)
             else:
                 ax_name = self.ds.coordinates.axis_name[self.axis]
-                path_element_name = ("index", "path_element_%s" % (ax_name))
+                path_element_name = ("index", f"path_element_{ax_name}")
                 path_length_unit = self.ds.field_info[path_element_name].units
                 path_length_unit = Unit(
                     path_length_unit, registry=self.ds.unit_registry
@@ -552,7 +552,7 @@ class YTQuadTreeProj(YTProj):
             dl = self.ds.quan(1.0, "")
         else:
             ax_name = self.ds.coordinates.axis_name[self.axis]
-            dl = chunk["index", "path_element_%s" % (ax_name)]
+            dl = chunk["index", f"path_element_{ax_name}"]
             # This is done for cases where our path element does not have a CGS
             # equivalent.  Once "preferred units" have been implemented, this
             # will not be necessary at all, as the final conversion will occur
@@ -876,12 +876,12 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 fi = self.ds._get_field_info(field)
                 ptype = fi.name[0]
                 if ptype not in self.ds._sph_ptypes:
-                    raise KeyError("%s is not a SPH particle type!" % ptype)
+                    raise KeyError(f"{ptype} is not a SPH particle type!")
                 buff = np.zeros(size, dtype="float64")
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
 
-                pbar = tqdm(desc="Interpolating SPH field {}".format(field))
+                pbar = tqdm(desc=f"Interpolating SPH field {field}")
                 for chunk in self._data_source.chunks([field], "io"):
                     px = chunk[(ptype, "particle_position_x")].in_base("code").d
                     py = chunk[(ptype, "particle_position_y")].in_base("code").d
@@ -991,11 +991,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def _generate_container_field(self, field):
         rv = self.ds.arr(np.ones(self.ActiveDimensions, dtype="float64"), "")
         axis_name = self.ds.coordinates.axis_name
-        if field == ("index", "d%s" % axis_name[0]):
+        if field == ("index", f"d{axis_name[0]}"):
             np.multiply(rv, self.dds[0], rv)
-        elif field == ("index", "d%s" % axis_name[1]):
+        elif field == ("index", f"d{axis_name[1]}"):
             np.multiply(rv, self.dds[1], rv)
-        elif field == ("index", "d%s" % axis_name[2]):
+        elif field == ("index", f"d{axis_name[2]}"):
             np.multiply(rv, self.dds[2], rv)
         elif field == ("index", axis_name[0]):
             x = np.mgrid[
@@ -1031,7 +1031,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return self.right_edge
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs. Everything
@@ -2035,22 +2035,20 @@ class YTSurface(YTSelectionContainer3D):
             fmtl.write(
                 "newmtl " + omname + "\n"
             )  # the specific material (color) for this face
+            fmtl.write(f"Ka {0.0:.6f} {0.0:.6f} {0.0:.6f}\n")  # ambient color, keep off
             fmtl.write(
-                "Ka %.6f %.6f %.6f\n" % (0.0, 0.0, 0.0)
-            )  # ambient color, keep off
-            fmtl.write(
-                "Kd %.6f %.6f %.6f\n" % (lut[0][i], lut[1][i], lut[2][i])
+                f"Kd {lut[0][i]:.6f} {lut[1][i]:.6f} {lut[2][i]:.6f}\n"
             )  # color of face
             fmtl.write(
-                "Ks %.6f %.6f %.6f\n" % (0.0, 0.0, 0.0)
+                f"Ks {0.0:.6f} {0.0:.6f} {0.0:.6f}\n"
             )  # specular color, keep off
-            fmtl.write("d %.6f\n" % (transparency))  # transparency
-            fmtl.write("em %.6f\n" % (emiss[i]))  # emissivity per color
+            fmtl.write(f"d {transparency:.6f}\n")  # transparency
+            fmtl.write(f"em {emiss[i]:.6f}\n")  # emissivity per color
             fmtl.write("illum 2\n")  # not relevant, 2 means highlights on?
             fmtl.write("Ns %.6f\n\n" % (0.0))  # keep off, some other specular thing
         # (2) write vertices
         for i in range(0, self.vertices.shape[1]):
-            fobj.write("v %.6f %.6f %.6f\n" % (v["x"][i], v["y"][i], v["z"][i]))
+            fobj.write(f"v {v['x'][i]:.6f} {v['y'][i]:.6f} {v['z'][i]:.6f}\n")
         fobj.write("#done defining vertices\n\n")
         # (3) define faces and materials for each face
         for i in range(0, self.triangles.shape[0]):
@@ -2538,8 +2536,8 @@ class YTSurface(YTSelectionContainer3D):
         import requests
 
         SKETCHFAB_DOMAIN = "sketchfab.com"
-        SKETCHFAB_API_URL = "https://api.{}/v2/models".format(SKETCHFAB_DOMAIN)
-        SKETCHFAB_MODEL_URL = "https://{}/models/".format(SKETCHFAB_DOMAIN)
+        SKETCHFAB_API_URL = f"https://api.{SKETCHFAB_DOMAIN}/v2/models"
+        SKETCHFAB_MODEL_URL = f"https://{SKETCHFAB_DOMAIN}/models/"
 
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
@@ -2722,7 +2720,7 @@ class YTOctree(YTSelectionContainer3D):
         self.ds.index
         for ptype in ptypes:
             if ptype not in self.ds.particle_types:
-                mess = "{} not found. Particle type must ".format(ptype)
+                mess = f"{ptype} not found. Particle type must "
                 mess += "be in the dataset!"
                 raise TypeError(mess)
 
@@ -2814,7 +2812,7 @@ class YTOctree(YTSelectionContainer3D):
             buff_den = np.empty(0)
 
         ptype = fields[0]
-        pbar = tqdm(desc="Interpolating (scatter) SPH field {}".format(fields[0]))
+        pbar = tqdm(desc=f"Interpolating (scatter) SPH field {fields[0]}")
         for chunk in self._data_source.chunks([fields], "io"):
             px = chunk[(ptype, "particle_position_x")].in_base("code").d
             py = chunk[(ptype, "particle_position_y")].in_base("code").d

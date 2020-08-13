@@ -358,7 +358,7 @@ def requires_ds(ds_fn, file_check=False):
     def ffalse(func):
         @functools.wraps(func)
         def skip(*args, **kwargs):
-            msg = "{} not found, skipping {}.".format(ds_fn, func.__name__)
+            msg = f"{ds_fn} not found, skipping {func.__name__}."
             pytest.fail(msg)
 
         return skip
@@ -385,7 +385,7 @@ def requires_sim(sim_fn, sim_type, file_check=False):
     def ffalse(func):
         @functools.wraps(func)
         def skip(*args, **kwargs):
-            msg = "{} not found, skipping {}.".format(sim_fn, func.__name__)
+            msg = f"{sim_fn} not found, skipping {func.__name__}."
             pytest.fail(msg)
 
         return skip

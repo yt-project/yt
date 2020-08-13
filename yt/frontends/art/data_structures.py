@@ -233,7 +233,7 @@ class ARTDataset(Dataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        setdefaultattr(self, "mass_unit", self.quan(mass, "g*%s" % ng ** 3))
+        setdefaultattr(self, "mass_unit", self.quan(mass, f"g*{ng ** 3}"))
         setdefaultattr(self, "length_unit", self.quan(box_proper, "Mpc"))
         setdefaultattr(self, "velocity_unit", self.quan(velocity, "cm/s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
@@ -374,7 +374,7 @@ class ARTDataset(Dataset):
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = "%s" % args[0]
+        f = f"{args[0]}"
         prefix, suffix = filename_pattern["amr"]
         if not os.path.isfile(f):
             return False
@@ -515,7 +515,7 @@ class DarkMatterARTDataset(ARTDataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        self.mass_unit = self.quan(mass, "g*%s" % ng ** 3)
+        self.mass_unit = self.quan(mass, f"g*{ng ** 3}")
         self.length_unit = self.quan(box_proper, "Mpc")
         self.velocity_unit = self.quan(velocity, "cm/s")
         self.time_unit = self.length_unit / self.velocity_unit
@@ -672,7 +672,7 @@ class DarkMatterARTDataset(ARTDataset):
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = "%s" % args[0]
+        f = f"{args[0]}"
         prefix, suffix = filename_pattern["particle_data"]
         if not os.path.isfile(f):
             return False

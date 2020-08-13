@@ -5,7 +5,7 @@ from yt.utilities.io_handler import BaseIOHandler
 
 
 def field_dname(field_name):
-    return "/tstt/elements/Hex8/tags/{0}".format(field_name)
+    return f"/tstt/elements/Hex8/tags/{field_name}"
 
 
 # TODO all particle bits were removed

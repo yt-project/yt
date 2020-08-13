@@ -73,15 +73,17 @@ class YTDataContainer:
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
-        # ds is typically set in the new object type created in Dataset._add_object_class
-        # but it can also be passed as a parameter to the constructor, in which case it will
-        # override the default. This code ensures it is never not set.
+        # ds is typically set in the new object type created in
+        # Dataset._add_object_class but it can also be passed as a parameter to the
+        # constructor, in which case it will override the default.
+        # This code ensures it is never not set.
         if ds is not None:
             self.ds = ds
         else:
             if not hasattr(self, "ds"):
                 raise RuntimeError(
-                    "Error: ds must be set either through class type or parameter to the constructor"
+                    "Error: ds must be set either through class type "
+                    "or parameter to the constructor"
                 )
 
         self._current_particle_type = "all"
@@ -363,7 +365,7 @@ class YTDataContainer:
             ind = 0
             for _io_chunk in self.chunks([], "io", cache=False):
                 for _chunk in self.chunks(field, "spatial"):
-                    x, y, z = (self[ftype, "particle_position_%s" % ax] for ax in "xyz")
+                    x, y, z = (self[ftype, f"particle_position_{ax}"] for ax in "xyz")
                     if x.size == 0:
                         continue
                     mask = self._current_chunk.objs[0].select_particles(
@@ -387,7 +389,7 @@ class YTDataContainer:
         size = 0
         for _io_chunk in self.chunks([], "io", cache=False):
             for _chunk in self.chunks([], "spatial"):
-                x, y, z = (self[ftype, "particle_position_%s" % ax] for ax in "xyz")
+                x, y, z = (self[ftype, f"particle_position_{ax}"] for ax in "xyz")
                 if x.size == 0:
                     continue
                 size += self._current_chunk.objs[0].count_particles(
@@ -581,7 +583,7 @@ class YTDataContainer:
 
         """
 
-        keyword = "%s_%s" % (str(self.ds), self._type_name)
+        keyword = f"{str(self.ds)}_{self._type_name}"
         filename = get_output_filename(filename, keyword, ".h5")
 
         data = {}
@@ -619,7 +621,7 @@ class YTDataContainer:
         if need_particle_positions:
             for ax in self.ds.coordinates.axis_order:
                 for ptype in ptypes:
-                    p_field = (ptype, "particle_position_%s" % ax)
+                    p_field = (ptype, f"particle_position_{ax}")
                     if p_field in self.ds.field_info and p_field not in data:
                         data_fields.append(field)
                         ftypes[p_field] = p_field[0]
@@ -836,7 +838,7 @@ class YTDataContainer:
                 ##  the UI name
                 if log_flag:
                     units = units[len("log(") : -1]
-                    field = "log{}".format(field)
+                    field = f"log{field}"
 
                 ## perform the unit conversion and take the log if
                 ##  necessary.
@@ -1007,7 +1009,7 @@ class YTDataContainer:
             r = self.ds.proj(field, axis, data_source=self, method="mip")
             return r
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
 
     def min(self, field, axis=None):
         r"""Compute the minimum of a field.
@@ -1047,7 +1049,7 @@ class YTDataContainer:
                 "Minimum intensity projection not" " implemented."
             )
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
 
     def std(self, field, weight=None):
         """Compute the variance of a field.
@@ -1219,7 +1221,7 @@ class YTDataContainer:
         elif axis is None:
             r = self.quantities.weighted_average_quantity(field, weight_field)
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
     def sum(self, field, axis=None):
@@ -1256,7 +1258,7 @@ class YTDataContainer:
         elif axis is None:
             r = self.quantities.total_quantity(field)
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
     def integrate(self, field, weight=None, axis=None):
@@ -1289,12 +1291,12 @@ class YTDataContainer:
         if axis in self.ds.coordinates.axis_name:
             r = self.ds.proj(field, axis, data_source=self, weight_field=weight_field)
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
     @property
     def _hash(self):
-        s = "%s" % self
+        s = f"{self}"
         try:
             import hashlib
 
@@ -1341,7 +1343,7 @@ class YTDataContainer:
 
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.ds)
+        s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
             try:
                 s += ", %s=%s" % (
@@ -1349,7 +1351,7 @@ class YTDataContainer:
                     getattr(self, i).in_base(unit_system=self.ds.unit_system),
                 )
             except AttributeError:
-                s += ", %s=%s" % (i, getattr(self, i))
+                s += f", {i}={getattr(self, i)}"
         return s
 
     @contextmanager

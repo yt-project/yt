@@ -22,7 +22,7 @@ class ParticleGenerator:
         ]
         self.field_list.append((ptype, "particle_index"))
         self.field_units = dict(
-            ((ptype, "particle_position_%s" % ax), "code_length") for ax in "xyz"
+            ((ptype, f"particle_position_{ax}"), "code_length") for ax in "xyz"
         )
         self.field_units[ptype, "particle_index"] = ""
         self.ptype = ptype
@@ -150,7 +150,7 @@ class ParticleGenerator:
         Examples
         --------
         >>> field_map = {'density':'particle_density',
-        >>>              'temperature':'particle_temperature'}
+        ...              'temperature':'particle_temperature'}
         >>> particles.map_grid_fields_to_particles(field_map)
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
@@ -245,7 +245,7 @@ class FromListParticleGenerator(ParticleGenerator):
         >>> posz = np.random.random((num_p))
         >>> mass = np.ones((num_p))
         >>> data = {'particle_position_x': posx, 'particle_position_y': posy,
-        >>>         'particle_position_z': posz, 'particle_mass': mass}
+        ...         'particle_position_z': posz, 'particle_mass': mass}
         >>> particles = FromListParticleGenerator(ds, num_p, data)
         """
 
@@ -308,8 +308,8 @@ class LatticeParticleGenerator(ParticleGenerator):
         >>> le = np.array([0.25,0.25,0.25])
         >>> re = np.array([0.75,0.75,0.75])
         >>> fields = ["particle_position_x","particle_position_y",
-        >>>           "particle_position_z",
-        >>>           "particle_density","particle_temperature"]
+        ...           "particle_position_z",
+        ...           "particle_density","particle_temperature"]
         >>> particles = LatticeParticleGenerator(ds, dims, le, re, fields)
         """
 
@@ -365,7 +365,8 @@ class WithDensityParticleGenerator(ParticleGenerator):
         ----------
         ds : `Dataset`
             The dataset which will serve as the base for these particles.
-        data_source : `yt.data_objects.selection_objects.base_objects.YTSelectionContainer`
+        data_source :
+            `yt.data_objects.selection_objects.base_objects.YTSelectionContainer`
             The data source containing the density field.
         num_particles : int
             The number of particles to be generated
@@ -384,8 +385,13 @@ class WithDensityParticleGenerator(ParticleGenerator):
         >>> fields = ["particle_position_x","particle_position_y",
         >>>           "particle_position_z",
         >>>           "particle_density","particle_temperature"]
-        >>> particles = WithDensityParticleGenerator(ds, sphere, num_particles,
-        >>>                                          fields, density_field='Dark_Matter_Density')
+        >>> particles = WithDensityParticleGenerator(
+        ...                ds,
+        ...                sphere,
+        ...                num_particles,
+        ...                fields,
+        ...                density_field='Dark_Matter_Density'
+        ...             )
         """
 
         super(WithDensityParticleGenerator, self).__init__(
