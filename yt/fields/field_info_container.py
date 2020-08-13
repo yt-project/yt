@@ -502,6 +502,7 @@ class FieldInfoContainer(dict):
                 KeyError,
                 UnboundLocalError,  # This should be fixed in #2850
                 RecursionError,
+                TypeError,
             ) as e:
                 if field in self._show_field_errors:
                     raise
