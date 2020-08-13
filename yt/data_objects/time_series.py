@@ -537,7 +537,7 @@ class SimulationTimeSeries(DatasetSeries):
         """
 
         if not os.path.exists(parameter_filename):
-            raise OSError(parameter_filename)
+            raise FileNotFoundError(parameter_filename)
         self.parameter_filename = parameter_filename
         self.basename = os.path.basename(parameter_filename)
         self.directory = os.path.dirname(parameter_filename)
