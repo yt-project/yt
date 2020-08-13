@@ -123,15 +123,16 @@ cdef inline void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval)
     gridval[6] = data[OINDEX(1,1,1,ds)]
     gridval[7] = data[OINDEX(0,1,1,ds)]
 
-cdef np.float64_t[8][3] cverts = \
-        [[0,0,0], [1,0,0], [1,1,0], [0,1,0],
-         [0,0,1], [1,0,1], [1,1,1], [0,1,1]]
-
 cdef inline void vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
                        np.float64_t vl[3], np.float64_t dds[3],
                        np.float64_t x, np.float64_t y, np.float64_t z,
                                int vind1, int vind2) nogil:
     cdef int i
+
+    cdef np.float64_t **cverts = \
+            [[0,0,0], [1,0,0], [1,1,0], [0,1,0],
+             [0,0,1], [1,0,1], [1,1,1], [0,1,1]]
+
 
     cdef np.float64_t mu = ((isovalue - v1) / (v2 - v1))
 
