@@ -129,9 +129,11 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
         hexes = self.pyne_mesh.mesh.get_entities_by_type(0, types.MBHEX)
         vind = []
         for h in hexes:
-            vind.append(self.pyne_mesh.mesh.get_adjacencies(
-                h, 0, create_if_missing=True, op_type=types.UNION
-            ))
+            vind.append(
+                self.pyne_mesh.mesh.get_adjacencies(
+                    h, 0, create_if_missing=True, op_type=types.UNION
+                )
+            )
         vind = np.asarray(vind, dtype=np.int64)
         vind = vind.reshape(len(vind) // 8, 8)
         self.meshes = [PyneHex8Mesh(0, self.index_filename, vind, coords, self)]
