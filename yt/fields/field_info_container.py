@@ -1,13 +1,20 @@
 from numbers import Number as numeric_type
 
 import numpy as np
+from unyt.exceptions import UnitConversionError, UnitOperationError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import mylog, only_on_root
+from yt.fields.field_exceptions import NeedsConfiguration
+from yt.funcs import issue_deprecation_warning, mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
 from yt.units.unit_object import Unit
-from yt.utilities.exceptions import YTFieldNotFound
+from yt.utilities.exceptions import (
+    YTCoordinateNotImplemented,
+    YTDomainOverflow,
+    YTFieldNotFound,
+)
 
 from .derived_field import DerivedField, NullFunc, TranslationFunc
 from .field_plugin_registry import field_plugins
@@ -482,7 +489,20 @@ class FieldInfoContainer(dict):
             try:
                 # fd: field detector
                 fd = fi.get_dependencies(ds=self.ds)
-            except (NotImplementedError, Exception) as e:  # noqa: B014
+            except (
+                YTFieldNotFound,
+                NeedsConfiguration,
+                UnitConversionError,
+                YTDomainOverflow,
+                YTCoordinateNotImplemented,
+                UnitOperationError,
+                ValueError,
+                IndexError,
+                AttributeError,
+                KeyError,
+                UnboundLocalError,  # This should be fixed in #2850
+                RecursionError,
+            ) as e:
                 if field in self._show_field_errors:
                     raise
                 if not isinstance(e, YTFieldNotFound):
