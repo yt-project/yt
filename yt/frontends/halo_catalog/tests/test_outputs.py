@@ -3,7 +3,13 @@ import numpy as np
 from yt.frontends.halo_catalog.data_structures import YTHaloCatalogDataset
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.loaders import load as yt_load
-from yt.testing import TempDirTest, assert_array_equal, requires_module
+from yt.testing import (
+    TempDirTest,
+    assert_array_equal,
+    assert_equal,
+    requires_file,
+    requires_module,
+)
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import data_dir_load
 
