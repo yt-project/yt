@@ -349,9 +349,31 @@ class RAMSESDomainSubset(OctreeSubset):
             )
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
-        new_subset = RAMSESDomainSubset(
-            self.base_region, self.domain, self.ds, num_ghost_zones=ngz, base_grid=self
-        )
+        if smoothed:
+            mylog.warning(
+                f"{self}.retrieve_ghost_zones was called with the "
+                f"`smoothed` argument set to True. This is not supported, "
+                "ignoring it."
+            )
+            smoothed = False
+
+        try:
+            new_subset = self._subset_with_gz
+            mylog.debug(
+                "Reusing previous subset with ghost zone for domain %s", self.domain_id
+            )
+        except AttributeError:
+            new_subset = RAMSESDomainSubset(
+                self.base_region,
+                self.domain,
+                self.ds,
+                num_ghost_zones=ngz,
+                base_grid=self,
+            )
+            self._subset_with_gz = new_subset
+
+            # Cache the fields
+            new_subset.get_data(fields)
 
         return new_subset
 

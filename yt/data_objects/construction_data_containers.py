@@ -1,6 +1,7 @@
 import fileinput
 import io
 import os
+import warnings
 import zipfile
 from functools import wraps
 from re import finditer
@@ -1348,6 +1349,8 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         if not iterable(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
+
+        runtime_errors_count = 0
         for level in range(self.level + 1):
             if level < min_level:
                 self._update_level_state(ls)
@@ -1373,8 +1376,17 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                     refine_by,
                 )
             if level == 0 and tot != 0:
-                raise RuntimeError
+                runtime_errors_count += 1
             self._update_level_state(ls)
+        if runtime_errors_count:
+            warnings.warn(
+                "Something went wrong during field computation. "
+                "This is likely due to missing ghost-zones support "
+                "in class %s",
+                self.ds.__class__,
+                category=RuntimeWarning,
+            )
+            mylog.debug(f"Caught {runtime_errors_count} runtime errors.")
         for name, v in zip(fields, ls.fields):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]

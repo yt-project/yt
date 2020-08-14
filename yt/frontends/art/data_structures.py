@@ -414,9 +414,6 @@ class ARTParticleIndex(ParticleIndex):
             df = cls(self.dataset, self.io, template % {"num": i}, fi)
             fi += 1
             self.data_files.append(df)
-        self.total_particles = sum(
-            sum(d.total_particles.values()) for d in self.data_files
-        )
 
 
 class DarkMatterARTDataset(ARTDataset):
