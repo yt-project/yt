@@ -604,7 +604,8 @@ class OctreeSubsetBlockSlice:
     def get_vertex_centered_data(self, fields, smoothed=False, no_ghost=False):
         if no_ghost is True:
             raise NotImplementedError(
-                "get_vertex_centered_data without ghost zones for oct-based datasets has not been implemented."
+                "get_vertex_centered_data without ghost zones for "
+                "oct-based datasets has not been implemented."
             )
 
         # Make sure the field list has only unique entries
