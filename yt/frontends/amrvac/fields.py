@@ -7,6 +7,7 @@ AMRVAC-specific fields
 import functools
 
 import numpy as np
+import warnings
 
 from yt import mylog
 from yt.fields.field_info_container import FieldInfoContainer
@@ -43,6 +44,7 @@ def _velocity(field, data, idir, prefix=None):
         warnings.warn(
             "zeros found in %sdensity, "
             "patching them to compute corresponding velocity field.",
+            prefix,
             category=RuntimeWarning
         )
         mask2 = moment == 0
