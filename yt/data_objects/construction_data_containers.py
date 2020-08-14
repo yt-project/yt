@@ -875,7 +875,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if hasattr(period, "in_units"):
             period = period.in_units("code_length").d
         # TODO maybe there is a better way of handling this
-        periodic = any(self.ds.periodicity)
+        is_periodic = int(any(self.ds.periodicity))
 
         if smoothing_style == "scatter":
             for field in fields:
@@ -908,7 +908,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                         field_quantity,
                         bounds,
                         pbar=pbar,
-                        check_period=int(periodic),
+                        check_period=is_periodic,
                         period=period,
                     )
                     if normalize:
@@ -923,7 +923,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                             np.ones(dens.shape[0]),
                             bounds,
                             pbar=pbar,
-                            check_period=int(periodic),
+                            check_period=is_periodic,
                             period=period,
                         )
 
