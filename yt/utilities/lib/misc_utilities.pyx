@@ -628,11 +628,14 @@ def obtain_relative_velocity_vector(
     cdef np.ndarray[np.float64_t, ndim=3] vzg
     cdef np.ndarray[np.float64_t, ndim=4] rvg
     cdef np.float64_t bv[3]
-    cdef int i, j, k
+    cdef int i, j, k, dim
 
     units = data[field_names[0]].units
     bulk_vector = data.get_field_parameter(bulk_vector).to(units)
-    if len(data[field_names[0]].shape) == 1:
+    dim = len(data[field_names[0]].shape) == 1
+    if dim == 2:
+        raise NotImplementedError
+    if dim == 1:
         # One dimensional data
         vxf = data[field_names[0]].astype("float64")
         vyf = data[field_names[1]].astype("float64")
@@ -652,7 +655,7 @@ def obtain_relative_velocity_vector(
             rvf[1, i] = vyf[i] - bv[1]
             rvf[2, i] = vzf[i] - bv[2]
         return rvf
-    else:
+    elif dim == 3:
         # Three dimensional data
         vxg = data[field_names[0]].astype("float64")
         vyg = data[field_names[1]].astype("float64")
