@@ -4,8 +4,7 @@ import tempfile
 
 import numpy as np
 
-from yt.convenience import load
-from yt.loaders import load_uniform_grid
+from yt.loaders import load, load_uniform_grid
 from yt.testing import (
     assert_array_equal,
     assert_fname,
