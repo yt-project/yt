@@ -40,10 +40,10 @@ def _velocity(field, data, idir, prefix=None):
 
     mask1 = rho == 0
     if mask1.any():
-        mylog.info(
+        warnings.warn(
             "zeros found in %sdensity, "
             "patching them to compute corresponding velocity field.",
-            prefix,
+            category=RuntimeWarning
         )
         mask2 = moment == 0
         if not ((mask1 & mask2) == mask1).all():
