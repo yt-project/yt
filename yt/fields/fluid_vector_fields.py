@@ -513,7 +513,10 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             vx = data[ftype, "relative_velocity_x"]
             vy = data[ftype, "relative_velocity_y"]
             dvydx = (
-                vy[sl_right, sl_center, sl_center] - vy[sl_left, sl_center, sl_center]
+                # tmp edit to see if tests catch it
+                vy[
+                    sl_right, sl_center, sl_center
+                ]  # - vy[sl_left, sl_center, sl_center]
             ) / div_fac
             dvxdy = (
                 vx[sl_center, sl_right, sl_center] - vx[sl_center, sl_left, sl_center]
