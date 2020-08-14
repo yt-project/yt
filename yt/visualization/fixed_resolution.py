@@ -534,7 +534,8 @@ class FixedResolutionBuffer:
         extra_attrs["con_args"] = self.data_source._con_args
         extra_attrs["left_edge"] = self.ds.arr([self.bounds[0], self.bounds[2]])
         extra_attrs["right_edge"] = self.ds.arr([self.bounds[1], self.bounds[3]])
-        extra_attrs["ActiveDimensions"] = self.buff_size
+        # The data dimensions are [NY, NX] but buff_size is [NX, NY].
+        extra_attrs["ActiveDimensions"] = self.buff_size[::-1]
         extra_attrs["level"] = 0
         extra_attrs["data_type"] = "yt_frb"
         extra_attrs["container_type"] = self.data_source._type_name
