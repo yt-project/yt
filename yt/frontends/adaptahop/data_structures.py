@@ -15,11 +15,9 @@ import numpy as np
 
 from yt.data_objects.selection_objects.base_objects import YTSelectionContainer
 from yt.data_objects.static_output import Dataset
-from yt.frontends.halo_catalog.data_structures import (
-    HaloCatalogFile,
-    HaloCatalogParticleIndex,
-)
+from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
 from yt.funcs import setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.units import Mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 
@@ -27,8 +25,24 @@ from .definitions import HEADER_ATTRIBUTES
 from .fields import AdaptaHOPFieldInfo
 
 
+class AdaptaHOPParticleIndex(ParticleIndex):
+    def _setup_filenames(self):
+        template = self.dataset.filename_template
+        ndoms = self.dataset.file_count
+        cls = self.dataset._file_class
+        if ndoms > 1:
+            self.data_files = [
+                cls(self.dataset, self.io, template % {"num": i}, i, None)
+                for i in range(ndoms)
+            ]
+        else:
+            self.data_files = [
+                cls(self.dataset, self.io, self.dataset.parameter_filename, 0, None,)
+            ]
+
+
 class AdaptaHOPDataset(Dataset):
-    _index_class = HaloCatalogParticleIndex
+    _index_class = AdaptaHOPParticleIndex
     _file_class = HaloCatalogFile
     _field_info_class = AdaptaHOPFieldInfo
 

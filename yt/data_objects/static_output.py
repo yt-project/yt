@@ -248,6 +248,7 @@ class Dataset:
 
         self._parse_parameter_file()
         self.set_units()
+        self.setup_cosmology()
         self._assign_unit_system(unit_system)
         self._setup_coordinate_handler()
 
@@ -889,47 +890,78 @@ class Dataset:
         obj.__doc__ = base.__doc__
         setattr(self, name, obj)
 
-    def find_max(self, field):
+    def _find_extremum(self, field, ext, source=None, to_array=True):
+        """
+        Find the extremum value of a field in a data object (source) and its position.
+
+        Parameters
+        ----------
+        field: str or tuple(str, str)
+
+        ext: str
+            'min' or 'max', select an extremum
+
+        source: a Yt data object
+
+        to_array: bool
+            select the return type.
+
+        Returns
+        -------
+        val, coords
+
+        val: unyt.unyt_quantity
+            extremum value detected
+
+        coords: unyt.unyt_array or list(unyt.unyt_quantity)
+            Conversion to a single unyt_array object is only possible for coordinate
+            systems with homogeneous dimensions across axes (i.e. cartesian).
+        """
+        ext = ext.lower()
+        if source is None:
+            source = self.all_data()
+        method = {
+            "min": source.quantities.min_location,
+            "max": source.quantities.max_location,
+        }[ext]
+        val, x1, x2, x3 = method(field)
+        coords = [x1, x2, x3]
+        mylog.info("%s value is %0.5e at %0.16f %0.16f %0.16f", ext, val, *coords)
+        if to_array:
+            if any(x.units.is_dimensionless for x in coords):
+                mylog.warning(
+                    f"dataset {self} has angular coordinates. "
+                    "Use 'to_array=False' to preserve "
+                    "dimensionality in each coordinate."
+                )
+
+            # force conversion to length
+            alt_coords = []
+            for x in coords:
+                alt_coords.append(
+                    self.quan(x.v, "code_length") if x.units.is_dimensionless else x
+                )
+
+            coords = self.arr(alt_coords, dtype="float64").to("code_length")
+        return val, coords
+
+    def find_max(self, field, source=None, to_array=True):
         """
         Returns (value, location) of the maximum of a given field.
+
+        This is a wrapper around _find_extremum
         """
         mylog.debug("Searching for maximum value of %s", field)
-        source = self.all_data()
-        max_val, mx, my, mz = source.quantities.max_location(field)
-        # This is a hack to fix the fact that some non-cartesian datasets have
-        # dimensionless quantities, and we can't yet handle that.
-        if mx.units.is_dimensionless:
-            mx = self.quan(mx.v, "code_length")
-        if my.units.is_dimensionless:
-            my = self.quan(my.v, "code_length")
-        if mz.units.is_dimensionless:
-            mz = self.quan(mz.v, "code_length")
-        center = self.arr([mx, my, mz], dtype="float64").to("code_length")
-        mylog.info(
-            "Max Value is %0.5e at %0.16f %0.16f %0.16f",
-            max_val,
-            center[0],
-            center[1],
-            center[2],
-        )
-        return max_val, center
+        return self._find_extremum(field, "max", source=source, to_array=to_array)
 
-    def find_min(self, field):
+    def find_min(self, field, source=None, to_array=True):
         """
         Returns (value, location) for the minimum of a given field.
+
+        This is a wrapper around _find_extremum
         """
         mylog.debug("Searching for minimum value of %s", field)
-        source = self.all_data()
-        min_val, mx, my, mz = source.quantities.min_location(field)
-        center = self.arr([mx, my, mz], dtype="float64").to("code_length")
-        mylog.info(
-            "Min Value is %0.5e at %0.16f %0.16f %0.16f",
-            min_val,
-            center[0],
-            center[1],
-            center[2],
-        )
-        return min_val, center
+        return self._find_extremum(field, "min", source=source, to_array=to_array)
 
     def find_field_values_at_point(self, fields, coords):
         """
@@ -1117,41 +1149,48 @@ class Dataset:
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.modify("h", self.hubble_constant)
-            # Comoving lengths
-            for my_unit in ["m", "pc", "AU", "au"]:
-                new_unit = f"{my_unit}cm"
-                my_u = Unit(my_unit, registry=self.unit_registry)
-                self.unit_registry.add(
-                    new_unit,
-                    my_u.base_value / (1 + self.current_redshift),
-                    dimensions.length,
-                    "\\rm{%s}/(1+z)" % my_unit,
-                    prefixable=True,
-                )
-            self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
+            if getattr(self, "current_redshift", None) is not None:
+                # Comoving lengths
+                for my_unit in ["m", "pc", "AU", "au"]:
+                    new_unit = f"{my_unit}cm"
+                    my_u = Unit(my_unit, registry=self.unit_registry)
+                    self.unit_registry.add(
+                        new_unit,
+                        my_u.base_value / (1 + self.current_redshift),
+                        dimensions.length,
+                        "\\rm{%s}/(1+z)" % my_unit,
+                        prefixable=True,
+                    )
+                self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
 
         self.set_code_units()
 
-        if getattr(self, "cosmological_simulation", False):
-            # this dataset is cosmological, add a cosmology object
+    def setup_cosmology(self):
+        """
+        If this dataset is cosmological, add a cosmology object.
+        """
+        if not getattr(self, "cosmological_simulation", False):
+            return
 
-            # Set dynamical dark energy parameters
-            use_dark_factor = getattr(self, "use_dark_factor", False)
-            w_0 = getattr(self, "w_0", -1.0)
-            w_a = getattr(self, "w_a", 0.0)
+        # Set dynamical dark energy parameters
+        use_dark_factor = getattr(self, "use_dark_factor", False)
+        w_0 = getattr(self, "w_0", -1.0)
+        w_a = getattr(self, "w_a", 0.0)
 
-            # many frontends do not set this
-            setdefaultattr(self, "omega_radiation", 0.0)
+        # many frontends do not set this
+        setdefaultattr(self, "omega_radiation", 0.0)
 
-            self.cosmology = Cosmology(
-                hubble_constant=self.hubble_constant,
-                omega_matter=self.omega_matter,
-                omega_lambda=self.omega_lambda,
-                omega_radiation=self.omega_radiation,
-                use_dark_factor=use_dark_factor,
-                w_0=w_0,
-                w_a=w_a,
-            )
+        self.cosmology = Cosmology(
+            hubble_constant=self.hubble_constant,
+            omega_matter=self.omega_matter,
+            omega_lambda=self.omega_lambda,
+            omega_radiation=self.omega_radiation,
+            use_dark_factor=use_dark_factor,
+            w_0=w_0,
+            w_a=w_a,
+        )
+
+        if getattr(self, "current_redshift", None) is not None:
             self.critical_density = self.cosmology.critical_density(
                 self.current_redshift
             )

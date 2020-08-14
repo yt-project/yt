@@ -50,7 +50,6 @@ class OWLSSubfindParticleIndex(ParticleIndex):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
-        self._setup_filenames()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
         dsl = []
