@@ -44,7 +44,7 @@ def _velocity(field, data, idir, prefix=None):
         warnings.warn(
             f"zeros found in {prefix}density, "
             "patching them to compute corresponding velocity field.",
-            category=RuntimeWarning
+            category=RuntimeWarning,
         )
         mask2 = moment == 0
         if not ((mask1 & mask2) == mask1).all():
