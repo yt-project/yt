@@ -506,9 +506,6 @@ class FieldInfoContainer(dict):
                 YTDomainOverflow,
                 YTCoordinateNotImplemented,
                 NeedsConfiguration,
-                # unyt errors
-                # those denote unsanitized data passed down to unyt and should be fixed
-                # UnitConversionError,
                 # builtin errors
                 # those are probably fine (but should be checked)
                 TypeError,
