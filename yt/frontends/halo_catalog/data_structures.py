@@ -22,7 +22,6 @@ from .fields import YTHaloCatalogFieldInfo, YTHaloCatalogHaloFieldInfo
 class HaloCatalogFile(ParticleFile):
     """
     Base class for data files of halo catalog datasets.
->>>>>>> master
 
     This is mainly here to correct for periodicity when
     reading particle positions.
