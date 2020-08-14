@@ -7,7 +7,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
     _dataset_type = "arepo_hdf5"
 
-    def _generate_smoothing_length(self, data_files, kdtree):
+    def _generate_smoothing_length(self, index):
         # This is handled below in _get_smoothing_length
         return
 
