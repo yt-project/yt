@@ -42,7 +42,7 @@ class GadgetSimulation(SimulationTimeSeries):
     Examples
     --------
     >>> import yt
-    >>> gs = yt.simulation("my_simulation.par", "Gadget")
+    >>> gs = yt.load_simulation("my_simulation.par", "Gadget")
     >>> gs.get_time_series()
     >>> for ds in gs:
     ...     print(ds.current_time)
@@ -190,7 +190,7 @@ class GadgetSimulation(SimulationTimeSeries):
         --------
 
         >>> import yt
-        >>> gs = yt.simulation("my_simulation.par", "Gadget")
+        >>> gs = yt.load_simulation("my_simulation.par", "Gadget")
 
         >>> gs.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"))
 
