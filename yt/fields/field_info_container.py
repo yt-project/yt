@@ -1,7 +1,6 @@
 from numbers import Number as numeric_type
 
 import numpy as np
-from unyt.exceptions import UnitConversionError  # , UnitOperationError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.funcs import mylog, only_on_root
@@ -26,6 +25,8 @@ from .particle_fields import (
     sph_whitelist_fields,
     standard_particle_fields,
 )
+
+# from unyt.exceptions import UnitConversionError
 
 
 def tupleize(inp):
@@ -507,8 +508,7 @@ class FieldInfoContainer(dict):
                 NeedsConfiguration,
                 # unyt errors
                 # those denote unsanitized data passed down to unyt and should be fixed
-                # UnitOperationError,
-                UnitConversionError,
+                # UnitConversionError,
                 # builtin errors
                 # those are probably fine (but should be checked)
                 TypeError,
