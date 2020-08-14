@@ -5,9 +5,9 @@ AMRVAC-specific fields
 
 
 import functools
+import warnings
 
 import numpy as np
-import warnings
 
 from yt import mylog
 from yt.fields.field_info_container import FieldInfoContainer
