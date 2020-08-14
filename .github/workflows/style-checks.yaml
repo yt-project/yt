@@ -71,6 +71,7 @@ jobs:
     - name: install
       id: install
       run : pip install -r tests/lint_requirements.txt
+
     - name: check
       id: flynt
       run: |
