@@ -42,7 +42,7 @@ def _velocity(field, data, idir, prefix=None):
     mask1 = rho == 0
     if mask1.any():
         warnings.warn(
-            f"zeros found in {prefix}density"
+            f"zeros found in {prefix}density, "
             "patching them to compute corresponding velocity field.",
             category=RuntimeWarning
         )
