@@ -50,7 +50,7 @@ class YTBooleanContainer(YTSelectionContainer3D):
         self.op = op.upper()
         self.dobj1 = dobj1
         self.dobj2 = dobj2
-        name = "Boolean%sSelector" % (self.op,)
+        name = f"Boolean{self.op}Selector"
         sel_cls = getattr(yt.geometry.selection_routines, name)
         self._selector = sel_cls(self)
 

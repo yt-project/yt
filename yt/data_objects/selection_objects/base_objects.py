@@ -67,7 +67,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         if self._selector is not None:
             return self._selector
         s_module = getattr(self, "_selector_module", yt.geometry.selection_routines)
-        sclass = getattr(s_module, "%s_selector" % self._type_name, None)
+        sclass = getattr(s_module, f"{self._type_name}_selector", None)
         if sclass is None:
             raise YTDataSelectorNotImplemented(self._type_name)
 
@@ -1235,7 +1235,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             for v1 in verts:
                 f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
             for i in range(len(verts) // 3):
-                f.write("f %s %s %s\n" % (i * 3 + 1, i * 3 + 2, i * 3 + 3))
+                f.write(f"f {i * 3 + 1} {i * 3 + 2} {i * 3 + 3}\n")
             if not hasattr(filename, "write"):
                 f.close()
         if sample_values is not None:
@@ -1395,8 +1395,8 @@ class YTSelectionContainer3D(YTSelectionContainer):
                 if cid == -1:
                     continue
                 contours[level][cid] = base_object.cut_region(
-                    ["obj['contours_%s'] == %s" % (contour_key, cid)],
-                    {"contour_slices_%s" % contour_key: cids},
+                    [f"obj['contours_{contour_key}'] == {cid}"],
+                    {f"contour_slices_{contour_key}": cids},
                 )
         return cons, contours
 
