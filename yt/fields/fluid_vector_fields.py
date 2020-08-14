@@ -509,21 +509,28 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
         Shear (Mach) = [(dvx + dvy)^2 + (dvz + dvy)^2 +
                         (dvx + dvz)^2  ]^(0.5) / c_sound
         """
-        if data.ds.dimensionality > 1:
+
+        if data.ds.geometry != "cartesian":
+            raise NotImplementedError(
+                "shear_mach is only supported in cartesian geometries"
+            )
+
+        try:
             vx = data[ftype, "relative_velocity_x"]
             vy = data[ftype, "relative_velocity_y"]
-            dvydx = (
-                # tmp edit to see if tests catch it
-                vy[
-                    sl_right, sl_center, sl_center
-                ]  # - vy[sl_left, sl_center, sl_center]
-            ) / div_fac
-            dvxdy = (
-                vx[sl_center, sl_right, sl_center] - vx[sl_center, sl_left, sl_center]
-            ) / div_fac
-            f = (dvydx + dvxdy) ** 2.0
-            del dvydx, dvxdy
-        if data.ds.dimensionality > 2:
+        except YTFieldNotFound as e:
+            raise YTDimensionalityError(
+                "shear_mach computation requires 2 velocity components"
+            ) from e
+        dvydx = (
+            vy[sl_right, sl_center, sl_center] - vy[sl_left, sl_center, sl_center]
+        ) / div_fac
+        dvxdy = (
+            vx[sl_center, sl_right, sl_center] - vx[sl_center, sl_left, sl_center]
+        ) / div_fac
+        f = (dvydx + dvxdy) ** 2.0
+        del dvydx, dvxdy
+        try:
             vz = data[ftype, "relative_velocity_z"]
             dvzdy = (
                 vz[sl_center, sl_right, sl_center] - vz[sl_center, sl_left, sl_center]
@@ -541,6 +548,9 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             ) / div_fac
             f += (dvxdz + dvzdx) ** 2.0
             del dvxdz, dvzdx
+        except YTFieldNotFound:
+            # the absence of a z velocity component is not blocking
+            pass
         f *= (
             2.0 ** data["index", "grid_level"][sl_center, sl_center, sl_center]
             / data[ftype, "sound_speed"][sl_center, sl_center, sl_center]
