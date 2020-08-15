@@ -47,16 +47,12 @@ def set_log_level(level):
         50 or "critical"
     """
     # this is a user-facing interface to avoid importing from yt.utilities in user code.
+
     if isinstance(level, str):
-        level = {
-            "notset": 0,
-            "all": 1,
-            "debug": 10,
-            "info": 20,
-            "warning": 30,
-            "error": 40,
-            "critical": 50,
-        }[level.lower()]
+        level = level.upper()
+
+    if level == "ALL":  # non-standard alias
+        level = 1
     ytLogger.setLevel(level)
     ytLogger.debug("Set log level to %d", level)
 
