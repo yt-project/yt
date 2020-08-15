@@ -1621,14 +1621,15 @@ class Dataset:
         Examples
         --------
 
-        >>> grad_fields = ds.add_gradient_fields(("gas","temperature")) print(grad_fields)
-        >>> [('gas', 'temperature_gradient_x'), ('gas', 'temperature_gradient_y'), ('gas',
-        >>> 'temperature_gradient_z'), ('gas', 'temperature_gradient_magnitude')]
+        >>> grad_fields = ds.add_gradient_fields(("gas","density"))
+        >>> print(grad_fields)
+        ... [('gas', 'density_gradient_x'), ('gas', 'density_gradient_y'),
+        ...  ('gas', 'density_gradient_z'), ('gas', 'density_gradient_magnitude')]
 
         Note that the above example assumes ds.geometry == 'cartesian'. In general,
         the function will create gradient components along the axes of the dataset
         coordinate system.
-        For instance, with cylindrical data, one gets 'temperature_gradient_<r,theta,z>'
+        For instance, with cylindrical data, one gets 'density_gradient_<r,theta,z>'
 
         """
         if input_field is not None:
