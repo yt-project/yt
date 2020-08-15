@@ -64,7 +64,7 @@ class HTTPStreamDataset(ParticleDataset):
         self.domain_left_edge = np.array(header["domain_left_edge"], "float64")
         self.domain_right_edge = np.array(header["domain_right_edge"], "float64")
         self.domain_dimensions = np.ones(3, "int32")
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
         self.current_time = header["current_time"]
         self.unique_identifier = header.get("unique_identifier", time.time())

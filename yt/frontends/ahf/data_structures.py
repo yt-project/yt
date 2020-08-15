@@ -103,7 +103,7 @@ class AHFHalosDataset(Dataset):
         self.domain_left_edge = np.array([0.0, 0.0, 0.0])
         # Note that boxsize is in Mpc but particle positions are in kpc.
         self.domain_right_edge = np.array([simu["boxsize"]] * 3) * 1000
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
         # Set up cosmological information.
         self.cosmological_simulation = 1

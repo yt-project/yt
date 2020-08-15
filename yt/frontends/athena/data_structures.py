@@ -591,7 +591,7 @@ class AthenaDataset(Dataset):
         self.num_ghost_zones = 0
         self.field_ordering = "fortran"
         self.boundary_conditions = [1] * 6
-        self.periodicity = tuple(
+        self._periodicity = tuple(
             self.specified_parameters.get("periodicity", (True, True, True))
         )
         if "gamma" in self.specified_parameters:

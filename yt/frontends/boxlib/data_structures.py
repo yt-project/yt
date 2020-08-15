@@ -762,7 +762,7 @@ class BoxlibDataset(Dataset):
                 assert len(vals) == self.dimensionality
                 periodicity = [False, False, False]  # default to non periodic
                 periodicity[: self.dimensionality] = vals  # fill in ndim parsed values
-                self.periodicity = tuple(periodicity)
+                self._periodicity = tuple(periodicity)
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
             else:
@@ -1139,7 +1139,7 @@ class CastroDataset(BoxlibDataset):
             except KeyError:
                 break
 
-        self.periodicity = tuple(periodicity)
+        self._periodicity = tuple(periodicity)
 
         if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
             # we have particles
@@ -1211,7 +1211,7 @@ class MaestroDataset(BoxlibDataset):
             except KeyError:
                 pass
 
-        self.periodicity = tuple(periodicity)
+        self._periodicity = tuple(periodicity)
 
 
 class NyxHierarchy(BoxlibHierarchy):
@@ -1573,7 +1573,7 @@ class WarpXDataset(BoxlibDataset):
             periodicity[: len(is_periodic)] = [p == "1" for p in is_periodic]
         except KeyError:
             pass
-        self.periodicity = tuple(periodicity)
+        self._periodicity = tuple(periodicity)
 
         particle_types = glob.glob(self.output_dir + "/*/Header")
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]

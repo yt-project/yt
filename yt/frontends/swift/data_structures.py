@@ -107,9 +107,9 @@ class SwiftDataset(SPHDataset):
         periodic = int(runtime_parameters["PeriodicBoundariesOn"])
 
         if periodic:
-            self.periodicity = [True] * self.dimensionality
+            self._periodicity = [True] * self.dimensionality
         else:
-            self.periodicity = [False] * self.dimensionality
+            self._periodicity = [False] * self.dimensionality
 
         # Units get attached to this
         self.current_time = float(header["Time"])

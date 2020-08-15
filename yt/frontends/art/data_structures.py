@@ -246,7 +246,7 @@ class ARTDataset(Dataset):
         self.domain_right_edge = np.zeros(3, dtype="float") + 1.0
         self.dimensionality = 3
         self.refine_by = 2
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.cosmological_simulation = True
         self.parameters = {}
         self.parameters.update(constants)
@@ -525,7 +525,7 @@ class DarkMatterARTDataset(ARTDataset):
         self.domain_right_edge = np.zeros(3, dtype="float") + 1.0
         self.dimensionality = 3
         self.refine_by = 2
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.cosmological_simulation = True
         self.parameters = {}
         self.parameters.update(constants)

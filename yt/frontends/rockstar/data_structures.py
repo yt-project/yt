@@ -94,7 +94,7 @@ class RockstarDataset(ParticleDataset):
         self.current_time = cosmo.lookback_time(self.current_redshift, 1e6).in_units(
             "s"
         )
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.particle_types = "halos"
         self.particle_types_raw = "halos"
 

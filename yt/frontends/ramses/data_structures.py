@@ -876,7 +876,7 @@ class RAMSESDataset(Dataset):
         self.domain_right_edge = np.ones(3, dtype="float64")
         # This is likely not true, but it's not clear
         # how to determine the boundary conditions
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
         if self.force_cosmological is not None:
             is_cosmological = self.force_cosmological

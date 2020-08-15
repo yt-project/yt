@@ -460,7 +460,7 @@ class FITSDataset(Dataset):
             pass
 
         # For now we'll ignore these
-        self.periodicity = (False,) * 3
+        self._periodicity = (False,) * 3
         self.current_redshift = (
             self.omega_lambda
         ) = (

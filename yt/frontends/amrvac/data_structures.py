@@ -345,7 +345,7 @@ class AMRVACDataset(Dataset):
         # parse peridiocity
         periodicity = self.parameters.get("periodic", ())
         missing_dim = 3 - len(periodicity)
-        self.periodicity = (*periodicity, *(missing_dim * (False,)))
+        self._periodicity = (*periodicity, *(missing_dim * (False,)))
 
         self.gamma = self.parameters.get("gamma", 5.0 / 3.0)
 

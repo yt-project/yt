@@ -160,7 +160,7 @@ class YTHaloCatalogDataset(SavedDataset):
         self.refine_by = 2
         self.dimensionality = 3
         self.domain_dimensions = np.ones(self.dimensionality, "int32")
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
         self.filename_template = f"{prefix}.%(num)s{self._suffix}"
         self.file_count = len(glob.glob(prefix + "*" + self._suffix))
