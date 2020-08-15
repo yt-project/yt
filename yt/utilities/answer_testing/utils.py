@@ -12,16 +12,13 @@ import numpy as np
 import pytest
 import yaml
 
-import yt.visualization.particle_plots as particle_plots
-import yt.visualization.plot_window as pw
-import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
-from yt.convenience import load, simulation
 from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
+from yt.loaders import load, load_simulation
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTOutputNotIdentified
+from yt.visualization import particle_plots, plot_window as pw, profile_plotter
 from yt.visualization.volume_rendering.scene import Scene
 
 
@@ -310,7 +307,7 @@ def can_run_ds(ds_fn, file_check=False):
     try:
         load(ds_fn)
         return True
-    except YTOutputNotIdentified:
+    except FileNotFoundError:
         return False
 
 
@@ -325,8 +322,8 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
     if file_check:
         return os.path.isfile(os.path.join(path, sim_fn))
     try:
-        simulation(sim_fn, sim_type)
-    except YTOutputNotIdentified:
+        load_simulation(sim_fn, sim_type)
+    except FileNotFoundError:
         return False
     return True
 
@@ -361,7 +358,7 @@ def requires_ds(ds_fn, file_check=False):
     def ffalse(func):
         @functools.wraps(func)
         def skip(*args, **kwargs):
-            msg = "{} not found, skipping {}.".format(ds_fn, func.__name__)
+            msg = f"{ds_fn} not found, skipping {func.__name__}."
             pytest.fail(msg)
 
         return skip
@@ -388,7 +385,7 @@ def requires_sim(sim_fn, sim_type, file_check=False):
     def ffalse(func):
         @functools.wraps(func)
         def skip(*args, **kwargs):
-            msg = "{} not found, skipping {}.".format(sim_fn, func.__name__)
+            msg = f"{sim_fn} not found, skipping {func.__name__}."
             pytest.fail(msg)
 
         return skip

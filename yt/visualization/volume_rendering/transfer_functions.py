@@ -237,7 +237,8 @@ class TransferFunction:
 
     def __repr__(self):
         disp = (
-            "<Transfer Function Object>: x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s"
+            "<Transfer Function Object>: "
+            "x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s"
             % (self.x_bounds[0], self.x_bounds[1], self.nbins, self.features)
         )
         return disp
@@ -663,11 +664,13 @@ class ColorTransferFunction(MultiVariateTransferFunction):
                 if abs(val) < 1.0e-3 or abs(val) > 1.0e4:
                     if not val == 0.0:
                         e = np.floor(np.log10(abs(val)))
-                        return r"${:.2f}\times 10^{:d}$".format(val / 10.0 ** e, int(e))
+                        return r"${:.2f}\times 10^{{ {:d} }}$".format(
+                            val / 10.0 ** e, int(e)
+                        )
                     else:
                         return r"$0$"
                 else:
-                    return "%.1g" % (val)
+                    return f"{val:.1g}"
             else:
                 return label_fmt % (val)
 
@@ -734,8 +737,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             alpha = a
         self.add_gaussian(v, w, [r, g, b, alpha])
         mylog.debug(
-            "Adding gaussian at %s with width %s and colors %s"
-            % (v, w, (r, g, b, alpha))
+            "Adding gaussian at %s with width %s and colors %s", v, w, (r, g, b, alpha)
         )
 
     def map_to_colormap(
@@ -900,7 +902,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
             % (self.x_bounds[0], self.x_bounds[1], self.nbins)
         )
         for f in self.features:
-            disp += "\t%s\n" % str(f)
+            disp += f"\t{str(f)}\n"
         return disp
 
 
@@ -978,7 +980,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             # Now we set up the scattering
             scat = (johnson_filters[f]["Lchar"] ** -4 / mscat) * anorm
             tf = TransferFunction(rho_bounds)
-            mylog.debug("Adding: %s with relative scattering %s" % (f, scat))
+            mylog.debug("Adding: %s with relative scattering %s", f, scat)
             tf.y *= 0.0
             tf.y += scat
             self.add_field_table(tf, 1, weight_field_id=1)

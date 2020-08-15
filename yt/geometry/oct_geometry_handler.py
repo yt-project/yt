@@ -27,7 +27,7 @@ class OctreeIndex(Index):
     def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):
         units = self.ds.field_info[ftype, deposit_field].units
         take_log = self.ds.field_info[ftype, deposit_field].take_log
-        field_name = "cell_%s_%s" % (ftype, deposit_field)
+        field_name = f"cell_{ftype}_{deposit_field}"
 
         def _cell_index(field, data):
             # Get the position of the particles

@@ -23,20 +23,7 @@ PRESENT_FIELD_FILES = {}
 DETECTED_FIELDS = {}
 
 
-class RAMSESFieldFileHandlerRegistry(type):
-    """
-    This is a base class that on instantiation registers the file
-    handler into the list. Used as a metaclass.
-    """
-
-    def __new__(meta, name, bases, class_dict):
-        cls = type.__new__(meta, name, bases, class_dict)
-        if cls.ftype is not None:
-            register_field_handler(cls)
-        return cls
-
-
-class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
+class FieldFileHandler:
     """
     Abstract class to handle particles in RAMSES. Each instance
     represents a single file (one domain).
@@ -61,6 +48,14 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
         None  # Mapping from field to the type of the data (float, integer, ...)
     )
 
+    def __init_subclass__(cls, *args, **kwargs):
+        """
+        Registers subclasses at creation.
+        """
+        super().__init_subclass__(*args, **kwargs)
+        if cls.ftype is not None:
+            register_field_handler(cls)
+
     def __init__(self, domain):
         """
         Initalize an instance of the class. This automatically sets
@@ -80,7 +75,7 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
             igroup = ((domain.domain_id - 1) // ds.group_size) + 1
             full_path = os.path.join(
                 basename,
-                "group_{:05d}".format(igroup),
+                f"group_{igroup:05d}",
                 self.fname.format(iout=iout, icpu=domain.domain_id),
             )
         else:
@@ -92,8 +87,7 @@ class FieldFileHandler(metaclass=RAMSESFieldFileHandlerRegistry):
             self.fname = full_path
         else:
             raise FileNotFoundError(
-                "Could not find fluid file (type: %s). Tried %s"
-                % (self.ftype, full_path)
+                f"Could not find fluid file (type: {self.ftype}). Tried {full_path}"
             )
 
         if self.file_descriptor is not None:
@@ -347,7 +341,8 @@ class HydroFieldFileHandler(FieldFileHandler):
             else:
                 if nvar < 5:
                     mylog.debug(
-                        "nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s"
+                        "nvar=%s is too small! YT doesn't currently "
+                        "support 1D/2D runs in RAMSES %s"
                     )
                     raise ValueError
                 # Basic hydro runs
@@ -368,7 +363,8 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "Pressure",
                         "Metallicity",
                     ]
-                # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
+                # MHD runs - NOTE:
+                # THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
                 if nvar == 11:
                     fields = [
                         "Density",
@@ -399,8 +395,8 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "Metallicity",
                     ]
             mylog.debug(
-                "No fields specified by user; automatically setting fields array to %s"
-                % str(fields)
+                "No fields specified by user; automatically setting fields array to %s",
+                fields,
             )
 
         # Allow some wiggle room for users to add too many variables
@@ -409,7 +405,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             fields.append("var" + str(len(fields)))
             count_extra += 1
         if count_extra > 0:
-            mylog.debug("Detected %s extra fluid fields." % count_extra)
+            mylog.debug("Detected %s extra fluid fields.", count_extra)
         cls.field_list = [(cls.ftype, e) for e in fields]
 
         cls.set_detected_fields(ds, fields)
@@ -442,10 +438,10 @@ class GravFieldFileHandler(FieldFileHandler):
         ndim = ds.dimensionality
 
         if nvar == ndim + 1:
-            fields = ["potential"] + ["%s-acceleration" % k for k in "xyz"[:ndim]]
+            fields = ["potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
             ndetected = ndim
         else:
-            fields = ["%s-acceleration" % k for k in "xyz"[:ndim]]
+            fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
             ndetected = ndim
 
         if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
@@ -453,7 +449,7 @@ class GravFieldFileHandler(FieldFileHandler):
             ds._warned_extra_fields["gravity"] = True
 
             for i in range(nvar - ndetected):
-                fields.append("var%s" % i)
+                fields.append(f"var{i}")
 
         cls.field_list = [(cls.ftype, e) for e in fields]
 
@@ -492,27 +488,27 @@ class RTFieldFileHandler(FieldFileHandler):
 
         with open(fname, "r") as f:
             # Read nRTvar, nions, ngroups, iions
-            for i in range(4):
+            for _ in range(4):
                 read_rhs(int)
             f.readline()
 
             # Read X and Y fractions
-            for i in range(2):
+            for _ in range(2):
                 read_rhs(float)
             f.readline()
 
             # Reat unit_np, unit_pfd
-            for i in range(2):
+            for _ in range(2):
                 read_rhs(float)
 
             # Read rt_c_frac
-            # Note: when using variable speed of light, this line will contain multiple values
-            # corresponding the the velocity at each level
+            # Note: when using variable speed of light, this line will contain multiple
+            # values corresponding the the velocity at each level
             read_rhs(lambda line: [float(e) for e in line.split()])
             f.readline()
 
             # Read n star, t2star, g_star
-            for i in range(3):
+            for _ in range(3):
                 read_rhs(float)
 
             # Touchy part, we have to read the photon group properties

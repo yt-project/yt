@@ -114,7 +114,8 @@ def off_axis_projection(
 
     if interpolated:
         raise NotImplementedError(
-            "Only interpolated=False methods are currently implemented for off-axis-projections"
+            "Only interpolated=False methods are currently implemented "
+            "for off-axis-projections"
         )
 
     data_source = data_source_or_all(data_source)
@@ -145,7 +146,7 @@ def off_axis_projection(
         raise_error = False
 
         ptype = sph_ptypes[0]
-        ppos = ["particle_position_%s" % ax for ax in "xyz"]
+        ppos = [f"particle_position_{ax}" for ax in "xyz"]
         # Assure that the field we're trying to off-axis project
         # has a field type as the SPH particle type or if the field is an
         # alias to an SPH field or is a 'gas' field
@@ -299,7 +300,7 @@ def off_axis_projection(
     data_source.ds.index
     if item is None:
         field = data_source.ds.field_list[0]
-        mylog.info("Setting default field to %s" % field.__repr__())
+        mylog.info("Setting default field to %s", field.__repr__())
 
     funits = data_source.ds._get_field_info(item).units
 
@@ -367,7 +368,7 @@ def off_axis_projection(
 
     mylog.debug("Casting rays")
 
-    for i, (grid, mask) in enumerate(data_source.blocks):
+    for (grid, mask) in data_source.blocks:
         data = []
         for f in fields:
             # strip units before multiplying by mask for speed

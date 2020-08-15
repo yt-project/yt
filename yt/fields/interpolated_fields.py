@@ -31,7 +31,8 @@ def add_interpolated_field(
 
     if len(axes_fields) != len(axes_data) or len(axes_fields) != len(table_data.shape):
         raise RuntimeError(
-            "Data dimension mismatch: data is %d, %d axes data provided, and %d axes fields provided."
+            "Data dimension mismatch: data is %d, "
+            "%d axes data provided, and %d axes fields provided."
             % (len(table_data.shape), len(axes_data), len(axes_fields))
         )
 

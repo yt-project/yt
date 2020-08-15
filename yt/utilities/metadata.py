@@ -1,4 +1,4 @@
-from yt.convenience import load
+from yt.loaders import load
 
 DEFAULT_ATTRS = (
     "dimensionality",

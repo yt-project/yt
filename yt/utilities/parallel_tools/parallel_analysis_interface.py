@@ -49,10 +49,10 @@ class FilterAllMessages(logging.Filter):
 def traceback_writer_hook(file_suffix=""):
     def write_to_file(exc_type, exc, tb):
         sys.__excepthook__(exc_type, exc, tb)
-        fn = "yt_traceback%s" % file_suffix
+        fn = f"yt_traceback{file_suffix}"
         with open(fn, "w") as fhandle:
             traceback.print_exception(exc_type, exc, tb, file=fhandle)
-            print("Wrote traceback to %s" % fn)
+            print(f"Wrote traceback to {fn}")
         MPI.COMM_WORLD.Abort(1)
 
     return write_to_file
@@ -60,10 +60,10 @@ def traceback_writer_hook(file_suffix=""):
 
 def default_mpi_excepthook(exception_type, exception_value, tb):
     traceback.print_tb(tb)
-    mylog.error("%s: %s" % (exception_type.__name__, exception_value))
+    mylog.error("%s: %s", exception_type.__name__, exception_value)
     comm = yt.communication_system.communicators[-1]
     if comm.size > 1:
-        mylog.error("Error occured on rank %d." % comm.rank)
+        mylog.error("Error occured on rank %d.", comm.rank)
     MPI.COMM_WORLD.Abort(1)
 
 
@@ -404,7 +404,7 @@ class ProcessorPool:
     def free_all(self):
         for wg in self.workgroups:
             self.free_workgroup(wg)
-        for i in range(len(self.workgroups)):
+        while self.workgroups:
             self.workgroups.pop(0)
 
     @classmethod
@@ -915,7 +915,7 @@ class Communicator:
         MPI.Request.Waitall(hooks)
 
     def mpi_Request_Waititer(self, hooks):
-        for i in range(len(hooks)):
+        for _hook in hooks:
             req = MPI.Request.Waitany(hooks)
             yield req
 
@@ -1351,7 +1351,7 @@ class GroupOwnership(ParallelAnalysisInterface):
         old_item = self.item
         if n == -1:
             n = self.comm.size
-        for i in range(n):
+        for _ in range(n):
             if self.pointer >= self.num_items - self.comm.size:
                 break
             self.owned[self.pointer % self.comm.size] += self.comm.size
@@ -1363,7 +1363,7 @@ class GroupOwnership(ParallelAnalysisInterface):
         old_item = self.item
         if n == -1:
             n = self.comm.size
-        for i in range(n):
+        for _ in range(n):
             if self.pointer == 0:
                 break
             self.owned[(self.pointer - 1) % self.comm.size] -= self.comm.size

@@ -6,9 +6,9 @@ import unittest
 import mock
 import numpy as np
 
-from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import create_profile
+from yt.loaders import load
 from yt.testing import (
     assert_allclose,
     assert_array_almost_equal,
@@ -383,7 +383,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
 
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()
-        for width, (xlim, ylim, pwidth, aun) in WIDTH_SPECS.items():
+        for width, (xlim, ylim, pwidth, _aun) in WIDTH_SPECS.items():
             plot = ParticleProjectionPlot(test_ds, 0, "particle_mass", width=width)
 
             xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]

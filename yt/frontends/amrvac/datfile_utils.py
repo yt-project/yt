@@ -70,7 +70,7 @@ def get_header(istream):
 
     # Read w_names
     w_names = []
-    for i in range(h["nw"]):
+    for _ in range(h["nw"]):
         fmt = ALIGN + NAME_LEN * "c"
         hdr = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
         w_names.append(b"".join(hdr).strip().decode())
@@ -105,8 +105,8 @@ def get_header(istream):
 
 def get_tree_info(istream):
     """
-    Read levels, morton-curve indices, and byte offsets for each block as stored in the datfile
-    istream is an open datfile buffer with 'rb' mode
+    Read levels, morton-curve indices, and byte offsets for each block as stored in the
+    datfile istream is an open datfile buffer with 'rb' mode
     This can be used as the "first pass" data reading required by YT's interface.
     """
     istream.seek(0)

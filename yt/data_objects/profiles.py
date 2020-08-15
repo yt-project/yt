@@ -137,13 +137,13 @@ been deprecated, use profile.standard_deviation instead."""
             if fd in self.field_units:
                 self.field_units[fd] = Unit(new_unit, registry=self.ds.unit_registry)
             else:
-                raise KeyError("%s not in profile!" % (field))
+                raise KeyError(f"{field} not in profile!")
 
     def _finalize_storage(self, fields, temp_storage):
         # We use our main comm here
         # This also will fill _field_data
 
-        for i, field in enumerate(fields):
+        for i, _field in enumerate(fields):
             # q values are returned as q * weight but we want just q
             temp_storage.qvalues[..., i][
                 temp_storage.used
@@ -173,7 +173,7 @@ been deprecated, use profile.standard_deviation instead."""
             all_weight[all_store[p].used] += all_store[p].weight_values[
                 all_store[p].used
             ]
-            for i, field in enumerate(fields):
+            for i, _field in enumerate(fields):
                 all_val[..., i][all_store[p].used] += all_store[p].values[..., i][
                     all_store[p].used
                 ]
@@ -363,7 +363,7 @@ been deprecated, use profile.standard_deviation instead."""
 
         """
 
-        keyword = "%s_%s" % (str(self.ds), self.__class__.__name__)
+        keyword = f"{str(self.ds)}_{self.__class__.__name__}"
         filename = get_output_filename(filename, keyword, ".h5")
 
         args = ("field", "log")
@@ -392,18 +392,18 @@ been deprecated, use profile.standard_deviation instead."""
                 dimensionality += 1
                 data[ax] = getattr(self, ax)
                 bin_data.append(data[ax])
-                bin_field_name = "%s_bins" % ax
+                bin_field_name = f"{ax}_bins"
                 data[bin_field_name] = getattr(self, bin_field_name)
-                extra_attrs["%s_range" % ax] = self.ds.arr(
+                extra_attrs[f"{ax}_range"] = self.ds.arr(
                     [data[bin_field_name][0], data[bin_field_name][-1]]
                 )
                 for arg in args:
-                    key = "%s_%s" % (ax, arg)
+                    key = f"{ax}_{arg}"
                     extra_attrs[key] = getattr(self, key)
 
         bin_fields = np.meshgrid(*bin_data)
         for i, ax in enumerate("xyz"[:dimensionality]):
-            data[getattr(self, "%s_field" % ax)] = bin_fields[i]
+            data[getattr(self, f"{ax}_field")] = bin_fields[i]
 
         extra_attrs["dimensionality"] = dimensionality
         ftypes = dict([(field, "data") for field in data if field[0] != std])
@@ -428,9 +428,9 @@ class ProfileNDFromDataset(ProfileND):
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[: ds.dimensionality]:
             setattr(self, ax, ds.data[ax])
-            ax_bins = "%s_bins" % ax
-            ax_field = "%s_field" % ax
-            ax_log = "%s_log" % ax
+            ax_bins = f"{ax}_bins"
+            ax_field = f"{ax}_field"
+            ax_log = f"{ax}_log"
             setattr(self, ax_bins, ds.data[ax_bins])
             field_name = tuple(ds.parameters.get(ax_field, (None, None)))
             setattr(self, ax_field, field_name)
@@ -938,7 +938,7 @@ class ParticleProfile(Profile2D):
         elif self.deposition == "cic":
             func = CICDeposit_2
 
-        for fi, field in enumerate(fields):
+        for fi, _field in enumerate(fields):
             if self.weight_field is None:
                 deposit_vals = fdata[:, fi]
             else:
@@ -1452,7 +1452,7 @@ def create_profile(
         kwargs["deposition"] = deposition
     if override_bins is not None:
         for o_bin, ax in zip(o_bins, ["x", "y", "z"]):
-            kwargs["override_bins_{0}".format(ax)] = o_bin
+            kwargs[f"override_bins_{ax}"] = o_bin
     obj = cls(*args, **kwargs)
     obj.accumulation = accumulation
     obj.fractional = fractional

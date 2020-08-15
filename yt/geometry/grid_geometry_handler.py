@@ -215,7 +215,7 @@ class GridIndex(Index, abc.ABC):
         """
         header = "%3s\t%6s\t%14s\t%14s" % ("level", "# grids", "# cells", "# cells^3")
         print(header)
-        print("%s" % (len(header.expandtabs()) * "-"))
+        print(f"{len(header.expandtabs()) * '-'}")
         for level in range(MAXLEVEL):
             if (self.level_stats["numgrids"][level]) == 0:
                 continue
@@ -290,7 +290,8 @@ class GridIndex(Index, abc.ABC):
 
     def _find_points(self, x, y, z):
         """
-        Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
+        Returns the (objects, indices) of leaf grids
+        containing a number of (x,y,z) points
         """
         x = ensure_numpy_array(x)
         y = ensure_numpy_array(y)
@@ -391,7 +392,7 @@ class GridIndex(Index, abc.ABC):
         preload_fields, _ = self._split_fields(preload_fields)
         if self._preload_implemented and len(preload_fields) > 0 and ngz == 0:
             giter = ChunkDataCache(list(giter), preload_fields, self)
-        for i, og in enumerate(giter):
+        for og in giter:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
@@ -444,7 +445,7 @@ class GridIndex(Index, abc.ABC):
             size = self._grid_chunksize
         else:
             raise RuntimeError(
-                "%s is an invalid value for the 'chunk_sizing' argument." % chunk_sizing
+                f"{chunk_sizing} is an invalid value for the 'chunk_sizing' argument."
             )
         for fn in sorted(gfiles):
             gs = gfiles[fn]
@@ -464,7 +465,7 @@ class GridIndex(Index, abc.ABC):
     def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):
         units = self.ds.field_info[ftype, deposit_field].units
         take_log = self.ds.field_info[ftype, deposit_field].take_log
-        field_name = "cell_%s_%s" % (ftype, deposit_field)
+        field_name = f"cell_{ftype}_{deposit_field}"
 
         def _mesh_sampling_particle_field(field, data):
             pos = data[ptype, "particle_position"]

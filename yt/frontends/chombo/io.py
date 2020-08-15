@@ -166,7 +166,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
     def _read_particles(self, grid, name):
 
         field_index = self.particle_field_index[name]
-        lev = "level_%s" % grid.Level
+        lev = f"level_{grid.Level}"
 
         particles_per_grid = self._handle[lev]["particles:offsets"][()]
         items_per_particle = len(self._particle_field_index)

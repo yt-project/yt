@@ -115,7 +115,7 @@ class ChomboHierarchy(GridIndex):
                     (particles_per_grid, level_particles)
                 )
 
-        for i, grid in enumerate(self.grids):
+        for i, _grid in enumerate(self.grids):
             self.grids[i].NumberOfParticles = particles_per_grid[i]
             self.grid_particle_count[i] = particles_per_grid[i]
 
@@ -176,8 +176,8 @@ class ChomboHierarchy(GridIndex):
                 self.dds_list[lev_index][2] = 1.0
 
             for level_id, box in enumerate(boxes):
-                si = np.array([box["lo_%s" % ax] for ax in "ijk"[:D]])
-                ei = np.array([box["hi_%s" % ax] for ax in "ijk"[:D]])
+                si = np.array([box[f"lo_{ax}"] for ax in "ijk"[:D]])
+                ei = np.array([box[f"hi_{ax}"] for ax in "ijk"[:D]])
 
                 if D == 1:
                     si = np.concatenate((si, [0.0, 0.0]))
@@ -430,8 +430,8 @@ class PlutoHierarchy(ChomboHierarchy):
                 self.dds_list[lev_index][2] = 1.0
 
             for level_id, box in enumerate(boxes):
-                si = np.array([box["lo_%s" % ax] for ax in "ijk"[:D]])
-                ei = np.array([box["hi_%s" % ax] for ax in "ijk"[:D]])
+                si = np.array([box[f"lo_{ax}"] for ax in "ijk"[:D]])
+                ei = np.array([box[f"hi_{ax}"] for ax in "ijk"[:D]])
 
                 if D == 1:
                     si = np.concatenate((si, [0.0, 0.0]))
@@ -527,7 +527,7 @@ class PlutoDataset(ChomboDataset):
             ):
                 self.periodicity[il] = ll.split()[1] == "periodic"
             self.periodicity = tuple(self.periodicity)
-            for il, ll in enumerate(lines[lines.index("[Parameters]") + 2 :]):
+            for ll in lines[lines.index("[Parameters]") + 2 :]:
                 if ll.split()[0] == "GAMMA":
                     self.gamma = float(ll.split()[1])
             self.domain_left_edge = domain_left_edge
@@ -684,7 +684,7 @@ class Orion2Dataset(ChomboDataset):
         self.ini_filename = self._localize(self.ini_filename, ini_filename)
         lines = open(self.ini_filename).readlines()
         # read the file line by line, storing important parameters
-        for lineI, line in enumerate(lines):
+        for line in lines:
             try:
                 param, sep, vals = line.partition("=")
                 if not sep:

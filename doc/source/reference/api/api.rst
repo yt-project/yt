@@ -189,7 +189,7 @@ AMRVAC
    ~yt.frontends.amrvac.data_structures.AMRVACDataset
    ~yt.frontends.amrvac.fields.AMRVACFieldInfo
    ~yt.frontends.amrvac.io.AMRVACIOHandler
-   ~yt.frontends.amrvac.read_amrvac_namelist
+   ~yt.frontends.amrvac.io.read_amrvac_namelist
 
 ARTIO
 ^^^^^
@@ -318,10 +318,10 @@ Halo Catalogs
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHaloHDF5
    ~yt.frontends.gadget_fof.fields.GadgetFOFFieldInfo
    ~yt.frontends.gadget_fof.fields.GadgetFOFHaloFieldInfo
-   ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
-   ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
-   ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
-   ~yt.frontends.halo_catalog.io.IOHandlerHaloCatalogHDF5
+   ~yt.frontends.halo_catalog.data_structures.YTHaloCatalogFile
+   ~yt.frontends.halo_catalog.data_structures.YTHaloCatalogDataset
+   ~yt.frontends.halo_catalog.fields.YTHaloCatalogFieldInfo
+   ~yt.frontends.halo_catalog.io.IOHandlerYTHaloCatalog
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindParticleIndex
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindHDF5File
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindDataset
@@ -446,14 +446,15 @@ Loading Data
 
 .. autosummary::
 
-   ~yt.convenience.load
-   ~yt.convenience.simulation
-   ~yt.frontends.stream.data_structures.load_uniform_grid
-   ~yt.frontends.stream.data_structures.load_amr_grids
-   ~yt.frontends.stream.data_structures.load_particles
-   ~yt.frontends.stream.data_structures.load_octree
-   ~yt.frontends.stream.data_structures.load_hexahedral_mesh
-   ~yt.frontends.stream.data_structures.load_unstructured_mesh
+   ~yt.loaders.load
+   ~yt.loaders.simulation
+   ~yt.loaders.load_uniform_grid
+   ~yt.loaders.load_amr_grids
+   ~yt.loaders.load_particles
+   ~yt.loaders.load_octree
+   ~yt.loaders.load_hexahedral_mesh
+   ~yt.loaders.load_unstructured_mesh
+   ~yt.loaders.load_sample
 
 Derived Datatypes
 -----------------

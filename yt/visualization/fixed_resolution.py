@@ -4,7 +4,6 @@ import weakref
 import numpy as np
 
 from yt.data_objects.image_array import ImageArray
-from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
     deprecate,
@@ -13,6 +12,7 @@ from yt.funcs import (
     issue_deprecation_warning,
     mylog,
 )
+from yt.loaders import load_uniform_grid
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -132,8 +132,10 @@ class FixedResolutionBuffer:
         if item in self.data:
             return self.data[item]
         mylog.info(
-            "Making a fixed resolution buffer of (%s) %d by %d"
-            % (item, self.buff_size[0], self.buff_size[1])
+            "Making a fixed resolution buffer of (%s) %d by %d",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
         )
         bounds = []
         for b in self.bounds:
@@ -512,7 +514,7 @@ class FixedResolutionBuffer:
 
         """
 
-        keyword = "%s_%s_frb" % (str(self.ds), self.data_source._type_name)
+        keyword = f"{str(self.ds)}_{self.data_source._type_name}_frb"
         filename = get_output_filename(filename, keyword, ".h5")
 
         data = {}
@@ -532,7 +534,8 @@ class FixedResolutionBuffer:
         extra_attrs["con_args"] = self.data_source._con_args
         extra_attrs["left_edge"] = self.ds.arr([self.bounds[0], self.bounds[2]])
         extra_attrs["right_edge"] = self.ds.arr([self.bounds[1], self.bounds[3]])
-        extra_attrs["ActiveDimensions"] = self.buff_size
+        # The data dimensions are [NY, NX] but buff_size is [NX, NY].
+        extra_attrs["ActiveDimensions"] = self.buff_size[::-1]
         extra_attrs["level"] = 0
         extra_attrs["data_type"] = "yt_frb"
         extra_attrs["container_type"] = self.data_source._type_name
@@ -626,8 +629,10 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
         if item in self.data:
             return self.data[item]
         mylog.info(
-            "Making a fixed resolution buffer of (%s) %d by %d"
-            % (item, self.buff_size[0], self.buff_size[1])
+            "Making a fixed resolution buffer of (%s) %d by %d",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
         )
         dd = self.data_source
         width = self.ds.arr(
@@ -685,8 +690,10 @@ class ParticleImageBuffer(FixedResolutionBuffer):
             return self.data[item]
 
         mylog.info(
-            "Splatting (%s) onto a %d by %d mesh"
-            % (item, self.buff_size[0], self.buff_size[1])
+            "Splatting (%s) onto a %d by %d mesh",
+            item,
+            self.buff_size[0],
+            self.buff_size[1],
         )
 
         bounds = []

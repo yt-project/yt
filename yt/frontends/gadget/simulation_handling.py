@@ -5,9 +5,9 @@ import numpy as np
 from unyt import dimensions, unyt_array
 from unyt.unit_registry import UnitRegistry
 
-from yt.convenience import load
 from yt.data_objects.time_series import DatasetSeries, SimulationTimeSeries
 from yt.funcs import only_on_root
+from yt.loaders import load
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     InvalidSimulationTimeSeries,
@@ -42,7 +42,7 @@ class GadgetSimulation(SimulationTimeSeries):
     Examples
     --------
     >>> import yt
-    >>> gs = yt.simulation("my_simulation.par", "Gadget")
+    >>> gs = yt.load_simulation("my_simulation.par", "Gadget")
     >>> gs.get_time_series()
     >>> for ds in gs:
     ...     print(ds.current_time)
@@ -75,7 +75,7 @@ class GadgetSimulation(SimulationTimeSeries):
                 )
             # Comoving lengths
             for my_unit in ["m", "pc", "AU"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 # technically not true, but should be ok
                 self.unit_registry.add(
                     new_unit,
@@ -190,7 +190,7 @@ class GadgetSimulation(SimulationTimeSeries):
         --------
 
         >>> import yt
-        >>> gs = yt.simulation("my_simulation.par", "Gadget")
+        >>> gs = yt.load_simulation("my_simulation.par", "Gadget")
 
         >>> gs.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"))
 
@@ -284,7 +284,7 @@ class GadgetSimulation(SimulationTimeSeries):
         if len(init_outputs) == 0 and len(my_outputs) > 0:
             mylog.warning(
                 "Could not find any datasets.  "
-                + "Check the value of OutputDir in your parameter file."
+                "Check the value of OutputDir in your parameter file."
             )
 
         DatasetSeries.__init__(
@@ -384,8 +384,7 @@ class GadgetSimulation(SimulationTimeSeries):
             data_dir = os.path.join(self.directory, self.parameters["OutputDir"])
         if not os.path.exists(data_dir):
             mylog.info(
-                "OutputDir not found at %s, instead using %s."
-                % (data_dir, self.directory)
+                "OutputDir not found at %s, instead using %s.", data_dir, self.directory
             )
             data_dir = self.directory
         self.data_dir = data_dir
@@ -406,7 +405,7 @@ class GadgetSimulation(SimulationTimeSeries):
             count = "*"
         else:
             count = "%03d" % index
-        filename = "%s_%s%s" % (self.parameters["SnapshotFileBase"], count, suffix)
+        filename = f"{self.parameters['SnapshotFileBase']}_{count}{suffix}"
         return os.path.join(self.data_dir, filename)
 
     def _get_all_outputs(self, find_outputs=False):
@@ -521,18 +520,18 @@ class GadgetSimulation(SimulationTimeSeries):
         for my_storage, output in parallel_objects(
             potential_outputs, storage=my_outputs
         ):
-            if os.path.exists(output):
-                try:
-                    ds = load(output)
-                    if ds is not None:
-                        my_storage.result = {
-                            "filename": output,
-                            "time": ds.current_time.in_units("s"),
-                        }
-                        if ds.cosmological_simulation:
-                            my_storage.result["redshift"] = ds.current_redshift
-                except YTOutputNotIdentified:
-                    mylog.error("Failed to load %s", output)
+            try:
+                ds = load(output)
+            except (FileNotFoundError, YTOutputNotIdentified):
+                mylog.error("Failed to load %s", output)
+                continue
+            my_storage.result = {
+                "filename": output,
+                "time": ds.current_time.in_units("s"),
+            }
+            if ds.cosmological_simulation:
+                my_storage.result["redshift"] = ds.current_redshift
+
         my_outputs = [
             my_output for my_output in my_outputs.values() if my_output is not None
         ]
@@ -546,5 +545,5 @@ class GadgetSimulation(SimulationTimeSeries):
         mylog.info("Writing redshift output list to %s.", filename)
         f = open(filename, "w")
         for output in outputs:
-            f.write("%f\n" % (1.0 / (1.0 + output["redshift"])))
+            f.write(f"{1.0 / (1.0 + output['redshift']):f}\n")
         f.close()

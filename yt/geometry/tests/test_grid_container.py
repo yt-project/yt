@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 
-from yt.frontends.stream.api import load_amr_grids
+from yt.loaders import load_amr_grids
 from yt.testing import assert_equal, assert_raises
 
 

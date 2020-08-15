@@ -38,7 +38,7 @@ class RAMSESDomainFile:
         rootdir = ds.root_folder
         basedir = os.path.abspath(os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (basedir, num, domain_id)
-        part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
+        part_file_descriptor = f"{basedir}/part_file_descriptor.txt"
         if ds.num_groups > 0:
             igroup = ((domain_id - 1) // ds.group_size) + 1
             basename = "%s/group_%05i/%%s_%s.out%05i" % (
@@ -50,7 +50,7 @@ class RAMSESDomainFile:
         else:
             basename = "%s/%%s_%s.out%05i" % (basedir, num, domain_id)
         for t in ["grav", "amr"]:
-            setattr(self, "%s_fn" % t, basename % t)
+            setattr(self, f"{t}_fn", basename % t)
         self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
 
@@ -58,9 +58,7 @@ class RAMSESDomainFile:
         field_handlers = [FH(self) for FH in get_field_handlers() if FH.any_exist(ds)]
         self.field_handlers = field_handlers
         for fh in field_handlers:
-            mylog.debug(
-                "Detected fluid type %s in domain_id=%s" % (fh.ftype, domain_id)
-            )
+            mylog.debug("Detected fluid type %s in domain_id=%s", fh.ftype, domain_id)
             fh.detect_fields(ds)
             # self._add_ftype(fh.ftype)
 
@@ -71,7 +69,7 @@ class RAMSESDomainFile:
         self.particle_handlers = particle_handlers
         for ph in particle_handlers:
             mylog.debug(
-                "Detected particle type %s in domain_id=%s" % (ph.ptype, domain_id)
+                "Detected particle type %s in domain_id=%s", ph.ptype, domain_id
             )
             ph.read_header()
             # self._add_ptype(ph.ptype)
@@ -134,6 +132,13 @@ class RAMSESDomainFile:
         # Now we're at the tree itself
         # Now we iterate over each level and each CPU.
         self.amr_header = hvals
+        # update levelmax
+        force_max_level, convention = self.ds._force_max_level
+        if convention == "yt":
+            force_max_level += self.ds.min_level + 1
+        self.amr_header["nlevelmax"] = min(
+            force_max_level, self.amr_header["nlevelmax"]
+        )
         self.amr_offset = f.tell()
         self.local_oct_count = hvals["numbl"][
             self.ds.min_level :, self.domain_id - 1
@@ -206,7 +211,9 @@ class RAMSESDomainSubset(OctreeSubset):
 
         if num_ghost_zones > 0:
             if not all(ds.periodicity):
-                mylog.warn("Ghost zones will wrongly assume the domain to be periodic.")
+                mylog.warning(
+                    "Ghost zones will wrongly assume the domain to be periodic."
+                )
             # Create a base domain *with no self._base_domain.fwidth
             base_domain = RAMSESDomainSubset(
                 ds.all_data(), domain, ds, over_refine_factor
@@ -214,8 +221,8 @@ class RAMSESDomainSubset(OctreeSubset):
             self._base_domain = base_domain
         elif num_ghost_zones < 0:
             raise RuntimeError(
-                "Cannot initialize a domain subset with a negative number of ghost zones,"
-                " was called with num_ghost_zones=%s" % num_ghost_zones
+                "Cannot initialize a domain subset with a negative number "
+                "of ghost zones, was called with num_ghost_zones=%s" % num_ghost_zones
             )
 
     def _fill_no_ghostzones(self, fd, fields, selector, file_handler):
@@ -342,9 +349,31 @@ class RAMSESDomainSubset(OctreeSubset):
             )
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
-        new_subset = RAMSESDomainSubset(
-            self.base_region, self.domain, self.ds, num_ghost_zones=ngz, base_grid=self
-        )
+        if smoothed:
+            mylog.warning(
+                f"{self}.retrieve_ghost_zones was called with the "
+                f"`smoothed` argument set to True. This is not supported, "
+                "ignoring it."
+            )
+            smoothed = False
+
+        try:
+            new_subset = self._subset_with_gz
+            mylog.debug(
+                "Reusing previous subset with ghost zone for domain %s", self.domain_id
+            )
+        except AttributeError:
+            new_subset = RAMSESDomainSubset(
+                self.base_region,
+                self.domain,
+                self.ds,
+                num_ghost_zones=ngz,
+                base_grid=self,
+            )
+            self._subset_with_gz = new_subset
+
+            # Cache the fields
+            new_subset.get_data(fields)
 
         return new_subset
 
@@ -371,7 +400,12 @@ class RAMSESIndex(OctreeIndex):
         total_octs = sum(
             dom.local_oct_count for dom in self.domains  # + dom.ngridbound.sum()
         )
-        self.max_level = max(dom.max_level for dom in self.domains)
+        force_max_level, convention = self.ds._force_max_level
+        if convention == "yt":
+            force_max_level += self.ds.min_level + 1
+        self.max_level = min(
+            force_max_level, max(dom.max_level for dom in self.domains)
+        )
         self.num_grids = total_octs
 
     def _detect_output_fields(self):
@@ -420,7 +454,7 @@ class RAMSESIndex(OctreeIndex):
 
     def _chunk_spatial(self, dobj, ngz, sort=None, preload_fields=None):
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i, og in enumerate(sobjs):
+        for og in sobjs:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
@@ -473,7 +507,7 @@ class RAMSESIndex(OctreeIndex):
 
         header = "%3s\t%14s\t%14s" % ("level", "# cells", "# cells^3")
         print(header)
-        print("%s" % (len(header.expandtabs()) * "-"))
+        print(f"{len(header.expandtabs()) * '-'}")
         for level in range(self.dataset.min_level + self.dataset.max_level + 2):
             print(
                 "% 3i\t% 14i\t% 14i"
@@ -521,6 +555,8 @@ class RAMSESDataset(Dataset):
         extra_particle_fields=None,
         cosmological=None,
         bbox=None,
+        max_level=None,
+        max_level_convention=None,
     ):
         # Here we want to initiate a traceback, if the reader is not built.
         if isinstance(fields, str):
@@ -546,13 +582,17 @@ class RAMSESDataset(Dataset):
         self.force_cosmological = cosmological
         self._bbox = bbox
 
+        self._force_max_level = self._sanitize_max_level(
+            max_level, max_level_convention
+        )
+
         # Infer if the output is organized in groups
         root_folder, group_folder = os.path.split(os.path.split(filename)[0])
 
         if group_folder == "group_00001":
             # Count the number of groups
-            # note: we exclude the unlikely event that one of the group is actually a file
-            # instad of a folder
+            # note: we exclude the unlikely event that one of the group is actually a
+            # file instad of a folder
             self.num_groups = len(
                 [
                     _
@@ -590,6 +630,40 @@ class RAMSESDataset(Dataset):
 
         self.storage_filename = storage_filename
 
+    @staticmethod
+    def _sanitize_max_level(max_level, max_level_convention):
+        # NOTE: the initialisation of the dataset class sets
+        #       self.min_level _and_ requires force_max_level
+        #       to be set, so we cannot convert from to yt/ramses
+        #       conventions
+        if max_level is None and max_level_convention is None:
+            return (2 ** 999, "yt")
+
+        # Check max_level is a valid, positive integer
+        if not isinstance(max_level, (int, np.integer)):
+            raise TypeError(
+                f"Expected `max_level` to be a positive integer, got {max_level} "
+                f"with type {type(max_level)} instead."
+            )
+        if max_level < 0:
+            raise ValueError(
+                f"Expected `max_level` to be a positive integer, got {max_level} "
+                "instead."
+            )
+
+        # Check max_level_convention is set and acceptable
+        if max_level_convention is None:
+            raise ValueError(
+                f"Received `max_level`={max_level}, but no `max_level_convention`. "
+                "Valid conventions are 'yt' and 'ramses'."
+            )
+        if max_level_convention not in ("ramses", "yt"):
+            raise ValueError(
+                f"Invalid convention {max_level_convention}. "
+                "Valid choices are 'yt' and 'ramses'."
+            )
+        return (max_level, max_level_convention)
+
     def create_field_info(self, *args, **kwa):
         """Extend create_field_info to add the particles types."""
         super(RAMSESDataset, self).create_field_info(*args, **kwa)
@@ -609,8 +683,8 @@ class RAMSESDataset(Dataset):
                 )
 
             for k in particle_families.keys():
-                mylog.info("Adding particle_type: %s" % k)
-                self.add_particle_filter("%s" % k)
+                mylog.info("Adding particle_type: %s", k)
+                self.add_particle_filter(f"{k}")
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -670,10 +744,10 @@ class RAMSESDataset(Dataset):
             rheader[p.strip()] = cast(v.strip())
 
         with open(self.parameter_filename) as f:
-            for i in range(6):
+            for _ in range(6):
                 read_rhs(f, int)
             f.readline()
-            for i in range(11):
+            for _ in range(11):
                 read_rhs(f, float)
             f.readline()
             read_rhs(f, str)
@@ -687,7 +761,7 @@ class RAMSESDataset(Dataset):
             self.hilbert_indices = {}
             if rheader["ordering type"] == "hilbert":
                 f.readline()  # header
-                for n in range(rheader["ncpu"]):
+                for _ in range(rheader["ncpu"]):
                     dom, mi, ma = f.readline().split()
                     self.hilbert_indices[int(dom)] = (float(mi), float(ma))
 
@@ -700,7 +774,8 @@ class RAMSESDataset(Dataset):
         self.domain_left_edge = np.zeros(3, dtype="float64")
         self.domain_dimensions = np.ones(3, dtype="int32") * 2 ** (self.min_level + 1)
         self.domain_right_edge = np.ones(3, dtype="float64")
-        # This is likely not true, but it's not clear how to determine the boundary conditions
+        # This is likely not true, but it's not clear
+        # how to determine the boundary conditions
         self.periodicity = (True, True, True)
 
         if self.force_cosmological is not None:
@@ -723,7 +798,11 @@ class RAMSESDataset(Dataset):
             self.omega_lambda = rheader["omega_l"]
             self.omega_matter = rheader["omega_m"]
             self.hubble_constant = rheader["H0"] / 100.0  # This is H100
-        self.max_level = rheader["levelmax"] - self.min_level - 1
+
+        force_max_level, convention = self._force_max_level
+        if convention == "yt":
+            force_max_level += self.min_level + 1
+        self.max_level = min(force_max_level, rheader["levelmax"]) - self.min_level - 1
 
         if self.cosmological_simulation == 0:
             self.current_time = self.parameters["time"]
@@ -764,11 +843,10 @@ class RAMSESDataset(Dataset):
                 with open(namelist_file, "r") as f:
                     nml = f90nml.read(f)
             except ImportError as e:
-                nml = "An error occurred when reading the namelist: %s" % str(e)
+                nml = f"An error occurred when reading the namelist: {str(e)}"
             except (ValueError, StopIteration) as e:
-                mylog.warn(
-                    "Could not parse `namelist.txt` file as it was malformed: %s"
-                    % str(e)
+                mylog.warning(
+                    "Could not parse `namelist.txt` file as it was malformed: %s", e
                 )
                 return
 

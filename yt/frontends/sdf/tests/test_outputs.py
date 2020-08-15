@@ -13,7 +13,8 @@ ncsa_scivis_data = "http://use.yt/upload/744abba3"
 scivis_data = ncsa_scivis_data
 
 # Answer on http://stackoverflow.com/questions/3764291/checking-network-connection
-# Better answer on http://stackoverflow.com/questions/2712524/handling-urllib2s-timeout-python
+# Better answer on
+# http://stackoverflow.com/questions/2712524/handling-urllib2s-timeout-python
 def internet_on():
     try:
         urllib.request.urlopen(scivis_data, timeout=1)

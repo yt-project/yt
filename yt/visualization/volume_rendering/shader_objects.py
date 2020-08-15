@@ -24,11 +24,11 @@ class ShaderProgram:
     ----------
 
     vertex_shader : string
-                    or :class:`yt.visualization.volume_rendering.shader_objects.VertexShader`
+        or :class:`yt.visualization.volume_rendering.shader_objects.VertexShader`
         The vertex shader used in the Interactive Data Visualization pipeline.
 
     fragment_shader : string
-                      or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
+        or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
         The fragment shader used in the Interactive Data Visualization pipeline.
     """
 
@@ -93,7 +93,7 @@ class ShaderProgram:
         return func
 
     def _set_scalar_uniform(self, kind, size_spec):
-        gl_func = getattr(GL, "glUniform%s%sv" % (size_spec, kind))
+        gl_func = getattr(GL, f"glUniform{size_spec}{kind}v")
 
         def _func(location, value):
             return gl_func(location, 1, value)
@@ -102,7 +102,7 @@ class ShaderProgram:
 
     def _set_matrix_uniform(self, kind, size_spec):
         assert size_spec[0] == size_spec[1]
-        gl_func = getattr(GL, "glUniformMatrix%s%sv" % (size_spec[0], kind))
+        gl_func = getattr(GL, f"glUniformMatrix{size_spec[0]}{kind}v")
 
         def _func(location, value):
             return gl_func(location, 1, GL.GL_TRUE, value)
@@ -133,14 +133,7 @@ class ShaderProgram:
         GL.glDisableVertexAttribArray(loc)
 
 
-class RegisteredShader(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if getattr(cls, "_shader_name", None) is not None:
-            known_shaders[cls._shader_name] = cls
-
-
-class Shader(metaclass=RegisteredShader):
+class Shader:
     """
     Creates a shader from source
 
@@ -157,6 +150,11 @@ class Shader(metaclass=RegisteredShader):
     _shader = None
     _source = None
     _shader_name = None
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if getattr(cls, "_shader_name", None) is not None:
+            known_shaders[cls._shader_name] = cls
 
     def __init__(self, source=None):
         if source:
@@ -183,7 +181,7 @@ class Shader(metaclass=RegisteredShader):
         if parameters is not None:
             raise NotImplementedError
         source = self._get_source(source)
-        shader_type_enum = getattr(GL, "GL_%s_SHADER" % self.shader_type.upper())
+        shader_type_enum = getattr(GL, f"GL_{self.shader_type.upper()}_SHADER")
         shader = GL.glCreateShader(shader_type_enum)
         # We could do templating here if we wanted.
         self.shader_source = source

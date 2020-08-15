@@ -39,40 +39,38 @@ def test_slice(pf):
         uc = [np.unique(c) for c in coords]
         slc_pos = 0.5
         # Some simple slice tests with single grids
-        for ax, an in enumerate("xyz"):
+        for ax in range(3):
             xax = ds.coordinates.x_axis[ax]
             yax = ds.coordinates.y_axis[ax]
-            for wf in ["density", None]:
-                slc = ds.slice(ax, slc_pos)
-                shifted_slc = ds.slice(ax, slc_pos + grid_eps)
-                assert_equal(slc["ones"].sum(), slc["ones"].size)
-                assert_equal(slc["ones"].min(), 1.0)
-                assert_equal(slc["ones"].max(), 1.0)
-                assert_equal(np.unique(slc["px"]), uc[xax])
-                assert_equal(np.unique(slc["py"]), uc[yax])
-                assert_equal(np.unique(slc["pdx"]), 0.5 / dims[xax])
-                assert_equal(np.unique(slc["pdy"]), 0.5 / dims[yax])
-                pw = slc.to_pw(fields="density")
-                for p in pw.plots.values():
-                    tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
-                    os.close(tmpfd)
-                    p.save(name=tmpname)
-                    fns.append(tmpname)
-                for width in [(1.0, "unitary"), 1.0, ds.quan(0.5, "code_length")]:
-                    frb = slc.to_frb((1.0, "unitary"), 64)
-                    shifted_frb = shifted_slc.to_frb((1.0, "unitary"), 64)
-                    for slc_field in ["ones", "density"]:
-                        fi = ds._get_field_info(slc_field)
-                        assert_equal(frb[slc_field].info["data_source"], slc.__str__())
-                        assert_equal(frb[slc_field].info["axis"], ax)
-                        assert_equal(frb[slc_field].info["field"], slc_field)
-                        assert_equal(frb[slc_field].units, Unit(fi.units))
-                        assert_equal(frb[slc_field].info["xlim"], frb.bounds[:2])
-                        assert_equal(frb[slc_field].info["ylim"], frb.bounds[2:])
-                        assert_equal(frb[slc_field].info["center"], slc.center)
-                        assert_equal(frb[slc_field].info["coord"], slc_pos)
-                        assert_equal(frb[slc_field], shifted_frb[slc_field])
-            assert_equal(wf, None)
+            slc = ds.slice(ax, slc_pos)
+            shifted_slc = ds.slice(ax, slc_pos + grid_eps)
+            assert_equal(slc["ones"].sum(), slc["ones"].size)
+            assert_equal(slc["ones"].min(), 1.0)
+            assert_equal(slc["ones"].max(), 1.0)
+            assert_equal(np.unique(slc["px"]), uc[xax])
+            assert_equal(np.unique(slc["py"]), uc[yax])
+            assert_equal(np.unique(slc["pdx"]), 0.5 / dims[xax])
+            assert_equal(np.unique(slc["pdy"]), 0.5 / dims[yax])
+            pw = slc.to_pw(fields="density")
+            for p in pw.plots.values():
+                tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
+                os.close(tmpfd)
+                p.save(name=tmpname)
+                fns.append(tmpname)
+            for width in [(1.0, "unitary"), 1.0, ds.quan(0.5, "code_length")]:
+                frb = slc.to_frb(width, 64)
+                shifted_frb = shifted_slc.to_frb(width, 64)
+                for slc_field in ["ones", "density"]:
+                    fi = ds._get_field_info(slc_field)
+                    assert_equal(frb[slc_field].info["data_source"], slc.__str__())
+                    assert_equal(frb[slc_field].info["axis"], ax)
+                    assert_equal(frb[slc_field].info["field"], slc_field)
+                    assert_equal(frb[slc_field].units, Unit(fi.units))
+                    assert_equal(frb[slc_field].info["xlim"], frb.bounds[:2])
+                    assert_equal(frb[slc_field].info["ylim"], frb.bounds[2:])
+                    assert_equal(frb[slc_field].info["center"], slc.center)
+                    assert_equal(frb[slc_field].info["coord"], slc_pos)
+                    assert_equal(frb[slc_field], shifted_frb[slc_field])
     teardown_func(fns)
 
 

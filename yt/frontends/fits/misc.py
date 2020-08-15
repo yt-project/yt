@@ -53,15 +53,15 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
     """
     for (emin, emax) in ebounds:
         cfunc = _make_counts(emin, emax)
-        fname = "counts_%s-%s" % (emin, emax)
-        mylog.info("Creating counts field %s." % fname)
+        fname = f"counts_{emin}-{emax}"
+        mylog.info("Creating counts field %s.", fname)
         ds.add_field(
             (ftype, fname),
             sampling_type="cell",
             function=cfunc,
             units="counts/pixel",
             validators=[ValidateSpatial()],
-            display_name="Counts (%s-%s keV)" % (emin, emax),
+            display_name=f"Counts ({emin}-{emax} keV)",
         )
 
 
@@ -114,9 +114,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
             slab_center = YTQuantity(v[0], v[1])
         else:
             slab_center = v
-        mylog.info(
-            "Adding slab field %s at %g %s" % (k, slab_center.v, slab_center.units)
-        )
+        mylog.info("Adding slab field %s at %g %s", k, slab_center.v, slab_center.units)
         slab_lo = (slab_center - 0.5 * slab_width).to_astropy()
         slab_hi = (slab_center + 0.5 * slab_width).to_astropy()
         subcube = cube.spectral_slab(slab_lo, slab_hi)
@@ -191,7 +189,7 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     if field_parameters is not None:
         for k, v in field_parameters.items():
             obj.set_field_parameter(k, v)
-    return obj.cut_region(["obj['%s'] > 0" % (reg_name)])
+    return obj.cut_region([f"obj['{reg_name}'] > 0"])
 
 
 class PlotWindowWCS:
@@ -243,8 +241,8 @@ class PlotWindowWCS:
             wcs = pw.ds.wcs_2d.wcs
             xax = pw.ds.coordinates.x_axis[pw.data_source.axis]
             yax = pw.ds.coordinates.y_axis[pw.data_source.axis]
-            xlabel = "%s (%s)" % (wcs.ctype[xax].split("-")[0], wcs.cunit[xax])
-            ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0], wcs.cunit[yax])
+            xlabel = f"{wcs.ctype[xax].split('-')[0]} ({wcs.cunit[xax]})"
+            ylabel = f"{wcs.ctype[yax].split('-')[0]} ({wcs.cunit[yax]})"
             fp = pw._font_properties
             wcs_ax.coords[0].set_axislabel(xlabel, fontproperties=fp, minpad=0.5)
             wcs_ax.coords[1].set_axislabel(ylabel, fontproperties=fp, minpad=0.4)
@@ -286,7 +284,7 @@ class PlotWindowWCS:
         from yt.visualization._mpl_imports import FigureCanvasAgg
 
         ret = ""
-        for k, v in self.plots.items():
+        for v in self.plots.values():
             canvas = FigureCanvasAgg(v)
             f = BytesIO()
             canvas.print_figure(f)

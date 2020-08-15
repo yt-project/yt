@@ -16,4 +16,5 @@ jobs:
             rebase
             isort
             black
+            flynt
           repository: yt-project/slash-command-processor

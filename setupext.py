@@ -113,13 +113,13 @@ def check_for_openmp():
             else:
                 log.warn(
                     "Unexpected number of lines from output of test "
-                    "OpenMP program (output was {0})".format(output)
+                    "OpenMP program (output was %s)",
+                    output,
                 )
                 using_openmp = False
         else:
             log.warn(
-                "Unexpected output from test OpenMP "
-                "program (output was {0})".format(output)
+                "Unexpected output from test OpenMP program (output was %s)", output
             )
             using_openmp = False
 
@@ -143,17 +143,13 @@ def check_for_pyembree(std_libs):
     embree_libs = []
     embree_aliases = {}
     try:
-        fn = resource_filename("pyembree", "rtcore.pxd")
+        _ = resource_filename("pyembree", "rtcore.pxd")
     except ImportError:
         return embree_libs, embree_aliases
 
     embree_prefix = os.path.abspath(read_embree_location())
     embree_inc_dir = os.path.join(embree_prefix, "include")
     embree_lib_dir = os.path.join(embree_prefix, "lib")
-    if in_conda_env():
-        conda_basedir = os.path.dirname(os.path.dirname(sys.executable))
-        embree_inc_dir.append(os.path.join(conda_basedir, "include"))
-        embree_lib_dir.append(os.path.join(conda_basedir, "lib"))
 
     if _platform == "darwin":
         embree_lib_name = "embree.2"
@@ -164,6 +160,12 @@ def check_for_pyembree(std_libs):
     embree_aliases["EMBREE_LIB_DIR"] = [embree_lib_dir]
     embree_aliases["EMBREE_LIBS"] = std_libs + [embree_lib_name]
     embree_libs += ["yt/utilities/lib/embree_mesh/*.pyx"]
+
+    if in_conda_env():
+        conda_basedir = os.path.dirname(os.path.dirname(sys.executable))
+        embree_aliases["EMBREE_INC_DIR"].append(os.path.join(conda_basedir, "include"))
+        embree_aliases["EMBREE_LIB_DIR"].append(os.path.join(conda_basedir, "lib"))
+
     return embree_libs, embree_aliases
 
 
@@ -238,7 +240,8 @@ def read_embree_location():
     except OSError:
         log.warn(
             "read_embree_location() could not find your C compiler. "
-            "Attempted to use '%s'. " % compiler
+            "Attempted to use '%s'.",
+            compiler,
         )
         return False
 
