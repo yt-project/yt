@@ -60,7 +60,7 @@ class FieldDetector(defaultdict):
             ds.domain_left_edge = np.zeros(3, "float64")
             ds.domain_right_edge = np.ones(3, "float64")
             ds.dimensionality = 3
-            ds.periodicity = (True, True, True)
+            ds.force_periodicity()
         self.ds = ds
 
         class fake_index:
