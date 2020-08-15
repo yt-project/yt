@@ -158,7 +158,8 @@ class Dataset(abc.ABC):
     domain_left_edge = MutableAttribute(True)
     domain_right_edge = MutableAttribute(True)
     domain_dimensions = MutableAttribute(True)
-    periodicity = MutableAttribute()
+    _periodicity = MutableAttribute()
+    _force_periodicity = False
 
     # these are set in self._set_derived_attrs()
     domain_width = MutableAttribute(True)
@@ -272,6 +273,31 @@ class Dataset(abc.ABC):
     @unique_identifier.setter
     def unique_identifier(self, value):
         self._unique_identifier = value
+
+    @property
+    def periodicity(self):
+        if self._force_periodicity:
+            return (True, True, True)
+        return self._periodicity
+
+    @periodicity.setter
+    def periodicity(self, val):
+        # sanitize
+        issue_deprecation_warning(
+            "Dataset.periodicity should not be overriden manually. "
+            "In the future, this will become an error. "
+            "Use `Dataset.force_periodicity` instead."
+        )
+        self._periodicity = tuple(val)
+
+    def force_periodicity(self, val=True):
+        """Override box periodicity to (True, True, True)"""
+        # This is a user-facing method that embrace a long-standing
+        # workaround in yt user codes.
+        try:
+            self._force_periodicity = bool(val)
+        except TypeError as e:
+            raise TypeError("force_periodicity expected a boolean.") from e
 
     # abstract methods require implementation in subclasses
     @classmethod
