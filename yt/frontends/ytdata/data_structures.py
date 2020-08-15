@@ -103,7 +103,12 @@ class SavedDataset(Dataset):
             del self.parameters[par]
 
         for attr in self._con_attrs:
-            setattr(self, attr, self.parameters.get(attr))
+            try:
+                setattr(self, attr, self.parameters.get(attr))
+            except TypeError:
+                # some Dataset attributes are properties with setters
+                # which may not accept None as an input
+                pass
 
         if self.geometry is None:
             self.geometry = "cartesian"
