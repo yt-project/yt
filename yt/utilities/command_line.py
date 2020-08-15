@@ -16,7 +16,6 @@ from urllib.parse import urlparse
 import numpy as np
 
 from yt.config import CURRENT_CONFIG_FILE, ytcfg
-from yt.convenience import load
 from yt.extern.tqdm import tqdm
 from yt.funcs import (
     download_file,
@@ -29,6 +28,7 @@ from yt.funcs import (
     mylog,
     update_hg_or_git,
 )
+from yt.loaders import load
 from yt.utilities.configure import set_config
 from yt.utilities.exceptions import (
     YTCommandRequiresModule,

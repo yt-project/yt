@@ -3,9 +3,9 @@ from tempfile import TemporaryDirectory
 
 import numpy as np
 
-from yt.convenience import load
 from yt.frontends.ytdata.api import save_as_dataset
 from yt.frontends.ytdata.data_structures import YTDataContainerDataset
+from yt.loaders import load
 from yt.testing import fake_amr_ds, requires_module
 from yt.units import YTQuantity
 

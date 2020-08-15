@@ -14,8 +14,8 @@ from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
 from yt.config import ytcfg
-from yt.convenience import load
 from yt.funcs import iterable
+from yt.loaders import load
 from yt.units.yt_array import YTArray, YTQuantity
 
 # we import this in a weird way from numpy.testing to avoid triggering
@@ -201,7 +201,7 @@ def fake_random_ds(
     unit_system="cgs",
     bbox=None,
 ):
-    from yt.frontends.stream.api import load_uniform_grid
+    from yt.loaders import load_uniform_grid
 
     prng = RandomState(0x4D3D3D3)
     if not iterable(ndims):
@@ -261,7 +261,7 @@ _geom_transforms = {
 def fake_amr_ds(
     fields=("Density",), geometry="cartesian", particles=0, length_unit=None
 ):
-    from yt.frontends.stream.api import load_amr_grids
+    from yt.loaders import load_amr_grids
 
     prng = RandomState(0x4D3D3D3)
     LE, RE = _geom_transforms[geometry]
@@ -309,7 +309,7 @@ def fake_particle_ds(
     length_unit=1.0,
     data=None,
 ):
-    from yt.frontends.stream.api import load_particles
+    from yt.loaders import load_particles
 
     prng = RandomState(0x4D3D3D3)
     if not iterable(negative):
@@ -337,11 +337,11 @@ def fake_particle_ds(
 
 
 def fake_tetrahedral_ds():
-    from yt.frontends.stream.api import load_unstructured_mesh
     from yt.frontends.stream.sample_data.tetrahedral_mesh import (
         _connectivity,
         _coordinates,
     )
+    from yt.loaders import load_unstructured_mesh
 
     prng = RandomState(0x4D3D3D3)
 
@@ -361,11 +361,11 @@ def fake_tetrahedral_ds():
 
 
 def fake_hexahedral_ds():
-    from yt.frontends.stream.api import load_unstructured_mesh
     from yt.frontends.stream.sample_data.hexahedral_mesh import (
         _connectivity,
         _coordinates,
     )
+    from yt.loaders import load_unstructured_mesh
 
     prng = RandomState(0x4D3D3D3)
     # the distance from the origin
@@ -384,7 +384,7 @@ def fake_hexahedral_ds():
 
 
 def small_fake_hexahedral_ds():
-    from yt.frontends.stream.api import load_unstructured_mesh
+    from yt.loaders import load_unstructured_mesh
 
     _coordinates = np.array(
         [
@@ -431,7 +431,7 @@ def fake_vr_orientation_test_ds(N=96, scale=1):
        test datasets that have spatial different scales (e.g. data in CGS units)
 
     """
-    from yt.frontends.stream.api import load_uniform_grid
+    from yt.loaders import load_uniform_grid
 
     xmin = ymin = zmin = -1.0 * scale
     xmax = ymax = zmax = 1.0 * scale
@@ -614,7 +614,7 @@ def fake_octree_ds(
     partial_coverage=1,
     unit_system="cgs",
 ):
-    from yt.frontends.stream.api import load_octree
+    from yt.loaders import load_octree
 
     octree_mask = np.asarray(
         construct_octree_mask(prng=prng, refined=refined), dtype=np.uint8

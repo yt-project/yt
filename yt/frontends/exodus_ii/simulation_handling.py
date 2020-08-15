@@ -1,8 +1,8 @@
 import glob
 
-from yt.convenience import load
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import only_on_root
+from yt.loaders import load
 from yt.utilities.exceptions import YTOutputNotIdentified
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
