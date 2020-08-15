@@ -63,7 +63,7 @@ Here is an example script, where we adjust the logging at startup:
 .. code-block:: python
 
    import yt
-   yt.funcs.mylog.setLevel(1)
+   yt.set_log_level(1)
 
    ds = yt.load("my_data0001")
    ds.print_stats()
