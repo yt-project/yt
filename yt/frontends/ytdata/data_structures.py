@@ -519,7 +519,7 @@ class YTGridDataset(YTDataset):
                     self.domain_right_edge - self.domain_left_edge
                 ) / self.domain_dimensions
 
-            self.periodicity = (
+            self._periodicity = (
                 np.abs(self.domain_left_edge - self.base_domain_left_edge) < 0.5 * dx
             )
             self.periodicity &= (

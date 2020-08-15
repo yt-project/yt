@@ -160,7 +160,7 @@ class CM1Dataset(Dataset):
 
         self.dimensionality = 3
         self.domain_dimensions = np.array(dims, dtype="int64")
-        self.periodicity = (False, False, False)
+        self._periodicity = (False, False, False)
 
         # Set cosmological information to zero for non-cosmological.
         self.cosmological_simulation = 0

@@ -169,7 +169,7 @@ class ExodusIIDataset(Dataset):
             self.parameters["elem_names"] = self._get_elem_names()
             self.parameters["nod_names"] = self._get_nod_names()
             self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
-            self.periodicity = (False, False, False)
+            self._periodicity = (False, False, False)
 
         # These attributes don't really make sense for unstructured
         # mesh data, but yt warns if they are not present, so we set

@@ -433,7 +433,7 @@ class FLASHDataset(Dataset):
             self.parameters.get(f"{ax}l_boundary_type", None) == "periodic"
             for ax in "xyz"
         ]
-        self.periodicity = tuple(p)
+        self._periodicity = tuple(p)
 
         # Determine cosmological parameters.
         try:

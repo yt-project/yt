@@ -351,7 +351,7 @@ class EnzoPDataset(Dataset):
         root_blocks = get_root_blocks(b0)
         f.close()
         self.dimensionality = left0.size
-        self.periodicity = tuple(np.ones(self.dimensionality, dtype=bool))
+        self._periodicity = tuple(np.ones(self.dimensionality, dtype=bool))
 
         lcfn = self.parameter_filename[: -len(self._suffix)] + ".libconfig"
         if os.path.exists(lcfn):
