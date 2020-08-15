@@ -282,16 +282,22 @@ class Dataset(abc.ABC):
 
     @periodicity.setter
     def periodicity(self, val):
-        # sanitize
+        # remove this setter to break backward compatibility
         issue_deprecation_warning(
             "Dataset.periodicity should not be overriden manually. "
             "In the future, this will become an error. "
             "Use `Dataset.force_periodicity` instead."
         )
-        self._periodicity = tuple(val)
+
+        if len(val) != 3:
+            raise ValueError("periodicity setter expected a 3-element boolean tuple.")
+        self._periodicity = ensure_tuple(val)
 
     def force_periodicity(self, val=True):
-        """Override box periodicity to (True, True, True)"""
+        """
+        Override box periodicity to (True, True, True).
+        Use ds.force_periodicty(False) to use the actual box periodicity.
+        """
         # This is a user-facing method that embrace a long-standing
         # workaround in yt user codes.
         try:
