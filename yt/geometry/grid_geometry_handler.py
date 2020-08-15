@@ -297,7 +297,7 @@ class GridIndex(Index, abc.ABC):
         y = ensure_numpy_array(y)
         z = ensure_numpy_array(z)
         if not len(x) == len(y) == len(z):
-            raise AssertionError("Arrays of indices must be of the same size")
+            raise ValueError("Arrays of indices must be of the same size")
 
         grid_tree = self._get_grid_tree()
         pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
