@@ -4,8 +4,9 @@ from yt.utilities.answer_testing.framework import data_dir_load
 
 khi_cartesian_2D = "amrvac/kh_2d0000.dat"
 
-# Tests for units: verify that overriding certain units yields the correct derived units.
-# The following are correct normalisations based on length, numberdensity and temperature
+# Tests for units: check that overriding certain units yields the correct derived units.
+# The following are the correct normalisations
+# based on length, numberdensity and temperature
 length_unit = (1e9, "cm")
 numberdensity_unit = (1e9, "cm**-3")
 temperature_unit = (1e6, "K")
