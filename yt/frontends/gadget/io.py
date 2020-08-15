@@ -87,7 +87,8 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
-    def _generate_smoothing_length(self, data_files, kdtree):
+    def _generate_smoothing_length(self, index):
+        data_files = index.data_files
         if not self.ds.gen_hsmls:
             return
         hsml_fn = data_files[0].filename.replace(".hdf5", ".hsml.hdf5")
@@ -116,6 +117,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         for fn, count in counts.items():
             offsets[fn] = offset
             offset += count
+        kdtree = index.kdtree
         positions = uconcatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype

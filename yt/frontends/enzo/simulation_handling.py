@@ -5,9 +5,9 @@ import numpy as np
 from unyt import dimensions, unyt_array
 from unyt.unit_registry import UnitRegistry
 
-from yt.convenience import load
 from yt.data_objects.time_series import DatasetSeries, SimulationTimeSeries
 from yt.funcs import only_on_root
+from yt.loaders import load
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     InvalidSimulationTimeSeries,
@@ -43,7 +43,7 @@ class EnzoSimulation(SimulationTimeSeries):
     Examples
     --------
     >>> import yt
-    >>> es = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
+    >>> es = yt.load_simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
     >>> es.get_time_series()
     >>> for ds in es:
     ...     print(ds.current_time)
@@ -205,7 +205,7 @@ class EnzoSimulation(SimulationTimeSeries):
         --------
 
         >>> import yt
-        >>> es = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
+        >>> es = yt.load_simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
         >>> es.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"),
                                redshift_data=False)
         >>> for ds in es:

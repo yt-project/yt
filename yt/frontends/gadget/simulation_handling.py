@@ -5,9 +5,9 @@ import numpy as np
 from unyt import dimensions, unyt_array
 from unyt.unit_registry import UnitRegistry
 
-from yt.convenience import load
 from yt.data_objects.time_series import DatasetSeries, SimulationTimeSeries
 from yt.funcs import only_on_root
+from yt.loaders import load
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     InvalidSimulationTimeSeries,
@@ -42,7 +42,7 @@ class GadgetSimulation(SimulationTimeSeries):
     Examples
     --------
     >>> import yt
-    >>> gs = yt.simulation("my_simulation.par", "Gadget")
+    >>> gs = yt.load_simulation("my_simulation.par", "Gadget")
     >>> gs.get_time_series()
     >>> for ds in gs:
     ...     print(ds.current_time)
@@ -190,7 +190,7 @@ class GadgetSimulation(SimulationTimeSeries):
         --------
 
         >>> import yt
-        >>> gs = yt.simulation("my_simulation.par", "Gadget")
+        >>> gs = yt.load_simulation("my_simulation.par", "Gadget")
 
         >>> gs.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"))
 

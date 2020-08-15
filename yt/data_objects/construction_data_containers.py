@@ -19,10 +19,10 @@ from yt.data_objects.field_data import YTFieldData
 from yt.extern.tqdm import tqdm
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.frontends.stream.api import load_uniform_grid
 from yt.funcs import ensure_list, get_memory_usage, iterable, mylog, only_on_root
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
+from yt.loaders import load_uniform_grid
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import (
@@ -872,6 +872,12 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         bounds, size = self._get_grid_bounds_size()
 
+        period = self.ds.coordinates.period.copy()
+        if hasattr(period, "in_units"):
+            period = period.in_units("code_length").d
+        # TODO maybe there is a better way of handling this
+        is_periodic = int(any(self.ds.periodicity))
+
         if smoothing_style == "scatter":
             for field in fields:
                 fi = self.ds._get_field_info(field)
@@ -903,6 +909,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                         field_quantity,
                         bounds,
                         pbar=pbar,
+                        check_period=is_periodic,
+                        period=period,
                     )
                     if normalize:
                         pixelize_sph_kernel_arbitrary_grid(
@@ -916,6 +924,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                             np.ones(dens.shape[0]),
                             bounds,
                             pbar=pbar,
+                            check_period=is_periodic,
+                            period=period,
                         )
 
                 if normalize:

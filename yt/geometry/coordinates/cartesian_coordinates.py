@@ -366,6 +366,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                     # We use code length here, but to get the path length right
                     # we need to multiply by the conversion factor between
@@ -393,6 +395,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                             weight_field=chunk[weight].in_units(wounits),
                         )
                     mylog.info(
@@ -412,6 +416,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[weight].in_units(wounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                     normalization_2d_utility(buff, weight_buff)
             elif isinstance(data_source, YTSlice):
@@ -433,6 +439,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
@@ -444,6 +452,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 chunk[ptype, "density"].to("code_density"),
                                 np.ones(chunk[ptype, "density"].shape[0]),
                                 bnds,
+                                check_period=int(periodic),
+                                period=period,
                             )
 
                     if normalize:

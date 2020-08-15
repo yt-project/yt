@@ -94,15 +94,8 @@ from yt.frontends.api import _frontend_container
 
 frontends = _frontend_container()
 
-from yt.frontends.stream.api import (
-    load_uniform_grid,
-    load_amr_grids,
-    load_particles,
-    load_hexahedral_mesh,
-    load_octree,
-    hexahedral_connectivity,
-    load_unstructured_mesh,
-)
+from yt.frontends.stream.api import hexahedral_connectivity
+
 
 from yt.frontends.ytdata.api import save_as_dataset
 
@@ -164,9 +157,18 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     communication_system,
 )
 
-from yt.convenience import load, simulation
-
-from yt.utilities.load_sample import load_sample
+from yt.loaders import (
+    load,
+    load_simulation,
+    simulation,  # deprecated alias for load_simulation
+    load_uniform_grid,
+    load_amr_grids,
+    load_particles,
+    load_hexahedral_mesh,
+    load_octree,
+    load_unstructured_mesh,
+    load_sample,
+)
 
 from yt.testing import run_nose
 

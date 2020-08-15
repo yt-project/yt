@@ -4,7 +4,6 @@ import weakref
 import numpy as np
 
 from yt.data_objects.image_array import ImageArray
-from yt.frontends.stream.api import load_uniform_grid
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
     deprecate,
@@ -13,6 +12,7 @@ from yt.funcs import (
     issue_deprecation_warning,
     mylog,
 )
+from yt.loaders import load_uniform_grid
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -534,7 +534,8 @@ class FixedResolutionBuffer:
         extra_attrs["con_args"] = self.data_source._con_args
         extra_attrs["left_edge"] = self.ds.arr([self.bounds[0], self.bounds[2]])
         extra_attrs["right_edge"] = self.ds.arr([self.bounds[1], self.bounds[3]])
-        extra_attrs["ActiveDimensions"] = self.buff_size
+        # The data dimensions are [NY, NX] but buff_size is [NX, NY].
+        extra_attrs["ActiveDimensions"] = self.buff_size[::-1]
         extra_attrs["level"] = 0
         extra_attrs["data_type"] = "yt_frb"
         extra_attrs["container_type"] = self.data_source._type_name

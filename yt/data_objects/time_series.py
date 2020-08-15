@@ -8,7 +8,6 @@ from functools import wraps
 import numpy as np
 
 from yt.config import ytcfg
-from yt.convenience import load
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
 from yt.funcs import ensure_list, issue_deprecation_warning, iterable, mylog
@@ -426,6 +425,8 @@ class DatasetSeries:
     _dataset_cls = None
 
     def _load(self, output_fn, **kwargs):
+        from yt.loaders import load
+
         if self._dataset_cls is not None:
             return self._dataset_cls(output_fn, **kwargs)
         elif self._mixed_dataset_types:

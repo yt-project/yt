@@ -1,13 +1,7 @@
 import numpy as np
 
-import yt.utilities.flagging_methods as fm
 import yt.utilities.initial_conditions as ic
-from yt.frontends.stream.api import (
-    load_amr_grids,
-    load_particles,
-    load_uniform_grid,
-    refine_amr,
-)
+from yt.loaders import load_particles, load_uniform_grid
 from yt.testing import assert_equal, fake_particle_ds, fake_sph_orientation_ds
 
 # Field information
@@ -27,31 +21,8 @@ def test_stream_particles():
     fo = []
     fo.append(ic.TopHatSphere(0.1, [0.2, 0.3, 0.4], {"density": 2.0}))
     fo.append(ic.TopHatSphere(0.05, [0.7, 0.4, 0.75], {"density": 20.0}))
-    rc = [fm.flagging_method_registry["overdensity"](1.0)]
 
-    # Check that all of this runs ok without particles
-
-    ug0 = load_uniform_grid({"density": dens}, domain_dims, 1.0, nprocs=8)
-    amr0 = refine_amr(ug0, rc, fo, 3)
-
-    grid_data = []
-
-    for grid in amr0.index.grids:
-
-        data = dict(
-            left_edge=grid.LeftEdge,
-            right_edge=grid.RightEdge,
-            level=grid.Level,
-            dimensions=grid.ActiveDimensions,
-        )
-
-        for field in amr0.field_list:
-            data[field] = grid[field]
-        grid_data.append(data)
-
-    amr0 = load_amr_grids(grid_data, domain_dims)
-
-    # Now add particles
+    # Add particles
 
     fields1 = {
         "density": dens,
@@ -113,75 +84,6 @@ def test_stream_particles():
         )
         assert ug2._get_field_info(ptype, "particle_mass").sampling_type == "particle"
     assert not ug2._get_field_info("gas", "density").sampling_type == "particle"
-
-    # Now refine this
-
-    amr1 = refine_amr(ug1, rc, fo, 3)
-    for field in sorted(ug1.field_list):
-        assert field in amr1.field_list
-
-    grid_data = []
-
-    for grid in amr1.index.grids:
-
-        data = dict(
-            left_edge=grid.LeftEdge,
-            right_edge=grid.RightEdge,
-            level=grid.Level,
-            dimensions=grid.ActiveDimensions,
-        )
-
-        for field in amr1.field_list:
-            if field[0] not in ("all", "nbody"):
-                data[field] = grid[field]
-
-        grid_data.append(data)
-
-    amr2 = load_amr_grids(grid_data, domain_dims)
-
-    # Check everything again
-
-    number_of_particles1 = [grid.NumberOfParticles for grid in amr1.index.grids]
-    number_of_particles2 = [grid.NumberOfParticles for grid in amr2.index.grids]
-
-    assert_equal(np.sum(number_of_particles1), num_particles)
-    assert_equal(number_of_particles1, number_of_particles2)
-
-    for grid in amr1.index.grids:
-        tot_parts = grid["io", "particle_position_x"].size
-        tot_all_parts = grid["all", "particle_position_x"].size
-        assert tot_parts == grid.NumberOfParticles
-        assert tot_all_parts == grid.NumberOfParticles
-
-    for grid in amr2.index.grids:
-        tot_parts = grid["io", "particle_position_x"].size
-        tot_all_parts = grid["all", "particle_position_x"].size
-        assert tot_parts == grid.NumberOfParticles
-        assert tot_all_parts == grid.NumberOfParticles
-
-    assert (
-        amr1._get_field_info("all", "particle_position_x").sampling_type == "particle"
-    )
-    assert (
-        amr1._get_field_info("all", "particle_position_y").sampling_type == "particle"
-    )
-    assert (
-        amr1._get_field_info("all", "particle_position_z").sampling_type == "particle"
-    )
-    assert amr1._get_field_info("all", "particle_mass").sampling_type == "particle"
-    assert not amr1._get_field_info("gas", "density").sampling_type == "particle"
-
-    assert (
-        amr2._get_field_info("all", "particle_position_x").sampling_type == "particle"
-    )
-    assert (
-        amr2._get_field_info("all", "particle_position_y").sampling_type == "particle"
-    )
-    assert (
-        amr2._get_field_info("all", "particle_position_z").sampling_type == "particle"
-    )
-    assert amr2._get_field_info("all", "particle_mass").sampling_type == "particle"
-    assert not amr2._get_field_info("gas", "density").sampling_type == "particle"
 
     # Now perform similar checks, but with multiple particle types
 
@@ -260,81 +162,6 @@ def test_stream_particles():
             == "particle"
         )
         assert ug4._get_field_info(ptype, "particle_mass").sampling_type == "particle"
-
-    # Now refine this
-
-    amr3 = refine_amr(ug3, rc, fo, 3)
-    for field in sorted(ug3.field_list):
-        assert field in amr3.field_list
-
-    grid_data = []
-
-    for grid in amr3.index.grids:
-
-        data = dict(
-            left_edge=grid.LeftEdge,
-            right_edge=grid.RightEdge,
-            level=grid.Level,
-            dimensions=grid.ActiveDimensions,
-        )
-
-        for field in amr3.field_list:
-            if field[0] not in ("all", "nbody"):
-                data[field] = grid[field]
-
-        grid_data.append(data)
-
-    amr4 = load_amr_grids(grid_data, domain_dims)
-
-    # Check everything again
-
-    number_of_particles3 = [grid.NumberOfParticles for grid in amr3.index.grids]
-    number_of_particles4 = [grid.NumberOfParticles for grid in amr4.index.grids]
-
-    assert_equal(np.sum(number_of_particles3), num_star_particles + num_dm_particles)
-    assert_equal(number_of_particles3, number_of_particles4)
-
-    for ptype in ("dm", "star"):
-        assert (
-            amr3._get_field_info(ptype, "particle_position_x").sampling_type
-            == "particle"
-        )
-        assert (
-            amr3._get_field_info(ptype, "particle_position_y").sampling_type
-            == "particle"
-        )
-        assert (
-            amr3._get_field_info(ptype, "particle_position_z").sampling_type
-            == "particle"
-        )
-        assert amr3._get_field_info(ptype, "particle_mass").sampling_type == "particle"
-        assert (
-            amr4._get_field_info(ptype, "particle_position_x").sampling_type
-            == "particle"
-        )
-        assert (
-            amr4._get_field_info(ptype, "particle_position_y").sampling_type
-            == "particle"
-        )
-        assert (
-            amr4._get_field_info(ptype, "particle_position_z").sampling_type
-            == "particle"
-        )
-        assert amr4._get_field_info(ptype, "particle_mass").sampling_type == "particle"
-
-    for grid in amr3.index.grids:
-        tot_parts = grid["dm", "particle_position_x"].size
-        tot_parts += grid["star", "particle_position_x"].size
-        tot_all_parts = grid["all", "particle_position_x"].size
-        assert tot_parts == grid.NumberOfParticles
-        assert tot_all_parts == grid.NumberOfParticles
-
-    for grid in amr4.index.grids:
-        tot_parts = grid["dm", "particle_position_x"].size
-        tot_parts += grid["star", "particle_position_x"].size
-        tot_all_parts = grid["all", "particle_position_x"].size
-        assert tot_parts == grid.NumberOfParticles
-        assert tot_all_parts == grid.NumberOfParticles
 
 
 def test_load_particles_types():
