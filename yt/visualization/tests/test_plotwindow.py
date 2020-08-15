@@ -11,7 +11,7 @@ import matplotlib
 import numpy as np
 from nose.tools import assert_true
 
-from yt.frontends.stream.api import load_uniform_grid
+from yt.loaders import load_uniform_grid
 from yt.testing import (
     assert_array_almost_equal,
     assert_array_equal,

@@ -1,8 +1,8 @@
 import numpy as np
 
-from yt.convenience import load as yt_load
 from yt.frontends.halo_catalog.data_structures import YTHaloCatalogDataset
 from yt.frontends.ytdata.utilities import save_as_dataset
+from yt.loaders import load as yt_load
 from yt.testing import (
     TempDirTest,
     assert_array_equal,

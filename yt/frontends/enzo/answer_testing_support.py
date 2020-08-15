@@ -4,7 +4,7 @@ from functools import wraps
 import numpy as np
 
 from yt.config import ytcfg
-from yt.convenience import load
+from yt.loaders import load
 from yt.testing import assert_allclose
 from yt.utilities.answer_testing.framework import (
     AnswerTestingTest,

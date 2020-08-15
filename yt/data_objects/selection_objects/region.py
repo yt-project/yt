@@ -68,4 +68,4 @@ class YTRegion(YTSelectionContainer3D):
         """
         Return the minimum bounding box for the region.
         """
-        return self.left_edge, self.right_edge
+        return self.left_edge.copy(), self.right_edge.copy()
