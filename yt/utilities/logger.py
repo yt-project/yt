@@ -93,6 +93,8 @@ def uncolorize_logging():
         pass
 
 
+_level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
+
 if ytcfg.getboolean("yt", "suppressStreamLogging"):
     disable_stream_logging()
 else:
@@ -102,8 +104,7 @@ else:
     yt_sh.setFormatter(formatter)
     # add the handler to the logger
     ytLogger.addHandler(yt_sh)
-    level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
-    set_log_level(level)
+    set_log_level(_level)
     ytLogger.propagate = False
 
     original_emitter = yt_sh.emit
