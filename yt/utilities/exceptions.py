@@ -13,7 +13,7 @@ class YTException(Exception):
 # Data access exceptions:
 
 
-class YTOutputNotIdentified(YTException):
+class YTUnidentifiedDataType(YTException):
     def __init__(self, filename, args=None, kwargs=None):
         self.filename = filename
         self.args = args
@@ -29,7 +29,19 @@ class YTOutputNotIdentified(YTException):
         return msg
 
 
-class YTAmbiguousDataType(YTOutputNotIdentified):
+class YTOutputNotIdentified(YTUnidentifiedDataType):
+    # kept for backwards compatibility
+    def __init__(self, filename, args=None, kwargs=None):
+        super(YTUnidentifiedDataType, self).__init__(filename, args, kwargs)
+        # this cannot be imported at the module level (creates circular imports)
+        from yt.funcs import issue_deprecation_warning
+
+        issue_deprecation_warning(
+            "YTOutputNotIdentified is a deprecated alias for YTUnidentifiedDataType"
+        )
+
+
+class YTAmbiguousDataType(YTUnidentifiedDataType):
     def __init__(self, filename, candidates):
         self.filename = filename
         self.candidates = candidates

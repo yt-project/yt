@@ -33,7 +33,7 @@ from yt.utilities.configure import set_config
 from yt.utilities.exceptions import (
     YTCommandRequiresModule,
     YTFieldNotParseable,
-    YTOutputNotIdentified,
+    YTUnidentifiedDataType,
 )
 from yt.utilities.metadata import get_metadata
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
@@ -1742,7 +1742,7 @@ class YTSearchCmd(YTCommand):
             print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
             try:
                 record = get_metadata(c, args.full_output)
-            except YTOutputNotIdentified:
+            except YTUnidentifiedDataType:
                 continue
             records.append(record)
         with open(args.output, "w") as f:

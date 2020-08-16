@@ -13,8 +13,8 @@ from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
     YTIllDefinedAMR,
-    YTOutputNotIdentified,
     YTSimulationNotIdentified,
+    YTUnidentifiedDataType,
 )
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -57,7 +57,7 @@ def load(fn, *args, **kwargs):
     FileNotFoundError
         If fn does not match any existing file or directory.
 
-    yt.utilities.exceptions.YTOutputNotIdentified
+    yt.utilities.exceptions.YTUnidentifiedDataType
         If fn matches existing files or directories with undetermined format.
 
     yt.utilities.exceptions.YTAmbiguousDataType
@@ -97,7 +97,7 @@ def load(fn, *args, **kwargs):
     if len(candidates) > 1:
         raise YTAmbiguousDataType(fn, candidates)
 
-    raise YTOutputNotIdentified(fn, args, kwargs)
+    raise YTUnidentifiedDataType(fn, args, kwargs)
 
 
 def load_simulation(fn, simulation_type, find_outputs=False):

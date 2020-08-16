@@ -13,7 +13,7 @@ from yt.utilities.exceptions import (
     InvalidSimulationTimeSeries,
     MissingParameter,
     NoStoppingCondition,
-    YTOutputNotIdentified,
+    YTUnidentifiedDataType,
 )
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
@@ -659,7 +659,7 @@ class EnzoSimulation(SimulationTimeSeries):
             )
             try:
                 ds = load(filename)
-            except (FileNotFoundError, YTOutputNotIdentified):
+            except (FileNotFoundError, YTUnidentifiedDataType):
                 mylog.error("Failed to load %s", filename)
                 continue
             my_storage.result = {
