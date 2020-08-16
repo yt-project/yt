@@ -632,7 +632,7 @@ class BoxlibDataset(Dataset):
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
     _default_cparam_filename = "job_info"
-    periodicity = (False, False, False)
+    _periodicity = (False, False, False)
 
     def __init__(
         self,
