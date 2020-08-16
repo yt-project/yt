@@ -42,6 +42,22 @@ else:
 ytLogger = logging.getLogger("yt")
 
 
+class DuplicateFilter(logging.Filter):
+    """A filter that removes duplicated successive log entries."""
+
+    # source
+    # https://stackoverflow.com/questions/44691558/suppress-multiple-messages-with-same-content-in-python-logging-module-aka-log-co  # noqa
+    def filter(self, record):
+        current_log = (record.module, record.levelno, record.msg)
+        if current_log != getattr(self, "last_log", None):
+            self.last_log = current_log
+            return True
+        return False
+
+
+ytLogger.addFilter(DuplicateFilter())
+
+
 def disable_stream_logging():
     if len(ytLogger.handlers) > 0:
         ytLogger.removeHandler(ytLogger.handlers[0])
