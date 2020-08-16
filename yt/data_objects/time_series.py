@@ -12,7 +12,7 @@ from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
 from yt.funcs import ensure_list, issue_deprecation_warning, iterable, mylog
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTException, YTOutputNotIdentified
+from yt.utilities.exceptions import YTException, YTUnidentifiedDataType
 from yt.utilities.object_registries import (
     analysis_task_registry,
     data_object_registry,
@@ -167,8 +167,8 @@ class DatasetSeries:
         ret = super(DatasetSeries, cls).__new__(cls)
         try:
             ret._pre_outputs = outputs[:]
-        except TypeError:
-            raise YTOutputNotIdentified(outputs)
+        except TypeError as e:
+            raise YTUnidentifiedDataType(outputs) from e
         return ret
 
     def __init__(

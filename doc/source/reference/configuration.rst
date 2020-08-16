@@ -102,7 +102,7 @@ used internally.
   setting will provide instructions for setting this.
 * ``requires_ds_strict`` (default: ``True``): If true, answer tests wrapped
   with :func:`~yt.utilities.answer_testing.framework.requires_ds` will raise
-  :class:`~yt.utilities.exceptions.YTOutputNotIdentified` rather than consuming
+  :class:`~yt.utilities.exceptions.YTUnidentifiedDataType` rather than consuming
   it if required dataset is not present.
 * ``serialize`` (default: ``False``): If true, perform automatic
   :ref:`object serialization <object-serialization>`
