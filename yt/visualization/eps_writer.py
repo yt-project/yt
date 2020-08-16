@@ -725,7 +725,6 @@ class DualEPS:
             imsize = (256, 1)
         else:
             raise RuntimeError(f"orientation {orientation} unknown")
-            return
 
         # If shrink is a scalar, then convert into tuple
         if not isinstance(shrink, (tuple, list)):
@@ -1271,10 +1270,8 @@ def multiplot(
                 "Number of images (%d) doesn't match nrow(%d)"
                 " x ncol(%d)." % (len(images), nrow, ncol)
             )
-            return
     if yt_plots is None and images is None:
         raise RuntimeError("Must supply either yt_plots or image filenames.")
-        return
     if yt_plots is not None and images is not None:
         mylog.warning("Given both images and yt plots.  Ignoring images.")
     if yt_plots is not None:
@@ -1427,7 +1424,6 @@ def multiplot(
                             raise RuntimeError(
                                 f"{fields[index]} not found in cb_location dict"
                             )
-                            return
                         orientation = cb_location[fields[index]]
                     elif isinstance(cb_location, list):
                         orientation = cb_location[index]
@@ -1528,7 +1524,6 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
                 "Number of plots ({0}) is less "
                 "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
             )
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow * ncol:
@@ -1536,11 +1531,9 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
                 "Number of plots ({0}) is less "
                 "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
             )
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:
         raise RuntimeError("Unknown plot type in multiplot_yt")
-        return
     return figure
 
 

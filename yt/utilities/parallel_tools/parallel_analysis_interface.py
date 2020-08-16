@@ -1270,7 +1270,6 @@ class ParallelAnalysisInterface:
         LE, RE = left_edge[:], right_edge[:]
         if not self._distributed:
             raise NotImplementedError
-            return LE, RE  # , re
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size // rank_ratio)
