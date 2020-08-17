@@ -14,25 +14,25 @@ from yt.funcs import (
 
 from ._commons import get_canvas, validate_image_name
 
-backend_dict = {
+BACKEND_SPECS = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
-    "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg"],
-    "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo"],
+    "GTKAgg": ["backend_gtkagg", "FigureCanvasGTKAgg", None],
+    "GTKCairo": ["backend_gtkcairo", "FigureCanvasGTKCairo", None],
     "MacOSX": ["backend_macosx", "FigureCanvasMac", "FigureManagerMac"],
-    "Qt4Agg": ["backend_qt4agg", "FigureCanvasQTAgg"],
-    "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg"],
-    "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg"],
-    "WX": ["backend_wx", "FigureCanvasWx"],
-    "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg"],
+    "Qt4Agg": ["backend_qt4agg", "FigureCanvasQTAgg", None],
+    "Qt5Agg": ["backend_qt5agg", "FigureCanvasQTAgg", None],
+    "TkAgg": ["backend_tkagg", "FigureCanvasTkAgg", None],
+    "WX": ["backend_wx", "FigureCanvasWx", None],
+    "WXAgg": ["backend_wxagg", "FigureCanvasWxAgg", None],
     "GTK3Cairo": [
         "backend_gtk3cairo",
         "FigureCanvasGTK3Cairo",
         "FigureManagerGTK3Cairo",
     ],
     "GTK3Agg": ["backend_gtk3agg", "FigureCanvasGTK3Agg", "FigureManagerGTK3Agg"],
-    "WebAgg": ["backend_webagg", "FigureCanvasWebAgg"],
+    "WebAgg": ["backend_webagg", "FigureCanvasWebAgg", None],
     "nbAgg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
-    "agg": ["backend_agg", "FigureCanvasAgg"],
+    "agg": ["backend_agg", "FigureCanvasAgg", None],
 }
 
 
@@ -84,10 +84,13 @@ class PlotMPL:
             axes.cla()
             axes.set_position(axrect)
             self.axes = axes
-        canvas_classes = self._set_canvas()
-        self.canvas = canvas_classes[0](self.figure)
-        if len(canvas_classes) > 1:
-            self.manager = canvas_classes[1](self.canvas, 1)
+        self.interactivity = get_interactivity()
+
+        figure_canvas, figure_manager = self._get_canvas_classes()
+        self.canvas = figure_canvas(self.figure)
+        if figure_manager is not None:
+            self.manager = figure_manager(self.canvas, 1)
+
         for which in ["major", "minor"]:
             for axis in "xy":
                 self.axes.tick_params(
@@ -97,29 +100,26 @@ class PlotMPL:
     def _create_axes(self, axrect):
         self.axes = self.figure.add_axes(axrect)
 
-    def _set_canvas(self):
-        self.interactivity = get_interactivity()
-        if self.interactivity:
-            backend = str(matplotlib.get_backend())
-        else:
-            backend = "agg"
+    def _get_canvas_classes(self):
 
-        for key in backend_dict.keys():
-            if key == backend:
-                mod = __import__(
-                    "matplotlib.backends",
-                    globals(),
-                    locals(),
-                    [backend_dict[key][0]],
-                    0,
-                )
-                submod = getattr(mod, backend_dict[key][0])
-                FigureCanvas = getattr(submod, backend_dict[key][1])
-                if len(backend_dict[key]) > 2:
-                    FigureManager = getattr(submod, backend_dict[key][2])
-                    return [FigureCanvas, FigureManager]
-                else:
-                    return [FigureCanvas]
+        if self.interactivity:
+            key = str(matplotlib.get_backend())
+        else:
+            key = "agg"
+
+        try:
+            module, fig_canvas, fig_manager = BACKEND_SPECS[key]
+        except KeyError:
+            return
+
+        mod = __import__("matplotlib.backends", globals(), locals(), [module], 0,)
+        submod = getattr(mod, module)
+        FigureCanvas = getattr(submod, fig_canvas)
+        if fig_manager is not None:
+            FigureManager = getattr(submod, fig_manager)
+            return FigureCanvas, FigureManager
+
+        return FigureCanvas, None
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
