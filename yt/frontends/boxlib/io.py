@@ -82,10 +82,14 @@ class IOHandlerBoxlib(BaseIOHandler):
             arr = np.fromfile(f, "float64", np.product(shape))
             arr = arr.reshape(shape, order="F")
         return arr[
-            [
-                slice(None) if (nghost[dim] == 0) else slice(nghost[dim], -nghost[dim])
-                for dim in range(self.ds.dimensionality)
-            ]
+            tuple(
+                [
+                    slice(None)
+                    if (nghost[dim] == 0)
+                    else slice(nghost[dim], -nghost[dim])
+                    for dim in range(self.ds.dimensionality)
+                ]
+            )
         ]
 
     def _read_chunk_data(self, chunk, fields):
