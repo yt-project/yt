@@ -8,7 +8,11 @@ SUPPORTED_IMAGE_SUFFIXES = [".png", ".eps", ".ps", ".pdf", ".jpg", ".jpeg"]
 
 
 def validate_image_name(filename, ext=".png"):
-
+    """
+    Build a valid image filename with a specified extension (default to png).
+    The ext parameter is ignored if the input filename has a valid extension already.
+    Otherwise, ext is appended to filename, taking the place of any existing extension.
+    """
     fn = Path(filename)
     if fn.suffix in SUPPORTED_IMAGE_SUFFIXES:
         return str(filename)
