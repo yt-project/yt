@@ -227,10 +227,10 @@ class ExodusIIDataset(Dataset):
         with self._handle.open_ds() as ds:
             try:
                 return ds.variables["time_whole"][self.step]
-            except IndexError:
+            except IndexError as e:
                 raise RuntimeError(
                     "Invalid step number, max is %d" % (self.num_steps - 1)
-                )
+                ) from e
             except (KeyError, TypeError):
                 return 0.0
 

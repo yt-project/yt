@@ -26,12 +26,12 @@ class EnzoPIOHandler(BaseIOHandler):
         f = h5py.File(grid.filename, mode="r")
         try:
             group = f[grid.block_name]
-        except KeyError:
+        except KeyError as e:
             raise YTException(
                 message="Grid %s is missing from data file %s."
                 % (grid.block_name, grid.filename),
                 ds=self.ds,
-            )
+            ) from e
         fields = []
         ptypes = set()
         dtypes = set()

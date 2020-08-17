@@ -413,8 +413,8 @@ class EnzoHierarchy(GridIndex):
                     continue
                 try:
                     gf = self.io._read_field_names(grid)
-                except self.io._read_exception:
-                    raise IOError("Grid %s is a bit funky?", grid.id)
+                except self.io._read_exception as e:
+                    raise IOError("Grid %s is a bit funky?", grid.id) from e
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.dataset.parameters:

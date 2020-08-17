@@ -133,8 +133,8 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
     try:
         cls = simulation_time_series_registry[simulation_type]
-    except KeyError:
-        raise YTSimulationNotIdentified(simulation_type)
+    except KeyError as e:
+        raise YTSimulationNotIdentified(simulation_type) from e
 
     return cls(fn, find_outputs=find_outputs)
 

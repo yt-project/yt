@@ -1,4 +1,3 @@
-import sys
 import types
 from collections import defaultdict
 from distutils.version import LooseVersion
@@ -768,8 +767,8 @@ class PlotWindow(ImagePlotContainer):
             for un in unit_name:
                 try:
                     self.ds.length_unit.in_units(un)
-                except (UnitConversionError, UnitParseError):
-                    raise YTUnitNotRecognized(un)
+                except (UnitConversionError, UnitParseError) as e:
+                    raise YTUnitNotRecognized(un) from e
         self._axes_unit_names = unit_name
         return self
 
@@ -1276,8 +1275,7 @@ class PWViewerMPL(PlotWindow):
                 except YTDataTypeUnsupported as e:
                     raise e
                 except Exception as e:
-                    new_exc = YTPlotCallbackError(callback._type_name, e)
-                    raise new_exc.with_traceback(sys.exc_info()[2])
+                    raise YTPlotCallbackError(callback._type_name) from e
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]

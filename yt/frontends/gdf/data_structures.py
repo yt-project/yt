@@ -245,8 +245,8 @@ class GDFDataset(Dataset):
             geometry = just_one(sp.get("geometry", 0))
             try:
                 self.geometry = GEOMETRY_TRANS[geometry]
-            except KeyError:
-                raise YTGDFUnknownGeometry(geometry)
+            except KeyError as e:
+                raise YTGDFUnknownGeometry(geometry) from e
         self.parameters.update(sp)
         self.domain_left_edge = sp["domain_left_edge"][:]
         self.domain_right_edge = sp["domain_right_edge"][:]
