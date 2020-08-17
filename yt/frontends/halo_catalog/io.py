@@ -36,7 +36,7 @@ class IOHandlerYTHaloCatalog(BaseIOHandler):
 
     def _yield_coordinates(self, data_file):
         pn = "particle_position_%s"
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             units = parse_h5_attr(f[pn % "x"], "units")
             x, y, z = (
                 self.ds.arr(f[pn % ax][()].astype("float64"), units) for ax in "xyz"
@@ -79,7 +79,7 @@ class IOHandlerYTHaloCatalog(BaseIOHandler):
         return {"halos": nhalos}
 
     def _identify_fields(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             fields = [
                 ("halos", field) for field in f if not isinstance(f[field], h5py.Group)
             ]
@@ -122,7 +122,7 @@ class IOHandlerYTHalo(HaloDatasetIOHandler, IOHandlerYTHaloCatalog):
     _dataset_type = "ythalo"
 
     def _identify_fields(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             scalar_fields = [
                 ("halos", field) for field in f if not isinstance(f[field], h5py.Group)
             ]

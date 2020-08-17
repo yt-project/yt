@@ -272,7 +272,7 @@ class YTHaloParticleIndex(ParticleIndex):
             my_f = (
                 f
                 if self.data_files[i_scalar].filename == filename
-                else h5py.File(self.data_files[i_scalar].filename, "r")
+                else h5py.File(self.data_files[i_scalar].filename, mode="r")
             )
 
             for field in fields:
