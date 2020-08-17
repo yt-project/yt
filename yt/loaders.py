@@ -1284,7 +1284,7 @@ def load_unstructured_mesh(
 # If not, it will download it.
 
 
-def load_sample(fn=None, specific_file=None, pbar=True):
+def load_sample(name=None, specific_file=None, pbar=True):
     """
     Load sample data with yt. Simple wrapper around yt.load to include fetching
     data with pooch.
@@ -1324,7 +1324,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
     base_path = fido.pooch_obj.path
 
     registered_fname, name, extension = fido._validate_sample_fname(
-        fn
+        name
     )  # todo: make this part of the class
 
     downloader = None
