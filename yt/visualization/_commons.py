@@ -2,7 +2,8 @@ from pathlib import Path
 
 from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
-SUPPORTED_IMAGE_SUFFIXES = [".png", ".eps", ".ps", ".pdf", ".jpg", ".jpeg"]
+AGG_FORMATS = [".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff"]
+SUPPORTED_FORMATS = AGG_FORMATS + [".eps", ".ps", ".pdf"]
 
 
 def validate_image_name(filename, suffix=".png"):
@@ -12,7 +13,7 @@ def validate_image_name(filename, suffix=".png"):
     Otherwise, suffix is appended to the filename, replacing any existing extension.
     """
     fn = Path(filename)
-    if fn.suffix in SUPPORTED_IMAGE_SUFFIXES:
+    if fn.suffix in SUPPORTED_FORMATS:
         return str(filename)
 
     if not suffix.startswith("."):
@@ -31,7 +32,7 @@ def get_canvas(figure, filename):
             f"without an extension."
         )
 
-    if suffix == ".png":
+    if suffix in AGG_FORMATS:
         return FigureCanvasAgg(figure)
 
     if suffix == ".pdf":

@@ -1,4 +1,3 @@
-import os
 from distutils.version import LooseVersion
 from io import BytesIO
 
@@ -13,7 +12,7 @@ from yt.funcs import (
     mylog,
 )
 
-from ._commons import validate_image_name
+from ._commons import get_canvas, validate_image_name
 
 backend_dict = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
@@ -35,8 +34,6 @@ backend_dict = {
     "nbAgg": ["backend_nbagg", "FigureCanvasNbAgg", "FigureManagerNbAgg"],
     "agg": ["backend_agg", "FigureCanvasAgg"],
 }
-
-_AGG_FORMATS = (".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff")
 
 
 class CallbackWrapper:
@@ -126,12 +123,6 @@ class PlotMPL:
 
     def save(self, name, mpl_kwargs=None, canvas=None):
         """Choose backend and save image to disk"""
-        from ._mpl_imports import (
-            FigureCanvasAgg,
-            FigureCanvasPdf,
-            FigureCanvasPS,
-            FigureCanvasSVG,
-        )
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
@@ -141,22 +132,13 @@ class PlotMPL:
             mpl_kwargs["papertype"] = "auto"
 
         name = validate_image_name(name)
-        suffix = os.path.splitext(name)[-1]
 
-        mylog.info("Saving plot %s", name)
-
-        if suffix in _AGG_FORMATS:
-            canvas = FigureCanvasAgg(self.figure)
-        elif suffix in (".svg", ".svgz"):
-            canvas = FigureCanvasSVG(self.figure)
-        elif suffix == ".pdf":
-            canvas = FigureCanvasPdf(self.figure)
-        elif suffix in (".eps", ".ps"):
-            canvas = FigureCanvasPS(self.figure)
-        else:
-            mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+        try:
+            canvas = get_canvas(self.figure, name)
+        except ValueError:
             canvas = self.canvas
 
+        mylog.info("Saving plot %s", name)
         with matplotlib_style_context():
             canvas.print_figure(name, **mpl_kwargs)
         return name
