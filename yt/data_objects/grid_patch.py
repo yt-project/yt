@@ -414,7 +414,7 @@ class AMRGridPatch(YTSelectionContainer):
         else:
             slices = get_nodal_slices(source.shape, nodal_flag, dim)
             for i, sl in enumerate(slices):
-                dest[offset : offset + count, i] = source[sl][np.squeeze(mask)]
+                dest[offset : offset + count, i] = source[tuple(sl)][np.squeeze(mask)]
         return count
 
     def count(self, selector):
