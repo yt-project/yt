@@ -291,24 +291,23 @@ class ProfilePlot:
             else:
                 name = "Multi-data"
 
-        new_name = validate_image_name(name, ext=suffix)
-        prefix, suffix = os.path.splitext(new_name)
+        name = validate_image_name(name, ext=suffix)
+        prefix, suffix = os.path.splitext(name)
 
         xfn = self.profiles[0].x_field
         if isinstance(xfn, tuple):
             xfn = xfn[1]
-        fns = []
+
+        names = []
         for uid, plot in iters:
             if isinstance(uid, tuple):
                 uid = uid[1]
-            if new_name == name:
-                fns.append(new_name)
-            else:
-                fns.append(f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}")
-            mylog.info("Saving %s", fns[-1])
+            uid_name = f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}"
+            names.append(uid_name)
+            mylog.info("Saving %s", uid_name)
             with matplotlib_style_context():
-                plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
-        return fns
+                plot.save(uid_name, mpl_kwargs=mpl_kwargs)
+        return names
 
     @validate_plot
     def show(self):
