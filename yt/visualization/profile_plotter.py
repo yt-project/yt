@@ -291,7 +291,7 @@ class ProfilePlot:
             else:
                 name = "Multi-data"
 
-        name = validate_image_name(name, ext=suffix)
+        name = validate_image_name(name, suffix)
         prefix, suffix = os.path.splitext(name)
 
         xfn = self.profiles[0].x_field
@@ -1294,7 +1294,7 @@ class PhasePlot(ImagePlotContainer):
                 name = name + (os.sep if name[-1] != os.sep else "")
                 name += str(self.profile.ds)
 
-            name = validate_image_name(name, ext=suffix)
+            name = validate_image_name(name, suffix)
             prefix, suffix = os.path.splitext(name)
             name = f"{prefix}_{middle}{suffix}"
 

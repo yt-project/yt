@@ -23,8 +23,8 @@ def test_default():
 def test_custom_valid_ext():
     for dext in SUPPORTED_IMAGE_SUFFIXES:
         ext = dext.replace(".", "")
-        result1 = validate_image_name(filename_no_ext, ext=ext)
-        result2 = validate_image_name(filename_no_ext, ext=dext)
+        result1 = validate_image_name(filename_no_ext, suffix=ext)
+        result2 = validate_image_name(filename_no_ext, suffix=dext)
         expected = f"{filename_no_ext}.{ext}"
 
         assert result1 == expected
