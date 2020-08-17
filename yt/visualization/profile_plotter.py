@@ -1251,7 +1251,7 @@ class PhasePlot(ImagePlotContainer):
         return self
 
     @validate_plot
-    def save(self, name=None, suffix=None, mpl_kwargs=None):
+    def save(self, name=None, suffix=".png", mpl_kwargs=None):
         r"""
         Saves a 2d profile plot.
 

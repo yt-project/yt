@@ -461,7 +461,7 @@ class PlotContainer:
         return self
 
     @validate_plot
-    def save(self, name=None, suffix=None, mpl_kwargs=None):
+    def save(self, name=None, suffix=".png", mpl_kwargs=None):
         """saves the plot to disk.
 
         Parameters
