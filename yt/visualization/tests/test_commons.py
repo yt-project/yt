@@ -3,7 +3,6 @@ from pathlib import Path
 from yt.visualization._commons import validate_image_name
 
 # todo
-# - move this to yt/visualization/tests
 # - remove yt.funcs.get_image_suffix
 
 filename_no_ext = Path("a_file_is_no_one")

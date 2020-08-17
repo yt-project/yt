@@ -13,7 +13,6 @@ from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
 from yt.funcs import (
-    get_image_suffix,
     is_sequence,
     iter_fields,
     matplotlib_style_context,
@@ -22,6 +21,7 @@ from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
 from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
+from ._commons import validate_image_name
 from .base_plot_types import ImagePlotMPL, PlotMPL
 from .plot_container import (
     ImagePlotContainer,
@@ -33,25 +33,6 @@ from .plot_container import (
 )
 
 MPL_VERSION = LooseVersion(matplotlib.__version__)
-
-
-def get_canvas(name):
-    from . import _mpl_imports as mpl
-
-    suffix = get_image_suffix(name)
-
-    if suffix == "":
-        suffix = ".png"
-    if suffix == ".png":
-        canvas_cls = mpl.FigureCanvasAgg
-    elif suffix == ".pdf":
-        canvas_cls = mpl.FigureCanvasPdf
-    elif suffix in (".eps", ".ps"):
-        canvas_cls = mpl.FigureCanvasPS
-    else:
-        mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-        canvas_cls = mpl.FigureCanvasAgg
-    return canvas_cls
 
 
 def invalidate_profile(f):
@@ -282,7 +263,7 @@ class ProfilePlot:
         ProfilePlot._initialize_instance(self, profiles, label, plot_spec, y_log)
 
     @validate_plot
-    def save(self, name=None, suffix=None, mpl_kwargs=None):
+    def save(self, name=None, suffix=".png", mpl_kwargs=None):
         r"""
         Saves a 1d profile plot.
 
@@ -303,24 +284,19 @@ class ProfilePlot:
             iters = zip(range(len(unique)), sorted(unique))
         else:
             iters = self.plots.items()
-        if not suffix:
-            suffix = "png"
-        suffix = f".{suffix}"
-        fullname = False
-        if name is None:
+
+        try:
+            new_name = validate_image_name(name, ext=suffix)
+        except ValueError:
+            # name is an empty string or path, or None
             if len(self.profiles) == 1:
                 prefix = self.profiles[0].ds
             else:
                 prefix = "Multi-data"
-            name = f"{prefix}{suffix}"
-        else:
-            sfx = get_image_suffix(name)
-            if sfx != "":
-                suffix = sfx
-                prefix = name[: name.rfind(suffix)]
-                fullname = True
-            else:
-                prefix = name
+            new_name = validate_image_name(prefix)
+
+        prefix, suffix = os.path.splitext(new_name)
+
         xfn = self.profiles[0].x_field
         if isinstance(xfn, tuple):
             xfn = xfn[1]
@@ -328,8 +304,8 @@ class ProfilePlot:
         for uid, plot in iters:
             if isinstance(uid, tuple):
                 uid = uid[1]
-            if fullname:
-                fns.append(f"{prefix}{suffix}")
+            if new_name == name:
+                fns.append(new_name)
             else:
                 fns.append(f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}")
             mylog.info("Saving %s", fns[-1])
@@ -1319,21 +1295,15 @@ class PhasePlot(ImagePlotContainer):
             if splitname[0] != "" and not os.path.isdir(splitname[0]):
                 os.makedirs(splitname[0])
             if os.path.isdir(name) and name != str(self.profile.ds):
-                prefix = name + (os.sep if name[-1] != os.sep else "")
-                prefix += str(self.profile.ds)
-            else:
-                prefix = name
-            if suffix is None:
-                suffix = get_image_suffix(name)
-                if suffix != "":
-                    for v in self.plots.values():
-                        names.append(v.save(name, mpl_kwargs))
-                    return names
-                else:
-                    suffix = "png"
-            fn = f"{prefix}_{middle}.{suffix}"
-            names.append(fn)
-            self.plots[f].save(fn, mpl_kwargs)
+                name = name + (os.sep if name[-1] != os.sep else "")
+                name += str(self.profile.ds)
+
+            name = validate_image_name(name, ext=suffix)
+            prefix, suffix = os.path.splitext(name)
+            name = f"{prefix}_{middle}{suffix}"
+
+            names.append(name)
+            self.plots[f].save(name, mpl_kwargs)
         return names
 
     @invalidate_plot

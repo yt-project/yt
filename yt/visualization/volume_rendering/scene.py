@@ -5,11 +5,12 @@ from collections import OrderedDict
 import numpy as np
 
 from yt.config import ytcfg
-from yt.funcs import get_image_suffix, mylog
+from yt.funcs import mylog
 from yt.units.dimensions import length
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTNotInsideNotebook
+from yt.visualization._commons import get_canvas, validate_image_name
 
 from .camera import Camera
 from .render_source import (
@@ -317,10 +318,7 @@ class Scene:
             # if no volume source present, use a default filename
             else:
                 fname = "Render_opaque.png"
-        suffix = get_image_suffix(fname)
-        if suffix == "":
-            suffix = ".png"
-            fname = f"{fname}{suffix}"
+        fname = validate_image_name(fname)
 
         render = self._sanitize_render(render)
         if render:
@@ -329,21 +327,15 @@ class Scene:
 
         # We can render pngs natively but for other formats we defer to
         # matplotlib.
-        if suffix == ".png":
+        if fname.endswith(".png"):
             self._last_render.write_png(fname, sigma_clip=sigma_clip)
         else:
-            from matplotlib.backends.backend_pdf import FigureCanvasPdf
-            from matplotlib.backends.backend_ps import FigureCanvasPS
             from matplotlib.figure import Figure
 
             shape = self._last_render.shape
             fig = Figure((shape[0] / 100.0, shape[1] / 100.0))
-            if suffix == ".pdf":
-                canvas = FigureCanvasPdf(fig)
-            elif suffix in (".eps", ".ps"):
-                canvas = FigureCanvasPS(fig)
-            else:
-                raise NotImplementedError(f"Unknown file suffix '{suffix}'")
+            canvas = get_canvas(fname, fig)
+
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
             out = self._last_render
@@ -426,11 +418,6 @@ class Scene:
         ...                                        horizontalalignment="center")]])
 
         """
-        from yt.visualization._mpl_imports import (
-            FigureCanvasAgg,
-            FigureCanvasPdf,
-            FigureCanvasPS,
-        )
 
         sources = list(self.sources.values())
         rensources = [s for s in sources if isinstance(s, RenderSource)]
@@ -448,10 +435,7 @@ class Scene:
             # if no volume source present, use a default filename
             else:
                 fname = "Render_opaque.png"
-        suffix = get_image_suffix(fname)
-        if suffix == "":
-            suffix = ".png"
-            fname = f"{fname}{suffix}"
+        fname = validate_image_name(fname)
 
         render = self._sanitize_render(render)
         if render:
@@ -485,19 +469,9 @@ class Scene:
 
                 ax.axes.text(xy[0], xy[1], string, transform=f.transFigure, **opt)
 
-        suffix = get_image_suffix(fname)
-
-        if suffix == ".png":
-            canvas = FigureCanvasAgg(self._render_figure)
-        elif suffix == ".pdf":
-            canvas = FigureCanvasPdf(self._render_figure)
-        elif suffix in (".eps", ".ps"):
-            canvas = FigureCanvasPS(self._render_figure)
-        else:
-            mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
-            canvas = self.canvas
-
-        self._render_figure.canvas = canvas
+        self._render_figure.canvas = get_canvas(
+            self._render_figure, fname, default=self.canvas
+        )
         self._render_figure.tight_layout()
         self._render_figure.savefig(fname, facecolor="black", pad_inches=0)
 

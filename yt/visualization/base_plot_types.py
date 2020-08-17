@@ -1,3 +1,4 @@
+import os
 from distutils.version import LooseVersion
 from io import BytesIO
 
@@ -6,12 +7,13 @@ import numpy as np
 
 from yt.funcs import (
     get_brewer_cmap,
-    get_image_suffix,
     get_interactivity,
     is_sequence,
     matplotlib_style_context,
     mylog,
 )
+
+from ._commons import validate_image_name
 
 backend_dict = {
     "GTK": ["backend_gtk", "FigureCanvasGTK", "FigureManagerGTK"],
@@ -138,10 +140,8 @@ class PlotMPL:
         ) < LooseVersion("3.3.0"):
             mpl_kwargs["papertype"] = "auto"
 
-        suffix = get_image_suffix(name)
-        if suffix == "":
-            suffix = ".png"
-            name = f"{name}{suffix}"
+        name = validate_image_name(name)
+        suffix = os.path.splitext(name)[-1]
 
         mylog.info("Saving plot %s", name)
 

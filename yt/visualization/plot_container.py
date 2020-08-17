@@ -10,12 +10,14 @@ import numpy as np
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import ensure_dir, get_image_suffix, is_sequence, iter_fields, mylog
+from yt.funcs import ensure_dir, is_sequence, iter_fields, mylog
 from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.visualization.color_maps import yt_colormaps
+
+from ._commons import validate_image_name
 
 latex_prefixes = {
     "u": r"\mu",
@@ -491,11 +493,11 @@ class PlotContainer:
         if os.path.isdir(name) and name != str(self.ds):
             name = name + (os.sep if name[-1] != os.sep else "") + str(self.ds)
         if suffix is None:
-            suffix = get_image_suffix(name)
-            if suffix != "":
-                for v in self.plots.values():
-                    names.append(v.save(name, mpl_kwargs))
-                return names
+            name = validate_image_name(name)
+            for v in self.plots.values():
+                out_name = v.save(name, mpl_kwargs)
+                names.append(out_name)
+            return names
         if hasattr(self.data_source, "axis"):
             axis = self.ds.coordinates.axis_name.get(self.data_source.axis, "")
         else:
