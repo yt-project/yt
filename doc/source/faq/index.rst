@@ -440,6 +440,12 @@ which would produce debug (as well as info, warning, and error) messages, or at 
 
    yt.set_log_level("error")
 
+This is the same as doing:
+
+.. code-block:: python
+
+   yt.set_log_level(40)
+
 which in this case would suppress everything below error messages. For reference,
 the numerical values corresponding to different log levels are:
 
