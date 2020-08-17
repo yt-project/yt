@@ -1332,7 +1332,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
         try:
             import tqdm  # noqa: F401
 
-            downloader = pooch.HTTPDownloader(progressbar=True)
+            downloader = pooch.pooch.HTTPDownloader(progressbar=True)
         except ImportError:
             mylog.warning("tqdm is not installed, progress bar can not be displayed.")
 
