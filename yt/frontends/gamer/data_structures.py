@@ -60,7 +60,7 @@ class GAMERHierarchy(GridIndex):
     def _parse_index(self):
         parameters = self.dataset.parameters
         gid0 = 0
-        grid_corner = self._handle["Tree/Corner"].value[:: self.pgroup]
+        grid_corner = self._handle["Tree/Corner"][()][:: self.pgroup]
         convert2physical = self._handle["Tree/Corner"].attrs["Cvt2Phy"]
 
         self.grid_dimensions[:] = parameters["PatchSize"] * self.refine_by
@@ -99,7 +99,7 @@ class GAMERHierarchy(GridIndex):
         # number of particles in each grid
         try:
             self.grid_particle_count[:] = np.sum(
-                self._handle["Tree/NPar"].value.reshape(-1, self.pgroup), axis=1
+                self._handle["Tree/NPar"][()].reshape(-1, self.pgroup), axis=1
             )[:, None]
         except KeyError:
             self.grid_particle_count[:] = 0.0
@@ -113,7 +113,7 @@ class GAMERHierarchy(GridIndex):
         )
 
     def _populate_grid_objects(self):
-        son_list = self._handle["Tree/Son"].value
+        son_list = self._handle["Tree/Son"][()]
 
         for gid in range(self.num_grids):
             grid = self.grids[gid]
@@ -139,7 +139,7 @@ class GAMERHierarchy(GridIndex):
     def _validate_parent_children_relationship(self):
         mylog.info("Validating the parent-children relationship ...")
 
-        father_list = self._handle["Tree/Father"].value
+        father_list = self._handle["Tree/Father"][()]
 
         for grid in self.grids:
             # parent->children == itself

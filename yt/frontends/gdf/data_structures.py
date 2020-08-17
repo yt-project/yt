@@ -202,7 +202,7 @@ class GDFDataset(Dataset):
         if "dataset_units" in h5f:
             for unit_name in h5f["/dataset_units"]:
                 current_unit = h5f[f"/dataset_units/{unit_name}"]
-                value = current_unit.value
+                value = current_unit[()]
                 unit = current_unit.attrs["unit"]
                 # need to convert to a Unit object and check dimensions
                 # because unit can be things like
