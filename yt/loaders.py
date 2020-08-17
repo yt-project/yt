@@ -1291,7 +1291,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
 
     Parameters
     ----------
-    fn : str or None
+    name : str or None
         The name of the sample data to load. This is generally the name of the
         folder of the dataset. For IsolatedGalaxy, the name would be
         `IsolatedGalaxy`.  If `None` is supplied, the return value
@@ -1312,7 +1312,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
 
     fido = PoochHandle()
 
-    if fn is None:
+    if name is None:
         keys = []
         for key in fido._registry:
             for ext in _extensions_to_strip:
