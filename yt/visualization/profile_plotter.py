@@ -285,16 +285,13 @@ class ProfilePlot:
         else:
             iters = self.plots.items()
 
-        try:
-            new_name = validate_image_name(name, ext=suffix)
-        except ValueError:
-            # name is an empty string or path, or None
+        if name is None:
             if len(self.profiles) == 1:
-                prefix = self.profiles[0].ds
+                name = str(self.profiles[0].ds)
             else:
-                prefix = "Multi-data"
-            new_name = validate_image_name(prefix)
+                name = "Multi-data"
 
+        new_name = validate_image_name(name, ext=suffix)
         prefix, suffix = os.path.splitext(new_name)
 
         xfn = self.profiles[0].x_field
