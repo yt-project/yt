@@ -469,9 +469,7 @@ class Scene:
 
                 ax.axes.text(xy[0], xy[1], string, transform=f.transFigure, **opt)
 
-        self._render_figure.canvas = get_canvas(
-            self._render_figure, fname, default=self.canvas
-        )
+        self._render_figure.canvas = get_canvas(self._render_figure, fname)
         self._render_figure.tight_layout()
         self._render_figure.savefig(fname, facecolor="black", pad_inches=0)
 
