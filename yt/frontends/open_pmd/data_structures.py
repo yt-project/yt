@@ -15,7 +15,7 @@ from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 ompd_known_versions = [
     StrictVersion("1.0.0"),
@@ -133,7 +133,7 @@ class OpenPMDHierarchy(GridIndex):
                     for axis in mesh.keys():
                         mesh_fields.append(mname.replace("_", "-") + "_" + axis)
                 except AttributeError:
-                    # This is a h5.Dataset (i.e. no axes)
+                    # This is a h5py.Dataset (i.e. no axes)
                     mesh_fields.append(mname.replace("_", "-"))
         except (KeyError, TypeError, AttributeError):
             pass
@@ -218,7 +218,7 @@ class OpenPMDHierarchy(GridIndex):
             meshes = f[bp + mp]
             for mname in meshes.keys():
                 mesh = meshes[mname]
-                if isinstance(mesh, h5.Group):
+                if isinstance(mesh, h5py.Group):
                     shape = mesh[list(mesh.keys())[0]].shape
                 else:
                     shape = mesh.shape
@@ -568,7 +568,7 @@ class OpenPMDDataset(Dataset):
             meshes = f[bp + mp]
             for mname in meshes.keys():
                 mesh = meshes[mname]
-                if isinstance(mesh, h5.Group):
+                if isinstance(mesh, h5py.Group):
                     shape = np.asarray(mesh[list(mesh.keys())[0]].shape)
                 else:
                     shape = np.asarray(mesh.shape)
@@ -612,7 +612,7 @@ class OpenPMDDataset(Dataset):
         """
         warn_h5py(args[0])
         try:
-            with h5.File(args[0], "r") as f:
+            with h5py.File(args[0], mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
                 for i in opmd_required_attributes:
                     if i not in attrs:
@@ -641,7 +641,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
 
     def __init__(self, filename):
         super(OpenPMDDatasetSeries, self).__init__([])
-        self.handle = h5.File(filename, "r")
+        self.handle = h5py.File(filename, mode="r")
         self.filename = filename
         self._pre_outputs = sorted(
             np.asarray(list(self.handle["/data"].keys()), dtype=np.int)
@@ -678,7 +678,7 @@ class OpenPMDGroupBasedDataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         warn_h5py(args[0])
         try:
-            with h5.File(args[0], "r") as f:
+            with h5py.File(args[0], mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
                 for i in opmd_required_attributes:
                     if i not in attrs:
