@@ -334,7 +334,7 @@ class Scene:
 
             shape = self._last_render.shape
             fig = Figure((shape[0] / 100.0, shape[1] / 100.0))
-            canvas = get_canvas(fname, fig)
+            canvas = get_canvas(fig, fname)
 
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
