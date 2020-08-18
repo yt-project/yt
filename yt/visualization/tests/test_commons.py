@@ -1,6 +1,6 @@
 from pathlib import Path
 
-from yt.visualization._commons import SUPPORTED_IMAGE_SUFFIXES, validate_image_name
+from yt.visualization._commons import SUPPORTED_FORMATS, validate_image_name
 
 filename_no_ext = Path("a_file_is_no_one")
 filename_png = filename_no_ext.with_suffix(".png")
@@ -21,7 +21,7 @@ def test_default():
 
 
 def test_custom_valid_ext():
-    for dext in SUPPORTED_IMAGE_SUFFIXES:
+    for dext in SUPPORTED_FORMATS:
         ext = dext.replace(".", "")
         result1 = validate_image_name(filename_no_ext, suffix=ext)
         result2 = validate_image_name(filename_no_ext, suffix=dext)
