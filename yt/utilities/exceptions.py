@@ -14,16 +14,16 @@ class YTException(Exception):
 
 
 class YTUnidentifiedDataType(YTException):
-    def __init__(self, filename, args=None, kwargs=None):
+    def __init__(self, filename, *args, **kwargs):
         self.filename = filename
         self.args = args
         self.kwargs = kwargs
 
     def __str__(self):
         msg = [f"Could not determine input format from `'{self.filename}'"]
-        if self.args not in (None, ()):
+        if self.args:
             msg.append(", ".join(str(a) for a in self.args))
-        if self.kwargs not in (None, {}):
+        if self.kwargs:
             msg.append(", ".join(f"{k}={v}" for k, v in self.kwargs.items()))
         return ", ".join(msg) + "`."
 
