@@ -369,6 +369,7 @@ class ParticlePhasePlot(PhasePlot):
         deposition="ngp",
         fontsize=18,
         figure_size=8.0,
+        shading="nearest",
     ):
 
         # if no z_fields are passed in, use a constant color
@@ -387,7 +388,7 @@ class ParticlePhasePlot(PhasePlot):
         )
 
         type(self)._initialize_instance(
-            self, data_source, profile, fontsize, figure_size
+            self, data_source, profile, fontsize, figure_size, shading
         )
 
 

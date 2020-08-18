@@ -937,6 +937,7 @@ class PhasePlot(ImagePlotContainer):
         fractional=False,
         fontsize=18,
         figure_size=8.0,
+        shading="nearest",
     ):
 
         data_source = data_object_or_all_data(data_source)
@@ -955,11 +956,13 @@ class PhasePlot(ImagePlotContainer):
             )
 
         type(self)._initialize_instance(
-            self, data_source, profile, fontsize, figure_size
+            self, data_source, profile, fontsize, figure_size, shading
         )
 
     @classmethod
-    def _initialize_instance(cls, obj, data_source, profile, fontsize, figure_size):
+    def _initialize_instance(
+        cls, obj, data_source, profile, fontsize, figure_size, shading
+    ):
         obj.plot_title = {}
         obj.z_log = {}
         obj.z_title = {}
@@ -971,6 +974,7 @@ class PhasePlot(ImagePlotContainer):
         obj._text_ypos = {}
         obj._text_kwargs = {}
         obj._profile = profile
+        obj._shading = shading
         obj._profile_valid = True
         obj._xlim = (None, None)
         obj._ylim = (None, None)
@@ -1115,6 +1119,7 @@ class PhasePlot(ImagePlotContainer):
                 fig,
                 axes,
                 cax,
+                shading=self._shading,
             )
 
             self.plots[f]._toggle_axes(draw_axes)
@@ -1182,7 +1187,7 @@ class PhasePlot(ImagePlotContainer):
         self._plot_valid = True
 
     @classmethod
-    def from_profile(cls, profile, fontsize=18, figure_size=8.0):
+    def from_profile(cls, profile, fontsize=18, figure_size=8.0, shading="nearest"):
         r"""
         Instantiate a PhasePlot object from a profile object created
         with :func:`~yt.data_objects.profiles.create_profile`.
@@ -1215,7 +1220,7 @@ class PhasePlot(ImagePlotContainer):
         obj = cls.__new__(cls)
         data_source = profile.data_source
         return cls._initialize_instance(
-            obj, data_source, profile, fontsize, figure_size
+            obj, data_source, profile, fontsize, figure_size, shading
         )
 
     def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
@@ -1607,12 +1612,13 @@ class PhasePlotMPL(ImagePlotMPL):
         figure,
         axes,
         cax,
+        shading="nearest",
     ):
         self._initfinished = False
         self._draw_colorbar = True
         self._draw_axes = True
         self._figure_size = figure_size
-
+        self._shading = shading
         # Compute layout
         fontscale = float(fontsize) / 18.0
         if fontscale < 1.0:
@@ -1646,12 +1652,14 @@ class PhasePlotMPL(ImagePlotMPL):
             norm = matplotlib.colors.Normalize(zlim[0], zlim[1])
         self.image = None
         self.cb = None
+
         self.image = self.axes.pcolormesh(
             np.array(x_data),
             np.array(y_data),
             np.array(image_data.T),
             norm=norm,
             cmap=cmap,
+            shading=self._shading,
         )
 
         self.axes.set_xscale(x_scale)
