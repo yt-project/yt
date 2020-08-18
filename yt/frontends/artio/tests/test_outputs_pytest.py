@@ -38,7 +38,6 @@ f_list = [
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file", "answer_compare")
 class TestArtIo:
     @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
     @pytest.mark.parametrize("d", d_list, indirect=True)

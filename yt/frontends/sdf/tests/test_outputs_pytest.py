@@ -39,7 +39,6 @@ def internet_on():
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestSDF:
     @requires_module("thingking")
     def test_scivis(self):

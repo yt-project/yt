@@ -38,7 +38,6 @@ f_list = [
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file", "answer_compare")
 class TestArt:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")

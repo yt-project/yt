@@ -15,7 +15,7 @@ from yt.utilities.answer_testing.answer_tests import field_values
 
 # Test data
 ahf_halos = "ahf_halos/snap_N64L16_135.parameter"
-ahf_kwargs = {"hubble_constant": 0.7}
+ahf_kwargs = {"kwargs" : {"hubble_constant": 0.7}}
 
 ahf_fields = [
     ("nbody", "particle_position_x"),
@@ -26,7 +26,6 @@ ahf_fields = [
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file", "answer_compare")
 class TestAHF:
     @requires_file(ahf_halos)
     @pytest.mark.parametrize("ds", [[ahf_halos, ahf_kwargs]], indirect=True)

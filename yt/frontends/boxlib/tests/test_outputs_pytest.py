@@ -18,7 +18,13 @@ from yt.frontends.boxlib.api import (
     WarpXDataset,
 )
 from yt.testing import assert_equal, units_override_check
-from yt.utilities.answer_testing.answer_tests import grid_values, small_patch_amr
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    grid_hierarchy,
+    grid_values,
+    parentage_relationships,
+    projection_values,
+)
 
 # Test data
 radadvect = "RadAdvect/plt00000"
@@ -34,28 +40,83 @@ nyx_no_particles = "nyx_sedov_plt00086"
 msubch = "maestro_subCh_plt00248"
 
 
+ds_list = [
+    radadvect,
+    rt,
+    star,
+    LyA,
+    RT_particles,
+    langmuir,
+    plasma,
+    beam,
+]
+a_list = [0, 1, 2]
+
+orion_fields = ["temperature", "density", "velocity_magnitude"]
+nyx_fields = ["Ne", "Temp", "particle_mass_density"]
+castro_fields = ["Temp", "density", "particle_count"]
+warpx_fields = ["Ex", "By", "jz"]
+raw_fields = [("raw", "Bx"), ("raw", "Ey"), ("raw", "jz")]
+
+w_radadvect = [None, "density"]
+w_rt = [None, "density"]
+w_star = [None, "density"]
+w_lya = [None, "Ne"]
+w_RTP = [None, "density"]
+w_warp = [None, "Ex"]
+
+d_radadvect = [None, ("sphere", ("max", (0.1, "unitary")))]
+d_rt = [None, ("sphere", ("max", (0.1, "unitary")))]
+d_star = [None, ("sphere", ("max", (0.1, "unitary")))]
+d_lya = [None, ("sphere", ("c", (0.1, "unitary")))]
+d_RTP = [None, ("sphere", ("max", (0.1, "unitary")))]
+d_warp = [None, ("sphere", ("c", (0.1, "unitary")))]
+
+pair_list = [
+    [radadvect, orion_fields, w_radadvect, d_radadvect],
+    [rt, orion_fields, w_rt, d_rt],
+    [star, orion_fields, w_star, d_star],
+    [LyA, nyx_fields, w_lya, d_lya],
+    [RT_particles, castro_fields, w_RTP, d_RTP],
+    [langmuir, warpx_fields, w_warp, d_warp],
+    [plasma, warpx_fields, w_warp, d_warp],
+    [beam, warpx_fields, w_warp, d_warp],
+]
+
+gv_pairs = [
+    (i[0], f) for i in pair_list for f in i[1]]
+]
+fv_pairs = [
+    (i[0], f, d) for i in pair_list for f in i[1] for d in i[3]]
+]
+pv_pairs = [
+    (i[0], f, d, w) for i in pair_list for f in i[1] for d in i[3] for w in i[2]]
+]
+
+
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestBoxLib:
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [radadvect], indirect=True)
-    def test_radadvect(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    @pytest.mark.parametrize("ds", ds_list, indirect=True)
+    def test_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [rt], indirect=True)
-    def test_radtube(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    @pytest.mark.parametrize("ds, f", gv_pairs, indirect=True)
+    def test_gv(self, f, ds):
+        self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [star], indirect=True)
-    def test_star(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)
+    def test_fv(self, d, f, ds):
+        self.hashes.update({"field_values": field_values(ds, f, d)})
 
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [LyA], indirect=True)
-    def test_LyA(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    @pytest.mark.parametrize("ds, f, d, w", pv_pairs, indirect=True)
+    @pytest.mark.parametrize("a", a_list, indirect=True)
+    def test_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
 
     @pytest.mark.parametrize("ds", [LyA], indirect=True)
     def test_nyx_particle_io(self, ds):
@@ -93,11 +154,6 @@ class TestBoxLib:
             )
         )
 
-    @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [RT_particles], indirect=True)
-    def test_RT_particles(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
-
     @pytest.mark.parametrize("ds", [RT_particles], indirect=True)
     def test_castro_particle_io(self, ds):
         grid = ds.index.grids[2]
@@ -126,21 +182,6 @@ class TestBoxLib:
                 reg["particle_position_y"] >= left_edge[1],
             )
         )
-
-    @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [langmuir], indirect=True)
-    def test_langmuir(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
-
-    @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [plasma], indirect=True)
-    def test_plasma(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
-
-    @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [beam], indirect=True)
-    def test_beam(self, f, a, d, w, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.parametrize("ds", [plasma], indirect=True)
     def test_warpx_particle_io(self, ds):
@@ -187,6 +228,7 @@ class TestBoxLib:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [raw_fields], indirect=True)
+    @pytest.mark.parametrize("f", raw_fields, indirect=True)
     def test_raw_fields(self, f, ds):
         gv = grid_values(ds, f)
         self.hashes.update({"grid_values": gv})

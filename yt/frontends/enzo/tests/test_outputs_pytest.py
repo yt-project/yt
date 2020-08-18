@@ -20,8 +20,15 @@ from yt.testing import (
     requires_file,
     units_override_check,
 )
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    grid_hierarchy,
+    grid_values,
+    parentage_relationships,
+    pixelized_projection_values,
+    projection_values,
+)
 from yt.utilities.answer_testing import utils
-from yt.utilities.answer_testing.answer_tests import big_patch_amr, small_patch_amr
 from yt.visualization.plot_window import SlicePlot
 
 # Files containing data to be used in tests. Paths are relative to
@@ -37,6 +44,49 @@ active_particle_cosmology = "ActiveParticleCosmology/DD0046/DD0046"
 mhdctot = "MHDCTOrszagTang/DD0004/data0004"
 dnz = "DeeplyNestedZoom/DD0025/data0025"
 p3mini = "PopIII_mini/DD0034/DD0034"
+
+
+ds_list = [
+    toro1d,
+    kh2d,
+    m7,
+    g30,
+]
+a_list = [0, 1, 2]
+d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
+w_list = [None, "density"]
+f_other = ["temperature", "density", "velocity_magnitude", "velocity_divergence"]
+f_toro1d = utils.get_parameterization(toro1d)
+f_kh2d = utils.get_parameterization(kh2d)
+f_list = [
+    f_toro1d,
+    f_kh2d,
+    f_other,
+    f_other,
+]
+
+
+gv_pairs = []
+fv_pairs = []
+pv_pairs = []
+ppv_pairs = []
+
+
+# Need a better way to do this. The annoying part is that g30 needs the big
+# data mark. It also runs the big_patch_amr suite, which is similar to the
+# small_patch suite, but instead of field_values and projection_values it run
+# pixelized_projection_values
+for i, ds in enumerate(ds_list):
+    for f in f_list[i]:
+        gv_pairs.append((ds, f))
+        for d in d_list:
+            if ds != g30:
+                fv_pairs.append((ds, f, d))
+            for w in w_list:
+                if ds != g30:
+                    pv_pairs.append((ds, f, d, w))
+                else:
+                    ppv_pairs.append((ds, f, d, w))
 
 
 def color_conservation_test(ds):
@@ -72,30 +122,47 @@ def color_conservation_test(ds):
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestEnzo:
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [toro1d], indirect=True)
-    def test_toro1d(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    @pytest.mark.parametrize("ds", ds_list, indirect=True)
+    def test_gh_pr(self, ds, big_data):
+        if str(ds) == "galaxy0030" and not big_data:
+            pytest.skip("--answer-big-data not set.")
+        self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [kh2d], indirect=True)
-    def test_kh2d(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    @pytest.mark.parametrize("ds, f", gv_pairs, indirect=True)
+    def test_gv(self, f, ds, big_data):
+        if str(ds) == "galaxy0030" and not big_data:
+            pytest.skip("--answer-big-data not set.")
+        self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [m7], indirect=True)
-    def test_moving7(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)
+    def test_fv(self, d, f, ds):
+        self.hashes.update({"field_values": field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f, d, w", pv_pairs, indirect=True)
+    @pytest.mark.parametrize("a", a_list, indirect=True)
+    def test_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f, d, w", ppv_pairs, indirect=True)
+    @pytest.mark.parametrize("a", a_list, indirect=True)
+    def test_ppv(self, a, d, w, f, ds, big_data):
+        if str(ds) == "galaxy0030" and not big_data:
+            pytest.skip("--answer-big-data not set.")
+        self.hashes.update({"pixelized_projection_values": pixelized_projection_values(ds, a, f, w, d)})
 
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [g30], indirect=True)
-    def test_galaxy0030(self, a, d, w, f, ds):
+    def test_galaxy0030(self, ds):
         color_conservation_test(ds)
         assert_equal(ds.particle_type_counts, {"io": 1124453})
-        self.hashes.update(big_patch_amr(ds, f, w, a, d))
 
     @pytest.mark.big_data
     @pytest.mark.parametrize("ds", [ecp], indirect=True)

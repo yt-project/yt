@@ -54,7 +54,6 @@ OCT_MASK_LIST = [
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestStream:
     @pytest.mark.usefixtures("temp_dir")
     def test_load_empty_file(self):

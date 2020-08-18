@@ -32,7 +32,6 @@ pkdgrav_kwargs = dict(
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestTipsy:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")

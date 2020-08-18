@@ -361,8 +361,6 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
     path = ytcfg.get("yt", "test_data_dir")
     if isinstance(ds_fn, Dataset):
         return ds_fn
-    if not os.path.isdir(path):
-        return False
     if cls is None:
         ds = load(ds_fn, *args, **kwargs)
     else:

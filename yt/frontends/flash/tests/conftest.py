@@ -7,21 +7,6 @@ Purpose: Contains fixtures for loading data.
 # Test parameters. Format:
 # {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
 test_params = {
-    "test_sloshing": {
-        "a": [(0, 1, 2), ("0", "1", "2")],
-        "d": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
-        "w": [(None, "density"), ("None", "density")],
-        "f": [
-            ("temperature", "density", "velocity_magnitude"),
-            ("temperature", "density", "velocity_magnitude"),
-        ],
-    },
-    "test_wind_tunnel": {
-        "a": [(0, 1, 2), ("0", "1", "2")],
-        "d": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
-        "w": [(None, "density"), ("None", "density")],
-        "f": [("temperature", "density"), ("temperature", "density")],
-    },
     "test_fid_1to3_b1": {
         "f, w": [
             (

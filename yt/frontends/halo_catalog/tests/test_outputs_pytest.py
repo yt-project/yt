@@ -18,7 +18,7 @@ from yt.utilities.answer_testing.utils import fake_halo_catalog
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("temp_dir", "answer_file")
+@pytest.mark.usefixtures("temp_dir")
 class TestHaloCatalog:
     @requires_module("h5py")
     def test_halo_catalog(self):

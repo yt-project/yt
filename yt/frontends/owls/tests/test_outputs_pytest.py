@@ -19,7 +19,6 @@ os33 = "snapshot_033/snap_033.0.hdf5"
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestOwls:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")

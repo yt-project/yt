@@ -23,7 +23,6 @@ gmhd_bbox = [[-400, 400]] * 3
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestGizmo:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")

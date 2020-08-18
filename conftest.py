@@ -2,10 +2,6 @@
 Title:   conftest.py
 Purpose: Contains hooks and fixtures for yt testing
 Notes:
-    1.) https://docs.pytest.org/en/latest/example/simple.html
-    2.) https://docs.pytest.org/en/latest/historical-notes.html#string-conditions
-    3.) https://docs.pytest.org/en/latest/skipping.html#skipif
-    4.) https://docs.pytest.org/en/latest/reference.html
 """
 import os
 import shutil
@@ -17,17 +13,8 @@ import yaml
 import yt
 from yt.config import ytcfg
 from yt.utilities.answer_testing import utils
-
-# Global variables can be added to the pytest namespace
-# if this is not done (i.e., just using answer_files = {}), then
-# the dictionary is empty come pytest configuration time and
-# setting each class' answer_file attribute
-pytest.answer_files = {}
-pytest.answer_dir = os.path.join(ytcfg.get("yt", "test_data_dir"), "answers")
-pytest.array_dir = os.path.join(pytest.answer_dir, "raw_arrays")
-
-# List of answer files
-answer_file_list = "tests/tests_pytest.yaml"
+from yt.utilities.exceptions import YTOutputNotIdentified
+from yt.utilities.logger import ytLogger
 
 
 def pytest_addoption(parser):
@@ -55,9 +42,12 @@ def pytest_addoption(parser):
     parser.addoption(
         "--no-hash", action="store_true",
     )
+    parser.addoption("--local-dir", default=None, help="Where answers are saved.")
     # Tell pytest about the local-dir option in the ini files. This
     # option is used for creating the answer directory on CI
-    parser.addini("local-dir", "answer directory.")
+    parser.addini("local-dir", default="../answer-store", help="answer directory.")
+    parser.addini("test_data_dir", default=ytcfg.get("yt", "test_data_dir", help="Directory where data for tests is stored.")
+    parser.addini("answer_file_list", default="./tests/tests_pytest.yaml", help="Contains answer file names")
 
 
 def pytest_configure(config):
@@ -66,20 +56,8 @@ def pytest_configure(config):
     each answer test's answer file (including the changeset number).
     """
     yt._called_from_pytest = True
-    # If test_data_dir has not been set, the default value is
-    # /does/not/exist. If we find that, we check for a value given in
-    # an ini file. If that's not found, pytest will fail.
-    if "does/not/exist" in pytest.answer_dir:
-        pytest.answer_dir = config.getini("local-dir")
-        pytest.array_dir = os.path.join(pytest.answer_dir, "raw_arrays")
-    # Make sure that the answers dir exists. If not, try to make it
-    if not os.path.isdir(pytest.answer_dir):
-        os.mkdir(pytest.answer_dir)
-    if not os.path.isdir(pytest.array_dir):
-        os.mkdir(pytest.array_dir)
-    # Read the list of answer test classes and their associated answer
-    # file
-    with open(answer_file_list, "r") as f:
+    # Read the list of answer test classes and their associated answer file
+    with open(config.getini("answer_file_list"), "r") as f:
         pytest.answer_files = yaml.safe_load(f)
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
@@ -114,115 +92,6 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_unit)
 
 
-@pytest.fixture(scope="function")
-def temp_dir():
-    r"""
-    Creates a temporary directory needed by certain tests.
-    """
-    curdir = os.getcwd()
-    if int(os.environ.get("GENERATE_YTDATA", 0)):
-        tmpdir = os.getcwd()
-    else:
-        tmpdir = tempfile.mkdtemp()
-    os.chdir(tmpdir)
-    yield tmpdir
-    os.chdir(curdir)
-    if tmpdir != curdir:
-        shutil.rmtree(tmpdir)
-
-
-@pytest.fixture(scope="class")
-def answer_file(request):
-    r"""
-    Assigns the name of the appropriate answer file as an attribute of
-    the calling answer test class.
-
-    Each class that performs answer tests (e.g., TestEnzo) has a
-    corresponding answer file. These answer files are stored in
-    test_data_dir/answers. The names of the files and their
-    corresponding answer class are in ./tests/tests.yaml.
-
-    Example:
-    --------
-        # This fixture should be used whenever a new answer class is
-        # defined
-        >>> @pytest.mark.usefixtures('answer_file')
-        >>> class TestNewFrontend:
-        >>>     def test1(self):
-                    ...
-    """
-    # See if the class being tested is one we know about
-    try:
-        answer_file, raw_answer_file = pytest.answer_files[request.cls.__name__]
-        answer_file = os.path.join(pytest.answer_dir, answer_file)
-        raw_answer_file = os.path.join(pytest.array_dir, raw_answer_file)
-    except KeyError:
-        raise KeyError(
-            "Answer file: `{}` not found in list: `{}`.".format(
-                request.config.__name__, answer_file_list
-            )
-        )
-    except ValueError:
-        raise ValueError(
-            "Either no hashed answer file name or no raw "
-            "answer file name given for: `{}` in: `{}`.".format(
-                request.cls.__name__, answer_file_list
-            )
-        )
-    no_hash = request.config.getoption("--no-hash")
-    answer_store = request.config.getoption("--answer-store")
-    answer_raw_arrays = request.config.getoption("--answer-raw-arrays")
-    raw_answer_store = request.config.getoption("--raw-answer-store")
-    force_overwrite = request.config.getoption("--force-overwrite")
-    # If we're saving answers, make sure answer file doesn't already exist
-    # unless force-overwrite is enabled. Only need to check if that type of
-    # answer file is under consideration (e.g., we don't need to check the
-    # hash answer files if the user wants to only save raw answer data)
-    if not no_hash:
-        if answer_store and os.path.isfile(answer_file):
-            if not force_overwrite:
-                raise FileExistsError(
-                    "Attempting to overwrite existing answer "
-                    + "file: `{}`. If you're sure about this, use the `--force-overwrite` "
-                    + "option.".format(answer_file)
-                )
-        # If we're comparing new and old answers, first make sure that the
-        # file containing the old answers exists so we don't waste time running
-        # all the tests only to find we have nothing to compare to
-        elif not answer_store and not os.path.isfile(answer_file):
-            raise FileNotFoundError(
-                "Cannot find `{}` containing gold answers.".format(answer_file)
-            )
-    # Now do the same thing as above but for the raw arrays
-    if answer_raw_arrays:
-        if raw_answer_store and os.path.isfile(raw_answer_file):
-            if not force_overwrite:
-                raise FileExistsError(
-                    "Attempting to overwrite existing answer "
-                    + "file: `{}`. If you're sure about this, use the `--force-overwrite` "
-                    + "option.".format(raw_answer_file)
-                )
-        elif not raw_answer_store and not os.path.isfile(raw_answer_file):
-            raise FileNotFoundError(
-                "Cannot find `{}` containing gold answers.".format(raw_answer_file)
-            )
-    # If the file exists and we are using the force-overwrite option, then
-    # we need to delete the existing file, otherwise it will get appended
-    # to and this will mess everything up, including with group name conflicts
-    # in h5py when saving raw arrays
-    if not no_hash and answer_store and os.path.isfile(answer_file) and force_overwrite:
-        os.remove(answer_file)
-    if (
-        answer_raw_arrays
-        and raw_answer_store
-        and os.path.isfile(raw_answer_file)
-        and force_overwrite
-    ):
-        os.remove(raw_answer_file)
-    request.cls.answer_file = answer_file
-    request.cls.raw_answer_file = raw_answer_file
-
-
 def _param_list(request):
     r"""
     Saves the non-ds, non-fixture function arguments for saving to
@@ -244,80 +113,111 @@ def _param_list(request):
     return test_params
 
 
+def _get_answer_files(request):
+    """
+    Gets the path to where the hashed and raw answers are saved.
+    """
+    try:
+        answer_file, raw_answer_file = pytest.answer_files[request.cls.__name__]
+    except KeyError:
+        ytLogger.error(f"Answer files for `{request.cls.__name__}` not found.")
+        sys.exit()
+    except ValueError:
+        ytLogger.error("Missing either hashed file name or raw file name for `{request.cls.__name__}`in `{request.config.getini('answer_file_list')}`.") 
+    # Add the local-dir aspect of the path. If there's a command line value,
+    # have that override the ini file value
+    clLocalDir = request.config.getoption("--local-dir")
+    iniLocalDir = request.config.getini("local-dir")
+    if clLocalDir is not None:
+        answer_file = os.path.join(clLocalDir, answer_file)
+        raw_answer_file = os.path.join(clLocalDir, raw_answer_file)
+    else:
+        answer_file = os.path.join(iniLocalDir, answer_file)
+        raw_answer_file = os.path.join(iniLocalDir, raw_answer_file)
+    return answer_file, raw_answer_file
+
+
 @pytest.fixture(scope="function")
 def hashing(request):
     r"""
     Handles initialization, generation, and saving of answer test
     result hashes.
     """
-    # Set up hashes dictionary
-    if request.cls is not None:
-        request.cls.hashes = {}
-    else:
-        assert False
-    # Yield to the caller in order to actually perform the tests
+    no_hash = request.config.getoption("--no-hash")
+    store_hash = request.config.getoption("--answer-store")
+    raw = request.config.getoption("--answer-raw-arrays")
+    raw_store = request.config.getoption("--raw-answer-store")
+    if request.cls.answer_file is None:
+        request.cls.answer_file, request.cls.raw_answer_file = _get_answer_files(request)
+    request.cls.hashes = {}
+    # Load the saved answers if we're comparing. We don't do this for the raw
+    # answers because those are huge
+    if not no_hash and not store_hash and request.cls.saved_hashes is not None:
+        with open(request.cls.answer_file, "r") as fd:
+            request.cls.saved_hashes = yaml.safe_load(fd)
     yield
-    # Get param list
+    # Get arguments and their values passed to the test (e.g., axis, field, etc.)
     params = _param_list(request)
-    # Hash the test results
+    # Hash the test results. Don't save to request.cls.hashes so we still have
+    # raw data, in case we want to work with that
     hashes = utils._hash_results(request.cls.hashes)
     # Add the other test parameters
     hashes.update(params)
     # Add the function name as the "master" key to the hashes dict
     hashes = {request.node.name: hashes}
-    no_hash = request.config.getoption("--no-hash")
-    store_hash = request.config.getoption("--answer-store")
-    raw = request.config.getoption("--answer-raw-arrays")
-    raw_store = request.config.getoption("--raw-answer-store")
-    answer_file = request.cls.answer_file
-    raw_answer_file = request.cls.raw_answer_file
     # Save hashes
     if not no_hash and store_hash:
-        utils._save_result(hashes, answer_file)
+        utils._save_result(hashes, request.cls.answer_file)
     # Compare hashes
     elif not no_hash and not store_hash:
         utils._compare_result(hashes, request.cls.saved_hashes)
     # Save raw data
     if raw and raw_store:
-        utils._save_raw_arrays(request.cls.hashes, raw_answer_file, request.node.name)
+        utils._save_raw_arrays(request.cls.hashes, request.cls.raw_answer_file, request.node.name)
     # Compare raw data. This is done one test at a time because the
     # arrays can get quite large and storing everything in memory would
     # be bad
     if raw and not raw_store:
         utils._compare_raw_arrays(
-            request.cls.hashes, raw_answer_file, request.node.name
+            request.cls.hashes, request.cls.raw_answer_file, request.node.name
         )
 
 
-@pytest.fixture(scope="class")
-def answer_compare(request):
+@pytest.fixture(scope="function")
+def temp_dir():
+    r"""
+    Creates a temporary directory needed by certain tests.
     """
-    Handles reading in the saved answers when doing a comparison so
-    that the file only needs to be read once per answer class rather
-    than once per test.
-    """
-    no_hash = request.config.getoption("--no-hash")
-    store_hash = request.config.getoption("--answer-store")
-    if not no_hash and not store_hash:
-        with open(request.cls.answer_file, "r") as fd:
-            request.cls.saved_hashes = yaml.safe_load(fd)
-    yield
-    # No need to keep the results saved in memory after comparison has
-    # been done
-    if hasattr(request.cls, "saved_hashes"):
-        del request.cls.saved_hashes
+    curdir = os.getcwd()
+    if int(os.environ.get("GENERATE_YTDATA", 0)):
+        tmpdir = os.getcwd()
+    else:
+        tmpdir = tempfile.mkdtemp()
+    os.chdir(tmpdir)
+    yield tmpdir
+    os.chdir(curdir)
+    if tmpdir != curdir:
+        shutil.rmtree(tmpdir)
 
 
 @pytest.fixture(scope="class")
 def ds(request):
-    if isinstance(request.param, list):
-        dataset = utils.data_dir_load(request.param[0], kwargs=request.param[1])
-    else:
-        dataset = utils.data_dir_load(request.param)
-    if dataset:
+    try:
+        if isinstance(request.param, list):
+            # data_dir_load can take the cls, args, and kwargs. These optional
+            # arguments are given in a dictionary as the second element of the
+            # list
+            ds_fn = request.param[0]
+            opts = request.param[1]
+            cls = None if "cls" not in opts.keys() else opts["cls"]
+            args = None if "args" not in opts.keys() else opts["args"]
+            kwargs = None if "kwargs" not in opts.keys() else opts["kwargs"]
+            dataset = utils.data_dir_load(ds_fn, cls=cls, args=args, kwargs=kwargs)
+        else:
+            dataset = utils.data_dir_load(request.param)
         return dataset
-    else:
-        pytest.skip(f"Data file: `{request.param}` not found.")
+    except YTOutputNotIdentified:
+        return pytest.skip(f"Data file: `{request.param}` not found.")
 
 
 @pytest.fixture(scope="class")
@@ -372,3 +272,15 @@ def N(request):
     Needed because indirect=True is used for loading the datasets.
     """
     return request.param
+
+@pytest.fixture(scope="class")
+def big_data(request):
+    """
+    There isn't a way to access command-line options given to pytest from
+    an actual test, so we need a fixture that retrieves and returns its
+    value. In this case, the --answer-big-data option.
+    """
+    if request.config.getoption("--answer-big-data"):
+        return True
+    else:
+        return False

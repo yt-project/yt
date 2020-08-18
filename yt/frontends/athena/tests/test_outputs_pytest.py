@@ -55,7 +55,7 @@ uo_sloshing = {
 ds_list = [
     cloud,
     blast,
-    [stripping, {"units_override": uo_stripping}],
+    [stripping, {"kwargs" : {"units_override": uo_stripping}}],
 ]
 a_list = [0, 1, 2]
 w_list = [None, "density"]
@@ -84,34 +84,35 @@ f_list = [
 
 def get_pairs():
     pairs = []
-    for i, d in enumerate(ds_list):
+    for i, ds in enumerate(ds_list):
         for f in f_list[i]:
-            # Stripping needs to be marked with the big_data mark
-            if str(d) == "rps.0062":
-                pairs.append(pytest.param(d, f, marks=pytest.mark.big_data))
-            else:
-                pairs.append((d, f))
+            pairs.append((ds, f))
     return pairs
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file", "answer_compare")
 class TestAthena:
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
-    def test_gh_pr(self, ds):
+    def test_gh_pr(self, ds, big_data):
+        if str(ds) == "rps.0062" and not big_data:
+            pytest.skip("--answer-big-data not used.")
         self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
         self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    def test_gv(self, f, ds):
+    def test_gv(self, f, ds, big_data):
+        if str(ds) == "rps.0062" and not big_data:
+            pytest.skip("--answer-big-data not used.")
         self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
     @pytest.mark.parametrize("d", d_list, indirect=True)
-    def test_fv(self, d, f, ds):
+    def test_fv(self, d, f, ds, big_data):
+        if str(ds) == "rps.0062" and not big_data:
+            pytest.skip("--answer-big-data not used.")
         self.hashes.update({"field_values": field_values(ds, f, d)})
 
     @pytest.mark.usefixtures("hashing")
@@ -119,7 +120,9 @@ class TestAthena:
     @pytest.mark.parametrize("d", d_list, indirect=True)
     @pytest.mark.parametrize("a", a_list, indirect=True)
     @pytest.mark.parametrize("w", w_list, indirect=True)
-    def test_pv(self, a, d, w, f, ds):
+    def test_pv(self, a, d, w, f, ds, big_data):
+        if str(ds) == "rps.0062" and not big_data:
+            pytest.skip("--answer-big-data not used.")
         self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
 
     @requires_file(blast)

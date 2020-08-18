@@ -12,7 +12,6 @@ EAGLE_6 = "EAGLE_6/eagle_0005.hdf5"
 # Combined the tests for loading a file and ensuring the units have been
 # implemented correctly to save time on re-loading a dataset
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestSwift:
     @pytest.mark.parametrize("ds", [keplerian_ring], indirect=True)
     def test_non_cosmo_dataset(self, ds):

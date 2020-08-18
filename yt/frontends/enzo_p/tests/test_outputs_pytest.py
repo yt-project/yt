@@ -35,34 +35,51 @@ _pfields = (
 )
 
 
+ds_list = [
+    hello_world,
+    ep_cosmo,
+]
+f_list = [
+    _fields,
+    _pfields,
+]
+d_list = [
+    [None, ("sphere", ("max", (0.25, "unitary")))],
+    [None, ("sphere", ("max", (0.1, "unitary")))],
+]
+a_list = [0, 1, 2]
+w_list = [None, "density"]
+
+
+fv_pairs = [(ds, f, d) for i, ds in enumerate(ds_list) for f in f_list[i] for d in d_list[i]]
+ppv_pairs = [(ds_list[0], f, d, w, a) for f in f_list[0] for d in d_list[0] for w in w_list for a in a_list]
+sum_pairs = [(ds, d) for i, ds in enumerate(ds_list) for d in ds_list[i]]
+
+
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestEnzoP:
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)
+    def test_fv(self, ds, f, d):
+        fv = field_values(ds, f, d)
+        self.hashes.update({"field_values": fv})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f, d, w, a", ppv_pairs, indirect=True)
+    def test_ppv(self, ds, f, d, w, a):
+        ppv = pixelized_projection_values(ds, a, f, w, d)
+        self.hashes.update({"pixelized_projection_values": ppv})
+
+    @pytest.mark.parametrize("ds, d", sum_pairs, indirect=True)
+    def test_sum(self, ds, d):
+        dobj = utils.create_obj(ds, d)
+        s1 = dobj["ones"].sum()
+        s2 = sum(mask.sum() for block, mask in dobj.blocks)
+        assert_equal(s1, s2)
+
     @pytest.mark.parametrize("ds", [hello_world], indirect=True)
     def test_EnzoPDataset(self, ds):
         assert isinstance(ds, EnzoPDataset)
-
-    @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [hello_world], indirect=True)
-    def test_hello_world(self, f, a, d, w, ds):
-        ppv = pixelized_projection_values(ds, a, f, w, d)
-        self.hashes.update({"pixelized_projection_values": ppv})
-        fv = field_values(ds, f, d)
-        self.hashes.update({"field_values": fv})
-        dobj = utils.create_obj(ds, d)
-        s1 = dobj["ones"].sum()
-        s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        assert_equal(s1, s2)
-
-    @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [ep_cosmo], indirect=True)
-    def test_particle_fields(self, f, d, ds):
-        fv = field_values(ds, f, d, particle_type=True)
-        self.hashes.update({"field_values": fv})
-        dobj = utils.create_obj(ds, d)
-        s1 = dobj["ones"].sum()
-        s2 = sum(mask.sum() for block, mask in dobj.blocks)
-        assert_equal(s1, s2)
 
     @pytest.mark.parametrize("ds", [hello_world], indirect=True)
     def test_hierarchy(self, ds):

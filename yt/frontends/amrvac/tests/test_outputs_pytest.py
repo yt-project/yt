@@ -100,7 +100,6 @@ def _assert_normalisations_equal(ds):
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file", "answer_compare")
 class TestAMRVAC:
     @requires_file(khi_cartesian_2D)
     def test_AMRVACDataset(self):
