@@ -7,7 +7,7 @@ import numpy as np
 
 from yt.funcs import compare_dicts, iterable
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.on_demand_imports import _h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 def _sanitize_list(flist):
@@ -51,7 +51,7 @@ def _deserialize_from_h5(g, ds):
                 result[item] = ds.arr(g[item][:], g[item].attrs["units"])
             else:
                 result[item] = ds.quan(g[item][()], g[item].attrs["units"])
-        elif isinstance(g[item], h5.Group):
+        elif isinstance(g[item], h5py.Group):
             result[item] = _deserialize_from_h5(g[item], ds)
         elif g[item] == "None":
             result[item] = None
@@ -113,7 +113,7 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
             self._ds_mrep.store(storage)
         metadata, (final_name, chunks) = self._generate_post()
         metadata["obj_type"] = self.type
-        with h5.File(storage) as h5f:
+        with h5py.File(storage, mode="w") as h5f:
             dset = str(uuid4())[:8]
             h5f.create_group(dset)
             _serialize_to_h5(h5f[dset], metadata)
@@ -226,7 +226,7 @@ class MinimalProjectionData(MinimalMappableData):
         if hasattr(self, "_ds_mrep"):
             self._ds_mrep.restore(storage, ds)
         metadata, (final_name, chunks) = self._generate_post()
-        with h5.File(storage, "r") as h5f:
+        with h5py.File(storage, mode="r") as h5f:
             for dset in h5f:
                 stored_metadata = _deserialize_from_h5(h5f[dset], ds)
                 if compare_dicts(metadata, stored_metadata):

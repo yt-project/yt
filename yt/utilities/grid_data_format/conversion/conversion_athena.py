@@ -3,7 +3,7 @@ from glob import glob
 import numpy as np
 
 from yt.utilities.grid_data_format.conversion.conversion_abc import Converter
-from yt.utilities.on_demand_imports import _h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 translation_dict = {}
 translation_dict["density"] = "density"
@@ -304,7 +304,7 @@ class AthenaDistributedConverter(Converter):
                 this_field.attrs["field_to_cgs"] = np.float64("1.0")  # For Now
 
     def convert(self, index=True, data=True):
-        self.handle = h5.File(self.outname, "a")
+        self.handle = h5py.File(self.outname, mode="a")
         if index:
             self.read_and_write_index(self.basename, self.ddn, self.outname)
         if data:
@@ -413,7 +413,7 @@ class AthenaConverter(Converter):
         return grid
 
     def write_to_gdf(self, fn, grid):
-        f = h5.File(fn, "a")
+        f = h5py.File(fn, mode="a")
 
         ## --------- Begin level nodes --------- ##
         g = f.create_group("gridded_data_format")
