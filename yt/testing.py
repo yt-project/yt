@@ -788,11 +788,12 @@ def requires_module(module):
     being imported will not fail if the module is not installed on the testing
     platform.
     """
+    from nose import SkipTest
 
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            return None
+            raise SkipTest
 
         return false_wrapper
 
@@ -812,12 +813,14 @@ def requires_module(module):
 
 
 def requires_file(req_file):
+    from nose import SkipTest
+
     path = ytcfg.get("yt", "test_data_dir")
 
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            return None
+            raise SkipTest
 
         return false_wrapper
 

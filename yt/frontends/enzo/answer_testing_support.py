@@ -33,8 +33,14 @@ class AssertWrapper:
 
 
 def requires_outputlog(path=".", prefix=""):
+    from nose import SkipTest
+
     def ffalse(func):
-        return lambda: None
+        @wraps(func)
+        def fskip(*args, **kwargs):
+            raise SkipTest
+
+        return fskip
 
     def ftrue(func):
         @wraps(func)
