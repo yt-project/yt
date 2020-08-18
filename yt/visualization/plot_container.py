@@ -492,37 +492,42 @@ class PlotContainer:
             ensure_dir(name)
         if os.path.isdir(name) and name != str(self.ds):
             name = name + (os.sep if name[-1] != os.sep else "") + str(self.ds)
-        if suffix is None:
-            name = validate_image_name(name)
+
+        new_name = validate_image_name(name, suffix)
+        if new_name == name:
             for v in self.plots.values():
                 out_name = v.save(name, mpl_kwargs)
                 names.append(out_name)
             return names
+
+        name = new_name
+        prefix, suffix = os.path.splitext(name)
+
         if hasattr(self.data_source, "axis"):
             axis = self.ds.coordinates.axis_name.get(self.data_source.axis, "")
         else:
             axis = None
         weight = None
-        type = self._plot_type
-        if type in ["Projection", "OffAxisProjection"]:
+        plot_type = self._plot_type
+        if plot_type in ["Projection", "OffAxisProjection"]:
             weight = self.data_source.weight_field
             if weight is not None:
                 weight = weight[1].replace(" ", "_")
         if "Cutting" in self.data_source.__class__.__name__:
-            type = "OffAxisSlice"
+            plot_type = "OffAxisSlice"
         for k, v in self.plots.items():
             if isinstance(k, tuple):
                 k = k[1]
+
+            name_elements = [prefix, plot_type]
             if axis:
-                n = f"{name}_{type}_{axis}_{k.replace(' ', '_')}"
-            else:
-                # for cutting planes
-                n = f"{name}_{type}_{k.replace(' ', '_')}"
+                name_elements.append(axis)
+            name.elements.append(k.replace(" ", "_"))
             if weight:
-                n += f"_{weight}"
-            if suffix != "":
-                n = ".".join([n, suffix])
-            names.append(v.save(n, mpl_kwargs))
+                name_elements.append(weight)
+
+            name = "_".join(name_elements) + suffix
+            names.append(v.save(name, mpl_kwargs))
         return names
 
     @invalidate_data
