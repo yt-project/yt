@@ -21,9 +21,9 @@ class YTUnidentifiedDataType(YTException):
 
     def __str__(self):
         msg = f"Could not determine input format from {self.filename}"
-        if self.args is not None:
-            msg += ", {self.args}"
-        if self.kwargs is not None:
+        if self.args:
+            msg += f", {self.args}"
+        if self.kwargs:
             msg += f", {self.kwargs}"
         msg += "."
         return msg
