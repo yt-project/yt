@@ -1294,7 +1294,14 @@ class PhasePlot(ImagePlotContainer):
                 name = name + (os.sep if name[-1] != os.sep else "")
                 name += str(self.profile.ds)
 
-            name = validate_image_name(name, suffix)
+            new_name = validate_image_name(name, suffix)
+            if new_name == name:
+                for v in self.plots.values():
+                    out_name = v.save(name, mpl_kwargs)
+                    names.append(out_name)
+                return names
+
+            name = new_name
             prefix, suffix = os.path.splitext(name)
             name = f"{prefix}_{middle}{suffix}"
 
