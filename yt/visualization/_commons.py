@@ -1,9 +1,14 @@
 from pathlib import Path
 
-from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
+from ._mpl_imports import (
+    FigureCanvasAgg,
+    FigureCanvasPdf,
+    FigureCanvasPS,
+    FigureCanvasSVG,
+)
 
 AGG_FORMATS = [".png", ".jpg", ".jpeg", ".raw", ".rgba", ".tif", ".tiff"]
-SUPPORTED_FORMATS = AGG_FORMATS + [".eps", ".ps", ".pdf"]
+SUPPORTED_FORMATS = AGG_FORMATS + [".eps", ".ps", ".pdf", ".svg"]
 
 
 def validate_image_name(filename, suffix=".png"):
@@ -37,6 +42,9 @@ def get_canvas(figure, filename):
 
     if suffix == ".pdf":
         return FigureCanvasPdf(figure)
+
+    if suffix == ".svg":
+        return FigureCanvasSVG(figure)
 
     if suffix in (".eps", ".ps"):
         return FigureCanvasPS(figure)
