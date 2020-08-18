@@ -306,8 +306,8 @@ class YTHaloParticleIndex(ParticleIndex):
             self.real_ds.index
 
         # inherit some things from parent index
-        for attr in ["data_files", "total_particles"]:
-            setattr(self, attr, getattr(self.real_ds.index, attr))
+        self._data_files = self.real_ds.index.data_files
+        self._total_particles = self.real_ds.index.total_particles
 
         self._calculate_particle_index_starts()
 
