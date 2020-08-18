@@ -522,7 +522,7 @@ class PlotContainer:
             name_elements = [prefix, plot_type]
             if axis:
                 name_elements.append(axis)
-            name.elements.append(k.replace(" ", "_"))
+            name_elements.append(k.replace(" ", "_"))
             if weight:
                 name_elements.append(weight)
 
