@@ -168,7 +168,7 @@ class DatasetSeries:
         try:
             ret._pre_outputs = outputs[:]
         except TypeError as e:
-            raise YTUnidentifiedDataType(outputs) from e
+            raise YTUnidentifiedDataType(outputs, *args, **kwargs) from e
         return ret
 
     def __init__(

@@ -97,7 +97,7 @@ def load(fn, *args, **kwargs):
     if len(candidates) > 1:
         raise YTAmbiguousDataType(fn, candidates)
 
-    raise YTUnidentifiedDataType(fn, args, kwargs)
+    raise YTUnidentifiedDataType(fn, *args, **kwargs)
 
 
 def load_simulation(fn, simulation_type, find_outputs=False):
