@@ -305,7 +305,7 @@ def can_run_ds(ds_fn, file_check=False):
     try:
         load(ds_fn)
     except FileNotFoundError:
-        if ytcfg.getboolean("yt", "requires_ds_strict"):
+        if ytcfg.getboolean("yt", "__strict_requires"):
             if result_storage is not None:
                 result_storage["tainted"] = True
             raise
@@ -325,7 +325,7 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
     try:
         load_simulation(sim_fn, sim_type)
     except FileNotFoundError:
-        if ytcfg.getboolean("yt", "requires_ds_strict"):
+        if ytcfg.getboolean("yt", "__strict_requires"):
             if result_storage is not None:
                 result_storage["tainted"] = True
             raise
