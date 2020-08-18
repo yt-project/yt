@@ -25,7 +25,8 @@ class YTUnidentifiedDataType(YTException):
             msg.append(", ".join(str(a) for a in self.args))
         if self.kwargs:
             msg.append(", ".join(f"{k}={v}" for k, v in self.kwargs.items()))
-        return ", ".join(msg) + "`."
+        msg = ", ".join(msg) + "`."
+        return msg
 
 
 class YTOutputNotIdentified(YTUnidentifiedDataType):
