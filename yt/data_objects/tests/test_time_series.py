@@ -4,7 +4,7 @@ from pathlib import Path
 
 from yt.data_objects.time_series import DatasetSeries
 from yt.testing import assert_raises
-from yt.utilities.exceptions import YTOutputNotIdentified
+from yt.utilities.exceptions import YTUnidentifiedDataType
 
 
 def test_pattern_expansion():
@@ -61,4 +61,4 @@ def test_init_fake_dataseries():
         assert_raises(FileNotFoundError, DatasetSeries, str(file_list))
 
         # finally, check that ts[0] fails to actually load
-        assert_raises(YTOutputNotIdentified, ts.__getitem__, 0)
+        assert_raises(YTUnidentifiedDataType, ts.__getitem__, 0)
