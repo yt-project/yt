@@ -20,13 +20,12 @@ class YTUnidentifiedDataType(YTException):
         self.kwargs = kwargs
 
     def __str__(self):
-        msg = f"Could not determine input format from {self.filename}"
-        if self.args:
-            msg += f", {self.args}"
-        if self.kwargs:
-            msg += f", {self.kwargs}"
-        msg += "."
-        return msg
+        msg = [f"Could not determine input format from `'{self.filename}'"]
+        if self.args not in (None, ()):
+            msg.append(", ".join(str(a) for a in self.args))
+        if self.kwargs not in (None, {}):
+            msg.append(", ".join(f"{k}={v}" for k, v in self.kwargs.items()))
+        return ", ".join(msg) + "`."
 
 
 class YTOutputNotIdentified(YTUnidentifiedDataType):
