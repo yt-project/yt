@@ -1284,14 +1284,14 @@ def load_unstructured_mesh(
 # If not, it will download it.
 
 
-def load_sample(name=None, specific_file=None, pbar=True):
+def load_sample(fn=None, specific_file=None, pbar=True):
     """
     Load sample data with yt. Simple wrapper around yt.load to include fetching
     data with pooch.
 
     Parameters
     ----------
-    name : str or None
+    fn : str or None
         The name of the sample data to load. This is generally the name of the
         folder of the dataset. For IsolatedGalaxy, the name would be
         `IsolatedGalaxy`.  If `None` is supplied, the return value
@@ -1312,7 +1312,7 @@ def load_sample(name=None, specific_file=None, pbar=True):
 
     fido = PoochHandle()
 
-    if name is None:
+    if fn is None:
         keys = []
         for key in fido._registry:
             for ext in _extensions_to_strip:
@@ -1324,7 +1324,7 @@ def load_sample(name=None, specific_file=None, pbar=True):
     base_path = fido.pooch_obj.path
 
     registered_fname, name, extension = fido._validate_sample_fname(
-        name
+        fn
     )  # todo: make this part of the class
 
     downloader = None
