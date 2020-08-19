@@ -170,6 +170,7 @@ from yt.loaders import (
     load_octree,
     load_unstructured_mesh,
     load_sample,
+    load_sample2,
 )
 
 from yt.testing import run_nose

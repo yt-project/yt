@@ -2,8 +2,9 @@
 This module gathers all user-facing functions with a `load_` prefix.
 
 """
-
 import os
+import tarfile
+from pathlib import Path
 
 import numpy as np
 
@@ -1363,3 +1364,77 @@ def load_sample(fn=None, specific_file=None, pbar=True):
         )
 
     return load(loaded_file, **optional_args)
+
+
+def load_sample2(fn, progressbar=True, **kwargs):
+    """
+    A replacement for load_sample
+    sell points:
+    - no magic is used in determining if the data needs untaring
+    - download and untar datafile to a more predictible
+    - better modularity: the core functionalities are separate functions
+
+    >>> ds = load_sample("ToroShockTube")
+    """
+    from yt.sample_data.api import (
+        _download_sample_data_file,
+        _get_archive_filename,
+        _get_test_data_dir_path,
+        get_data_registry_table,
+        lookup_on_disk_data,
+    )
+
+    registry_table = get_data_registry_table()
+
+    # note: in the future the registry table should be reindexed
+    # so that the following line can be replaced with
+    #
+    # row = registry_table.loc[fn]
+    #
+    # however we don't want to do it right now because the "filename" column is
+    # currently incomplete
+    row = registry_table.query(f"`filename` == '{fn}'").iloc[0]
+
+    archive_filename = _get_archive_filename(row["url"])
+    kwargs = {**row["load_kwargs"], **kwargs}
+
+    try:
+        data_dir = lookup_on_disk_data(fn)
+        full_path = Path.joinpath(data_dir, row["load_name"])
+        mylog.info("Sample dataset found at %s", data_dir)
+        return load(full_path, **kwargs)
+
+    except FileNotFoundError:
+        mylog.info("%s is not available locally. Looking up online.", fn)
+
+    try:
+        data_dir = _get_test_data_dir_path()
+    except FileNotFoundError:
+        mylog.warning(
+            "yt test data directory is not properly set up. "
+            "Data will be saved to the current work directory instead."
+        )
+        data_dir = Path.cwd()
+
+    mylog.info("Downloading from %s", row["url"])
+
+    # downloading via a pooch.Pooch instance behind the scenes
+    tmp_file = _download_sample_data_file(archive_filename, progressbar=progressbar)
+
+    # pooch has functionalities to unpack downloaded archive files.
+    # but it needs to know in advance that we are downloading a tarball.
+    # Since that information isn't always trivally parsed from the filename,
+    # we rely on the standard library to perform a conditional unpacking.
+    if tarfile.is_tarfile(tmp_file):
+        mylog.info("Untaring downloaded file to %s", data_dir)
+        with tarfile.open(tmp_file) as fh:
+            fh.extractall(data_dir)
+        os.remove(tmp_file)
+    else:
+        os.move(tmp_file, data_dir)
+
+    if not row["load_name"]:
+        mylog.error("Registry is corrupted, did not find load name for this dataset")
+        return Path.joinpath(data_dir, fn)  # return this as an indication
+    full_path = Path.joinpath(data_dir, fn, row["load_name"])
+    return load(full_path, **kwargs)
