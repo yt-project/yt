@@ -51,8 +51,16 @@ a_list = [0, 1, 2]
 w_list = [None, "density"]
 
 
-fv_pairs = [(ds, f, d) for i, ds in enumerate(ds_list) for f in f_list[i] for d in d_list[i]]
-ppv_pairs = [(ds_list[0], f, d, w, a) for f in f_list[0] for d in d_list[0] for w in w_list for a in a_list]
+fv_pairs = [
+    (ds, f, d) for i, ds in enumerate(ds_list) for f in f_list[i] for d in d_list[i]
+]
+ppv_pairs = [
+    (ds_list[0], f, d, w, a)
+    for f in f_list[0]
+    for d in d_list[0]
+    for w in w_list
+    for a in a_list
+]
 sum_pairs = [(ds, d) for i, ds in enumerate(ds_list) for d in ds_list[i]]
 
 

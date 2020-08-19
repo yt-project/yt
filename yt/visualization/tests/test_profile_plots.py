@@ -13,111 +13,133 @@ Testsuite for ProfilePlot and PhasePlot
 # The full license is in the file COPYING.txt, distributed with this software.
 # -----------------------------------------------------------------------------
 import os
-import tempfile
 import shutil
+import tempfile
 import unittest
 
 import pytest
 
 import yt
 from yt.data_objects.profiles import create_profile
-from yt.testing import \
-    fake_random_ds, \
-    assert_array_almost_equal, \
-    assert_allclose_units
-from yt.visualization.profile_plotter import \
-    ProfilePlot, PhasePlot
-from yt.utilities.answer_testing.answer_tests import phase_plot_attribute_test, generic_image_test
+from yt.testing import assert_allclose_units, assert_array_almost_equal, fake_random_ds
+from yt.utilities.answer_testing.answer_tests import (
+    generic_image_test,
+    phase_plot_attribute_test,
+)
+from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
 
 def image_from_plot(plot):
-    tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
+    tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
     os.close(tmpfd)
     plot.save(tmpfname)
     return tmpfname
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('temp_dir', 'hashing')
+@pytest.mark.usefixtures("temp_dir", "hashing")
 class TestProfilePlots:
     def test_phase_plot_attributes(self, ds_random, attr_name, args):
-        '''
+        """
         This iterates over the all the plot modification functions in
         ATTR_ARGS. Each time, it compares the images produced by
         PhasePlot to the gold standard.
-        '''
-        x_field = 'density'
-        y_field = 'temperature'
-        z_field = 'cell_mass'
-        ppat = phase_plot_attribute_test(ds_random, x_field, y_field, z_field,
-                      attr_name, args)
-        self.hashes.update({'phase_plot_attribute' : ppat})
+        """
+        x_field = "density"
+        y_field = "temperature"
+        z_field = "cell_mass"
+        ppat = phase_plot_attribute_test(
+            ds_random, x_field, y_field, z_field, attr_name, args
+        )
+        self.hashes.update({"phase_plot_attribute": ppat})
 
     def test_profile_plot(self, ds_test, region, x_field, y_field):
         profiles = []
         profiles.append(ProfilePlot(region, x_field, y_field))
-        profiles.append(ProfilePlot(region, x_field, y_field, fractional=True, accumulation=True))
+        profiles.append(
+            ProfilePlot(region, x_field, y_field, fractional=True, accumulation=True)
+        )
         p1d = create_profile(region, x_field, y_field)
         profiles.append(ProfilePlot.from_profiles(p1d))
-        p1 = create_profile(ds_test.all_data(), 'density', 'temperature')
-        p2 = create_profile(ds_test.all_data(), 'density', 'velocity_x')
-        profiles.append(ProfilePlot.from_profiles([p1, p2], labels=['temperature', 'velocity']))
+        p1 = create_profile(ds_test.all_data(), "density", "temperature")
+        p2 = create_profile(ds_test.all_data(), "density", "velocity_x")
+        profiles.append(
+            ProfilePlot.from_profiles([p1, p2], labels=["temperature", "velocity"])
+        )
         profiles[0]._repr_html_()
         for idx, plot in enumerate(profiles):
-            img_fname =  image_from_plot(plot)
+            img_fname = image_from_plot(plot)
             gi = generic_image_test(img_fname)
-            if 'generic_image' not in self.hashes:
-                self.hashes.update({'generic_image' : {str(idx) : gi}})
+            if "generic_image" not in self.hashes:
+                self.hashes.update({"generic_image": {str(idx): gi}})
             else:
-                self.hashes['generic_image'].update({str(idx) : gi})
+                self.hashes["generic_image"].update({str(idx): gi})
 
     def test_phase_plot(self, ds_test, region, x_field, y_field, z_field):
         phases = []
         # set n_bins to [16, 16] since matplotlib's postscript
         # renderer is slow when it has to write a lot of polygons
-        phases.append(PhasePlot(region, x_field, y_field, z_field, x_bins=16, y_bins=16))
-        phases.append(PhasePlot(region, x_field, y_field, z_field,
-                                fractional=True, accumulation=True,
-                                x_bins=16, y_bins=16))
-        p2d = create_profile(region, [x_field, y_field], z_field,
-                             n_bins=[16, 16])
+        phases.append(
+            PhasePlot(region, x_field, y_field, z_field, x_bins=16, y_bins=16)
+        )
+        phases.append(
+            PhasePlot(
+                region,
+                x_field,
+                y_field,
+                z_field,
+                fractional=True,
+                accumulation=True,
+                x_bins=16,
+                y_bins=16,
+            )
+        )
+        p2d = create_profile(region, [x_field, y_field], z_field, n_bins=[16, 16])
         phases.append(PhasePlot.from_profile(p2d))
-        pp = PhasePlot(ds_test.all_data(), 'density', 'temperature', 'cell_mass')
+        pp = PhasePlot(ds_test.all_data(), "density", "temperature", "cell_mass")
         pp.set_xlim(0.3, 0.8)
         pp.set_ylim(0.4, 0.6)
         pp._setup_plots()
-        xlim = pp.plots['cell_mass'].axes.get_xlim()
-        ylim = pp.plots['cell_mass'].axes.get_ylim()
+        xlim = pp.plots["cell_mass"].axes.get_xlim()
+        ylim = pp.plots["cell_mass"].axes.get_ylim()
         assert_array_almost_equal(xlim, (0.3, 0.8))
         assert_array_almost_equal(ylim, (0.4, 0.6))
         phases.append(pp)
         phases[0]._repr_html_()
         for idx, plot in enumerate(phases):
-            img_fname =  image_from_plot(plot)
+            img_fname = image_from_plot(plot)
             gi = generic_image_test(img_fname)
-            if 'generic_image' not in self.hashes:
-                self.hashes.update({'generic_image' : {str(idx) : gi}})
+            if "generic_image" not in self.hashes:
+                self.hashes.update({"generic_image": {str(idx): gi}})
             else:
-                self.hashes['generic_image'].update({str(idx) : gi})
+                self.hashes["generic_image"].update({str(idx): gi})
 
     def test_profile_plot_multiple_field_multiple_plot(self, ds_mult):
         sphere = ds_mult.sphere("max", (1.0, "Mpc"))
         profiles = []
-        profiles.append(yt.create_profile(sphere, ["radius"],
-                                          fields=["density"], n_bins=32))
-        profiles.append(yt.create_profile(sphere, ["radius"],
-                                          fields=["density"], n_bins=64))
-        profiles.append(yt.create_profile(sphere, ["radius"],
-                                          fields=["dark_matter_density"],
-                                          n_bins=64))
+        profiles.append(
+            yt.create_profile(sphere, ["radius"], fields=["density"], n_bins=32)
+        )
+        profiles.append(
+            yt.create_profile(sphere, ["radius"], fields=["density"], n_bins=64)
+        )
+        profiles.append(
+            yt.create_profile(
+                sphere, ["radius"], fields=["dark_matter_density"], n_bins=64
+            )
+        )
         plot = yt.ProfilePlot.from_profiles(profiles)
-        img_fname =  image_from_plot(plot)
+        img_fname = image_from_plot(plot)
         gi = generic_image_test(img_fname)
-        self.hashes.update({'generic_image' : gi})
+        self.hashes.update({"generic_image": gi})
+
 
 def test_set_units():
-    fields = ('density', 'temperature')
-    units = ('g/cm**3', 'K',)
+    fields = ("density", "temperature")
+    units = (
+        "g/cm**3",
+        "K",
+    )
     ds = fake_random_ds(16, fields=fields, units=units)
     sp = ds.sphere("max", (1.0, "Mpc"))
     p1 = yt.ProfilePlot(sp, "radius", ("gas", "density"))
@@ -138,23 +160,21 @@ def test_set_labels():
 
 def test_create_from_dataset():
     ds = fake_random_ds(16)
-    plot1 = yt.ProfilePlot(ds, "radius", ["velocity_x", "density"],
-                           weight_field=None)
-    plot2 = yt.ProfilePlot(ds.all_data(), "radius", ["velocity_x", "density"],
-                           weight_field=None)
+    plot1 = yt.ProfilePlot(ds, "radius", ["velocity_x", "density"], weight_field=None)
+    plot2 = yt.ProfilePlot(
+        ds.all_data(), "radius", ["velocity_x", "density"], weight_field=None
+    )
+    assert_allclose_units(plot1.profiles[0]["density"], plot2.profiles[0]["density"])
     assert_allclose_units(
-        plot1.profiles[0]['density'], plot2.profiles[0]['density'])
-    assert_allclose_units(
-        plot1.profiles[0]['velocity_x'], plot2.profiles[0]['velocity_x'])
+        plot1.profiles[0]["velocity_x"], plot2.profiles[0]["velocity_x"]
+    )
 
-    plot1 = yt.PhasePlot(ds, 'density', 'velocity_x', 'cell_mass')
-    plot2 = yt.PhasePlot(ds.all_data(), 'density', 'velocity_x', 'cell_mass')
-    assert_allclose_units(
-        plot1.profile['cell_mass'], plot2.profile['cell_mass'])
+    plot1 = yt.PhasePlot(ds, "density", "velocity_x", "cell_mass")
+    plot2 = yt.PhasePlot(ds.all_data(), "density", "velocity_x", "cell_mass")
+    assert_allclose_units(plot1.profile["cell_mass"], plot2.profile["cell_mass"])
 
 
 class TestAnnotations(unittest.TestCase):
-
     @classmethod
     def setUpClass(cls):
         cls.tmpdir = tempfile.mkdtemp()
@@ -185,6 +205,7 @@ class TestAnnotations(unittest.TestCase):
 
     def test_annotations_wrong_fields(self):
         from yt.utilities.exceptions import YTFieldNotFound
+
         with self.assertRaises(YTFieldNotFound):
             self.plot.annotate_title("velocity_x plot", "wrong_field_name")
 
@@ -193,8 +214,11 @@ class TestAnnotations(unittest.TestCase):
 
 
 def test_phaseplot_set_log():
-    fields = ('density', 'temperature')
-    units = ('g/cm**3', 'K',)
+    fields = ("density", "temperature")
+    units = (
+        "g/cm**3",
+        "K",
+    )
     ds = fake_random_ds(16, fields=fields, units=units)
     sp = ds.sphere("max", (1.0, "Mpc"))
     p1 = yt.ProfilePlot(sp, "radius", ("gas", "density"))
@@ -218,30 +242,32 @@ def test_phaseplot_set_log():
     assert p2.y_log is False
 
 
-
 def test_phaseplot_showhide_colorbar_axes():
-    fields = ('density', 'temperature')
-    units = ('g/cm**3', 'K',)
+    fields = ("density", "temperature")
+    units = (
+        "g/cm**3",
+        "K",
+    )
     ds = fake_random_ds(16, fields=fields, units=units)
     ad = ds.all_data()
     plot = yt.PhasePlot(ad, ("gas", "density"), ("gas", "temperature"), "cell_mass")
 
     # make sure we can hide colorbar
     plot.hide_colorbar()
-    with tempfile.NamedTemporaryFile(suffix='png') as f1:
+    with tempfile.NamedTemporaryFile(suffix="png") as f1:
         plot.save(f1.name)
 
     # make sure we can show colorbar
     plot.show_colorbar()
-    with tempfile.NamedTemporaryFile(suffix='png') as f2:
+    with tempfile.NamedTemporaryFile(suffix="png") as f2:
         plot.save(f2.name)
 
     # make sure we can hide axes
     plot.hide_axes()
-    with tempfile.NamedTemporaryFile(suffix='png') as f3:
+    with tempfile.NamedTemporaryFile(suffix="png") as f3:
         plot.save(f3.name)
 
     # make sure we can show axes
     plot.show_axes()
-    with tempfile.NamedTemporaryFile(suffix='png') as f4:
+    with tempfile.NamedTemporaryFile(suffix="png") as f4:
         plot.save(f4.name)

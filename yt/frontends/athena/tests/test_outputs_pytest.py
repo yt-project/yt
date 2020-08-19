@@ -55,7 +55,7 @@ uo_sloshing = {
 ds_list = [
     cloud,
     blast,
-    [stripping, {"kwargs" : {"units_override": uo_stripping}}],
+    [stripping, {"kwargs": {"units_override": uo_stripping}}],
 ]
 a_list = [0, 1, 2]
 w_list = [None, "density"]

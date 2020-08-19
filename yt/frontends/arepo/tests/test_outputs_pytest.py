@@ -18,7 +18,7 @@ bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
 tng59_h5 = "TNGHalo/halo_59.hdf5"
 
 _tng59_bbox = [[45135.0, 51343.0], [51844.0, 56184.0], [60555.0, 63451.0]]
-tng_kwargs = {"kwargs" : {"bounding_box": _tng59_bbox}}
+tng_kwargs = {"kwargs": {"bounding_box": _tng59_bbox}}
 
 # Test parameters
 val_params = [

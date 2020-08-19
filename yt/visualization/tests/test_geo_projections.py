@@ -3,46 +3,43 @@ Tests for making unstructured mesh slices
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 import os
 import tempfile
+import unittest
 
 import pytest
 
 import yt
-import unittest
-from yt.testing import \
-    fake_amr_ds, \
-    requires_module
+from yt.testing import fake_amr_ds, requires_module
 from yt.utilities.answer_testing.answer_tests import generic_image_test
-from yt.visualization.geo_plot_utils import transform_list, get_mpl_transform
+from yt.visualization.geo_plot_utils import get_mpl_transform, transform_list
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures('temp_dir', 'hashing')
+@pytest.mark.usefixtures("temp_dir", "hashing")
 class TestGeoSlicesAMR:
     @requires_module("cartopy")
     def test_geo_slices_amr(self, transform, field, ds):
-        if transform not in ('UTM', 'OSNI'):
-            tmpfd, tmpfname = tempfile.mkstemp(suffix='.png')
+        if transform not in ("UTM", "OSNI"):
+            tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
             os.close(tmpfd)
-            sl = yt.SlicePlot(ds, 'altitude', field)
+            sl = yt.SlicePlot(ds, "altitude", field)
             sl.set_mpl_projection(transform)
-            sl.set_log('all', False)
+            sl.set_log("all", False)
             sl.save(tmpfname)
             gi = generic_image_test(tmpfname)
-            self.hashes.update({'generic_image' : gi})
+            self.hashes.update({"generic_image": gi})
 
 
 @requires_module("cartopy")
 class TestGeoProjections(unittest.TestCase):
-
     def setUp(self):
         self.ds = fake_amr_ds(geometry="geographic")
 
@@ -53,6 +50,7 @@ class TestGeoProjections(unittest.TestCase):
     def test_geo_projection_setup(self):
 
         from yt.utilities.on_demand_imports import _cartopy as cartopy
+
         axis = "altitude"
         self.slc = yt.SlicePlot(self.ds, axis, "Density")
 
@@ -60,18 +58,20 @@ class TestGeoProjections(unittest.TestCase):
         assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
         assert self.ds.coordinates.data_projection[axis] == "Mollweide"
         assert self.ds.coordinates.data_transform[axis] == "PlateCarree"
-        assert isinstance(self.slc._projection,
-                          type(self.slc.plots['Density'].axes.projection))
+        assert isinstance(
+            self.slc._projection, type(self.slc.plots["Density"].axes.projection)
+        )
 
     def test_geo_projections(self):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
+
         self.slc = yt.SlicePlot(self.ds, "altitude", "Density")
 
         for transform in transform_list:
-            if transform == 'UTM':
+            if transform == "UTM":
                 # this requires special arguments so let's skip it
                 continue
-            if transform == 'OSNI':
+            if transform == "OSNI":
                 # avoid crashes, see https://github.com/SciTools/cartopy/issues/1177
                 continue
             self.slc.set_mpl_projection(transform)
@@ -79,12 +79,12 @@ class TestGeoProjections(unittest.TestCase):
 
             assert isinstance(self.slc._projection, proj_type)
             assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
-            assert isinstance(self.slc.plots['Density'].axes.projection,
-                              proj_type)
+            assert isinstance(self.slc.plots["Density"].axes.projection, proj_type)
 
     def test_projection_object(self):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
-        shortlist = ['Orthographic', 'PlateCarree', 'Mollweide']
+
+        shortlist = ["Orthographic", "PlateCarree", "Mollweide"]
 
         for transform in shortlist:
             projection = get_mpl_transform(transform)
@@ -94,16 +94,16 @@ class TestGeoProjections(unittest.TestCase):
 
             assert isinstance(self.slc._projection, proj_type)
             assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
-            assert isinstance(self.slc.plots['Density'].axes.projection,
-                              proj_type)
+            assert isinstance(self.slc.plots["Density"].axes.projection, proj_type)
 
     def test_nondefault_transform(self):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
+
         axis = "altitude"
         self.ds.coordinates.data_transform[axis] = "Miller"
         self.slc = yt.SlicePlot(self.ds, axis, "Density")
 
-        shortlist = ['Orthographic', 'PlateCarree', 'Mollweide']
+        shortlist = ["Orthographic", "PlateCarree", "Mollweide"]
 
         for transform in shortlist:
 
@@ -114,11 +114,10 @@ class TestGeoProjections(unittest.TestCase):
             assert isinstance(self.slc._transform, cartopy.crs.Miller)
             assert self.ds.coordinates.data_projection[axis] == "Mollweide"
             assert self.ds.coordinates.data_transform[axis] == "Miller"
-            assert isinstance(self.slc.plots['Density'].axes.projection,
-                              proj_type)
+            assert isinstance(self.slc.plots["Density"].axes.projection, proj_type)
+
 
 class TestNonGeoProjections(unittest.TestCase):
-
     def setUp(self):
         self.ds = fake_amr_ds()
 
@@ -134,4 +133,3 @@ class TestNonGeoProjections(unittest.TestCase):
         assert self.ds.coordinates.data_transform[axis] is None
         assert self.slc._projection is None
         assert self.slc._transform is None
-

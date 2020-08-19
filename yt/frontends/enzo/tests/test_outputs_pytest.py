@@ -20,6 +20,7 @@ from yt.testing import (
     requires_file,
     units_override_check,
 )
+from yt.utilities.answer_testing import utils
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     grid_hierarchy,
@@ -28,7 +29,6 @@ from yt.utilities.answer_testing.answer_tests import (
     pixelized_projection_values,
     projection_values,
 )
-from yt.utilities.answer_testing import utils
 from yt.visualization.plot_window import SlicePlot
 
 # Files containing data to be used in tests. Paths are relative to
@@ -155,7 +155,9 @@ class TestEnzo:
     def test_ppv(self, a, d, w, f, ds, big_data):
         if str(ds) == "galaxy0030" and not big_data:
             pytest.skip("--answer-big-data not set.")
-        self.hashes.update({"pixelized_projection_values": pixelized_projection_values(ds, a, f, w, d)})
+        self.hashes.update(
+            {"pixelized_projection_values": pixelized_projection_values(ds, a, f, w, d)}
+        )
 
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")

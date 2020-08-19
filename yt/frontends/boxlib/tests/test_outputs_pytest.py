@@ -83,14 +83,10 @@ pair_list = [
     [beam, warpx_fields, w_warp, d_warp],
 ]
 
-gv_pairs = [
-    (i[0], f) for i in pair_list for f in i[1]]
-]
-fv_pairs = [
-    (i[0], f, d) for i in pair_list for f in i[1] for d in i[3]]
-]
+gv_pairs = [(i[0], f) for i in pair_list for f in i[1]]
+fv_pairs = [(i[0], f, d) for i in pair_list for f in i[1] for d in i[3]]
 pv_pairs = [
-    (i[0], f, d, w) for i in pair_list for f in i[1] for d in i[3] for w in i[2]]
+    (i[0], f, d, w) for i in pair_list for f in i[1] for d in i[3] for w in i[2]
 ]
 
 

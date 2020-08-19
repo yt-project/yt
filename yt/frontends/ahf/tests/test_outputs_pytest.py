@@ -15,7 +15,7 @@ from yt.utilities.answer_testing.answer_tests import field_values
 
 # Test data
 ahf_halos = "ahf_halos/snap_N64L16_135.parameter"
-ahf_kwargs = {"kwargs" : {"hubble_constant": 0.7}}
+ahf_kwargs = {"kwargs": {"hubble_constant": 0.7}}
 
 ahf_fields = [
     ("nbody", "particle_position_x"),

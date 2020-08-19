@@ -10,16 +10,16 @@ Notes:
 import numpy as np
 import pytest
 
-from yt.convenience import load
 from yt.frontends.athena_pp.api import AthenaPPDataset
-from yt.testing import assert_allclose, requires_file, units_override_check
-from yt.utilities.answer_testing import utils
-from yt.utilities.answer_testing.answer_tests import field_values 
-from yt.utilities.answer_testing.answer_tests import generic_array
-from yt.utilities.answer_testing.answer_tests import grid_hierarchy
-from yt.utilities.answer_testing.answer_tests import parentage_relationships
-from yt.utilities.answer_testing.answer_tests import grid_values 
-from yt.utilities.answer_testing.answer_tests import projection_values 
+from yt.testing import assert_allclose, units_override_check
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    generic_array,
+    grid_hierarchy,
+    grid_values,
+    parentage_relationships,
+    projection_values,
+)
 
 # Test data
 disk = "KeplerianDisk/disk.out1.00000.athdf"
@@ -31,7 +31,7 @@ uo_AM06 = {
     "mass_unit": (1.0, "Msun"),
     "time_unit": (1.0, "Myr"),
 }
-AM06_kwargs = {"kwargs" : {"units_override" : uo_AM06}}
+AM06_kwargs = {"kwargs": {"units_override": uo_AM06}}
 a_list = [0, 1, 2]
 d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
 w_list = [None, "density"]
@@ -56,7 +56,9 @@ class TestAthenaPP:
         ga = generic_array(field_func, args=[field])
         self.hashes.update({"generic_array": ga})
 
-    @pytest.mark.parametrize("ds", [[AM06, units_override=uo_AM06]], indirect=True)
+    @pytest.mark.parametrize(
+        "ds", [[AM06, {"kwargs": {"units_override": uo_AM06}}]], indirect=True
+    )
     def test_AM06_override(self, ds):
         r"""Verify that overriding units causes derived unit values to be
         updated. See issue #1259.

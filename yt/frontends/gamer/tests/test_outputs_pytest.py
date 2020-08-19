@@ -11,8 +11,13 @@ import pytest
 
 from yt.frontends.gamer.api import GAMERDataset
 from yt.testing import requires_file, units_override_check
-from yt.utilities.answer_testing.answer_tests import small_patch_amr
-from yt.utilities.answer_testing.utils import requires_ds
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    grid_hierarchy,
+    grid_values,
+    parentage_relationships,
+    projection_values,
+)
 
 # Test data
 jet = "InteractingJets/jet_000002"
@@ -40,7 +45,7 @@ f_list = [
     mhd_fields,
 ]
 ds_list = [
-    [jet, {"kwargs" : {"units_override" : jet_units}}],
+    [jet, {"kwargs": {"units_override": jet_units}}],
     psiDM,
     plummer,
     mhd_vortex,

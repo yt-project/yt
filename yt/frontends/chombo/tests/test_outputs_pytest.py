@@ -11,7 +11,13 @@ import pytest
 
 from yt.frontends.chombo.api import ChomboDataset, Orion2Dataset, PlutoDataset
 from yt.testing import requires_file, units_override_check
-from yt.utilities.answer_testing.answer_tests import small_patch_amr
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    grid_hierarchy,
+    grid_values,
+    parentage_relationships,
+    projection_values,
+)
 
 # Test data
 gc = "GaussianCloud/data.0077.3d.hdf5"
@@ -32,25 +38,22 @@ a_list = [0, 1, 2]
 w_list = [None, "density"]
 w_zp = [None, "rhs"]
 d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
-d_zp = [(None, ("sphere", ("c", (0.1, "unitary")))]
+d_zp = [None, ("sphere", ("c", (0.1, "unitary")))]
 f_list = ["density", "velocity_magnitude", "magnetic_field_x"]
 f_zp = ["rhs", "phi"]
 
-pairs_list = [
+pair_list = [
     [gc, f_list, d_list, w_list],
     [tb, f_list, d_list, w_list],
     [iso, f_list, d_list, w_list],
     [zp, f_zp, d_zp, w_zp],
     [kho, f_list, d_list, w_list],
+]
 
-gv_pairs = [
-    (i[0], f) for i in ds_list for f in i[1]] 
-]
-fv_pairs = [
-    (i[0], f, d) for i in pair_list for f in i[1] for d in i[2]]
-]
+gv_pairs = [(i[0], f) for i in ds_list for f in i[1]]
+fv_pairs = [(i[0], f, d) for i in pair_list for f in i[1] for d in i[2]]
 pv_pairs = [
-    (i[0], f, d, w) for i in pair_list for f in i[1] for d in i[2] for w in i[3]]
+    (i[0], f, d, w) for i in pair_list for f in i[1] for d in i[2] for w in i[3]
 ]
 
 

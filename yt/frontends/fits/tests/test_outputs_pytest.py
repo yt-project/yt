@@ -24,9 +24,8 @@ from yt.utilities.answer_testing.answer_tests import (
     parentage_relationships,
     projection_values,
 )
-from yt.utilities.answer_testing.utils import requires_ds
+from yt.utilities.answer_testing.utils import data_dir_load
 from yt.utilities.exceptions import YTOutputNotIdentified
-
 
 # Test data
 grs = "radio_fits/grs-50-cube.fits"
@@ -45,9 +44,9 @@ def get_acis():
         return pytest.skip("acis not found.")
 
 
-grs_kwargs = {"kwargs" : {"nan_mask" : 0.0}, "cls" : SpectralCubeFITSDataset}
-vf_kwargs = {"cls" : FITSDataset}
-A2052_kwargs = {"cls" : SkyDataFITSDataset}
+grs_kwargs = {"kwargs": {"nan_mask": 0.0}, "cls": SpectralCubeFITSDataset}
+vf_kwargs = {"cls": FITSDataset}
+A2052_kwargs = {"cls": SkyDataFITSDataset}
 
 _fields_grs = ("temperature",)
 _fields_vels = ("velocity_x", "velocity_y", "velocity_z")
@@ -64,7 +63,7 @@ f_list = [
     _fields_A2052,
 ]
 ds_list = [
-    [grs, grs_kwargs], 
+    [grs, grs_kwargs],
     [vf, vf_kwargs],
     get_acis(),
     [A2052, A2052_kwargs],
