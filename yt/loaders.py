@@ -1337,7 +1337,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
             mylog.warning("tqdm is not installed, progress bar can not be displayed.")
 
     if extension == "h5":
-        processor = pooch.Untar()
+        processor = pooch.pooch.Untar()
     else:
         # we are going to assume most files that exist on the hub are
         # compressed in .tar folders. Some may not.
