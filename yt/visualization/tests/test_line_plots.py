@@ -81,17 +81,15 @@ def test_validate_point():
     ds = fake_random_ds(3)
     with pytest.raises(RuntimeError) as ex:
         _validate_point(0, ds, start=True)
-    assert_equal(str(ex.exception), "Input point must be array-like")
+    assert "Input point must be array-like" in str(ex.value)
 
     with pytest.raises(RuntimeError) as ex:
         _validate_point(ds.arr([[0], [1]], "code_length"), ds, start=True)
-    assert_equal(str(ex.exception), "Input point must be a 1D array")
+    assert "Input point must be a 1D array" in str(ex.value)
 
     with pytest.raises(RuntimeError) as ex:
         _validate_point(ds.arr([0, 1], "code_length"), ds, start=True)
-    assert_equal(
-        str(ex.exception), "Input point must have an element for each dimension"
-    )
+    assert "Input point must have an element for each dimension" in str(ex.value)
 
     ds = fake_random_ds([32, 32, 1])
     _validate_point(ds.arr([0, 1], "code_length"), ds, start=True)
