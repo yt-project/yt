@@ -6,7 +6,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@master
-    - name: check h5py import
+    - name: check-h5py-import
       # check that we don't alias h5py to h5
       # reason: discoverability is important since this module's api
       # is unstable and we want to be able to check for potential future failures
@@ -24,7 +24,7 @@ jobs:
       # check that a mode argument is always present in calls to h5py.File()
       # reason: the default value is different in older versions 'w' VS newer ones 'r'
       run: |
-        egrep -r -n "h5py\.File\([^,]+\)" yt > h5-mode.log
+        grep -E -r -n "h5py\.File\([^,]+\)" yt | cat > h5-mode.log
         if [ -s h5-mode.log ] ; then
           echo "h5py.File() should never be called without an explicit mode argument."
           echo "Here are the faulty lines."
