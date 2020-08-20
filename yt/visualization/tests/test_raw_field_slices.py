@@ -14,7 +14,7 @@ import pytest
 
 import yt
 from yt.utilities.answer_testing import utils
-from yt.utilities.answer_testing.answer_tests import generic_image_test
+from yt.utilities.answer_testing.answer_tests import generic_image
 
 raw_fields = "Laser/plt00015"
 
@@ -29,5 +29,5 @@ class TestRawFieldSlices:
         sl = yt.SlicePlot(ds, "z", field)
         sl.set_log("all", False)
         image_file = sl.save("slice_answers_raw_{}".format(field[1]))
-        gi = generic_image_test(image_file[0])
+        gi = generic_image(image_file[0])
         self.hashes.update({"generic_image": gi})

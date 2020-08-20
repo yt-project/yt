@@ -37,7 +37,7 @@ from yt.testing import (
 from yt.units import kboltz
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing import utils
-from yt.utilities.answer_testing.answer_tests import plot_window_attribute_test
+from yt.utilities.answer_testing.answer_tests import plot_window_attribute
 from yt.utilities.exceptions import YTInvalidFieldType
 from yt.visualization.api import (
     OffAxisProjectionPlot,
@@ -122,9 +122,9 @@ class TestPlotWindowAnswer:
         """Test plot member functions that aren't callbacks"""
         plot_field = "density"
         ds = utils.data_dir_load(M7)
-        pw = plot_window_attribute_test(ds, plot_field, axis, attr_name, attr_args)
+        pw = plot_window_attribute(ds, plot_field, axis, attr_name, attr_args)
         self.hashes.update({"plot_window_attribute": pw})
-        pw = plot_window_attribute_test(
+        pw = plot_window_attribute(
             ds,
             plot_field,
             axis,
@@ -141,9 +141,9 @@ class TestPlotWindowAnswer:
         plot_field = "density"
         ds = utils.data_dir_load(WT)
         ax = "z"
-        pw = plot_window_attribute_test(ds, plot_field, ax, attr_name, attr_args)
+        pw = plot_window_attribute(ds, plot_field, ax, attr_name, attr_args)
         self.hashes.update({"plot_window_attribute": pw})
-        pw = plot_window_attribute_test(
+        pw = plot_window_attribute(
             ds,
             plot_field,
             ax,

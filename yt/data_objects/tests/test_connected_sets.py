@@ -1,7 +1,7 @@
 import pytest
 
 from yt.testing import fake_random_ds
-from yt.utilities.answer_testing.answer_tests import extract_connected_sets_test
+from yt.utilities.answer_testing.answer_tests import extract_connected_sets
 
 
 @pytest.mark.answer_test
@@ -15,5 +15,5 @@ class TesetConnectedSets:
         data_source.extract_connected_sets(
             field, 5, min_val, max_val, log_space=True, cumulative=True
         )
-        ecs = extract_connected_sets_test(ds, data_source, field, 5, min_val, max_val)
+        ecs = extract_connected_sets(ds, data_source, field, 5, min_val, max_val)
         self.hashes.update({"extract_connected_sets": ecs})

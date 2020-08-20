@@ -18,7 +18,7 @@ import pytest
 
 import yt
 from yt.testing import fake_amr_ds, requires_module
-from yt.utilities.answer_testing.answer_tests import generic_image_test
+from yt.utilities.answer_testing.answer_tests import generic_image
 from yt.visualization.geo_plot_utils import get_mpl_transform, transform_list
 
 
@@ -34,7 +34,7 @@ class TestGeoSlicesAMR:
             sl.set_mpl_projection(transform)
             sl.set_log("all", False)
             sl.save(tmpfname)
-            gi = generic_image_test(tmpfname)
+            gi = generic_image(tmpfname)
             self.hashes.update({"generic_image": gi})
 
 

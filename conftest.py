@@ -13,7 +13,6 @@ import yaml
 import yt
 from yt.config import ytcfg
 from yt.utilities.answer_testing import utils
-from yt.utilities.exceptions import YTOutputNotIdentified
 from yt.utilities.logger import ytLogger
 
 
@@ -46,7 +45,7 @@ def pytest_addoption(parser):
     # Tell pytest about the local-dir option in the ini files. This
     # option is used for creating the answer directory on CI
     parser.addini("local-dir", default="../answer-store", help="answer directory.")
-    parser.addini("test_data_dir", default=ytcfg.get("yt", "test_data_dir", help="Directory where data for tests is stored.")
+    parser.addini("test_data_dir", default=ytcfg.get("yt", "test_data_dir"), help="Directory where data for tests is stored.")
     parser.addini("answer_file_list", default="./tests/tests_pytest.yaml", help="Contains answer file names")
 
 
@@ -216,7 +215,7 @@ def ds(request):
         else:
             dataset = utils.data_dir_load(request.param)
         return dataset
-    except YTOutputNotIdentified:
+    except FileNotFoundError:
         return pytest.skip(f"Data file: `{request.param}` not found.")
 
 

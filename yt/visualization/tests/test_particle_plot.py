@@ -33,8 +33,8 @@ from yt.testing import (
 from yt.units.yt_array import YTArray
 from yt.utilities.answer_testing import utils
 from yt.utilities.answer_testing.answer_tests import (
-    phase_plot_attribute_test,
-    plot_window_attribute_test,
+    phase_plot_attribute,
+    plot_window_attribute,
 )
 from yt.visualization.api import ParticlePhasePlot, ParticlePlot, ParticleProjectionPlot
 from yt.visualization.tests.test_plotwindow import WIDTH_SPECS
@@ -79,7 +79,7 @@ class TestParticlePlotAnswer:
         """
         plot_field = "particle_mass"
         ds = utils.data_dir_load(g30)
-        pw = plot_window_attribute_test(
+        pw = plot_window_attribute(
             ds, plot_field, axis, attr_name, attr_args, "ParticleProjectionPlot"
         )
         self.hashes.update({"plot_window_attribute": pw})
@@ -104,7 +104,7 @@ class TestParticlePlotAnswer:
         plot_field = ("formed_star", "particle_mass")
         ds = utils.data_dir_load(g30)
         ds.add_particle_filter("formed_star")
-        pw = plot_window_attribute_test(
+        pw = plot_window_attribute(
             ds, plot_field, axis, "set_log", attr_args, "ParticleProjectionPlot"
         )
         self.hashes.update({"plot_window_attribute": pw})
@@ -121,7 +121,7 @@ class TestParticlePlotAnswer:
         x_field = "particle_velocity_x"
         y_field = "particle_velocity_y"
         z_field = "particle_mass"
-        pp = phase_plot_attribute_test(
+        pp = phase_plot_attribute(
             ds, x_field, y_field, z_field, attr_name, attr_args, "ParticlePhasePlot"
         )
         self.hashes.update({"phase_plot_attribute": pp})

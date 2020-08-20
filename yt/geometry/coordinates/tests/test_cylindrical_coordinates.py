@@ -4,7 +4,7 @@ import numpy as np
 
 from yt import SlicePlot
 from yt.testing import add_noise_fields, assert_almost_equal, assert_equal, fake_amr_ds
-from yt.utilities.answer_testing.framework import GenericImageTest
+from yt.utilities.answer_testing.answer_tests import generic_image
 
 # Our canonical tests are that we can access all of our fields and we can
 # compute our volume correctly.
@@ -48,7 +48,4 @@ def test_noise_plots():
         p.set_log("all", False)
         p.save("%s_lin" % filename_prefix)
 
-    test = GenericImageTest(ds, create_image, 12)
-    test.prefix = "test_noise_plot_lin"
-    test_noise_plots.__name__ = test.description
-    yield test
+    generic_image(create_image)

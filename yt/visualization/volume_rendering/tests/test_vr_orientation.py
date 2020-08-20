@@ -16,8 +16,8 @@ import numpy as np
 import pytest
 
 from yt.utilities.answer_testing.answer_tests import (
-    VR_image_comparison_test,
-    generic_image_test,
+    VR_image_comparison,
+    generic_image,
 )
 from yt.visualization.volume_rendering.api import off_axis_projection
 
@@ -35,12 +35,12 @@ class TestVROrientation:
             normal_vector=[1.0, 0.0, 0.0], north_vector=[0.0, 0.0, 1.0]
         )
         cam.set_width(ds_vr.domain_width * 2.0)
-        test1 = VR_image_comparison_test(sc)
+        test1 = VR_image_comparison(sc)
         self.hashes.update({"test1": test1})
         for i in range(n_frames):
             center = ds_vr.arr([0, 0, 0], "code_length")
             cam.yaw(theta, rot_center=center)
-            test2 = VR_image_comparison_test(sc)
+            test2 = VR_image_comparison(sc)
             # Updating nested dictionaries doesn't add the new key, it
             # overwrites the old one (so d.update({'key1' : {'subkey1' : 1}})
             # is d = {'key1' : {'subkey1' : 1}}. Then if you do
@@ -55,7 +55,7 @@ class TestVROrientation:
             theta = np.pi / n_frames
             center = ds_vr.arr([0, 0, 0], "code_length")
             cam.pitch(theta, rot_center=center)
-            test3 = VR_image_comparison_test(sc)
+            test3 = VR_image_comparison(sc)
             if "test3" not in self.hashes:
                 self.hashes.update({"test3": {str(i): test3}})
             else:
@@ -64,7 +64,7 @@ class TestVROrientation:
             theta = np.pi / n_frames
             center = ds_vr.arr([0, 0, 0], "code_length")
             cam.roll(theta, rot_center=center)
-            test4 = VR_image_comparison_test(sc)
+            test4 = VR_image_comparison(sc)
             if "test4" not in self.hashes:
                 self.hashes.update({"test4": {str(i): test4}})
             else:
@@ -84,5 +84,5 @@ class TestVROrientation:
             return tmpfname
 
         img_fname = offaxis_image_func()
-        gi = generic_image_test(img_fname)
+        gi = generic_image(img_fname)
         self.hashes.update({"generic_image": gi})

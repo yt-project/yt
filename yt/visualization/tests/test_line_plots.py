@@ -17,7 +17,7 @@ import pytest
 
 import yt
 from yt.testing import assert_equal, fake_random_ds
-from yt.utilities.answer_testing.answer_tests import generic_image_test
+from yt.utilities.answer_testing.answer_tests import generic_image
 from yt.visualization.line_plot import _validate_point
 
 
@@ -44,7 +44,7 @@ class TestLinePlots:
         plot.set_unit(fields[0], "kg/cm**3")
         plot.annotate_title(fields[0], "Density Plot")
         img_fname = image_from_plot(plot)
-        gi = generic_image_test(img_fname)
+        gi = generic_image(img_fname)
         self.hashes.update({"generic_image": gi})
 
     def test_multi_line_plot(self):
@@ -60,7 +60,7 @@ class TestLinePlots:
         plot.annotate_legend(fields[0])
         plot.annotate_legend(fields[1])
         img_fname = image_from_plot(plot)
-        gi = generic_image_test(img_fname)
+        gi = generic_image(img_fname)
         self.hashes.update({"generic_image": gi})
 
 

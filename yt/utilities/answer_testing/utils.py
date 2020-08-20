@@ -531,11 +531,9 @@ def _create_phase_plot_attribute_plot(
 def get_parameterization(fname):
     try:
         ds = data_dir_load(fname)
-        fields = ds.field_list
-        ids = [str(i) for i in range(len(ds.field_list))]
-        return [fields, ids]
-    except YTOutputNotIdentified:
-        return [[pytest.param(None, marks=pytest.mark.skip),], ["skipped",]]
+        return ds.field_list
+    except FileNotFoundError:
+        return [None,]
 
 
 def compare_image_lists(new_result, old_result, decimals):

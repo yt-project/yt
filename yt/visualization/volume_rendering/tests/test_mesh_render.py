@@ -18,7 +18,7 @@ import pytest
 from yt.config import ytcfg
 from yt.testing import fake_hexahedral_ds, fake_tetrahedral_ds, requires_module
 from yt.utilities.answer_testing import utils
-from yt.utilities.answer_testing.answer_tests import generic_image_test
+from yt.utilities.answer_testing.answer_tests import generic_image
 from yt.visualization.volume_rendering.api import MeshSource, Scene, create_scene
 
 hex8 = "MOOSE_sample_data/out.e-s010"
@@ -163,7 +163,7 @@ class TestVolumeRenderMesh:
         sc = create_scene(ds_hex, field)
         im = sc.render()
         im.save(im_name)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
@@ -171,14 +171,14 @@ class TestVolumeRenderMesh:
     @requires_module("pyembree")
     def test_composite_mesh_render_pyembree(self):
         im_name = composite_mesh_render("embree")
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex8)
     def test_composite_mesh_render(self):
         im_name = composite_mesh_render("yt")
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
@@ -186,14 +186,14 @@ class TestVolumeRenderMesh:
     @requires_module("pyembree")
     def test_hex20_render_pyembree(self, field):
         im_name = hex20_render("embree", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex20)
     def test_hex20_render(self, field):
         im_name = hex20_render("yt", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
@@ -201,14 +201,14 @@ class TestVolumeRenderMesh:
     @requires_module("pyembree")
     def test_hex8_render_pyembree(self, field):
         im_name = hex8_render("embree", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex8)
     def test_hex8_render(self, field):
         im_name = hex8_render("yt", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
@@ -216,14 +216,14 @@ class TestVolumeRenderMesh:
     @requires_module("pyembree")
     def test_perspective_mesh_render_pyembree(self):
         im_name = perspective_mesh_render("embree")
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex8)
     def test_perspective_mesh_render(self):
         im_name = perspective_mesh_render("yt")
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @requires_module("pyembree")
@@ -240,14 +240,14 @@ class TestVolumeRenderMesh:
     @requires_module("pyembree")
     def test_tet10_render_pyembree(self, field):
         im_name = tet10_render("embree", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(tet10)
     def test_tet10_render(self, field):
         im_name = tet10_render("yt", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
@@ -255,14 +255,14 @@ class TestVolumeRenderMesh:
     @requires_module("pyembree")
     def test_tet4_render_pyembree(self, field):
         im_name = tet4_render("embree", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(tet4)
     def test_tet4_render(self, field):
         im_name = tet4_render("yt", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
@@ -270,12 +270,12 @@ class TestVolumeRenderMesh:
     @requires_module("pyembree")
     def test_wedge6_render_pyembree(self, field):
         im_name = wedge6_render("embree", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(wedge6)
     def test_wedge6_render(self, field):
         im_name = wedge6_render("yt", field)
-        gi = generic_image_test(im_name)
+        gi = generic_image(im_name)
         self.hashes.update({"generic_image": gi})

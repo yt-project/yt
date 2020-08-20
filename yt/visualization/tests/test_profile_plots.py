@@ -23,8 +23,8 @@ import yt
 from yt.data_objects.profiles import create_profile
 from yt.testing import assert_allclose_units, assert_array_almost_equal, fake_random_ds
 from yt.utilities.answer_testing.answer_tests import (
-    generic_image_test,
-    phase_plot_attribute_test,
+    generic_image,
+    phase_plot_attribute,
 )
 from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
@@ -48,7 +48,7 @@ class TestProfilePlots:
         x_field = "density"
         y_field = "temperature"
         z_field = "cell_mass"
-        ppat = phase_plot_attribute_test(
+        ppat = phase_plot_attribute(
             ds_random, x_field, y_field, z_field, attr_name, args
         )
         self.hashes.update({"phase_plot_attribute": ppat})
@@ -69,7 +69,7 @@ class TestProfilePlots:
         profiles[0]._repr_html_()
         for idx, plot in enumerate(profiles):
             img_fname = image_from_plot(plot)
-            gi = generic_image_test(img_fname)
+            gi = generic_image(img_fname)
             if "generic_image" not in self.hashes:
                 self.hashes.update({"generic_image": {str(idx): gi}})
             else:
@@ -108,7 +108,7 @@ class TestProfilePlots:
         phases[0]._repr_html_()
         for idx, plot in enumerate(phases):
             img_fname = image_from_plot(plot)
-            gi = generic_image_test(img_fname)
+            gi = generic_image(img_fname)
             if "generic_image" not in self.hashes:
                 self.hashes.update({"generic_image": {str(idx): gi}})
             else:
@@ -130,7 +130,7 @@ class TestProfilePlots:
         )
         plot = yt.ProfilePlot.from_profiles(profiles)
         img_fname = image_from_plot(plot)
-        gi = generic_image_test(img_fname)
+        gi = generic_image(img_fname)
         self.hashes.update({"generic_image": gi})
 
 

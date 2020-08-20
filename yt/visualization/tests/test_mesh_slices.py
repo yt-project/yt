@@ -18,7 +18,7 @@ import pytest
 
 import yt
 from yt.testing import small_fake_hexahedral_ds
-from yt.utilities.answer_testing.answer_tests import generic_image_test
+from yt.utilities.answer_testing.answer_tests import generic_image
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
@@ -40,14 +40,14 @@ def slice_image(ds, field, idir):
 class TestMesh:
     def test_mesh_slices_amr(self, ds_amr, field):
         img_fname = slice_image(ds_amr, field, 0)
-        gi = generic_image_test(img_fname)
+        gi = generic_image(img_fname)
         self.hashes.update({"generic_image": gi})
 
     def test_mesh_slices_tetrahedral(self, ds_tetra, field, idir):
         mesh = ds_tetra.index.meshes[0]
         ad = ds_tetra.all_data()
         img_fname = slice_image(ds_tetra, field, idir)
-        gi = generic_image_test(img_fname)
+        gi = generic_image(img_fname)
         self.hashes.update({"generic_image": gi})
         sl_obj = ds_tetra.slice(idir, ds_tetra.domain_center[idir])
         assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
@@ -58,7 +58,7 @@ class TestMesh:
         ad = ds_hex.all_data()
         mesh = ds_hex.index.meshes[0]
         img_fname = slice_image(ds_hex, field, idir)
-        gi = generic_image_test(img_fname)
+        gi = generic_image(img_fname)
         self.hashes.update({"generic_image": gi})
         sl_obj = ds_hex.slice(idir, ds_hex.domain_center[idir])
         assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)

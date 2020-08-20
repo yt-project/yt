@@ -25,7 +25,6 @@ from yt.utilities.answer_testing.answer_tests import (
     projection_values,
 )
 from yt.utilities.answer_testing.utils import data_dir_load
-from yt.utilities.exceptions import YTOutputNotIdentified
 
 # Test data
 grs = "radio_fits/grs-50-cube.fits"
@@ -40,8 +39,8 @@ def get_acis():
         ebounds = [(0.1, 2.0), (2.0, 5.0)]
         setup_counts_fields(ds, ebounds)
         return ds
-    except YTOutputNotIdentified:
-        return pytest.skip("acis not found.")
+    except FileNotFoundError:
+        return "/does/not/exist" 
 
 
 grs_kwargs = {"kwargs": {"nan_mask": 0.0}, "cls": SpectralCubeFITSDataset}

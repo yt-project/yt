@@ -43,7 +43,7 @@ class TestAthenaPP:
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [disk], indirect=True)
     @pytest.mark.parametrize("f", ["density", "velocity_r"], indirect=True)
-    def test_disk(self, field, ds):
+    def test_disk(self, f, ds):
         dd = ds.all_data()
         vol = (ds.domain_right_edge[0] ** 3 - ds.domain_left_edge[0] ** 3) / 3.0
         vol *= np.cos(ds.domain_left_edge[1]) - np.cos(ds.domain_right_edge[1])
