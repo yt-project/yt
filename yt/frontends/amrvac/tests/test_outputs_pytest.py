@@ -100,7 +100,7 @@ def _assert_normalisations_equal(ds):
 
 @pytest.mark.answer_test
 class TestAMRVAC:
-    self.answer_file = None
+    answer_file = None
 
     @requires_file(khi_cartesian_2D)
     def test_AMRVACDataset(self):

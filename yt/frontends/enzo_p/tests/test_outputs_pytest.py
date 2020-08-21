@@ -66,7 +66,7 @@ sum_pairs = [(ds, d) for i, ds in enumerate(ds_list) for d in ds_list[i]]
 
 @pytest.mark.answer_test
 class TestEnzoP:
-    self.answer_file = None
+    answer_file = None
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)

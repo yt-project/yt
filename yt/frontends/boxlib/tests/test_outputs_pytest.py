@@ -92,7 +92,7 @@ pv_pairs = [
 
 @pytest.mark.answer_test
 class TestBoxLib:
-    self.answer_file = None
+    answer_file = None
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)

@@ -39,7 +39,7 @@ f_list = [
 
 @pytest.mark.answer_test
 class TestArtIo:
-    self.answer_file = None
+    answer_file = None
 
     @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
     @pytest.mark.parametrize("d", d_list, indirect=True)

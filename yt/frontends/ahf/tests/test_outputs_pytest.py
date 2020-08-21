@@ -27,7 +27,7 @@ ahf_fields = [
 
 @pytest.mark.answer_test
 class TestAHF:
-    self.answer_file = None
+    answer_file = None
 
     @requires_file(ahf_halos)
     @pytest.mark.parametrize("ds", [[ahf_halos, ahf_kwargs]], indirect=True)

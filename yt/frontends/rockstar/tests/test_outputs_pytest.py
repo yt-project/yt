@@ -19,7 +19,7 @@ r1 = "rockstar_halos/halos_0.0.bin"
 
 @pytest.mark.answer_test
 class TestRockstar:
-    self.answer_file = None
+    answer_file = None
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [r1], indirect=True)

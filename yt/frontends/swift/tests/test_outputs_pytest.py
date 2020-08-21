@@ -13,7 +13,7 @@ EAGLE_6 = "EAGLE_6/eagle_0005.hdf5"
 # implemented correctly to save time on re-loading a dataset
 @pytest.mark.answer_test
 class TestSwift:
-    self.answer_file = None
+    answer_file = None
 
     @pytest.mark.parametrize("ds", [keplerian_ring], indirect=True)
     def test_non_cosmo_dataset(self, ds):

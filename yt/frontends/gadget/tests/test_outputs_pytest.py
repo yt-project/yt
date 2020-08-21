@@ -33,7 +33,7 @@ iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
 @pytest.mark.answer_test
 class TestGadget:
-    self.answer_file = None
+    answer_file = None
 
     @pytest.mark.usefixtures("temp_dir")
     def test_gadget_binary(self):
