@@ -9,7 +9,7 @@ d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 @pytest.mark.answer_test
 @pytest.mark.big_data
 class TestXRayFields:
-    self.answer_file = None
+    answer_file = None
 
     @pytest.mark.usefixtures("hashing")
     def test_sloshing_apec(self, ds, f, d, a):

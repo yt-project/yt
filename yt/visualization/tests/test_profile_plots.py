@@ -39,7 +39,7 @@ def image_from_plot(plot):
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("temp_dir", "hashing")
 class TestProfilePlots:
-    self.answer_file = None
+    answer_file = None
 
     def test_phase_plot_attributes(self, ds_random, attr_name, args):
         """

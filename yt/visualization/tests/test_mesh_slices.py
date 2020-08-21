@@ -38,7 +38,7 @@ def slice_image(ds, field, idir):
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("temp_dir", "hashing")
 class TestMesh:
-    self.answer_file = None
+    answer_file = None
 
     def test_mesh_slices_amr(self, ds_amr, field):
         img_fname = slice_image(ds_amr, field, 0)

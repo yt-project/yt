@@ -25,7 +25,7 @@ from yt.visualization.geo_plot_utils import get_mpl_transform, transform_list
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("temp_dir", "hashing")
 class TestGeoSlicesAMR:
-    self.answer_file = None
+    answer_file = None
 
     @requires_module("cartopy")
     def test_geo_slices_amr(self, transform, field, ds):
