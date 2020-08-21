@@ -68,7 +68,9 @@ g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 @pytest.mark.answer_test
 @pytest.mark.big_data
-class TestParticlePlotAnswer:
+class TestParticlePlot:
+    self.answer_file = None
+
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(g30)
     def test_particle_projection_answers(self, axis, attr_name, attr_args):

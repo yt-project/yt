@@ -18,6 +18,8 @@ s399 = "snipshot_399_z000p000/snip_399_z000p000.0.hdf5"
 
 @pytest.mark.answer_test
 class TestEagle:
+    self.answer_file = None
+
     @pytest.mark.parametrize("ds", [s28], indirect=True)
     def test_EagleDataset(self, ds):
         assert isinstance(ds, EagleDataset)

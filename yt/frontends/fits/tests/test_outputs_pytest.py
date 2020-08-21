@@ -79,6 +79,8 @@ def get_pairs():
 
 @pytest.mark.answer_test
 class TestFits:
+    self.answer_file = None
+
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
     def test_gh_pr(self, ds):

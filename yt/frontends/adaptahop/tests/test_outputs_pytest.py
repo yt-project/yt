@@ -26,6 +26,8 @@ r1 = "output_00080_halos/tree_bricks080"
 
 @pytest.mark.answer_test
 class TestAdaptahop:
+    self.answer_file = None
+
     @requires_file(r0)
     @requires_file(r1)
     def test_opening(self):

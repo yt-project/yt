@@ -19,6 +19,8 @@ g8 = "owls_fof_halos/groups_008/group_008.0.hdf5"
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("answer_file")
 class TestOwlsSubfind:
+    self.answer_file = None
+
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [g8], indirect=True)
     def test_fields_g8(self, field, ds):

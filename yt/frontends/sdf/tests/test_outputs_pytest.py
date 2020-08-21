@@ -40,6 +40,8 @@ def internet_on():
 
 @pytest.mark.answer_test
 class TestSDF:
+    self.answer_file = None
+
     @requires_module("thingking")
     def test_scivis(self):
         if not internet_on():

@@ -39,6 +39,8 @@ f_list = [
 
 @pytest.mark.answer_test
 class TestArt:
+    self.answer_file = None
+
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [d9p], indirect=True)

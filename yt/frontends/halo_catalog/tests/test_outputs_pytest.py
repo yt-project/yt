@@ -20,6 +20,8 @@ from yt.utilities.answer_testing.utils import fake_halo_catalog
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("temp_dir")
 class TestHaloCatalog:
+    self.answer_file = None
+
     @requires_module("h5py")
     def test_halo_catalog(self):
         rs = np.random.RandomState(3670474)

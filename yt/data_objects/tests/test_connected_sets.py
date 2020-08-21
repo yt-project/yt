@@ -5,7 +5,9 @@ from yt.utilities.answer_testing.answer_tests import extract_connected_sets
 
 
 @pytest.mark.answer_test
-class TesetConnectedSets:
+class TestConnectedSets:
+    self.answer_file = None
+
     @pytest.mark.usefixtures("hashing")
     def test_connected_sets(self):
         ds = fake_random_ds(16, nprocs=8, particles=16 ** 3)

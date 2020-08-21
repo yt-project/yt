@@ -92,6 +92,8 @@ def get_pairs():
 
 @pytest.mark.answer_test
 class TestAthena:
+    self.answer_file = None
+
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
     def test_gh_pr(self, ds, big_data):

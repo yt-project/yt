@@ -31,6 +31,8 @@ def image_from_plot(plot):
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("temp_dir", "hashing")
 class TestLinePlots:
+    self.answer_file = None
+
     def test_line_plot(self):
         ds = fake_random_ds(4)
         fields = [field for field in ds.field_list if field[0] == "stream"]

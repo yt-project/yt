@@ -40,6 +40,8 @@ f_list = ["temperature", "density", "velocity_magnitude", "magnetic_field_x"]
 
 @pytest.mark.answer_test
 class TestAthenaPP:
+    self.answer_file = None
+
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [disk], indirect=True)
     @pytest.mark.parametrize("f", ["density", "velocity_r"], indirect=True)

@@ -359,6 +359,11 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
     args = args or ()
     kwargs = kwargs or {}
     path = ytcfg.get("yt", "test_data_dir")
+    # Some frontends require their field_lists during test parameterization.
+    # If the data isn't found, the parameterizing functions return None, since
+    # pytest.skip cannot be called outside of a test or fixture.
+    if ds_fn is None:
+        raise FileNotFoundError
     if isinstance(ds_fn, Dataset):
         return ds_fn
     if cls is None:

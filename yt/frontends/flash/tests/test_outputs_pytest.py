@@ -56,6 +56,8 @@ def get_pairs():
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("answer_file")
 class TestFlash:
+    self.answer_file = None
+
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
     def test_gh_pr(self, ds, big_data):

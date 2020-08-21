@@ -25,3 +25,159 @@ TestArtIo:
 TestAthena:
     - athena_answers_000.yaml
     - athena_answers_raw_000.h5
+
+TestAthenaPP:
+    - athena_pp_answers_000.yaml
+    - athena_pp_answers_raw_000.h5
+
+TestBoxLib:
+    - boxlib_answers_000.yaml
+    - boxlib_answers_raw_000.h5
+
+TestChombo:
+    - chombo_answers_000.yaml
+    - chombo_answers_raw_000.h5
+
+TestEagle:
+    - eagle_answers_000.yaml
+    - eagle_answers_raw_000.h5
+
+TestEnzo:
+    - enzo_answers_000.yaml
+    - enzo_answers_raw_000.h5
+
+TestEnzoP:
+    - enzo_p_answers_000.yaml
+    - enzo_p_answers_raw_000.h5
+
+TestExodusII:
+    - exodus_ii_answers_000.yaml
+    - exodus_ii_answers_raw_000.h5
+
+TestFits:
+    - fits_answers_000.yaml
+    - fits_answers_raw_000.h5
+
+TestFlash:
+    - flash_answers_000.yaml
+    - flash_answers_raw_000.h5
+
+TestGadget:
+    - gadget_answers_000.yaml
+    - gadget_answers_raw_000.h5
+
+TestGadgetFOF:
+    - gadget_fof_answers_000.yaml
+    - gadget_fof_answers_raw_000.h5
+
+TestGamer:
+    - gamer_answers_000.yaml
+    - gamer_answers_raw_000.h5
+
+TestGDF:
+    - gdf_answers_000.yaml
+    - gdf_answers_raw_000.h5
+
+TestGizmo:
+    - gizmo_answers_000.yaml
+    - gizmo_answers_raw_000.h5
+
+TestHaloCatalog:
+    - halo_catalog_answers_000.yaml
+    - halo_catalog_answers_raw_000.h5
+
+TestMoab:
+    - moab_answers_000.yaml
+    - moab_answers_raw_000.h5
+
+TestOpenPMD:
+    - open_pmd_answers_000.yaml
+    - open_pmd_answers_raw_000.h5
+
+TestOwls:
+    - owls_answers_000.yaml
+    - owls_answers_raw_000.h5
+
+TestOwlsSubfind:
+    - owls_subfind_answers_000.yaml
+    - owls_subfind_answers_raw_000.h5
+
+TestRamses:
+    - ramses_answers_000.yaml
+    - ramses_answers_raw_000.h5
+
+TestRockstar:
+    - rockstar_answers_000.yaml
+    - rockstar_answers_raw_000.h5
+
+TestSDF:
+    - sdf_answers_000.yaml
+    - sdf_answers_raw_000.h5
+
+TestStream:
+    - stream_answers_000.yaml
+    - stream_answers_raw_000.h5
+
+TestSwift:
+    - swift_answers_000.yaml
+    - swift_answers_raw_000.h5
+
+TestTipsy:
+    - tipsy_answers_000.yaml
+    - tipsy_answers_raw_000.h5
+
+TestYTData:
+    - ytdata_answers_000.yaml
+    - ytdata_answers_raw_000.h5
+
+TestXRayFields:
+    - xray_answers_000.yaml
+    - xray_answers_raw_000.h5
+
+TestConnectedSets:
+    - connected_sets_answers_000.yaml
+    - connected_sets_raw_answers_000.h5
+
+TestParticleTrajectories:
+    - particle_trajectories_answers_000.yaml
+    - particle_trajectories_answers_raw_000.h5
+
+TestAxialPixelization:
+    - axial_pixelization_answers_000.yaml
+    - axial_pixelization_answers_raw_000.h5
+
+TestRawFieldSlices:
+    - raw_field_slices_answers_000.yaml
+    - raw_field_sices_ansewrs_raw_000.h5
+
+TestGeoSlicesAMR:
+    - geo_slices_amr_answers_000.yaml
+    - geo_slices_amr_answers_raw_000.h5
+
+TestParticlePlot:
+    - particle_plot_answers_000.yaml
+    - particle_plot_answers_raw_000.h5
+
+TestMesh:
+    - mesh_answers_000.yaml
+    - mesh_answers_raw_000.h5
+
+TestProfilePlots:
+    - profile_plots_answers_000.yaml
+    - profile_plots_answers_raw_000.h5
+
+TestLinePlots:
+    - line_plot_answers_000.yaml
+    - line_plot_answers_raw_000.h5
+
+TestPlotWindow:
+    - plot_window_answers_000.yaml
+    - plot_window_answers_raw_000.h5
+
+TestVROrientation:
+    - vr_orientation_answers_000.yaml
+    - vr_orientation_answers_raw_000.h5
+
+TestVolumeRenderMesh:
+    - vr_mesh_answers_000.yaml
+    - vr_mesh_answers_raw_000.h5

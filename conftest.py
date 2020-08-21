@@ -128,11 +128,20 @@ def _get_answer_files(request):
     clLocalDir = request.config.getoption("--local-dir")
     iniLocalDir = request.config.getini("local-dir")
     if clLocalDir is not None:
-        answer_file = os.path.join(clLocalDir, answer_file)
-        raw_answer_file = os.path.join(clLocalDir, raw_answer_file)
+        answer_file = os.path.join(os.path.expanduser(clLocalDir), answer_file)
+        raw_answer_file = os.path.join(os.path.expanduser(clLocalDir), raw_answer_file)
     else:
-        answer_file = os.path.join(iniLocalDir, answer_file)
-        raw_answer_file = os.path.join(iniLocalDir, raw_answer_file)
+        answer_file = os.path.join(os.path.expanduser(iniLocalDir), answer_file)
+        raw_answer_file = os.path.join(os.path.expanduser(iniLocalDir), raw_answer_file)
+    # Make sure we don't overwrite unless we mean to
+    overwrite = request.config.getoption("--force-overwrite")
+    storing = request.config.getoption("--answer-store")
+    raw_storing = request.config.getoption("--raw-answer-store")
+    raw = request.config.getoption("--answer-raw-arrays")
+    if os.path.exists(answer_file) and storing and not overwrite:
+        raise FileExistsError("Use `--force-overwrite` to overwrite an existing answer file.")
+    if os.path.exists(raw_answer_file) and raw_storing and raw and not overwrite:
+        raise FileExistsError("Use `--force-overwrite` to overwrite an existing raw answer file.")
     return answer_file, raw_answer_file
 
 
@@ -146,6 +155,9 @@ def hashing(request):
     store_hash = request.config.getoption("--answer-store")
     raw = request.config.getoption("--answer-raw-arrays")
     raw_store = request.config.getoption("--raw-answer-store")
+    # This check is so that, when checking if the answer file exists in _get_answer_files,
+    # we don't continuously fail. With this check, _get_answer_files is called once
+    # per class, despite this having function scope
     if request.cls.answer_file is None:
         request.cls.answer_file, request.cls.raw_answer_file = _get_answer_files(request)
     request.cls.hashes = {}

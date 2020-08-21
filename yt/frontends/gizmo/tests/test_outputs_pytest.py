@@ -24,6 +24,8 @@ gmhd_bbox = [[-400, 400]] * 3
 
 @pytest.mark.answer_test
 class TestGizmo:
+    self.answer_file = None
+
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [g64], indirect=True)

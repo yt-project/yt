@@ -62,6 +62,8 @@ def get_pairs():
 
 @pytest.mark.answer_test
 class TestGamer:
+    self.answer_file = None
+
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
