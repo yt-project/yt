@@ -25,7 +25,7 @@ from yt.visualization.volume_rendering.api import off_axis_projection
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("hashing")
 class TestVROrientation:
-    self.answer_file = None
+    answer_file = None
 
     def test_vr_images(self, ds_vr, sc, lens_type):
         n_frames = 1

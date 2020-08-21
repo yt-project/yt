@@ -156,7 +156,7 @@ def composite_mesh_render(engine):
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("temp_dir")
 class TestVolumeRenderMesh:
-    self.answer_file = None
+    answer_file = None
 
     @pytest.mark.usefixtures("hashing")
     def test_fake_hexahedral_ds_render(self, field, ds_hex):
