@@ -142,6 +142,11 @@ def _get_answer_files(request):
         raise FileExistsError("Use `--force-overwrite` to overwrite an existing answer file.")
     if os.path.exists(raw_answer_file) and raw_storing and raw and not overwrite:
         raise FileExistsError("Use `--force-overwrite` to overwrite an existing raw answer file.")
+    # If we do mean to overwrite, do so here by deleting the original file
+    if os.path.exists(answer_file) and storing and overwrite:
+        os.remove(answer_file)
+    if os.path.exists(raw_answer_file) and raw_storing and raw and overwrite:
+        os.remove(raw_answer_file)
     return answer_file, raw_answer_file
 
 
