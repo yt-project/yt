@@ -63,7 +63,7 @@ Here is an example script, where we adjust the logging at startup:
 .. code-block:: python
 
    import yt
-   yt.funcs.mylog.setLevel(1)
+   yt.set_log_level(1)
 
    ds = yt.load("my_data0001")
    ds.print_stats()
@@ -82,7 +82,6 @@ used internally.
 * ``coloredlogs`` (default: ``False``): Should logs be colored?
 * ``default_colormap`` (default: ``arbre``): What colormap should be used by
   default for yt-produced images?
-* ``loadfieldplugins`` (default: ``True``): Do we want to load the plugin file?
 * ``pluginfilename``  (default ``my_plugins.py``) The name of our plugin file.
 * ``logfile`` (default: ``False``): Should we output to a log file in the
   filesystem?
@@ -103,7 +102,7 @@ used internally.
   setting will provide instructions for setting this.
 * ``requires_ds_strict`` (default: ``True``): If true, answer tests wrapped
   with :func:`~yt.utilities.answer_testing.framework.requires_ds` will raise
-  :class:`~yt.utilities.exceptions.YTOutputNotIdentified` rather than consuming
+  :class:`~yt.utilities.exceptions.YTUnidentifiedDataType` rather than consuming
   it if required dataset is not present.
 * ``serialize`` (default: ``False``): If true, perform automatic
   :ref:`object serialization <object-serialization>`

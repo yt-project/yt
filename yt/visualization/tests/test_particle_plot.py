@@ -1,17 +1,3 @@
-"""
-Test suite for Particle Plots
-
-
-
-"""
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
 import os
 import shutil
 import tempfile
@@ -20,9 +6,9 @@ import unittest
 import numpy as np
 import pytest
 
-from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import create_profile
+from yt.loaders import load
 from yt.testing import (
     assert_allclose,
     assert_array_almost_equal,

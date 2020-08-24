@@ -1,8 +1,3 @@
-"""
-Title:   conftest.py
-Purpose: Contains hooks and fixtures for yt testing
-Notes:
-"""
 import os
 import shutil
 import tempfile
@@ -10,7 +5,6 @@ import tempfile
 import pytest
 import yaml
 
-import yt
 from yt.config import ytcfg
 from yt.utilities.answer_testing import utils
 from yt.utilities.logger import ytLogger

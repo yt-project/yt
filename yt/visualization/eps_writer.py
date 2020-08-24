@@ -415,18 +415,18 @@ class DualEPS:
                     if data.axis != 4:
                         xi = plot.ds.coordinates.x_axis[data.axis]
                         x_name = plot.ds.coordinates.axis_name[xi]
-                        _xlabel = "%s (%s)" % (x_name, units)
+                        _xlabel = f"{x_name} ({units})"
                     else:
-                        _xlabel = "x (%s)" % (units)
+                        _xlabel = f"x ({units})"
                 if ylabel is not None:
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
                         yi = plot.ds.coordinates.y_axis[data.axis]
                         y_name = plot.ds.coordinates.axis_name[yi]
-                        _ylabel = "%s (%s)" % (y_name, units)
+                        _ylabel = f"{y_name} ({units})"
                     else:
-                        _ylabel = "y (%s)" % (units)
+                        _ylabel = f"y ({units})"
             if tickcolor is None:
                 _tickcolor = pyx.color.cmyk.white
         elif isinstance(plot, ProfilePlot):
@@ -607,12 +607,12 @@ class DualEPS:
             if field is None:
                 self.field = list(plot.plots.keys())[0]
                 mylog.warning(
-                    "No field specified.  Choosing first field (%s)" % str(self.field)
+                    "No field specified.  Choosing first field (%s)", self.field
                 )
             else:
                 self.field = plot.data_source._determine_fields(field)[0]
             if self.field not in plot.plots.keys():
-                raise RuntimeError("Field '%s' does not exist!" % str(self.field))
+                raise RuntimeError("Field '%s' does not exist!", self.field)
             if isinstance(plot, PlotWindow):
                 plot.hide_colorbar()
                 plot.hide_axes()
@@ -724,7 +724,7 @@ class DualEPS:
             size = (self.figsize[0], 0.1 * self.figsize[1])
             imsize = (256, 1)
         else:
-            raise RuntimeError("orientation %s unknown" % orientation)
+            raise RuntimeError(f"orientation {orientation} unknown")
             return
 
         # If shrink is a scalar, then convert into tuple
@@ -1153,7 +1153,7 @@ class DualEPS:
         elif format == "jpg":
             self.canvas.writeGSfile(filename + ".jpeg", "jpeg", resolution=resolution)
         else:
-            raise RuntimeError("format %s unknown." % (format))
+            raise RuntimeError(f"format {format} unknown.")
 
 
 # =============================================================================
@@ -1425,7 +1425,7 @@ def multiplot(
                     if isinstance(cb_location, dict):
                         if fields[index] not in cb_location.keys():
                             raise RuntimeError(
-                                "%s not found in cb_location dict" % fields[index]
+                                f"{fields[index]} not found in cb_location dict"
                             )
                             return
                         orientation = cb_location[fields[index]]
@@ -1447,8 +1447,8 @@ def multiplot(
                     xpos = xpos0
                 else:
                     mylog.warning(
-                        "Unknown colorbar location %s. "
-                        "No colorbar displayed." % orientation
+                        "Unknown colorbar location %s. No colorbar displayed.",
+                        orientation,
                     )
                     orientation = None  # Marker for interior plot
 

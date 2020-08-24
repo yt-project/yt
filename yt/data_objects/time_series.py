@@ -8,24 +8,22 @@ from functools import wraps
 import numpy as np
 
 from yt.config import ytcfg
-from yt.convenience import load
-from yt.data_objects.analyzer_objects import (
-    AnalysisTask,
-    analysis_task_registry,
-    create_quantity_proxy,
-)
-from yt.data_objects.data_containers import data_object_registry
-from yt.data_objects.derived_quantities import derived_quantity_registry
+from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
 from yt.funcs import ensure_list, issue_deprecation_warning, iterable, mylog
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTException, YTOutputNotIdentified
+from yt.utilities.exceptions import YTException, YTUnidentifiedDataType
+from yt.utilities.object_registries import (
+    analysis_task_registry,
+    data_object_registry,
+    derived_quantity_registry,
+    simulation_time_series_registry,
+)
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     communication_system,
     parallel_objects,
     parallel_root_only,
 )
-from yt.utilities.parameter_file_storage import simulation_time_series_registry
 
 
 class AnalysisTaskProxy:
@@ -69,7 +67,7 @@ def get_filenames_from_glob_pattern(outputs):
     # we try to match the pattern from the test data dir
     file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
     if not file_list:
-        raise OSError("No match found for pattern : {}".format(pattern))
+        raise OSError(f"No match found for pattern : {pattern}")
     return sorted(file_list)
 
 
@@ -156,14 +154,21 @@ class DatasetSeries:
 
     """
 
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        code_name = cls.__name__[: cls.__name__.find("Simulation")]
+        if code_name:
+            simulation_time_series_registry[code_name] = cls
+            mylog.debug("Registering simulation: %s as %s", code_name, cls)
+
     def __new__(cls, outputs, *args, **kwargs):
         if isinstance(outputs, str):
             outputs = get_filenames_from_glob_pattern(outputs)
         ret = super(DatasetSeries, cls).__new__(cls)
         try:
             ret._pre_outputs = outputs[:]
-        except TypeError:
-            raise YTOutputNotIdentified(outputs)
+        except TypeError as e:
+            raise YTUnidentifiedDataType(outputs) from e
         return ret
 
     def __init__(
@@ -420,6 +425,8 @@ class DatasetSeries:
     _dataset_cls = None
 
     def _load(self, output_fn, **kwargs):
+        from yt.loaders import load
+
         if self._dataset_cls is not None:
             return self._dataset_cls(output_fn, **kwargs)
         elif self._mixed_dataset_types:
@@ -467,8 +474,8 @@ class DatasetSeries:
 
         Note
         ----
-        This function will fail if there are duplicate particle ids or if some of the particle
-        disappear.
+        This function will fail if there are duplicate particle ids or if some of the
+        particle disappear.
         """
         return ParticleTrajectories(
             self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype
@@ -520,16 +527,7 @@ class DatasetSeriesObject:
         return cls(*self._args, **self._kwargs)
 
 
-class RegisteredSimulationTimeSeries(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        code_name = name[: name.find("Simulation")]
-        if code_name:
-            simulation_time_series_registry[code_name] = cls
-            mylog.debug("Registering simulation: %s as %s", code_name, cls)
-
-
-class SimulationTimeSeries(DatasetSeries, metaclass=RegisteredSimulationTimeSeries):
+class SimulationTimeSeries(DatasetSeries):
     def __init__(self, parameter_filename, find_outputs=False):
         """
         Base class for generating simulation time series types.
@@ -616,7 +614,7 @@ class SimulationTimeSeries(DatasetSeries, metaclass=RegisteredSimulationTimeSeri
                 self._print_attr(a)
         for a in self.key_parameters:
             self._print_attr(a)
-        mylog.info("Total datasets: %d." % len(self.all_outputs))
+        mylog.info("Total datasets: %d.", len(self.all_outputs))
 
     def _print_attr(self, a):
         """

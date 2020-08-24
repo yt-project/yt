@@ -1,20 +1,20 @@
-"""
-Tests for making slices through raw fields
-
-"""
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2017, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
 import pytest
 
 import yt
 from yt.utilities.answer_testing import utils
 from yt.utilities.answer_testing.answer_tests import generic_image
+
+
+def compare(ds, field):
+    def slice_image(im_name):
+        sl = yt.SlicePlot(ds, "z", field)
+        sl.set_log("all", False)
+        image_file = sl.save(im_name)
+        return image_file
+
+    gi = generic_image(slice_image)
+    return gi
+
 
 raw_fields = "Laser/plt00015"
 
@@ -28,8 +28,5 @@ class TestRawFieldSlices:
     @utils.requires_ds(raw_fields)
     def test_raw_field_slices(self, field):
         ds = utils.data_dir_load(raw_fields)
-        sl = yt.SlicePlot(ds, "z", field)
-        sl.set_log("all", False)
-        image_file = sl.save("slice_answers_raw_{}".format(field[1]))
-        gi = generic_image(image_file[0])
+        gi = compare(ds, field)
         self.hashes.update({"generic_image": gi})

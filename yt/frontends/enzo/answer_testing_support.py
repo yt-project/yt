@@ -4,7 +4,7 @@ from functools import wraps
 import numpy as np
 
 from yt.config import ytcfg
-from yt.convenience import load
+from yt.loaders import load
 from yt.testing import assert_allclose
 from yt.utilities.answer_testing.framework import (
     AnswerTestingTest,
@@ -100,7 +100,7 @@ class ShockTubeTest:
             for xmin, xmax in zip(self.left_edges, self.right_edges):
                 mask = (position >= xmin) * (position <= xmax)
                 exact_field = np.interp(position[mask], exact["pos"], exact[k])
-                myname = "ShockTubeTest_%s" % k
+                myname = f"ShockTubeTest_{k}"
                 # yield test vs analytical solution
                 yield AssertWrapper(
                     myname,

@@ -56,7 +56,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             for ptype in sorted(ptf):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                c = f["/%s/Coordinates" % ptype][si:ei, :].astype("float64")
+                c = f[f"/{ptype}/Coordinates"][si:ei, :].astype("float64")
                 x, y, z = (np.squeeze(_) for _ in np.split(c, 3, axis=1))
                 if ptype == self.ds._sph_ptypes[0]:
                     pdtype = c.dtype
@@ -69,7 +69,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         si, ei = data_file.start, data_file.end
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
@@ -87,12 +87,13 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
-    def _generate_smoothing_length(self, data_files, kdtree):
+    def _generate_smoothing_length(self, index):
+        data_files = index.data_files
         if not self.ds.gen_hsmls:
             return
         hsml_fn = data_files[0].filename.replace(".hdf5", ".hsml.hdf5")
         if os.path.exists(hsml_fn):
-            with h5py.File(hsml_fn, "r") as f:
+            with h5py.File(hsml_fn, mode="r") as f:
                 file_hash = f.attrs["q"]
             if file_hash != self.ds._file_hash:
                 mylog.warning("Replacing hsml files.")
@@ -116,6 +117,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         for fn, count in counts.items():
             offsets[fn] = offset
             offset += count
+        kdtree = index.kdtree
         positions = uconcatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype
@@ -168,7 +170,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             for ptype, field_list in sorted(ptf.items()):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                g = f["/%s" % ptype]
+                g = f[f"/{ptype}"]
                 if getattr(selector, "is_all_data", False):
                     mask = slice(None, None, None)
                     mask_sum = data_file.total_particles[ptype]
@@ -232,7 +234,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         f.close()
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
-        npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount))
+        npart = dict((f"PartType{i}", v) for i, v in enumerate(pcount))
         return npart
 
     def _identify_fields(self, data_file):
@@ -507,7 +509,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             elif self._format == 1:
                 pos += 4
             else:
-                raise RuntimeError("incorrect Gadget format %s!" % str(self._format))
+                raise RuntimeError(f"incorrect Gadget format {str(self._format)}!")
             any_ptypes = False
             for ptype in self._ptypes:
                 if field == "Mass" and ptype not in self.var_mass:
@@ -538,8 +540,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                         possible.append(ptype)
                 mylog.warning(
                     "Your Gadget-2 file may have extra "
-                    + "columns or different precision! "
-                    + "(%s diff => %s?)",
+                    "columns or different precision! "
+                    "(%s diff => %s?)",
                     diff,
                     possible,
                 )

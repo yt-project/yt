@@ -1,12 +1,3 @@
-"""
-Title: test_owls.py
-Purpose: OWLS frontend tests using the snapshot_033 dataset
-Notes:
-    Copyright (c) 2013, yt Development Team.
-    Distributed under the terms of the Modified BSD License.
-    The full license is in the file COPYING.txt, distributed with this
-    software.
-"""
 import pytest
 
 from yt.data_objects.particle_filters import add_particle_filter

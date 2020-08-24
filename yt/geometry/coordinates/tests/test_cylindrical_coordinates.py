@@ -18,7 +18,7 @@ def test_cylindrical_coordinates():
     for i, axis in enumerate(axes):
         dd = ds.all_data()
         fi = ("index", axis)
-        fd = ("index", "d%s" % axis)
+        fd = ("index", f"d{axis}")
         ma = np.argmax(dd[fi])
         assert_equal(dd[fi][ma] + dd[fd][ma] / 2.0, ds.domain_right_edge[i].d)
         mi = np.argmin(dd[fi])
@@ -43,9 +43,9 @@ def test_noise_plots():
         fields = ["noise%d" % i for i in range(4)]
 
         p = SlicePlot(ds, "z", fields)
-        p.save("%s_log" % filename_prefix)
+        p.save(f"{filename_prefix}_log")
 
         p.set_log("all", False)
-        p.save("%s_lin" % filename_prefix)
+        p.save(f"{filename_prefix}_lin")
 
     generic_image(create_image)

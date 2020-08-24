@@ -2,7 +2,7 @@ import random
 
 import numpy as np
 
-from yt.frontends.stream.api import load_amr_grids
+from yt.loaders import load_amr_grids
 from yt.testing import assert_equal, assert_raises
 
 
@@ -133,7 +133,7 @@ def test_find_points():
     assert_equal(point_grid_inds, grid_inds[ind])
 
     # Test if find_points fails properly for non equal indices' array sizes
-    assert_raises(AssertionError, test_ds.index._find_points, [0], 1.0, [2, 3])
+    assert_raises(ValueError, test_ds.index._find_points, [0], 1.0, [2, 3])
 
 
 def test_grid_arrays_view():

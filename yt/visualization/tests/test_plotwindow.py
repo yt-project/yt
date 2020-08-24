@@ -1,29 +1,16 @@
-"""
-Testsuite for PlotWindow class
-
-
-
-"""
-
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 import os
 import shutil
 import tempfile
 import unittest
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
 from distutils.version import LooseVersion
 
 import matplotlib
 import numpy as np
 import pytest
 
-from yt.frontends.stream.api import load_uniform_grid
+from yt.loaders import load_uniform_grid
 from yt.testing import (
     assert_array_almost_equal,
     assert_array_equal,

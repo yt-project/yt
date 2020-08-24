@@ -1,15 +1,3 @@
-"""
-Tests for making unstructured mesh slices
-
-"""
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
 import os
 import tempfile
 
@@ -22,17 +10,18 @@ from yt.utilities.answer_testing.answer_tests import generic_image
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
-# These tests randomly fail, so we skip them for now
-pytest.skip("Mesh slice tests randomly fail. Skipping.", allow_module_level=True)
 
+def compare(ds, field, idir):
+    def slice_image():
+        tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
+        os.close(tmpfd)
+        sl = yt.SlicePlot(ds, idir, field)
+        sl.set_log("all", False)
+        image_file = sl.save(tmpfname)
+        return image_file
 
-def slice_image(ds, field, idir):
-    tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
-    os.close(tmpfd)
-    sl = yt.SlicePlot(ds, idir, field)
-    sl.set_log("all", False)
-    sl.save(tmpfname)
-    return tmpfname
+    gi = generic_image(slice_image)
+    return gi
 
 
 @pytest.mark.answer_test
@@ -41,15 +30,13 @@ class TestMesh:
     answer_file = None
 
     def test_mesh_slices_amr(self, ds_amr, field):
-        img_fname = slice_image(ds_amr, field, 0)
-        gi = generic_image(img_fname)
+        gi = compare(ds_amr, field, 0)
         self.hashes.update({"generic_image": gi})
 
     def test_mesh_slices_tetrahedral(self, ds_tetra, field, idir):
         mesh = ds_tetra.index.meshes[0]
         ad = ds_tetra.all_data()
-        img_fname = slice_image(ds_tetra, field, idir)
-        gi = generic_image(img_fname)
+        gi = compare(ds, field, idir)
         self.hashes.update({"generic_image": gi})
         sl_obj = ds_tetra.slice(idir, ds_tetra.domain_center[idir])
         assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
@@ -59,8 +46,7 @@ class TestMesh:
         # hexahedral ds
         ad = ds_hex.all_data()
         mesh = ds_hex.index.meshes[0]
-        img_fname = slice_image(ds_hex, field, idir)
-        gi = generic_image(img_fname)
+        gi = compare(ds, field, idir)
         self.hashes.update({"generic_image": gi})
         sl_obj = ds_hex.slice(idir, ds_hex.domain_center[idir])
         assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)

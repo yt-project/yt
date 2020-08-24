@@ -247,7 +247,7 @@ class HTTPDataStruct(DataStruct):
     def build_memmap(self):
         assert self.size != -1
         mylog.info(
-            "Building memmap with offset: %i and size %i" % (self._offset, self.size)
+            "Building memmap with offset: %i and size %i", self._offset, self.size
         )
         self.handle = self.HTTPArray(
             self.filename, dtype=self.dtype, shape=self.size, offset=self._offset
@@ -312,13 +312,13 @@ class SDFRead(dict):
     def write(self, filename):
         f = open(filename, "w")
         f.write("# SDF 1.0\n")
-        f.write("parameter byteorder = %s;\n" % (self.parameters["byteorder"]))
+        f.write(f"parameter byteorder = {self.parameters['byteorder']};\n")
         for c in self.comments:
             if "\x0c" in c:
                 continue
             if "SDF 1.0" in c:
                 continue
-            f.write("%s" % c)
+            f.write(f"{c}")
         for k, v in sorted(self.parameters.items()):
             if k == "byteorder":
                 continue
@@ -327,9 +327,9 @@ class SDFRead(dict):
             except Exception:
                 t = type(v).__name__
             if t == str.__name__:
-                f.write('parameter %s = "%s";\n' % (k, v))
+                f.write(f'parameter {k} = "{v}";\n')
             else:
-                f.write("%s %s = %s;\n" % (t, k, v))
+                f.write(f"{t} {k} = {v};\n")
 
         struct_order = []
         for s in self.structs:
@@ -338,7 +338,7 @@ class SDFRead(dict):
             for var in s.dtype.descr:
                 k, v = var[0], _rev_types[var[1]]
                 to_write.append(k)
-                f.write("\t%s %s;\n" % (v, k))
+                f.write(f"\t{v} {k};\n")
             f.write("}[%i];\n" % s.size)
             struct_order.append(to_write)
         f.write("#\x0c\n")
@@ -346,13 +346,13 @@ class SDFRead(dict):
         return struct_order, f
 
     def __repr__(self):
-        disp = "<SDFRead Object> file: %s\n" % self.filename
+        disp = f"<SDFRead Object> file: {self.filename}\n"
         disp += "parameters: \n"
         for k, v in self.parameters.items():
-            disp += "\t%s: %s\n" % (k, v)
+            disp += f"\t{k}: {v}\n"
         disp += "arrays: \n"
         for k, v in self.items():
-            disp += "\t%s[%s]\n" % (k, v.size)
+            disp += f"\t{k}[{v.size}]\n"
         return disp
 
     def parse_header(self):
@@ -394,12 +394,12 @@ class SDFRead(dict):
             vtype = "str"
 
         try:
-            vval = eval("np." + vtype + "(%s)" % vval)
+            vval = eval("np." + vtype + f"({vval})")
         except AttributeError:
             if vtype not in _types:
                 mylog.warning("Skipping parameter %s", vname)
                 return
-            vval = eval("np." + _types[vtype] + "(%s)" % vval)
+            vval = eval("np." + _types[vtype] + f"({vval})")
 
         self.parameters[vname] = vval
 
@@ -414,7 +414,7 @@ class SDFRead(dict):
                 str_types.append((v, vtype))
             l = ascfile.readline()
         num = l.strip("}[]")
-        num = num.strip("\;\\\n]")
+        num = num.strip("\;\\\n]")  # NOQA B005
         if len(num) == 0:
             # We need to compute the number of records.  The DataStruct will
             # handle this.
@@ -691,9 +691,7 @@ class SDFIndex:
                     f2 = 1 << int(np.log2(ic_Nmesh - 1) + 1)
                     if f2 != ic_Nmesh:
                         expand_root = 1.0 * f2 / ic_Nmesh - 1.0
-                        mylog.debug(
-                            "Expanding: %s, %s, %s" % (f2, ic_Nmesh, expand_root)
-                        )
+                        mylog.debug("Expanding: %s, %s, %s", f2, ic_Nmesh, expand_root)
                         rmin *= 1.0 + expand_root
                         rmax *= 1.0 + expand_root
 
@@ -705,10 +703,12 @@ class SDFIndex:
             ) / 2
             self.domain_active_dims = self.domain_dims - 2 * self.domain_buffer
 
-        mylog.debug("MIDX rmin: %s, rmax: %s" % (self.rmin, self.rmax))
+        mylog.debug("MIDX rmin: %s, rmax: %s", self.rmin, self.rmax)
         mylog.debug(
-            "MIDX: domain_width: %s, domain_dims: %s, domain_active_dims: %s "
-            % (self.domain_width, self.domain_dims, self.domain_active_dims)
+            "MIDX: domain_width: %s, domain_dims: %s, domain_active_dims: %s ",
+            self.domain_width,
+            self.domain_dims,
+            self.domain_active_dims,
         )
 
     def spread_bits(self, ival, level=None):
@@ -802,7 +802,7 @@ class SDFIndex:
         # print('Getting data from ileft to iright:',  ileft, iright)
 
         ix, iy, iz = (iright - ileft) * 1j
-        mylog.debug("MIDX IBBOX: %s %s %s %s %s" % (ileft, iright, ix, iy, iz))
+        mylog.debug("MIDX IBBOX: %s %s %s %s %s", ileft, iright, ix, iy, iz)
 
         # plus 1 that is sliced, plus a bit since mgrid is not inclusive
         Z, Y, X = np.mgrid[
@@ -897,8 +897,8 @@ class SDFIndex:
         return data
 
     def get_next_nonzero_chunk(self, key, stop=None):
-        # These next two while loops are to squeeze the keys if they are empty. Would be better
-        # to go through and set base equal to the last non-zero base, i think.
+        # These next two while loops are to squeeze the keys if they are empty.
+        # Would be better to go through and set base equal to the last non-zero base.
         if stop is None:
             stop = self._max_key
         while key < stop:
@@ -910,8 +910,8 @@ class SDFIndex:
         return key
 
     def get_previous_nonzero_chunk(self, key, stop=None):
-        # These next two while loops are to squeeze the keys if they are empty. Would be better
-        # to go through and set base equal to the last non-zero base, i think.
+        # These next two while loops are to squeeze the keys if they are empty.
+        # Would be better to go through and set base equal to the last non-zero base.
         if stop is None:
             stop = self.indexdata["index"][0]
         while key > stop:
@@ -925,7 +925,7 @@ class SDFIndex:
     def iter_data(self, inds, fields):
         num_inds = len(inds)
         num_reads = 0
-        mylog.debug("MIDX Reading %i chunks" % num_inds)
+        mylog.debug("MIDX Reading %i chunks", num_inds)
         i = 0
         while i < num_inds:
             ind = inds[i]
@@ -950,8 +950,11 @@ class SDFIndex:
 
             chunk = slice(base, base + length)
             mylog.debug(
-                "Reading chunk %i of length %i after catting %i starting at %i"
-                % (i, length, combined, ind)
+                "Reading chunk %i of length %i after catting %i starting at %i",
+                i,
+                length,
+                combined,
+                ind,
             )
             num_reads += 1
             if length > 0:
@@ -959,7 +962,7 @@ class SDFIndex:
                 yield data
                 del data
             i += 1
-        mylog.debug("Read %i chunks, batched into %i reads" % (num_inds, num_reads))
+        mylog.debug("Read %i chunks, batched into %i reads", num_inds, num_reads)
 
     def filter_particles(self, myiter, myfilter):
         for data in myiter:
@@ -994,8 +997,7 @@ class SDFIndex:
             # print('Mask shape, sum:', mask.shape, mask.sum())
 
             mylog.debug(
-                "Filtering particles, returning %i out of %i"
-                % (mask.sum(), mask.shape[0])
+                "Filtering particles, returning %i out of %i", mask.sum(), mask.shape[0]
             )
 
             if not np.any(mask):
@@ -1034,8 +1036,7 @@ class SDFIndex:
             mask = ((pos - center) ** 2).sum(axis=1) ** 0.5 < radius
 
             mylog.debug(
-                "Filtering particles, returning %i out of %i"
-                % (mask.sum(), mask.shape[0])
+                "Filtering particles, returning %i out of %i", mask.sum(), mask.shape[0]
             )
 
             if not np.any(mask):
@@ -1060,7 +1061,7 @@ class SDFIndex:
         if pos_fields is None:
             pos_fields = "x", "y", "z"
         xf, yf, zf = pos_fields
-        mylog.debug("Using position fields: %s" % pos_fields)
+        mylog.debug("Using position fields: %s", pos_fields)
 
         # I'm sorry.
         pos = (
@@ -1079,14 +1080,17 @@ class SDFIndex:
         _shift_periodic(pos, left, right, DW)
 
         mylog.debug(
-            "Periodic filtering, %s %s %s %s"
-            % (left, right, pos.min(axis=0), pos.max(axis=0))
+            "Periodic filtering, %s %s %s %s",
+            left,
+            right,
+            pos.min(axis=0),
+            pos.max(axis=0),
         )
         # Now get all particles that are within the bbox
         mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
 
         mylog.debug(
-            "Filtering particles, returning %i out of %i" % (mask.sum(), mask.shape[0])
+            "Filtering particles, returning %i out of %i", mask.sum(), mask.shape[0]
         )
 
         if np.any(mask):
@@ -1105,7 +1109,7 @@ class SDFIndex:
         and a right.
         """
         _ensure_xyz_fields(fields)
-        mylog.debug("MIDX Loading region from %s to %s" % (left, right))
+        mylog.debug("MIDX Loading region from %s to %s", left, right)
         inds = self.get_bbox(left, right)
         # Need to put left/right in float32 to avoid fp roundoff errors
         # in the bbox later.
@@ -1126,14 +1130,14 @@ class SDFIndex:
         a radius.
         """
         _ensure_xyz_fields(fields)
-        mylog.debug("MIDX Loading spherical region %s to %s" % (center, radius))
+        mylog.debug("MIDX Loading spherical region %s to %s", center, radius)
         inds = self.get_bbox(center - radius, center + radius)
 
         for dd in self.filter_sphere(center, radius, self.iter_data(inds, fields)):
             yield dd
 
     def iter_ibbox_data(self, left, right, fields):
-        mylog.debug("MIDX Loading region from %s to %s" % (left, right))
+        mylog.debug("MIDX Loading region from %s to %s", left, right)
         inds = self.get_ibbox(left, right)
         return self.iter_data(inds, fields)
 
@@ -1157,7 +1161,7 @@ class SDFIndex:
         length = rbase + rlen - lbase
         if length > 0:
             mylog.debug(
-                "Getting contiguous chunk of size %i starting at %i" % (length, lbase)
+                "Getting contiguous chunk of size %i starting at %i", length, lbase
             )
         return self.get_data(slice(lbase, lbase + length), fields)
 
@@ -1170,7 +1174,7 @@ class SDFIndex:
         length = self.indexdata["len"][key] - base
         if length > 0:
             mylog.debug(
-                "Getting contiguous chunk of size %i starting at %i" % (length, base)
+                "Getting contiguous chunk of size %i starting at %i", length, base
             )
         return self.get_data(slice(base, base + length), fields)
 
@@ -1247,7 +1251,7 @@ class SDFIndex:
         """
         cell_iarr = np.array(cell_iarr, dtype="int64")
         lk, rk = self.get_key_bounds(level, cell_iarr)
-        mylog.debug("Reading contiguous chunk from %i to %i" % (lk, rk))
+        mylog.debug("Reading contiguous chunk from %i to %i", lk, rk)
         return self.get_contiguous_chunk(lk, rk, fields)
 
     def get_cell_bbox(self, level, cell_iarr):

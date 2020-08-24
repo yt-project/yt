@@ -33,7 +33,7 @@ def setup_poynting_vector(self):
 
     for ax in "xyz":
         self.add_field(
-            ("openPMD", "poynting_vector_%s" % ax),
+            ("openPMD", f"poynting_vector_{ax}"),
             sampling_type="cell",
             function=_get_poyn(ax),
             units="W/m**2",
@@ -65,7 +65,7 @@ def setup_velocity(self, ptype):
     def _get_vel(axis):
         def velocity(field, data):
             c = speed_of_light
-            momentum = data[ptype, "particle_momentum_{}".format(axis)]
+            momentum = data[ptype, f"particle_momentum_{axis}"]
             mass = data[ptype, "particle_mass"]
             weighting = data[ptype, "particle_weighting"]
             return momentum / np.sqrt(
@@ -76,7 +76,7 @@ def setup_velocity(self, ptype):
 
     for ax in "xyz":
         self.add_field(
-            (ptype, "particle_velocity_%s" % ax),
+            (ptype, f"particle_velocity_{ax}"),
             sampling_type="particle",
             function=_get_vel(ax),
             units="m/s",
@@ -87,15 +87,15 @@ def setup_absolute_positions(self, ptype):
     def _abs_pos(axis):
         def ap(field, data):
             return np.add(
-                data[ptype, "particle_positionCoarse_{}".format(axis)],
-                data[ptype, "particle_positionOffset_{}".format(axis)],
+                data[ptype, f"particle_positionCoarse_{axis}"],
+                data[ptype, f"particle_positionOffset_{axis}"],
             )
 
         return ap
 
     for ax in "xyz":
         self.add_field(
-            (ptype, "particle_position_%s" % ax),
+            (ptype, f"particle_position_{ax}"),
             sampling_type="particle",
             function=_abs_pos(ax),
             units="m",
@@ -134,7 +134,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     References
     ----------
     * http://yt-project.org/docs/dev/analyzing/fields.html
-    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures
+    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures  # NOQA E501
     * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md
     * [1] http://yt-project.org/docs/dev/reference/field_list.html#universal-fields
     """
@@ -152,7 +152,8 @@ class OpenPMDFieldInfo(FieldInfoContainer):
             for fname in fields.keys():
                 field = fields[fname]
                 if isinstance(field, h5.Dataset) or is_const_component(field):
-                    # Don't consider axes. This appears to be a vector field of single dimensionality
+                    # Don't consider axes.
+                    # This appears to be a vector field of single dimensionality
                     ytname = str("_".join([fname.replace("_", "-")]))
                     parsed = parse_unit_dimension(
                         np.asarray(field.attrs["unitDimension"], dtype=np.int)
@@ -178,7 +179,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                             self._mag_fields.append(ytname)
                         self.known_other_fields += ((ytname, (unit, aliases, None)),)
             for i in self.known_other_fields:
-                mylog.debug("open_pmd - known_other_fields - {}".format(i))
+                mylog.debug("open_pmd - known_other_fields - %s", i)
         except (KeyError, TypeError, AttributeError):
             pass
 
@@ -195,7 +196,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         if ytattrib == "position":
                             # Symbolically rename position to preserve yt's
                             # interpretation of the pfield particle_position is later
-                            # derived in setup_absolute_positions in the way yt expects it
+                            # derived in setup_absolute_positions in the way yt expects
                             ytattrib = "positionCoarse"
                         if isinstance(record, h5.Dataset) or is_const_component(record):
                             name = ["particle", ytattrib]
@@ -213,12 +214,13 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     except (KeyError):
                         if recname != "particlePatches":
                             mylog.info(
-                                "open_pmd - {}_{} does not seem to have unitDimension".format(
-                                    pname, recname
-                                )
+                                "open_pmd - %s_%s does not seem to have "
+                                "unitDimension",
+                                pname,
+                                recname,
                             )
             for i in self.known_particle_fields:
-                mylog.debug("open_pmd - known_particle_fields - {}".format(i))
+                mylog.debug("open_pmd - known_particle_fields - %s", i)
         except (KeyError, TypeError, AttributeError):
             pass
 
@@ -237,7 +239,8 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         """Defines which derived particle fields to create.
 
-        This will be called for every entry in `OpenPMDDataset``'s ``self.particle_types``.
+        This will be called for every entry in
+        `OpenPMDDataset``'s ``self.particle_types``.
         If a field can not be calculated, it will simply be skipped.
         """
         setup_absolute_positions(self, ptype)

@@ -1,17 +1,14 @@
 import inspect
 
-analysis_task_registry = {}
+from yt.utilities.object_registries import analysis_task_registry
 
 
-class RegisteredTask(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
+class AnalysisTask:
+    def __init_subclass__(cls, *args, **kwargs):
         if hasattr(cls, "skip") and not cls.skip:
             return
         analysis_task_registry[cls.__name__] = cls
 
-
-class AnalysisTask(metaclass=RegisteredTask):
     def __init__(self, *args, **kwargs):
         # This should only get called if the subclassed object
         # does not override
@@ -22,7 +19,7 @@ class AnalysisTask(metaclass=RegisteredTask):
 
     def __repr__(self):
         # Stolen from YTDataContainer.__repr__
-        s = "%s: " % (self.__class__.__name__)
+        s = f"{self.__class__.__name__}: "
         s += ", ".join(["%s=%s" % (i, getattr(self, i)) for i in self._params])
         return s
 
@@ -69,7 +66,7 @@ class QuantityProxy(AnalysisTask):
 
     def __repr__(self):
         # Stolen from YTDataContainer.__repr__
-        s = "%s: " % (self.__class__.__name__)
+        s = f"{self.__class__.__name__}: "
         s += ", ".join(["%s" % [arg for arg in self.args]])
         s += ", ".join(["%s=%s" % (k, v) for k, v in self.kwargs.items()])
         return s

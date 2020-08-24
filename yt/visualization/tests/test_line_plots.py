@@ -1,15 +1,3 @@
-"""
-Tests for making line plots
-
-"""
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2017, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
 import os
 import tempfile
 
@@ -21,11 +9,14 @@ from yt.utilities.answer_testing.answer_tests import generic_image
 from yt.visualization.line_plot import _validate_point
 
 
-def image_from_plot(plot):
-    tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
-    os.close(tmpfd)
-    plot.save(tmpfname)
-    return tmpfname
+def compare(plot):
+    def image_from_plot():
+        tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
+        os.close(tmpfd)
+        return plot.save(tmpfname)
+
+    gi = generic_image(image_from_plot)
+    return gi
 
 
 @pytest.mark.answer_test
@@ -45,8 +36,7 @@ class TestLinePlots:
         plot.set_x_unit("cm")
         plot.set_unit(fields[0], "kg/cm**3")
         plot.annotate_title(fields[0], "Density Plot")
-        img_fname = image_from_plot(plot)
-        gi = generic_image(img_fname)
+        gi = compare(plot)
         self.hashes.update({"generic_image": gi})
 
     def test_multi_line_plot(self):
@@ -61,8 +51,7 @@ class TestLinePlots:
         plot = yt.LinePlot.from_lines(ds, fields, lines, field_labels=field_labels)
         plot.annotate_legend(fields[0])
         plot.annotate_legend(fields[1])
-        img_fname = image_from_plot(plot)
-        gi = generic_image(img_fname)
+        gi = compare(plot)
         self.hashes.update({"generic_image": gi})
 
 

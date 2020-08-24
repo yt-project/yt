@@ -96,7 +96,7 @@ def time_tree_construction(Ntime, LStime, ndim=2):
     t0 = time.time()
     cykdtree.PyKDTree(pts, le, re, leafsize=LStime)
     t1 = time.time()
-    print("{} {}D points, leafsize {}: took {} s".format(Ntime, ndim, LStime, t1 - t0))
+    print(f"{Ntime} {ndim}D points, leafsize {LStime}: took {t1 - t0} s")
 
 
 def time_neighbor_search(Ntime, LStime, ndim=2):
@@ -105,7 +105,7 @@ def time_neighbor_search(Ntime, LStime, ndim=2):
     t0 = time.time()
     tree.get_neighbor_ids(0.5 * np.ones(tree.ndim, "double"))
     t1 = time.time()
-    print("{} {}D points, leafsize {}: took {} s".format(Ntime, ndim, LStime, t1 - t0))
+    print(f"{Ntime} {ndim}D points, leafsize {LStime}: took {t1 - t0} s")
 
 
 def test_save_load():

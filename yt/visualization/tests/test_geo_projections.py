@@ -1,15 +1,3 @@
-"""
-Tests for making unstructured mesh slices
-
-"""
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
 import os
 import tempfile
 import unittest
@@ -22,6 +10,23 @@ from yt.utilities.answer_testing.answer_tests import generic_image
 from yt.visualization.geo_plot_utils import get_mpl_transform, transform_list
 
 
+def compare(ds, field, idir, projection, annotate=False):
+    def slice_image():
+        tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
+        os.close(tmpfd)
+        sl = yt.SlicePlot(ds, idir, field, origin="native")
+        sl.set_mpl_projection(projection)
+        if annotate:
+            sl._setup_plots()
+            sl.annotate_mesh_lines()
+        sl.set_log("all", False)
+        image_file = sl.save(tmpfname)
+        return image_file
+
+    gi = generic_image(slice_image)
+    return gi
+
+
 @pytest.mark.answer_test
 @pytest.mark.usefixtures("temp_dir", "hashing")
 class TestGeoSlicesAMR:
@@ -30,13 +35,7 @@ class TestGeoSlicesAMR:
     @requires_module("cartopy")
     def test_geo_slices_amr(self, transform, field, ds):
         if transform not in ("UTM", "OSNI"):
-            tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
-            os.close(tmpfd)
-            sl = yt.SlicePlot(ds, "altitude", field)
-            sl.set_mpl_projection(transform)
-            sl.set_log("all", False)
-            sl.save(tmpfname)
-            gi = generic_image(tmpfname)
+            gi = compare(ds, field, "altitude")
             self.hashes.update({"generic_image": gi})
 
 

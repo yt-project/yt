@@ -137,7 +137,7 @@ class Tree:
 
         # Calculate the Volume
         vol = self.trunk.kd_sum_volume()
-        mylog.debug("AMRKDTree volume = %e" % vol)
+        mylog.debug("AMRKDTree volume = %e", vol)
         self.trunk.kd_node_check()
 
     def sum_cells(self, all_cells=False):
@@ -471,7 +471,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         if not self._initialized:
             self.initialize_source()
         if fn is None:
-            fn = "%s_kd_bricks.h5" % self.ds
+            fn = f"{self.ds}_kd_bricks.h5"
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank - 1, tag=self.comm.rank - 1)
         f = h5py.File(fn, mode="w")
@@ -481,7 +481,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 for fi, field in enumerate(self.fields):
                     try:
                         f.create_dataset(
-                            "/brick_%s_%s" % (hex(i), field),
+                            f"/brick_{hex(i)}_{field}",
                             data=node.data.my_data[fi].astype("float64"),
                         )
                     except Exception:
@@ -493,7 +493,7 @@ class AMRKDTree(ParallelAnalysisInterface):
 
     def load_kd_bricks(self, fn=None):
         if fn is None:
-            fn = "%s_kd_bricks.h5" % self.ds
+            fn = f"{self.ds}_kd_bricks.h5"
         if self.comm.rank != 0:
             self.comm.recv_array(self.comm.rank - 1, tag=self.comm.rank - 1)
         try:
@@ -502,7 +502,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 i = node.node_id
                 if node.grid != -1:
                     data = [
-                        f["brick_%s_%s" % (hex(i), field)][:].astype("float64")
+                        f[f"brick_{hex(i)}_{field}"][:].astype("float64")
                         for field in self.fields
                     ]
                     node.data = PartitionedGrid(
@@ -629,7 +629,7 @@ class AMRKDTree(ParallelAnalysisInterface):
                 n.create_split(splitdims[i], splitposs[i])
 
         mylog.info(
-            "AMRKDTree rebuilt, Final Volume: %e" % self.tree.trunk.kd_sum_volume()
+            "AMRKDTree rebuilt, Final Volume: %e", self.tree.trunk.kd_sum_volume()
         )
         return self.tree.trunk
 
@@ -654,4 +654,4 @@ if __name__ == "__main__":
 
     print(hv.tree.trunk.kd_sum_volume())
     print(hv.tree.trunk.kd_node_check())
-    print("Time: %e seconds" % (t2 - t1))
+    print(f"Time: {t2 - t1:e} seconds")

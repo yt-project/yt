@@ -1,12 +1,3 @@
-"""
-Title: test_owls_subfind.py
-Purpose: OWLSSubfind frontend tests using owls_fof_halos datasets
-Notes:
-    Copyright (c) 2013, yt Development Team.
-    Distributed under the terms of the Modified BSD License.
-    The full license is in the file COPYING.txt, distributed with this
-    software.
-"""
 import pytest
 
 from yt.utilities.answer_testing.answer_tests import field_values

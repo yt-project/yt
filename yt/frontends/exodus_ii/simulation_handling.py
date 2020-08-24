@@ -1,14 +1,14 @@
 import glob
 
-from yt.convenience import load
-from yt.data_objects.time_series import DatasetSeries, RegisteredSimulationTimeSeries
+from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import only_on_root
-from yt.utilities.exceptions import YTOutputNotIdentified
+from yt.loaders import load
+from yt.utilities.exceptions import YTUnidentifiedDataType
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 
 
-class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries):
+class ExodusIISimulation(DatasetSeries):
     r"""
     Initialize an ExodusII Simulation object.
 
@@ -21,7 +21,7 @@ class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries
     Examples
     --------
     >>> import yt
-    >>> sim = yt.simulation("demo_second", "ExodusII")
+    >>> sim = yt.load_simulation("demo_second", "ExodusII")
     >>> sim.get_time_series()
     >>> for ds in sim:
     ...     print(ds.current_time)
@@ -30,7 +30,7 @@ class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries
 
     def __init__(self, simulation_directory, find_outputs=False):
         self.simulation_directory = simulation_directory
-        fn_pattern = "%s/*" % self.simulation_directory
+        fn_pattern = f"{self.simulation_directory}/*"
         potential_outputs = glob.glob(fn_pattern)
         self.all_outputs = self._check_for_outputs(potential_outputs)
         self.all_outputs.sort(key=lambda obj: obj["filename"])
@@ -91,7 +91,7 @@ class ExodusIISimulation(DatasetSeries, metaclass=RegisteredSimulationTimeSeries
         ):
             try:
                 ds = load(output)
-            except (FileNotFoundError, YTOutputNotIdentified):
+            except (FileNotFoundError, YTUnidentifiedDataType):
                 mylog.error("Failed to load %s", output)
                 continue
             my_storage.result = {"filename": output, "num_steps": ds.num_steps}

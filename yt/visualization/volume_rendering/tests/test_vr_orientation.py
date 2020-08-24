@@ -1,14 +1,3 @@
-"""
-Answer test to verify VR orientation and rotation is correct
-"""
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
 import os
 import tempfile
 
@@ -85,6 +74,5 @@ class TestVROrientation:
             image.write_image(tmpfname)
             return tmpfname
 
-        img_fname = offaxis_image_func()
-        gi = generic_image(img_fname)
+        gi = generic_image(offaxis_image_func)
         self.hashes.update({"generic_image": gi})

@@ -1,17 +1,3 @@
-"""
-Testsuite for ProfilePlot and PhasePlot
-
-
-
-"""
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
 import os
 import shutil
 import tempfile
@@ -29,11 +15,14 @@ from yt.utilities.answer_testing.answer_tests import (
 from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
 
-def image_from_plot(plot):
-    tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
-    os.close(tmpfd)
-    plot.save(tmpfname)
-    return tmpfname
+def compare(plot):
+    def image_from_plot():
+        tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
+        os.close(tmpfd)
+        return plot.save(tmpfname)
+
+    gi = generic_image(image_from_plot)
+    return gi
 
 
 @pytest.mark.answer_test
@@ -70,8 +59,7 @@ class TestProfilePlots:
         )
         profiles[0]._repr_html_()
         for idx, plot in enumerate(profiles):
-            img_fname = image_from_plot(plot)
-            gi = generic_image(img_fname)
+            gi = compare(plot)
             if "generic_image" not in self.hashes:
                 self.hashes.update({"generic_image": {str(idx): gi}})
             else:
@@ -110,7 +98,7 @@ class TestProfilePlots:
         phases[0]._repr_html_()
         for idx, plot in enumerate(phases):
             img_fname = image_from_plot(plot)
-            gi = generic_image(img_fname)
+            gi = compare(plot)
             if "generic_image" not in self.hashes:
                 self.hashes.update({"generic_image": {str(idx): gi}})
             else:
@@ -132,7 +120,7 @@ class TestProfilePlots:
         )
         plot = yt.ProfilePlot.from_profiles(profiles)
         img_fname = image_from_plot(plot)
-        gi = generic_image(img_fname)
+        gi = compare(plot)
         self.hashes.update({"generic_image": gi})
 
 

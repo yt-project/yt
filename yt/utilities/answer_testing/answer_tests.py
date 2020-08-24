@@ -1,7 +1,3 @@
-"""
-Title: answer_tests.py
-Purpose: Contains answer tests that are used by yt's various frontends
-"""
 import glob
 import os
 import tempfile

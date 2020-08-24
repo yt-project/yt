@@ -25,7 +25,7 @@ def turn_on_parallelism():
     except ImportError as e:
         mylog.error(
             "Warning: Attempting to turn on parallelism, "
-            + "but mpi4py import failed. Try pip install mpi4py."
+            "but mpi4py import failed. Try pip install mpi4py."
         )
         raise e
         # Now we have to turn on the parallelism from the perspective of the
@@ -92,7 +92,7 @@ class YTParser(argparse.ArgumentParser):
         and then exits.
         """
         self.print_help(sys.stderr)
-        self.exit(2, "%s: error: %s\n" % (self.prog, message))
+        self.exit(2, f"{self.prog}: error: {message}\n")
 
 
 parser = YTParser(description="yt command line arguments")

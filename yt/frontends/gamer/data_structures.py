@@ -179,14 +179,20 @@ class GAMERHierarchy(GridIndex):
             # edges between children and parent
             for c in grid.Children:
                 for d in range(0, 3):
-                    assert grid.LeftEdge[d] <= c.LeftEdge[d], (
-                        "Grid %d, Children %d, Grid->EdgeL %14.7e, Children->EdgeL %14.7e"
+                    msgL = (
+                        "Grid %d, Child %d, Grid->EdgeL %14.7e, Children->EdgeL %14.7e"
                         % (grid.id, c.id, grid.LeftEdge[d], c.LeftEdge[d])
                     )
-                    assert grid.RightEdge[d] >= c.RightEdge[d], (
-                        "Grid %d, Children %d, Grid->EdgeR %14.7e, Children->EdgeR %14.7e"
+                    msgR = (
+                        "Grid %d, Child %d, Grid->EdgeR %14.7e, Children->EdgeR %14.7e"
                         % (grid.id, c.id, grid.RightEdge[d], c.RightEdge[d])
                     )
+                    if not grid.LeftEdge[d] <= c.LeftEdge[d]:
+                        raise ValueError(msgL)
+
+                    if not grid.RightEdge[d] >= c.RightEdge[d]:
+                        raise ValueError(msgR)
+
         mylog.info("Check passed")
 
 
@@ -227,10 +233,7 @@ class GAMERDataset(Dataset):
         if self.particle_filename is None:
             self._particle_handle = self._handle
         else:
-            try:
-                self._particle_handle = HDF5FileHandler(self.particle_filename)
-            except Exception:
-                raise IOError(self.particle_filename)
+            self._particle_handle = HDF5FileHandler(self.particle_filename)
 
         # currently GAMER only supports refinement by a factor of 2
         self.refine_by = 2
@@ -262,7 +265,7 @@ class GAMERDataset(Dataset):
             if len(self.units_override) == 0:
                 mylog.warning(
                     "Cannot determine code units ==> "
-                    + "Use units_override to specify the units"
+                    "Use units_override to specify the units"
                 )
 
             for unit, value, cgs in [
@@ -271,7 +274,7 @@ class GAMERDataset(Dataset):
                 ("mass", 1.0, "g"),
                 ("magnetic", np.sqrt(4.0 * np.pi), "gauss"),
             ]:
-                setdefaultattr(self, "%s_unit" % unit, self.quan(value, cgs))
+                setdefaultattr(self, f"{unit}_unit", self.quan(value, cgs))
 
                 if len(self.units_override) == 0:
                     mylog.warning("Assuming %8s unit = %f %s", unit, value, cgs)
@@ -342,7 +345,7 @@ class GAMERDataset(Dataset):
         else:
             self.mhd = 0
 
-        # old data format (version < 2210) does not contain any information of code units
+        # old data format (version < 2210) did not contain any information of code units
         self.parameters.setdefault("Opt__Unit", 0)
 
         self.geometry = geometry_parameters[parameters.get("Coordinate", 1)]

@@ -1,15 +1,3 @@
-"""
-Test Surface Mesh Rendering
-
-"""
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
 import os
 import tempfile
 
@@ -31,6 +19,14 @@ wedge6 = "MOOSE_sample_data/wedge_out.e"
 wedge6_fields = [("connect1", "diffused")]
 tet10 = "SecondOrderTets/tet10_unstructured_out.e"
 tet10_fields = [("connect1", "uz")]
+
+
+def compare(im_name, im):
+    def mesh_render_image_func(im_name):
+        return im.write_image(im_name)
+
+    gi = generic_image(mesh_render_image_func)
+    return gi
 
 
 def surface_mesh_render():
@@ -63,8 +59,7 @@ def hex8_render(engine, field):
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix=".png", prefix="tmp", dir=os.getcwd())
     os.close(fd)
-    im.save(im_name)
-    return im_name
+    return im_name, im
 
 
 def tet4_render(engine, field):
@@ -74,8 +69,7 @@ def tet4_render(engine, field):
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix=".png", prefix="tmp", dir=os.getcwd())
     os.close(fd)
-    im.save(im_name)
-    return im_name
+    return im_name, im
 
 
 def hex20_render(engine, field):
@@ -85,8 +79,7 @@ def hex20_render(engine, field):
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix=".png", prefix="tmp", dir=os.getcwd())
     os.close(fd)
-    im.save(im_name)
-    return im_name
+    return im_name, im
 
 
 def wedge6_render(engine, field):
@@ -96,8 +89,7 @@ def wedge6_render(engine, field):
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix=".png", prefix="tmp", dir=os.getcwd())
     os.close(fd)
-    im.save(im_name)
-    return im_name
+    return im_name, im
 
 
 def tet10_render(engine, field):
@@ -109,8 +101,7 @@ def tet10_render(engine, field):
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix=".png", prefix="tmp", dir=os.getcwd())
     os.close(fd)
-    im.save(im_name)
-    return im_name
+    return im_name, im
 
 
 def perspective_mesh_render(engine):
@@ -126,8 +117,7 @@ def perspective_mesh_render(engine):
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix=".png", prefix="tmp", dir=os.getcwd())
     os.close(fd)
-    im.save(im_name)
-    return im_name
+    return im_name, im
 
 
 def composite_mesh_render(engine):
@@ -149,8 +139,7 @@ def composite_mesh_render(engine):
     im = sc.render()
     fd, im_name = tempfile.mkstemp(suffix=".png", prefix="tmp", dir=os.getcwd())
     os.close(fd)
-    im.save(im_name)
-    return im_name
+    return im_name, im
 
 
 @pytest.mark.answer_test
@@ -164,68 +153,67 @@ class TestVolumeRenderMesh:
         os.close(fd)
         sc = create_scene(ds_hex, field)
         im = sc.render()
-        im.save(im_name)
-        gi = generic_image(im_name)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex8)
     @requires_module("pyembree")
     def test_composite_mesh_render_pyembree(self):
-        im_name = composite_mesh_render("embree")
-        gi = generic_image(im_name)
+        im_name, im = composite_mesh_render("embree")
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex8)
     def test_composite_mesh_render(self):
-        im_name = composite_mesh_render("yt")
-        gi = generic_image(im_name)
+        im_name, im = composite_mesh_render("yt")
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex20)
     @requires_module("pyembree")
     def test_hex20_render_pyembree(self, field):
-        im_name = hex20_render("embree", field)
-        gi = generic_image(im_name)
+        im_name, im = hex20_render("embree", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex20)
     def test_hex20_render(self, field):
-        im_name = hex20_render("yt", field)
-        gi = generic_image(im_name)
+        im_name, im = hex20_render("yt", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex8)
     @requires_module("pyembree")
     def test_hex8_render_pyembree(self, field):
-        im_name = hex8_render("embree", field)
-        gi = generic_image(im_name)
+        im_name, im = hex8_render("embree", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex8)
     def test_hex8_render(self, field):
-        im_name = hex8_render("yt", field)
-        gi = generic_image(im_name)
+        im_name, im = hex8_render("yt", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex8)
     @requires_module("pyembree")
     def test_perspective_mesh_render_pyembree(self):
-        im_name = perspective_mesh_render("embree")
-        gi = generic_image(im_name)
+        im_name, im = perspective_mesh_render("embree")
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(hex8)
     def test_perspective_mesh_render(self):
-        im_name = perspective_mesh_render("yt")
-        gi = generic_image(im_name)
+        im_name, im = perspective_mesh_render("yt")
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @requires_module("pyembree")
@@ -241,43 +229,43 @@ class TestVolumeRenderMesh:
     @utils.requires_ds(tet10)
     @requires_module("pyembree")
     def test_tet10_render_pyembree(self, field):
-        im_name = tet10_render("embree", field)
-        gi = generic_image(im_name)
+        im_name, im = tet10_render("embree", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(tet10)
     def test_tet10_render(self, field):
-        im_name = tet10_render("yt", field)
-        gi = generic_image(im_name)
+        im_name, im = tet10_render("yt", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(tet4)
     @requires_module("pyembree")
     def test_tet4_render_pyembree(self, field):
-        im_name = tet4_render("embree", field)
-        gi = generic_image(im_name)
+        im_name, im = tet4_render("embree", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(tet4)
     def test_tet4_render(self, field):
-        im_name = tet4_render("yt", field)
-        gi = generic_image(im_name)
+        im_name, im = tet4_render("yt", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(wedge6)
     @requires_module("pyembree")
     def test_wedge6_render_pyembree(self, field):
-        im_name = wedge6_render("embree", field)
-        gi = generic_image(im_name)
+        im_name, im = wedge6_render("embree", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(wedge6)
     def test_wedge6_render(self, field):
-        im_name = wedge6_render("yt", field)
-        gi = generic_image(im_name)
+        im_name, im = wedge6_render("yt", field)
+        gi = compare(im_name, im)
         self.hashes.update({"generic_image": gi})

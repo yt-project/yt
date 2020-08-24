@@ -7,7 +7,7 @@ from yt.testing import assert_raises
 
 
 def test_pattern_expansion():
-    file_list = ["fake_data_file_{}".format(str(i).zfill(4)) for i in range(10)]
+    file_list = [f"fake_data_file_{str(i).zfill(4)}" for i in range(10)]
 
     with tempfile.TemporaryDirectory() as tmpdir:
         for file in file_list:

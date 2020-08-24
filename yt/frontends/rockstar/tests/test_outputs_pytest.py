@@ -1,12 +1,3 @@
-"""
-Title: test_rockstar.py
-Purpose: Rockstar frontend tests using rockstar_halos dataset
-Notes:
-    Copyright (c) 2015, yt Development Team.
-    Distributed under the terms of the Modified BSD License.
-    The full license is in the file COPYING.txt, distributed with this
-    software.
-"""
 import pytest
 
 from yt.frontends.rockstar.api import RockstarDataset
