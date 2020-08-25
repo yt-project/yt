@@ -179,7 +179,7 @@ def hashing(request):
     request.cls.hashes = {}
     # Load the saved answers if we're comparing. We don't do this for the raw
     # answers because those are huge
-    if not no_hash and not store_hash and request.cls.saved_hashes is not None:
+    if not no_hash and not store_hash and request.cls.saved_hashes is None:
         with open(request.cls.answer_file, "r") as fd:
             request.cls.saved_hashes = yaml.safe_load(fd)
     yield
