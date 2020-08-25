@@ -20,10 +20,10 @@ def orbit_traj():
     # If the data isn't present, trying to access ts[0] will raise an exception
     try:
         ds = ts[0]
-        traj = ts.particle_trajectories([1, 2], fields=fields, suppress_logging=True)
-        return [ds, traj]
     except IndexError:
         return pytest.skip("Data not found.")
+    traj = ts.particle_trajectories([1, 2], fields=fields, suppress_logging=True)
+    return [ds, traj]
 
 
 @pytest.fixture(scope="class")
@@ -36,13 +36,13 @@ def etc_traj():
     # If the data isn't present, trying to access ts[0] will raise an exception
     try:
         ds = ts[0]
-        sp = ds.sphere("max", (0.5, "Mpc"))
-        indices = sp["particle_index"][sp["particle_type"] == 1][:5]
-        traj = ts.particle_trajectories(indices, fields=fields, suppress_logging=True)
-        traj.add_fields(["density"])
-        return [ds, traj]
     except IndexError:
         return pytest.skip("Data not found.")
+    sp = ds.sphere("max", (0.5, "Mpc"))
+    indices = sp["particle_index"][sp["particle_type"] == 1][:5]
+    traj = ts.particle_trajectories(indices, fields=fields, suppress_logging=True)
+    traj.add_fields(["density"])
+    return [ds, traj]
 
 
 def pytest_generate_tests(metafunc):
