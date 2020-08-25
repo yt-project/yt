@@ -439,8 +439,8 @@ class TestRamses:
 
     @requires_file(ramses_mhd_128)
     def test_magnetic_field_aliasing(self):
-        # Test if RAMSES magnetic fields are correctly aliased to yt magnetic fields and if
-        # derived magnetic quantities are calculated
+        # Test if RAMSES magnetic fields are correctly aliased to yt magnetic
+        # fields and if derived magnetic quantities are calculated
         ds = data_dir_load(ramses_mhd_128)
         ad = ds.all_data()
         for field in [

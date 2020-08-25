@@ -44,9 +44,9 @@ class TestAthenaPP:
         assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
 
         def field_func(name):
-            return dd[field]
+            return dd[f]
 
-        ga = generic_array(field_func, args=[field])
+        ga = generic_array(field_func, args=[f])
         self.hashes.update({"generic_array": ga})
 
     @pytest.mark.parametrize(

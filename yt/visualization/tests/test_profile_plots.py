@@ -8,10 +8,7 @@ import pytest
 import yt
 from yt.data_objects.profiles import create_profile
 from yt.testing import assert_allclose_units, assert_array_almost_equal, fake_random_ds
-from yt.utilities.answer_testing.answer_tests import (
-    generic_image,
-    phase_plot_attribute,
-)
+from yt.utilities.answer_testing.answer_tests import generic_image, phase_plot_attribute
 from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
 
@@ -97,7 +94,6 @@ class TestProfilePlots:
         phases.append(pp)
         phases[0]._repr_html_()
         for idx, plot in enumerate(phases):
-            img_fname = image_from_plot(plot)
             gi = compare(plot)
             if "generic_image" not in self.hashes:
                 self.hashes.update({"generic_image": {str(idx): gi}})
@@ -119,7 +115,6 @@ class TestProfilePlots:
             )
         )
         plot = yt.ProfilePlot.from_profiles(profiles)
-        img_fname = image_from_plot(plot)
         gi = compare(plot)
         self.hashes.update({"generic_image": gi})
 

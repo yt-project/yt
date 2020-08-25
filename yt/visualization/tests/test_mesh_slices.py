@@ -36,7 +36,7 @@ class TestMesh:
     def test_mesh_slices_tetrahedral(self, ds_tetra, field, idir):
         mesh = ds_tetra.index.meshes[0]
         ad = ds_tetra.all_data()
-        gi = compare(ds, field, idir)
+        gi = compare(ds_tetra, field, idir)
         self.hashes.update({"generic_image": gi})
         sl_obj = ds_tetra.slice(idir, ds_tetra.domain_center[idir])
         assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
@@ -46,7 +46,7 @@ class TestMesh:
         # hexahedral ds
         ad = ds_hex.all_data()
         mesh = ds_hex.index.meshes[0]
-        gi = compare(ds, field, idir)
+        gi = compare(ds_hex, field, idir)
         self.hashes.update({"generic_image": gi})
         sl_obj = ds_hex.slice(idir, ds_hex.domain_center[idir])
         assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)

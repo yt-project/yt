@@ -42,8 +42,9 @@ w_list = [None, "density"]
 dso_list = [None, ("sphere", ("max", (0.1, "unitary")))]
 
 
-# Tests for units: verify that overriding certain units yields the correct derived units.
-# The following are correct normalisations based on length, numberdensity and temperature
+# Tests for units: verify that overriding certain units yields the correct
+# derived units. The following are correct normalisations based on length,
+# numberdensity and temperature
 length_unit = (1e9, "cm")
 numberdensity_unit = (1e9, "cm**-3")
 temperature_unit = (1e6, "K")

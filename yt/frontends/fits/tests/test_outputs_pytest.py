@@ -31,7 +31,7 @@ def get_acis():
         setup_counts_fields(ds, ebounds)
         return ds
     except FileNotFoundError:
-        return "/does/not/exist" 
+        return "/does/not/exist"
 
 
 grs_kwargs = {"kwargs": {"nan_mask": 0.0}, "cls": SpectralCubeFITSDataset}

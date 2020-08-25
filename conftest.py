@@ -39,8 +39,16 @@ def pytest_addoption(parser):
     # Tell pytest about the local-dir option in the ini files. This
     # option is used for creating the answer directory on CI
     parser.addini("local-dir", default="../answer-store", help="answer directory.")
-    parser.addini("test_data_dir", default=ytcfg.get("yt", "test_data_dir"), help="Directory where data for tests is stored.")
-    parser.addini("answer_file_list", default="./tests/tests_pytest.yaml", help="Contains answer file names")
+    parser.addini(
+        "test_data_dir",
+        default=ytcfg.get("yt", "test_data_dir"),
+        help="Directory where data for tests is stored.",
+    )
+    parser.addini(
+        "answer_file_list",
+        default="./tests/tests_pytest.yaml",
+        help="Contains answer file names",
+    )
 
 
 def pytest_configure(config):
@@ -116,7 +124,9 @@ def _get_answer_files(request):
         ytLogger.error(f"Answer files for `{request.cls.__name__}` not found.")
         sys.exit()
     except ValueError:
-        ytLogger.error("Missing either hashed file name or raw file name for `{request.cls.__name__}`in `{request.config.getini('answer_file_list')}`.") 
+        ytLogger.error(
+            "Missing either hashed file name or raw file name for `{request.cls.__name__}`in `{request.config.getini('answer_file_list')}`."
+        )
     # Add the local-dir aspect of the path. If there's a command line value,
     # have that override the ini file value
     clLocalDir = request.config.getoption("--local-dir")
@@ -133,9 +143,13 @@ def _get_answer_files(request):
     raw_storing = request.config.getoption("--raw-answer-store")
     raw = request.config.getoption("--answer-raw-arrays")
     if os.path.exists(answer_file) and storing and not overwrite:
-        raise FileExistsError("Use `--force-overwrite` to overwrite an existing answer file.")
+        raise FileExistsError(
+            "Use `--force-overwrite` to overwrite an existing answer file."
+        )
     if os.path.exists(raw_answer_file) and raw_storing and raw and not overwrite:
-        raise FileExistsError("Use `--force-overwrite` to overwrite an existing raw answer file.")
+        raise FileExistsError(
+            "Use `--force-overwrite` to overwrite an existing raw answer file."
+        )
     # If we do mean to overwrite, do so here by deleting the original file
     if os.path.exists(answer_file) and storing and overwrite:
         os.remove(answer_file)
@@ -158,7 +172,9 @@ def hashing(request):
     # we don't continuously fail. With this check, _get_answer_files is called once
     # per class, despite this having function scope
     if request.cls.answer_file is None:
-        request.cls.answer_file, request.cls.raw_answer_file = _get_answer_files(request)
+        request.cls.answer_file, request.cls.raw_answer_file = _get_answer_files(
+            request
+        )
     request.cls.hashes = {}
     # Load the saved answers if we're comparing. We don't do this for the raw
     # answers because those are huge
@@ -183,7 +199,9 @@ def hashing(request):
         utils._compare_result(hashes, request.cls.saved_hashes)
     # Save raw data
     if raw and raw_store:
-        utils._save_raw_arrays(request.cls.hashes, request.cls.raw_answer_file, request.node.name)
+        utils._save_raw_arrays(
+            request.cls.hashes, request.cls.raw_answer_file, request.node.name
+        )
     # Compare raw data. This is done one test at a time because the
     # arrays can get quite large and storing everything in memory would
     # be bad
@@ -282,6 +300,7 @@ def N(request):
     Needed because indirect=True is used for loading the datasets.
     """
     return request.param
+
 
 @pytest.fixture(scope="class")
 def big_data(request):

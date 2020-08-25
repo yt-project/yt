@@ -19,10 +19,9 @@ from yt.config import ytcfg
 from yt.data_objects.selection_data_containers import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
-from yt.testing import assert_equal
 from yt.loaders import load, load_simulation
+from yt.testing import assert_equal
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTOutputNotIdentified
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.visualization.volume_rendering.scene import Scene
 
@@ -533,7 +532,9 @@ def get_parameterization(fname):
         ds = data_dir_load(fname)
         return ds.field_list
     except FileNotFoundError:
-        return [None,]
+        return [
+            None,
+        ]
 
 
 def compare_image_lists(new_result, old_result, decimals):

@@ -4,10 +4,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from yt.utilities.answer_testing.answer_tests import (
-    VR_image_comparison,
-    generic_image,
-)
+from yt.utilities.answer_testing.answer_tests import VR_image_comparison, generic_image
 from yt.visualization.volume_rendering.api import off_axis_projection
 
 
