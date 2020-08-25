@@ -5,6 +5,7 @@ import tempfile
 import pytest
 import yaml
 
+import yt
 from yt.config import ytcfg
 from yt.utilities.answer_testing import utils
 from yt.utilities.logger import ytLogger

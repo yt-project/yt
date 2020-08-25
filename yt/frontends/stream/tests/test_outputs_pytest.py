@@ -4,8 +4,8 @@ import tempfile
 import numpy as np
 import pytest
 
-from yt.convenience import load
 from yt.frontends.stream.api import load_particles, load_uniform_grid
+from yt.loaders import load
 from yt.testing import assert_equal, assert_raises
 from yt.utilities.exceptions import (
     YTInconsistentGridFieldShape,

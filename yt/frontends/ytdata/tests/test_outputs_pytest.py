@@ -3,7 +3,6 @@ import os
 import numpy as np
 import pytest
 
-from yt.convenience import load
 from yt.data_objects.api import create_profile
 from yt.frontends.ytdata.api import (
     YTDataContainerDataset,
@@ -13,6 +12,7 @@ from yt.frontends.ytdata.api import (
     YTSpatialPlotDataset,
     save_as_dataset,
 )
+from yt.loaders import load
 from yt.testing import assert_array_equal
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing import utils
