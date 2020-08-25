@@ -113,7 +113,7 @@ class TestRamses:
 
     @requires_file(ramsesExtraFieldsSmall)
     def test_extra_fields_2(self):
-        extra_fields = ["particle_extra_field_%s" % (i + 1) for i in range(2)]
+        extra_fields = [f"particle_extra_field_{i + 1}" for i in range(2)]
         ds = yt.load(os.path.join(ramsesExtraFieldsSmall, "info_00001.txt"))
         # the dataset should contain the fields
         # In the dataset, the fields are integers, so we cannot test
@@ -295,11 +295,11 @@ class TestRamses:
         ds = yt.load(ramsesCosmo)
         # Test detection
         for k in "xyz":
-            assert ("gravity", "%s-acceleration" % k) in ds.field_list
-            assert ("gas", "acceleration_%s" % k) in ds.derived_field_list
+            assert ("gravity", f"{k}-acceleration") in ds.field_list
+            assert ("gas", f"acceleration_{k}") in ds.derived_field_list
         # Test access
         for k in "xyz":
-            ds.r["gas", "acceleration_%s" % k]
+            ds.r["gas", f"acceleration_{k}"]
 
     @requires_file(ramses_rt)
     @requires_file(ramsesCosmo)

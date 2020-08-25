@@ -42,11 +42,11 @@ def format_sizeof(num, suffix=''):
         if abs(num) < 999.95:
             if abs(num) < 99.95:
                 if abs(num) < 9.995:
-                    return '{0:1.2f}'.format(num) + unit + suffix
-                return '{0:2.1f}'.format(num) + unit + suffix
-            return '{0:3.0f}'.format(num) + unit + suffix
+                    return f'{num:1.2f}' + unit + suffix
+                return f'{num:2.1f}' + unit + suffix
+            return f'{num:3.0f}' + unit + suffix
         num /= 1000.0
-    return '{0:3.1f}Y'.format(num) + suffix
+    return f'{num:3.1f}Y' + suffix
 
 
 def format_interval(t):
@@ -65,9 +65,9 @@ def format_interval(t):
     mins, s = divmod(int(t), 60)
     h, m = divmod(mins, 60)
     if h:
-        return '{0:d}:{1:02d}:{2:02d}'.format(h, m, s)
+        return f'{h:d}:{m:02d}:{s:02d}'
     else:
-        return '{0:02d}:{1:02d}'.format(m, s)
+        return f'{m:02d}:{s:02d}'
 
 
 def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
@@ -120,7 +120,7 @@ def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
     if rate is None and elapsed:
         rate = n / elapsed
     rate_fmt = ((format_sizeof(rate) if unit_scale else
-                 '{0:5.2f}'.format(rate)) if elapsed else
+                 f'{rate:5.2f}') if elapsed else
                 '?') \
         + unit + '/s'
 
@@ -140,9 +140,8 @@ def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
         remaining_str = format_interval((total - n) / rate) if rate else '?'
 
         # format the stats displayed to the left and right sides of the bar
-        l_bar = (prefix if prefix else '') + '{0:3.0f}%|'.format(percentage)
-        r_bar = '| {0}/{1} [{2}<{3}, {4}]'.format(
-                n_fmt, total_fmt, elapsed_str, remaining_str, rate_fmt)
+        l_bar = (prefix if prefix else '') + f'{percentage:3.0f}%|'
+        r_bar = f'| {n_fmt}/{total_fmt} [{elapsed_str}<{remaining_str}, {rate_fmt}]'
 
         if ncols == 0:
             return l_bar[:-1] + r_bar[1:]
@@ -179,8 +178,7 @@ def format_meter(n, total, elapsed, ncols=None, prefix='', ascii=False,
 
     # no total: no progressbar, ETA, just progress stats
     else:
-        return (prefix if prefix else '') + '{0}{1} [{2}, {3}]'.format(
-            n_fmt, unit, elapsed_str, rate_fmt)
+        return (prefix if prefix else '') + f'{n_fmt}{unit} [{elapsed_str}, {rate_fmt}]'
 
 
 def StatusPrinter(file):

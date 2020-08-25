@@ -80,9 +80,9 @@ class BaseAdapter(object):
 
     def lookup_cast(self, lookup, value):
         if lookup in ('contains', 'icontains'):
-            return '%%%s%%' % value
+            return f'%{value}%'
         elif lookup in ('startswith', 'istartswith'):
-            return '%s%%' % value
+            return f'{value}%'
         return value
 
     def last_insert_id(self, cursor, model):
@@ -115,13 +115,13 @@ class SqliteAdapter(BaseAdapter):
 
     def lookup_cast(self, lookup, value):
         if lookup == 'contains':
-            return '*%s*' % value
+            return f'*{value}*'
         elif lookup == 'icontains':
-            return '%%%s%%' % value
+            return f'%{value}%'
         elif lookup == 'startswith':
-            return '%s*' % value
+            return f'{value}*'
         elif lookup == 'istartswith':
-            return '%s%%' % value
+            return f'{value}%'
         return value
 
 
@@ -241,7 +241,7 @@ class Database(object):
 
         if field not in model_class._meta.fields:
             raise AttributeError(
-                'Field %s not on model %s' % (field, model_class)
+                f'Field {field} not on model {model_class}'
             )
 
         unique_expr = ternary(unique, 'UNIQUE', '')
@@ -267,7 +267,7 @@ class SqliteDatabase(Database):
         super(SqliteDatabase, self).__init__(SqliteAdapter(), database, **connect_kwargs)
 
     def get_indexes_for_table(self, table):
-        res = self.execute('PRAGMA index_list(%s);' % table)
+        res = self.execute(f'PRAGMA index_list({table});')
         rows = sorted([(r[1], r[2] == 1) for r in res.fetchall()])
         return rows
 
@@ -289,7 +289,7 @@ class MySQLDatabase(Database):
         super(MySQLDatabase, self).__init__(MySQLAdapter(), database, **connect_kwargs)
 
     def get_indexes_for_table(self, table):
-        res = self.execute('SHOW INDEXES IN %s;' % table)
+        res = self.execute(f'SHOW INDEXES IN {table};')
         rows = sorted([(r[2], r[1] == 0) for r in res.fetchall()])
         return rows
 
@@ -411,12 +411,12 @@ class Node(object):
             if isinstance(child, Q):
                 query.append(unicode(child))
             elif isinstance(child, Node):
-                nodes.append('(%s)' % unicode(child))
+                nodes.append(f'({unicode(child)})')
         query.extend(nodes)
-        connector = ' %s ' % self.connector
+        connector = f' {self.connector} '
         query = connector.join(query)
         if self.negated:
-            query = 'NOT %s' % query
+            query = f'NOT {query}'
         return query
 
 
@@ -444,14 +444,14 @@ class Q(object):
         return self
 
     def __unicode__(self):
-        bits = ['%s = %s' % (k, v) for k, v in self.query.items()]
+        bits = [f'{k} = {v}' for k, v in self.query.items()]
         if len(self.query.items()) > 1:
             connector = ' AND '
-            expr = '(%s)' % connector.join(bits)
+            expr = f'({connector.join(bits)})'
         else:
             expr = bits[0]
         if self.negated:
-            expr = 'NOT %s' % expr
+            expr = f'NOT {expr}'
         return expr
 
 
@@ -560,14 +560,14 @@ class BaseQuery(object):
             if model == klass:
                 self.query_context = model
                 return
-        raise AttributeError('You must JOIN on %s' % model.__name__)
+        raise AttributeError(f'You must JOIN on {model.__name__}')
 
     def use_aliases(self):
         return len(self._joins) > 0 or self.force_alias
 
     def combine_field(self, alias, field_name):
         if alias:
-            return '%s.%s' % (alias, field_name)
+            return f'{alias}.{field_name}'
         return field_name
 
     def compile_where(self):
@@ -647,13 +647,13 @@ class BaseQuery(object):
                 query_data.extend(data)
             elif isinstance(child, Node):
                 parsed, data = self.parse_node(child, model, alias_map)
-                query.append('(%s)' % parsed)
+                query.append(f'({parsed})')
                 query_data.extend(data)
         query.extend(nodes)
-        connector = ' %s ' % node.connector
+        connector = f' {node.connector} '
         query = connector.join(query)
         if node.negated:
-            query = 'NOT (%s)' % query
+            query = f'NOT ({query})'
         return query, query_data
 
     def parse_q(self, q, model, alias_map):
@@ -669,15 +669,15 @@ class BaseQuery(object):
             query_data.append(value)
 
             combined = self.combine_field(alias_map[model], name)
-            query.append('%s %s' % (combined, operation))
+            query.append(f'{combined} {operation}')
 
         if len(query) > 1:
-            query = '(%s)' % (' AND '.join(query))
+            query = f"({' AND '.join(query)})"
         else:
             query = query[0]
 
         if q.negated:
-            query = 'NOT %s' % query
+            query = f'NOT {query}'
 
         return query, query_data
 
@@ -756,9 +756,9 @@ class SelectQuery(BaseQuery):
         tmp_query = self.query
 
         if self.use_aliases():
-            self.query = 'COUNT(t1.%s)' % (self.model._meta.pk_name)
+            self.query = f'COUNT(t1.{self.model._meta.pk_name})'
         else:
-            self.query = 'COUNT(%s)' % (self.model._meta.pk_name)
+            self.query = f'COUNT({self.model._meta.pk_name})'
 
         res = self.database.execute(*self.sql())
 
@@ -803,7 +803,7 @@ class SelectQuery(BaseQuery):
     def parse_select_query(self, alias_map):
         if isinstance(self.query, str):
             if self.query in ('*', self.model._meta.pk_name) and self.use_aliases():
-                return '%s.%s' % (alias_map[self.model], self.query)
+                return f'{alias_map[self.model]}.{self.query}'
             return self.query
         elif isinstance(self.query, dict):
             qparts = []
@@ -831,7 +831,7 @@ class SelectQuery(BaseQuery):
         group_by = []
 
         if self.use_aliases():
-            table = '%s AS %s' % (table, alias_map[self.model])
+            table = f'{table} AS {alias_map[self.model]}'
             for model, clause in self._group_by:
                 alias = alias_map[model]
                 for field in clause:
@@ -846,7 +846,7 @@ class SelectQuery(BaseQuery):
         else:
             sel = 'SELECT'
 
-        select = '%s %s FROM %s' % (sel, parsed_query, table)
+        select = f'{sel} {parsed_query} FROM {table}'
         joins = '\n'.join(joins)
         where = ' AND '.join(where)
         group_by = ', '.join(group_by)
@@ -856,21 +856,21 @@ class SelectQuery(BaseQuery):
         for piece in self._order_by:
             model, field, ordering = piece
             if self.use_aliases() and field in model._meta.fields:
-                field = '%s.%s' % (alias_map[model], field)
-            order_by.append('%s %s' % (field, ordering))
+                field = f'{alias_map[model]}.{field}'
+            order_by.append(f'{field} {ordering}')
 
         pieces = [select]
 
         if joins:
             pieces.append(joins)
         if where:
-            pieces.append('WHERE %s' % where)
+            pieces.append(f'WHERE {where}')
             params.extend(self.convert_where_to_params(where_data))
 
         if group_by:
-            pieces.append('GROUP BY %s' % group_by)
+            pieces.append(f'GROUP BY {group_by}')
         if having:
-            pieces.append('HAVING %s' % having)
+            pieces.append(f'HAVING {having}')
         if order_by:
             pieces.append('ORDER BY %s' % ', '.join(order_by))
         if self._pagination:
@@ -931,16 +931,15 @@ class UpdateQuery(BaseQuery):
 
         for k, v in set_statement.iteritems():
             params.append(v)
-            update_params.append('%s=%s' % (k, self.interpolation))
+            update_params.append(f'{k}={self.interpolation}')
 
-        update = 'UPDATE %s SET %s' % (
-            self.model._meta.db_table, ', '.join(update_params))
+        update = f"UPDATE {self.model._meta.db_table} SET {', '.join(update_params)}"
         where = ' AND '.join(where)
 
         pieces = [update]
 
         if where:
-            pieces.append('WHERE %s' % where)
+            pieces.append(f'WHERE {where}')
             params.extend(self.convert_where_to_params(where_data))
 
         return ' '.join(pieces), params
@@ -965,13 +964,13 @@ class DeleteQuery(BaseQuery):
 
         params = []
 
-        delete = 'DELETE FROM %s' % (self.model._meta.db_table)
+        delete = f'DELETE FROM {self.model._meta.db_table}'
         where = ' AND '.join(where)
 
         pieces = [delete]
 
         if where:
-            pieces.append('WHERE %s' % where)
+            pieces.append(f'WHERE {where}')
             params.extend(self.convert_where_to_params(where_data))
 
         return ' '.join(pieces), params
@@ -1050,7 +1049,7 @@ class Field(object):
 
     def to_sql(self):
         rendered = self.render_field_template()
-        return '%s %s' % (self.name, rendered)
+        return f'{self.name} {rendered}'
 
     def null_wrapper(self, value, default=None):
         if (self.null and value is None) or default is None:
@@ -1082,9 +1081,9 @@ class CharField(Field):
 
     def lookup_value(self, lookup_type, value):
         if lookup_type == 'contains':
-            return '*%s*' % self.db_value(value)
+            return f'*{self.db_value(value)}*'
         elif lookup_type == 'icontains':
-            return '%%%s%%' % self.db_value(value)
+            return f'%{self.db_value(value)}%'
         else:
             return self.db_value(value)
 
@@ -1097,9 +1096,9 @@ class TextField(Field):
 
     def lookup_value(self, lookup_type, value):
         if lookup_type == 'contains':
-            return '*%s*' % self.db_value(value)
+            return f'*{self.db_value(value)}*'
         elif lookup_type == 'icontains':
-            return '%%%s%%' % self.db_value(value)
+            return f'%{self.db_value(value)}%'
         else:
             return self.db_value(value)
 
@@ -1157,7 +1156,7 @@ class ForeignRelatedObject(object):
     def __init__(self, to, name):
         self.field_name = name
         self.to = to
-        self.cache_name = '_cache_%s' % name
+        self.cache_name = f'_cache_{name}'
 
     def __get__(self, instance, instance_type=None):
         if not getattr(instance, self.cache_name, None):
@@ -1167,7 +1166,7 @@ class ForeignRelatedObject(object):
         return getattr(instance, self.cache_name)
 
     def __set__(self, instance, obj):
-        assert isinstance(obj, self.to), "Cannot assign %s, invalid type" % obj
+        assert isinstance(obj, self.to), f"Cannot assign {obj}, invalid type"
         setattr(instance, self.field_name, obj.get_pk())
         setattr(instance, self.cache_name, obj)
 
@@ -1245,7 +1244,7 @@ class BaseModelOptions(object):
     def get_field_by_name(self, name):
         if name in self.fields:
             return self.fields[name]
-        raise AttributeError('Field named %s not found' % name)
+        raise AttributeError(f'Field named {name} not found')
 
     def get_related_field_by_name(self, name):
         if name in self.rel_fields:
@@ -1316,7 +1315,7 @@ class BaseModel(type):
             setattr(cls, '__repr__', lambda self: '<%s: %s>' % (
                 _meta.model_name, self.__unicode__()))
 
-        exception_class = type('%sDoesNotExist' % _meta.model_name, (DoesNotExist,), {})
+        exception_class = type(f'{_meta.model_name}DoesNotExist', (DoesNotExist,), {})
         cls.DoesNotExist = exception_class
 
         return cls

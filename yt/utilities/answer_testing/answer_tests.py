@@ -99,7 +99,7 @@ def pixelized_projection_values(ds, axis, field, weight_field=None, dobj_type=No
     d = frb.data
     for f in proj.field_data:
         # Sometimes f will be a tuple.
-        d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
+        d[f"{f}_sum"] = proj.field_data[f].sum(dtype="float64")
     return d
 
 
@@ -117,7 +117,7 @@ def pixelized_particle_projection_values(
     d = frb.data
     for f in proj.field_data:
         # Sometimes f will be a tuple.
-        d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
+        d[f"{f}_sum"] = proj.field_data[f].sum(dtype="float64")
     return d
 
 
@@ -281,8 +281,8 @@ def axial_pixelization(ds):
         # Wipe out invalid values (fillers)
         pix_x[~np.isfinite(pix_x)] = 0.0
         pix_y[~np.isfinite(pix_y)] = 0.0
-        rv["%s_x" % axis] = pix_x
-        rv["%s_y" % axis] = pix_y
+        rv[f"{axis}_x"] = pix_x
+        rv[f"{axis}_y"] = pix_y
     return rv
 
 

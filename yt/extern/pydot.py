@@ -149,7 +149,7 @@ class frozendict(dict):
             return h
 
     def __repr__(self):
-        return "frozendict(%s)" % dict.__repr__(self)
+        return f"frozendict({dict.__repr__(self)})"
 
 
 dot_keywords = ['graph', 'subgraph', 'digraph', 'node', 'edge', 'strict']
@@ -620,7 +620,7 @@ class Node(Common):
                 value = '""'
             if value is not None:
                 node_attr.append(
-                    '%s=%s' % (attr, quote_if_necessary(value) ) )
+                    f'{attr}={quote_if_necessary(value)}' )
             else:
                 node_attr.append( attr )
 
@@ -826,7 +826,7 @@ class Edge(Common):
                 value = '""'
             if value is not None:
                 edge_attr.append(
-                    '%s=%s' % (attr, quote_if_necessary(value) ) )
+                    f'{attr}={quote_if_necessary(value)}' )
             else:
                 edge_attr.append( attr )
 
@@ -1449,9 +1449,7 @@ class Graph(Common):
         if (graph_type == 'subgraph' and
                 not self.obj_dict.get('show_keyword', True)):
             graph_type = ''
-        s = '{type} {name} {{\n'.format(
-            type=graph_type,
-            name=self.obj_dict['name'])
+        s = f"{graph_type} {self.obj_dict['name']} {{\n"
         graph.append(s)
 
         for attr in self.obj_dict['attributes']:
@@ -1462,8 +1460,7 @@ class Graph(Common):
                 if val == '':
                     val = '""'
                 if val is not None:
-                    graph.append('%s=%s' %
-                                 (attr, quote_if_necessary(val)))
+                    graph.append(f'{attr}={quote_if_necessary(val)}')
                 else:
                     graph.append( attr )
 
@@ -1879,8 +1876,7 @@ class Dot(Graph):
         except OSError as e:
             if e.errno == os.errno.ENOENT:
                 raise Exception(
-                    '"{prog}" not found in path.'.format(
-                        prog=prog))
+                    f'"{prog}" not found in path.')
             else:
                 raise
         stdout_data, stderr_data = p.communicate()

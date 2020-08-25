@@ -83,8 +83,8 @@ class TestArt:
             AnaNDM,
         )
         for spnum in range(5):
-            npart_read = ad["specie%s" % spnum, "particle_type"].size
-            npart_header = ds.particle_type_counts["specie%s" % spnum]
+            npart_read = ad[f"specie{spnum}", "particle_type"].size
+            npart_header = ds.particle_type_counts[f"specie{spnum}"]
             if spnum == 3:
                 # see issue 814
                 npart_read += 1

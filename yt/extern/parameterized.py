@@ -111,7 +111,7 @@ class parameterized(object):
             for nose_tuple in self.yield_nose_tuples(f):
                 yield nose_tuple
 
-        test_func.__name__ = "_helper_for_%s" %(test_func.__name__, )
+        test_func.__name__ = f"_helper_for_{test_func.__name__}"
         parameterized_helper_method.parameterized_input = input
         parameterized_helper_method.parameterized_func = test_func
         return parameterized_helper_method
@@ -172,7 +172,7 @@ class parameterized(object):
     @classmethod
     def check_input_values(cls, input_values):
         if not hasattr(input_values, "__iter__"):
-            raise ValueError("expected iterable input; got %r" %(input, ))
+            raise ValueError(f"expected iterable input; got {input!r}")
         return input_values
 
     @classmethod
@@ -201,7 +201,7 @@ class parameterized(object):
             get_input = cls.input_as_callable(input)
             for num, args in enumerate(get_input()):
                 p = param.from_decorator(args)
-                name_suffix = "_%s" %(num, )
+                name_suffix = f"_{num}"
                 if len(p.args) > 0 and isinstance(p.args[0], str):
                     name_suffix += "_" + cls.to_safe_name(p.args[0])
                 name = base_name + name_suffix
