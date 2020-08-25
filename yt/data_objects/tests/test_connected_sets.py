@@ -7,6 +7,7 @@ from yt.utilities.answer_testing.answer_tests import extract_connected_sets
 @pytest.mark.answer_test
 class TestConnectedSets:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
     def test_connected_sets(self):

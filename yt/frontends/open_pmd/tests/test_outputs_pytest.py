@@ -39,6 +39,7 @@ particle_fields = [
 @pytest.mark.answer_test
 class TestOpenPMD:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.parametrize("ds", [threeD], indirect=True)
     def test_3d_out(self, ds):

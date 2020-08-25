@@ -33,6 +33,7 @@ def internet_on():
 @pytest.mark.answer_test
 class TestSDF:
     answer_file = None
+    saved_hashes = None
 
     @requires_module("thingking")
     def test_scivis(self):

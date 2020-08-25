@@ -14,6 +14,7 @@ big_data = "MOOSE_sample_data/mps_out.e"
 @pytest.mark.answer_test
 class TestExodusII:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.parametrize("ds", [out], indirect=True)
     def test_out(self, ds):

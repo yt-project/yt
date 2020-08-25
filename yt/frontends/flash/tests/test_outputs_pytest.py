@@ -48,6 +48,7 @@ def get_pairs():
 @pytest.mark.usefixtures("answer_file")
 class TestFlash:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)

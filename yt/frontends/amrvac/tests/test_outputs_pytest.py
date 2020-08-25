@@ -102,6 +102,7 @@ def _assert_normalisations_equal(ds):
 @pytest.mark.answer_test
 class TestAMRVAC:
     answer_file = None
+    saved_hashes = None
 
     @requires_file(khi_cartesian_2D)
     def test_AMRVACDataset(self):

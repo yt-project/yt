@@ -12,6 +12,7 @@ os33 = "snapshot_033/snap_033.0.hdf5"
 @pytest.mark.answer_test
 class TestOwls:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")

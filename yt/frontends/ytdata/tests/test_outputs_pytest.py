@@ -27,6 +27,7 @@ enzotiny = "enzo_tiny_cosmology/DD0046/DD0046"
 @pytest.mark.usefixtures("temp_dir")
 class TestYTData:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [enzotiny], indirect=True)

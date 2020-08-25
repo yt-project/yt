@@ -16,6 +16,7 @@ g76 = "gadget_halos/data/groups_076/fof_subhalo_tab_076.0.hdf5"
 @pytest.mark.answer_test
 class TestGadgetFOF:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [g5], indirect=True)

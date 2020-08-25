@@ -85,6 +85,7 @@ fv_pairs = [(i[0], f, d) for i in pair_list for f in i[1] for d in i[3]]
 @pytest.mark.answer_test
 class TestArepo:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, w, d", ppv_pairs, indirect=True)

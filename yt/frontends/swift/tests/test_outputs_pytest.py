@@ -14,6 +14,7 @@ EAGLE_6 = "EAGLE_6/eagle_0005.hdf5"
 @pytest.mark.answer_test
 class TestSwift:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.parametrize("ds", [keplerian_ring], indirect=True)
     def test_non_cosmo_dataset(self, ds):

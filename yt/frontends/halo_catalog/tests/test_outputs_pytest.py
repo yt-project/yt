@@ -1,7 +1,7 @@
 import numpy as np
 import pytest
 
-from yt.frontends.halo_catalog.data_structures import HaloCatalogDataset
+from yt.frontends.halo_catalog.data_structures import YTHaloCatalogDataset
 from yt.loaders import load
 from yt.testing import assert_array_equal, requires_module
 from yt.units.yt_array import YTArray
@@ -12,6 +12,7 @@ from yt.utilities.answer_testing.utils import fake_halo_catalog
 @pytest.mark.usefixtures("temp_dir")
 class TestHaloCatalog:
     answer_file = None
+    saved_hashes = None
 
     @requires_module("h5py")
     def test_halo_catalog(self):

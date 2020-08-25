@@ -104,6 +104,7 @@ PROJECTION_METHODS = ("integrate", "sum", "mip")
 @pytest.mark.answer_test
 class TestPlotWindow:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(M7)

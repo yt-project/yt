@@ -23,6 +23,7 @@ raw_fields = "Laser/plt00015"
 @pytest.mark.usefixtures("temp_dir")
 class TestRawFieldSlices:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
     @utils.requires_ds(raw_fields)

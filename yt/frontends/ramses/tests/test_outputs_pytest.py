@@ -34,6 +34,7 @@ ramses_mhd_128 = "ramses_mhd_128/output_00027/info_00027.txt"
 @pytest.mark.usefixtures("answer_file")
 class TestRamses:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [ramsesCosmo], indirect=True)

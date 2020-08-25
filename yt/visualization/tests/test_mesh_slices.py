@@ -28,6 +28,7 @@ def compare(ds, field, idir):
 @pytest.mark.usefixtures("temp_dir", "hashing")
 class TestMesh:
     answer_file = None
+    saved_hashes = None
 
     def test_mesh_slices_amr(self, ds_amr, field):
         gi = compare(ds_amr, field, 0)

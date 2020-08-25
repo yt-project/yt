@@ -11,6 +11,7 @@ s399 = "snipshot_399_z000p000/snip_399_z000p000.0.hdf5"
 @pytest.mark.answer_test
 class TestEagle:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.parametrize("ds", [s28], indirect=True)
     def test_EagleDataset(self, ds):

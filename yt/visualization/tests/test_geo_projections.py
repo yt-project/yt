@@ -31,6 +31,7 @@ def compare(ds, field, idir, projection, annotate=False):
 @pytest.mark.usefixtures("temp_dir", "hashing")
 class TestGeoSlicesAMR:
     answer_file = None
+    saved_hashes = None
 
     @requires_module("cartopy")
     def test_geo_slices_amr(self, transform, field, ds):

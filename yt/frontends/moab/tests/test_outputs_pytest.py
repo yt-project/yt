@@ -17,6 +17,7 @@ c5 = "c5/c5.h5m"
 @pytest.mark.answer_test
 class TestMoab:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [c5], indirect=True)

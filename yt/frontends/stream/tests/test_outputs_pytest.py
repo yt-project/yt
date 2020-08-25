@@ -4,8 +4,7 @@ import tempfile
 import numpy as np
 import pytest
 
-from yt.frontends.stream.api import load_particles, load_uniform_grid
-from yt.loaders import load
+from yt.loaders import load, load_particles, load_uniform_grid
 from yt.testing import assert_equal, assert_raises
 from yt.utilities.exceptions import (
     YTInconsistentGridFieldShape,
@@ -47,6 +46,7 @@ OCT_MASK_LIST = [
 @pytest.mark.answer_test
 class TestStream:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.usefixtures("temp_dir")
     def test_load_empty_file(self):

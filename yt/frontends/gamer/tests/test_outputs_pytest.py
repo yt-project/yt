@@ -54,6 +54,7 @@ def get_pairs():
 @pytest.mark.answer_test
 class TestGamer:
     answer_file = None
+    saved_hashes = None
 
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")

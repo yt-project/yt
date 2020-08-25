@@ -12,6 +12,7 @@ r1 = "output_00080_halos/tree_bricks080"
 @pytest.mark.answer_test
 class TestAdaptahop:
     answer_file = None
+    saved_hashes = None
 
     @requires_file(r0)
     @requires_file(r1)
