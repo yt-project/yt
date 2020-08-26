@@ -209,7 +209,7 @@ class YTDataContainer:
             self.center = self.ds.arr(center, "code_length", dtype="float64")
 
         if self.center.ndim > 1:
-            mylog.warning("Removing singleton dimensions from 'center'.")
+            mylog.debug("Removing singleton dimensions from 'center'.")
             self.center = np.squeeze(self.center)
 
         self.set_field_parameter("center", self.center)
