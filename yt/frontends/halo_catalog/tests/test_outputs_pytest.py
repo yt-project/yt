@@ -28,7 +28,7 @@ class TestHaloCatalog:
         )
         fn = fake_halo_catalog(data)
         ds = load(fn)
-        assert isinstance(ds, HaloCatalogDataset)
+        assert isinstance(ds, YTHaloCatalogDataset)
         for field in fields:
             f1 = data[field].in_base()
             f1.sort()
@@ -56,7 +56,7 @@ class TestHaloCatalog:
         data["particle_position_z"][5] = 0.0
         fn = fake_halo_catalog(data)
         ds = load(fn)
-        assert isinstance(ds, HaloCatalogDataset)
+        assert isinstance(ds, YTHaloCatalogDataset)
         for field in ["particle_mass"]:
             f1 = data[field].in_base()
             f1.sort()
