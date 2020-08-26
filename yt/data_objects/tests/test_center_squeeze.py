@@ -6,15 +6,15 @@ def test_center_squeeze():
     # to the data container.
 
     # list of fields to populate fake datasets with
-    fldz = ("density", "velocity_x", "velocity_y", "velocity_z")
+    fldz = ("Density",)
 
     # create and test amr, random and particle data
-    check_single_ds(fake_amr_ds(fields=fldz))
-    check_single_ds(fake_random_ds(16, fields=fldz))
-    check_single_ds(fake_particle_ds(npart=100), check_morton=False)
+    check_single_ds(fake_amr_ds(fields=fldz), True)
+    check_single_ds(fake_random_ds(16, fields=fldz), True)
+    check_single_ds(fake_particle_ds(npart=100), False)
 
 
-def check_single_ds(ds, check_morton=True):
+def check_single_ds(ds, check_morton):
     # compares values for range of data containers using different center array shapes
 
     center = ds.domain_center  # reference center array
