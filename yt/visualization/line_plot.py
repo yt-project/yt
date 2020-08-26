@@ -1,38 +1,21 @@
-"""
-A mechanism for plotting field values along a line through a dataset
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2017, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+from collections import defaultdict
 
 import numpy as np
 
-from collections import defaultdict
-from yt.funcs import \
-    iterable, \
-    mylog
-from yt.units.unit_object import \
-    Unit
-from yt.units.yt_array import \
-    YTArray
-from yt.visualization.base_plot_types import \
-    PlotMPL
-from yt.visualization.plot_container import \
-    PlotContainer, \
-    PlotDictionary, \
-    log_transform, \
-    linear_transform, \
-    invalidate_plot
+from yt.funcs import iterable, mylog
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTArray
+from yt.visualization.base_plot_types import PlotMPL
+from yt.visualization.plot_container import (
+    PlotContainer,
+    PlotDictionary,
+    invalidate_plot,
+    linear_transform,
+    log_transform,
+)
 
-class LineBuffer(object):
+
+class LineBuffer:
     r"""
     LineBuffer(ds, start_point, end_point, npoints, label = None)
 
@@ -62,6 +45,7 @@ class LineBuffer(object):
     0.11562424257143075 dimensionless
 
     """
+
     def __init__(self, ds, start_point, end_point, npoints, label=None):
         self.ds = ds
         self.start_point = _validate_point(start_point, ds, start=True)
@@ -77,13 +61,12 @@ class LineBuffer(object):
         self.data[item] = val
 
     def __getitem__(self, item):
-        if item in self.data: return self.data[item]
-        mylog.info("Making a line buffer with %d points of %s" % \
-            (self.npoints, item))
-        self.points, self.data[item] = self.ds.coordinates.pixelize_line(item,
-                                                               self.start_point,
-                                                               self.end_point,
-                                                               self.npoints)
+        if item in self.data:
+            return self.data[item]
+        mylog.info("Making a line buffer with %d points of %s", self.npoints, item)
+        self.points, self.data[item] = self.ds.coordinates.pixelize_line(
+            item, self.start_point, self.end_point, self.npoints
+        )
 
         return self.data[item]
 
@@ -100,7 +83,8 @@ class LinePlotDictionary(PlotDictionary):
         field = self.data_source._determine_fields(item)[0]
         finfo = self.data_source.ds.field_info[field]
         dimensions = Unit(
-            finfo.units, registry=self.data_source.ds.unit_registry).dimensions
+            finfo.units, registry=self.data_source.ds.unit_registry
+        ).dimensions
         if dimensions not in self.known_dimensions:
             self.known_dimensions[dimensions] = item
             ret_item = item
@@ -119,6 +103,7 @@ class LinePlotDictionary(PlotDictionary):
     def __contains__(self, item):
         ret_item = self._sanitize_dimensions(item)
         return super(LinePlotDictionary, self).__contains__(ret_item)
+
 
 class LinePlot(PlotContainer):
     r"""
@@ -167,22 +152,31 @@ class LinePlot(PlotContainer):
     >>> plot.save()
 
     """
-    _plot_type = 'line_plot'
+    _plot_type = "line_plot"
 
-    def __init__(self, ds, fields, start_point, end_point, npoints,
-                 figure_size=5., fontsize=14., field_labels=None):
+    def __init__(
+        self,
+        ds,
+        fields,
+        start_point,
+        end_point,
+        npoints,
+        figure_size=5.0,
+        fontsize=14.0,
+        field_labels=None,
+    ):
         """
         Sets up figure and axes
         """
         line = LineBuffer(ds, start_point, end_point, npoints, label=None)
         self.lines = [line]
-        self._initialize_instance(self, ds, fields, figure_size,
-                                  fontsize, field_labels)
+        self._initialize_instance(self, ds, fields, figure_size, fontsize, field_labels)
         self._setup_plots()
 
     @classmethod
-    def _initialize_instance(cls, obj, ds, fields, figure_size=5., fontsize=14.,
-                             field_labels=None):
+    def _initialize_instance(
+        cls, obj, ds, fields, figure_size=5.0, fontsize=14.0, field_labels=None
+    ):
         obj._x_unit = None
         obj._y_units = {}
         obj._titles = {}
@@ -209,7 +203,9 @@ class LinePlot(PlotContainer):
                 obj.field_labels[f] = f[1]
 
     @classmethod
-    def from_lines(cls, ds, fields, lines, figure_size=5., font_size=14., field_labels=None):
+    def from_lines(
+        cls, ds, fields, lines, figure_size=5.0, font_size=14.0, field_labels=None
+    ):
         """
         A class method for constructing a line plot from multiple sampling lines
 
@@ -236,11 +232,17 @@ class LinePlot(PlotContainer):
 
         Example
         --------
-        >>> ds = yt.load('SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e', step=-1)
+        >>> ds = yt.load(
+        >>>          'SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e',
+        >>>          step=-1
+        >>> )
         >>> fields = [field for field in ds.field_list if field[0] == 'all']
-        >>> lines = []
-        >>> lines.append(yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'))
-        >>> lines.append(yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5'))
+        >>> lines = [
+        ...    yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'),
+        ...    yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5')
+        ... ]
+        >>> lines.append()
+
         >>> plot = yt.LinePlot.from_lines(ds, fields, lines)
         >>> plot.save()
 
@@ -252,26 +254,25 @@ class LinePlot(PlotContainer):
         return obj
 
     def _get_plot_instance(self, field):
-        fontscale = self._font_properties._size / 14.
-        top_buff_size = 0.35*fontscale
+        fontscale = self._font_properties._size / 14.0
+        top_buff_size = 0.35 * fontscale
 
-        x_axis_size = 1.35*fontscale
-        y_axis_size = 0.7*fontscale
-        right_buff_size = 0.2*fontscale
+        x_axis_size = 1.35 * fontscale
+        y_axis_size = 0.7 * fontscale
+        right_buff_size = 0.2 * fontscale
 
         if iterable(self.figure_size):
             figure_size = self.figure_size
         else:
             figure_size = (self.figure_size, self.figure_size)
 
-        xbins = np.array([x_axis_size, figure_size[0],
-                          right_buff_size])
+        xbins = np.array([x_axis_size, figure_size[0], right_buff_size])
         ybins = np.array([y_axis_size, figure_size[1], top_buff_size])
 
         size = [xbins.sum(), ybins.sum()]
 
-        x_frac_widths = xbins/size[0]
-        y_frac_widths = ybins/size[1]
+        x_frac_widths = xbins / size[0]
+        y_frac_widths = ybins / size[1]
 
         axrect = (
             x_frac_widths[0],
@@ -288,7 +289,7 @@ class LinePlot(PlotContainer):
         return plot
 
     def _setup_plots(self):
-        if self._plot_valid is True:
+        if self._plot_valid:
             return
         for plot in self.plots.values():
             plot.axes.cla()
@@ -296,8 +297,9 @@ class LinePlot(PlotContainer):
             dimensions_counter = defaultdict(int)
             for field in self.fields:
                 finfo = self.ds.field_info[field]
-                dimensions = Unit(finfo.units,
-                                  registry=self.ds.unit_registry).dimensions
+                dimensions = Unit(
+                    finfo.units, registry=self.ds.unit_registry
+                ).dimensions
                 dimensions_counter[dimensions] += 1
             for field in self.fields:
                 # get plot instance
@@ -305,7 +307,8 @@ class LinePlot(PlotContainer):
 
                 # calculate x and y
                 x, y = self.ds.coordinates.pixelize_line(
-                    field, line.start_point, line.end_point, line.npoints)
+                    field, line.start_point, line.end_point, line.npoints
+                )
 
                 # scale x and y to proper units
                 if self._x_unit is None:
@@ -334,9 +337,9 @@ class LinePlot(PlotContainer):
                 # apply log transforms if requested
                 if self._field_transform[field] != linear_transform:
                     if (y < 0).any():
-                        plot.axes.set_yscale('symlog')
+                        plot.axes.set_yscale("symlog")
                     else:
-                        plot.axes.set_yscale('log')
+                        plot.axes.set_yscale("log")
 
                 # set font properties
                 plot._set_font_properties(self._font_properties, None)
@@ -347,20 +350,29 @@ class LinePlot(PlotContainer):
                 if self._xlabel is not None:
                     x_label = self._xlabel
                 else:
-                    x_label = r'$\rm{Path\ Length' + axes_unit_labels[0]+'}$'
+                    x_label = r"$\rm{Path\ Length" + axes_unit_labels[0] + "}$"
 
                 if self._ylabel is not None:
                     y_label = self._ylabel
                 else:
                     finfo = self.ds.field_info[field]
-                    dimensions = Unit(finfo.units,
-                                      registry=self.ds.unit_registry).dimensions
+                    dimensions = Unit(
+                        finfo.units, registry=self.ds.unit_registry
+                    ).dimensions
                     if dimensions_counter[dimensions] > 1:
-                        y_label = (r'$\rm{Multiple\ Fields}$' + r'$\rm{' +
-                                   axes_unit_labels[1]+'}$')
+                        y_label = (
+                            r"$\rm{Multiple\ Fields}$"
+                            + r"$\rm{"
+                            + axes_unit_labels[1]
+                            + "}$"
+                        )
                     else:
-                        y_label = (finfo.get_latex_display_name() + r'$\rm{' +
-                                   axes_unit_labels[1]+'}$')
+                        y_label = (
+                            finfo.get_latex_display_name()
+                            + r"$\rm{"
+                            + axes_unit_labels[1]
+                            + "}$"
+                        )
 
                 plot.axes.set_xlabel(x_label)
                 plot.axes.set_ylabel(y_label)
@@ -375,7 +387,6 @@ class LinePlot(PlotContainer):
                     plot.axes.legend()
 
         self._plot_valid = True
-
 
     @invalidate_plot
     def annotate_legend(self, field):
@@ -424,26 +435,21 @@ class LinePlot(PlotContainer):
         """
         self._titles[self.data_source._determine_fields(field)[0]] = title
 
+
 def _validate_point(point, ds, start=False):
     if not iterable(point):
-        raise RuntimeError(
-            "Input point must be array-like"
-        )
+        raise RuntimeError("Input point must be array-like")
     if not isinstance(point, YTArray):
-        point = ds.arr(point, 'code_length')
+        point = ds.arr(point, "code_length", dtype=np.float64)
     if len(point.shape) != 1:
-        raise RuntimeError(
-            "Input point must be a 1D array"
-        )
+        raise RuntimeError("Input point must be a 1D array")
     if point.shape[0] < ds.dimensionality:
-        raise RuntimeError(
-            "Input point must have an element for each dimension"
-        )
+        raise RuntimeError("Input point must have an element for each dimension")
     # need to pad to 3D elements to avoid issues later
     if point.shape[0] < 3:
         if start:
             val = 0
         else:
             val = 1
-        point = np.append(point.d, [val]*(3-ds.dimensionality))*point.uq
+        point = np.append(point.d, [val] * (3 - ds.dimensionality)) * point.uq
     return point

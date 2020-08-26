@@ -1,46 +1,36 @@
-# encoding: utf-8
-"""
-Shader and ShaderProgram wrapper classes for vertex and fragment shaders used 
-in Interactive Data Visualization
-"""
-
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
-
-# This is a part of the experimental Interactive Data Visualization 
-
-import os
-import OpenGL.GL as GL
+# This is a part of the experimental Interactive Data Visualization
 import contextlib
-from yt.extern.six import add_metaclass
+import os
 from collections import OrderedDict
-from yt.utilities.exceptions import \
-    YTInvalidShaderType, \
-    YTUnknownUniformKind, \
-    YTUnknownUniformSize
+
+from OpenGL import GL as GL
+
 from yt.units.yt_array import YTQuantity
+from yt.utilities.exceptions import (
+    YTInvalidShaderType,
+    YTUnknownUniformKind,
+    YTUnknownUniformSize,
+)
 
 known_shaders = {}
 
-class ShaderProgram(object):
-    '''
+
+class ShaderProgram:
+    """
     Wrapper class that compiles and links vertex and fragment shaders
     into a shader program.
 
     Parameters
     ----------
 
-    vertex_shader : string or :class:`yt.visualization.volume_rendering.shader_objects.VertexShader`
+    vertex_shader : string
+        or :class:`yt.visualization.volume_rendering.shader_objects.VertexShader`
         The vertex shader used in the Interactive Data Visualization pipeline.
 
-    fragment_shader : string or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
+    fragment_shader : string
+        or :class:`yt.visualization.volume_rendering.shader_objects.FragmentShader`
         The fragment shader used in the Interactive Data Visualization pipeline.
-    '''
+    """
 
     def __init__(self, vertex_shader=None, fragment_shader=None):
         # Don't allow just one.  Either neither or both.
@@ -88,7 +78,7 @@ class ShaderProgram(object):
             return GL.glUniform1f
         else:
             kind = value.dtype.kind
-        if kind not in 'if':
+        if kind not in "if":
             raise YTUnknownUniformKind(kind)
         if len(value.shape) == 1:
             if value.size > 4:
@@ -103,16 +93,20 @@ class ShaderProgram(object):
         return func
 
     def _set_scalar_uniform(self, kind, size_spec):
-        gl_func = getattr(GL, "glUniform%s%sv" % (size_spec, kind))
+        gl_func = getattr(GL, f"glUniform{size_spec}{kind}v")
+
         def _func(location, value):
             return gl_func(location, 1, value)
+
         return _func
 
     def _set_matrix_uniform(self, kind, size_spec):
-        assert(size_spec[0] == size_spec[1])
-        gl_func = getattr(GL, "glUniformMatrix%s%sv" % (size_spec[0], kind))
+        assert size_spec[0] == size_spec[1]
+        gl_func = getattr(GL, f"glUniformMatrix{size_spec[0]}{kind}v")
+
         def _func(location, value):
             return gl_func(location, 1, GL.GL_TRUE, value)
+
         return _func
 
     def _set_uniform(self, name, value):
@@ -138,15 +132,9 @@ class ShaderProgram(object):
         loc = GL.glGetAttribLocation(self.program, name)
         GL.glDisableVertexAttribArray(loc)
 
-class RegisteredShader(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if getattr(cls, "_shader_name", None) is not None:
-            known_shaders[cls._shader_name] = cls
 
-@add_metaclass(RegisteredShader)
-class Shader(object):
-    '''
+class Shader:
+    """
     Creates a shader from source
 
     Parameters
@@ -157,11 +145,16 @@ class Shader(object):
         an absolute path to a source file or a filename of a shader
         residing in the ./shaders/ directory.
 
-    '''
+    """
 
     _shader = None
     _source = None
     _shader_name = None
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if getattr(cls, "_shader_name", None) is not None:
+            known_shaders[cls._shader_name] = cls
 
     def __init__(self, source=None):
         if source:
@@ -172,30 +165,30 @@ class Shader(object):
             # This is probably safe, right?  Enh, probably.
             return source
         if os.path.isfile(source):
-            sh_directory = ''
+            sh_directory = ""
         else:
             sh_directory = os.path.join(os.path.dirname(__file__), "shaders")
         fn = os.path.join(sh_directory, source)
         if not os.path.isfile(fn):
             raise YTInvalidShaderType(source)
-        return open(fn, 'r').read()
+        return open(fn, "r").read()
 
-    def compile(self, source = None, parameters = None):
+    def compile(self, source=None, parameters=None):
         if source is None:
             source = self._source
-            if source is None: raise RuntimeError
+            if source is None:
+                raise RuntimeError
         if parameters is not None:
             raise NotImplementedError
         source = self._get_source(source)
-        shader_type_enum = getattr(GL,
-            'GL_%s_SHADER' % self.shader_type.upper())
+        shader_type_enum = getattr(GL, f"GL_{self.shader_type.upper()}_SHADER")
         shader = GL.glCreateShader(shader_type_enum)
         # We could do templating here if we wanted.
         self.shader_source = source
         GL.glShaderSource(shader, source)
         GL.glCompileShader(shader)
         result = GL.glGetShaderiv(shader, GL.GL_COMPILE_STATUS)
-        if not(result):
+        if not (result):
             raise RuntimeError(GL.glGetShaderInfoLog(shader))
         self._shader = shader
 
@@ -214,69 +207,93 @@ class Shader(object):
         # This is not guaranteed to be called
         self.delete_shader()
 
+
 class FragmentShader(Shader):
-    '''Wrapper class for fragment shaders'''
+    """Wrapper class for fragment shaders"""
+
     shader_type = "fragment"
 
+
 class VertexShader(Shader):
-    '''Wrapper class for vertex shaders'''
+    """Wrapper class for vertex shaders"""
+
     shader_type = "vertex"
 
+
 class ApplyColormapFragmentShader(FragmentShader):
-    '''A second pass fragment shader used to apply a colormap to the result of
-    the first pass rendering'''
+    """A second pass fragment shader used to apply a colormap to the result of
+    the first pass rendering"""
+
     _source = "apply_colormap.fragmentshader"
     _shader_name = "apply_colormap.f"
 
+
 class MaxIntensityFragmentShader(FragmentShader):
-    '''A first pass fragment shader that computes Maximum Intensity Projection
-    of the data. See :ref:`projection-types` for more information.'''
+    """A first pass fragment shader that computes Maximum Intensity Projection
+    of the data. See :ref:`projection-types` for more information."""
+
     _source = "max_intensity.fragmentshader"
     _shader_name = "max_intensity.f"
 
+
 class NoOpFragmentShader(FragmentShader):
-    '''A second pass fragment shader that performs no operation. Usually used if
-    the first pass already took care of applying proper color to the data'''
+    """A second pass fragment shader that performs no operation. Usually used if
+    the first pass already took care of applying proper color to the data"""
+
     _source = "noop.fragmentshader"
     _shader_name = "noop.f"
 
+
 class PassthroughFragmentShader(FragmentShader):
-    '''A first pass fragment shader that performs no operation. Used for debug
+    """A first pass fragment shader that performs no operation. Used for debug
     purposes. It's distinct from NoOpFragmentShader, because of the number of
-    uniforms'''
+    uniforms"""
+
     _source = "passthrough.fragmentshader"
     _shader_name = "passthrough.f"
 
+
 class ProjectionFragmentShader(FragmentShader):
-    '''A first pass fragment shader that performs unweighted integration of the
+    """A first pass fragment shader that performs unweighted integration of the
     data along the line of sight. See :ref:`projection-types` for more
-    information.'''
+    information."""
+
     _source = "projection.fragmentshader"
     _shader_name = "projection.f"
 
+
 class TransferFunctionFragmentShader(FragmentShader):
-    '''A first pass fragment shader that performs ray casting using transfer
-    function. See :ref:`volume-rendering-method` for more details.'''
+    """A first pass fragment shader that performs ray casting using transfer
+    function. See :ref:`volume-rendering-method` for more details."""
+
     _source = "transfer_function.fragmentshader"
     _shader_name = "transfer_function.f"
 
+
 class DefaultVertexShader(VertexShader):
-    '''A first pass vertex shader that translates the location of vertices from
-    the world coordinates to the viewing plane coordinates'''
+    """A first pass vertex shader that translates the location of vertices from
+    the world coordinates to the viewing plane coordinates"""
+
     _source = "default.vertexshader"
     _shader_name = "default.v"
 
+
 class PassthroughVertexShader(VertexShader):
-    '''A second pass vertex shader that performs no operations on vertices'''
+    """A second pass vertex shader that performs no operations on vertices"""
+
     _source = "passthrough.vertexshader"
     _shader_name = "passthrough.v"
 
+
 class MeshVertexShader(VertexShader):
-    '''A vertex shader used for unstructured mesh rendering.'''
+    """A vertex shader used for unstructured mesh rendering."""
+
     _source = "mesh.vertexshader"
     _shader_name = "mesh.v"
 
+
 class MeshFragmentShader(FragmentShader):
-    '''A vertex shader used for unstructured mesh rendering.'''
+    """A vertex shader used for unstructured mesh rendering."""
+
     _source = "mesh.fragmentshader"
     _shader_name = "mesh.f"

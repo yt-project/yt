@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 An allocation container and memory pool
 
@@ -5,16 +7,11 @@ An allocation container and memory pool
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
+
 import numpy as np
+
 
 cdef class ObjectPool:
     def __cinit__(self):

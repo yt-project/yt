@@ -1,26 +1,16 @@
-"""
-Test Simple Volume Rendering Scene
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2014, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
-import tempfile
 import shutil
+import tempfile
+from unittest import TestCase
+
 import yt
 from yt.testing import fake_random_ds
-from unittest import TestCase
+
 
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
 
 
@@ -45,8 +35,4 @@ class SigmaClipTest(TestCase):
     def test_sigma_clip(self):
         ds = fake_random_ds(32)
         sc = yt.create_scene(ds)
-        im = sc.render()
-        sc.save('raw.png')
-        sc.save('clip_2.png', sigma_clip=2)
-        sc.save('clip_4.png', sigma_clip=4.0)
-        return im, sc
+        sc.save("clip_2.png", sigma_clip=2)

@@ -1,3 +1,5 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Particle smoothing in cells
 
@@ -6,25 +8,17 @@ Particle smoothing in cells
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
+
 import numpy as np
+
 cimport cython
-
 from cpython.exc cimport PyErr_CheckSignals
-from libc.stdlib cimport malloc, free, realloc
+from libc.math cimport cos, fabs, sin, sqrt
+from libc.stdlib cimport free, malloc, realloc
 from libc.string cimport memmove
-from libc.math cimport sqrt, fabs, sin, cos
-
-from oct_container cimport \
-    Oct, OctreeContainer, OctInfo
+from oct_container cimport Oct, OctInfo, OctreeContainer
 
 
 cdef void spherical_coord_setup(np.float64_t ipos[3], np.float64_t opos[3]):
@@ -199,7 +193,7 @@ cdef class ParticleSmoothOperation:
             # If we have yet to assign the starting index to this oct, we do so
             # now.
             if doff[offset] < 0: doff[offset] = i
-        #print domain_id, domain_offset, moff_p, moff_m
+        #print(domain_id, domain_offset, moff_p, moff_m)
         #raise RuntimeError
         # Now doff is full of offsets to the first entry in the pind that
         # refers to that oct's particles.
@@ -225,8 +219,8 @@ cdef class ParticleSmoothOperation:
                 &nind, pind, pcount, offset, index_field_pointers,
                 particle_octree, domain_id, &nsize, oct_left_edges,
                 oct_dds, dist_queue)
-        #print "VISITED", visited.sum(), visited.size,
-        #print 100.0*float(visited.sum())/visited.size
+        #print("VISITED", visited.sum(), visited.size,)
+        #print(100.0*float(visited.sum())/visited.size)
         if nind != NULL:
             free(nind)
 
@@ -326,7 +320,7 @@ cdef class ParticleSmoothOperation:
             # If we have yet to assign the starting index to this oct, we do so
             # now.
             if doff[offset] < 0: doff[offset] = i
-        #print domain_id, domain_offset, moff_p, moff_m
+        #print(domain_id, domain_offset, moff_p, moff_m)
         #raise RuntimeError
         # Now doff is full of offsets to the first entry in the pind that
         # refers to that oct's particles.
@@ -348,8 +342,8 @@ cdef class ParticleSmoothOperation:
                             doff, &nind, pind, pcount, pind0,
                             NULL, particle_octree, domain_id, &nsize,
                             dist_queue)
-        #print "VISITED", visited.sum(), visited.size,
-        #print 100.0*float(visited.sum())/visited.size
+        #print("VISITED", visited.sum(), visited.size,)
+        #print(100.0*float(visited.sum())/visited.size)
         if nind != NULL:
             free(nind)
 
@@ -542,7 +536,7 @@ cdef class ParticleSmoothOperation:
                             if nind[0][m] < 0: continue
                             nntot += 1
                             ntot += pcounts[nind[0][m]]
-                        print "SOMETHING WRONG", dq.curn, nneighbors, ntot, nntot
+                        print("SOMETHING WRONG", dq.curn, nneighbors, ntot, nntot)
                     self.process(offset, i, j, k, dim, opos, fields,
                                  index_fields, dq)
                     cpos[2] += dds[2]

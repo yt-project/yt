@@ -1,3 +1,8 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: extra_compile_args = OMP_ARGS
+# distutils: extra_link_args = OMP_ARGS
+# distutils: libraries = STD_LIBS
+# distutils: sources = FIXED_INTERP
 """
 Image sampler definitions
 
@@ -5,43 +10,57 @@ Image sampler definitions
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.stdlib cimport malloc, calloc, free, abs
-from libc.math cimport exp, floor, log2, \
-    fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
-from field_interpolation_tables cimport \
-    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
-    FIT_eval_transfer_with_light
 cimport lenses
+cimport numpy as np
+from field_interpolation_tables cimport (
+    FieldInterpolationTable,
+    FIT_eval_transfer,
+    FIT_eval_transfer_with_light,
+    FIT_initialize_table,
+)
+from libc.math cimport (
+    M_PI,
+    acos,
+    asin,
+    atan,
+    atan2,
+    cos,
+    exp,
+    fabs,
+    floor,
+    log2,
+    sin,
+    sqrt,
+)
+from libc.stdlib cimport abs, calloc, free, malloc
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, imin
+
+from .fixed_interpolator cimport (
+    eval_gradient,
+    fast_interpolate,
+    offset_fill,
+    offset_interpolate,
+    trilinear_interpolate,
+    vertex_interp,
+)
 from .grid_traversal cimport walk_volume
-from .fixed_interpolator cimport \
-    offset_interpolate, \
-    fast_interpolate, \
-    trilinear_interpolate, \
-    eval_gradient, \
-    offset_fill, \
-    vertex_interp
+
 
 cdef extern from "platform_dep.h":
     long int lrint(double x) nogil
 
 DEF Nch = 4
 
-from cython.parallel import prange, parallel, threadid
-from vec3_ops cimport dot, subtract, L2_norm, fma
+from cython.parallel import parallel, prange, threadid
 
 from cpython.exc cimport PyErr_CheckSignals
+from vec3_ops cimport L2_norm, dot, fma, subtract
+
 
 cdef struct VolumeRenderAccumulator:
     int n_fits

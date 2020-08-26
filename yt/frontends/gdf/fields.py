@@ -1,23 +1,8 @@
-"""
-GDF-specific fields
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 # The nice thing about GDF is that for the most part, everything is in CGS,
 # with potentially a scalar modification.
+
 
 class GDFFieldInfo(FieldInfoContainer):
     known_other_fields = (
@@ -35,6 +20,8 @@ class GDFFieldInfo(FieldInfoContainer):
     known_particle_fields = ()
 
     def setup_fluid_fields(self):
-        from yt.fields.magnetic_field import \
-            setup_magnetic_field_aliases
-        setup_magnetic_field_aliases(self, "gdf", ["magnetic_field_%s" % ax for ax in "xyz"])
+        from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
+        setup_magnetic_field_aliases(
+            self, "gdf", [f"magnetic_field_{ax}" for ax in "xyz"]
+        )

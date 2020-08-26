@@ -1,3 +1,5 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Grid visitor functions
 
@@ -6,19 +8,14 @@ Grid visitor functions
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
-cimport numpy as np
 cimport cython
-from libc.stdlib cimport malloc, free
+cimport numpy as np
+from libc.stdlib cimport free, malloc
+
+from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 from yt.utilities.lib.fp_utils cimport iclip
-from yt.utilities.lib.bitarray cimport ba_set_value, ba_get_value
+
 
 cdef void free_tuples(GridVisitorData *data) nogil:
     # This wipes out the tuples, which is necessary since they are

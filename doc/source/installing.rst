@@ -23,22 +23,29 @@ will work best for you depends on your precise situation:
   distribution <https://docs.conda.io/en/latest/miniconda.html>`_ and the
   `conda <https://conda.io/en/latest/>`_ package manager inside of a single
   folder in your home directory. See :ref:`install-script` for more details.
-  
+
 * If you use the `Anaconda <https://www.anaconda.com/distribution/>`_ python
   distribution and already have ``conda`` installed, see
   :ref:`anaconda-installation` for details on how to install yt using the
   ``conda`` package manager. Note that this is currently the only supported
   installation mechanism on Windows.
 
-*  A viable alternative to the installation based on Anaconda is the use of the 
-   `Intel Distribution for Python <https://software.intel.com/en-us/distribution-for-python>`_. 
-   For `Parallel Computation <http://yt-project.org/docs/dev/analyzing/parallel_computation.html>`_ 
-   on Intel architectures, especially on supercomputers, a large 
-   `performance and scalability improvement <https://arxiv.org/abs/1910.07855>`_ 
-   over several common tasks has been demonstrated.
-   Detailed installation instructions are provided below as well, see :ref:`conda-intel-python`.
-   No change in the way yt is managed by ``conda`` is required.
-  
+* A viable alternative to the installation based on Anaconda is the use of the
+  `Intel Distribution for Python <https://software.intel.com/en-us/distribution-for-python>`_.
+  For `Parallel Computation <http://yt-project.org/docs/dev/analyzing/parallel_computation.html>`_
+  on Intel architectures, especially on supercomputers, a large
+  `performance and scalability improvement <https://arxiv.org/abs/1910.07855>`_
+  over several common tasks has been demonstrated.
+  Detailed installation instructions are provided below as well, see :ref:`conda-intel-python`.
+  No change in the way yt is managed by ``conda`` is required.
+
+* Some operating systems have ``yt`` pre-built packages that can be
+  installed with the system package manager. Note that the packages in some of
+  these distributions may not be the most recent release. See :ref:`distro-packages`
+  for a list of available packages.  You can always get the current stable
+  version of ``yt`` via ``conda`` as described in :ref:`anaconda-installation`
+  or via ``pip`` as described in :ref:`source-installation`.
+
 * If you want to build a development version of yt or are comfortable with
   compilers and know your way around python packaging,
   :ref:`source-installation` will probably be the best choice. If you have set
@@ -133,8 +140,8 @@ In addition, you can tell the install script to download and install some
 additional packages --- currently these include
 `PyX <http://pyx.sourceforge.net/>`_, the `Rockstar halo
 finder <https://arxiv.org/abs/1110.4372>`_, `SciPy <https://www.scipy.org/>`_,
-`Astropy <https://www.astropy.org/>`_, 
-`Cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_, 
+`Astropy <https://www.astropy.org/>`_,
+`Cartopy <https://scitools.org.uk/cartopy/docs/latest/>`_,
 and the necessary dependencies for
 :ref:`unstructured mesh rendering <unstructured_mesh_rendering>`. The script has
 all of the options for installing optional packages near the top of the
@@ -167,7 +174,7 @@ Activating Your Installation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Once the installation has completed, there will be instructions on how to set up
-your shell environment to use yt.  
+your shell environment to use yt.
 
 In particular, you will need to ensure that the installation's ``yt-conda/bin``
 directory is prepended to your ``PATH`` environment variable.
@@ -245,67 +252,62 @@ For both the Anaconda and Miniconda installations, make sure that the Anaconda
 
 which will install stable branch of yt along with all of its dependencies.
 
-.. _nightly-conda-builds:
-
-Nightly Conda Builds
-^^^^^^^^^^^^^^^^^^^^
-
-If you would like to install latest development version of yt, you can download
-it from our custom anaconda channel:
-
-.. code-block:: bash
-
-  $ conda install -c yt-project/label/dev -c conda-forge yt
-
-New packages for development branch are built after every pull request is
-merged. In order to make sure you are running latest version, it's recommended
-to update frequently:
-
-.. code-block:: bash
-
-  $ conda update -c yt-project/label/dev -c conda-forge yt
-
-We recommend trying to install dependencies from conda-forge as indicated above
-since focused individual communities stand a better chance of successfully
-maintaining build recipes. However, if you wish to use the default anaconda
-packages, simply remove ``-c conda-forge`` during conda installation.
-
-Location of our channel can be added to ``.condarc`` to avoid retyping it during
-each *conda* invocation. Please refer to `Conda Manual
-<https://conda.io/projects/conda/en/latest/user-guide/configuration/use-condarc.html#channel-locations-channels>`_
-for detailed instructions.
-
 .. _conda-intel-python:
 
 Using the Intel Distribution for Python from conda
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-If you use conda, you can install yt with the  
+If you use conda, you can install yt with the
 `Intel Distribution for Python <https://software.intel.com/en-us/distribution-for-python>`_
-(recommended for performance in parallel computations on Intel architectures) instead of 
-the standard Anaconda distribution. First you need to add the intel channel: 
+(recommended for performance in parallel computations on Intel architectures) instead of
+the standard Anaconda distribution. First you need to add the intel channel:
 
 .. code-block:: bash
 
    $ conda config --add channels intel
-   
+
 If you want, at this point you can create a separate environment and switch to it:
-   
-.. code-block:: bash      
+
+.. code-block:: bash
 
    $ conda create -c intel -n yt_intel
    $ conda activate yt_intel
-   
+
 Now you need to install the remaining yt dependencies in your current environment.
 The following provides the Intel-optimized versions of these underlying packages:
-   
+
 .. code-block:: bash
 
-   $ conda config --add channels intel 
+   $ conda config --add channels intel
    $ conda install -c intel numpy scipy mpi4py cython git sympy ipython matplotlib netCDF4
 
 Then you can install yt normally, either from the conda-forge channel as above, or from source (see below).
-   
+
+.. _distro-packages:
+
+yt Distribution Packages
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+.. note::
+
+  Since the third-party packages listed below are not officially supported by
+  yt developers, support should not be sought out on the project mailing lists
+  or Slack channels.  All support requests related to these packages should be
+  directed to their official maintainers.
+
+While we recommended installing ``yt`` with either the ``conda`` or ``pip``
+package managers, a number of third-party packages exist for the distributions
+listed below.  If you can't find your distro here, you can always install
+``yt``'s current stable version using ``conda`` or ``pip``, or build the latest
+development version from source.
+
+.. image:: https://repology.org/badge/vertical-allrepos/python:yt.svg?header=yt%20packaging%20status
+    :target: https://repology.org/project/python:yt/versions
+
+.. note::
+
+  Please be aware that the packages in some of these distributions may be out-of-date!
+
 .. _conda-source-build:
 
 Building yt from Source For Conda-based Installs
@@ -317,7 +319,7 @@ conda environment:
 .. code-block:: bash
 
   $ conda install -c conda-forge cython git sympy ipython matplotlib netCDF4
-  
+
 In addition, you will need a C compiler installed.
 
 Clone the yt repository with:
@@ -341,60 +343,6 @@ most up-to-date source code.
 .. note::
 
   Alternatively, you can replace ``pip install -e .`` with ``conda develop -b .``.
-
-
-Installing Support for the Rockstar Halo Finder
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-The easiest way to set rockstar up in a conda-based python environment is to run
-the install script with ``INST_ROCKSTAR=1``.
-
-If you want to do this manually, you will need to follow these
-instructions. First, clone Matt Turk's fork of rockstar and compile it:
-
-.. code-block:: bash
-
-  $ git clone https://github.com/yt-project/rockstar
-  $ cd rockstar
-  $ make lib
-
-Next, copy `librockstar.so` into the `lib` folder of your anaconda installation:
-
-.. code-block:: bash
-
-  $ cp librockstar.so /path/to/anaconda/lib
-
-Finally, you will need to recompile yt to enable the rockstar interface. Clone a
-copy of the yt git repository (see :ref:`conda-source-build`), or navigate
-to a clone that you have already made, and do the following:
-
-.. code-block:: bash
-
-  $ cd /path/to/yt-git
-  $ ./clean.sh
-  $ echo /path/to/rockstar > rockstar.cfg
-  $ pip install -e .
-
-Here ``/path/to/yt-git`` is the path to your clone of the yt git repository
-and ``/path/to/rockstar`` is the path to your clone of Matt Turk's fork of
-rockstar.
-
-Finally, to actually use rockstar, you will need to ensure the folder containing
-`librockstar.so` is in your LD_LIBRARY_PATH:
-
-.. code-block:: bash
-
-  $ export LD_LIBRARY_PATH=/path/to/anaconda/lib
-
-You should now be able to enter a python session and import the rockstar
-interface:
-
-.. code-block:: python
-
-  >>> from yt.analysis_modules.halo_finding.rockstar import rockstar_interface
-
-If this python import fails, then you have not installed rockstar and yt's
-rockstar interface correctly.
 
 .. _windows-installation:
 
@@ -465,8 +413,8 @@ development version of yt instead of the latest stable release, you will need
   if you are curious why ``--install-option="--prefix="`` is necessary on some systems.
 
 This will install yt into a folder in your home directory
-(``$HOME/.local/lib64/python2.7/site-packages`` on Linux,
-``$HOME/Library/Python/2.7/lib/python/site-packages/`` on OSX) Please refer to
+(e.g. ``$HOME/.local/lib64/python<py_version>/site-packages`` on Linux,
+``$HOME/Library/Python/<py_version>/lib/python/site-packages/`` on OSX) Please refer to
 the ``setuptools`` documentation for the additional options.
 
 If you are unable to locate the ``yt`` executable (i.e. executing ``yt version``
@@ -509,7 +457,7 @@ error messages for it if it's out of date. You can update with pip via
 
   $ pip install --upgrade distribute
 
-or via your preferred method.   
+or via your preferred method.
 
 Keeping yt Updated via Git
 ^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -557,7 +505,7 @@ for more details.
 Switching versions of yt: ``yt-2.x``, ``stable``, and ``master`` branches
 -------------------------------------------------------------------------
 
-Here we explain how to switch between different development branches of yt. 
+Here we explain how to switch between different development branches of yt.
 
 If You Installed yt Using the Bash Install Script
 +++++++++++++++++++++++++++++++++++++++++++++++++
@@ -569,7 +517,7 @@ output:
 
 .. code-block:: bash
 
-  $ yt version 
+  $ yt version
 
 If the output from this command looks like:
 
@@ -601,7 +549,7 @@ you installed using ``INST_YT_SOURCE=1``.
 Conda-based installs (``INST_YT_SOURCE=0``)
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-In this case you can either install one of the nightly conda builds (see :ref:`nightly-conda-builds`), or you can follow the instructions above to build yt from source under conda (see 
+In this case you can follow the instructions above to build yt from source under conda (see
 :ref:`conda-source-build`).
 
 Source-based installs (``INST_YT_SOURCE=1``)

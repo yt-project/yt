@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Checks for points contained in a volume
 
@@ -5,19 +7,14 @@ Checks for points contained in a volume
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
 from libc.math cimport sqrt
+
 
 cdef extern from "math.h":
     double fabs(double x)
@@ -134,7 +131,7 @@ cdef void get_cross_product(np.float64_t v1[3],
     cp[0] = v1[1]*v2[2] - v1[2]*v2[1]
     cp[1] = v1[3]*v2[0] - v1[0]*v2[3]
     cp[2] = v1[0]*v2[1] - v1[1]*v2[0]
-    #print cp[0], cp[1], cp[2]
+    #print(cp[0], cp[1], cp[2])
 
 cdef int check_projected_overlap(
         np.float64_t sep_ax[3], np.float64_t sep_vec[3], int gi,
@@ -151,8 +148,8 @@ cdef int check_projected_overlap(
         ba += fabs(tba)
         ga += fabs(tga)
         sep_dot += sep_vec[g_ax] * sep_ax[g_ax]
-    #print sep_vec[0], sep_vec[1], sep_vec[2],
-    #print sep_ax[0], sep_ax[1], sep_ax[2]
+    #print(sep_vec[0], sep_vec[1], sep_vec[2],)
+    #print(sep_ax[0], sep_ax[1], sep_ax[2])
     return (fabs(sep_dot) > ba+ga)
     # Now we do
 
@@ -204,7 +201,7 @@ def find_grids_in_inclined_box(
             g_vec[g_ax][g_ax] = 0.5 * (grid_right_edges[gi, g_ax]
                                      - grid_left_edges[gi, g_ax])
         for b_ax in range(15):
-            #print b_ax,
+            #print(b_ax,)
             if check_projected_overlap(
                         sep_ax[b_ax], sep_vec, gi,
                         b_vec,  g_vec):

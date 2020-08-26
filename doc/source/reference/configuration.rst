@@ -63,7 +63,7 @@ Here is an example script, where we adjust the logging at startup:
 .. code-block:: python
 
    import yt
-   yt.funcs.mylog.setLevel(1)
+   yt.set_log_level(1)
 
    ds = yt.load("my_data0001")
    ds.print_stats()
@@ -79,19 +79,18 @@ Available Configuration Options
 The following external parameters are available.  A number of parameters are
 used internally.
 
-* ``coloredlogs`` (default: ``'False'``): Should logs be colored?
-* ``default_colormap`` (default: ``'arbre'``): What colormap should be used by
+* ``coloredlogs`` (default: ``False``): Should logs be colored?
+* ``default_colormap`` (default: ``arbre``): What colormap should be used by
   default for yt-produced images?
-* ``loadfieldplugins`` (default: ``'True'``): Do we want to load the plugin file?
-* ``pluginfilename``  (default ``'my_plugins.py'``) The name of our plugin file.
-* ``logfile`` (default: ``'False'``): Should we output to a log file in the
+* ``pluginfilename``  (default ``my_plugins.py``) The name of our plugin file.
+* ``logfile`` (default: ``False``): Should we output to a log file in the
   filesystem?
-* ``loglevel`` (default: ``'20'``): What is the threshold (0 to 50) for
+* ``loglevel`` (default: ``20``): What is the threshold (0 to 50) for
   outputting log files?
-* ``test_data_dir`` (default: ``'/does/not/exist'``): The default path the
+* ``test_data_dir`` (default: ``/does/not/exist``): The default path the
   ``load()`` function searches for datasets when it cannot find a dataset in the
   current directory.
-* ``reconstruct_index`` (default: True): If True, grid edges for patch AMR
+* ``reconstruct_index`` (default: ``True``): If true, grid edges for patch AMR
   datasets will be adjusted such that they fall as close as possible to an
   integer multiple of the local cell width. If you are working with a dataset
   with a large number of grids, setting this to False can speed up loading
@@ -101,49 +100,61 @@ used internally.
   IPython notebook created by ``yt notebook``.  Note that this should be an
   sha512 hash, not a plaintext password.  Starting ``yt notebook`` with no
   setting will provide instructions for setting this.
-* ``requires_ds_strict`` (default: ``'True'``): If true, answer tests wrapped
+* ``requires_ds_strict`` (default: ``True``): If true, answer tests wrapped
   with :func:`~yt.utilities.answer_testing.framework.requires_ds` will raise
-  :class:`~yt.utilities.exceptions.YTOutputNotIdentified` rather than consuming
+  :class:`~yt.utilities.exceptions.YTUnidentifiedDataType` rather than consuming
   it if required dataset is not present.
-* ``serialize`` (default: ``'False'``): If true, perform automatic
+* ``serialize`` (default: ``False``): If true, perform automatic
   :ref:`object serialization <object-serialization>`
 * ``sketchfab_api_key`` (default: empty): API key for https://sketchfab.com/ for
   uploading AMRSurface objects.
-* ``suppressStreamLogging`` (default: ``'False'``): If true, execution mode will be
+* ``suppressStreamLogging`` (default: ``False``): If true, execution mode will be
   quiet.
-* ``stdoutStreamLogging`` (default: ``'False'``): If true, logging is directed
+* ``stdoutStreamLogging`` (default: ``False``): If true, logging is directed
   to stdout rather than stderr
-* ``skip_dataset_cache`` (default: ``'False'``): If true, automatic caching of datasets
+* ``skip_dataset_cache`` (default: ``False``): If true, automatic caching of datasets
   is turned off.
-* ``supp_data_dir`` (default: ``'/does/not/exist'``): The default path certain
+* ``supp_data_dir`` (default: ``/does/not/exist``): The default path certain
   submodules of yt look in for supplemental data files.
 
 .. _plugin-file:
 
-The Plugin File
----------------
+Plugin Files
+------------
 
-The plugin file is a means of creating custom fields, quantities, data
-objects, colormaps, and other code classes and objects to be used in future
+Plugin files are a means of creating custom fields, quantities, data objects,
+colormaps, and other code executable functions or classes to be used in future
 yt sessions without modifying the source code directly.
 
-To force the plugin file to be parsed, call the function
+To enable a plugin file, call the function
 :func:`~yt.funcs.enable_plugins` at the top of your script.
+
+Global system plugin file
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
+plugin file. It is possible to rename this file to ``$HOME/.config/yt/<pluginfilename>.py``
+by defining ``pluginfilename`` in your ytrc file, as mentioned above.
 
 .. note::
 
-   You can tell that your plugins file is being parsed by watching for a logging
+   You can tell that your system plugin file is being parsed by watching for a logging
    message when you import yt.  Note that both the ``yt load`` and ``iyt``
    command line entry points parse the plugin file, so the ``my_plugins.py``
    file will be parsed if you enter yt that way.
 
+Local project plugin file
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Optionally, :func:`~yt.funcs.enable_plugins` can be passed an argument to specify
+a custom location for a plugin file. This can be useful to define project wise customizations.
+In that use case, any system-level plugin file will be ignored.
+
 Plugin File Format
 ^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
-plugin file, which should contain python code.  If accessing yt functions and
-classes they will not require the ``yt.`` prefix, because of how they are
-loaded.
+Plugin files should contain pure Python code. If accessing yt functions and classes
+they will not require the ``yt.`` prefix, because of how they are loaded.
 
 For example, if I created a plugin file containing:
 
@@ -185,6 +196,10 @@ use this function:
 
 And because we have used ``yt.enable_plugins`` we have access to the
 ``load_run`` function defined in our plugin file.
+
+.. note::
+    if your convenience function's name colliding with an existing object
+    within yt's namespace, it will be ignored.
 
 Note that using the plugins file implies that your script is no longer fully
 reproducible. If you share your script with someone else and use some of the

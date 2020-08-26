@@ -1,37 +1,24 @@
-# encoding: utf-8
-"""
-Input event handlers for Interactive Data Visualization
-
-"""
-
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
-
 # This is a part of the experimental Interactive Data Visualization
-
+import random
 from collections import defaultdict, namedtuple
-from yt.utilities.math_utils import \
-    get_perspective_matrix, \
-    get_orthographic_matrix
-import OpenGL.GL as GL
+
 import cyglfw3 as glfw
 import numpy as np
-import matplotlib.cm as cm
-import random
+from matplotlib import cm as cm
+from OpenGL import GL as GL
+
+from yt.utilities.math_utils import get_orthographic_matrix, get_perspective_matrix
 
 event_registry = {}
 
-GLFWEvent = namedtuple("GLFWEvent", ['window', 'key', 'scancode', 'action',
-                       'mods', 'width', 'height'])
+GLFWEvent = namedtuple(
+    "GLFWEvent", ["window", "key", "scancode", "action", "mods", "width", "height"]
+)
 
-class EventCollection(object):
-    '''Class handling mouse and keyboard events occurring in IDV
-    
+
+class EventCollection:
+    """Class handling mouse and keyboard events occurring in IDV
+
     Parameters
     ----------
     scene : :class:`yt.visualization.volume_rendering.interactive_vr.SceneGraph`
@@ -39,8 +26,9 @@ class EventCollection(object):
 
     camera : :class:`yt.visualization.volume_rendering.interactive_vr.IDVCamera`
         A current camera object used in the IDV
-    
-    '''
+
+    """
+
     def __init__(self, scene, camera):
         self.key_callbacks = defaultdict(list)
         self.mouse_callbacks = defaultdict(list)
@@ -81,10 +69,10 @@ class EventCollection(object):
     def add_render_callback(self, func):
         self.render_events.append(func)
 
-    def add_key_callback(self, func, key, action = "press", mods = None):
+    def add_key_callback(self, func, key, action="press", mods=None):
         self._add_callback(self.key_callbacks, func, key, action, mods)
 
-    def add_mouse_callback(self, func, key, action = "press", mods = None):
+    def add_mouse_callback(self, func, key, action="press", mods=None):
         self._add_callback(self.mouse_callbacks, func, key, action, mods)
 
     def add_framebuffer_callback(self, func):
@@ -94,57 +82,70 @@ class EventCollection(object):
         if not callable(func):
             func = event_registry[func]
         if isinstance(key, str):
-            key = getattr(glfw, "KEY_%s" % key.upper())
+            key = getattr(glfw, f"KEY_{key.upper()}")
         if isinstance(action, str):
             action = getattr(glfw, action.upper())
         if not isinstance(mods, tuple):
-            mods = (mods, )
+            mods = (mods,)
         mod = 0
         for m in mods:
             if isinstance(m, str):
-                m = getattr(glfw, "MOD_%s" % m.upper())
+                m = getattr(glfw, f"MOD_{m.upper()}")
             elif m is None:
                 m = 0
             mod |= m
         # We can allow for multiple
         d[key, action, mod].append(func)
 
+
 def register_event(name):
     def _f(func):
         event_registry[name] = func
         return func
+
     return _f
+
 
 @register_event("framebuffer_size")
 def framebuffer_size_callback(event_coll, event):
     GL.glViewport(0, 0, event.width, event.height)
-    event_coll.camera.aspect_ratio = float(event.width)/event.height
+    event_coll.camera.aspect_ratio = float(event.width) / event.height
     return True
+
 
 @register_event("close_window")
 def close_window(event_coll, event):
-    '''Close main window'''
+    """Close main window"""
     glfw.SetWindowShouldClose(event.window, True)
+
 
 @register_event("zoomin")
 def zoomin(event_coll, event):
-    '''Zoom in the camera'''
+    """Zoom in the camera"""
     camera = event_coll.camera
-    camera.position -= 0.05 * (camera.position - camera.focus) / \
-                np.linalg.norm(camera.position - camera.focus)
+    camera.position -= (
+        0.05
+        * (camera.position - camera.focus)
+        / np.linalg.norm(camera.position - camera.focus)
+    )
     return True
+
 
 @register_event("zoomout")
 def zoomout(event_coll, event):
-    '''Zoom out the camera'''
+    """Zoom out the camera"""
     camera = event_coll.camera
-    camera.position += 0.05 * (camera.position - camera.focus) / \
-        np.linalg.norm(camera.position - camera.focus)
+    camera.position += (
+        0.05
+        * (camera.position - camera.focus)
+        / np.linalg.norm(camera.position - camera.focus)
+    )
     return True
+
 
 @register_event("camera_orto")
 def camera_orto(event_coll, event):
-    '''Change camera to orthographic projection'''
+    """Change camera to orthographic projection"""
     camera = event_coll.camera
     if camera.proj_func == get_orthographic_matrix:
         return False
@@ -152,9 +153,10 @@ def camera_orto(event_coll, event):
     camera.fov = np.tan(np.radians(camera.fov) / 2.0)
     return True
 
+
 @register_event("camera_proj")
 def camera_proj(event_coll, event):
-    '''Change camera to perspective projection'''
+    """Change camera to perspective projection"""
     camera = event_coll.camera
     if camera.proj_func == get_perspective_matrix:
         return False
@@ -165,7 +167,7 @@ def camera_proj(event_coll, event):
 
 @register_event("shader_max")
 def shader_max(event_coll, event):
-    '''Use maximum intensity shader'''
+    """Use maximum intensity shader"""
     print("Changing shader to max(intensity)")
     scene = event_coll.scene
     for coll in scene.collections:
@@ -180,9 +182,10 @@ def shader_max(event_coll, event):
     GL.glBlendEquation(GL.GL_MAX)
     return True
 
+
 @register_event("shader_proj")
 def shader_proj(event_coll, event):
-    '''Use projection shader'''
+    """Use projection shader"""
     print("Changing shader to projection")
     scene = event_coll.scene
     for coll in scene.collections:
@@ -197,6 +200,7 @@ def shader_proj(event_coll, event):
     GL.glBlendEquation(GL.GL_FUNC_ADD)
     return True
 
+
 @register_event("shader_test")
 def shader_test(event_coll, event):
     """Use transfer function shader"""
@@ -209,11 +213,12 @@ def shader_test(event_coll, event):
     scene.set_shader("noop.f")
     for collection in scene.collections:
         collection.set_fields_log(True)
-    #scene.update_minmax()
+    # scene.update_minmax()
     # https://www.opengl.org/sdk/docs/man/html/glBlendFunc.xhtml
     GL.glBlendEquationSeparate(GL.GL_FUNC_ADD, GL.GL_FUNC_ADD)
     GL.glBlendFuncSeparate(GL.GL_ONE, GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_ONE, GL.GL_ZERO)
     return True
+
 
 @register_event("shader_lines")
 def shader_lines(event_coll, event):
@@ -226,11 +231,11 @@ def shader_lines(event_coll, event):
     scene.set_shader("noop.f")
     for collection in scene.collections:
         collection.set_fields_log(True)
-    #scene.update_minmax()
+    # scene.update_minmax()
     # https://www.opengl.org/sdk/docs/man/html/glBlendFunc.xhtml
-    #GL.glBlendFunc(GL.GL_ONE, GL.GL_DST_ALPHA)
-    #GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
-    #GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_SRC_ALPHA)
+    # GL.glBlendFunc(GL.GL_ONE, GL.GL_DST_ALPHA)
+    # GL.glBlendFunc(GL.GL_SRC_ALPHA, GL.GL_ONE_MINUS_SRC_ALPHA)
+    # GL.glBlendFunc(GL.GL_ONE_MINUS_SRC_ALPHA, GL.GL_SRC_ALPHA)
     GL.glBlendFunc(GL.GL_ONE, GL.GL_ONE)
     GL.glBlendEquation(GL.GL_MAX)
     return True
@@ -239,13 +244,13 @@ def shader_lines(event_coll, event):
 @register_event("cmap_cycle")
 def cmap_cycle(event_coll, event):
     """Change colormap"""
-    cmap = ['arbre', 'algae', 'kamae', 'viridis', 'inferno', 'magma']
+    cmap = ["arbre", "algae", "kamae", "viridis", "inferno", "magma"]
     cmap = cm.get_cmap(random.choice(cmap))
-    event_coll.camera.cmap = np.array(cmap(np.linspace(0, 1, 256)),
-        dtype=np.float32)
+    event_coll.camera.cmap = np.array(cmap(np.linspace(0, 1, 256)), dtype=np.float32)
     event_coll.camera.cmap_new = True
-    print("Setting colormap to {}".format(cmap.name))
+    print(f"Setting colormap to {cmap.name}")
     return True
+
 
 @register_event("cmap_max_up")
 def cmap_max_up(event_coll, event):
@@ -256,6 +261,7 @@ def cmap_max_up(event_coll, event):
         event_coll.camera.cmap_max *= 2.0
     return True
 
+
 @register_event("cmap_max_down")
 def cmap_max_down(event_coll, event):
     """Decrease upper bound of colormap"""
@@ -264,6 +270,7 @@ def cmap_max_down(event_coll, event):
     else:
         event_coll.camera.cmap_max *= 0.5
     return True
+
 
 @register_event("cmap_min_up")
 def cmap_min_up(event_coll, event):
@@ -274,6 +281,7 @@ def cmap_min_up(event_coll, event):
         event_coll.camera.cmap_min *= 2.0
     return True
 
+
 @register_event("cmap_min_down")
 def cmap_min_down(event_coll, event):
     """Decrease lower bound of colormap"""
@@ -282,6 +290,7 @@ def cmap_min_down(event_coll, event):
     else:
         event_coll.camera.cmap_min *= 0.5
     return True
+
 
 @register_event("cmap_toggle_log")
 def cmap_toggle_log(event_coll, event):
@@ -299,11 +308,13 @@ def cmap_toggle_log(event_coll, event):
     event_coll.camera.cmap_log = not event_coll.camera.cmap_log
     return True
 
+
 @register_event("closeup")
 def closeup(event_coll, event):
     """Change camera position to (0.01, 0.01, 0.01)"""
     event_coll.camera.position = (0.01, 0.01, 0.01)
     return True
+
 
 @register_event("reset")
 def reset(event_coll, event):
@@ -311,13 +322,18 @@ def reset(event_coll, event):
     event_coll.camera.position = (-1.0, -1.0, -1.0)
     return True
 
+
 @register_event("print_limits")
 def print_limits(event_coll, event):
     """Print debug info about scene and camera"""
     print(event_coll.scene.min_val, event_coll.scene.max_val)
-    print(event_coll.camera.cmap_min, event_coll.camera.cmap_max,
-          event_coll.camera.cmap_log)
+    print(
+        event_coll.camera.cmap_min,
+        event_coll.camera.cmap_max,
+        event_coll.camera.cmap_log,
+    )
     return False
+
 
 @register_event("debug_buffer")
 def debug_buffer(event_coll, event):
@@ -325,17 +341,18 @@ def debug_buffer(event_coll, event):
     buffer = event_coll.scene._retrieve_framebuffer()
     print(buffer.min(), buffer.max())
 
+
 @register_event("print_help")
 def print_help(event_coll, event):
     """Print this help"""
     key_map = {}
     for key in (a for a in dir(glfw) if a.startswith("KEY")):
         key_map[glfw.__dict__.get(key)] = key[4:]
-    for cb in (f for f in sorted(event_coll.key_callbacks)
-               if isinstance(f, tuple)):
+    for cb in (f for f in sorted(event_coll.key_callbacks) if isinstance(f, tuple)):
         for e in event_coll.key_callbacks[cb]:
-            print("%s - %s" % (key_map[cb[0]], e.__doc__))
+            print(f"{key_map[cb[0]]} - {e.__doc__}")
     return False
+
 
 @register_event("nplane_closer")
 def nplane_closer(event_coll, event):
@@ -343,20 +360,23 @@ def nplane_closer(event_coll, event):
     event_coll.camera.near_plane /= 2.0
     return True
 
+
 @register_event("nplane_further")
 def nplane_further(event_coll, event):
     print("nearplane", event_coll.camera.near_plane)
     event_coll.camera.near_plane *= 2.0
     return True
 
-class MouseRotation(object):
-    '''Class translating mouse movements to positions in OpenGL scene's coordinates'''
+
+class MouseRotation:
+    """Class translating mouse movements to positions in OpenGL scene's coordinates"""
+
     def __init__(self):
         self.start = None
         self.rotation = False
 
     def start_rotation(self, event_coll, event):
-        start_screen = glfw.GetCursorPos(event.window) # Screen coordinates
+        start_screen = glfw.GetCursorPos(event.window)  # Screen coordinates
         window_size = glfw.GetWindowSize(event.window)
 
         norm_x = -1.0 + 2.0 * start_screen[0] / window_size[0]
@@ -374,12 +394,14 @@ class MouseRotation(object):
         end = (norm_x, norm_y)
 
         event_coll.camera.update_orientation(
-            self.start[0], self.start[1], end[0], end[1])
+            self.start[0], self.start[1], end[0], end[1]
+        )
         self.rotation = False
         return True
 
     def do_rotation(self, event_coll, event):
-        if not self.rotation: return False
+        if not self.rotation:
+            return False
         new_end_screen = glfw.GetCursorPos(event.window)
         window_size = glfw.GetWindowSize(event.window)
 
@@ -388,18 +410,31 @@ class MouseRotation(object):
         new_end = (norm_x, norm_y)
 
         event_coll.camera.update_orientation(
-            self.start[0], self.start[1], new_end[0], new_end[1])
+            self.start[0], self.start[1], new_end[0], new_end[1]
+        )
         self.start = new_end
         return True
 
-class BlendFuncs(object):
-    '''Class allowing to switch between different GL blending functions'''
+
+class BlendFuncs:
+    """Class allowing to switch between different GL blending functions"""
+
     possibilities = (
-        "GL_ZERO", "GL_ONE", "GL_SRC_COLOR", "GL_ONE_MINUS_SRC_COLOR",
-        "GL_DST_COLOR", "GL_ONE_MINUS_DST_COLOR", "GL_SRC_ALPHA",
-        "GL_ONE_MINUS_SRC_ALPHA", "GL_DST_ALPHA", "GL_ONE_MINUS_DST_ALPHA",
-        "GL_CONSTANT_COLOR", "GL_ONE_MINUS_CONSTANT_COLOR",
-        "GL_CONSTANT_ALPHA", "GL_ONE_MINUS_CONSTANT_ALPHA")
+        "GL_ZERO",
+        "GL_ONE",
+        "GL_SRC_COLOR",
+        "GL_ONE_MINUS_SRC_COLOR",
+        "GL_DST_COLOR",
+        "GL_ONE_MINUS_DST_COLOR",
+        "GL_SRC_ALPHA",
+        "GL_ONE_MINUS_SRC_ALPHA",
+        "GL_DST_ALPHA",
+        "GL_ONE_MINUS_DST_ALPHA",
+        "GL_CONSTANT_COLOR",
+        "GL_ONE_MINUS_CONSTANT_COLOR",
+        "GL_CONSTANT_ALPHA",
+        "GL_ONE_MINUS_CONSTANT_ALPHA",
+    )
     source_i = 0
     dest_i = 0
 
@@ -407,9 +442,10 @@ class BlendFuncs(object):
         self.source_i = (self.source_i + 1) % len(self.possibilities)
         s = getattr(GL, self.possibilities[self.source_i])
         d = getattr(GL, self.possibilities[self.dest_i])
-        print("Setting source to %s and dest to %s" %
-              (self.possibilities[self.source_i], 
-               self.possibilities[self.dest_i]))
+        print(
+            "Setting source to %s and dest to %s"
+            % (self.possibilities[self.source_i], self.possibilities[self.dest_i])
+        )
         GL.glBlendFunc(s, d)
         return True
 
@@ -417,8 +453,9 @@ class BlendFuncs(object):
         self.dest_i = (self.dest_i + 1) % len(self.possibilities)
         s = getattr(GL, self.possibilities[self.source_i])
         d = getattr(GL, self.possibilities[self.dest_i])
-        print("Setting source to %s and dest to %s" %
-              (self.possibilities[self.source_i],
-               self.possibilities[self.dest_i]))
+        print(
+            "Setting source to %s and dest to %s"
+            % (self.possibilities[self.source_i], self.possibilities[self.dest_i])
+        )
         GL.glBlendFunc(s, d)
         return True

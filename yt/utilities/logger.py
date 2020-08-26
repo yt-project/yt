@@ -1,21 +1,6 @@
-"""
-Logging facility for yt
-Will initialize everything, and associate one with each module
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import logging
 import sys
+
 from yt.config import ytcfg
 
 # This next bit is grabbed from:
@@ -26,24 +11,52 @@ def add_coloring_to_emit_ansi(fn):
     # add methods we need to the class
     def new(*args):
         levelno = args[0].levelno
-        if(levelno >= 50):
-            color = '\x1b[31m'  # red
-        elif(levelno >= 40):
-            color = '\x1b[31m'  # red
-        elif(levelno >= 30):
-            color = '\x1b[33m'  # yellow
-        elif(levelno >= 20):
-            color = '\x1b[32m'  # green
-        elif(levelno >= 10):
-            color = '\x1b[35m'  # pink
+        if levelno >= 50:
+            color = "\x1b[31m"  # red
+        elif levelno >= 40:
+            color = "\x1b[31m"  # red
+        elif levelno >= 30:
+            color = "\x1b[33m"  # yellow
+        elif levelno >= 20:
+            color = "\x1b[32m"  # green
+        elif levelno >= 10:
+            color = "\x1b[35m"  # pink
         else:
-            color = '\x1b[0m'  # normal
-        ln = color + args[0].levelname + '\x1b[0m'
+            color = "\x1b[0m"  # normal
+        ln = color + args[0].levelname + "\x1b[0m"
         args[0].levelname = ln
         return fn(*args)
+
     return new
 
-level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
+
+def set_log_level(level):
+    """
+    Select which minimal logging level should be displayed.
+
+    Parameters
+    ----------
+    level: int or str
+        Possible values by increasing level:
+        0 or "notset"
+        1 or "all"
+        10 or "debug"
+        20 or "info"
+        30 or "warning"
+        40 or "error"
+        50 or "critical"
+    """
+    # this is a user-facing interface to avoid importing from yt.utilities in user code.
+
+    if isinstance(level, str):
+        level = level.upper()
+
+    if level == "ALL":  # non-standard alias
+        level = 1
+    ytLogger.setLevel(level)
+    ytLogger.debug("Set log level to %d", level)
+
+
 ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
 cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
 
@@ -54,16 +67,19 @@ else:
 
 ytLogger = logging.getLogger("yt")
 
+
 def disable_stream_logging():
     if len(ytLogger.handlers) > 0:
         ytLogger.removeHandler(ytLogger.handlers[0])
     h = logging.NullHandler()
     ytLogger.addHandler(h)
 
+
 def colorize_logging():
     f = logging.Formatter(cfstring)
     ytLogger.handlers[0].setFormatter(f)
     yt_sh.emit = add_coloring_to_emit_ansi(yt_sh.emit)
+
 
 def uncolorize_logging():
     try:
@@ -76,6 +92,9 @@ def uncolorize_logging():
         # to uncolorize
         pass
 
+
+_level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
+
 if ytcfg.getboolean("yt", "suppressStreamLogging"):
     disable_stream_logging()
 else:
@@ -85,12 +104,10 @@ else:
     yt_sh.setFormatter(formatter)
     # add the handler to the logger
     ytLogger.addHandler(yt_sh)
-    ytLogger.setLevel(level)
+    set_log_level(_level)
     ytLogger.propagate = False
 
     original_emitter = yt_sh.emit
 
     if ytcfg.getboolean("yt", "coloredlogs"):
         colorize_logging()
-
-ytLogger.debug("Set log level to %s", level)

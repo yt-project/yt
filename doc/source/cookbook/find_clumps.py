@@ -5,8 +5,7 @@ from yt.data_objects.level_sets.api import *
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
-data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
-                      (8, 'kpc'), (1, 'kpc'))
+data_source = ds.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], (8, "kpc"), (1, "kpc"))
 
 # the field to be used for contouring
 field = ("gas", "density")
@@ -17,8 +16,8 @@ step = 2.0
 # Now we set some sane min/max values between which we want to find contours.
 # This is how we tell the clump finder what to look for -- it won't look for
 # contours connected below or above these threshold values.
-c_min = 10**np.floor(np.log10(data_source[field]).min()  )
-c_max = 10**np.floor(np.log10(data_source[field]).max()+1)
+c_min = 10 ** np.floor(np.log10(data_source[field]).min())
+c_max = 10 ** np.floor(np.log10(data_source[field]).max() + 1)
 
 # Now find get our 'base' clump -- this one just covers the whole domain.
 master_clump = Clump(data_source, field)
@@ -41,13 +40,13 @@ leaf_clumps = master_clump.leaves
 
 # If you'd like to visualize these clumps, a list of clumps can be supplied to
 # the "clumps" callback on a plot.  First, we create a projection plot:
-prj = yt.ProjectionPlot(ds, 2, field, center='c', width=(20,'kpc'))
+prj = yt.ProjectionPlot(ds, 2, field, center="c", width=(20, "kpc"))
 
 # Next we annotate the plot with contours on the borders of the clumps
 prj.annotate_clumps(leaf_clumps)
 
 # Save the plot to disk.
-prj.save('clumps')
+prj.save("clumps")
 
 # Reload the clump dataset.
 cds = yt.load(fn)
@@ -55,18 +54,18 @@ cds = yt.load(fn)
 # Clump annotation can also be done with the reloaded clump dataset.
 
 # Remove the original clump annotation
-prj.annotate_clear()
+prj.clear_annotations()
 
 # Get the leaves and add the callback.
 leaf_clumps_reloaded = cds.leaves
 prj.annotate_clumps(leaf_clumps_reloaded)
-prj.save('clumps_reloaded')
+prj.save("clumps_reloaded")
 
 # Query fields for clumps in the tree.
-print (cds.tree["clump", "center_of_mass"])
-print (cds.tree.children[0]["grid", "density"])
-print (cds.tree.children[1]["all", "particle_mass"])
+print(cds.tree["clump", "center_of_mass"])
+print(cds.tree.children[0]["grid", "density"])
+print(cds.tree.children[1]["all", "particle_mass"])
 
 # Get all of the leaf clumps.
-print (cds.leaves)
-print (cds.leaves[0]["clump", "cell_mass"])
+print(cds.leaves)
+print(cds.leaves[0]["clump", "cell_mass"])

@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 This is a recursive function to return a depth-first octree
 
@@ -5,17 +7,12 @@ This is a recursive function to return a depth-first octree
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 cdef class position:
     cdef public int output_pos, refined_pos

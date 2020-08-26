@@ -1,3 +1,6 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
+# distutils: sources = FIXED_INTERP
 """
 Marching cubes implementation
 
@@ -5,27 +8,25 @@ Marching cubes implementation
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
+
 import numpy as np
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
-from libc.stdlib cimport malloc, free, abs
+
+from fixed_interpolator cimport (
+    eval_gradient,
+    offset_fill,
+    offset_interpolate,
+    vertex_interp,
+)
 from libc.math cimport sqrt
-from fixed_interpolator cimport \
-    eval_gradient, \
-    offset_fill, \
-    offset_interpolate, \
-    vertex_interp
+from libc.stdlib cimport abs, free, malloc
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
 
 from yt.units.yt_array import YTArray
+
 
 cdef extern from "marching_cubes.h":
     int tri_table[256][16]
@@ -342,7 +343,7 @@ def march_cubes_grid_flux(
                                 point[m] = (current.p[n][m]-cell_pos[m])*idds[m]
                             # Now we calculate the value at this point
                             temp = offset_interpolate(dims, point, intdata)
-                            #print "something", temp, point[0], point[1], point[2]
+                            #print("something", temp, point[0], point[1], point[2])
                             wval += temp
                             for m in range(3):
                                 center[m] += temp * point[m]

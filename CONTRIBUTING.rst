@@ -16,12 +16,8 @@ Coding is only one way to be involved!
 Communication Channels
 ----------------------
 
-There are five main communication channels for yt:
+There are three main communication channels for yt:
 
- * We have an IRC channel, on ``irc.freenode.net`` in ``#yt``.
-   You can connect through our web
-   gateway without any special client, at https://yt-project.org/irc.html .
-   *IRC is the first stop for conversation!*
  * Many yt developers participate in the yt Slack community. Slack is a free
    chat service that many teams use to organize their work. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
@@ -56,10 +52,10 @@ of a repository; in this case the fork will live in the space under your
 username on github, rather than the ``yt-project``. If you have never made a
 fork of a repository on github, or are unfamiliar with this process, here is a
 short article about how to do so:
-https://help.github.com/en/github/getting-started-with-github/fork-a-repo . 
+https://help.github.com/en/github/getting-started-with-github/fork-a-repo .
 The documentation for
 ``yt`` lives in the ``doc`` directory in the root of the yt git
-repository. To make a contribution to the yt documentation you will 
+repository. To make a contribution to the yt documentation you will
 make your changes in your own fork of ``yt``.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
@@ -91,7 +87,7 @@ usually we end up accepting.
 
 For more information, see :ref:`contributing-code`, where we spell out how to
 get up and running with a development environment, how to commit, and how to
-use GitHub. When you're ready to share your changes with the community, refer to 
+use GitHub. When you're ready to share your changes with the community, refer to
 :ref:`sharing-changes` to see how to contribute them back upstream.
 
 Online Presence
@@ -341,12 +337,12 @@ revision specifier will not show more recent changes to the repository. An
 alternative option is to use ``checkout`` on a branch. In yt the ``master``
 branch is our primary development branch, so checking out ``master`` should
 return you to the tip (or most up-to-date revision specifier) on the ``master``
-branch. 
+branch.
 
 .. code-block:: bash
-   
+
    $ git checkout master
-   
+
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
 you run yt from the command line or the one that is loaded when you do ``import
@@ -404,12 +400,6 @@ the following subdirectories:
    defined as visualization are located in here.  This includes the base
    classes for data regions, covering grids, time series, and so on.  This
    also includes derived fields and derived quantities.
-
-``analysis_modules``
-   This is where all mechanisms for processing data live.  This includes
-   things like clump finding, halo profiling, halo finding, and so on.  This
-   is something of a catchall, but it serves as a level of greater
-   abstraction that simply data selection and modification.
 
 ``gui``
    This is where all GUI components go.  Typically this will be some small
@@ -726,36 +716,76 @@ active PR for which ``feature_1`` is a pointer to the ``HEAD`` commit. A push to
 Coding Style Guide
 ==================
 
-Automatically checking code style
----------------------------------
+Automatically checking and fixing code style
+--------------------------------------------
 
 Below are a list of rules for coding style in yt. Some of these rules are
 suggestions are not explicitly enforced, while some are enforced via automated
-testing. The yt project uses a subset of the rules checked by ``flake8`` to
-verify our code. The ``flake8`` tool is a combination of the ``pyflakes`` and
-``pep8`` tools. To check the coding style of your contributions locally you will
-need to install the ``flake8`` tool from ``pip``:
+testing.
+
+The yt project uses ``flake8`` to report on code correctness (syntax +
+anti-pattern detection), and ``isort``, ``black`` and ``flynt`` for automated formatting.
+
+To check the coding style of your contributions locally you will need to install those
+tools, which can be done for instance with ``pip``:
 
 .. code-block:: bash
 
-    $ pip install flake8
+    $ pip install tests/lint_requirements.txt
 
-And then navigate to the root of the yt repository and run ``flake8`` on the
-``yt`` subdirectory:
+Then run the checks from the top level of the repository with
 
 .. code-block:: bash
 
-    $ cd yt-git
-    $ flake8 ./yt
+    $ flake8 yt/
+    $ black --check yt/
+    $ isort --check yt/
+    $ flynt --fail-on-change --dry-run -e yt/extern yt/
 
-This will print out any ``flake8`` errors or warnings that your newly added code
-triggers. The errors will be in your newly added code because we have already
-cleaned up the rest of the yt codebase of the errors and warnings detected by
-the `flake8` tool. Note that this will only trigger a subset of the `full flake8
-error and warning list
-<https://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
-blacklist a large number of the full list of rules that are checked by
-``flake8`` by default.
+These will respectively print out any ``flake8`` errors or warnings that your newly added
+code triggers, and a list of files that are currenlty not compliant with ``black``. Note
+that only a subset of the `full flake8 error and warning list
+<https://flake8.readthedocs.io/en/latest/user/error-codes.html>`_ is run, since we
+explicitly blacklist some of the rules that are checked by ``flake8`` by default.
+
+Run black without the ``--check`` flag to automatically update the code to a
+``black``-compliant form.
+
+
+Import ordering
+---------------
+
+We use ``isort`` to enforce PEP-8 guidelines for import ordering.
+By decreasing priority order:
+FUTURE > STDLIB > THIRD PARTY > FIRST PARTY > EXPLICITLY LOCAL
+
+``isort`` can be installed via ``pip``
+
+.. code-block:: bash
+
+    $ pip install isort
+
+To validate import order, run ``isort`` recursively at the top level
+
+.. code-block:: bash
+
+    $ isort -rc . --check-only
+
+If any error is detected, rerun this without the ``--check-only`` flag to fix them.
+
+Pre-commit hooks
+----------------
+
+If you wish to automate this process you may be interested in using `pre-commit
+<https://pre-commit.com>`_ hooks. They can be installed from the repo's top level with
+
+.. code-block:: bash
+
+    $ pre-commit install
+
+So that ``black``, ``flynt`, ``flake8`` and ``isort`` will run and update your changes every time
+you commit new code. This setup is not required so you have the option of checking for
+code style only in the late stage of a branch when we need to validate it for merging.
 
 Source code style guide
 -----------------------
@@ -784,20 +814,19 @@ Source code style guide
    that occur on an object.  See :ref:`docstrings` below for a fiducial example
    of a docstring.
  * Use only one top-level import per line. Unless there is a good reason not to,
-   imports should happen at the top of the file, after the copyright blurb.
- * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use
-   ``is`` or ``is not``.
+   imports should happen at the top of the file.
+ * Never compare with singleton ``True``, ``False``, ``None`` ... using ``==`` or ``!=``,
+   always use ``is`` or ``is not``.
  * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Never compare with None using ``==`` or ``!=``, use ``is None`` or
-   ``is not None``.
  * Use ``statement is not True`` instead of ``not statement is True``
- * Only one statement per line, do not use semicolons to put two or more
-   statements on a single line.
  * Only declare local variables if they will be used later. If you do not use the
    return value of a function, do not store it in a variable.
  * Add tests for new functionality. When fixing a bug, consider adding a test to
    prevent the bug from recurring.
+ * Use f-strings for string-formatting (https://www.python.org/dev/peps/pep-0498/), except 
+   in logging function where the recommended syntax is
+   ``mylog.info("Something %s", "value")``.
 
 API Style Guide
 ---------------
@@ -819,14 +848,12 @@ API Style Guide
  * Do not use too many keyword arguments.  If you have a lot of keyword
    arguments, then you are doing too much in ``__init__`` and not enough via
    parameter setting.
- * In function arguments, place spaces before commas.  ``def something(a,b,c)``
-   should be ``def something(a, b, c)``.
  * Don't create a new class to replicate the functionality of an old class --
    replace the old class.  Too many options makes for a confusing user
    experience.
  * Parameter files external to yt are a last resort.
  * The usage of the ``**kwargs`` construction should be avoided.  If they cannot
-   be avoided, they must be explained, even if they are only to be passed on to
+   be avoided, they must be documented, even if they are only to be passed on to
    a nested function.
 
 .. _docstrings:

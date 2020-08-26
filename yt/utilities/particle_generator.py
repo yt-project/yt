@@ -1,12 +1,11 @@
 import numpy as np
-from yt.utilities.lib.particle_mesh_operations import \
-    CICSample_3
+
 from yt.funcs import get_pbar, issue_deprecation_warning
 from yt.units.yt_array import uconcatenate
-from yt.extern.six import string_types
+from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
-class ParticleGenerator(object):
 
+class ParticleGenerator:
     def __init__(self, ds, num_particles, field_list, ptype="io"):
         """
         Base class for generating particle fields which may be applied to
@@ -14,17 +13,18 @@ class ParticleGenerator(object):
         really do anything except allocate memory. Takes a *ds* to serve as the
         basis for determining grids, the number of particles *num_particles*,
         a list of fields, *field_list*, and the particle type *ptype*, which
-        has a default value of "io". 
+        has a default value of "io".
         """
         self.ds = ds
         self.num_particles = num_particles
-        self.field_list = [(ptype, fd) if isinstance(fd, string_types) else fd
-                           for fd in field_list]
+        self.field_list = [
+            (ptype, fd) if isinstance(fd, str) else fd for fd in field_list
+        ]
         self.field_list.append((ptype, "particle_index"))
         self.field_units = dict(
-          ((ptype, 'particle_position_%s' % ax), 'code_length')
-          for ax in 'xyz')
-        self.field_units[ptype, 'particle_index'] = ''
+            ((ptype, f"particle_position_{ax}"), "code_length") for ax in "xyz"
+        )
+        self.field_units[ptype, "particle_index"] = ""
         self.ptype = ptype
 
         self._set_default_fields()
@@ -33,24 +33,29 @@ class ParticleGenerator(object):
             self.posx_index = self.field_list.index(self.default_fields[0])
             self.posy_index = self.field_list.index(self.default_fields[1])
             self.posz_index = self.field_list.index(self.default_fields[2])
-        except:
-            raise KeyError("You must specify position fields: " +
-                           " ".join(["particle_position_%s" % ax for ax in "xyz"]))
+        except Exception as e:
+            raise KeyError(
+                "You must specify position fields: "
+                + " ".join(["particle_position_%s" % ax for ax in "xyz"])
+            ) from e
         self.index_index = self.field_list.index((ptype, "particle_index"))
 
         self.num_grids = self.ds.index.num_grids
-        self.NumberOfParticles = np.zeros(self.num_grids, dtype='int64')
-        self.ParticleGridIndices = np.zeros(self.num_grids + 1, dtype='int64')
+        self.NumberOfParticles = np.zeros(self.num_grids, dtype="int64")
+        self.ParticleGridIndices = np.zeros(self.num_grids + 1, dtype="int64")
 
         self.num_fields = len(self.field_list)
 
-        self.particles = np.zeros((self.num_particles, self.num_fields),
-                                  dtype='float64')
+        self.particles = np.zeros(
+            (self.num_particles, self.num_fields), dtype="float64"
+        )
 
     def _set_default_fields(self):
-        self.default_fields = [(self.ptype, "particle_position_x"),
-                               (self.ptype, "particle_position_y"),
-                               (self.ptype, "particle_position_z")]
+        self.default_fields = [
+            (self.ptype, "particle_position_x"),
+            (self.ptype, "particle_position_y"),
+            (self.ptype, "particle_position_z"),
+        ]
 
     def has_key(self, key):
         """
@@ -68,7 +73,7 @@ class ParticleGenerator(object):
         """
         Get the field associated with key.
         """
-        return self.particles[:,self.field_list.index(key)]
+        return self.particles[:, self.field_list.index(key)]
 
     def __setitem__(self, key, val):
         """
@@ -76,7 +81,7 @@ class ParticleGenerator(object):
         that the particles have been sorted by grid already, so
         make sure the setting of the field is consistent with this.
         """
-        self.particles[:,self.field_list.index(key)] = val[:]
+        self.particles[:, self.field_list.index(key)] = val[:]
 
     def __len__(self):
         """
@@ -88,15 +93,16 @@ class ParticleGenerator(object):
         """
         Return a dict containing all of the particle fields in the specified grid.
         """
-        ind = grid.id-grid._id_offset
+        ind = grid.id - grid._id_offset
         start = self.ParticleGridIndices[ind]
-        end = self.ParticleGridIndices[ind+1]
+        end = self.ParticleGridIndices[ind + 1]
         tr = {}
         for field in self.field_list:
             fi = self.field_list.index(field)
             if field in self.field_units:
-                tr[field] = self.ds.arr(self.particles[start:end, fi],
-                                        self.field_units[field])
+                tr[field] = self.ds.arr(
+                    self.particles[start:end, fi], self.field_units[field]
+                )
             else:
                 tr[field] = self.particles[start:end, fi]
         return tr
@@ -104,25 +110,27 @@ class ParticleGenerator(object):
     def _setup_particles(self, x, y, z, setup_fields=None):
         """
         Assigns grids to particles and sets up particle positions. *setup_fields* is
-        a dict of fields other than the particle positions to set up. 
+        a dict of fields other than the particle positions to set up.
         """
         particle_grids, particle_grid_inds = self.ds.index._find_points(x, y, z)
         idxs = np.argsort(particle_grid_inds)
         self.particles[:, self.posx_index] = x[idxs]
         self.particles[:, self.posy_index] = y[idxs]
         self.particles[:, self.posz_index] = z[idxs]
-        self.NumberOfParticles = np.bincount(particle_grid_inds.astype("intp"),
-                                             minlength=self.num_grids)
+        self.NumberOfParticles = np.bincount(
+            particle_grid_inds.astype("intp"), minlength=self.num_grids
+        )
         if self.num_grids > 1:
-            np.add.accumulate(self.NumberOfParticles.squeeze(),
-                              out=self.ParticleGridIndices[1:])
+            np.add.accumulate(
+                self.NumberOfParticles.squeeze(), out=self.ParticleGridIndices[1:]
+            )
         else:
             self.ParticleGridIndices[1] = self.NumberOfParticles.squeeze()
         if setup_fields is not None:
             for key, value in setup_fields.items():
-                field = (self.ptype, key) if isinstance(key, string_types) else key
+                field = (self.ptype, key) if isinstance(key, str) else key
                 if field not in self.default_fields:
-                    self.particles[:,self.field_list.index(field)] = value[idxs]
+                    self.particles[:, self.field_list.index(field)] = value[idxs]
 
     def assign_indices(self, function=None, **kwargs):
         """
@@ -142,7 +150,7 @@ class ParticleGenerator(object):
         Examples
         --------
         >>> field_map = {'density':'particle_density',
-        >>>              'temperature':'particle_temperature'}
+        ...              'temperature':'particle_temperature'}
         >>> particles.map_grid_fields_to_particles(field_map)
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
@@ -150,7 +158,7 @@ class ParticleGenerator(object):
             pbar.update(i)
             if self.NumberOfParticles[i] > 0:
                 start = self.ParticleGridIndices[i]
-                end = self.ParticleGridIndices[i+1]
+                end = self.ParticleGridIndices[i + 1]
                 # Note we add one ghost zone to the grid!
                 cube = grid.retrieve_ghost_zones(1, list(mapping_dict.keys()))
                 le = np.array(grid.LeftEdge).astype(np.float64)
@@ -158,26 +166,32 @@ class ParticleGenerator(object):
                 for gfield, pfield in mapping_dict.items():
                     self.field_units[pfield] = cube[gfield].units
                     field_index = self.field_list.index(pfield)
-                    CICSample_3(self.particles[start:end,self.posx_index],
-                                self.particles[start:end,self.posy_index],
-                                self.particles[start:end,self.posz_index],
-                                self.particles[start:end,field_index],
-                                np.int64(self.NumberOfParticles[i]),
-                                cube[gfield], le, dims,
-                                grid.dds[0])
+                    CICSample_3(
+                        self.particles[start:end, self.posx_index],
+                        self.particles[start:end, self.posy_index],
+                        self.particles[start:end, self.posz_index],
+                        self.particles[start:end, field_index],
+                        np.int64(self.NumberOfParticles[i]),
+                        cube[gfield],
+                        le,
+                        dims,
+                        grid.dds[0],
+                    )
         pbar.finish()
 
     def apply_to_stream(self, overwrite=False, **kwargs):
         """
-        Apply the particles to a grid-based stream dataset. If particles 
-        already exist, and overwrite=False, do not overwrite them, but add 
+        Apply the particles to a grid-based stream dataset. If particles
+        already exist, and overwrite=False, do not overwrite them, but add
         the new ones to them.
         """
         if "clobber" in kwargs:
-            issue_deprecation_warning("The \"clobber\" keyword argument "
-                                      "is deprecated. Use the \"overwrite\" "
-                                      "argument, which has the same effect, "
-                                      "instead.")
+            issue_deprecation_warning(
+                'The "clobber" keyword argument '
+                'is deprecated. Use the "overwrite" '
+                "argument, which has the same effect, "
+                "instead."
+            )
             overwrite = kwargs.pop("clobber")
         grid_data = []
         for i, g in enumerate(self.ds.index.grids):
@@ -188,24 +202,26 @@ class ParticleGenerator(object):
             grid_particles = self.get_for_grid(g)
             for field in self.field_list:
                 if number_of_particles > 0:
-                    if g.NumberOfParticles > 0 and not overwrite and \
-                        field in self.ds.field_list:
+                    if (
+                        g.NumberOfParticles > 0
+                        and not overwrite
+                        and field in self.ds.field_list
+                    ):
                         # We have particles in this grid, we're not
                         # overwriting them, and the field is in the field
                         # list already
-                        data[field] = uconcatenate([g[field],
-                                                    grid_particles[field]])
+                        data[field] = uconcatenate([g[field], grid_particles[field]])
                     else:
                         # Otherwise, simply add the field in
                         data[field] = grid_particles[field]
                 else:
                     # We don't have particles in this grid
-                    data[field] = np.array([], dtype='float64')
+                    data[field] = np.array([], dtype="float64")
             grid_data.append(data)
         self.ds.index.update_data(grid_data)
 
-class FromListParticleGenerator(ParticleGenerator):
 
+class FromListParticleGenerator(ParticleGenerator):
     def __init__(self, ds, num_particles, data, ptype="io"):
         r"""
         Generate particle fields from array-like lists contained in a dict.
@@ -229,7 +245,7 @@ class FromListParticleGenerator(ParticleGenerator):
         >>> posz = np.random.random((num_p))
         >>> mass = np.ones((num_p))
         >>> data = {'particle_position_x': posx, 'particle_position_y': posy,
-        >>>         'particle_position_z': posz, 'particle_mass': mass}
+        ...         'particle_position_z': posz, 'particle_mass': mass}
         >>> particles = FromListParticleGenerator(ds, num_p, data)
         """
 
@@ -238,39 +254,44 @@ class FromListParticleGenerator(ParticleGenerator):
             x = data.pop("particle_position_x")
             y = data.pop("particle_position_y")
             z = data.pop("particle_position_z")
-        elif (ptype,"particle_position_x") in data:
+        elif (ptype, "particle_position_x") in data:
             x = data.pop((ptype, "particle_position_x"))
             y = data.pop((ptype, "particle_position_y"))
             z = data.pop((ptype, "particle_position_z"))
 
-        xcond = np.logical_or(x < ds.domain_left_edge[0],
-                              x >= ds.domain_right_edge[0])
-        ycond = np.logical_or(y < ds.domain_left_edge[1],
-                              y >= ds.domain_right_edge[1])
-        zcond = np.logical_or(z < ds.domain_left_edge[2],
-                              z >= ds.domain_right_edge[2])
+        xcond = np.logical_or(x < ds.domain_left_edge[0], x >= ds.domain_right_edge[0])
+        ycond = np.logical_or(y < ds.domain_left_edge[1], y >= ds.domain_right_edge[1])
+        zcond = np.logical_or(z < ds.domain_left_edge[2], z >= ds.domain_right_edge[2])
         cond = np.logical_or(xcond, ycond)
         cond = np.logical_or(zcond, cond)
 
         if np.any(cond):
             raise ValueError("Some particles are outside of the domain!!!")
 
-        super(FromListParticleGenerator, self).__init__(ds, num_particles, 
-                                                        field_list, ptype=ptype)
+        super(FromListParticleGenerator, self).__init__(
+            ds, num_particles, field_list, ptype=ptype
+        )
         self._setup_particles(x, y, z, setup_fields=data)
 
-class LatticeParticleGenerator(ParticleGenerator):
 
-    def __init__(self, ds, particles_dims, particles_left_edge,
-                 particles_right_edge, field_list, ptype="io"):
+class LatticeParticleGenerator(ParticleGenerator):
+    def __init__(
+        self,
+        ds,
+        particles_dims,
+        particles_left_edge,
+        particles_right_edge,
+        field_list,
+        ptype="io",
+    ):
         r"""
-        Generate particles in a lattice arrangement. 
+        Generate particles in a lattice arrangement.
 
         Parameters
         ----------
         ds : `Dataset`
             The dataset which will serve as the base for these particles.
-        particles_dims : int, array-like 
+        particles_dims : int, array-like
             The number of particles along each dimension
         particles_left_edge : float, array-like
             The 'left-most' starting positions of the lattice.
@@ -287,8 +308,8 @@ class LatticeParticleGenerator(ParticleGenerator):
         >>> le = np.array([0.25,0.25,0.25])
         >>> re = np.array([0.75,0.75,0.75])
         >>> fields = ["particle_position_x","particle_position_y",
-        >>>           "particle_position_z",
-        >>>           "particle_density","particle_temperature"]
+        ...           "particle_position_z",
+        ...           "particle_density","particle_temperature"]
         >>> particles = LatticeParticleGenerator(ds, dims, le, re, fields)
         """
 
@@ -312,23 +333,31 @@ class LatticeParticleGenerator(ParticleGenerator):
         if cond:
             raise ValueError("Proposed bounds for particles are outside domain!!!")
 
-        super(LatticeParticleGenerator, self).__init__(ds, num_x*num_y*num_z, 
-                                                       field_list, ptype=ptype)
+        super(LatticeParticleGenerator, self).__init__(
+            ds, num_x * num_y * num_z, field_list, ptype=ptype
+        )
 
-        dx = (xmax-xmin)/(num_x-1)
-        dy = (ymax-ymin)/(num_y-1)
-        dz = (zmax-zmin)/(num_z-1)
+        dx = (xmax - xmin) / (num_x - 1)
+        dy = (ymax - ymin) / (num_y - 1)
+        dz = (zmax - zmin) / (num_z - 1)
         inds = np.indices((num_x, num_y, num_z))
-        xpos = inds[0]*dx + xmin
-        ypos = inds[1]*dy + ymin
-        zpos = inds[2]*dz + zmin
+        xpos = inds[0] * dx + xmin
+        ypos = inds[1] * dy + ymin
+        zpos = inds[2] * dz + zmin
 
         self._setup_particles(xpos.flat[:], ypos.flat[:], zpos.flat[:])
 
-class WithDensityParticleGenerator(ParticleGenerator):
 
-    def __init__(self, ds, data_source, num_particles, field_list,
-                 density_field="density", ptype="io"):
+class WithDensityParticleGenerator(ParticleGenerator):
+    def __init__(
+        self,
+        ds,
+        data_source,
+        num_particles,
+        field_list,
+        density_field="density",
+        ptype="io",
+    ):
         r"""
         Generate particles based on a density field.
 
@@ -344,7 +373,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
             A list of particle fields
         density_field : string, optional
             A density field which will serve as the distribution function for the
-            particle positions. Theoretically, this could be any 'per-volume' field. 
+            particle positions. Theoretically, this could be any 'per-volume' field.
         ptype : string, optional
             The particle type for these particle fields. Default: "io"
 
@@ -355,16 +384,21 @@ class WithDensityParticleGenerator(ParticleGenerator):
         >>> fields = ["particle_position_x","particle_position_y",
         >>>           "particle_position_z",
         >>>           "particle_density","particle_temperature"]
-        >>> particles = WithDensityParticleGenerator(ds, sphere, num_particles,
-        >>>                                          fields, density_field='Dark_Matter_Density')
+        >>> particles = WithDensityParticleGenerator(
+        ...                ds,
+        ...                sphere,
+        ...                num_particles,
+        ...                fields,
+        ...                density_field='Dark_Matter_Density'
+        ...             )
         """
 
-        super(WithDensityParticleGenerator, self).__init__(ds, num_particles,
-                                                           field_list, ptype=ptype)
+        super(WithDensityParticleGenerator, self).__init__(
+            ds, num_particles, field_list, ptype=ptype
+        )
 
         num_cells = len(data_source["x"].flat)
-        max_mass = (data_source[density_field]*
-                    data_source["cell_volume"]).max()
+        max_mass = (data_source[density_field] * data_source["cell_volume"]).max()
         num_particles_left = num_particles
         all_x = []
         all_y = []
@@ -375,25 +409,32 @@ class WithDensityParticleGenerator(ParticleGenerator):
 
         while num_particles_left > 0:
 
-            m = np.random.uniform(high=1.01*max_mass,
-                                  size=num_particles_left)
-            idxs = np.random.random_integers(low=0, high=num_cells-1,
-                                             size=num_particles_left)
-            m_true = (data_source[density_field] *
-                      data_source["cell_volume"]).flat[idxs]
+            m = np.random.uniform(high=1.01 * max_mass, size=num_particles_left)
+            idxs = np.random.random_integers(
+                low=0, high=num_cells - 1, size=num_particles_left
+            )
+            m_true = (data_source[density_field] * data_source["cell_volume"]).flat[
+                idxs
+            ]
             accept = m <= m_true
             num_accepted = accept.sum()
             accepted_idxs = idxs[accept]
 
-            xpos = data_source["x"].flat[accepted_idxs] + \
-                   np.random.uniform(low=-0.5, high=0.5, size=num_accepted) * \
-                   data_source["dx"].flat[accepted_idxs]
-            ypos = data_source["y"].flat[accepted_idxs] + \
-                   np.random.uniform(low=-0.5, high=0.5, size=num_accepted) * \
-                   data_source["dy"].flat[accepted_idxs]
-            zpos = data_source["z"].flat[accepted_idxs] + \
-                   np.random.uniform(low=-0.5, high=0.5, size=num_accepted) * \
-                   data_source["dz"].flat[accepted_idxs]
+            xpos = (
+                data_source["x"].flat[accepted_idxs]
+                + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
+                * data_source["dx"].flat[accepted_idxs]
+            )
+            ypos = (
+                data_source["y"].flat[accepted_idxs]
+                + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
+                * data_source["dy"].flat[accepted_idxs]
+            )
+            zpos = (
+                data_source["z"].flat[accepted_idxs]
+                + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
+                * data_source["dz"].flat[accepted_idxs]
+            )
 
             all_x.append(xpos)
             all_y.append(ypos)
@@ -410,4 +451,3 @@ class WithDensityParticleGenerator(ParticleGenerator):
         z = uconcatenate(all_z)
 
         self._setup_particles(x, y, z)
-

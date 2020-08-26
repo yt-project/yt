@@ -1,0 +1,17 @@
+-   repo: https://github.com/ambv/black
+    rev: 19.10b0
+    hooks:
+    - id: black
+      language_version: python3.7
+-   repo: https://github.com/timothycrosley/isort
+    rev: '5.2.1'  # keep in sync with tests/lint_requirements.txt
+    hooks:
+    -   id: isort
+-   repo: https://gitlab.com/pycqa/flake8
+    rev: '3.8.1'  # keep in sync with tests/lint_requirements.txt
+    hooks:
+    -   id: flake8
+-   repo: https://github.com/ikamensh/flynt
+    rev: '0.52'  # keep in sync with tests/lint_requirements.txt
+    hooks:
+    -   id: flynt

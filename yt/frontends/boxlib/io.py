@@ -1,33 +1,20 @@
-"""
-AMReX/Boxlib data-file handling functions
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
-import numpy as np
 from collections import defaultdict
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.funcs import mylog
+import numpy as np
+
 from yt.frontends.chombo.io import parse_orion_sinks
+from yt.funcs import mylog
 from yt.geometry.selection_routines import GridSelector
+from yt.utilities.io_handler import BaseIOHandler
+
 
 def _remove_raw(all_fields, raw_fields):
     centered_fields = set(all_fields)
     for raw in raw_fields:
         centered_fields.discard(raw)
     return list(centered_fields)
+
 
 class IOHandlerBoxlib(BaseIOHandler):
 
@@ -38,22 +25,26 @@ class IOHandlerBoxlib(BaseIOHandler):
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
-        if any(( not (ftype == "boxlib" or ftype == 'raw') for ftype, fname in fields)):
+        if any((not (ftype == "boxlib" or ftype == "raw") for ftype, fname in fields)):
             raise NotImplementedError
         rv = {}
         raw_fields = []
         for field in fields:
             if field[0] == "raw":
                 nodal_flag = self.ds.nodal_flags[field[1]]
-                num_nodes = 2**sum(nodal_flag)
+                num_nodes = 2 ** sum(nodal_flag)
                 rv[field] = np.empty((size, num_nodes), dtype="float64")
                 raw_fields.append(field)
             else:
                 rv[field] = np.empty(size, dtype="float64")
         centered_fields = _remove_raw(fields, raw_fields)
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug("Reading %s cells of %s fields in %s grids",
-                    size, [f2 for f1, f2 in fields], ng)
+        mylog.debug(
+            "Reading %s cells of %s fields in %s grids",
+            size,
+            [f2 for f1, f2 in fields],
+            ng,
+        )
         ind = 0
         for chunk in chunks:
             data = self._read_chunk_data(chunk, centered_fields)
@@ -77,7 +68,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         fn_list = self.ds.index.raw_field_map[field_name][1]
         offset_list = self.ds.index.raw_field_map[field_name][2]
 
-        lev = grid.Level        
+        lev = grid.Level
         filename = base_dir + "Level_%d/" % lev + fn_list[grid.id]
         offset = offset_list[grid.id]
         box = box_list[grid.id]
@@ -88,14 +79,24 @@ class IOHandlerBoxlib(BaseIOHandler):
         with open(filename, "rb") as f:
             f.seek(offset)
             f.readline()  # always skip the first line
-            arr = np.fromfile(f, 'float64', np.product(shape))
-            arr = arr.reshape(shape, order='F')
-        return arr[[slice(nghost[dim],-nghost[dim]) for dim in range(self.ds.dimensionality)]]
+            arr = np.fromfile(f, "float64", np.product(shape))
+            arr = arr.reshape(shape, order="F")
+        return arr[
+            tuple(
+                [
+                    slice(None)
+                    if (nghost[dim] == 0)
+                    else slice(nghost[dim], -nghost[dim])
+                    for dim in range(self.ds.dimensionality)
+                ]
+            )
+        ]
 
     def _read_chunk_data(self, chunk, fields):
         data = {}
         grids_by_file = defaultdict(list)
-        if len(chunk.objs) == 0: return data
+        if len(chunk.objs) == 0:
+            return data
         for g in chunk.objs:
             if g.filename is None:
                 continue
@@ -104,7 +105,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         bpr = dtype.itemsize
         for filename in grids_by_file:
             grids = grids_by_file[filename]
-            grids.sort(key = lambda a: a._offset)
+            grids.sort(key=lambda a: a._offset)
             f = open(filename, "rb")
             for grid in grids:
                 data[grid.id] = {}
@@ -116,7 +117,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                         # We read it ...
                         f.seek(local_offset, os.SEEK_CUR)
                         v = np.fromfile(f, dtype=dtype, count=count)
-                        v = v.reshape(grid.ActiveDimensions, order='F')
+                        v = v.reshape(grid.ActiveDimensions, order="F")
                         data[grid.id][field] = v
                         local_offset = 0
                     else:
@@ -128,7 +129,7 @@ class IOHandlerBoxlib(BaseIOHandler):
             yield rv
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        for chunk in chunks: # These should be organized by grid filename
+        for chunk in chunks:  # These should be organized by grid filename
             for g in chunk.objs:
                 for ptype, field_list in sorted(ptf.items()):
                     npart = g._pdata[ptype]["NumberOfParticles"]
@@ -141,16 +142,19 @@ class IOHandlerBoxlib(BaseIOHandler):
 
                     with open(fn, "rb") as f:
                         # read in the position fields for selection
-                        f.seek(offset + 
-                               pheader.particle_int_dtype.itemsize * npart)
-                        rdata = np.fromfile(f, pheader.real_type, pheader.num_real * npart)
-                        x = np.asarray(rdata[0::pheader.num_real], dtype=np.float64)
-                        y = np.asarray(rdata[1::pheader.num_real], dtype=np.float64)
-                        if (g.ds.dimensionality == 2):
+                        f.seek(offset + pheader.particle_int_dtype.itemsize * npart)
+                        rdata = np.fromfile(
+                            f, pheader.real_type, pheader.num_real * npart
+                        )
+                        x = np.asarray(rdata[0 :: pheader.num_real], dtype=np.float64)
+                        y = np.asarray(rdata[1 :: pheader.num_real], dtype=np.float64)
+                        if g.ds.dimensionality == 2:
                             z = np.ones_like(y)
-                            z *= 0.5*(g.LeftEdge[2] + g.RightEdge[2])
+                            z *= 0.5 * (g.LeftEdge[2] + g.RightEdge[2])
                         else:
-                            z = np.asarray(rdata[2::pheader.num_real], dtype=np.float64)
+                            z = np.asarray(
+                                rdata[2 :: pheader.num_real], dtype=np.float64
+                            )
 
                         if selector is None:
                             # This only ever happens if the call is made from
@@ -162,28 +166,37 @@ class IOHandlerBoxlib(BaseIOHandler):
                             continue
                         for field in field_list:
                             # handle the case that this is an integer field
-                            int_fnames = [fname for _, fname in pheader.known_int_fields]
+                            int_fnames = [
+                                fname for _, fname in pheader.known_int_fields
+                            ]
                             if field in int_fnames:
                                 ind = int_fnames.index(field)
                                 f.seek(offset)
-                                idata = np.fromfile(f, pheader.int_type,
-                                                    pheader.num_int * npart)
-                                data = np.asarray(idata[ind::pheader.num_int],
-                                                  dtype=np.float64)
+                                idata = np.fromfile(
+                                    f, pheader.int_type, pheader.num_int * npart
+                                )
+                                data = np.asarray(
+                                    idata[ind :: pheader.num_int], dtype=np.float64
+                                )
                                 yield (ptype, field), data[mask].flatten()
 
                             # handle case that this is a real field
-                            real_fnames = [fname for _, fname in pheader.known_real_fields]
+                            real_fnames = [
+                                fname for _, fname in pheader.known_real_fields
+                            ]
                             if field in real_fnames:
-                                ind = real_fnames.index(field)                            
-                                data = np.asarray(rdata[ind::pheader.num_real],
-                                                  dtype=np.float64)
+                                ind = real_fnames.index(field)
+                                data = np.asarray(
+                                    rdata[ind :: pheader.num_real], dtype=np.float64
+                                )
                                 yield (ptype, field), data[mask].flatten()
+
 
 class IOHandlerOrion(IOHandlerBoxlib):
     _dataset_type = "orion_native"
 
     _particle_filename = None
+
     @property
     def particle_filename(self):
         fn = self.ds.output_dir + "/StarParticles"
@@ -193,6 +206,7 @@ class IOHandlerOrion(IOHandlerBoxlib):
         return self._particle_filename
 
     _particle_field_index = None
+
     @property
     def particle_field_index(self):
 
@@ -237,7 +251,7 @@ class IOHandlerOrion(IOHandlerBoxlib):
             return np.array(particles)
 
         def read(line, field):
-            entry = line.strip().split(' ')[self.particle_field_index[field]]
+            entry = line.strip().split(" ")[self.particle_field_index[field]]
             return np.float(entry)
 
         try:
@@ -248,7 +262,7 @@ class IOHandlerOrion(IOHandlerBoxlib):
             return np.array(particles)
         except AttributeError:
             fn = self.particle_filename
-            with open(fn, 'r') as f:
+            with open(fn, "r") as f:
                 lines = f.readlines()
                 self._cached_lines = lines
                 for num in grid._particle_line_numbers:

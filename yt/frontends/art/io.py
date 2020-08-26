@@ -1,44 +1,22 @@
-"""
-ART-specific IO
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-
-import numpy as np
 import os
 import os.path
-import sys
-
 from collections import defaultdict
+from functools import partial
 
-if sys.version_info >= (3,0,0):
-    long = int
+import numpy as np
 
-from yt.frontends.art.definitions import \
-    particle_star_fields, \
-    particle_fields, \
-    star_struct, \
-    hydro_struct
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
+from yt.frontends.art.definitions import (
+    hydro_struct,
+    particle_fields,
+    particle_star_fields,
+    star_struct,
+)
+from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.fortran_utils import read_vector, skip
+from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
-from yt.utilities.fortran_utils import \
-    read_vector, \
-    skip
-from yt.units.yt_array import \
-    YTQuantity, \
-    YTArray
+from yt.utilities.logger import ytLogger as mylog
+
 
 class IOHandlerART(BaseIOHandler):
     _dataset_type = "art"
@@ -72,9 +50,15 @@ class IOHandlerART(BaseIOHandler):
                 rv = subset.fill(f, fields, selector)
                 for ft, f in fields:
                     d = rv.pop(f)
-                    mylog.debug("Filling %s with %s (%0.3e %0.3e) (%s:%s)",
-                                f, d.size, d.min(), d.max(),
-                                cp, cp+d.size)
+                    mylog.debug(
+                        "Filling %s with %s (%0.3e %0.3e) (%s:%s)",
+                        f,
+                        d.size,
+                        d.min(),
+                        d.max(),
+                        cp,
+                        cp + d.size,
+                    )
                     tr[(ft, f)].append(d)
                 cp += d.size
         d = {}
@@ -86,8 +70,8 @@ class IOHandlerART(BaseIOHandler):
         key = (selector, ftype)
         if key in self.masks.keys() and self.caching:
             return self.masks[key]
-        pstr = 'particle_position_%s'
-        x,y,z = [self._get_field((ftype, pstr % ax)) for ax in 'xyz']
+        pstr = "particle_position_%s"
+        x, y, z = [self._get_field((ftype, pstr % ax)) for ax in "xyz"]
         mask = selector.select_points(x, y, z, 0.0)
         if self.caching:
             self.masks[key] = mask
@@ -97,8 +81,8 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        for chunk in chunks:
-            for ptype, field_list in sorted(ptf.items()):
+        for _chunk in chunks:
+            for ptype in sorted(ptf):
                 x = self._get_field((ptype, "particle_position_x"))
                 y = self._get_field((ptype, "particle_position_y"))
                 z = self._get_field((ptype, "particle_position_z"))
@@ -106,18 +90,19 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        for chunk in chunks:
+        for _chunk in chunks:
             for ptype, field_list in sorted(ptf.items()):
                 x = self._get_field((ptype, "particle_position_x"))
                 y = self._get_field((ptype, "particle_position_y"))
                 z = self._get_field((ptype, "particle_position_z"))
                 mask = selector.select_points(x, y, z, 0.0)
-                if mask is None: continue
+                if mask is None:
+                    continue
                 for field in field_list:
                     data = self._get_field((ptype, field))
                     yield (ptype, field), data[mask]
 
-    def _get_field(self,  field):
+    def _get_field(self, field):
         if field in self.cache.keys() and self.caching:
             mylog.debug("Cached %s", str(field))
             return self.cache[field]
@@ -125,42 +110,41 @@ class IOHandlerART(BaseIOHandler):
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(self.ds, ftype,
-                                                  self.ls, ptmax)
+        pbool, idxa, idxb = _determine_field_size(self.ds, ftype, self.ls, ptmax)
         npa = idxb - idxa
         sizes = np.diff(np.concatenate(([0], self.ls)))
-        rp = lambda ax: read_particles(
-            self.file_particle, self.Nrow, idxa=idxa,
-            idxb=idxb, fields=ax)
-        for i, ax in enumerate('xyz'):
-            if fname.startswith("particle_position_%s" % ax):
+        rp = partial(
+            read_particles, self.file_particle, self.Nrow, idxa=idxa, idxb=idxb
+        )
+        for ax in "xyz":
+            if fname.startswith(f"particle_position_{ax}"):
                 dd = self.ds.domain_dimensions[0]
-                off = 1.0/dd
-                tr[field] = rp([ax])[0]/dd - off
-            if fname.startswith("particle_velocity_%s" % ax):
-                tr[field], = rp(['v'+ax])
+                off = 1.0 / dd
+                tr[field] = rp(fields=[ax])[0] / dd - off
+            if fname.startswith(f"particle_velocity_{ax}"):
+                (tr[field],) = rp(["v" + ax])
         if fname.startswith("particle_mass"):
             a = 0
-            data = np.zeros(npa, dtype='f8')
+            data = np.zeros(npa, dtype="f8")
             for ptb, size, m in zip(pbool, sizes, self.ws):
                 if ptb:
-                    data[a:a+size] = m
+                    data[a : a + size] = m
                     a += size
             tr[field] = data
         elif fname == "particle_index":
             tr[field] = np.arange(idxa, idxb)
         elif fname == "particle_type":
             a = 0
-            data = np.zeros(npa, dtype='int')
+            data = np.zeros(npa, dtype="int")
             for i, (ptb, size) in enumerate(zip(pbool, sizes)):
                 if ptb:
-                    data[a: a + size] = i
+                    data[a : a + size] = i
                     a += size
             tr[field] = data
         if pbool[-1] and fname in particle_star_fields:
             data = read_star_field(self.file_stars, field=fname)
-            temp = tr.get(field, np.zeros(npa, 'f8'))
-            nstars = self.ls[-1]-self.ls[-2]
+            temp = tr.get(field, np.zeros(npa, "f8"))
+            nstars = self.ls[-1] - self.ls[-2]
             if nstars > 0:
                 temp[-nstars:] = data
             tr[field] = temp
@@ -170,8 +154,9 @@ class IOHandlerART(BaseIOHandler):
                 self.file_stars,
                 self.tb,
                 self.ages,
-                self.ds.current_time)
-            temp = tr.get(field, np.zeros(npa, 'f8'))
+                self.ds.current_time,
+            )
+            temp = tr.get(field, np.zeros(npa, "f8"))
             temp[-nstars:] = data
             tr[field] = temp
             del data
@@ -190,25 +175,34 @@ class IOHandlerART(BaseIOHandler):
         else:
             return tr[field]
 
+
 class IOHandlerDarkMatterART(IOHandlerART):
     _dataset_type = "dm_art"
+
     def _count_particles(self, data_file):
-        return self.ds.parameters['lspecies'][-1]
+        return {
+            k: self.ds.parameters["lspecies"][i]
+            for i, k in enumerate(self.ds.particle_types_raw)
+        }
 
     def _initialize_index(self, data_file, regions):
-        totcount = 4096**2 #file is always this size
-        count = data_file.ds.parameters['lspecies'][-1]
+        totcount = 4096 ** 2  # file is always this size
+        count = data_file.ds.parameters["lspecies"][-1]
         DLE = data_file.ds.domain_left_edge
         DRE = data_file.ds.domain_right_edge
         with open(data_file.filename, "rb") as f:
             # The first total_particles * 3 values are positions
-            pp = np.fromfile(f, dtype = '>f4', count = totcount*3)
+            pp = np.fromfile(f, dtype=">f4", count=totcount * 3)
             pp.shape = (3, totcount)
-            pp = pp[:,:count] #remove zeros
-            pp = np.transpose(pp).astype(np.float32) #cast as float32 for compute_morton
-            pp = (pp - 1.)/data_file.ds.parameters['ng'] #correct the dm particle units
+            pp = pp[:, :count]  # remove zeros
+            pp = np.transpose(pp).astype(
+                np.float32
+            )  # cast as float32 for compute_morton
+            pp = (pp - 1.0) / data_file.ds.parameters[
+                "ng"
+            ]  # correct the dm particle units
         regions.add_data_file(pp, data_file.file_id)
-        morton = compute_morton(pp[:,0], pp[:,1], pp[:,2], DLE, DRE)
+        morton = compute_morton(pp[:, 0], pp[:, 1], pp[:, 2], DLE, DRE)
         return morton
 
     def _identify_fields(self, domain):
@@ -220,7 +214,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
                 field_list.append(pfn)
         return field_list, {}
 
-    def _get_field(self,  field):
+    def _get_field(self, field):
         if field in self.cache.keys() and self.caching:
             mylog.debug("Cached %s", str(field))
             return self.cache[field]
@@ -228,37 +222,36 @@ class IOHandlerDarkMatterART(IOHandlerART):
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
-        pbool, idxa, idxb = _determine_field_size(self.ds, ftype,
-                                                  self.ls, ptmax)
+        pbool, idxa, idxb = _determine_field_size(self.ds, ftype, self.ls, ptmax)
         npa = idxb - idxa
         sizes = np.diff(np.concatenate(([0], self.ls)))
-        rp = lambda ax: read_particles(
-            self.file_particle, self.Nrow, idxa=idxa,
-            idxb=idxb, fields=ax)
-        for i, ax in enumerate('xyz'):
-            if fname.startswith("particle_position_%s" % ax):
+        rp = partial(
+            read_particles, self.file_particle, self.Nrow, idxa=idxa, idxb=idxb
+        )
+        for ax in "xyz":
+            if fname.startswith(f"particle_position_{ax}"):
                 # This is not the same as domain_dimensions
-                dd = self.ds.parameters['ng']
-                off = 1.0/dd
-                tr[field] = rp([ax])[0]/dd - off
-            if fname.startswith("particle_velocity_%s" % ax):
-                tr[field], = rp(['v'+ax])
+                dd = self.ds.parameters["ng"]
+                off = 1.0 / dd
+                tr[field] = rp(fields=[ax])[0] / dd - off
+            if fname.startswith(f"particle_velocity_{ax}"):
+                (tr[field],) = rp(["v" + ax])
         if fname.startswith("particle_mass"):
             a = 0
-            data = np.zeros(npa, dtype='f8')
+            data = np.zeros(npa, dtype="f8")
             for ptb, size, m in zip(pbool, sizes, self.ws):
                 if ptb:
-                    data[a:a+size] = m
+                    data[a : a + size] = m
                     a += size
             tr[field] = data
         elif fname == "particle_index":
             tr[field] = np.arange(idxa, idxb)
         elif fname == "particle_type":
             a = 0
-            data = np.zeros(npa, dtype='int')
+            data = np.zeros(npa, dtype="int")
             for i, (ptb, size) in enumerate(zip(pbool, sizes)):
                 if ptb:
-                    data[a: a + size] = i
+                    data[a : a + size] = i
                     a += size
             tr[field] = data
         # We check again, after it's been filled
@@ -276,10 +269,18 @@ class IOHandlerDarkMatterART(IOHandlerART):
         else:
             return tr[field]
 
+    def _yield_coordinates(self, data_file):
+        for ptype in self.ds.particle_types_raw:
+            x = self._get_field((ptype, "particle_position_x"))
+            y = self._get_field((ptype, "particle_position_y"))
+            z = self._get_field((ptype, "particle_position_z"))
+
+            yield ptype, np.stack((x, y, z), axis=-1)
+
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
-    idxas = np.concatenate(([0, ], lspecies[:-1]))
+    idxas = np.concatenate(([0,], lspecies[:-1]))
     idxbs = lspecies
     if "specie" in field:
         index = int(field.replace("specie", ""))
@@ -290,59 +291,59 @@ def _determine_field_size(pf, field, lspecies, ptmax):
     return pbool, idxa, idxb
 
 
-def interpolate_ages(data, file_stars, interp_tb=None, interp_ages=None,
-                     current_time=None):
+def interpolate_ages(
+    data, file_stars, interp_tb=None, interp_ages=None, current_time=None
+):
     if interp_tb is None:
-        t_stars, a_stars = read_star_field(file_stars,
-                                     field="t_stars")
+        t_stars, a_stars = read_star_field(file_stars, field="t_stars")
         # timestamp of file should match amr timestamp
         if current_time:
-            tdiff = YTQuantity(b2t(t_stars), 'Gyr') - current_time.in_units('Gyr')
+            tdiff = YTQuantity(b2t(t_stars), "Gyr") - current_time.in_units("Gyr")
             if np.abs(tdiff) > 1e-4:
-                mylog.info("Timestamp mismatch in star " +
-                           "particle header: %s", tdiff)
+                mylog.info("Timestamp mismatch in star particle header: %s", tdiff)
         mylog.info("Interpolating ages")
         interp_tb, interp_ages = b2t(data)
-        interp_tb = YTArray(interp_tb, 'Gyr')
-        interp_ages = YTArray(interp_ages, 'Gyr')
+        interp_tb = YTArray(interp_tb, "Gyr")
+        interp_ages = YTArray(interp_ages, "Gyr")
     temp = np.interp(data, interp_tb, interp_ages)
     return interp_tb, interp_ages, temp
 
 
-def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
-                         ncell0=None, root_level=None):
+def _read_art_level_info(
+    f, level_oct_offsets, level, coarse_grid=128, ncell0=None, root_level=None
+):
     pos = f.tell()
     f.seek(level_oct_offsets[level])
     # Get the info for this level, skip the rest
-    junk, nLevel, iOct = read_vector(f, 'i', '>')
+    junk, nLevel, iOct = read_vector(f, "i", ">")
 
     # fortran indices start at 1
 
     # Skip all the oct index data
-    le = np.zeros((nLevel, 3), dtype='int64')
-    fl = np.ones((nLevel, 6), dtype='int64')
-    iocts = np.zeros(nLevel+1, dtype='int64')
+    le = np.zeros((nLevel, 3), dtype="int64")
+    fl = np.ones((nLevel, 6), dtype="int64")
+    iocts = np.zeros(nLevel + 1, dtype="int64")
     idxa, idxb = 0, 0
-    chunk = long(1e6)  # this is ~111MB for 15 dimensional 64 bit arrays
+    chunk = int(1e6)  # this is ~111MB for 15 dimensional 64 bit arrays
     left = nLevel
     while left > 0:
         this_chunk = min(chunk, left)
-        idxb = idxa+this_chunk
-        data = np.fromfile(f, dtype='>i', count=this_chunk*15)
+        idxb = idxa + this_chunk
+        data = np.fromfile(f, dtype=">i", count=this_chunk * 15)
         data = data.reshape(this_chunk, 15)
         left -= this_chunk
         le[idxa:idxb, :] = data[:, 1:4]
         fl[idxa:idxb, 1] = np.arange(idxa, idxb)
         # pad byte is last, LL2, then ioct right before it
         iocts[idxa:idxb] = data[:, -3]
-        idxa = idxa+this_chunk
+        idxa = idxa + this_chunk
     del data
 
     # emulate fortran code
     #     do ic1 = 1 , nLevel
     #       read(19) (iOctPs(i,iOct),i=1,3),(iOctNb(i,iOct),i=1,6),
-    #&                iOctPr(iOct), iOctLv(iOct), iOctLL1(iOct),
-    #&                iOctLL2(iOct)
+    # &                iOctPr(iOct), iOctLv(iOct), iOctLL1(iOct),
+    # &                iOctLL2(iOct)
     #       iOct = iOctLL1(iOct)
 
     # ioct always represents the index of the next variable
@@ -353,7 +354,7 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
     iocts[0] = iOct  # starting value
 
     # now correct iocts for fortran indices start @ 1
-    iocts = iocts-1
+    iocts = iocts - 1
 
     assert np.unique(iocts).shape[0] == nLevel
 
@@ -364,13 +365,14 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
 
     # try to find the root_level first
     def cfc(root_level, level, le):
-        d_x = 1.0/(2.0**(root_level-level+1))
-        fc = (d_x * le) - 2**(level-1)
+        d_x = 1.0 / (2.0 ** (root_level - level + 1))
+        fc = (d_x * le) - 2 ** (level - 1)
         return fc
+
     if root_level is None:
-        root_level = np.floor(np.log2(le.max()*1.0/coarse_grid))
-        root_level = root_level.astype('int64')
-        for i in range(10):
+        root_level = np.floor(np.log2(le.max() * 1.0 / coarse_grid))
+        root_level = root_level.astype("int64")
+        for _ in range(10):
             fc = cfc(root_level, level, le)
             go = np.diff(np.unique(fc)).min() < 1.1
             if go:
@@ -378,7 +380,7 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
             root_level += 1
     else:
         fc = cfc(root_level, level, le)
-    unitary_center = fc/(coarse_grid*2.0**(level-1))
+    unitary_center = fc / (coarse_grid * 2.0 ** (level - 1))
     assert np.all(unitary_center < 1.0)
 
     # again emulate the fortran code
@@ -415,16 +417,18 @@ def _read_art_level_info(f, level_oct_offsets, level, coarse_grid=128,
     f.seek(pos)
     return unitary_center, fl, iocts, nLevel, root_level
 
-def get_ranges(skip, count, field, words=6, real_size=4, np_per_page=4096**2,
-                  num_pages=1):
-    #translate every particle index into a file position ranges
+
+def get_ranges(
+    skip, count, field, words=6, real_size=4, np_per_page=4096 ** 2, num_pages=1
+):
+    # translate every particle index into a file position ranges
     ranges = []
     arr_size = np_per_page * real_size
     idxa, idxb = 0, 0
     posa, posb = 0, 0
-    for page in range(num_pages):
+    for _page in range(num_pages):
         idxb += np_per_page
-        for i, fname in enumerate(['x', 'y', 'z', 'vx', 'vy', 'vz']):
+        for i, fname in enumerate(["x", "y", "z", "vx", "vy", "vz"]):
             posb += arr_size
             if i == field or fname == field:
                 if skip < np_per_page and count > 0:
@@ -447,119 +451,131 @@ def get_ranges(skip, count, field, words=6, real_size=4, np_per_page=4096**2,
 def read_particles(file, Nrow, idxa, idxb, fields):
     words = 6  # words (reals) per particle: x,y,z,vx,vy,vz
     real_size = 4  # for file_particle_data; not always true?
-    np_per_page = Nrow**2  # defined in ART a_setup.h, # of particles/page
-    num_pages = os.path.getsize(file)//(real_size*words*np_per_page)
-    fh = open(file, 'r')
+    np_per_page = Nrow ** 2  # defined in ART a_setup.h, # of particles/page
+    num_pages = os.path.getsize(file) // (real_size * words * np_per_page)
+    fh = open(file, "r")
     skip, count = idxa, idxb - idxa
-    kwargs = dict(words=words, real_size=real_size,
-                  np_per_page=np_per_page, num_pages=num_pages)
+    kwargs = dict(
+        words=words, real_size=real_size, np_per_page=np_per_page, num_pages=num_pages
+    )
     arrs = []
     for field in fields:
         ranges = get_ranges(skip, count, field, **kwargs)
         data = None
         for seek, this_count in ranges:
             fh.seek(seek)
-            temp = np.fromfile(fh, count=this_count, dtype='>f4')
+            temp = np.fromfile(fh, count=this_count, dtype=">f4")
             if data is None:
                 data = temp
             else:
                 data = np.concatenate((data, temp))
-        arrs.append(data.astype('f8'))
+        arrs.append(data.astype("f8"))
     fh.close()
     return arrs
 
 
 def read_star_field(file, field=None):
     data = {}
-    with open(file, 'rb') as fh:
+    with open(file, "rb") as fh:
         for dtype, variables in star_struct:
-            found = (isinstance(variables, tuple) and field in variables) or \
-                field == variables
+            found = (
+                isinstance(variables, tuple) and field in variables
+            ) or field == variables
             if found:
                 data[field] = read_vector(fh, dtype[1], dtype[0])
             else:
-                skip(fh, endian='>')
+                skip(fh, endian=">")
     return data.pop(field)
 
 
 def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
     f.seek(level_child_offsets[level])
-    ioctch = np.zeros(nLevel, dtype='uint8')
-    idc = np.zeros(nLevel, dtype='int32')
+    ioctch = np.zeros(nLevel, dtype="uint8")
+    idc = np.zeros(nLevel, dtype="int32")
 
-    chunk = long(1e6)
+    chunk = int(1e6)
     left = nLevel
-    width = nhydro_vars+6
+    width = nhydro_vars + 6
     a, b = 0, 0
     while left > 0:
         chunk = min(chunk, left)
         b += chunk
-        arr = np.fromfile(f, dtype='>i', count=chunk*width)
+        arr = np.fromfile(f, dtype=">i", count=chunk * width)
         arr = arr.reshape((width, chunk), order="F")
         assert np.all(arr[0, :] == arr[-1, :])  # pads must be equal
-        idc[a:b] = arr[1, :]-1  # fix fortran indexing
-        ioctch[a:b] = arr[
-            2, :] == 0  # if it is above zero, then refined available
+        idc[a:b] = arr[1, :] - 1  # fix fortran indexing
+        ioctch[a:b] = arr[2, :] == 0  # if it is above zero, then refined available
         # zero in the mask means there is refinement available
         a = b
         left -= chunk
     assert left == 0
     return idc, ioctch
 
-nchem = 8+2
-dtyp = np.dtype(">i4,>i8,>i8"+",>%sf4" % (nchem) +
-                ",>%sf4" % (2)+",>i4")
+
+nchem = 8 + 2
+dtyp = np.dtype(">i4,>i8,>i8" + f",>{nchem}f4" + ",>%sf4" % (2) + ",>i4")
 
 
 def _read_child_level(
-    f, level_child_offsets, level_oct_offsets, level_info, level,
-    fields, domain_dimensions, ncell0, nhydro_vars=10, nchild=8,
-        noct_range=None):
+    f,
+    level_child_offsets,
+    level_oct_offsets,
+    level_info,
+    level,
+    fields,
+    domain_dimensions,
+    ncell0,
+    nhydro_vars=10,
+    nchild=8,
+    noct_range=None,
+):
     # emulate the fortran code for reading cell data
     # read ( 19 ) idc, iOctCh(idc), (hvar(i,idc),i=1,nhvar),
     #    &                 (var(i,idc), i=2,3)
     # contiguous 8-cell sections are for the same oct;
     # ie, we don't write out just the 0 cells, then the 1 cells
     # optionally, we only read noct_range to save memory
-    left_index, fl, octs, nocts, root_level = _read_art_level_info(f,
-                                                                   level_oct_offsets, level, coarse_grid=domain_dimensions[0])
+    left_index, fl, octs, nocts, root_level = _read_art_level_info(
+        f, level_oct_offsets, level, coarse_grid=domain_dimensions[0]
+    )
     if noct_range is None:
         nocts = level_info[level]
-        ncells = nocts*8
+        ncells = nocts * 8
         f.seek(level_child_offsets[level])
         arr = np.fromfile(f, dtype=hydro_struct, count=ncells)
-        assert np.all(arr['pad1'] == arr['pad2'])  # pads must be equal
+        assert np.all(arr["pad1"] == arr["pad2"])  # pads must be equal
         # idc = np.argsort(arr['idc']) #correct fortran indices
         # translate idc into icell, and then to iOct
-        icell = (arr['idc'] >> 3) << 3
-        iocts = (icell-ncell0)/nchild  # without a F correction, theres a +1
+        icell = (arr["idc"] >> 3) << 3
+        iocts = (icell - ncell0) / nchild  # without a F correction, theres a +1
         # assert that the children are read in the same order as the octs
         assert np.all(octs == iocts[::nchild])
     else:
         start, end = noct_range
-        nocts = min(end-start, level_info[level])
+        nocts = min(end - start, level_info[level])
         end = start + nocts
-        ncells = nocts*8
-        skip = np.dtype(hydro_struct).itemsize*start*8
-        f.seek(level_child_offsets[level]+skip)
+        ncells = nocts * 8
+        skip = np.dtype(hydro_struct).itemsize * start * 8
+        f.seek(level_child_offsets[level] + skip)
         arr = np.fromfile(f, dtype=hydro_struct, count=ncells)
-        assert np.all(arr['pad1'] == arr['pad2'])  # pads must be equal
+        assert np.all(arr["pad1"] == arr["pad2"])  # pads must be equal
     source = {}
     for field in fields:
         sh = (nocts, 8)
-        source[field] = np.reshape(arr[field], sh, order='C').astype('float64')
+        source[field] = np.reshape(arr[field], sh, order="C").astype("float64")
     return source
 
 
 def _read_root_level(f, level_offsets, level_info, nhydro_vars=10):
     nocts = level_info[0]
     f.seek(level_offsets[0])  # Ditch the header
-    hvar = read_vector(f, 'f', '>')
-    var = read_vector(f, 'f', '>')
-    hvar = hvar.reshape((nhydro_vars, nocts*8), order="F")
-    var = var.reshape((2, nocts*8), order="F")
+    hvar = read_vector(f, "f", ">")
+    var = read_vector(f, "f", ">")
+    hvar = hvar.reshape((nhydro_vars, nocts * 8), order="F")
+    var = var.reshape((2, nocts * 8), order="F")
     arr = np.concatenate((hvar, var))
     return arr
+
 
 # All of these functions are to convert from hydro time var to
 # proper time
@@ -568,21 +584,21 @@ sign = np.sign
 
 
 def find_root(f, a, b, tol=1e-6):
-    c = (a+b)/2.0
+    c = (a + b) / 2.0
     last = -np.inf
-    assert(sign(f(a)) != sign(f(b)))
-    while np.abs(f(c)-last) > tol:
+    assert sign(f(a)) != sign(f(b))
+    while np.abs(f(c) - last) > tol:
         last = f(c)
         if sign(last) == sign(f(b)):
             b = c
         else:
             a = c
-        c = (a+b)/2.0
+        c = (a + b) / 2.0
     return c
 
 
 def quad(fintegrand, xmin, xmax, n=1e4):
-    spacings = np.logspace(np.log10(xmin), np.log10(xmax), n)
+    spacings = np.logspace(np.log10(xmin), np.log10(xmax), num=int(n))
     integrand_arr = fintegrand(spacings)
     val = np.trapz(integrand_arr, dx=np.diff(spacings))
     return val
@@ -590,9 +606,10 @@ def quad(fintegrand, xmin, xmax, n=1e4):
 
 def a2b(at, Om0=0.27, Oml0=0.73, h=0.700):
     def f_a2b(x):
-        val = 0.5*sqrt(Om0) / x**3.0
-        val /= sqrt(Om0/x**3.0 + Oml0 + (1.0 - Om0-Oml0)/x**2.0)
+        val = 0.5 * sqrt(Om0) / x ** 3.0
+        val /= sqrt(Om0 / x ** 3.0 + Oml0 + (1.0 - Om0 - Oml0) / x ** 2.0)
         return val
+
     # val, err = si.quad(f_a2b,1,at)
     val = quad(f_a2b, 1, at)
     return val
@@ -602,20 +619,24 @@ def b2a(bt, **kwargs):
     # converts code time into expansion factor
     # if Om0 ==1and OmL == 0 then b2a is (1 / (1-td))**2
     # if bt < -190.0 or bt > -.10:  raise 'bt outside of range'
-    f_b2a = lambda at: a2b(at, **kwargs)-bt
+    def f_b2a(at):
+        return a2b(at, **kwargs) - bt
+
     return find_root(f_b2a, 1e-4, 1.1)
     # return so.brenth(f_b2a,1e-4,1.1)
     # return brent.brent(f_b2a)
 
 
 def a2t(at, Om0=0.27, Oml0=0.73, h=0.700):
-    integrand = lambda x: 1./(x*sqrt(Oml0+Om0*x**-3.0))
+    def integrand(x):
+        return 1.0 / (x * sqrt(Oml0 + Om0 * x ** -3.0))
+
     # current_time,err = si.quad(integrand,0.0,at,epsabs=1e-6,epsrel=1e-6)
     current_time = quad(integrand, 1e-4, at)
-    # spacings = np.logspace(-5,np.log10(at),1e5)
+    # spacings = np.logspace(-5,np.log10(at),num=int(1e5))
     # integrand_arr = integrand(spacings)
     # current_time = np.trapz(integrand_arr,dx=np.diff(spacings))
-    current_time *= 9.779/h
+    current_time *= 9.779 / h
     return current_time
 
 
@@ -627,11 +648,10 @@ def b2t(tb, n=1e2, logger=None, **kwargs):
         return a2t(b2a(tb))
     if len(tb) < n:
         n = len(tb)
-    tbs = -1.*np.logspace(np.log10(-tb.min()),
-                          np.log10(-tb.max()), n)
+    tbs = -1.0 * np.logspace(np.log10(-tb.min()), np.log10(-tb.max()), n)
     ages = []
     for i, tbi in enumerate(tbs):
-        ages += a2t(b2a(tbi)),
+        ages += (a2t(b2a(tbi)),)
         if logger:
             logger(i)
     ages = np.array(ages)

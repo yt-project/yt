@@ -126,12 +126,12 @@ Executing and Scripting yt
 yt is written almost entirely in python and it functions as a library
 that you can import into your python scripts.  There is full docstring
 documentation for all of the major classes and functions in the :ref:`API docs
-<api-reference>`.  yt has support for :ref:`running in iPython and for running
-iPython notebooks <interactive-prompt>` for fully interactive sessions both
+<api-reference>`.  yt has support for :ref:`running in IPython and for running
+IPython notebooks <interactive-prompt>` for fully interactive sessions both
 locally and on remote supercomputers.  yt also has a number of ways it can
 be :ref:`executed at the command line <command-line>` for simple tasks like
 automatically loading a dataset, updating the yt sourcecode, starting an
-iPython notebook, or uploading scripts and images to public locations.  There
+IPython notebook, or uploading scripts and images to public locations.  There
 is an optional :ref:`yt configuration file <configuration-file>` you can
 modify for controlling local settings like color, logging, output settings.
 There is also an optional :ref:`yt plugin file <plugin-file>` you can create

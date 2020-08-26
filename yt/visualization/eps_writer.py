@@ -1,36 +1,21 @@
-"""
-DualEPS: A class to combine bitmap compression and vector graphics
-
-
-
-"""
-from __future__ import absolute_import, print_function
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-import pyx
 import numpy as np
-from matplotlib import cm
-import matplotlib.pyplot as plt
+import pyx
+from matplotlib import cm, pyplot as plt
 
-from yt.config import \
-    ytcfg
+from yt.config import ytcfg
+from yt.funcs import issue_deprecation_warning
+from yt.units.unit_object import Unit
+from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
+
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot, ProfilePlot
-from yt.units.yt_array import YTQuantity
-from yt.units.unit_object import Unit
-from yt.funcs import issue_deprecation_warning
+
 
 def convert_frac_to_tex(string):
-    frac_pos = string.find(r'\frac')
-    result = string[frac_pos+5:]
-    level = [0]*len(result)
+    frac_pos = string.find(r"\frac")
+    result = string[frac_pos + 5 :]
+    level = [0] * len(result)
     clevel = 0
     for i in range(len(result)):
         if result[i] == "{":
@@ -39,26 +24,33 @@ def convert_frac_to_tex(string):
             clevel -= 1
         level[i] = clevel
     div_pos = level.index(0)
-    end_pos = level.index(0,div_pos+1)
-    result = r'${' + result[:div_pos+1] + r'\over' + result[div_pos+1:end_pos] + \
-             r'}$' + result[end_pos:]
-    result = result.replace(r'\ ', r'\;')
+    end_pos = level.index(0, div_pos + 1)
+    result = (
+        r"${"
+        + result[: div_pos + 1]
+        + r"\over"
+        + result[div_pos + 1 : end_pos]
+        + r"}$"
+        + result[end_pos:]
+    )
+    result = result.replace(r"\ ", r"\;")
     return result
 
+
 def pyxize_label(string):
-    frac_pos = string.find(r'\frac')
+    frac_pos = string.find(r"\frac")
     if frac_pos >= 0:
         pre = string[:frac_pos]
         result = pre + convert_frac_to_tex(string)
     else:
         result = string
-    result = result.replace('$', '')
-    result = r'$' + result + r'$'
+    result = result.replace("$", "")
+    result = r"$" + result + r"$"
     return result
 
 
-class DualEPS(object):
-    def __init__(self, figsize=(12,12)):
+class DualEPS:
+    def __init__(self, figsize=(12, 12)):
         r"""Initializes the DualEPS class to which we can progressively add layers
         of vector graphics and compressed bitmaps.
 
@@ -79,11 +71,11 @@ class DualEPS(object):
         """
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
-        p = pyx.path.line(0,0,1,1)
+        p = pyx.path.line(0, 0, 1, 1)
         self.canvas.stroke(p)
-        self.canvas.text(0,0, "Hello world.")
+        self.canvas.text(0, 0, "Hello world.")
 
-#=============================================================================
+    # =============================================================================
 
     def return_field(self, plot):
         if isinstance(plot, (PlotWindow, PhasePlot)):
@@ -91,12 +83,25 @@ class DualEPS(object):
         else:
             return None
 
-#=============================================================================
+    # =============================================================================
 
-    def axis_box(self, xrange=(0,1), yrange=(0,1), xlabel="", ylabel="",
-                 xlog=False, ylog=False, xdata=None, ydata=None,
-                 tickcolor=None, bare_axes=False,
-                 pos=(0,0), xaxis_side=0, yaxis_side=0, size=None):
+    def axis_box(
+        self,
+        xrange=(0, 1),
+        yrange=(0, 1),
+        xlabel="",
+        ylabel="",
+        xlog=False,
+        ylog=False,
+        xdata=None,
+        ydata=None,
+        tickcolor=None,
+        bare_axes=False,
+        pos=(0, 0),
+        xaxis_side=0,
+        yaxis_side=0,
+        size=None,
+    ):
         r"""Draws an axis box in the figure.
 
         Parameters
@@ -135,25 +140,24 @@ class DualEPS(object):
         >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
         >>> d.save_fig()
         """
-        
+
         if isinstance(xrange[0], YTQuantity):
             xrange = (xrange[0].value, xrange[1].value)
         if isinstance(yrange[0], YTQuantity):
             yrange = (yrange[0].value, yrange[1].value)
         if tickcolor is None:
-            c1 = pyx.graph.axis.painter.regular\
-                 (tickattrs=[pyx.color.cmyk.black])
-            c2 = pyx.graph.axis.painter.regular\
-                 (tickattrs=[pyx.color.cmyk.black], labelattrs=None)
+            c1 = pyx.graph.axis.painter.regular(tickattrs=[pyx.color.cmyk.black])
+            c2 = pyx.graph.axis.painter.regular(
+                tickattrs=[pyx.color.cmyk.black], labelattrs=None
+            )
         else:
             c1 = pyx.graph.axis.painter.regular(tickattrs=[tickcolor])
-            c2 = pyx.graph.axis.painter.regular\
-                 (tickattrs=[tickcolor], labelattrs=None)
+            c2 = pyx.graph.axis.painter.regular(tickattrs=[tickcolor], labelattrs=None)
 
         if size is None:
             psize = self.figsize
         else:
-            psize = (size[0]*self.figsize[0], size[1]*self.figsize[1])
+            psize = (size[0] * self.figsize[0], size[1] * self.figsize[1])
 
         xticklabels = True
         yticklabels = True
@@ -189,100 +193,160 @@ class DualEPS(object):
             yrightlabel = ""
             c1y = c1
             c2y = c2
-        
 
-     
         if xlog:
             if xticklabels:
-                xaxis = pyx.graph.axis.log(min=xrange[0],max=xrange[1],
-                                           title=xleftlabel, painter=c1x)
-                xaxis2 = pyx.graph.axis.log(min=xrange[0],max=xrange[1],
-                                            title=xrightlabel, painter=c2x)
+                xaxis = pyx.graph.axis.log(
+                    min=xrange[0], max=xrange[1], title=xleftlabel, painter=c1x
+                )
+                xaxis2 = pyx.graph.axis.log(
+                    min=xrange[0], max=xrange[1], title=xrightlabel, painter=c2x
+                )
             else:
-                xaxis = pyx.graph.axis.log(min=xrange[0],max=xrange[1],
-                                           title=xleftlabel, painter=c1x,
-                                           parter=None)
-                xaxis2 = pyx.graph.axis.log(min=xrange[0],max=xrange[1],
-                                            title=xrightlabel, painter=c2x,
-                                            parter=None)
+                xaxis = pyx.graph.axis.log(
+                    min=xrange[0],
+                    max=xrange[1],
+                    title=xleftlabel,
+                    painter=c1x,
+                    parter=None,
+                )
+                xaxis2 = pyx.graph.axis.log(
+                    min=xrange[0],
+                    max=xrange[1],
+                    title=xrightlabel,
+                    painter=c2x,
+                    parter=None,
+                )
         else:
             if xticklabels:
-                xaxis = pyx.graph.axis.lin(min=xrange[0],max=xrange[1],
-                                           title=xleftlabel, painter=c1x)
-                xaxis2 = pyx.graph.axis.lin(min=xrange[0],max=xrange[1],
-                                            title=xrightlabel, painter=c2x)
+                xaxis = pyx.graph.axis.lin(
+                    min=xrange[0], max=xrange[1], title=xleftlabel, painter=c1x
+                )
+                xaxis2 = pyx.graph.axis.lin(
+                    min=xrange[0], max=xrange[1], title=xrightlabel, painter=c2x
+                )
             else:
-                xaxis = pyx.graph.axis.lin(min=xrange[0],max=xrange[1],
-                                           title=xleftlabel, painter=c1x,
-                                           parter=None)
-                xaxis2 = pyx.graph.axis.lin(min=xrange[0],max=xrange[1],
-                                            title=xrightlabel, painter=c2x,
-                                            parter=None)
+                xaxis = pyx.graph.axis.lin(
+                    min=xrange[0],
+                    max=xrange[1],
+                    title=xleftlabel,
+                    painter=c1x,
+                    parter=None,
+                )
+                xaxis2 = pyx.graph.axis.lin(
+                    min=xrange[0],
+                    max=xrange[1],
+                    title=xrightlabel,
+                    painter=c2x,
+                    parter=None,
+                )
         if ylog:
             if yticklabels:
-                yaxis = pyx.graph.axis.log(min=yrange[0],max=yrange[1],
-                                           title=yleftlabel, painter=c1y)
-                yaxis2 = pyx.graph.axis.log(min=yrange[0],max=yrange[1],
-                                            title=yrightlabel, painter=c2y)
+                yaxis = pyx.graph.axis.log(
+                    min=yrange[0], max=yrange[1], title=yleftlabel, painter=c1y
+                )
+                yaxis2 = pyx.graph.axis.log(
+                    min=yrange[0], max=yrange[1], title=yrightlabel, painter=c2y
+                )
             else:
-                yaxis = pyx.graph.axis.log(min=yrange[0],max=yrange[1],
-                                           title=yleftlabel, painter=c1y,
-                                           parter=None)
-                yaxis2 = pyx.graph.axis.log(min=yrange[0],max=yrange[1],
-                                            title=yrightlabel, painter=c2y,
-                                            parter=None)
+                yaxis = pyx.graph.axis.log(
+                    min=yrange[0],
+                    max=yrange[1],
+                    title=yleftlabel,
+                    painter=c1y,
+                    parter=None,
+                )
+                yaxis2 = pyx.graph.axis.log(
+                    min=yrange[0],
+                    max=yrange[1],
+                    title=yrightlabel,
+                    painter=c2y,
+                    parter=None,
+                )
         else:
             if yticklabels:
-                yaxis = pyx.graph.axis.lin(min=yrange[0],max=yrange[1],
-                                           title=yleftlabel, painter=c1y)
-                yaxis2 = pyx.graph.axis.lin(min=yrange[0],max=yrange[1],
-                                            title=yrightlabel, painter=c2y)
+                yaxis = pyx.graph.axis.lin(
+                    min=yrange[0], max=yrange[1], title=yleftlabel, painter=c1y
+                )
+                yaxis2 = pyx.graph.axis.lin(
+                    min=yrange[0], max=yrange[1], title=yrightlabel, painter=c2y
+                )
             else:
-                yaxis = pyx.graph.axis.lin(min=yrange[0],max=yrange[1],
-                                           title=yleftlabel, painter=c1y,
-                                           parter=None)
-                yaxis2 = pyx.graph.axis.lin(min=yrange[0],max=yrange[1],
-                                            title=yrightlabel, painter=c2y,
-                                            parter=None)
+                yaxis = pyx.graph.axis.lin(
+                    min=yrange[0],
+                    max=yrange[1],
+                    title=yleftlabel,
+                    painter=c1y,
+                    parter=None,
+                )
+                yaxis2 = pyx.graph.axis.lin(
+                    min=yrange[0],
+                    max=yrange[1],
+                    title=yrightlabel,
+                    painter=c2y,
+                    parter=None,
+                )
 
         if bare_axes:
             if ylog:
-                yaxis = pyx.graph.axis.log(min=yrange[0], max=yrange[1],
-                                           title=yleftlabel, parter=None)
-                yaxis2 = pyx.graph.axis.log(min=yrange[0], max=yrange[1],
-                                            title=yrightlabel, parter=None)
+                yaxis = pyx.graph.axis.log(
+                    min=yrange[0], max=yrange[1], title=yleftlabel, parter=None
+                )
+                yaxis2 = pyx.graph.axis.log(
+                    min=yrange[0], max=yrange[1], title=yrightlabel, parter=None
+                )
             else:
-                yaxis = pyx.graph.axis.lin(min=yrange[0], max=yrange[1],
-                                           title=yleftlabel, parter=None)
-                yaxis2 = pyx.graph.axis.lin(min=yrange[0], max=yrange[1],
-                                            title=yrightlabel, parter=None)
+                yaxis = pyx.graph.axis.lin(
+                    min=yrange[0], max=yrange[1], title=yleftlabel, parter=None
+                )
+                yaxis2 = pyx.graph.axis.lin(
+                    min=yrange[0], max=yrange[1], title=yrightlabel, parter=None
+                )
             if xlog:
-                xaxis = pyx.graph.axis.log(min=xrange[0], max=xrange[1],
-                                           title=xleftlabel, parter=None)
-                xaxis2 = pyx.graph.axis.log(min=xrange[0], max=xrange[1],
-                                            title=xrightlabel, parter=None)
+                xaxis = pyx.graph.axis.log(
+                    min=xrange[0], max=xrange[1], title=xleftlabel, parter=None
+                )
+                xaxis2 = pyx.graph.axis.log(
+                    min=xrange[0], max=xrange[1], title=xrightlabel, parter=None
+                )
             else:
-                xaxis = pyx.graph.axis.lin(min=xrange[0], max=xrange[1],
-                                           title=xleftlabel, parter=None)
-                xaxis2 = pyx.graph.axis.lin(min=xrange[0], max=xrange[1],
-                                            title=xrightlabel, parter=None)
+                xaxis = pyx.graph.axis.lin(
+                    min=xrange[0], max=xrange[1], title=xleftlabel, parter=None
+                )
+                xaxis2 = pyx.graph.axis.lin(
+                    min=xrange[0], max=xrange[1], title=xrightlabel, parter=None
+                )
 
-        blank_data = pyx.graph.data.points([(-1e20,-1e20),(-1e19,-1e19)], x=1,y=2)
+        blank_data = pyx.graph.data.points([(-1e20, -1e20), (-1e19, -1e19)], x=1, y=2)
         if self.canvas is None:
-            self.canvas = pyx.graph.graphxy \
-                          (width=psize[0], height=psize[1],
-                           x=xaxis, y=yaxis, x2=xaxis2, y2=yaxis2,
-                           xpos=pos[0], ypos=pos[1])
+            self.canvas = pyx.graph.graphxy(
+                width=psize[0],
+                height=psize[1],
+                x=xaxis,
+                y=yaxis,
+                x2=xaxis2,
+                y2=yaxis2,
+                xpos=pos[0],
+                ypos=pos[1],
+            )
             if xdata is None:
                 self.canvas.plot(blank_data)
             else:
                 data = pyx.graph.data.points(np.array([xdata, ydata]).T, x=1, y=2)
-                self.canvas.plot(data, [pyx.graph.style.line([pyx.style.linewidth.Thick])])
+                self.canvas.plot(
+                    data, [pyx.graph.style.line([pyx.style.linewidth.Thick])]
+                )
         else:
-            plot = pyx.graph.graphxy \
-                   (width=psize[0], height=psize[1],
-                    x=xaxis, y=yaxis, x2=xaxis2, y2=yaxis2,
-                    xpos=pos[0], ypos=pos[1])
+            plot = pyx.graph.graphxy(
+                width=psize[0],
+                height=psize[1],
+                x=xaxis,
+                y=yaxis,
+                x2=xaxis2,
+                y2=yaxis2,
+                xpos=pos[0],
+                ypos=pos[1],
+            )
             if xdata is None:
                 plot.plot(blank_data)
             else:
@@ -291,10 +355,18 @@ class DualEPS(object):
             self.canvas.insert(plot)
         self.axes_drawn = True
 
-#=============================================================================
-    
-    def axis_box_yt(self, plot, units=None, bare_axes=False,
-                    tickcolor=None, xlabel=None, ylabel=None, **kwargs):
+    # =============================================================================
+
+    def axis_box_yt(
+        self,
+        plot,
+        units=None,
+        bare_axes=False,
+        tickcolor=None,
+        xlabel=None,
+        ylabel=None,
+        **kwargs,
+    ):
         r"""Wrapper around DualEPS.axis_box to automatically fill in the
         axis ranges and labels from a yt plot.
 
@@ -318,7 +390,7 @@ class DualEPS(object):
         >>> d.axis_box_yt(p)
         >>> d.save_fig()
         """
-       
+
         if isinstance(plot, (PlotWindow, PhasePlot)):
             plot.refresh()
         if isinstance(plot, PlotWindow):
@@ -327,8 +399,8 @@ class DualEPS(object):
             if units is None:
                 units = plot.ds.get_smallest_appropriate_unit(width)
             width = width.in_units(str(units))
-            xc = 0.5*(plot.xlim[0] + plot.xlim[1])
-            yc = 0.5*(plot.ylim[0] + plot.ylim[1])
+            xc = 0.5 * (plot.xlim[0] + plot.xlim[1])
+            yc = 0.5 * (plot.ylim[0] + plot.ylim[1])
             _xrange = [(plot.xlim[i] - xc).in_units(units) for i in (0, 1)]
             _yrange = [(plot.ylim[i] - yc).in_units(units) for i in (0, 1)]
             _xlog = False
@@ -343,30 +415,36 @@ class DualEPS(object):
                     if data.axis != 4:
                         xi = plot.ds.coordinates.x_axis[data.axis]
                         x_name = plot.ds.coordinates.axis_name[xi]
-                        _xlabel = '%s (%s)' % (x_name, units)
+                        _xlabel = f"{x_name} ({units})"
                     else:
-                        _xlabel = 'x (%s)' % (units)
+                        _xlabel = f"x ({units})"
                 if ylabel is not None:
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
                         yi = plot.ds.coordinates.y_axis[data.axis]
                         y_name = plot.ds.coordinates.axis_name[yi]
-                        _ylabel = '%s (%s)' % (y_name, units)
+                        _ylabel = f"{y_name} ({units})"
                     else:
-                        _ylabel = 'y (%s)' % (units)
+                        _ylabel = f"y ({units})"
             if tickcolor is None:
                 _tickcolor = pyx.color.cmyk.white
         elif isinstance(plot, ProfilePlot):
             subplot = plot.axes.values()[0]
             # limits for axes
             xlimits = subplot.get_xlim()
-            _xrange = (YTQuantity(xlimits[0], 'm'), YTQuantity(xlimits[1], 'm')) # unit hardcoded but afaik it is not used anywhere so it doesn't matter
+            _xrange = (
+                YTQuantity(xlimits[0], "m"),
+                YTQuantity(xlimits[1], "m"),
+            )  # unit hardcoded but afaik it is not used anywhere so it doesn't matter
             if list(plot.axes.ylim.viewvalues())[0][0] is None:
                 ylimits = subplot.get_ylim()
             else:
                 ylimits = list(plot.axes.ylim.viewvalues())[0]
-            _yrange = (YTQuantity(ylimits[0], 'm'), YTQuantity(ylimits[1], 'm')) # unit hardcoded but afaik it is not used anywhere so it doesn't matter
+            _yrange = (
+                YTQuantity(ylimits[0], "m"),
+                YTQuantity(ylimits[1], "m"),
+            )  # unit hardcoded but afaik it is not used anywhere so it doesn't matter
             # axis labels
             xaxis = subplot.xaxis
             _xlabel = pyxize_label(xaxis.label.get_text())
@@ -374,14 +452,14 @@ class DualEPS(object):
             _ylabel = pyxize_label(yaxis.label.get_text())
             # set log if necessary
             if subplot.get_xscale() == "log":
-                _xlog = True 
+                _xlog = True
             else:
                 _xlog = False
             if subplot.get_yscale() == "log":
-                _ylog = True 
+                _ylog = True
             else:
                 _ylog = False
-            _tickcolor = None 
+            _tickcolor = None
         elif isinstance(plot, PhasePlot):
             k = list(plot.plots.keys())[0]
             _xrange = plot[k].axes.get_xlim()
@@ -408,8 +486,8 @@ class DualEPS(object):
             ax = plt.gca()
             _xrange = ax.get_xlim()
             _yrange = ax.get_ylim()
-            _xlog=False
-            _ylog=False
+            _xlog = False
+            _ylog = False
             if bare_axes:
                 _xlabel = ""
                 _ylabel = ""
@@ -445,13 +523,21 @@ class DualEPS(object):
                 _tickcolor = None
         if tickcolor is not None:
             _tickcolor = tickcolor
-        self.axis_box(xrange=_xrange, yrange=_yrange, xlabel=_xlabel,
-                      ylabel=_ylabel, tickcolor=_tickcolor, xlog=_xlog,
-                      ylog=_ylog, bare_axes=bare_axes, **kwargs)
+        self.axis_box(
+            xrange=_xrange,
+            yrange=_yrange,
+            xlabel=_xlabel,
+            ylabel=_ylabel,
+            tickcolor=_tickcolor,
+            xlog=_xlog,
+            ylog=_ylog,
+            bare_axes=bare_axes,
+            **kwargs,
+        )
 
-#=============================================================================
+    # =============================================================================
 
-    def insert_image(self, filename, pos=(0,0), size=None):
+    def insert_image(self, filename, pos=(0, 0), size=None):
         r"""Inserts a JPEG file in the figure.
 
         Parameters
@@ -471,22 +557,23 @@ class DualEPS(object):
         >>> d.save_fig()
         """
         if size is not None:
-            width = size[0]*self.figsize[0]
-            height = size[1]*self.figsize[1]
+            width = size[0] * self.figsize[0]
+            height = size[1] * self.figsize[1]
         else:
             width = self.figsize[0]
             height = self.figsize[1]
         image = pyx.bitmap.jpegimage(filename)
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
-        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
-                                             compressmode=None,
-                                             width=width,
-                                             height=height))
+        self.canvas.insert(
+            pyx.bitmap.bitmap(
+                pos[0], pos[1], image, compressmode=None, width=width, height=height
+            )
+        )
 
-#=============================================================================
+    # =============================================================================
 
-    def insert_image_yt(self, plot, field=None, pos=(0,0), scale=1.0):
+    def insert_image_yt(self, plot, field=None, pos=(0, 0), scale=1.0):
         r"""Inserts a bitmap taken from a yt plot.
 
         Parameters
@@ -519,12 +606,13 @@ class DualEPS(object):
         if isinstance(plot, (PlotWindow, PhasePlot)):
             if field is None:
                 self.field = list(plot.plots.keys())[0]
-                mylog.warning("No field specified.  Choosing first field (%s)" % \
-                              str(self.field))
+                mylog.warning(
+                    "No field specified.  Choosing first field (%s)", self.field
+                )
             else:
                 self.field = plot.data_source._determine_fields(field)[0]
             if self.field not in plot.plots.keys():
-                raise RuntimeError("Field '%s' does not exist!" % str(self.field))
+                raise RuntimeError("Field '%s' does not exist!", self.field)
             if isinstance(plot, PlotWindow):
                 plot.hide_colorbar()
                 plot.hide_axes()
@@ -546,11 +634,11 @@ class DualEPS(object):
         else:
             raise RuntimeError("Unknown plot type")
 
-        _p1.axes[0].set_position([0,0,1,1])  # rescale figure
-        _p1.set_facecolor('w')  # set background color
+        _p1.axes[0].set_position([0, 0, 1, 1])  # rescale figure
+        _p1.set_facecolor("w")  # set background color
         figure_canvas = FigureCanvasAgg(_p1)
         figure_canvas.draw()
-        size = (_p1.get_size_inches() * _p1.dpi).astype('int')
+        size = (_p1.get_size_inches() * _p1.dpi).astype("int")
 
         # Account for non-square images after removing the colorbar.
         scale *= 1.0 - 1.0 / (_p1.dpi * self.figsize[0])
@@ -558,16 +646,30 @@ class DualEPS(object):
             yscale = scale * float(size[1]) / float(size[0])
         else:
             yscale = scale
-        image = pyx.bitmap.image(size[0], size[1], "RGB",
-                                 figure_canvas.tostring_rgb())
-        self.canvas.insert(pyx.bitmap.bitmap(pos[0], pos[1], image,
-                                             width=scale*self.figsize[0],
-                                             height=yscale*self.figsize[1]))
+        image = pyx.bitmap.image(size[0], size[1], "RGB", figure_canvas.tostring_rgb())
+        self.canvas.insert(
+            pyx.bitmap.bitmap(
+                pos[0],
+                pos[1],
+                image,
+                width=scale * self.figsize[0],
+                height=yscale * self.figsize[1],
+            )
+        )
 
-#=============================================================================
+    # =============================================================================
 
-    def colorbar(self, name, zrange=(0,1), label="", log=False, tickcolor=None,
-                 orientation="right", pos=[0,0], shrink=1.0):
+    def colorbar(
+        self,
+        name,
+        zrange=(0, 1),
+        label="",
+        log=False,
+        tickcolor=None,
+        orientation="right",
+        pos=None,
+        shrink=1.0,
+    ):
         r"""Places a colorbar adjacent to the current figure.
 
         Parameters
@@ -600,100 +702,133 @@ class DualEPS(object):
                        label="Density [cm$^{-3}$]")
         >>> d.save_fig()
         """
+        if pos is None:
+            pos = [0, 0]
+
         if orientation == "right":
-            origin = (pos[0]+self.figsize[0]+0.5, pos[1])
-            size = (0.1*self.figsize[0], self.figsize[1])
-            imsize = (1,256)
+            origin = (pos[0] + self.figsize[0] + 0.5, pos[1])
+            size = (0.1 * self.figsize[0], self.figsize[1])
+            imsize = (1, 256)
         elif orientation == "left":
-            origin = (pos[0]-0.5-0.1*self.figsize[0], pos[1])
-            size = (0.1*self.figsize[0], self.figsize[1])
-            imsize = (1,256)
+            origin = (pos[0] - 0.5 - 0.1 * self.figsize[0], pos[1])
+            size = (0.1 * self.figsize[0], self.figsize[1])
+            imsize = (1, 256)
         elif orientation == "top":
-            origin = (pos[0], pos[1]+self.figsize[1]+0.5)
-            imorigin = (pos[0]+self.figsize[0], pos[1]+self.figsize[1]+0.5)
-            size = (self.figsize[0], 0.1*self.figsize[1])
-            imsize = (256,1)
+            origin = (pos[0], pos[1] + self.figsize[1] + 0.5)
+            imorigin = (pos[0] + self.figsize[0], pos[1] + self.figsize[1] + 0.5)
+            size = (self.figsize[0], 0.1 * self.figsize[1])
+            imsize = (256, 1)
         elif orientation == "bottom":
-            origin = (pos[0], pos[1]-0.5-0.1*self.figsize[1])
-            imorigin = (pos[0]+self.figsize[0], pos[1]-0.5-0.1*self.figsize[1])
-            size = (self.figsize[0], 0.1*self.figsize[1])
-            imsize = (256,1)
+            origin = (pos[0], pos[1] - 0.5 - 0.1 * self.figsize[1])
+            imorigin = (pos[0] + self.figsize[0], pos[1] - 0.5 - 0.1 * self.figsize[1])
+            size = (self.figsize[0], 0.1 * self.figsize[1])
+            imsize = (256, 1)
         else:
-            raise RuntimeError("orientation %s unknown" % orientation)
+            raise RuntimeError(f"orientation {orientation} unknown")
             return
 
         # If shrink is a scalar, then convert into tuple
-        if not isinstance(shrink, (tuple,list)):
+        if not isinstance(shrink, (tuple, list)):
             shrink = (shrink, shrink)
 
         # Scale the colorbar
-        shift = (0.5*(1.0-shrink[0])*size[0], 0.5*(1.0-shrink[1])*size[1])
+        shift = (0.5 * (1.0 - shrink[0]) * size[0], 0.5 * (1.0 - shrink[1]) * size[1])
         # To facilitate stretching rather than shrinking
-        # If stretched in both directions (makes no sense?) then y dominates. 
-        if(shrink[0] > 1.0):
-            shift = (0.05*self.figsize[0], 0.5*(1.0-shrink[1])*size[1])
-        if(shrink[1] > 1.0):
-            shift = (0.5*(1.0-shrink[0])*size[0], 0.05*self.figsize[1])
+        # If stretched in both directions (makes no sense?) then y dominates.
+        if shrink[0] > 1.0:
+            shift = (0.05 * self.figsize[0], 0.5 * (1.0 - shrink[1]) * size[1])
+        if shrink[1] > 1.0:
+            shift = (0.5 * (1.0 - shrink[0]) * size[0], 0.05 * self.figsize[1])
         size = (size[0] * shrink[0], size[1] * shrink[1])
         origin = (origin[0] + shift[0], origin[1] + shift[1])
 
         # Convert the colormap into a string
-        x = np.linspace(1,0,256)
-        cm_string = cm.cmap_d[name](x, bytes=True)[:,0:3].tostring()
+        x = np.linspace(1, 0, 256)
+        cm_string = cm.get_cmap[name](x, bytes=True)[:, 0:3].tostring()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
             imorigin = (imorigin[0] - shift[0], imorigin[1] + shift[1])
-            self.canvas.insert(pyx.bitmap.bitmap(imorigin[0], imorigin[1], cmap_im,
-                                                 width=-size[0], height=size[1]))
+            self.canvas.insert(
+                pyx.bitmap.bitmap(
+                    imorigin[0], imorigin[1], cmap_im, width=-size[0], height=size[1]
+                )
+            )
         else:
-            self.canvas.insert(pyx.bitmap.bitmap(origin[0], origin[1], cmap_im,
-                                                 width=size[0], height=size[1]))
+            self.canvas.insert(
+                pyx.bitmap.bitmap(
+                    origin[0], origin[1], cmap_im, width=size[0], height=size[1]
+                )
+            )
 
         if tickcolor is None:
             c1 = pyx.graph.axis.painter.regular(tickattrs=[pyx.color.cmyk.black])
-            pyx.graph.axis.painter.regular(tickattrs=[pyx.color.cmyk.black],
-                                           labelattrs=None)
+            pyx.graph.axis.painter.regular(
+                tickattrs=[pyx.color.cmyk.black], labelattrs=None
+            )
         else:
             c1 = pyx.graph.axis.painter.regular(tickattrs=[tickcolor])
-            pyx.graph.axis.painter.regular(tickattrs=[tickcolor],
-                                           labelattrs=None)
+            pyx.graph.axis.painter.regular(tickattrs=[tickcolor], labelattrs=None)
         if log:
-            yaxis = pyx.graph.axis.log(min=zrange[0],max=zrange[1],
-                                       title=label, painter=c1)
-            yaxis2 = pyx.graph.axis.log(min=zrange[0],max=zrange[1],parter=None)
+            yaxis = pyx.graph.axis.log(
+                min=zrange[0], max=zrange[1], title=label, painter=c1
+            )
+            yaxis2 = pyx.graph.axis.log(min=zrange[0], max=zrange[1], parter=None)
         else:
-            yaxis = pyx.graph.axis.lin(min=zrange[0],max=zrange[1],
-                                       title=label, painter=c1)
+            yaxis = pyx.graph.axis.lin(
+                min=zrange[0], max=zrange[1], title=label, painter=c1
+            )
             yaxis2 = pyx.graph.axis.lin(min=zrange[0], max=zrange[1], parter=None)
         xaxis = pyx.graph.axis.lin(parter=None)
 
         if orientation == "right":
-            _colorbar = pyx.graph.graphxy(width=size[0], height=size[1],
-                                          xpos=origin[0], ypos=origin[1],
-                                          x=xaxis, y=yaxis2, y2=yaxis)
+            _colorbar = pyx.graph.graphxy(
+                width=size[0],
+                height=size[1],
+                xpos=origin[0],
+                ypos=origin[1],
+                x=xaxis,
+                y=yaxis2,
+                y2=yaxis,
+            )
         elif orientation == "left":
-            _colorbar = pyx.graph.graphxy(width=size[0], height=size[1],
-                                          xpos=origin[0], ypos=origin[1],
-                                          x=xaxis, y2=yaxis2, y=yaxis)
+            _colorbar = pyx.graph.graphxy(
+                width=size[0],
+                height=size[1],
+                xpos=origin[0],
+                ypos=origin[1],
+                x=xaxis,
+                y2=yaxis2,
+                y=yaxis,
+            )
         elif orientation == "top":
-            _colorbar = pyx.graph.graphxy(width=size[0], height=size[1],
-                                          xpos=origin[0], ypos=origin[1],
-                                          y=xaxis, x=yaxis2, x2=yaxis)
+            _colorbar = pyx.graph.graphxy(
+                width=size[0],
+                height=size[1],
+                xpos=origin[0],
+                ypos=origin[1],
+                y=xaxis,
+                x=yaxis2,
+                x2=yaxis,
+            )
         elif orientation == "bottom":
-            _colorbar = pyx.graph.graphxy(width=size[0], height=size[1],
-                                          xpos=origin[0], ypos=origin[1],
-                                          y=xaxis, x2=yaxis2, x=yaxis)
-            
-        
-        blank_data = pyx.graph.data.points([(-1e10,-1e10),(-9e10,-9e10)],
-                                           x=1, y=2)
+            _colorbar = pyx.graph.graphxy(
+                width=size[0],
+                height=size[1],
+                xpos=origin[0],
+                ypos=origin[1],
+                y=xaxis,
+                x2=yaxis2,
+                x=yaxis,
+            )
+
+        blank_data = pyx.graph.data.points([(-1e10, -1e10), (-9e10, -9e10)], x=1, y=2)
         _colorbar.plot(blank_data)
-        self.canvas.insert(_colorbar)        
+        self.canvas.insert(_colorbar)
 
-#=============================================================================
+    # =============================================================================
 
-    def colorbar_yt(self, plot, field=None, cb_labels = None, **kwargs):
+    def colorbar_yt(self, plot, field=None, cb_labels=None, **kwargs):
         r"""Wrapper around DualEPS.colorbar to take information from a yt plot.
 
         Accepts all parameters that DualEPS.colorbar takes.
@@ -703,7 +838,7 @@ class DualEPS(object):
         plot : A yt plot
             yt plot from which the information is taken.
         cb_labels : list of labels for the colorbars. List should be the same
-                    size as the number of colorbars used. Should be passed 
+                    size as the number of colorbars used. Should be passed
                     into this function by either the singleplot or multiplot api.
 
         Examples
@@ -716,9 +851,12 @@ class DualEPS(object):
         >>> d.colorbar_yt(p)
         >>> d.save_fig()
         """
-        
+
         if isinstance(plot, ProfilePlot):
-            raise RuntimeError("When using ProfilePlots you must either set yt_nocbar=True or provide colorbar flags so that the profiles don't have colorbars")
+            raise RuntimeError(
+                "When using ProfilePlots you must either set yt_nocbar=True or provide "
+                "colorbar flags so that the profiles don't have colorbars"
+            )
         _cmap = None
         if field is not None:
             self.field = plot.data_source._determine_fields(field)[0]
@@ -733,19 +871,20 @@ class DualEPS(object):
             if isinstance(plot, PlotWindow):
                 try:
                     _zlabel = plot.frb[self.field].info["label"]
-                    _unit = Unit(plot.frb[self.field].units, 
-                                 registry=plot.ds.unit_registry)
+                    _unit = Unit(
+                        plot.frb[self.field].units, registry=plot.ds.unit_registry
+                    )
                     units = _unit.latex_representation()
                     # PyX does not support \frac because it's based on TeX.
                     units = pyxize_label(units)
-                    _zlabel += r' (' + units + r')'
-                except NotImplementedError: 
+                    _zlabel += r" (" + units + r")"
+                except NotImplementedError:
                     print("Colorbar label not available")
-                    _zlabel = ''
+                    _zlabel = ""
             else:
                 _, _, z_title = plot._get_field_title(self.field, plot.profile)
                 _zlabel = pyxize_label(z_title)
-            _zlabel = _zlabel.replace("_","\;")
+            _zlabel = _zlabel.replace("_", "\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin is None:
                 zmin = plot.plots[self.field].image._A.min()
@@ -757,18 +896,22 @@ class DualEPS(object):
                 zmax = plot.plots[self.field].zmax
             _zrange = (zmin, zmax)
         else:
-            _zlabel = plot._z_label.replace("_","\;")
+            _zlabel = plot._z_label.replace("_", "\;")
             _zlog = plot._log_z
             _zrange = (plot.norm.vmin, plot.norm.vmax)
-        if cb_labels is not None:  #Overrides deduced labels
+        if cb_labels is not None:  # Overrides deduced labels
             _zlabel = cb_labels.pop()
         self.colorbar(_cmap, zrange=_zrange, label=_zlabel, log=_zlog, **kwargs)
 
-#=============================================================================
+    # =============================================================================
 
-    def circle(self, radius=0.2, loc=(0.5,0.5),
-               color=pyx.color.cmyk.white,
-               linewidth=pyx.style.linewidth.normal):
+    def circle(
+        self,
+        radius=0.2,
+        loc=(0.5, 0.5),
+        color=pyx.color.cmyk.white,
+        linewidth=pyx.style.linewidth.normal,
+    ):
         r"""Draws a circle in the current figure.
 
         Parameters
@@ -791,17 +934,23 @@ class DualEPS(object):
         >>> d.circle(radius=0.1, color=pyx.color.cmyk.Red)
         >>> d.save_fig()
         """
-        circle = pyx.path.circle(self.figsize[0]*loc[0],
-                                 self.figsize[1]*loc[1],
-                                 self.figsize[0]*radius)
+        circle = pyx.path.circle(
+            self.figsize[0] * loc[0], self.figsize[1] * loc[1], self.figsize[0] * radius
+        )
         self.canvas.stroke(circle, [color, linewidth])
 
-#=============================================================================
+    # =============================================================================
 
-    def arrow(self, size=0.2, label="", loc=(0.05,0.08), labelloc="top",
-              color=pyx.color.cmyk.white,
-              linewidth=pyx.style.linewidth.normal,
-              rotation=0.0):
+    def arrow(
+        self,
+        size=0.2,
+        label="",
+        loc=(0.05, 0.08),
+        labelloc="top",
+        color=pyx.color.cmyk.white,
+        linewidth=pyx.style.linewidth.normal,
+        rotation=0.0,
+    ):
         r"""Draws an arrow in the current figure
 
         Parameters
@@ -831,32 +980,39 @@ class DualEPS(object):
         >>> d.arrow(size=0.2, label="Black Hole!", loc=(0.05, 0.1))
         >>> d.save_fig()
         """
-        line = pyx.path.line(self.figsize[0]*loc[0],
-                             self.figsize[1]*loc[1],
-                             self.figsize[0]*(loc[0]+size*np.cos(np.pi*rotation/180)),
-                             self.figsize[1]*(loc[1]+size*np.sin(np.pi*rotation/180)))
+        line = pyx.path.line(
+            self.figsize[0] * loc[0],
+            self.figsize[1] * loc[1],
+            self.figsize[0] * (loc[0] + size * np.cos(np.pi * rotation / 180)),
+            self.figsize[1] * (loc[1] + size * np.sin(np.pi * rotation / 180)),
+        )
         self.canvas.stroke(line, [linewidth, color, pyx.deco.earrow()])
-       
 
         if labelloc == "bottom":
-            yoff = -0.1*size
+            yoff = -0.1 * size
             valign = pyx.text.valign.top
         else:
-            yoff = +0.1*size
+            yoff = +0.1 * size
             valign = pyx.text.valign.bottom
         if label != "":
-            self.canvas.text(self.figsize[0]*(loc[0]+0.5*size),
-                             self.figsize[1]*(loc[1]+yoff), label,
-                             [color, valign, pyx.text.halign.center])
+            self.canvas.text(
+                self.figsize[0] * (loc[0] + 0.5 * size),
+                self.figsize[1] * (loc[1] + yoff),
+                label,
+                [color, valign, pyx.text.halign.center],
+            )
 
-        
+    # =============================================================================
 
-
-#=============================================================================
-
-    def scale_line(self, size=0.2, label="", loc=(0.05,0.08), labelloc="top",
-                   color=pyx.color.cmyk.white,
-                   linewidth=pyx.style.linewidth.normal):
+    def scale_line(
+        self,
+        size=0.2,
+        label="",
+        loc=(0.05, 0.08),
+        labelloc="top",
+        color=pyx.color.cmyk.white,
+        linewidth=pyx.style.linewidth.normal,
+    ):
         r"""Draws a scale line in the current figure.
 
         Parameters
@@ -884,41 +1040,55 @@ class DualEPS(object):
         >>> d.scale_line(size=0.2, label="1 kpc", loc=(0.05, 0.1))
         >>> d.save_fig()
         """
-        
-        line = pyx.path.line(self.figsize[0]*loc[0],
-                             self.figsize[1]*loc[1],
-                             self.figsize[0]*(loc[0]+size),
-                             self.figsize[1]*loc[1])
+
+        line = pyx.path.line(
+            self.figsize[0] * loc[0],
+            self.figsize[1] * loc[1],
+            self.figsize[0] * (loc[0] + size),
+            self.figsize[1] * loc[1],
+        )
         self.canvas.stroke(line, [linewidth, color])
-        line = pyx.path.line(self.figsize[0]*loc[0],
-                             self.figsize[1]*(loc[1]-0.1*size),
-                             self.figsize[0]*loc[0],
-                             self.figsize[1]*(loc[1]+0.1*size))
+        line = pyx.path.line(
+            self.figsize[0] * loc[0],
+            self.figsize[1] * (loc[1] - 0.1 * size),
+            self.figsize[0] * loc[0],
+            self.figsize[1] * (loc[1] + 0.1 * size),
+        )
         self.canvas.stroke(line, [linewidth, color])
-        line = pyx.path.line(self.figsize[0]*(loc[0]+size),
-                             self.figsize[1]*(loc[1]-0.1*size),
-                             self.figsize[0]*(loc[0]+size),
-                             self.figsize[1]*(loc[1]+0.1*size))
+        line = pyx.path.line(
+            self.figsize[0] * (loc[0] + size),
+            self.figsize[1] * (loc[1] - 0.1 * size),
+            self.figsize[0] * (loc[0] + size),
+            self.figsize[1] * (loc[1] + 0.1 * size),
+        )
         self.canvas.stroke(line, [linewidth, color])
 
         if labelloc == "bottom":
-            yoff = -0.1*size
+            yoff = -0.1 * size
             valign = pyx.text.valign.top
         else:
-            yoff = +0.1*size
+            yoff = +0.1 * size
             valign = pyx.text.valign.bottom
         if label != "":
-            self.canvas.text(self.figsize[0]*(loc[0]+0.5*size),
-                             self.figsize[1]*(loc[1]+yoff), label,
-                             [color, valign, pyx.text.halign.center])
+            self.canvas.text(
+                self.figsize[0] * (loc[0] + 0.5 * size),
+                self.figsize[1] * (loc[1] + yoff),
+                label,
+                [color, valign, pyx.text.halign.center],
+            )
 
-#=============================================================================
+    # =============================================================================
 
-    def title_box(self, text, color=pyx.color.cmyk.black,
-                  bgcolor=pyx.color.cmyk.white, loc=(0.02,0.98),
-                  halign=pyx.text.halign.left,
-                  valign=pyx.text.valign.top,
-                  text_opts=[]):
+    def title_box(
+        self,
+        text,
+        color=pyx.color.cmyk.black,
+        bgcolor=pyx.color.cmyk.white,
+        loc=(0.02, 0.98),
+        halign=pyx.text.halign.left,
+        valign=pyx.text.valign.top,
+        text_opts=None,
+    ):
         r"""Inserts a box with text in the current figure.
 
         Parameters
@@ -944,16 +1114,20 @@ class DualEPS(object):
         >>> d.title_box("Halo 1", loc=(0.05,0.95))
         >>> d.save_fig()
         """
-        tbox = self.canvas.text(self.figsize[0]*loc[0],
-                                self.figsize[1]*loc[1],
-                                text, [color, valign, halign] + text_opts)
+        if text_opts is None:
+            text_opts = []
+        tbox = self.canvas.text(
+            self.figsize[0] * loc[0],
+            self.figsize[1] * loc[1],
+            text,
+            [color, valign, halign] + text_opts,
+        )
         if bgcolor is not None:
-            tpath = tbox.bbox().enlarged(2*pyx.unit.x_pt).path()
-            self.canvas.draw(tpath, [pyx.deco.filled([bgcolor]),
-                                     pyx.deco.stroked()])
+            tpath = tbox.bbox().enlarged(2 * pyx.unit.x_pt).path()
+            self.canvas.draw(tpath, [pyx.deco.filled([bgcolor]), pyx.deco.stroked()])
         self.canvas.insert(tbox)
-        
-#=============================================================================
+
+    # =============================================================================
 
     def save_fig(self, filename="test", format="eps", resolution=250):
         r"""Saves current figure to a file.
@@ -969,30 +1143,51 @@ class DualEPS(object):
         --------
         >>> d = DualEPS()
         >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
-        >>> d.save_fig("image1", format="pdf")
         """
-        if format =="eps":
+        if format == "eps":
             self.canvas.writeEPSfile(filename)
         elif format == "pdf":
             self.canvas.writePDFfile(filename)
         elif format == "png":
-            self.canvas.writeGSfile(filename+".png", "png16m", resolution=resolution)
+            self.canvas.writeGSfile(filename + ".png", "png16m", resolution=resolution)
         elif format == "jpg":
-            self.canvas.writeGSfile(filename+".jpeg", "jpeg", resolution=resolution)
+            self.canvas.writeGSfile(filename + ".jpeg", "jpeg", resolution=resolution)
         else:
-            raise RuntimeError("format %s unknown." % (format))
-            
-#=============================================================================
-#=============================================================================
-#=============================================================================
+            raise RuntimeError(f"format {format} unknown.")
 
-def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None, 
-              xranges=None, yranges=None, xlabels=None, ylabels=None,
-              xdata=None, ydata=None, colorbars=None,
-              shrink_cb=0.95, figsize=(8,8), margins=(0,0), titles=None,
-              savefig=None, format="eps", yt_nocbar=False, bare_axes=False,
-              xaxis_flags=None, yaxis_flags=None,
-              cb_flags=None, cb_location=None, cb_labels=None):
+
+# =============================================================================
+# =============================================================================
+# =============================================================================
+
+
+def multiplot(
+    ncol,
+    nrow,
+    yt_plots=None,
+    fields=None,
+    images=None,
+    xranges=None,
+    yranges=None,
+    xlabels=None,
+    ylabels=None,
+    xdata=None,
+    ydata=None,
+    colorbars=None,
+    shrink_cb=0.95,
+    figsize=(8, 8),
+    margins=(0, 0),
+    titles=None,
+    savefig=None,
+    format="eps",
+    yt_nocbar=False,
+    bare_axes=False,
+    xaxis_flags=None,
+    yaxis_flags=None,
+    cb_flags=None,
+    cb_location=None,
+    cb_labels=None,
+):
     r"""Convenience routine to create a multi-panel figure from yt plots or
     JPEGs.  The images are first placed from the origin, and then
     bottom-to-top and left-to-right.
@@ -1038,7 +1233,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     cb_flags : list of booleans
         Flags for each plot to have a colorbar or not.
     cb_location : list of strings
-        Strings to control the location of the colorbar (left, right, 
+        Strings to control the location of the colorbar (left, right,
         top, bottom)
     cb_labels : list of labels for the colorbars. List should be the same
                 size as the number of colorbars used.
@@ -1052,7 +1247,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     >>> cbs.append(return_colormap("kelp", "HI Density", (0,5), False))
     >>> cbs.append(return_colormap("hot", r"Entropy [K cm$^2$]", (1e-2,1e6), True))
     >>> cbs.append(return_colormap("Spectral", "Stuff$_x$!", (1,300), True))
-    >>> 
+    >>>
     >>> mp = multiplot(2,2, images=images, margins=(0.1,0.1),
     >>>                titles=["1","2","3","4"],
     >>>                xlabels=["one","two"], ylabels=None, colorbars=cbs,
@@ -1066,14 +1261,16 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     yt plots.
     """
     # Error check
-    npanels = ncol*nrow
-    if(cb_labels is not None):
-        cb_labels.reverse()   #Because I pop the list
-    
+    npanels = ncol * nrow
+    if cb_labels is not None:
+        cb_labels.reverse()  # Because I pop the list
+
     if images is not None:
         if len(images) != npanels:
-            raise RuntimeError("Number of images (%d) doesn't match nrow(%d)"\
-                               " x ncol(%d)." % (len(images), nrow, ncol))
+            raise RuntimeError(
+                "Number of images (%d) doesn't match nrow(%d)"
+                " x ncol(%d)." % (len(images), nrow, ncol)
+            )
             return
     if yt_plots is None and images is None:
         raise RuntimeError("Must supply either yt_plots or image filenames.")
@@ -1091,29 +1288,33 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
     if not _yt:
         if xranges is None:
             xranges = []
-            for i in range(npanels): xranges.append((0,1))
+            for _ in range(npanels):
+                xranges.append((0, 1))
         if yranges is None:
             yranges = []
-            for i in range(npanels): yranges.append((0,1))
+            for _ in range(npanels):
+                yranges.append((0, 1))
         if xlabels is None:
             xlabels = []
-            for i in range(npanels): xlabels.append("")
+            for _ in range(npanels):
+                xlabels.append("")
         if ylabels is None:
             ylabels = []
-            for i in range(npanels): ylabels.append("")
+            for _ in range(npanels):
+                ylabels.append("")
 
     d = DualEPS(figsize=figsize)
     for j in range(nrow):
         invj = nrow - j - 1
-        ypos = invj*(figsize[1] + margins[1])
+        ypos = invj * (figsize[1] + margins[1])
         for i in range(ncol):
-            xpos = i*(figsize[0] + margins[0])
-            index = j*ncol + i
+            xpos = i * (figsize[0] + margins[0])
+            index = j * ncol + i
             if isinstance(yt_plots, list):
                 this_plot = yt_plots[index]
             else:
                 this_plot = yt_plots
-            if j == nrow-1:
+            if j == nrow - 1:
                 xaxis = 0
             elif j == 0:
                 xaxis = 1
@@ -1121,7 +1322,7 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                 xaxis = -1
             if i == 0:
                 yaxis = 0
-            elif i == ncol-1:
+            elif i == ncol - 1:
                 yaxis = 1
             else:
                 yaxis = -1
@@ -1149,38 +1350,56 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                     ylabel = ylabels[j]
                 else:
                     ylabel = None
-                d.insert_image_yt(this_plot, pos=(xpos, ypos),
-                                  field=fields[index])
-                d.axis_box_yt(this_plot, pos=(xpos, ypos),
-                              bare_axes=bare_axes, xaxis_side=xaxis,
-                              yaxis_side=yaxis,
-                              xlabel=xlabel, ylabel=ylabel,
-                              xdata=_xdata, ydata=_ydata)
+                d.insert_image_yt(this_plot, pos=(xpos, ypos), field=fields[index])
+                d.axis_box_yt(
+                    this_plot,
+                    pos=(xpos, ypos),
+                    bare_axes=bare_axes,
+                    xaxis_side=xaxis,
+                    yaxis_side=yaxis,
+                    xlabel=xlabel,
+                    ylabel=ylabel,
+                    xdata=_xdata,
+                    ydata=_ydata,
+                )
             else:
-                d.insert_image(images[index], pos=(xpos,ypos))
-                d.axis_box(pos = (xpos, ypos),
-                           xrange=xranges[index], yrange=yranges[index],
-                           xlabel=xlabels[i], ylabel=ylabels[j],
-                           bare_axes=bare_axes, xaxis_side=xaxis, yaxis_side=yaxis,
-                           xdata=_xdata, ydata=_ydata)
+                d.insert_image(images[index], pos=(xpos, ypos))
+                d.axis_box(
+                    pos=(xpos, ypos),
+                    xrange=xranges[index],
+                    yrange=yranges[index],
+                    xlabel=xlabels[i],
+                    ylabel=ylabels[j],
+                    bare_axes=bare_axes,
+                    xaxis_side=xaxis,
+                    yaxis_side=yaxis,
+                    xdata=_xdata,
+                    ydata=_ydata,
+                )
             if titles is not None:
                 if titles[index] is not None:
-                    d.title_box(titles[index],
-                                loc=(i+0.05+i*margins[0]/figsize[0],
-                                     j+0.98+j*margins[1]/figsize[1]))
+                    d.title_box(
+                        titles[index],
+                        loc=(
+                            i + 0.05 + i * margins[0] / figsize[0],
+                            j + 0.98 + j * margins[1] / figsize[1],
+                        ),
+                    )
 
     # Insert colorbars after all axes are placed because we want to
     # put them on the edges of the bounding box.
-    bbox = (100.0 * d.canvas.bbox().left().t,
-            100.0 * d.canvas.bbox().right().t - d.figsize[0],
-            100.0 * d.canvas.bbox().bottom().t,
-            100.0 * d.canvas.bbox().top().t - d.figsize[1])
+    bbox = (
+        100.0 * d.canvas.bbox().left().t,
+        100.0 * d.canvas.bbox().right().t - d.figsize[0],
+        100.0 * d.canvas.bbox().bottom().t,
+        100.0 * d.canvas.bbox().top().t - d.figsize[1],
+    )
     for j in range(nrow):
         invj = nrow - j - 1
-        ypos0 = invj*(figsize[1] + margins[1])
+        ypos0 = invj * (figsize[1] + margins[1])
         for i in range(ncol):
-            xpos0 = i*(figsize[0] + margins[0])
-            index = j*ncol + i
+            xpos0 = i * (figsize[0] + margins[0])
+            index = j * ncol + i
             if isinstance(yt_plots, list):
                 this_plot = yt_plots[index]
             else:
@@ -1194,19 +1413,20 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                         orientation = "right"
                     elif i == 0:
                         orientation = "left"
-                    elif i+1 == ncol:
+                    elif i + 1 == ncol:
                         orientation = "right"
                     elif j == 0:
                         orientation = "bottom"
-                    elif j+1 == nrow:
+                    elif j + 1 == nrow:
                         orientation = "top"
                     else:
                         orientation = None  # Marker for interior plot
                 else:
                     if isinstance(cb_location, dict):
                         if fields[index] not in cb_location.keys():
-                            raise RuntimeError("%s not found in cb_location dict" %
-                                               fields[index])
+                            raise RuntimeError(
+                                f"{fields[index]} not found in cb_location dict"
+                            )
                             return
                         orientation = cb_location[fields[index]]
                     elif isinstance(cb_location, list):
@@ -1226,8 +1446,10 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                     ypos = bbox[3]
                     xpos = xpos0
                 else:
-                    mylog.warning("Unknown colorbar location %s. "
-                                  "No colorbar displayed." % orientation)
+                    mylog.warning(
+                        "Unknown colorbar location %s. No colorbar displayed.",
+                        orientation,
+                    )
                     orientation = None  # Marker for interior plot
 
                 if orientation is not None:
@@ -1235,28 +1457,34 @@ def multiplot(ncol, nrow, yt_plots=None, fields=None, images=None,
                         # Set field if undefined
                         if fields[index] is None:
                             fields[index] = d.return_field(yt_plots[index])
-                                              
-                        d.colorbar_yt(this_plot,
-                                      field=fields[index],
-                                      pos=[xpos,ypos],
-                                      shrink=shrink_cb,
-                                      orientation=orientation,
-                                      cb_labels=cb_labels)
+
+                        d.colorbar_yt(
+                            this_plot,
+                            field=fields[index],
+                            pos=[xpos, ypos],
+                            shrink=shrink_cb,
+                            orientation=orientation,
+                            cb_labels=cb_labels,
+                        )
                     else:
-                        d.colorbar(colorbars[index]["cmap"],
-                                   zrange=colorbars[index]["range"],
-                                   label=colorbars[index]["name"],
-                                   log=colorbars[index]["log"],
-                                   orientation=orientation,
-                                   pos=[xpos,ypos],
-                                   shrink=shrink_cb)
+                        d.colorbar(
+                            colorbars[index]["cmap"],
+                            zrange=colorbars[index]["range"],
+                            label=colorbars[index]["name"],
+                            log=colorbars[index]["log"],
+                            orientation=orientation,
+                            pos=[xpos, ypos],
+                            shrink=shrink_cb,
+                        )
 
     if savefig is not None:
         d.save_fig(savefig, format=format)
 
     return d
 
-#=============================================================================
+
+# =============================================================================
+
 
 def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
     r"""Wrapper for multiplot that takes a yt PlotWindow
@@ -1295,17 +1523,19 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
     if isinstance(plots, (PlotWindow, PhasePlot)):
         if fields is None:
             fields = plots.fields
-        if len(fields) < nrow*ncol:
-            raise RuntimeError("Number of plots is less "\
-                               "than nrow(%d) x ncol(%d)." % \
-                               (len(fields), nrow, ncol))
+        if len(fields) < nrow * ncol:
+            raise RuntimeError(
+                "Number of plots ({0}) is less "
+                "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
+            )
             return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
-        if len(plots) < nrow*ncol:
-            raise RuntimeError("Number of plots is less "\
-                               "than nrow(%d) x ncol(%d)." % \
-                               (len(fields), nrow, ncol))
+        if len(plots) < nrow * ncol:
+            raise RuntimeError(
+                "Number of plots ({0}) is less "
+                "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
+            )
             return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:
@@ -1313,11 +1543,21 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
         return
     return figure
 
-#=============================================================================
 
-def single_plot(plot, field=None, figsize=(12,12), cb_orient="right", 
-                bare_axes=False, savefig=None, colorbar=True, 
-                file_format='eps', **kwargs):
+# =============================================================================
+
+
+def single_plot(
+    plot,
+    field=None,
+    figsize=(12, 12),
+    cb_orient="right",
+    bare_axes=False,
+    savefig=None,
+    colorbar=True,
+    file_format="eps",
+    **kwargs,
+):
     r"""Wrapper for DualEPS routines to create a figure directly from a yt
     plot.  Calls insert_image_yt, axis_box_yt, and colorbar_yt.
 
@@ -1354,12 +1594,14 @@ def single_plot(plot, field=None, figsize=(12,12), cb_orient="right",
         d.save_fig(savefig, format=file_format)
     return d
 
-#=============================================================================
-def return_cmap(cmap=None, label="", range=(0,1), log=False):
+
+# =============================================================================
+def return_cmap(cmap=None, label="", range=(0, 1), log=False):
     issue_deprecation_warning("Deprecated alias. Use return_colormap instead.")
     return return_colormap(cmap=cmap, label=label, crange=range, log=log)
 
-def return_colormap(cmap=None, label="", range=(0,1), log=False):
+
+def return_colormap(cmap=None, label="", range=(0, 1), log=False):
     r"""Returns a dict that describes a colorbar.  Exclusively for use with
     multiplot.
 
@@ -1380,5 +1622,4 @@ def return_colormap(cmap=None, label="", range=(0,1), log=False):
     """
     if cmap is None:
         cmap = ytcfg.get("yt", "default_colormap")
-    return {'cmap': cmap, 'name': label, 'range': range, 'log': log}
-    
+    return {"cmap": cmap, "name": label, "range": range, "log": log}

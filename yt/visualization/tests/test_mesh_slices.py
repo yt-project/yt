@@ -1,21 +1,14 @@
-"""
-Tests for making unstructured mesh slices
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 import numpy as np
 from nose.plugins.attrib import attr
 
 import yt
-from yt.testing import ANSWER_TEST_TAG, fake_amr_ds, fake_tetrahedral_ds, \
-    fake_hexahedral_ds, small_fake_hexahedral_ds
+from yt.testing import (
+    ANSWER_TEST_TAG,
+    fake_amr_ds,
+    fake_hexahedral_ds,
+    fake_tetrahedral_ds,
+    small_fake_hexahedral_ds,
+)
 from yt.utilities.answer_testing.framework import GenericImageTest
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
 from yt.utilities.lib.mesh_triangulation import triangulate_indices
@@ -24,30 +17,33 @@ from yt.utilities.lib.mesh_triangulation import triangulate_indices
 def setup():
     """Test specific setup."""
     from yt.config import ytcfg
+
     ytcfg["yt", "__withintesting"] = "True"
+
 
 def compare(ds, field, idir, test_prefix, test_name, decimals=12, annotate=False):
     def slice_image(filename_prefix):
         sl = yt.SlicePlot(ds, idir, field)
         if annotate:
             sl.annotate_mesh_lines()
-        sl.set_log('all', False)
+        sl.set_log("all", False)
         image_file = sl.save(filename_prefix)
         return image_file
 
-    slice_image.__name__ = "slice_{}".format(test_prefix)
+    slice_image.__name__ = f"slice_{test_prefix}"
     test = GenericImageTest(ds, slice_image, decimals)
     test.prefix = test_prefix
     test.answer_name = test_name
     return test
 
+
 @attr(ANSWER_TEST_TAG)
 def test_mesh_slices_amr():
     ds = fake_amr_ds()
     for field in ds.field_list:
-        prefix = "%s_%s_%s" % (field[0], field[1], 0)
-        yield compare(ds, field, 0, test_prefix=prefix,
-                      test_name="mesh_slices_amr")
+        prefix = f"{field[0]}_{field[1]}_{0}"
+        yield compare(ds, field, 0, test_prefix=prefix, test_name="mesh_slices_amr")
+
 
 @attr(ANSWER_TEST_TAG)
 def test_mesh_slices_tetrahedral():
@@ -58,13 +54,20 @@ def test_mesh_slices_tetrahedral():
 
     for field in ds.field_list:
         for idir in [0, 1, 2]:
-            prefix = "%s_%s_%s" % (field[0], field[1], idir)
-            yield compare(ds, field, idir, test_prefix=prefix,
-                          test_name="mesh_slices_tetrahedral", annotate=True)
+            prefix = f"{field[0]}_{field[1]}_{idir}"
+            yield compare(
+                ds,
+                field,
+                idir,
+                test_prefix=prefix,
+                test_name="mesh_slices_tetrahedral",
+                annotate=True,
+            )
 
             sl_obj = ds.slice(idir, ds.domain_center[idir])
             assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
             assert sl_obj[field].shape[0] < ad[field].shape[0]
+
 
 @attr(ANSWER_TEST_TAG)
 def test_mesh_slices_hexahedral():
@@ -75,13 +78,20 @@ def test_mesh_slices_hexahedral():
 
     for field in ds.field_list:
         for idir in [0, 1, 2]:
-            prefix = "%s_%s_%s" % (field[0], field[1], idir)
-            yield compare(ds, field, idir, test_prefix=prefix,
-                          test_name="mesh_slices_hexahedral", annotate=True)
+            prefix = f"{field[0]}_{field[1]}_{idir}"
+            yield compare(
+                ds,
+                field,
+                idir,
+                test_prefix=prefix,
+                test_name="mesh_slices_hexahedral",
+                annotate=True,
+            )
 
             sl_obj = ds.slice(idir, ds.domain_center[idir])
             assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
             assert sl_obj[field].shape[0] < ad[field].shape[0]
+
 
 def test_perfect_element_intersection():
     # This test tests mesh line annotation where a z=0 slice

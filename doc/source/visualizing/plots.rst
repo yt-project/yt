@@ -159,6 +159,14 @@ where for the last two objects any spatial field, such as ``"density"``,
 ``"velocity_z"``,
 etc., may be used, e.g. ``center=("min","temperature")``.
 
+The effective resolution of the plot (i.e. the number of resolution elements
+in the image itself) can be controlled with the ``buff_size`` argument:
+
+.. code-block:: python
+
+    yt.SlicePlot(ds, 'z', 'density', buff_size=(1000, 1000))
+
+
 Here is an example that combines all of the options we just discussed.
 
 .. python-script::
@@ -167,7 +175,7 @@ Here is an example that combines all of the options we just discussed.
    from yt.units import kpc
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    slc = yt.SlicePlot(ds, 'z', 'density', center=[0.5, 0.5, 0.5],
-                      width=(20,'kpc'))
+                      width=(20,'kpc'), buff_size=(1000, 1000))
    slc.save()
 
 The above example will display an annotated plot of a slice of the
@@ -275,11 +283,12 @@ example:
    from yt.units import kpc
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    prj = yt.ProjectionPlot(ds, 2, 'temperature', width=25*kpc,
-                           weight_field='density')
+                           weight_field='density', buff_size=(1000, 1000))
    prj.save()
 
-will create a density-weighted projection of the temperature field along the x
-axis, plot it, and then save the plot to a png image file.
+will create a density-weighted projection of the temperature field along 
+the x axis with 1000 resolution elements per side, plot it, and then save 
+the plot to a png image file.
 
 Like :ref:`slice-plots`, annotations and modifications can be applied
 after creating the ``ProjectionPlot`` object.  Annotations are
@@ -770,8 +779,8 @@ from black to white depending on the AMR level of the grid.
 
 Annotations are described in :ref:`callbacks`.
 
-Set the size of the plot
-~~~~~~~~~~~~~~~~~~~~~~~~
+Set the size and resolution of the plot
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 To set the size of the plot, use the
 :meth:`~yt.visualization.plot_window.AxisAlignedSlicePlot.set_figure_size` function.  The argument
@@ -796,6 +805,9 @@ To change the resolution of the image, call the
    slc = yt.SlicePlot(ds, 'z', 'density', width=(10,'kpc'))
    slc.set_buff_size(1600)
    slc.save()
+
+Also see cookbook recipe :ref:`image-resolution-primer` for more information
+about the parameters that determine the resolution of your images.
 
 Turning off minorticks
 ~~~~~~~~~~~~~~~~~~~~~~

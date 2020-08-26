@@ -1,21 +1,5 @@
-"""
-Minimalist performance counting for yt
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import atexit
 import time
-
 from bisect import insort
 from collections import defaultdict
 from datetime import datetime as dt
@@ -24,8 +8,10 @@ from functools import wraps
 from yt.config import ytcfg
 from yt.funcs import mylog
 
-class PerformanceCounters(object):
+
+class PerformanceCounters:
     _shared_state = {}
+
     def __new__(cls, *args, **kwargs):
         self = object.__new__(cls, *args, **kwargs)
         self.__dict__ = cls._shared_state
@@ -40,9 +26,10 @@ class PerformanceCounters(object):
         self.exit()
 
     def __call__(self, name):
-        if not self._on: return
+        if not self._on:
+            return
         if self.counting[name]:
-            self.counters[name] = time.time() - self.counters[name] 
+            self.counters[name] = time.time() - self.counters[name]
             self.counting[name] = False
             self.endtime[name] = dt.now()
         else:
@@ -51,21 +38,24 @@ class PerformanceCounters(object):
             self.starttime[name] = dt.now()
 
     def call_func(self, func):
-        if not self._on: return func
+        if not self._on:
+            return func
+
         @wraps(func)
         def func_wrapper(*args, **kwargs):
             self(func.__name__)
             func(*args, **kwargs)
             self(func.__name__)
+
         return func_wrapper
 
     def print_stats(self):
         mylog.info("Current counter status:\n")
         times = []
         for i in self.counters:
-            insort(times, [self.starttime[i], i, 1]) # 1 for 'on'
+            insort(times, [self.starttime[i], i, 1])  # 1 for 'on'
             if not self.counting[i]:
-                insort(times, [self.endtime[i], i, 0]) # 0 for 'off'
+                insort(times, [self.endtime[i], i, 0])  # 0 for 'off'
         shifts = {}
         order = []
         endtimes = {}
@@ -80,23 +70,35 @@ class PerformanceCounters(object):
             if i[2] == 0:
                 shift -= 1
                 endtimes[i[1]] = self.counters[i[1]]
-        line = ''
+        line = ""
         for i in order:
             if self.counting[i]:
-                line = "%s%s%i : %s : still running\n" % (line, " "*shifts[i]*multi, shifts[i], i)
+                line = "%s%s%i : %s : still running\n" % (
+                    line,
+                    " " * shifts[i] * multi,
+                    shifts[i],
+                    i,
+                )
             else:
-                line = "%s%s%i : %s : %0.3e\n" % (line, " "*shifts[i]*multi, shifts[i], i, self.counters[i])
-        mylog.info("\n" + line)
+                line = "%s%s%i : %s : %0.3e\n" % (
+                    line,
+                    " " * shifts[i] * multi,
+                    shifts[i],
+                    i,
+                    self.counters[i],
+                )
+        mylog.info("\n%s", line)
 
     def exit(self):
         if self._on:
             atexit.register(self.print_stats)
 
+
 yt_counters = PerformanceCounters()
 time_function = yt_counters.call_func
 
 
-class ProfilingController(object):
+class ProfilingController:
     def __init__(self):
         self.profilers = {}
 
@@ -108,22 +110,27 @@ class ProfilingController(object):
                 return func
             my_prof = cProfile.Profile()
             self.profilers[function_name] = my_prof
+
             @wraps(func)
             def run_in_profiler(*args, **kwargs):
                 my_prof.enable()
                 func(*args, **kwargs)
                 my_prof.disable()
+
             return run_in_profiler
+
         return wrapper
 
     def write_out(self, filename_prefix):
-        if ytcfg.getboolean("yt","__parallel"):
-            pfn = "%s_%03i_%03i" % (filename_prefix,
-                     ytcfg.getint("yt", "__global_parallel_rank"),
-                    ytcfg.getint("yt", "__global_parallel_size"))
+        if ytcfg.getboolean("yt", "__parallel"):
+            pfn = "%s_%03i_%03i" % (
+                filename_prefix,
+                ytcfg.getint("yt", "__global_parallel_rank"),
+                ytcfg.getint("yt", "__global_parallel_size"),
+            )
         else:
-            pfn = "%s" % (filename_prefix)
+            pfn = f"{filename_prefix}"
         for n, p in sorted(self.profilers.items()):
-            fn = "%s_%s.cprof" % (pfn, n)
+            fn = f"{pfn}_{n}.cprof"
             mylog.info("Dumping %s into %s", n, fn)
             p.dump_stats(fn)

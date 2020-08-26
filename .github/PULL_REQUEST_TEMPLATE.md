@@ -20,7 +20,10 @@ detail.  Why is this change required?  What problem does it solve?-->
 
 <!-- Note that some of these check boxes may not apply to all pull requests -->
 
-- [ ] Code passes flake8 checker
+- [ ] pass `black --check yt/`
+- [ ] pass `isort . --check --diff`
+- [ ] pass `flake8 yt/`
+- [ ] pass `flynt yt/ --fail-on-change --dry-run -e yt/extern`
 - [ ] New features are documented, with docstrings and narrative docs
 - [ ] Adds a test for any bugs fixed. Adds tests for new features.
 

@@ -2,35 +2,44 @@
 A proxy object for field descriptors, usually living as ds.fields.
 """
 
-import weakref
-import textwrap
 import inspect
-from yt.extern.six import string_types
-from yt.fields.derived_field import \
-    DerivedField
+import textwrap
+import weakref
+
+from yt.fields.derived_field import DerivedField
+
 
 def _fill_values(values):
-    value = '<div class="rendered_html jp-RenderedHTMLCommon">' + \
-            '<table><thead><tr><th>Name</th><th>Type</th>' + \
-            '<th>Value</th></tr></thead><tr><td>' + \
-            '</td></tr><tr><td>'.join(['{0}</td><td>{1}</td><td>{2}'.format(
-                v, type(values[v]).__name__, str(values[v]))
-                for v in sorted(values)]) + \
-            '</td></tr></table></div>'
+    value = (
+        '<div class="rendered_html jp-RenderedHTMLCommon">'
+        + "<table><thead><tr><th>Name</th><th>Type</th>"
+        + "<th>Value</th></tr></thead><tr><td>"
+        + "</td></tr><tr><td>".join(
+            [
+                "{0}</td><td>{1}</td><td>{2}".format(
+                    v, type(values[v]).__name__, str(values[v])
+                )
+                for v in sorted(values)
+            ]
+        )
+        + "</td></tr></table></div>"
+    )
     return value
+
 
 class FieldTypeContainer(object):
     def __init__(self, ds):
         self.ds = weakref.proxy(ds)
 
     def __getattr__(self, attr):
-        ds = self.__getattribute__('ds')
+        ds = self.__getattribute__("ds")
         fnc = FieldNameContainer(ds, attr)
         if len(dir(fnc)) == 0:
             return self.__getattribute__(attr)
         return fnc
 
     _field_types = None
+
     @property
     def field_types(self):
         if self._field_types is None:
@@ -52,7 +61,7 @@ class FieldTypeContainer(object):
         ob = None
         if isinstance(obj, FieldNameContainer):
             ob = obj.field_type
-        elif isinstance(obj, string_types):
+        elif isinstance(obj, str):
             ob = obj
 
         return ob in self.field_types
@@ -60,6 +69,7 @@ class FieldTypeContainer(object):
     def _ipython_display_(self):
         import ipywidgets
         from IPython.display import display
+
         fnames = []
         children = []
         for ftype in sorted(self.field_types):
@@ -68,10 +78,11 @@ class FieldTypeContainer(object):
             with children[-1]:
                 display(fnc)
             fnames.append(ftype)
-        tabs = ipywidgets.Tab(children = children)
+        tabs = ipywidgets.Tab(children=children)
         for i, n in enumerate(fnames):
             tabs.set_title(i, n)
         display(tabs)
+
 
 class FieldNameContainer(object):
     def __init__(self, ds, field_type):
@@ -86,8 +97,7 @@ class FieldNameContainer(object):
         return ds.field_info[ft, attr]
 
     def __dir__(self):
-        return [n for t, n in self.ds.field_info
-                if t == self.field_type]
+        return [n for t, n in self.ds.field_info if t == self.field_type]
 
     def __iter__(self):
         for t, n in self.ds.field_info:
@@ -104,39 +114,51 @@ class FieldNameContainer(object):
         elif isinstance(obj, tuple):
             if self.field_type == obj[0] and obj in self.ds.field_info:
                 return True
-        elif isinstance(obj, string_types):
+        elif isinstance(obj, str):
             if (self.field_type, obj) in self.ds.field_info:
                 return True
         return False
 
     def _ipython_display_(self):
         import ipywidgets
-        from IPython.display import display, Markdown
+        from IPython.display import Markdown, display
+
         names = dir(self)
         names.sort()
+
         def change_field(_ftype, _box, _var_window):
             def _change_field(event):
-                fobj = getattr(_ftype, event['new'])
+                fobj = getattr(_ftype, event["new"])
                 _box.clear_output()
                 with _box:
-                    display(Markdown(data = "```python\n" +
-                        textwrap.dedent(fobj.get_source()) + "\n```"))
+                    display(
+                        Markdown(
+                            data="```python\n"
+                            + textwrap.dedent(fobj.get_source())
+                            + "\n```"
+                        )
+                    )
                 values = inspect.getclosurevars(fobj._function).nonlocals
                 _var_window.value = _fill_values(values)
+
             return _change_field
-        flist = ipywidgets.Select(options = names,
-                layout = ipywidgets.Layout(height = '95%'))
-        source = ipywidgets.Output(layout = ipywidgets.Layout(
-            width = '100%', height = '9em'))
-        var_window = ipywidgets.HTML(value = 'Empty')
-        var_box = ipywidgets.Box(layout = ipywidgets.Layout(
-            width = '100%', height = '100%', overflow_y = 'scroll'))
+
+        flist = ipywidgets.Select(options=names, layout=ipywidgets.Layout(height="95%"))
+        source = ipywidgets.Output(layout=ipywidgets.Layout(width="100%", height="9em"))
+        var_window = ipywidgets.HTML(value="Empty")
+        var_box = ipywidgets.Box(
+            layout=ipywidgets.Layout(width="100%", height="100%", overflow_y="scroll")
+        )
         var_box.children = [var_window]
-        ftype_tabs = ipywidgets.Tab(children = [source, var_box],
-                layout = ipywidgets.Layout(flex = '2 1 auto',
-                            width = 'auto', height = '95%'))
+        ftype_tabs = ipywidgets.Tab(
+            children=[source, var_box],
+            layout=ipywidgets.Layout(flex="2 1 auto", width="auto", height="95%"),
+        )
         ftype_tabs.set_title(0, "Source")
         ftype_tabs.set_title(1, "Variables")
         flist.observe(change_field(self, source, var_window), "value")
-        display(ipywidgets.HBox([flist, ftype_tabs],
-            layout = ipywidgets.Layout(height = '14em')))
+        display(
+            ipywidgets.HBox(
+                [flist, ftype_tabs], layout=ipywidgets.Layout(height="14em")
+            )
+        )

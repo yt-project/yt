@@ -7,92 +7,99 @@ yt is a toolkit for analyzing and visualizing volumetric data.
 * Contribute: https://github.com/yt-project/yt
 
 """
+import sys
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+if sys.version_info[0] < 3:
+    raise Exception(
+        "Python 2 no longer supported.  Please install Python 3 for use with yt."
+    )
 
-__version__ = "3.6.dev0"
+__version__ = "4.0.dev0"
 
 # First module imports
-import numpy as np # For modern purposes
-import numpy # In case anyone wishes to use it by name
+import numpy as np  # For modern purposes
+import numpy  # In case anyone wishes to use it by name
 
-from yt.funcs import \
-    iterable, \
-    get_memory_usage, \
-    print_tb, \
-    rootonly, \
-    insert_ipython, \
-    get_pbar, \
-    only_on_root, \
-    is_root, \
-    get_version_stack, \
-    get_yt_supp, \
-    get_yt_version, \
-    parallel_profile, \
-    enable_plugins, \
-    memory_checker, \
-    deprecated_class, \
-    toggle_interactivity
+from yt.funcs import (
+    iterable,
+    get_memory_usage,
+    print_tb,
+    rootonly,
+    insert_ipython,
+    get_pbar,
+    only_on_root,
+    is_root,
+    get_version_stack,
+    get_yt_supp,
+    get_yt_version,
+    parallel_profile,
+    enable_plugins,
+    memory_checker,
+    deprecated_class,
+    toggle_interactivity,
+)
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import set_log_level
+
 
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
 from yt.units.unit_object import define_unit
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity, \
-    uconcatenate, \
-    ucross, \
-    uintersect1d, \
-    uunion1d, \
-    unorm, \
-    udot, \
-    ustack, \
-    uvstack, \
-    uhstack, \
-    loadtxt, \
-    savetxt, \
-    display_ytarray
+from yt.units import (
+    YTArray,
+    YTQuantity,
+    uconcatenate,
+    ucross,
+    uintersect1d,
+    uunion1d,
+    unorm,
+    udot,
+    ustack,
+    uvstack,
+    uhstack,
+    loadtxt,
+    savetxt,
+    display_ytarray,
+)
 
-from yt.fields.api import \
-    field_plugins, \
-    DerivedField, \
-    FieldDetector, \
-    FieldInfoContainer, \
-    ValidateParameter, \
-    ValidateDataField, \
-    ValidateProperty, \
-    ValidateSpatial, \
-    ValidateGridType, \
-    add_field, \
-    derived_field, \
-    add_xray_emissivity_field
+from yt.fields.api import (
+    field_plugins,
+    DerivedField,
+    FieldDetector,
+    FieldInfoContainer,
+    ValidateParameter,
+    ValidateDataField,
+    ValidateProperty,
+    ValidateSpatial,
+    ValidateGridType,
+    add_field,
+    derived_field,
+    add_xray_emissivity_field,
+)
 
-from yt.data_objects.api import \
-    DatasetSeries, ImageArray, \
-    particle_filter, add_particle_filter, \
-    create_profile, Profile1D, Profile2D, Profile3D, \
-    ParticleProfile
+from yt.data_objects.api import (
+    DatasetSeries,
+    ImageArray,
+    particle_filter,
+    add_particle_filter,
+    create_profile,
+    Profile1D,
+    Profile2D,
+    Profile3D,
+    ParticleProfile,
+)
 
 # For backwards compatibility
 TimeSeriesData = deprecated_class(DatasetSeries)
 
 from yt.frontends.api import _frontend_container
+
 frontends = _frontend_container()
 
-from yt.frontends.stream.api import \
-    load_uniform_grid, load_amr_grids, \
-    load_particles, load_hexahedral_mesh, load_octree, \
-    hexahedral_connectivity, load_unstructured_mesh
+from yt.frontends.stream.api import hexahedral_connectivity
 
-from yt.frontends.ytdata.api import \
-    save_as_dataset
+
+from yt.frontends.ytdata.api import save_as_dataset
 
 # For backwards compatibility
 GadgetDataset = frontends.gadget.GadgetDataset
@@ -101,39 +108,86 @@ TipsyDataset = frontends.tipsy.TipsyDataset
 TipsyStaticOutput = deprecated_class(TipsyDataset)
 
 # Now individual component imports from the visualization API
-from yt.visualization.api import \
-    FixedResolutionBuffer, ObliqueFixedResolutionBuffer, \
-    write_bitmap, write_image, \
-    apply_colormap, scale_image, write_projection, \
-    SlicePlot, AxisAlignedSlicePlot, OffAxisSlicePlot, LinePlot, \
-    LineBuffer, ProjectionPlot, OffAxisProjectionPlot, \
-    show_colormaps, add_colormap, make_colormap, \
-    ProfilePlot, PhasePlot, ParticlePhasePlot, \
-    ParticleProjectionPlot, ParticleImageBuffer, ParticlePlot, \
-    FITSImageData, FITSSlice, FITSProjection, FITSOffAxisSlice, \
-    FITSOffAxisProjection, plot_2d
+from yt.visualization.api import (
+    FixedResolutionBuffer,
+    ObliqueFixedResolutionBuffer,
+    write_bitmap,
+    write_image,
+    apply_colormap,
+    scale_image,
+    write_projection,
+    SlicePlot,
+    AxisAlignedSlicePlot,
+    OffAxisSlicePlot,
+    LinePlot,
+    LineBuffer,
+    ProjectionPlot,
+    OffAxisProjectionPlot,
+    show_colormaps,
+    add_colormap,
+    make_colormap,
+    ProfilePlot,
+    PhasePlot,
+    ParticlePhasePlot,
+    ParticleProjectionPlot,
+    ParticleImageBuffer,
+    ParticlePlot,
+    FITSImageData,
+    FITSSlice,
+    FITSProjection,
+    FITSOffAxisSlice,
+    FITSOffAxisProjection,
+    plot_2d,
+)
 
-from yt.visualization.volume_rendering.api import \
-    volume_render, create_scene, ColorTransferFunction, TransferFunction, \
-    off_axis_projection, interactive_render
+from yt.visualization.volume_rendering.api import (
+    volume_render,
+    create_scene,
+    ColorTransferFunction,
+    TransferFunction,
+    off_axis_projection,
+    interactive_render,
+)
 import yt.visualization.volume_rendering.api as volume_rendering
+
 #    TransferFunctionHelper, MultiVariateTransferFunction
 #    off_axis_projection
 
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects, enable_parallelism, communication_system
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    parallel_objects,
+    enable_parallelism,
+    communication_system,
+)
 
-from yt.convenience import \
-    load, simulation
+from yt.loaders import (
+    load,
+    load_simulation,
+    simulation,  # deprecated alias for load_simulation
+    load_uniform_grid,
+    load_amr_grids,
+    load_particles,
+    load_hexahedral_mesh,
+    load_octree,
+    load_unstructured_mesh,
+    load_sample,
+)
 
 from yt.testing import run_nose
 
 # Import some helpful math utilities
-from yt.utilities.math_utils import \
-    ortho_find, quartiles, periodic_position
+from yt.utilities.math_utils import ortho_find, quartiles, periodic_position
 
-from yt.units.unit_systems import UnitSystem
-from yt.units.unit_object import unit_system_registry
+from yt.units.unit_systems import UnitSystem, unit_system_registry
 
-from yt.analysis_modules.list_modules import \
-    amods
+
+def _check_deprecated_parameters():
+    from yt.config import ytcfg
+    from yt.funcs import issue_deprecation_warning
+
+    if ytcfg.getboolean("yt", "loadfieldplugins"):
+        issue_deprecation_warning(
+            "Found deprecated parameter 'loadfieldplugins' parameter in yt rcfile."
+        )
+
+
+_check_deprecated_parameters()

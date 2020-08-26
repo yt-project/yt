@@ -1,35 +1,11 @@
-"""
-Gizmo-specific fields
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.fields.magnetic_field import setup_magnetic_field_aliases
+from yt.fields.species_fields import add_species_field_by_density, setup_species_fields
+from yt.frontends.gadget.fields import GadgetFieldInfo
+from yt.frontends.sph.fields import SPHFieldInfo
 
+metal_elements = ["He", "C", "N", "O", "Ne", "Mg", "Si", "S", "Ca", "Fe"]
 
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.fields.magnetic_field import \
-    setup_magnetic_field_aliases
-from yt.fields.particle_fields import \
-    add_volume_weighted_smoothed_field
-from yt.fields.species_fields import \
-    add_species_field_by_density, \
-    setup_species_fields
-from yt.frontends.gadget.fields import \
-    GadgetFieldInfo
-from yt.frontends.sph.fields import \
-    SPHFieldInfo
-
-metal_elements = ["He", "C", "N", "O", "Ne",
-                  "Mg", "Si", "S", "Ca", "Fe"]
 
 class GizmoFieldInfo(GadgetFieldInfo):
     # The known fields list is according to the GIZMO User Guide. See
@@ -58,10 +34,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
         ("Metallicity_09", ("", ["Ca_metallicity"], None)),
         ("Metallicity_10", ("", ["Fe_metallicity"], None)),
         ("ArtificialViscosity", ("", [], None)),
-        ("MagneticField",
-         ("code_magnetic", ["particle_magnetic_field"], None)),
-        ("DivergenceOfMagneticField",
-         ("code_magnetic / code_length", [], None)),
+        ("MagneticField", ("code_magnetic", ["particle_magnetic_field"], None)),
+        ("DivergenceOfMagneticField", ("code_magnetic / code_length", [], None)),
         ("StellarFormationTime", ("", [], None)),
         # "StellarFormationTime" has different meanings in (non-)cosmological
         # runs, so units are left blank here.
@@ -74,7 +48,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         super(SPHFieldInfo, self).__init__(*args, **kwargs)
         if ("PartType0", "Metallicity_00") in self.field_list:
             self.nuclei_names = metal_elements
-            self.species_names = ["H", "H_p1"] + metal_elements
+            self.species_names = ["H_p0", "H_p1"] + metal_elements
 
     def setup_particle_fields(self, ptype):
         FieldInfoContainer.setup_particle_fields(self, ptype)
@@ -87,75 +61,93 @@ class GizmoFieldInfo(GadgetFieldInfo):
     def setup_gas_particle_fields(self, ptype):
         super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
 
-        def _h_density(field, data):
-            x_H = 1.0 - data[(ptype, "He_metallicity")] - \
-              data[(ptype, "metallicity")]
-            return x_H * data[(ptype, "density")] * \
-              data[(ptype, "NeutralHydrogenAbundance")]
+        def _h_p0_density(field, data):
+            x_H = 1.0 - data[(ptype, "He_metallicity")] - data[(ptype, "metallicity")]
+            return (
+                x_H
+                * data[(ptype, "density")]
+                * data[(ptype, "NeutralHydrogenAbundance")]
+            )
 
         self.add_field(
-            (ptype, "H_density"),
+            (ptype, "H_p0_density"),
             sampling_type="particle",
-            function=_h_density,
-            units=self.ds.unit_system["density"])
-        add_species_field_by_density(self, ptype, "H", particle_type=True)
-        for suffix in ["density", "fraction", "mass", "number_density"]:
-            self.alias((ptype, "H_p0_%s" % suffix), (ptype, "H_%s" % suffix))
+            function=_h_p0_density,
+            units=self.ds.unit_system["density"],
+        )
+        add_species_field_by_density(self, ptype, "H")
 
         def _h_p1_density(field, data):
-            x_H = 1.0 - data[(ptype, "He_metallicity")] - \
-              data[(ptype, "metallicity")]
-            return x_H * data[(ptype, "density")] * \
-              (1.0 - data[(ptype, "NeutralHydrogenAbundance")])
+            x_H = 1.0 - data[(ptype, "He_metallicity")] - data[(ptype, "metallicity")]
+            return (
+                x_H
+                * data[(ptype, "density")]
+                * (1.0 - data[(ptype, "NeutralHydrogenAbundance")])
+            )
 
         self.add_field(
             (ptype, "H_p1_density"),
             sampling_type="particle",
             function=_h_p1_density,
-            units=self.ds.unit_system["density"])
-        add_species_field_by_density(self, ptype, "H_p1", particle_type=True)
+            units=self.ds.unit_system["density"],
+        )
+        add_species_field_by_density(self, ptype, "H_p1")
 
         def _nuclei_mass_density_field(field, data):
-            species = field.name[1][:field.name[1].find("_")]
-            return data[ptype, "density"] * \
-              data[ptype, "%s_metallicity" % species]
+            species = field.name[1][: field.name[1].find("_")]
+            return data[ptype, "density"] * data[ptype, f"{species}_metallicity"]
 
-        num_neighbors = 64
-        for species in ['H', 'H_p0', 'H_p1']:
+        for species in ["H", "H_p0", "H_p1"]:
             for suf in ["_density", "_number_density"]:
-                field = "%s%s" % (species, suf)
-                fn = add_volume_weighted_smoothed_field(
-                    ptype, "particle_position", "particle_mass",
-                    "smoothing_length", "density", field,
-                    self, num_neighbors)
-                self.alias(("gas", field), fn[0])
+                field = f"{species}{suf}"
+                self.alias(("gas", field), (ptype, field))
+
+        if (ptype, "ElectronAbundance") in self.field_list:
+
+            def _el_number_density(field, data):
+                return (
+                    data[ptype, "ElectronAbundance"] * data[ptype, "H_number_density"]
+                )
+
+            self.add_field(
+                (ptype, "El_number_density"),
+                sampling_type="particle",
+                function=_el_number_density,
+                units=self.ds.unit_system["number_density"],
+            )
+            self.alias(("gas", "El_number_density"), (ptype, "El_number_density"))
 
         for species in self.nuclei_names:
             self.add_field(
-                (ptype, "%s_nuclei_mass_density" % species),
+                (ptype, f"{species}_nuclei_mass_density"),
                 sampling_type="particle",
                 function=_nuclei_mass_density_field,
-                units=self.ds.unit_system["density"])
+                units=self.ds.unit_system["density"],
+            )
 
             for suf in ["_nuclei_mass_density", "_metallicity"]:
-                field = "%s%s" % (species, suf)
-                fn = add_volume_weighted_smoothed_field(
-                    ptype, "particle_position", "particle_mass",
-                    "smoothing_length", "density", field,
-                    self, num_neighbors)
+                field = f"{species}{suf}"
+                self.alias(("gas", field), (ptype, field))
 
-                self.alias(("gas", field), fn[0])
+        def _metal_density_field(field, data):
+            return data[ptype, "metallicity"] * data[ptype, "density"]
+
+        self.add_field(
+            (ptype, "metal_density"),
+            sampling_type="local",
+            function=_metal_density_field,
+            units=self.ds.unit_system["density"],
+        )
+        self.alias(("gas", "metal_density"), (ptype, "metal_density"))
 
         magnetic_field = "MagneticField"
         if (ptype, magnetic_field) in self.field_list:
-            setup_magnetic_field_aliases(
-                self, ptype, magnetic_field, ftype=ptype
-            )
+            setup_magnetic_field_aliases(self, ptype, magnetic_field)
 
     def setup_star_particle_fields(self, ptype):
         def _creation_time(field, data):
             if data.ds.cosmological_simulation:
-                a_form = data['StellarFormationTime']
+                a_form = data["StellarFormationTime"]
                 z_form = 1 / a_form - 1
                 creation_time = data.ds.cosmology.t_from_z(z_form)
             else:
@@ -167,7 +159,8 @@ class GizmoFieldInfo(GadgetFieldInfo):
             (ptype, "creation_time"),
             sampling_type="particle",
             function=_creation_time,
-            units=self.ds.unit_system["time"])
+            units=self.ds.unit_system["time"],
+        )
 
         def _age(field, data):
             return data.ds.current_time - data["creation_time"]
@@ -176,4 +169,5 @@ class GizmoFieldInfo(GadgetFieldInfo):
             (ptype, "age"),
             sampling_type="particle",
             function=_age,
-            units=self.ds.unit_system["time"])
+            units=self.ds.unit_system["time"],
+        )

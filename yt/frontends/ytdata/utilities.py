@@ -1,37 +1,15 @@
-"""
-Utility functions for ytdata frontend.
+from yt.units.yt_array import YTArray
+from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import numpy as np
-
-from yt.funcs import iterable
-from yt.units.yt_array import \
-    YTArray
-from yt.utilities.logger import \
-    ytLogger as mylog
-from yt.utilities.on_demand_imports import \
-    _h5py as h5py
-
-def save_as_dataset(ds, filename, data, field_types=None,
-                    extra_attrs=None):
+def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
     r"""Export a set of field arrays to a reloadable yt dataset.
 
-    This function can be used to create a yt loadable dataset from a 
-    set of arrays.  The field arrays can either be associated with a 
+    This function can be used to create a yt loadable dataset from a
+    set of arrays.  The field arrays can either be associated with a
     loaded dataset or, if not, a dictionary of dataset attributes can
-    be provided that will be used as metadata for the new dataset.  The 
+    be provided that will be used as metadata for the new dataset.  The
     resulting dataset can be reloaded as a yt dataset.
 
     Parameters
@@ -87,32 +65,43 @@ def save_as_dataset(ds, filename, data, field_types=None,
 
     """
 
-    mylog.info("Saving field data to yt dataset: %s." % filename)
+    mylog.info("Saving field data to yt dataset: %s.", filename)
 
-    if extra_attrs is None: extra_attrs = {}
-    base_attrs  = ["dimensionality",
-                   "domain_left_edge", "domain_right_edge",
-                   "current_redshift", "current_time",
-                   "domain_dimensions", "periodicity",
-                   "cosmological_simulation", "omega_lambda",
-                   "omega_matter", "hubble_constant",
-                   "length_unit", "mass_unit", "time_unit",
-                   "velocity_unit", "magnetic_unit"]
+    if extra_attrs is None:
+        extra_attrs = {}
+    base_attrs = [
+        "dimensionality",
+        "domain_left_edge",
+        "domain_right_edge",
+        "current_redshift",
+        "current_time",
+        "domain_dimensions",
+        "geometry",
+        "periodicity",
+        "cosmological_simulation",
+        "omega_lambda",
+        "omega_matter",
+        "hubble_constant",
+        "length_unit",
+        "mass_unit",
+        "time_unit",
+        "velocity_unit",
+        "magnetic_unit",
+    ]
 
-    fh = h5py.File(filename, "w")
-    if ds is None: ds = {}
+    fh = h5py.File(filename, mode="w")
+    if ds is None:
+        ds = {}
 
     if hasattr(ds, "parameters") and isinstance(ds.parameters, dict):
         for attr, val in ds.parameters.items():
             _yt_array_hdf5_attr(fh, attr, val)
 
     if hasattr(ds, "unit_registry"):
-        _yt_array_hdf5_attr(fh, "unit_registry_json",
-                            ds.unit_registry.to_json())
+        _yt_array_hdf5_attr(fh, "unit_registry_json", ds.unit_registry.to_json())
 
     if hasattr(ds, "unit_system"):
-        _yt_array_hdf5_attr(fh, "unit_system_name",
-                            ds.unit_system.name.split("_")[0])
+        _yt_array_hdf5_attr(fh, "unit_system_name", ds.unit_system.name.split("_")[0])
 
     for attr in base_attrs:
         if isinstance(ds, dict):
@@ -143,20 +132,22 @@ def save_as_dataset(ds, filename, data, field_types=None,
             field_name = field
 
         # for python3
-        if data[field].dtype.kind == 'U':
-            data[field] = data[field].astype('|S')
+        if data[field].dtype.kind == "U":
+            data[field] = data[field].astype("|S")
 
         _yt_array_hdf5(fh[field_type], field_name, data[field])
         if "num_elements" not in fh[field_type].attrs:
             fh[field_type].attrs["num_elements"] = data[field].size
     fh.close()
+    return filename
+
 
 def _hdf5_yt_array(fh, field, ds=None):
     r"""Load an hdf5 dataset as a YTArray.
 
     Reads in a dataset from an open hdf5 file or group and uses the
     "units" attribute, if it exists, to apply units.
-    
+
     Parameters
     ----------
     fh : an open hdf5 file or hdf5 group
@@ -170,9 +161,9 @@ def _hdf5_yt_array(fh, field, ds=None):
     Returns
     -------
     A YTArray of the requested field.
-    
+
     """
-    
+
     if ds is None:
         new_arr = YTArray
     else:
@@ -180,15 +171,17 @@ def _hdf5_yt_array(fh, field, ds=None):
     units = ""
     if "units" in fh[field].attrs:
         units = fh[field].attrs["units"]
-    if units == "dimensionless": units = ""
+    if units == "dimensionless":
+        units = ""
     return new_arr(fh[field][()], units)
+
 
 def _yt_array_hdf5(fh, field, data):
     r"""Save a YTArray to an open hdf5 file or group.
 
-    Save a YTArray to an open hdf5 file or group, and save the 
+    Save a YTArray to an open hdf5 file or group, and save the
     units to a "units" attribute.
-    
+
     Parameters
     ----------
     fh : an open hdf5 file or hdf5 group
@@ -202,7 +195,7 @@ def _yt_array_hdf5(fh, field, data):
     -------
     dataset : hdf5 dataset
         The created hdf5 dataset.
-    
+
     """
 
     dataset = fh.create_dataset(str(field), data=data)
@@ -211,6 +204,7 @@ def _yt_array_hdf5(fh, field, data):
         units = str(data.units)
     dataset.attrs["units"] = units
     return dataset
+
 
 def _yt_array_hdf5_attr(fh, attr, val):
     r"""Save a YTArray or YTQuantity as an hdf5 attribute.
@@ -230,18 +224,13 @@ def _yt_array_hdf5_attr(fh, attr, val):
 
     """
 
-    if val is None: val = "None"
+    if val is None:
+        val = "None"
     if hasattr(val, "units"):
-        fh.attrs["%s_units" % attr] = str(val.units)
-    # The following is a crappy workaround for getting
-    # Unicode strings into HDF5 attributes in Python 3
-    if iterable(val):
-        val = np.array(val)
-        if val.dtype.kind == 'U':
-            val = val.astype('|S')
+        fh.attrs[f"{attr}_units"] = str(val.units)
     try:
         fh.attrs[str(attr)] = val
     # This is raised if no HDF5 equivalent exists.
     # In that case, save its string representation.
     except TypeError:
-        fh.attrs[str(attr)] = str(val)
+        fh.attrs[str(attr)] = repr(val)

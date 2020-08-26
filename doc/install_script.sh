@@ -24,22 +24,18 @@ YT_DIR=""
 
 # These options can be set to customize the installation.
 
-INST_PY3=1      # Install Python 3 instead of Python 2. If this is turned on,
-                # all Python packages (including yt) will be installed
-                # in Python 3.
 INST_GIT=1      # Install git or not?  If git is not already installed, yt
                 # cannot be installed from source.
 INST_EMBREE=0   # Install dependencies needed for Embree-accelerated ray tracing
 INST_PYX=0      # Install PyX?  Sometimes PyX can be problematic without a
                 # working TeX installation.
-INST_ROCKSTAR=0 # Install the Rockstar halo finder?
 INST_SCIPY=0    # Install scipy?
 INST_H5PY=1     # Install h5py?
 INST_ASTROPY=0  # Install astropy?
 INST_CARTOPY=0  # Install cartopy?
 INST_NOSE=1     # Install nose?
 INST_NETCDF4=1  # Install netcdf4 and its python bindings?
-INST_HG=0       # Install Mercurial or not?
+INST_POOCH=1    # Install pooch?
 
 # This is the branch we will install from for INST_YT_SOURCE=1
 BRANCH="master"
@@ -133,14 +129,13 @@ function write_config
     echo INST_YT_SOURCE=${INST_YT_SOURCE} > ${CONFIG_FILE}
     echo INST_GIT=${INST_GIT} >> ${CONFIG_FILE}
     echo INST_PYX=${INST_PYX} >> ${CONFIG_FILE}
-    echo INST_PY3=${INST_PY3} >> ${CONFIG_FILE}
-    echo INST_ROCKSTAR=${INST_ROCKSTAR} >> ${CONFIG_FILE}
     echo INST_SCIPY=${INST_SCIPY} >> ${CONFIG_FILE}
     echo INST_EMBREE=${INST_EMBREE} >> ${CONFIG_FILE}
     echo INST_H5PY=${INST_H5PY} >> ${CONFIG_FILE}
     echo INST_ASTROPY=${INST_ASTROPY} >> ${CONFIG_FILE}
     echo INST_CARTOPY=${INST_CARTOPY} >> ${CONFIG_FILE}
     echo INST_NOSE=${INST_NOSE} >> ${CONFIG_FILE}
+    echo INST_POOCH=${INST_POOCH} >> ${CONFIG_FILE}
 
     echo YT_DIR=${YT_DIR} >> ${CONFIG_FILE}
 }
@@ -286,17 +281,6 @@ then
     PYEMBREE_URL="https://github.com/scopatz/pyembree/archive/master.zip"
 fi
 
-if [ $INST_ROCKSTAR -ne 0 ]
-then
-    if [ $INST_YT_SOURCE -eq 0 ]
-    then
-        echo "yt must be compiled from source to install support for"
-        echo "the rockstar halo finder. Please set INST_YT_SOURCE to 1"
-        echo "and re-run the install script"
-        exit 1
-    fi
-fi
-
 echo
 echo
 echo "========================================================================"
@@ -314,10 +298,6 @@ printf "%-18s = %s so I " "INST_YT_SOURCE" "${INST_YT_SOURCE}"
 get_willwont ${INST_YT_SOURCE}
 echo "be compiling yt from source"
 
-printf "%-18s = %s so I " "INST_PY3" "${INST_PY3}"
-get_willwont ${INST_PY3}
-echo "be installing Python 3"
-
 printf "%-18s = %s so I " "INST_GIT" "${INST_GIT}"
 get_willwont ${INST_GIT}
 echo "be installing git"
@@ -329,10 +309,6 @@ echo "be installing Embree"
 printf "%-18s = %s so I " "INST_PYX" "${INST_PYX}"
 get_willwont ${INST_PYX}
 echo "be installing PyX"
-
-printf "%-18s = %s so I " "INST_ROCKSTAR" "${INST_ROCKSTAR}"
-get_willwont ${INST_ROCKSTAR}
-echo "be installing Rockstar"
 
 printf "%-18s = %s so I " "INST_H5PY" "${INST_H5PY}"
 get_willwont ${INST_H5PY}
@@ -349,6 +325,10 @@ echo "be installing cartopy"
 printf "%-18s = %s so I " "INST_NOSE" "${INST_NOSE}"
 get_willwont ${INST_NOSE}
 echo "be installing nose"
+
+printf "%-18s = %s so I " "INST_POOCH" "${INST_POOCH}"
+get_willwont ${INST_POOCH}
+echo "be installing pooch"
 
 echo
 
@@ -394,12 +374,8 @@ function do_exit
     exit 1
 }
 
-if [ $INST_PY3 -eq 1 ]
-then
-     PYTHON_EXEC='python3'
-else 
-     PYTHON_EXEC='python2.7'
-fi
+PYTHON_EXEC='python3'
+
 
 if type -P curl &>/dev/null
 then
@@ -451,12 +427,7 @@ else
     exit 1
 fi
 
-if [ $INST_PY3 -eq 1 ]
-then
-    PY_VERSION='3'
-else
-    PY_VERSION='2'
-fi
+PY_VERSION='3'
 
 MINICONDA_PKG="Miniconda${PY_VERSION}-${MINICONDA_VERSION}-${MINICONDA_OS}-${MINICONDA_ARCH}.sh"
 
@@ -522,11 +493,11 @@ if [ $INST_CARTOPY -ne 0 ]
 then
     YT_DEPS+=('cartopy')
 fi
-YT_DEPS+=('conda-build')
-if [ $INST_PY3 -eq 0 ] && [ $INST_HG -eq 1 ]
+if [ $INST_POOCH -ne 0 ]
 then
-    YT_DEPS+=('mercurial')
+    YT_DEPS+=('pooch')
 fi
+YT_DEPS+=('conda-build')
 YT_DEPS+=('sympy')
 
 if [ $INST_NETCDF4 -eq 1 ]
@@ -557,13 +528,6 @@ for YT_DEP in "${YT_DEPS[@]}"; do
     echo "Installing $YT_DEP"
     log_cmd ${DEST_DIR}/bin/conda install -c conda-forge --yes ${YT_DEP}
 done
-
-if [ $INST_PY3 -eq 1 ] && [ $INST_HG -eq 1 ]
-then
-    echo "Installing mercurial"
-    log_cmd ${DEST_DIR}/bin/conda create -y -n py27 python=2.7 mercurial
-    log_cmd ln -s ${DEST_DIR}/envs/py27/bin/hg ${DEST_DIR}/bin
-fi
 
 if [ $INST_YT_SOURCE -eq 1 ]
 then
@@ -598,25 +562,10 @@ then
     popd &> /dev/null
 fi
 
-if [ $INST_ROCKSTAR -eq 1 ]
-then
-    echo "Building Rockstar"
-    ( ${GIT_EXE} clone https://github.com/yt-project/rockstar ${DEST_DIR}/src/rockstar/ 2>&1 ) 1>> ${LOG_FILE}
-    ROCKSTAR_PACKAGE=$(${DEST_DIR}/bin/conda build ${DEST_DIR}/src/yt_conda/rockstar --output)
-    log_cmd ${DEST_DIR}/bin/conda build ${DEST_DIR}/src/yt_conda/rockstar
-    log_cmd ${DEST_DIR}/bin/conda install $ROCKSTAR_PACKAGE
-    ROCKSTAR_DIR=${DEST_DIR}/src/rockstar
-fi
-
 # conda doesn't package pyx, so we install manually with pip
 if [ $INST_PYX -eq 1 ]
 then
-    if [ $INST_PY3 -eq 1 ]
-    then
-        log_cmd ${DEST_DIR}/bin/pip install pyx
-    else
-        log_cmd ${DEST_DIR}/bin/pip install pyx==0.12.1
-    fi
+    log_cmd ${DEST_DIR}/bin/pip install pyx
 fi
 
 if [ $INST_YT_SOURCE -eq 0 ]
@@ -650,13 +599,8 @@ else
     then
         echo $DEST_DIR > ${YT_DIR}/embree.cfg
     fi
-    if [ $INST_ROCKSTAR -eq 1 ]
-    then
-        echo $ROCKSTAR_DIR > ${YT_DIR}/rockstar.cfg
-        ROCKSTAR_LIBRARY_PATH=${DEST_DIR}/lib
-    fi
     pushd ${YT_DIR} &> /dev/null
-    ( LIBRARY_PATH=$ROCKSTAR_LIBRARY_PATH ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py develop 2>&1) 1>> ${LOG_FILE} || do_exit
+    ( ${DEST_DIR}/bin/${PYTHON_EXEC} setup.py develop 2>&1) 1>> ${LOG_FILE} || do_exit
     popd &> /dev/null
 fi
 
@@ -697,21 +641,6 @@ echo "You can also update the init file appropriate for your shell"
 echo "(e.g. .bashrc, .bash_profile, .cshrc, or .zshrc) to include"
 echo "the same command."
 echo
-if [ $INST_ROCKSTAR -eq 1 ]
-then
-    if [ $MYOS = "Darwin" ]
-    then
-        LD_NAME="DYLD_LIBRARY_PATH"
-    else
-        LD_NAME="LD_LIBRARY_PATH"
-    fi
-    echo
-    echo "For rockstar to work, you must also set $LD_NAME:"
-    echo
-    echo "    export $LD_NAME=$DEST_DIR/lib:\$$LD_NAME"
-    echo
-    echo "or whichever invocation is appropriate for your shell."
-fi
 echo "========================================================================"
 echo
 echo "Oh, look at me, still talking when there's science to do!"

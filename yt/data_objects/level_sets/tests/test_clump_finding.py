@@ -1,42 +1,16 @@
-"""
-Clump finder tests
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-import numpy as np
 import os
 import shutil
 import tempfile
 
+import numpy as np
 
-from yt.data_objects.level_sets.api import \
-    add_clump_info, \
-    Clump, \
-    find_clumps
+from yt.data_objects.level_sets.api import Clump, add_clump_info, find_clumps
 from yt.data_objects.level_sets.clump_info_items import clump_info_registry
-from yt.convenience import \
-    load
-from yt.fields.derived_field import \
-    ValidateParameter
-from yt.frontends.stream.api import \
-    load_uniform_grid
-from yt.testing import \
-    assert_array_equal, \
-    assert_equal, \
-    requires_file
-from yt.utilities.answer_testing.framework import \
-    data_dir_load
+from yt.fields.derived_field import ValidateParameter
+from yt.loaders import load, load_uniform_grid
+from yt.testing import assert_array_equal, assert_equal, requires_file
+from yt.utilities.answer_testing.framework import data_dir_load
+
 
 def test_clump_finding():
     n_c = 8
@@ -44,20 +18,22 @@ def test_clump_finding():
     dims = (n_c, n_c, n_c)
 
     density = np.ones(dims)
-    high_rho = 10.
+    high_rho = 10.0
     # add a couple disconnected density enhancements
     density[2, 2, 2] = high_rho
     density[6, 6, 6] = high_rho
 
     # put a particle at the center of one of them
-    dx = 1. / n_c
+    dx = 1.0 / n_c
     px = 2.5 * dx * np.ones(n_p)
-    
-    data = {"density": density,
-            "particle_mass": np.ones(n_p),
-            "particle_position_x": px,
-            "particle_position_y": px,
-            "particle_position_z": px}
+
+    data = {
+        "density": density,
+        "particle_mass": np.ones(n_p),
+        "particle_position_x": px,
+        "particle_position_y": px,
+        "particle_position_z": px,
+    }
 
     ds = load_uniform_grid(data, dims)
 
@@ -66,13 +42,15 @@ def test_clump_finding():
     master_clump.add_validator("min_cells", 1)
 
     def _total_volume(clump):
-        total_vol = clump.data.quantities.total_quantity(
-            ["cell_volume"]).in_units('cm**3')
+        total_vol = clump.data.quantities.total_quantity(["cell_volume"]).in_units(
+            "cm**3"
+        )
         return "Cell Volume: %6e cm**3.", total_vol
-    add_clump_info("total_volume",_total_volume)
+
+    add_clump_info("total_volume", _total_volume)
     master_clump.add_info_item("total_volume")
 
-    find_clumps(master_clump, 0.5, 2. * high_rho, 10.)
+    find_clumps(master_clump, 0.5, 2.0 * high_rho, 10.0)
 
     # there should be two children
     assert_equal(len(master_clump.children), 2)
@@ -81,11 +59,11 @@ def test_clump_finding():
 
     for l in leaf_clumps:
         keys = l.info.keys()
-        assert 'total_cells' in keys
-        assert 'cell_mass' in keys
-        assert 'max_grid_level' in keys
-        assert 'total_volume' in keys
-    
+        assert "total_cells" in keys
+        assert "cell_mass" in keys
+        assert "max_grid_level" in keys
+        assert "total_volume" in keys
+
     # two leaf clumps
     assert_equal(len(leaf_clumps), 2)
 
@@ -99,9 +77,12 @@ def test_clump_finding():
     assert_equal(master_clump.children[1]["particle_mass"].size, 0)
 
     # clean up global registry to avoid polluting other tests
-    del clump_info_registry['total_volume']
+    del clump_info_registry["total_volume"]
+
 
 i30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+
+
 @requires_file(i30)
 def test_clump_tree_save():
     tmpdir = tempfile.mkdtemp()
@@ -109,13 +90,12 @@ def test_clump_tree_save():
     os.chdir(tmpdir)
 
     ds = data_dir_load(i30)
-    data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
-                          (8, 'kpc'), (1, 'kpc'))
+    data_source = ds.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], (8, "kpc"), (1, "kpc"))
 
     field = ("gas", "density")
     step = 2.0
-    c_min = 10**np.floor(np.log10(data_source[field]).min()  )
-    c_max = 10**np.floor(np.log10(data_source[field]).max()+1)
+    c_min = 10 ** np.floor(np.log10(data_source[field]).min())
+    c_max = 10 ** np.floor(np.log10(data_source[field]).max() + 1)
 
     master_clump = Clump(data_source, field)
     master_clump.add_info_item("center_of_mass")
@@ -124,8 +104,9 @@ def test_clump_tree_save():
     find_clumps(master_clump, c_min, c_max, step)
     leaf_clumps = master_clump.leaves
 
-    fn = master_clump.save_as_dataset(fields=["density", "x", "y", "z",
-                                              "particle_mass"])
+    fn = master_clump.save_as_dataset(
+        fields=["density", "x", "y", "z", "particle_mass"]
+    )
     ds2 = load(fn)
 
     # compare clumps in the tree
@@ -140,10 +121,8 @@ def test_clump_tree_save():
     for i1, i2 in zip(it1, it2):
         ct1 = t1[i1]
         ct2 = t2[i2]
-        assert_array_equal(ct1["gas", "density"],
-                           ct2["grid", "density"])
-        assert_array_equal(ct1["all", "particle_mass"],
-                           ct2["all", "particle_mass"])
+        assert_array_equal(ct1["gas", "density"], ct2["grid", "density"])
+        assert_array_equal(ct1["all", "particle_mass"], ct2["all", "particle_mass"])
 
     # compare leaf clumps
     c1 = [c for c in leaf_clumps]
@@ -157,7 +136,10 @@ def test_clump_tree_save():
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 
+
 i30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
+
+
 @requires_file(i30)
 def test_clump_field_parameters():
     """
@@ -169,24 +151,25 @@ def test_clump_field_parameters():
         return factor * data["density"]
 
     ds = data_dir_load(i30)
-    ds.add_field("also_density", function=_also_density,
-                 units=ds.fields.gas.density.units,
-                 sampling_type="cell",
-                 validators=[ValidateParameter("factor")])
-    data_source = ds.disk([0.5, 0.5, 0.5], [0., 0., 1.],
-                          (8, 'kpc'), (1, 'kpc'))
+    ds.add_field(
+        "also_density",
+        function=_also_density,
+        units=ds.fields.gas.density.units,
+        sampling_type="cell",
+        validators=[ValidateParameter("factor")],
+    )
+    data_source = ds.disk([0.5, 0.5, 0.5], [0.0, 0.0, 1.0], (8, "kpc"), (1, "kpc"))
     data_source.set_field_parameter("factor", 1)
 
     step = 2.0
     field = ("gas", "density")
-    c_min = 10**np.floor(np.log10(data_source[field]).min()  )
-    c_max = 10**np.floor(np.log10(data_source[field]).max()+1)
+    c_min = 10 ** np.floor(np.log10(data_source[field]).min())
+    c_max = 10 ** np.floor(np.log10(data_source[field]).max() + 1)
 
     master_clump_1 = Clump(data_source, ("gas", "density"))
     master_clump_1.add_validator("min_cells", 20)
     master_clump_2 = Clump(data_source, ("gas", "also_density"))
     master_clump_2.add_validator("min_cells", 20)
-
 
     find_clumps(master_clump_1, c_min, c_max, step)
     find_clumps(master_clump_2, c_min, c_max, step)
@@ -194,5 +177,4 @@ def test_clump_field_parameters():
     leaf_clumps_2 = master_clump_2.leaves
 
     for c1, c2 in zip(leaf_clumps_1, leaf_clumps_2):
-        assert_array_equal(c1["gas", "density"],
-                           c2["gas", "density"])
+        assert_array_equal(c1["gas", "density"], c2["gas", "density"])

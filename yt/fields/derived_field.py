@@ -1,51 +1,38 @@
-"""
-Derived field base class.
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import contextlib
 import inspect
 import re
 import warnings
 
-from yt.extern.six import string_types, PY2
-from yt.funcs import \
-    ensure_list
-from .field_exceptions import \
-    NeedsGridType, \
-    NeedsOriginalGrid, \
-    NeedsDataField, \
-    NeedsProperty, \
-    NeedsParameter, \
-    FieldUnitsError
-from .field_detector import \
-    FieldDetector
-from yt.units.unit_object import \
-    Unit
 import yt.units.dimensions as ytdims
-from yt.utilities.exceptions import \
-    YTFieldNotFound
+from yt.funcs import VisibleDeprecationWarning, ensure_list
+from yt.units.unit_object import Unit
+from yt.utilities.exceptions import YTFieldNotFound
+
+from .field_detector import FieldDetector
+from .field_exceptions import (
+    FieldUnitsError,
+    NeedsDataField,
+    NeedsGridType,
+    NeedsOriginalGrid,
+    NeedsParameter,
+    NeedsProperty,
+)
 
 
 def TranslationFunc(field_name):
     def _TranslationFunc(field, data):
         # We do a bunch of in-place modifications, so we will copy this.
         return data[field_name].copy()
+
     _TranslationFunc.alias_name = field_name
     return _TranslationFunc
+
 
 def NullFunc(field, data):
     raise YTFieldNotFound(field.name)
 
-class DerivedField(object):
+
+class DerivedField:
     """
     This is the base class used to describe a cell-by-cell derived field.
 
@@ -100,21 +87,38 @@ class DerivedField(object):
        that the field defined at the centers of the 4 edges that are normal to the
        x axis, while nodal_flag = [1, 1, 1] would be defined at the 8 cell corners.
     """
+
     _inherited_particle_filter = False
-    def __init__(self, name, sampling_type, function, units=None,
-                 take_log=True, validators=None,
-                 particle_type=None, vector_field=False, display_field=True,
-                 not_in_all=False, display_name=None, output_units=None,
-                 dimensions=None, ds=None, nodal_flag=None):
+
+    def __init__(
+        self,
+        name,
+        sampling_type,
+        function,
+        units=None,
+        take_log=True,
+        validators=None,
+        particle_type=None,
+        vector_field=False,
+        display_field=True,
+        not_in_all=False,
+        display_name=None,
+        output_units=None,
+        dimensions=None,
+        ds=None,
+        nodal_flag=None,
+    ):
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
         self.not_in_all = not_in_all
         self.display_field = display_field
-        if particle_type is True:
-            warnings.warn("particle_type for derived fields "
-                          "has been replaced with sampling_type = 'particle'",
-                          DeprecationWarning)
+        if particle_type:
+            warnings.warn(
+                "particle_type for derived fields "
+                "has been replaced with sampling_type = 'particle'",
+                DeprecationWarning,
+            )
             sampling_type = "particle"
         self.sampling_type = sampling_type
         self.vector_field = vector_field
@@ -139,12 +143,14 @@ class DerivedField(object):
 
         # handle units
         if units is None:
-            self.units = ''
-        elif isinstance(units, string_types):
-            if units.lower() == 'auto':
+            self.units = ""
+        elif isinstance(units, str):
+            if units.lower() == "auto":
                 if dimensions is None:
-                    raise RuntimeError("To set units='auto', please specify the dimensions "
-                                       "of the field with dimensions=<dimensions of field>!")
+                    raise RuntimeError(
+                        "To set units='auto', please specify the dimensions "
+                        "of the field with dimensions=<dimensions of field>!"
+                    )
                 self.units = None
             else:
                 self.units = units
@@ -153,33 +159,58 @@ class DerivedField(object):
         elif isinstance(units, bytes):
             self.units = units.decode("utf-8")
         else:
-            raise FieldUnitsError("Cannot handle units '%s' (type %s)." \
-                                  "Please provide a string or Unit " \
-                                  "object." % (units, type(units)) )
+            raise FieldUnitsError(
+                "Cannot handle units '%s' (type %s)."
+                "Please provide a string or Unit "
+                "object." % (units, type(units))
+            )
         if output_units is None:
             output_units = self.units
         self.output_units = output_units
 
-        if isinstance(dimensions, string_types):
+        if isinstance(dimensions, str):
             dimensions = getattr(ytdims, dimensions)
         self.dimensions = dimensions
 
     def _copy_def(self):
         dd = {}
-        dd['name'] = self.name
-        dd['units'] = self.units
-        dd['take_log'] = self.take_log
-        dd['validators'] = list(self.validators)
-        dd['sampling_type'] = self.sampling_type
-        dd['vector_field'] = self.vector_field
-        dd['display_field'] = True
-        dd['not_in_all'] = self.not_in_all
-        dd['display_name'] = self.display_name
+        dd["name"] = self.name
+        dd["units"] = self.units
+        dd["take_log"] = self.take_log
+        dd["validators"] = list(self.validators)
+        dd["sampling_type"] = self.sampling_type
+        dd["vector_field"] = self.vector_field
+        dd["display_field"] = True
+        dd["not_in_all"] = self.not_in_all
+        dd["display_name"] = self.display_name
         return dd
 
     @property
     def particle_type(self):
+        warnings.warn(
+            "particle_type has been deprecated, "
+            "check for field.sampling_type == 'particle' instead.",
+            VisibleDeprecationWarning,
+            stacklevel=2,
+        )
         return self.sampling_type in ("discrete", "particle")
+
+    @property
+    def is_sph_field(self):
+        if self.sampling_type == "cell":
+            return False
+        is_sph_field = False
+        if self.alias_field:
+            name = self.alias_name
+        else:
+            name = self.name
+        if hasattr(self.ds, "_sph_ptypes"):
+            is_sph_field |= name[0] in (self.ds._sph_ptypes + ("gas",))
+        return is_sph_field
+
+    @property
+    def local_sampling(self):
+        return self.sampling_type in ("discrete", "particle", "local")
 
     def get_units(self):
         if self.ds is not None:
@@ -193,7 +224,7 @@ class DerivedField(object):
             u = Unit(self.units, registry=self.ds.unit_registry)
         else:
             u = Unit(self.units)
-        return (u*Unit('cm')).latex_representation()
+        return (u * Unit("cm")).latex_representation()
 
     def check_available(self, data):
         """
@@ -210,7 +241,7 @@ class DerivedField(object):
         This returns a list of names of fields that this field depends on.
         """
         e = FieldDetector(*args, **kwargs)
-        if self._function.__name__ == '<lambda>':
+        if self._function.__name__ == "<lambda>":
             e.requested.append(self.name)
         else:
             e[self.name]
@@ -226,17 +257,17 @@ class DerivedField(object):
                 permute_params.update(val.parameter_values)
             else:
                 params.extend(val.parameters)
-                values.extend(
-                    [fd.get_field_parameter(fp) for fp in val.parameters])
+                values.extend([fd.get_field_parameter(fp) for fp in val.parameters])
         return dict(zip(params, values)), permute_params
 
     _unit_registry = None
+
     @contextlib.contextmanager
     def unit_registry(self, data):
         old_registry = self._unit_registry
-        if hasattr(data, 'unit_registry'):
+        if hasattr(data, "unit_registry"):
             ur = data.unit_registry
-        elif hasattr(data, 'ds'):
+        elif hasattr(data, "ds"):
             ur = data.ds.unit_registry
         else:
             ur = None
@@ -247,11 +278,12 @@ class DerivedField(object):
     def __call__(self, data):
         """ Return the value of the field in a given *data* object. """
         self.check_available(data)
-        original_fields = data.keys() # Copy
+        original_fields = data.keys()  # Copy
         if self._function is NullFunc:
             raise RuntimeError(
-                "Something has gone terribly wrong, _function is NullFunc " +
-                "for %s" % (self.name,))
+                "Something has gone terribly wrong, _function is NullFunc "
+                + f"for {self.name}"
+            )
         with self.unit_registry(data):
             dd = self._function(self, data)
         for field_name in data.keys():
@@ -291,25 +323,35 @@ class DerivedField(object):
         data_label += r"$"
         return data_label
 
+    @property
+    def alias_field(self):
+        func_name = self._function.__name__
+        if func_name == "_TranslationFunc":
+            return True
+        return False
+
+    @property
+    def alias_name(self):
+        if self.alias_field:
+            return self._function.alias_name
+        return None
+
     def __repr__(self):
-        if PY2:
-            func_name = self._function.func_name
-        else:
-            func_name = self._function.__name__
+        func_name = self._function.__name__
         if self._function == NullFunc:
             s = "On-Disk Field "
         elif func_name == "_TranslationFunc":
-            s = "Alias Field for \"%s\" " % (self._function.alias_name,)
+            s = f'Alias Field for "{self.alias_name}" '
         else:
             s = "Derived Field "
         if isinstance(self.name, tuple):
             s += "(%s, %s): " % self.name
         else:
-            s += "%s: " % (self.name)
-        s += "(units: %s" % self.units
+            s += f"{self.name}: "
+        s += f"(units: {self.units}"
         if self.display_name is not None:
-            s += ", display_name: '%s'" % (self.display_name)
-        if self.particle_type:
+            s += f", display_name: '{self.display_name}'"
+        if self.sampling_type == "particle":
             s += ", particle field"
         s += ")"
         return s
@@ -322,15 +364,32 @@ class DerivedField(object):
         return result
 
     def _ion_to_label(self):
-        #check to see if the output format has changed
+        # check to see if the output format has changed
         if self.ds is not None:
             self._ionization_label_format = self.ds._ionization_label_format
 
         pnum2rom = {
-            "0":"I", "1":"II", "2":"III", "3":"IV", "4":"V",
-            "5":"VI", "6":"VII", "7":"VIII", "8":"IX", "9":"X",
-            "10":"XI", "11":"XII", "12":"XIII", "13":"XIV", "14":"XV",
-            "15":"XVI", "16":"XVII", "17":"XVIII", "18":"XIX", "19":"XX"}
+            "0": "I",
+            "1": "II",
+            "2": "III",
+            "3": "IV",
+            "4": "V",
+            "5": "VI",
+            "6": "VII",
+            "7": "VIII",
+            "8": "IX",
+            "9": "X",
+            "10": "XI",
+            "11": "XII",
+            "12": "XIII",
+            "13": "XIV",
+            "14": "XV",
+            "15": "XVI",
+            "16": "XVII",
+            "17": "XVIII",
+            "18": "XIX",
+            "19": "XX",
+        }
 
         # first look for charge to decide if it is an ion
         p = re.compile("_p[0-9]+_")
@@ -338,43 +397,58 @@ class DerivedField(object):
         if m is not None:
 
             # Find the ionization state
-            pstr = m.string[m.start()+1:m.end()-1]
+            pstr = m.string[m.start() + 1 : m.end() - 1]
             segments = self.name[1].split("_")
 
             # find the ionization index
-            for i,s in enumerate(segments):
-                if s == pstr: ipstr = i
+            for i, s in enumerate(segments):
+                if s == pstr:
+                    ipstr = i
 
-            
-            for i,s in enumerate(segments):
-                #If its the species we don't want to change the capitalization
-                if i == ipstr -1: continue
+            for i, s in enumerate(segments):
+                # If its the species we don't want to change the capitalization
+                if i == ipstr - 1:
+                    continue
                 segments[i] = s.capitalize()
 
-            species = segments[ipstr-1]
+            species = segments[ipstr - 1]
 
-            #If there is a number in the species part of the label
-            #that indicates part of a molecule
+            # If there is a number in the species part of the label
+            # that indicates part of a molecule
             symbols = []
             for symb in species:
                 # can't just use underscore b/c gets replaced later with space
-                if symb.isdigit(): symbols.append("latexsub{"+symb+'}')
-                else: symbols.append(symb)
-            species_label =  "".join(symbols)
-
+                if symb.isdigit():
+                    symbols.append("latexsub{" + symb + "}")
+                else:
+                    symbols.append(symb)
+            species_label = "".join(symbols)
 
             # Use roman numerals for ionization
 
             if self._ionization_label_format == "roman_numeral":
                 roman = pnum2rom[pstr[1:]]
-                label = species_label + '\ ' + roman + '\ ' + \
-                    '\ '.join(segments[ipstr+1:])
+                label = (
+                    species_label
+                    + "\ "
+                    + roman
+                    + "\ "
+                    + "\ ".join(segments[ipstr + 1 :])
+                )
 
             # use +/- for ionization
-            else: 
-                sign = '+'*int(pstr[1:])
-                label ='{' +species_label+ '}'+ '^{'+sign+'}' + '\ ' + \
-                    '\ '.join(segments[ipstr+1:])
+            else:
+                sign = "+" * int(pstr[1:])
+                label = (
+                    "{"
+                    + species_label
+                    + "}"
+                    + "^{"
+                    + sign
+                    + "}"
+                    + "\ "
+                    + "\ ".join(segments[ipstr + 1 :])
+                )
 
         else:
             label = self.name[1]
@@ -385,18 +459,19 @@ class DerivedField(object):
         if label is None:
             if self._is_ion():
                 fname = self._ion_to_label()
-                label = r'$\rm{'+fname.replace('_','\ ')+r'}$'
-                label = label.replace('latexsub', '_')
+                label = r"$\rm{" + fname.replace("_", "\ ") + r"}$"
+                label = label.replace("latexsub", "_")
             else:
-                label = r'$\rm{'+self.name[1].replace('_','\ ').title()+r'}$'
-        elif label.find('$') == -1:
-            label = label.replace(' ','\ ')
-            label = r'$\rm{'+label+r'}$'
+                label = r"$\rm{" + self.name[1].replace("_", "\ ").title() + r"}$"
+        elif label.find("$") == -1:
+            label = label.replace(" ", "\ ")
+            label = r"$\rm{" + label + r"}$"
         return label
 
 
-class FieldValidator(object):
+class FieldValidator:
     pass
+
 
 class ValidateParameter(FieldValidator):
     def __init__(self, parameters, parameter_values=None):
@@ -409,6 +484,7 @@ class ValidateParameter(FieldValidator):
         FieldValidator.__init__(self)
         self.parameters = ensure_list(parameters)
         self.parameter_values = parameter_values
+
     def __call__(self, data):
         doesnt_have = []
         for p in self.parameters:
@@ -418,6 +494,7 @@ class ValidateParameter(FieldValidator):
             raise NeedsParameter(doesnt_have)
         return True
 
+
 class ValidateDataField(FieldValidator):
     def __init__(self, field):
         """
@@ -426,15 +503,18 @@ class ValidateDataField(FieldValidator):
         """
         FieldValidator.__init__(self)
         self.fields = ensure_list(field)
+
     def __call__(self, data):
         doesnt_have = []
-        if isinstance(data, FieldDetector): return True
+        if isinstance(data, FieldDetector):
+            return True
         for f in self.fields:
             if f not in data.index.field_list:
                 doesnt_have.append(f)
         if len(doesnt_have) > 0:
             raise NeedsDataField(doesnt_have)
         return True
+
 
 class ValidateProperty(FieldValidator):
     def __init__(self, prop):
@@ -443,17 +523,19 @@ class ValidateProperty(FieldValidator):
         """
         FieldValidator.__init__(self)
         self.prop = ensure_list(prop)
+
     def __call__(self, data):
         doesnt_have = []
         for p in self.prop:
-            if not hasattr(data,p):
+            if not hasattr(data, p):
                 doesnt_have.append(p)
         if len(doesnt_have) > 0:
             raise NeedsProperty(doesnt_have)
         return True
 
+
 class ValidateSpatial(FieldValidator):
-    def __init__(self, ghost_zones = 0, fields=None):
+    def __init__(self, ghost_zones=0, fields=None):
         """
         This validator ensures that the data handed to the field is of spatial
         nature -- that is to say, 3-D.
@@ -465,12 +547,13 @@ class ValidateSpatial(FieldValidator):
     def __call__(self, data):
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
-        #if isinstance(data, FieldDetector): return True
-        if not getattr(data, '_spatial', False):
-            raise NeedsGridType(self.ghost_zones,self.fields)
+        # if isinstance(data, FieldDetector): return True
+        if not getattr(data, "_spatial", False):
+            raise NeedsGridType(self.ghost_zones, self.fields)
         if self.ghost_zones <= data._num_ghost_zones:
             return True
-        raise NeedsGridType(self.ghost_zones,self.fields)
+        raise NeedsGridType(self.ghost_zones, self.fields)
+
 
 class ValidateGridType(FieldValidator):
     def __init__(self):
@@ -479,8 +562,11 @@ class ValidateGridType(FieldValidator):
         grid patch, not a covering grid of any kind.
         """
         FieldValidator.__init__(self)
+
     def __call__(self, data):
         # We need to make sure that it's an actual AMR grid
-        if isinstance(data, FieldDetector): return True
-        if getattr(data, "_type_name", None) == 'grid': return True
+        if isinstance(data, FieldDetector):
+            return True
+        if getattr(data, "_type_name", None) == "grid":
+            return True
         raise NeedsOriginalGrid()

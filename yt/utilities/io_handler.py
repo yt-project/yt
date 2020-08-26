@@ -1,57 +1,40 @@
-"""
-The data-file handling functions
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
+import os
 from collections import defaultdict
 from contextlib import contextmanager
+from functools import _make_key, lru_cache
 
-import os
-from yt.utilities.on_demand_imports import _h5py as h5py
 import numpy as np
-from yt.extern.six import add_metaclass
-from yt.utilities.lru_cache import \
-    local_lru_cache, _make_key
-from yt.geometry.selection_routines import GridSelector
 
-_axis_ids = {0:2,1:1,2:0}
+from yt.geometry.selection_routines import GridSelector
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 io_registry = {}
 
 use_caching = 0
 
-def _make_io_key( args, *_args, **kwargs):
+
+def _make_io_key(args, *_args, **kwargs):
     self, obj, field, ctx = args
     # Ignore self because we have a self-specific cache
     return _make_key((obj.id, field), *_args, **kwargs)
 
-class RegisteredIOHandler(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if hasattr(cls, "_dataset_type"):
-            io_registry[cls._dataset_type] = cls
-        if use_caching and hasattr(cls, "_read_obj_field"):
-            cls._read_obj_field = local_lru_cache(maxsize=use_caching, 
-                    typed=True, make_key=_make_io_key)(cls._read_obj_field)
 
-@add_metaclass(RegisteredIOHandler)
-class BaseIOHandler(object):
+class BaseIOHandler:
     _vector_fields = ()
     _dataset_type = None
     _particle_reader = False
     _cache_on = False
     _misses = 0
     _hits = 0
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if hasattr(cls, "_dataset_type"):
+            io_registry[cls._dataset_type] = cls
+        if use_caching and hasattr(cls, "_read_obj_field"):
+            cls._read_obj_field = lru_cache(
+                maxsize=use_caching, typed=True, make_key=_make_io_key
+            )(cls._read_obj_field)
 
     def __init__(self, ds):
         self.queue = defaultdict(dict)
@@ -71,13 +54,6 @@ class BaseIOHandler(object):
     def preload(self, chunk, fields, max_size):
         yield self
 
-    def pop(self, grid, field):
-        if grid.id in self.queue and field in self.queue[grid.id]:
-            return self.modify(self.queue[grid.id].pop(field))
-        else:
-            # We only read the one set and do not store it if it isn't pre-loaded
-            return self._read_data_set(grid, field)
-
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)
 
@@ -88,7 +64,7 @@ class BaseIOHandler(object):
 
     def _field_in_backup(self, grid, backup_file, field_name):
         if os.path.exists(backup_file):
-            fhandle = h5py.File(backup_file, 'r')
+            fhandle = h5py.File(backup_file, mode="r")
             g = fhandle["data"]
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
             if field_name in grid_group:
@@ -107,7 +83,7 @@ class BaseIOHandler(object):
         if not grid.ds.read_from_backup:
             return self._read_data(grid, field)
         elif self._field_in_backup(grid, backup_filename, field):
-            fhandle = h5py.File(backup_filename, 'r')
+            fhandle = h5py.File(backup_filename, mode="r")
             g = fhandle["data"]
             grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
             data = grid_group[field][:]
@@ -115,7 +91,7 @@ class BaseIOHandler(object):
             return data
         else:
             return self._read_data(grid, field)
-                
+
     # Now we define our interface
     def _read_data(self, grid, field):
         pass
@@ -132,7 +108,7 @@ class BaseIOHandler(object):
             finfo = self.ds.field_info[field]
             nodal_flag = finfo.nodal_flag
             if np.any(nodal_flag):
-                num_nodes = 2**sum(nodal_flag)
+                num_nodes = 2 ** sum(nodal_flag)
                 rv[field] = np.empty((size, num_nodes), dtype="=f8")
                 nodal_fields.append(field)
             else:
@@ -148,11 +124,19 @@ class BaseIOHandler(object):
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
 
+    def io_iter(self, chunks, fields):
+        raise NotImplementedError(
+            "subclassing Dataset.io_iter this is required in order to use the default "
+            "implementation of Dataset._read_fluid_selection. "
+            "Custom implementations of the latter may not rely on this method."
+        )
+
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]
         sl[axis] = slice(coord, coord + 1)
         tr = self._read_data_set(grid, field)[tuple(sl)]
-        if tr.dtype == "float32": tr = tr.astype("float64")
+        if tr.dtype == "float32":
+            tr = tr.astype("float64")
         return tr
 
     def _read_field_names(self, grid):
@@ -165,19 +149,21 @@ class BaseIOHandler(object):
     def _read_chunk_data(self, chunk, fields):
         return {}
 
-    def _count_particles_chunks(self, chunks, ptf, selector):
-        psize = defaultdict(lambda: 0) # COUNT PTYPES ON DISK
+    def _count_particles_chunks(self, psize, chunks, ptf, selector):
         for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
+            # assume particles have zero radius, we break this assumption
+            # in the SPH frontend and override this function there
             psize[ptype] += selector.count_points(x, y, z, 0.0)
-        return dict(psize.items())
+        return psize
 
     def _read_particle_selection(self, chunks, selector, fields):
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type
-        ptf = defaultdict(list)        # ON-DISK TO READ
-        fsize = defaultdict(lambda: 0) # COUNT RV
-        field_maps = defaultdict(list) # ptypes -> fields
+        ptf = defaultdict(list)  # ptype -> on-disk fields to read
+        fsize = defaultdict(lambda: 0)  # ptype -> size of return value
+        psize = defaultdict(lambda: 0)  # ptype -> particle count on disk
+        field_maps = defaultdict(list)  # ptype -> fields (including unions)
         chunks = list(chunks)
         unions = self.ds.particle_unions
         # What we need is a mapping from particle types to return types
@@ -192,14 +178,13 @@ class BaseIOHandler(object):
             else:
                 ptf[ftype].append(fname)
                 field_maps[field].append(field)
-        # We can't hash chunks, but otherwise this is a neat idea.
-        # Now we have our full listing.
-        # Here, ptype_map means which particles contribute to a given type.
-        # And ptf is the actual fields from disk to read.
-        psize = self._count_particles_chunks(chunks, ptf, selector)
+        # Now we have our full listing
+
+        # psize maps the names of particle types to the number of
+        # particles of each type
+        self._count_particles_chunks(psize, chunks, ptf, selector)
+
         # Now we allocate
-        # ptf, remember, is our mapping of what we want to read
-        #for ptype in ptf:
         for field in fields:
             if field[0] in unions:
                 for pt in unions[field[0]]:
@@ -210,9 +195,9 @@ class BaseIOHandler(object):
             if field[1] in self._vector_fields:
                 shape = (fsize[field], self._vector_fields[field[1]])
             elif field[1] in self._array_fields:
-                shape = (fsize[field],)+self._array_fields[field[1]]
+                shape = (fsize[field],) + self._array_fields[field[1]]
             else:
-                shape = (fsize[field], )
+                shape = (fsize[field],)
             rv[field] = np.empty(shape, dtype="float64")
             ind[field] = 0
         # Now we read.
@@ -220,22 +205,23 @@ class BaseIOHandler(object):
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
                 my_ind = ind[field_f]
-                #mylog.debug("Filling %s from %s to %s with %s",
+                # mylog.debug("Filling %s from %s to %s with %s",
                 #    field_f, my_ind, my_ind+vals.shape[0], field_r)
-                rv[field_f][my_ind:my_ind + vals.shape[0],...] = vals
+                rv[field_f][my_ind : my_ind + vals.shape[0], ...] = vals
                 ind[field_f] += vals.shape[0]
         # Now we need to truncate all our fields, since we allow for
         # over-estimating.
         for field_f in ind:
-            rv[field_f] = rv[field_f][:ind[field_f]]
+            rv[field_f] = rv[field_f][: ind[field_f]]
         return rv
+
 
 class IOHandlerExtracted(BaseIOHandler):
 
-    _dataset_type = 'extracted'
+    _dataset_type = "extracted"
 
     def _read_data_set(self, grid, field):
-        return (grid.base_grid[field] / grid.base_grid.convert(field))
+        return grid.base_grid[field] / grid.base_grid.convert(field)
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]

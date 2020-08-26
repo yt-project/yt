@@ -17,13 +17,12 @@ import yaml
 from yt.config import ytcfg
 from yt.utilities.answer_testing import utils
 
-
 # Global variables can be added to the pytest namespace
 answer_files = {}
 
 # List of answer files
-answer_file_list = 'tests/tests.yaml'
-answer_dir = os.path.join(ytcfg.get('yt', 'test_data_dir'), 'answers')
+answer_file_list = "tests/tests.yaml"
+answer_dir = os.path.join(ytcfg.get("yt", "test_data_dir"), "answers")
 
 
 def pytest_addoption(parser):
@@ -31,23 +30,16 @@ def pytest_addoption(parser):
     Lets options be passed to test functions.
     """
     parser.addoption(
-        "--with-answer-testing",
-        action="store_true",
-        default=False,
+        "--with-answer-testing", action="store_true", default=False,
     )
     parser.addoption(
-        "--answer-store",
-        action="store_true",
-        default=False,
+        "--answer-store", action="store_true", default=False,
     )
     parser.addoption(
-        "--answer-big-data",
-        action="store_true",
-        default=False,
+        "--answer-big-data", action="store_true", default=False,
     )
     parser.addoption(
-        "--save-answer-arrays",
-        action="store_true",
+        "--save-answer-arrays", action="store_true",
     )
 
 
@@ -56,17 +48,20 @@ def pytest_configure(config):
     Reads in the tests/tests.yaml file. This file contains a list of
     each answer test's answer file (including the changeset number).
     """
+
+    ytcfg["yt", "__withinpytest"] = "True"
     # Make sure that the answers dir exists. If not, try to make it
     if not os.path.isdir(answer_dir):
         os.mkdir(answer_dir)
     # Read the list of answer test classes and their associated answer
     # file
-    with open(answer_file_list, 'r') as f:
+    with open(answer_file_list, "r") as f:
         answer_files = yaml.safe_load(f)
     # Register custom marks for answer tests and big data
-    config.addinivalue_line('markers', 'answer_test: Run the answer tests.')
-    config.addinivalue_line('markers', 'big_data: Run answer tests that require'
-        ' large data files.')
+    config.addinivalue_line("markers", "answer_test: Run the answer tests.")
+    config.addinivalue_line(
+        "markers", "big_data: Run answer tests that require" " large data files."
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -80,7 +75,9 @@ def pytest_collection_modifyitems(config, items):
     for item in items:
         # If it's an answer test and the appropriate CL option hasn't
         # been set, skip it
-        if "answer_test" in item.keywords and not config.getoption("--with-answer-testing"):
+        if "answer_test" in item.keywords and not config.getoption(
+            "--with-answer-testing"
+        ):
             item.add_marker(skip_answer)
         # If it's an answer test that requires big data and the CL
         # option hasn't been set, skip it
@@ -88,13 +85,13 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_big)
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def temp_dir():
     r"""
     Creates a temporary directory needed by certain tests.
     """
     curdir = os.getcwd()
-    if int(os.environ.get('GENERATE_YTDATA', 0)):
+    if int(os.environ.get("GENERATE_YTDATA", 0)):
         tmpdir = os.getcwd()
     else:
         tmpdir = tempfile.mkdtemp()
@@ -105,7 +102,7 @@ def temp_dir():
         shutil.rmtree(tmpdir)
 
 
-@pytest.fixture(scope='class')
+@pytest.fixture(scope="class")
 def answer_file(request):
     r"""
     Assigns the name of the appropriate answer file as an attribute of
@@ -144,12 +141,11 @@ def answer_file(request):
         answer_file = answer_files[request.cls.__name__]
         # Make sure we're not overwriting an existing answer set
         if os.path.isfile(os.path.join(answer_dir, answer_file)):
-            if request.config.getoption('--answer-store'):
-                raise FileExistsError("Error, attempting to overwrite "
+            if request.config.getoption("--answer-store"):
+                raise FileExistsError(
+                    "Error, attempting to overwrite "
                     "answer file {}. Either specify a new version or "
-                    "set the `--force-override-answers` option".format(
-                        answer_file
-                    )
+                    "set the `--force-override-answers` option".format(answer_file)
                 )
     else:
         assert False
@@ -166,13 +162,13 @@ def _param_list(request):
     # co_varnames is all of the variable names local to the function
     # starting with self, then the passed args, then the vars defined
     # in the function body. This excludes fixture names
-    args = func.__code__.co_varnames[1:func.__code__.co_argcount]
+    args = func.__code__.co_varnames[1 : func.__code__.co_argcount]
     # funcargs includes the names and values of all arguments, including
     # fixtures, so we use args to weed out the fixtures. Need to have
     # special treatment of the data files loaded in fixtures for the
     # frontends
     for key, val in request.node.funcargs.items():
-        if key in args and not key.startswith('ds_'):
+        if key in args and not key.startswith("ds_"):
             test_params[key] = val
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
@@ -181,7 +177,7 @@ def _param_list(request):
     return test_params
 
 
-@pytest.fixture(scope='function')
+@pytest.fixture(scope="function")
 def hashing(request):
     r"""
     Handles initialization, generation, and saving of answer test
@@ -243,12 +239,20 @@ def hashing(request):
     # Add the other test parameters
     hashes.update(params)
     # Add the function name as the "master" key to the hashes dict
-    hashes = {request.node.name : hashes}
+    hashes = {request.node.name: hashes}
     # Either save or compare
-    utils._handle_hashes(answer_dir, request.cls.answer_file, hashes,
-        request.config.getoption('--answer-store'))
-    if request.config.getoption('--save-answer-arrays'):
+    utils._handle_hashes(
+        answer_dir,
+        request.cls.answer_file,
+        hashes,
+        request.config.getoption("--answer-store"),
+    )
+    if request.config.getoption("--save-answer-arrays"):
         # answer_file has .yaml appended to it, but here we're saving
         # the arrays as .npy files, so we remove the .yaml extension
-        utils._save_arrays(answer_dir, request.cls.answer_file.split('.')[0],
-            request.cls.hashes, request.config.getoption('--answer-store'))
+        utils._save_arrays(
+            answer_dir,
+            request.cls.answer_file.split(".")[0],
+            request.cls.hashes,
+            request.config.getoption("--answer-store"),
+        )
