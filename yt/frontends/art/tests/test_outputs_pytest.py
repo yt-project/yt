@@ -17,6 +17,7 @@ from yt.utilities.answer_testing.answer_tests import (
 
 # Test data
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
+dmonly = "DMonly/PMcrs0.0100.DAT"
 
 a_list = [0, 1, 2]
 d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
@@ -127,7 +128,7 @@ class TestArt:
     def test_units_override(self):
         units_override_check(d9p)
 
-    @pytest.mark.parametrize("ds", [d9p], indirect=True)
+    @pytest.mark.parametrize("ds", [dmonly], indirect=True)
     def test_particle_selection(self, ds):
         psc = ParticleSelectionComparison(ds)
         psc.run_defaults()
