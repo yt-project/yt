@@ -358,6 +358,8 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
     # pytest.skip cannot be called outside of a test or fixture.
     if ds_fn is None:
         raise FileNotFoundError
+    if not os.path.isdir(path):
+        raise FileNotFoundError
     if isinstance(ds_fn, Dataset):
         return ds_fn
     if cls is None:
