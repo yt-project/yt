@@ -45,7 +45,6 @@ def get_pairs():
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestFlash:
     answer_file = None
     saved_hashes = None

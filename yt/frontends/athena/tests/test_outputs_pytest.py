@@ -138,8 +138,8 @@ class TestAthena:
         sp2 = ds2.sphere("c", (100.0, "kpc"))
         prj2 = ds1.proj("density", 0)
         ds3 = load(sloshing, parameters=uo_sloshing)
-        assert_equal(ds3.length_unit, u.Mpc)
-        assert_equal(ds3.time_unit, u.Myr)
+        assert_equal(ds3.length_unit, 1.0 * u.Mpc)
+        assert_equal(ds3.time_unit, 1.0 * u.Myr)
         assert_equal(ds3.mass_unit, 1e14 * u.Msun)
         assert_equal(
             sp1.quantities.extrema("pressure"), sp2.quantities.extrema("pressure")

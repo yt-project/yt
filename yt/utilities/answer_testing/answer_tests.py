@@ -63,7 +63,7 @@ def field_values(ds, field, obj_type=None, particle_type=False):
     # If needed build an instance of the dataset type
     obj = utils.create_obj(ds, obj_type)
     determined_field = obj._determine_fields(field)[0]
-    fd = ds.field_info[field]
+    fd = ds.field_info[determined_field]
     # Get the proper weight field depending on if we're looking at
     # particles or not
     if particle_type:
@@ -150,9 +150,22 @@ def generic_array(func, args=None, kwargs=None):
     return func(*args, **kwargs)
 
 
-# Just until all frontends are ported over
-def sph_answer():
-    pass
+def sph_answer(ds, ds_str_repr, ds_nparticles, field, weight, ds_obj, axis):
+    assert str(ds) == ds_str_repr
+    results = {}
+    dd = ds.all_data()
+    assert_equal(dd["all", "particle_position"].shape, (ds_nparticles, 3))
+    tot = sum(
+        dd[ptype, "particle_position"].shape[0] for ptype in ds.particle_types_raw
+    )
+    assert_equal(tot, ds_nparticles)
+    particle_type = field[0] in ds.particle_types
+    if not particle_type:
+        ppv = pixelized_projection_values(ds, axis, field, weight, ds_obj)
+        results["pixelized_projection_values"] = ppv
+    fv = field_values(ds, field, ds_obj, particle_type=particle_type)
+    results["field_values"] = fv
+    return results
 
 
 def sph_validation(ds, ds_str_repr, ds_nparticles):

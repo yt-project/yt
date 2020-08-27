@@ -57,8 +57,8 @@ class TestArt:
     @pytest.mark.parametrize("d", d_list, indirect=True)
     def test_d9p_fv(self, f, d, ds):
         ds.index
-        # Does it need the particle_type argument passed?
-        fv = field_values(ds, f, d)
+        particle_type = f[0] in ds.particle_types
+        fv = field_values(ds, f, d, particle_type=particle_type)
         self.hashes.update({"field_values": fv})
 
     @pytest.mark.big_data
@@ -118,7 +118,7 @@ class TestArt:
             ad[("gas", "cell_mass")].sum().in_units("Msun"), AnaTotGasMass
         )
         AnaTotTemp = YTQuantity(150219844793.39072, "K")  # just leaves
-        assert_equal(ad[("gas", "temperature")].sum(), AnaTotTemp)
+        assert_almost_equal(ad[("gas", "temperature")].sum(), AnaTotTemp, decimal=4)
 
     @pytest.mark.parametrize("ds", [d9p], indirect=True)
     def test_ARTDataset(self, ds):

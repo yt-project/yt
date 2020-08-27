@@ -67,9 +67,8 @@ class TestArtIo:
     def test_ARTIODataset(self, ds):
         assert isinstance(ds, ARTIODataset)
 
-    @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
-    def test_units_override(self, ds):
-        units_override_check(ds, sizmbhloz)
+    def test_units_override(self):
+        units_override_check(sizmbhloz)
 
     @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
     def test_particle_derived_field(self, ds):

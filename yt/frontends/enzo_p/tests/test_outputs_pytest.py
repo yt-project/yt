@@ -53,7 +53,7 @@ ppv_pairs = [
     for w in w_list
     for a in a_list
 ]
-sum_pairs = [(ds, d) for i, ds in enumerate(ds_list) for d in ds_list[i]]
+sum_pairs = [(ds, d) for i, ds in enumerate(ds_list) for d in d_list[i]]
 
 
 @pytest.mark.answer_test
@@ -64,7 +64,10 @@ class TestEnzoP:
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)
     def test_fv(self, ds, f, d):
-        fv = field_values(ds, f, d)
+        particle_type = f[0] in ds.particle_types
+        if str(ds) == "ENZOP_DD0140":
+            particle_type = True
+        fv = field_values(ds, f, d, particle_type=particle_type)
         self.hashes.update({"field_values": fv})
 
     @pytest.mark.usefixtures("hashing")

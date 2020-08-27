@@ -226,7 +226,8 @@ class TestEnzo:
         assert "AccretingParticle" in ds_two_sphere_test.particle_types_raw
         assert "io" not in ds_two_sphere_test.particle_types_raw
         assert "all" in ds_two_sphere_test.particle_types
-        assert_equal(len(ds_two_sphere_test.particle_unions), 1)
+        assert "nbody" in ds_two_sphere_test.particle_types
+        assert_equal(len(ds_two_sphere_test.particle_unions), 2)
         assert_equal(acc_part_fields, real_acc_part_fields)
         assert_equal(
             ["CenOstriker", "DarkMatter"],

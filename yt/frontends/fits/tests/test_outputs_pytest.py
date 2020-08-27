@@ -102,18 +102,18 @@ class TestFits:
     def test_units_override(self):
         units_override_check(vf)
 
-    @requires_file(vf)
-    def test_FITSDataset(self, ds_vf):
-        assert isinstance(ds_vf, FITSDataset)
+    @pytest.mark.parametrize("ds", [[vf, vf_kwargs]], indirect=True)
+    def test_FITSDataset(self, ds):
+        assert isinstance(ds, FITSDataset)
 
-    @requires_file(grs)
-    def test_SpectralCubeFITSDataset(self, ds_grs):
-        assert isinstance(ds_grs, SpectralCubeFITSDataset)
+    @pytest.mark.parametrize("ds", [[grs, grs_kwargs]], indirect=True)
+    def test_SpectralCubeFITSDataset(self, ds):
+        assert isinstance(ds, SpectralCubeFITSDataset)
 
-    @requires_file(acis)
-    def test_EventsFITSDataset(self, ds_acis):
-        assert isinstance(ds_acis, EventsFITSDataset)
+    @pytest.mark.parametrize("ds", get_acis(), indirect=True)
+    def test_EventsFITSDataset(self, ds):
+        assert isinstance(ds, EventsFITSDataset)
 
-    @requires_file(A2052)
-    def test_SkyDataFITSDataset(self, ds_A2052):
-        assert isinstance(ds_A2052, SkyDataFITSDataset)
+    @pytest.mark.parametrize("ds", [[A2052, A2052_kwargs]], indirect=True)
+    def test_SkyDataFITSDataset(self, ds):
+        assert isinstance(ds, SkyDataFITSDataset)

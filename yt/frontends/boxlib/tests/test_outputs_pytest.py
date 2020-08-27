@@ -26,7 +26,7 @@ RT_particles = "RT_particles/plt00050"
 langmuir = "LangmuirWave/plt00020_v2"
 plasma = "PlasmaAcceleration/plt00030_v2"
 beam = "GaussianBeam/plt03008"
-raw_fields = "Laser/plt00015"
+raw_fields_ds = "Laser/plt00015"
 nyx_no_particles = "nyx_sedov_plt00086"
 msubch = "maestro_subCh_plt00248"
 
@@ -217,7 +217,7 @@ class TestBoxLib:
         )
 
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [raw_fields], indirect=True)
+    @pytest.mark.parametrize("ds", [raw_fields_ds], indirect=True)
     @pytest.mark.parametrize("f", raw_fields, indirect=True)
     def test_raw_fields(self, f, ds):
         gv = grid_values(ds, f)
