@@ -12,7 +12,6 @@ g_fields = [
     "particle_position_z",
     "particle_mass",
 ]
-    
 
 
 @pytest.mark.answer_test
