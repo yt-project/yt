@@ -161,5 +161,6 @@ answer_tests:
 other_tests:
   unittests:
      - '--exclude=test_mesh_slices'  # disable randomly failing test
+     - '--ignore=test_outputs_pytest'
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'
