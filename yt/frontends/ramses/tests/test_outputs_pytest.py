@@ -20,7 +20,7 @@ from yt.utilities.answer_testing.answer_tests import (
 from yt.utilities.answer_testing.utils import create_obj, data_dir_load, requires_ds
 
 # Test data
-ramsesCosmo = "output_00080/info_00080.txt"
+output_00080 = "output_00080/info_00080.txt"
 ramsesNonCosmo = "DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt"
 ramsesExtraFieldsSmall = "ramses_extra_fields_small/output_00001"
 ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
@@ -31,13 +31,12 @@ ramses_mhd_128 = "ramses_mhd_128/output_00027/info_00027.txt"
 
 
 @pytest.mark.answer_test
-@pytest.mark.usefixtures("answer_file")
 class TestRamses:
     answer_file = None
     saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [ramsesCosmo], indirect=True)
+    @pytest.mark.parametrize("ds", [output_00080], indirect=True)
     def test_output_00080(self, a, d, w, f, ds):
         ppv = pixelized_projection_values(ds, a, f, w, d)
         self.hashes.update({"pixelized_projection_values": ppv})
@@ -49,13 +48,13 @@ class TestRamses:
         assert_equal(s1, s2)
         assert_equal(ds.particle_type_counts, {"io": 1090895, "nbody": 0})
 
-    @pytest.mark.parametrize("ds", [ramsesCosmo], indirect=True)
+    @pytest.mark.parametrize("ds", [output_00080], indirect=True)
     def test_RAMSESDataset(self, ds):
         assert isinstance(ds, RAMSESDataset)
 
-    @requires_file(ramsesCosmo)
+    @requires_file(output_00080)
     def test_units_override(self):
-        units_override_check(ramsesCosmo)
+        units_override_check(output_00080)
 
     @requires_file(ramsesNonCosmo)
     def test_non_cosmo_detection(self):
@@ -77,19 +76,19 @@ class TestRamses:
             expected_time = 14087886140997.336
             assert_equal(ds.current_time.in_units("s").value, expected_time)
 
-    @requires_file(ramsesCosmo)
+    @requires_file(output_00080)
     def test_cosmo_detection(self):
-        ds = yt.load(ramsesCosmo, cosmological=True)
+        ds = yt.load(output_00080, cosmological=True)
         assert_equal(ds.cosmological_simulation, 1)
-        ds = yt.load(ramsesCosmo, cosmological=None)
+        ds = yt.load(output_00080, cosmological=None)
         assert_equal(ds.cosmological_simulation, 1)
-        ds = yt.load(ramsesCosmo)
+        ds = yt.load(output_00080)
         assert_equal(ds.cosmological_simulation, 1)
 
-    @requires_file(ramsesCosmo)
+    @requires_file(output_00080)
     def test_unit_cosmo(self):
         for force_cosmo in [True, None]:
-            ds = yt.load(ramsesCosmo, cosmological=force_cosmo)
+            ds = yt.load(output_00080, cosmological=force_cosmo)
             # Time in ramses units
             expected_raw_time = 1.119216564055017
             assert_equal(ds.current_time.value, expected_raw_time)
@@ -157,7 +156,7 @@ class TestRamses:
             ad[field]
 
     @requires_file(ramses_sink)
-    @requires_file(ramsesCosmo)
+    @requires_file(output_00080)
     def test_ramses_sink(self):
         expected_fields = [
             "BH_bondi_accretion",
@@ -182,9 +181,9 @@ class TestRamses:
             "particle_prop_0_1",
             "particle_prop_0_2",
             "particle_prop_0_3",
-            "particle_prop_1_0",
-            "particle_prop_1_1",
-            "particle_prop_1_2",
+            "particle_prop_0_4",
+            "particle_prop_0_5",
+            "particle_prop_0_6",
             "particle_velocity_x",
             "particle_velocity_y",
             "particle_velocity_z",
@@ -197,7 +196,7 @@ class TestRamses:
             # test that field access works
             ad["sink", field]
         # Checking that sinks are autodetected
-        ds = yt.load(ramsesCosmo)
+        ds = yt.load(output_00080)
         ad = ds.all_data()
         for field in expected_fields:
             assert ("sink", field) not in ds.field_list
@@ -235,7 +234,7 @@ class TestRamses:
         assert_equal(pcount["io"], 17132)
         assert_equal(pcount["sink"], 8)
 
-    @requires_file(ramsesCosmo)
+    @requires_file(output_00080)
     def test_custom_particle_def(self):
         ytcfg.add_section("ramses-particles")
         ytcfg[
@@ -252,7 +251,7 @@ class TestRamses:
              particle_birth_time, d
              particle_foobar, d
         """
-        ds = yt.load(ramsesCosmo)
+        ds = yt.load(output_00080)
 
         def check_unit(array, unit):
             assert str(array.in_cgs().units) == unit
@@ -265,7 +264,7 @@ class TestRamses:
         finally:
             ytcfg.remove_section("ramses-particles")
 
-    @requires_file(ramsesCosmo)
+    @requires_file(output_00080)
     def test_custom_hydro_def(self):
         ytcfg.add_section("ramses-hydro")
         ytcfg[
@@ -278,7 +277,7 @@ class TestRamses:
         Foo
         Bar
         """
-        ds = yt.load(ramsesCosmo)
+        ds = yt.load(output_00080)
 
         def check_unit(array, unit):
             assert str(array.in_cgs().units) == unit
@@ -291,9 +290,9 @@ class TestRamses:
         finally:
             ytcfg.remove_section("ramses-hydro")
 
-    @requires_file(ramsesCosmo)
+    @requires_file(output_00080)
     def test_grav_detection(self):
-        ds = yt.load(ramsesCosmo)
+        ds = yt.load(output_00080)
         # Test detection
         for k in "xyz":
             assert ("gravity", f"{k}-acceleration") in ds.field_list
@@ -303,7 +302,7 @@ class TestRamses:
             ds.r["gas", f"acceleration_{k}"]
 
     @requires_file(ramses_rt)
-    @requires_file(ramsesCosmo)
+    @requires_file(output_00080)
     def test_ramses_field_detection(self):
         ds1 = yt.load(ramses_rt)
         assert "ramses" not in DETECTED_FIELDS
@@ -316,7 +315,7 @@ class TestRamses:
         assert P1["nvar"] == 10
         assert len(fields_1) == P1["nvar"]
         # Now load another dataset
-        ds2 = yt.load(ramsesCosmo)
+        ds2 = yt.load(output_00080)
         ds2.index
         P2 = HydroFieldFileHandler.parameters
         fields_2 = set(DETECTED_FIELDS[ds2.unique_identifier]["ramses"])
@@ -325,7 +324,7 @@ class TestRamses:
         assert len(fields_2) == P2["nvar"]
 
     @requires_file(ramses_new_format)
-    @requires_file(ramsesCosmo)
+    @requires_file(output_00080)
     @requires_file(ramsesNonCosmo)
     def test_formation_time(self):
         extra_particle_fields = [
@@ -333,7 +332,7 @@ class TestRamses:
             ("particle_metallicity", "d"),
         ]
         # test semantics for cosmological dataset
-        ds = yt.load(ramsesCosmo, extra_particle_fields=extra_particle_fields)
+        ds = yt.load(output_00080, extra_particle_fields=extra_particle_fields)
         assert ("io", "particle_birth_time") in ds.field_list
         assert ("io", "conformal_birth_time") in ds.field_list
         assert ("io", "particle_metallicity") in ds.field_list
@@ -430,10 +429,10 @@ class TestRamses:
         assert nml == ref
 
     @requires_ds(ramses_empty_record)
-    @requires_ds(ramsesCosmo)
+    @requires_ds(output_00080)
     @requires_module("f90nml")
     def test_namelist_reading_should_not_fail(self):
-        for ds_name in (ramses_empty_record, ramsesCosmo):
+        for ds_name in (ramses_empty_record, output_00080):
             # Test that the reading does not fail for malformed namelist.txt files
             ds = data_dir_load(ds_name)
             ds.index  # should work
@@ -452,3 +451,59 @@ class TestRamses:
         ]:
             assert ("gas", field) in ds.derived_field_list
             ad[("gas", field)]
+
+
+    @requires_file(output_00080)
+    def test_field_accession(self):
+        ds = yt.load(output_00080)
+        fields = [
+            ("gas", "density"),  # basic ones
+            ("gas", "pressure"),
+            ("gas", "pressure_gradient_magnitude"),  # requires ghost zones
+        ]
+        # Check accessing gradient works for a variety of spatial domains
+        for reg in (
+            ds.all_data(),
+            ds.sphere([0.1] * 3, 0.01),
+            ds.sphere([0.5] * 3, 0.05),
+            ds.box([0.1] * 3, [0.2] * 3),
+        ):
+            for field in fields:
+                reg[field]
+
+
+    @requires_file(output_00080)
+    def test_max_level(self):
+        ds = yt.load(output_00080)
+
+        assert any(ds.r["index", "grid_level"] > 2)
+
+        # Should work
+        for ds in (
+            yt.load(output_00080, max_level=2, max_level_convention="yt"),
+            yt.load(output_00080, max_level=8, max_level_convention="ramses"),
+        ):
+            assert all(ds.r["index", "grid_level"] <= 2)
+            assert any(ds.r["index", "grid_level"] == 2)
+
+
+    @requires_file(ramses_new_format)
+    def test_invalid_max_level(self):
+        invalid_value_args = (
+            (1, None),
+            (1, "foo"),
+            (1, "bar"),
+            (-1, "yt"),
+        )
+        for lvl, convention in invalid_value_args:
+            with assert_raises(ValueError):
+                yt.load(output_00080, max_level=lvl, max_level_convention=convention)
+
+        invalid_type_args = (
+            (1.0, "yt"),  # not an int
+            ("invalid", "yt"),
+        )
+        # Should fail with value errors
+        for lvl, convention in invalid_type_args:
+            with assert_raises(TypeError):
+                yt.load(output_00080, max_level=lvl, max_level_convention=convention)
