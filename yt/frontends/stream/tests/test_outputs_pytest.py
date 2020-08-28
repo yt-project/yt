@@ -11,6 +11,7 @@ from yt.utilities.exceptions import (
     YTInconsistentGridFieldShapeGridDims,
     YTInconsistentParticleFieldShape,
     YTOutputNotIdentified,
+    YTUnidentifiedDataType,
 )
 
 # Globals
@@ -50,11 +51,11 @@ class TestStream:
 
     @pytest.mark.usefixtures("temp_dir")
     def test_load_empty_file(self):
-        assert_raises(YTOutputNotIdentified, load, "not_a_file")
+        assert_raises(FileNotFoundError, load, "not_a_file")
         assert_raises(
-            YTOutputNotIdentified, load, tempfile.mkstemp("empty_file", dir=os.getcwd())
+            YTUnidentifiedDataType, load, tempfile.mkstemp("empty_file", dir=os.getcwd())[1]
         )
-        assert_raises(YTOutputNotIdentified, load, tempfile.mkdtemp(dir=os.getcwd()))
+        assert_raises(YTUnidentifiedDataType, load, tempfile.mkdtemp(dir=os.getcwd()))
 
     def test_dimensionless_field_units(self):
         Z = np.random.uniform(size=(32, 32, 32))
@@ -62,7 +63,7 @@ class TestStream:
         data = {"density": d, "metallicity": Z}
         ds = load_uniform_grid(data, (32, 32, 32))
         dd = ds.all_data()
-        assert_equal(Z.max(), dd["metallicity"].max())
+        assert_equal(Z.max(), float(dd["stream", "metallicity"].max()))
 
     def test_inconsistent_field_shape(self):
         def load_field_field_mismatch():
