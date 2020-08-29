@@ -149,10 +149,20 @@ def _hash_dict(data):
         # Some keys are tuples, not strings
         if not isinstance(key, str):
             key = key.__repr__()
-        if hd is None:
-            hd = hashlib.md5(bytearray(key.encode("utf8")) + bytearray(value))
+        # Test suites can return values that are dictionaries of other tests
+        if isinstance(value, dict):
+            hashed_data = _hash_dict(value)
         else:
-            hd.update(bytearray(key.encode("utf8")) + bytearray(value))
+            hashed_data = bytearray(key.encode("utf8")) + bytearray(value)
+        # If we're returning from a recusive call (and therefore hashed_data
+        # is a hex digest), we need to encode the string before it can be
+        # hashed
+        if isinstance(hashed_data, str):
+            hashed_data = hashed_data.encode("utf8")
+        if hd is None:
+            hd = hashlib.md5(hashed_data)
+        else:
+            hd.update(hashed_data)
     return hd.hexdigest()
 
 
