@@ -102,7 +102,7 @@ def _param_list(request):
     # pytest treats parameterized arguments as fixtures, so there's no
     # clean way to separate them out from other other fixtures (that I
     # know of), so we do it explicitly
-    blacklist = ["hashing", "answer_file", "request", "answer_compare"]
+    blacklist = ["hashing", "answer_file", "request", "answer_compare", "temp_dir"]
     test_params = {}
     for key, val in request.node.funcargs.items():
         # if key not in blacklist and not key.startswith('ds'):
