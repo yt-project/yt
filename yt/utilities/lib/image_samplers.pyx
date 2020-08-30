@@ -39,7 +39,7 @@ from .grid_traversal cimport sampler_function, walk_volume
 
 from yt.funcs import mylog
 
-from ._octree_raytracing cimport _OctreeRayTracing, RayInfo
+from ._octree_raytracing cimport RayInfo, _OctreeRayTracing
 
 
 cdef extern from "platform_dep.h":
