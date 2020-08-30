@@ -11,6 +11,7 @@
 
 
 typedef double F;
+const int Ndim = 3;
 
 /*  A simple node struct that contains a key and a fixed number of children,
     typically Nchildren = 2**Ndim
@@ -18,11 +19,9 @@ typedef double F;
 template <typename keyType, int Nchildren>
 struct GenericNode
 {
-    using _Node = struct GenericNode<keyType, Nchildren>;
-
     // Tree data
-    _Node** children = nullptr;
-    _Node* parent = nullptr;
+    GenericNode<keyType, Nchildren>** children = nullptr;
+    GenericNode<keyType, Nchildren>* parent = nullptr;
 
     // Node data
     keyType key;
@@ -45,7 +44,6 @@ struct RayInfo {
     }
 };
 
-template <int Ndim>
 struct Ray {
     std::array<F, Ndim> o; // Origin
     std::array<F, Ndim> d; // Direction
@@ -72,7 +70,6 @@ struct Ray {
 /*  Converts an array of integer position into a flattened index.
     The fast varying index is the last one.
  */
-template <int Ndim>
 inline unsigned char ijk2iflat(const std::array<bool, Ndim> ijk) {
     unsigned char iflat = 0;
     for (auto i : ijk) {
@@ -85,7 +82,6 @@ inline unsigned char ijk2iflat(const std::array<bool, Ndim> ijk) {
 /*  Converts a flattened index into an array of integer position.
     The fast varying index is the last one.
 */
-template <int Ndim>
 inline std::array<bool, Ndim> iflat2ijk(unsigned char iflat) {
     std::array<bool, Ndim> ijk;
     for (auto idim = Ndim-1; idim >= 0; --idim) {
@@ -96,13 +92,13 @@ inline std::array<bool, Ndim> iflat2ijk(unsigned char iflat) {
 };
 
 /*  A class to build an octree and cast rays through it. */
-template <class keyType, int Ndim>
+template <class keyType>
 class Octree {
-    using Node = struct GenericNode<keyType, (1<<Ndim)>;
-    using keyVector = std::vector<keyType>;
-    using Pos = std::array<F, Ndim>;
-    using iPos = std::array<int, Ndim>;
-    using ucPos = std::array<unsigned char, Ndim>;
+    typedef GenericNode<keyType, (1<<Ndim)> Node;
+    typedef std::vector<keyType> keyVector;
+    typedef std::array<F, Ndim> Pos;
+    typedef std::array<int, Ndim> iPos;
+    typedef std::array<unsigned char, Ndim> ucPos;
 
 private:
     const unsigned char twotondim;
@@ -142,7 +138,7 @@ public:
 
         // std::cerr << "Inserting at level: " << lvl << "/" << maxDepth << std::endl;
         // this is 0b100..., where the 1 is at position maxDepth
-        uint mask = 1<<(maxDepth - 1);
+        uint64_t mask = 1<<(maxDepth - 1);
 
         iPos ijk = ipos;
         std::array<bool, Ndim> bitMask;
@@ -157,7 +153,7 @@ public:
                 bitMask[idim] = ijk[idim] & mask;
             }
             mask >>= 1;
-            auto iflat = ijk2iflat<Ndim>(bitMask);
+            auto iflat = ijk2iflat(bitMask);
 
             // Create child if it does not exist yet
             child = create_get_node(node, iflat);
@@ -190,7 +186,7 @@ public:
             std::vector<F> tList;
             ray_infos[i] = new RayInfo<keyType>(Nfound);
             auto ri = ray_infos[i];
-            Ray<Ndim> r(&origins[3*i], &directions[3*i], -1e99, 1e99);
+            Ray r(&origins[3*i], &directions[3*i], -1e99, 1e99);
             cast_ray(&r, ri->keys, ri->t);
 
             // Keep track of the number of cells hit to preallocate the next ray info container
@@ -200,7 +196,7 @@ public:
     }
 
     // Perform single ray tracing
-    void cast_ray(Ray<Ndim> *r, keyVector &keyList, std::vector<F> &tList) {
+    void cast_ray(Ray *r, keyVector &keyList, std::vector<F> &tList) {
         // Boolean mask for direction
         unsigned char a = 0;
         unsigned char bmask = twotondim >> 1;
@@ -230,7 +226,7 @@ public:
     }
 
     void cast_ray(double* o, double* d, keyVector &keyList, std::vector<F> &tList) {
-        Ray<Ndim> r(o, d, -1e99, 1e99);
+        Ray r(o, d, -1e99, 1e99);
         cast_ray(&r, keyList, tList);
     }
 
@@ -371,7 +367,7 @@ private:
     }
     // From "An Efficient Parametric Algorithm for Octree Traversal" by Revelles, Urena, & Lastra
     inline unsigned char next_node(const F tx, const F ty, const F tz,
-                                   const u_char ix, const u_char iy, const u_char iz) {
+                                   const uint8_t ix, const uint8_t iy, const uint8_t iz) {
         if(tx < std::min(ty, tz)) {         // YZ plane
             return ix;
         } else if (ty < std::min(tx, tz)) { // XZ plane
@@ -381,8 +377,3 @@ private:
         }
     }
 };
-
-
-// Instanciate 3D octree for easier wrapping in Python
-template<typename T>
-using Octree3D = Octree<T, 3>;

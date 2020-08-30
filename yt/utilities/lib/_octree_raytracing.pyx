@@ -1,5 +1,5 @@
 # distutils: language = c++
-# distutils: extra_compile_args=["-std=c++11"]
+# distutils: extra_compile_args = CPP14_FLAG
 """This is a wrapper around the C++ class to efficiently cast rays into an octree.
 It relies on the seminal paper by  J. Revelles,, C.Ureña and M.Lastra.
 """
@@ -28,7 +28,7 @@ cdef class _OctreeRayTracing:
     def __init__(self, np.ndarray LE, np.ndarray RE, int depth):
         cdef double* LE_ptr = <double *>LE.data
         cdef double* RE_ptr = <double *>RE.data
-        self.oct = new Octree3D[int](depth, LE_ptr, RE_ptr)
+        self.oct = new Octree[int](depth, LE_ptr, RE_ptr)
         self.depth = depth
 
     @cython.boundscheck(False)

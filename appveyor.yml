@@ -13,7 +13,7 @@ environment:
       - PYTHON_VERSION: "3.8"
 
 platform:
-    -x64
+    - x64
 
 install:
     - "if not exist \"%userprofile%\\.config\\yt\" mkdir %userprofile%\\.config\\yt"
