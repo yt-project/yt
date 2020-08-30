@@ -3,12 +3,13 @@ import numpy as np
 from yt.data_objects.api import ImageArray
 from yt.funcs import iterable, mylog
 from yt.units.unit_object import Unit
+from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.lib.pixelization_routines import (
     normalization_2d_utility,
     off_axis_projection_SPH,
 )
 
-from .render_source import create_volume_source
+from .render_source import KDTreeVolumeSource
 from .scene import Scene
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
@@ -303,7 +304,7 @@ def off_axis_projection(
 
     funits = data_source.ds._get_field_info(item).units
 
-    vol = create_volume_source(data_source, item)
+    vol = KDTreeVolumeSource(data_source, item)
     vol.num_threads = num_threads
     if weight is None:
         vol.set_field(item)
@@ -366,11 +367,31 @@ def off_axis_projection(
     if vol.weight_field is not None:
         fields.append(vol.weight_field)
 
-    vol._log_field = False
-    image = vol.render(camera)
+    mylog.debug("Casting rays")
+
+    for (grid, mask) in data_source.blocks:
+        data = []
+        for f in fields:
+            # strip units before multiplying by mask for speed
+            grid_data = grid[f]
+            units = grid_data.units
+            data.append(data_source.ds.arr(grid_data.d * mask, units, dtype="float64"))
+        pg = PartitionedGrid(
+            grid.id,
+            data,
+            mask.astype("uint8"),
+            grid.LeftEdge,
+            grid.RightEdge,
+            grid.ActiveDimensions.astype("int64"),
+        )
+        grid.clear_data()
+        vol.sampler(pg, num_threads=num_threads)
+
+    image = vol.finalize_image(camera, vol.sampler.aimage)
     image = ImageArray(
         image, funits, registry=data_source.ds.unit_registry, info=image.info
     )
+
     if weight is not None:
         data_source.ds.field_info.pop(("index", "temp_weightfield"))
 
