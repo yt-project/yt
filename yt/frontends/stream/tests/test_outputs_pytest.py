@@ -10,7 +10,6 @@ from yt.utilities.exceptions import (
     YTInconsistentGridFieldShape,
     YTInconsistentGridFieldShapeGridDims,
     YTInconsistentParticleFieldShape,
-    YTOutputNotIdentified,
     YTUnidentifiedDataType,
 )
 
@@ -53,7 +52,9 @@ class TestStream:
     def test_load_empty_file(self):
         assert_raises(FileNotFoundError, load, "not_a_file")
         assert_raises(
-            YTUnidentifiedDataType, load, tempfile.mkstemp("empty_file", dir=os.getcwd())[1]
+            YTUnidentifiedDataType,
+            load,
+            tempfile.mkstemp("empty_file", dir=os.getcwd())[1],
         )
         assert_raises(YTUnidentifiedDataType, load, tempfile.mkdtemp(dir=os.getcwd()))
 

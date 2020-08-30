@@ -9,6 +9,7 @@ from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 from yt.testing import (
     assert_equal,
+    assert_raises,
     requires_file,
     requires_module,
     units_override_check,
@@ -452,7 +453,6 @@ class TestRamses:
             assert ("gas", field) in ds.derived_field_list
             ad[("gas", field)]
 
-
     @requires_file(output_00080)
     def test_field_accession(self):
         ds = yt.load(output_00080)
@@ -471,7 +471,6 @@ class TestRamses:
             for field in fields:
                 reg[field]
 
-
     @requires_file(output_00080)
     def test_max_level(self):
         ds = yt.load(output_00080)
@@ -485,7 +484,6 @@ class TestRamses:
         ):
             assert all(ds.r["index", "grid_level"] <= 2)
             assert any(ds.r["index", "grid_level"] == 2)
-
 
     @requires_file(ramses_new_format)
     def test_invalid_max_level(self):
