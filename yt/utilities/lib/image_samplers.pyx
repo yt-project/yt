@@ -39,7 +39,7 @@ from .grid_traversal cimport sampler_function, walk_volume
 
 from yt.funcs import mylog
 
-from .cyoctree_raytracing cimport CythonOctreeRayTracing, RayInfo
+from ._octree_raytracing cimport _OctreeRayTracing, RayInfo
 
 
 cdef extern from "platform_dep.h":
@@ -210,7 +210,7 @@ cdef class ImageSampler:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def cast_through_octree(self, PartitionedGrid pg, CythonOctreeRayTracing oct, int num_threads = 0):
+    def cast_through_octree(self, PartitionedGrid pg, _OctreeRayTracing oct, int num_threads = 0):
         cdef RayInfo[int]* ri
         self.setup(pg)
 
