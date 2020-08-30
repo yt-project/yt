@@ -7,8 +7,7 @@ import numpy as np
 
 import yt
 from yt.testing import fake_random_ds
-from yt.visualization.volume_rendering.render_source import create_volume_source
-from yt.visualization.volume_rendering.scene import Scene
+from yt.visualization.volume_rendering.api import Scene, create_volume_source
 
 
 def setup():

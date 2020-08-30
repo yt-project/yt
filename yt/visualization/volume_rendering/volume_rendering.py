@@ -1,8 +1,7 @@
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
 
-from .render_source import MeshSource, create_volume_source
-from .scene import Scene
+from .api import MeshSource, Scene, create_volume_source
 from .utils import data_source_or_all
 
 
