@@ -15,25 +15,32 @@ Image sampler definitions
 import numpy as np
 
 cimport cython
-from libc.stdlib cimport malloc, free
-from libc.math cimport sqrt
-from yt.utilities.lib.fp_utils cimport imin, fclip, i64clip
-from field_interpolation_tables cimport \
-    FieldInterpolationTable, FIT_initialize_table, FIT_eval_transfer,\
-    FIT_eval_transfer_with_light
 cimport lenses
-from .grid_traversal cimport walk_volume, sampler_function
-from .fixed_interpolator cimport \
-    offset_interpolate, \
-    fast_interpolate, \
-    trilinear_interpolate, \
-    eval_gradient, \
-    offset_fill, \
-    vertex_interp
+from field_interpolation_tables cimport (
+    FieldInterpolationTable,
+    FIT_eval_transfer,
+    FIT_eval_transfer_with_light,
+    FIT_initialize_table,
+)
+from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
+
+from yt.utilities.lib.fp_utils cimport fclip, i64clip, imin
+
+from .fixed_interpolator cimport (
+    eval_gradient,
+    fast_interpolate,
+    offset_fill,
+    offset_interpolate,
+    trilinear_interpolate,
+    vertex_interp,
+)
+from .grid_traversal cimport sampler_function, walk_volume
 
 from yt.funcs import mylog
 
 from .cyoctree_raytracing cimport CythonOctreeRayTracing, RayInfo
+
 
 cdef extern from "platform_dep.h":
     long int lrint(double x) nogil
