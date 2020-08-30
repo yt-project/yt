@@ -383,9 +383,6 @@ private:
 };
 
 
-// Define some instances for easy use in Python
+// Instanciate 3D octree for easier wrapping in Python
 template<typename T>
 using Octree3D = Octree<T, 3>;
-
-// Instantiate stuff
-template class Octree<int, 3>;

@@ -24,7 +24,7 @@ from .volume_container cimport VolumeContainer
 DEF Nch = 4
 
 
-cdef class CythonOctreeRayTracing:
+cdef class _OctreeRayTracing:
     def __init__(self, np.ndarray LE, np.ndarray RE, int depth):
         cdef double* LE_ptr = <double *>LE.data
         cdef double* RE_ptr = <double *>RE.data

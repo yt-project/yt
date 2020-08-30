@@ -3,7 +3,7 @@ from itertools import product
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.lib.cyoctree_raytracing import CythonOctreeRayTracing
+from yt.utilities.lib._octree_raytracing import _OctreeRayTracing
 
 
 class OctreeRayTracing(object):
@@ -26,7 +26,7 @@ class OctreeRayTracing(object):
         # 1/2**depth
         depth = lvl_min + ds.max_level + 1
 
-        self.octree = CythonOctreeRayTracing(LE, RE, depth)
+        self.octree = _OctreeRayTracing(LE, RE, depth)
         ds = data_source.ds
 
         xyz = np.stack([data_source[key].to("unitary").value for key in "xyz"], axis=-1)

@@ -11,8 +11,8 @@ from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.utilities.lib.misc_utilities import zlines, zpoints
+from yt.utilities.lib.octree_raytracing import OctreeRayTracing
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
-from yt.utilities.lib.pyoctree_raytracing import OctreeRayTracing
 from yt.utilities.on_demand_imports import NotAModule
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,

@@ -15,7 +15,7 @@ from .grid_traversal cimport sampler_function
 from .volume_container cimport VolumeContainer
 from .partitioned_grid cimport PartitionedGrid
 
-cdef extern from "octree_raytracing.cpp":
+cdef extern from "_octree_raytracing.hpp":
     cdef cppclass RayInfo[T]:
         vector[T] keys
         vector[double] t
@@ -25,6 +25,6 @@ cdef extern from "octree_raytracing.cpp":
         void insert_node_no_ret(const int* ipos, const int lvl, T key)
         void cast_ray(double* origins, double* directions, vector[T] keyList, vector[double] tList)
 
-cdef class CythonOctreeRayTracing:
+cdef class _OctreeRayTracing:
     cdef Octree3D[int]* oct
     cdef int depth
