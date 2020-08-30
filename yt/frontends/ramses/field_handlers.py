@@ -341,7 +341,8 @@ class HydroFieldFileHandler(FieldFileHandler):
             else:
                 if nvar < 5:
                     mylog.debug(
-                        "nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s"
+                        "nvar=%s is too small! YT doesn't currently "
+                        "support 1D/2D runs in RAMSES %s"
                     )
                     raise ValueError
                 # Basic hydro runs
@@ -362,7 +363,8 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "Pressure",
                         "Metallicity",
                     ]
-                # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
+                # MHD runs - NOTE:
+                # THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
                 if nvar == 11:
                     fields = [
                         "Density",
@@ -500,8 +502,8 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(float)
 
             # Read rt_c_frac
-            # Note: when using variable speed of light, this line will contain multiple values
-            # corresponding the the velocity at each level
+            # Note: when using variable speed of light, this line will contain multiple
+            # values corresponding the the velocity at each level
             read_rhs(lambda line: [float(e) for e in line.split()])
             f.readline()
 

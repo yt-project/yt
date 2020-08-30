@@ -99,15 +99,17 @@ class YTDataContainer:
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
-        # ds is typically set in the new object type created in Dataset._add_object_class
-        # but it can also be passed as a parameter to the constructor, in which case it will
-        # override the default. This code ensures it is never not set.
+        # ds is typically set in the new object type created in
+        # Dataset._add_object_class but it can also be passed as a parameter to the
+        # constructor, in which case it will override the default.
+        # This code ensures it is never not set.
         if ds is not None:
             self.ds = ds
         else:
             if not hasattr(self, "ds"):
                 raise RuntimeError(
-                    "Error: ds must be set either through class type or parameter to the constructor"
+                    "Error: ds must be set either through class type "
+                    "or parameter to the constructor"
                 )
 
         self._current_particle_type = "all"
@@ -383,7 +385,7 @@ class YTDataContainer:
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
             if ngt_exception.ghost_zones != 0:
-                raise NotImplementedError
+                raise NotImplementedError from ngt_exception
             size = self._count_particles(ftype)
             rv = self.ds.arr(np.empty(size, dtype="float64"), finfo.units)
             ind = 0
@@ -800,13 +802,13 @@ class YTDataContainer:
         try:
             from firefly_api.particlegroup import ParticleGroup
             from firefly_api.reader import Reader
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "Can't find firefly_api, ensure it"
-                + "is in your python path or install it with"
-                + "'$ pip install firefly_api'. It is also available"
-                + "on github at github.com/agurvich/firefly_api"
-            )
+                "is in your python path or install it with"
+                "'$ pip install firefly_api'. It is also available"
+                "on github at github.com/agurvich/firefly_api"
+            ) from e
 
         ## handle default arguments
         fields_to_include = [] if fields_to_include is None else fields_to_include
@@ -1744,17 +1746,17 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         )
                     try:
                         fd.convert_to_units(fi.units)
-                    except AttributeError:
+                    except AttributeError as e:
                         # If the field returns an ndarray, coerce to a
                         # dimensionless YTArray and verify that field is
                         # supposed to be unitless
                         fd = self.ds.arr(fd, "")
                         if fi.units != "":
-                            raise YTFieldUnitError(fi, fd.units)
-                    except UnitConversionError:
-                        raise YTFieldUnitError(fi, fd.units)
-                    except UnitParseError:
-                        raise YTFieldUnitParseError(fi)
+                            raise YTFieldUnitError(fi, fd.units) from e
+                    except UnitConversionError as e:
+                        raise YTFieldUnitError(fi, fd.units) from e
+                    except UnitParseError as e:
+                        raise YTFieldUnitParseError(fi) from e
                     self.field_data[field] = fd
                 except GenerationInProgress as gip:
                     for f in gip.fields:

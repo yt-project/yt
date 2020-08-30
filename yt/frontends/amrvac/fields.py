@@ -41,7 +41,8 @@ def _velocity(field, data, idir, prefix=None):
     mask1 = rho == 0
     if mask1.any():
         mylog.info(
-            "zeros found in %sdensity, patching them to compute corresponding velocity field.",
+            "zeros found in %sdensity, "
+            "patching them to compute corresponding velocity field.",
             prefix,
         )
         mask2 = moment == 0
@@ -55,42 +56,34 @@ code_density = "code_mass / code_length**3"
 code_moment = "code_mass / code_length**2 / code_time"
 code_pressure = "code_mass / code_length / code_time**2"
 
-# for now, define a finite family of dust fields (up to 100 species, should be enough)
-MAXN_DUST_SPECIES = 100
-known_dust_fields = [
-    ("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
-    for idust in range(1, MAXN_DUST_SPECIES + 1)
-]
-for idir in (1, 2, 3):
-    known_dust_fields += [
+
+class AMRVACFieldInfo(FieldInfoContainer):
+    # for now, define a finite family of dust fields (up to 100 species)
+    MAXN_DUST_SPECIES = 100
+    known_dust_fields = [
+        ("rhod%d" % idust, (code_density, ["dust%d_density" % idust], None))
+        for idust in range(1, MAXN_DUST_SPECIES + 1)
+    ] + [
         (
             "m%dd%d" % (idir, idust),
             (code_moment, ["dust%d_moment_%d" % (idust, idir)], None),
         )
         for idust in range(1, MAXN_DUST_SPECIES + 1)
+        for idir in (1, 2, 3)
     ]
-
-
-class AMRVACFieldInfo(FieldInfoContainer):
-
     # format: (native(?) field, (units, [aliases], display_name))
-    # note: aliases will correspond to "gas" typed fields, whereas the native ones are "amrvac" typed
-    known_other_fields = tuple(
-        list(
-            (
-                ("rho", (code_density, ["density"], None)),
-                ("m1", (code_moment, ["moment_1"], None)),
-                ("m2", (code_moment, ["moment_2"], None)),
-                ("m3", (code_moment, ["moment_3"], None)),
-                ("e", (code_pressure, ["energy_density"], None)),
-                ("b1", ("code_magnetic", ["magnetic_1"], None)),
-                ("b2", ("code_magnetic", ["magnetic_2"], None)),
-                ("b3", ("code_magnetic", ["magnetic_3"], None)),
-            )
-        )
-        + known_dust_fields
-        # in python3, there is no need for this tuple+list conversion, it suffices to write
-        # known_other_fields = (..., *known_dust_fields)
+    # note: aliases will correspond to "gas" typed fields
+    # whereas the native ones are "amrvac" typed
+    known_other_fields = (
+        ("rho", (code_density, ["density"], None)),
+        ("m1", (code_moment, ["moment_1"], None)),
+        ("m2", (code_moment, ["moment_2"], None)),
+        ("m3", (code_moment, ["moment_3"], None)),
+        ("e", (code_pressure, ["energy_density"], None)),
+        ("b1", ("code_magnetic", ["magnetic_1"], None)),
+        ("b2", ("code_magnetic", ["magnetic_2"], None)),
+        ("b3", ("code_magnetic", ["magnetic_3"], None)),
+        *known_dust_fields,
     )
 
     known_particle_fields = ()
@@ -128,12 +121,13 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
     def _setup_dust_fields(self):
         idust = 1
+        imax = self.__class__.MAXN_DUST_SPECIES
         while ("amrvac", "rhod%d" % idust) in self.field_list:
-            if idust > MAXN_DUST_SPECIES:
+            if idust > imax:
                 mylog.error(
                     "Only the first %d dust species are currently read by yt. "
                     "If you read this, please consider issuing a ticket. ",
-                    MAXN_DUST_SPECIES,
+                    imax,
                 )
                 break
             self._setup_velocity_fields(idust)
@@ -173,7 +167,8 @@ class AMRVACFieldInfo(FieldInfoContainer):
         self._setup_velocity_fields()  # gas velocities
         self._setup_dust_fields()  # dust derived fields (including velocities)
 
-        # fields with nested dependencies are defined thereafter by increasing level of complexity
+        # fields with nested dependencies are defined thereafter
+        # by increasing level of complexity
         us = self.ds.unit_system
 
         def _kinetic_energy_density(field, data):
@@ -197,15 +192,17 @@ class AMRVACFieldInfo(FieldInfoContainer):
                     if not ("amrvac", f"b{idim}") in self.field_list:
                         break
                     emag += 0.5 * data["gas", f"magnetic_{idim}"] ** 2
-                # important note: in AMRVAC the magnetic field is defined in units where mu0 = 1,
+                # in AMRVAC the magnetic field is defined in units where mu0 = 1,
                 # such that
                 # Emag = 0.5*B**2 instead of Emag = 0.5*B**2 / mu0
-                # To correctly transform the dimensionality from gauss**2 -> rho*v**2, we have to
-                # take mu0 into account. If we divide here, units when adding the field should be
-                # us["density"]*us["velocity"]**2. If not, they should be us["magnetic_field"]**2
-                # and division should happen elsewhere.
+                # To correctly transform the dimensionality from gauss**2 -> rho*v**2,
+                # we have to take mu0 into account. If we divide here, units when adding
+                # the field should be us["density"]*us["velocity"]**2.
+                # If not, they should be us["magnetic_field"]**2 and division should
+                # happen elsewhere.
                 emag /= 4 * np.pi
-                # divided by mu0 = 4pi in cgs, yt handles 'mks' and 'code' unit systems internally.
+                # divided by mu0 = 4pi in cgs,
+                # yt handles 'mks' and 'code' unit systems internally.
                 return emag
 
             self.add_field(
@@ -218,12 +215,12 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
         # Adding the thermal pressure field.
         # In AMRVAC we have multiple physics possibilities:
-        # - if HD/MHD + energy equation, pressure is (gamma-1)*(e - ekin (- emag)) for (M)HD
-        # - if HD/MHD but solve_internal_e is true in parfile, pressure is (gamma-1)*e for both
-        # - if (m)hd_energy is false in parfile (isothermal), pressure is c_adiab * rho**gamma
+        # - if HD/MHD + energy equation P = (gamma-1)*(e - ekin (- emag)) for (M)HD
+        # - if HD/MHD but solve_internal_e is true in parfile, P = (gamma-1)*e for both
+        # - if (m)hd_energy is false in parfile (isothermal), P = c_adiab * rho**gamma
 
         def _full_thermal_pressure_HD(field, data):
-            # important note : energy density and pressure are actually expressed in the same unit
+            # energy density and pressure are actually expressed in the same unit
             pthermal = (data.ds.gamma - 1) * (
                 data["gas", "energy_density"] - data["gas", "kinetic_energy_density"]
             )
@@ -257,7 +254,8 @@ class AMRVACFieldInfo(FieldInfoContainer):
             pressure_recipe = _adiabatic_thermal_pressure
             mylog.info("Using adiabatic EoS for thermal pressure (isothermal).")
             mylog.warning(
-                "If you used usr_set_pthermal you should redefine the thermal_pressure field."
+                "If you used usr_set_pthermal you should "
+                "redefine the thermal_pressure field."
             )
 
         if pressure_recipe is not None:

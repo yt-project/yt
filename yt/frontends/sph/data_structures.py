@@ -84,7 +84,7 @@ class SPHParticleIndex(ParticleIndex):
         ds._file_hash = self._generate_hash()
 
         if hasattr(self.io, "_generate_smoothing_length"):
-            self.io._generate_smoothing_length(self.data_files, self.kdtree)
+            self.io._generate_smoothing_length(self)
 
         super(SPHParticleIndex, self)._initialize_index()
 

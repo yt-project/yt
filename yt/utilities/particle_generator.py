@@ -33,11 +33,11 @@ class ParticleGenerator:
             self.posx_index = self.field_list.index(self.default_fields[0])
             self.posy_index = self.field_list.index(self.default_fields[1])
             self.posz_index = self.field_list.index(self.default_fields[2])
-        except Exception:
+        except Exception as e:
             raise KeyError(
                 "You must specify position fields: "
                 + " ".join(["particle_position_%s" % ax for ax in "xyz"])
-            )
+            ) from e
         self.index_index = self.field_list.index((ptype, "particle_index"))
 
         self.num_grids = self.ds.index.num_grids
@@ -150,7 +150,7 @@ class ParticleGenerator:
         Examples
         --------
         >>> field_map = {'density':'particle_density',
-        >>>              'temperature':'particle_temperature'}
+        ...              'temperature':'particle_temperature'}
         >>> particles.map_grid_fields_to_particles(field_map)
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
@@ -245,7 +245,7 @@ class FromListParticleGenerator(ParticleGenerator):
         >>> posz = np.random.random((num_p))
         >>> mass = np.ones((num_p))
         >>> data = {'particle_position_x': posx, 'particle_position_y': posy,
-        >>>         'particle_position_z': posz, 'particle_mass': mass}
+        ...         'particle_position_z': posz, 'particle_mass': mass}
         >>> particles = FromListParticleGenerator(ds, num_p, data)
         """
 
@@ -308,8 +308,8 @@ class LatticeParticleGenerator(ParticleGenerator):
         >>> le = np.array([0.25,0.25,0.25])
         >>> re = np.array([0.75,0.75,0.75])
         >>> fields = ["particle_position_x","particle_position_y",
-        >>>           "particle_position_z",
-        >>>           "particle_density","particle_temperature"]
+        ...           "particle_position_z",
+        ...           "particle_density","particle_temperature"]
         >>> particles = LatticeParticleGenerator(ds, dims, le, re, fields)
         """
 
@@ -384,8 +384,13 @@ class WithDensityParticleGenerator(ParticleGenerator):
         >>> fields = ["particle_position_x","particle_position_y",
         >>>           "particle_position_z",
         >>>           "particle_density","particle_temperature"]
-        >>> particles = WithDensityParticleGenerator(ds, sphere, num_particles,
-        >>>                                          fields, density_field='Dark_Matter_Density')
+        >>> particles = WithDensityParticleGenerator(
+        ...                ds,
+        ...                sphere,
+        ...                num_particles,
+        ...                fields,
+        ...                density_field='Dark_Matter_Density'
+        ...             )
         """
 
         super(WithDensityParticleGenerator, self).__init__(

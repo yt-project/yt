@@ -178,7 +178,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         raise NotImplementedError
 
     def _yield_coordinates(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             for ptype in f.keys():
                 if "x" not in f[ptype].keys():
                     continue

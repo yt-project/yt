@@ -414,7 +414,7 @@ class SDFRead(dict):
                 str_types.append((v, vtype))
             l = ascfile.readline()
         num = l.strip("}[]")
-        num = num.strip("\;\\\n]")
+        num = num.strip("\;\\\n]")  # NOQA B005
         if len(num) == 0:
             # We need to compute the number of records.  The DataStruct will
             # handle this.
@@ -897,8 +897,8 @@ class SDFIndex:
         return data
 
     def get_next_nonzero_chunk(self, key, stop=None):
-        # These next two while loops are to squeeze the keys if they are empty. Would be better
-        # to go through and set base equal to the last non-zero base, i think.
+        # These next two while loops are to squeeze the keys if they are empty.
+        # Would be better to go through and set base equal to the last non-zero base.
         if stop is None:
             stop = self._max_key
         while key < stop:
@@ -910,8 +910,8 @@ class SDFIndex:
         return key
 
     def get_previous_nonzero_chunk(self, key, stop=None):
-        # These next two while loops are to squeeze the keys if they are empty. Would be better
-        # to go through and set base equal to the last non-zero base, i think.
+        # These next two while loops are to squeeze the keys if they are empty.
+        # Would be better to go through and set base equal to the last non-zero base.
         if stop is None:
             stop = self.indexdata["index"][0]
         while key > stop:

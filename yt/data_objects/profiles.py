@@ -1368,7 +1368,7 @@ def create_profile(
             bf_units = data_source.ds.field_info[bin_field].output_units
             try:
                 field_ex = list(extrema[bin_field[-1]])
-            except KeyError:
+            except KeyError as e:
                 try:
                     field_ex = list(extrema[bin_field])
                 except KeyError:
@@ -1376,7 +1376,7 @@ def create_profile(
                         "Could not find field {0} or {1} in extrema".format(
                             bin_field[-1], bin_field
                         )
-                    )
+                    ) from e
 
             if isinstance(field_ex[0], tuple):
                 field_ex = [data_source.ds.quan(*f) for f in field_ex]

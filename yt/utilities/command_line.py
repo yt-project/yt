@@ -16,7 +16,6 @@ from urllib.parse import urlparse
 import numpy as np
 
 from yt.config import CURRENT_CONFIG_FILE, ytcfg
-from yt.convenience import load
 from yt.extern.tqdm import tqdm
 from yt.funcs import (
     download_file,
@@ -29,11 +28,12 @@ from yt.funcs import (
     mylog,
     update_hg_or_git,
 )
+from yt.loaders import load
 from yt.utilities.configure import set_config
 from yt.utilities.exceptions import (
     YTCommandRequiresModule,
     YTFieldNotParseable,
-    YTOutputNotIdentified,
+    YTUnidentifiedDataType,
 )
 from yt.utilities.metadata import get_metadata
 from yt.visualization.plot_window import ProjectionPlot, SlicePlot
@@ -134,8 +134,8 @@ def _print_installation_information(path):
 def _get_girder_client():
     try:
         import girder_client
-    except ImportError:
-        raise YTCommandRequiresModule("girder_client")
+    except ImportError as e:
+        raise YTCommandRequiresModule("girder_client") from e
     if not ytcfg.get("yt", "hub_api_key"):
         print("Before you can access the yt Hub you need an API key")
         print("In order to obtain one, either register by typing:")
@@ -608,7 +608,8 @@ _common_options = dict(
         type=float,
         dest="halo_radius",
         default=0.1,
-        help="Constant radius for profiling halos if using hop output files with no radius entry. Default: 0.1.",
+        help="Constant radius for profiling halos if using hop output files with no "
+        + "radius entry. Default: 0.1.",
     ),
     halo_radius_units=dict(
         longname="--halo_radius_units",
@@ -616,7 +617,8 @@ _common_options = dict(
         type=str,
         dest="halo_radius_units",
         default="1",
-        help="Units for radius used with --halo_radius flag. Default: '1' (code units).",
+        help="Units for radius used with --halo_radius flag. "
+        + "Default: '1' (code units).",
     ),
     halo_hop_style=dict(
         longname="--halo_hop_style",
@@ -624,7 +626,8 @@ _common_options = dict(
         type=str,
         dest="halo_hop_style",
         default="new",
-        help="Style of hop output file.  'new' for yt_hop files and 'old' for enzo_hop files.",
+        help="Style of hop output file. "
+        + "'new' for yt_hop files and 'old' for enzo_hop files.",
     ),
     halo_dataset=dict(
         longname="--halo_dataset",
@@ -794,8 +797,8 @@ class YTHubRegisterCmd(YTCommand):
     def __call__(self, args):
         try:
             import requests
-        except ImportError:
-            raise YTCommandRequiresModule("requests")
+        except ImportError as e:
+            raise YTCommandRequiresModule("requests") from e
         if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in")
             print(f"{CURRENT_CONFIG_FILE} . Delete this if you want to force a")
@@ -1042,12 +1045,12 @@ class YTMapserverCmd(YTCommand):
         PannableMapServer(p.data_source, args.field, args.takelog, args.cmap)
         try:
             import bottle
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "The mapserver functionality requires the bottle "
                 "package to be installed. Please install using `pip "
                 "install bottle`."
-            )
+            ) from e
         bottle.debug(True)
         if args.host is not None:
             colonpl = args.host.find(":")
@@ -1604,8 +1607,8 @@ class YTUploadFileCmd(YTCommand):
     def __call__(self, args):
         try:
             import requests
-        except ImportError:
-            raise YTCommandRequiresModule("requests")
+        except ImportError as e:
+            raise YTCommandRequiresModule("requests") from e
 
         fs = iter(FileStreamer(open(args.file, "rb")))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")
@@ -1739,7 +1742,7 @@ class YTSearchCmd(YTCommand):
             print("(% 10i/% 10i) Evaluating %s" % (i, len(candidates), c))
             try:
                 record = get_metadata(c, args.full_output)
-            except YTOutputNotIdentified:
+            except YTUnidentifiedDataType:
                 continue
             records.append(record)
         with open(args.output, "w") as f:

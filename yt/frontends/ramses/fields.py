@@ -368,10 +368,11 @@ class RAMSESFieldInfo(FieldInfoContainer):
             for i, (tname, unit) in enumerate(_cool_arrs):
                 var = fd.read_vector("d")
                 if var.size == n1 and i == 0:
-                    # If this case occurs, the cooling files were produced pre-2010 in a format
-                    # that is no longer supported
+                    # If this case occurs, the cooling files were produced pre-2010 in
+                    # a format that is no longer supported
                     mylog.warning(
-                        "This cooling file format is no longer supported. Cooling field loading skipped."
+                        "This cooling file format is no longer supported. "
+                        "Cooling field loading skipped."
                     )
                     return
                 if var.size == n1 * n2:

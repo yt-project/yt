@@ -113,7 +113,8 @@ def off_axis_projection(
 
     if interpolated:
         raise NotImplementedError(
-            "Only interpolated=False methods are currently implemented for off-axis-projections"
+            "Only interpolated=False methods are currently implemented "
+            "for off-axis-projections"
         )
 
     data_source = data_source_or_all(data_source)

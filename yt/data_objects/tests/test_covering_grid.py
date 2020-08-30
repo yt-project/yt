@@ -1,8 +1,7 @@
 import numpy as np
 
-from yt.convenience import load
 from yt.fields.derived_field import ValidateParameter
-from yt.frontends.stream.data_structures import load_particles
+from yt.loaders import load, load_particles
 from yt.testing import (
     assert_almost_equal,
     assert_array_equal,

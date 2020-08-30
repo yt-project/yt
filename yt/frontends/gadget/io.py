@@ -69,7 +69,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         si, ei = data_file.start, data_file.end
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
@@ -87,12 +87,13 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
-    def _generate_smoothing_length(self, data_files, kdtree):
+    def _generate_smoothing_length(self, index):
+        data_files = index.data_files
         if not self.ds.gen_hsmls:
             return
         hsml_fn = data_files[0].filename.replace(".hdf5", ".hsml.hdf5")
         if os.path.exists(hsml_fn):
-            with h5py.File(hsml_fn, "r") as f:
+            with h5py.File(hsml_fn, mode="r") as f:
                 file_hash = f.attrs["q"]
             if file_hash != self.ds._file_hash:
                 mylog.warning("Replacing hsml files.")
@@ -116,6 +117,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         for fn, count in counts.items():
             offsets[fn] = offset
             offset += count
+        kdtree = index.kdtree
         positions = uconcatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype

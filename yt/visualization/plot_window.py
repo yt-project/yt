@@ -1,4 +1,3 @@
-import sys
 import types
 from collections import defaultdict
 from distutils.version import LooseVersion
@@ -153,7 +152,8 @@ class PlotWindow(ImagePlotContainer):
     Parameters
     ----------
 
-    data_source : :class:`yt.data_objects.selection_data_containers.YTSelectionContainer2D`
+    data_source :
+        :class:`yt.data_objects.selection_data_containers.YTSelectionContainer2D`
         This is the source to be pixelized, which can be a projection,
         slice, or a cutting plane.
     bounds : sequence of floats
@@ -457,20 +457,20 @@ class PlotWindow(ImagePlotContainer):
            coordinate space can be given. If plain numeric types are input,
            units of `code_length` are assumed. Further examples:
 
-           ===============================================    ==================================
-           format                                             example
-           ===============================================    ==================================
-           '{space}'                                          'domain'
-           '{xloc}-{space}'                                   'left-window'
-           '{yloc}-{space}'                                   'upper-domain'
-           '{yloc}-{xloc}-{space}'                            'lower-right-window'
-           ('{space}',)                                       ('window',)
-           ('{xloc}', '{space}')                              ('right', 'domain')
-           ('{yloc}', '{space}')                              ('lower', 'window')
-           ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
-           ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
-           (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-           ===============================================    ==================================
+        ===============================================  ===============================
+        format                                           example
+        ===============================================  ===============================
+        '{space}'                                        'domain'
+        '{xloc}-{space}'                                 'left-window'
+        '{yloc}-{space}'                                 'upper-domain'
+        '{yloc}-{xloc}-{space}'                          'lower-right-window'
+        ('{space}',)                                     ('window',)
+        ('{xloc}', '{space}')                            ('right', 'domain')
+        ('{yloc}', '{space}')                            ('lower', 'window')
+        ('{yloc}', '{xloc}', '{space}')                  ('lower', 'right', 'window')
+        ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')  ((0, 'm'), (.4, 'm'), 'window')
+        (xloc, yloc, '{space}')                          (0.23, 0.5, 'domain')
+        ===============================================  ===============================
         """
         self.origin = origin
         return self
@@ -497,7 +497,8 @@ class PlotWindow(ImagePlotContainer):
            if passed as a string, mpl_proj is the specified projection type,
            if passed as a tuple, then tuple will take the form of
            ``("ProjectionType", (args))`` or ``("ProjectionType", (args), {kwargs})``
-           Valid projection type options include: 'PlateCarree', 'LambertConformal', 'LabmbertCylindrical',
+           Valid projection type options include:
+           'PlateCarree', 'LambertConformal', 'LabmbertCylindrical',
            'Mercator', 'Miller', 'Mollweide', 'Orthographic',
            'Robinson', 'Stereographic', 'TransverseMercator',
            'InterruptedGoodeHomolosine', 'RotatedPole', 'OGSB',
@@ -766,8 +767,8 @@ class PlotWindow(ImagePlotContainer):
             for un in unit_name:
                 try:
                     self.ds.length_unit.in_units(un)
-                except (UnitConversionError, UnitParseError):
-                    raise YTUnitNotRecognized(un)
+                except (UnitConversionError, UnitParseError) as e:
+                    raise YTUnitNotRecognized(un) from e
         self._axes_unit_names = unit_name
         return self
 
@@ -1154,7 +1155,8 @@ class PWViewerMPL(PlotWindow):
 
                 else:
                     mylog.error(
-                        "Unable to draw cbar minorticks for field %s with transform %s ",
+                        "Unable to draw cbar minorticks for field "
+                        "%s with transform %s ",
                         f,
                         self._field_transform[f],
                     )
@@ -1273,8 +1275,7 @@ class PWViewerMPL(PlotWindow):
                 except YTDataTypeUnsupported as e:
                     raise e
                 except Exception as e:
-                    new_exc = YTPlotCallbackError(callback._type_name, e)
-                    raise new_exc.with_traceback(sys.exc_info()[2])
+                    raise YTPlotCallbackError(callback._type_name) from e
             for key in self.frb.keys():
                 if key not in keys:
                     del self.frb[key]
@@ -1290,10 +1291,10 @@ class PWViewerMPL(PlotWindow):
         cbar_pad="0%",
     ):
         r"""
-        Creates a matplotlib figure object with the specified axes arrangement, nrows_ncols,
-        and maps the underlying figures to the matplotlib axes.  Note that all of these
-        parameters are fed directly to the matplotlib ImageGrid class to create the new figure
-        layout.
+        Creates a matplotlib figure object with the specified axes arrangement,
+        nrows_ncols, and maps the underlying figures to the matplotlib axes.
+        Note that all of these parameters are fed directly to the matplotlib ImageGrid
+        class to create the new figure layout.
 
         Parameters
         ----------
@@ -1430,20 +1431,20 @@ class AxisAlignedSlicePlot(PWViewerMPL):
          coordinate space can be given. If plain numeric types are input,
          units of `code_length` are assumed. Further examples:
 
-         ===============================================    ==================================
-         format                                             example
-         ===============================================    ==================================
-         '{space}'                                          'domain'
-         '{xloc}-{space}'                                   'left-window'
-         '{yloc}-{space}'                                   'upper-domain'
-         '{yloc}-{xloc}-{space}'                            'lower-right-window'
-         ('{space}',)                                       ('window',)
-         ('{xloc}', '{space}')                              ('right', 'domain')
-         ('{yloc}', '{space}')                              ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
-         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
-         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ===============================================    ==================================
+         =============================================== ===============================
+         format                                          example
+         =============================================== ===============================
+         '{space}'                                       'domain'
+         '{xloc}-{space}'                                'left-window'
+         '{yloc}-{space}'                                'upper-domain'
+         '{yloc}-{xloc}-{space}'                         'lower-right-window'
+         ('{space}',)                                    ('window',)
+         ('{xloc}', '{space}')                           ('right', 'domain')
+         ('{yloc}', '{space}')                           ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
+         (xloc, yloc, '{space}')                         (0.23, 0.5, 'domain')
+         =============================================== ===============================
     axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.
@@ -1620,20 +1621,20 @@ class ProjectionPlot(PWViewerMPL):
          coordinate space can be given. If plain numeric types are input,
          units of `code_length` are assumed. Further examples:
 
-         ===============================================    ==================================
-         format                                             example
-         ===============================================    ==================================
-         '{space}'                                          'domain'
-         '{xloc}-{space}'                                   'left-window'
-         '{yloc}-{space}'                                   'upper-domain'
-         '{yloc}-{xloc}-{space}'                            'lower-right-window'
-         ('{space}',)                                       ('window',)
-         ('{xloc}', '{space}')                              ('right', 'domain')
-         ('{yloc}', '{space}')                              ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
-         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
+         =============================================== ===============================
+         format                                          example
+         =============================================== ===============================
+         '{space}'                                       'domain'
+         '{xloc}-{space}'                                'left-window'
+         '{yloc}-{space}'                                'upper-domain'
+         '{yloc}-{xloc}-{space}'                         'lower-right-window'
+         ('{space}',)                                    ('window',)
+         ('{xloc}', '{space}')                           ('right', 'domain')
+         ('{yloc}', '{space}')                           ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
          (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ===============================================    ==================================
+         =============================================== ===============================
 
     right_handed : boolean
          Whether the implicit east vector for the image generated is set to make a right
@@ -1844,8 +1845,8 @@ class OffAxisSlicePlot(PWViewerMPL):
          set, an arbitrary grid-aligned north-vector is chosen.
     right_handed : boolean
          Whether the implicit east vector for the image generated is set to make a right
-         handed coordinate system with the north vector and the normal, the direction of the
-         'window' into the data.
+         handed coordinate system with the north vector and the normal, the direction of
+         the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     field_parameters : dictionary
@@ -2031,8 +2032,8 @@ class OffAxisProjectionPlot(PWViewerMPL):
          set, an arbitrary grid-aligned north-vector is chosen.
     right_handed : boolean
          Whether the implicit east vector for the image generated is set to make a right
-         handed coordinate system with the north vector and the normal, the direction of the
-         'window' into the data.
+         handed coordinate system with the north vector and the normal, the direction of
+         the 'window' into the data.
     fontsize : integer
          The size of the fonts for the axis, colorbar, and tick labels.
     method : string
@@ -2303,20 +2304,20 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
          coordinate space can be given. If plain numeric types are input,
          units of `code_length` are assumed. Further examples:
 
-         ===============================================    ==================================
-         format                                             example
-         ===============================================    ==================================
-         '{space}'                                          'domain'
-         '{xloc}-{space}'                                   'left-window'
-         '{yloc}-{space}'                                   'upper-domain'
-         '{yloc}-{xloc}-{space}'                            'lower-right-window'
-         ('{space}',)                                       ('window',)
-         ('{xloc}', '{space}')                              ('right', 'domain')
-         ('{yloc}', '{space}')                              ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
-         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
-         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ===============================================    ==================================
+         =============================================== ===============================
+         format                                          example
+         =============================================== ===============================
+         '{space}'                                       'domain'
+         '{xloc}-{space}'                                'left-window'
+         '{yloc}-{space}'                                'upper-domain'
+         '{yloc}-{xloc}-{space}'                         'lower-right-window'
+         ('{space}',)                                    ('window',)
+         ('{xloc}', '{space}')                           ('right', 'domain')
+         ('{yloc}', '{space}')                           ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
+         (xloc, yloc, '{space}')                         (0.23, 0.5, 'domain')
+         =============================================== ===============================
     north_vector : a sequence of floats
         A vector defining the 'up' direction in the `OffAxisSlicePlot`; not
         used in `AxisAlignedSlicePlot`.  This option sets the orientation of the
@@ -2349,17 +2350,23 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     ...                 north_vector=[0.2,-0.3,0.1])
 
     """
-    # Make sure we are passed a normal
-    # we check the axis keyword for backwards compatibility
-    if normal is None:
+    if axis is not None:
+        issue_deprecation_warning(
+            "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
+            "will be removed in a future version of yt."
+        )
+        if normal is not None:
+            raise TypeError(
+                "SlicePlot() received incompatible arguments 'axis' and 'normal'"
+            )
         normal = axis
-    if normal is None:
-        raise AssertionError("Must pass a normal vector to the slice!")
 
-    # to keep positional ordering we had to make fields a keyword; make sure
-    # it is present
+    # to keep positional ordering we had to make 'normal' and 'fields' keywords
+    if normal is None:
+        raise TypeError("Missing argument in SlicePlot(): 'normal'")
+
     if fields is None:
-        raise AssertionError("Must pass field(s) to plot!")
+        raise TypeError("Missing argument in SlicePlot(): 'fields'")
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
@@ -2470,20 +2477,20 @@ def plot_2d(
          coordinate space can be given. If plain numeric types are input,
          units of `code_length` are assumed. Further examples:
 
-         ===============================================    ==================================
-         format                                             example
-         ===============================================    ==================================
-         '{space}'                                          'domain'
-         '{xloc}-{space}'                                   'left-window'
-         '{yloc}-{space}'                                   'upper-domain'
-         '{yloc}-{xloc}-{space}'                            'lower-right-window'
-         ('{space}',)                                       ('window',)
-         ('{xloc}', '{space}')                              ('right', 'domain')
-         ('{yloc}', '{space}')                              ('lower', 'window')
-         ('{yloc}', '{xloc}', '{space}')                    ('lower', 'right', 'window')
-         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}')    ((0.5, 'm'), (0.4, 'm'), 'window')
-         (xloc, yloc, '{space}')                            (0.23, 0.5, 'domain')
-         ===============================================    ==================================
+         =============================================== ===============================
+         format                                          example
+         =============================================== ===============================
+         '{space}'                                       'domain'
+         '{xloc}-{space}'                                'left-window'
+         '{yloc}-{space}'                                'upper-domain'
+         '{yloc}-{xloc}-{space}'                         'lower-right-window'
+         ('{space}',)                                    ('window',)
+         ('{xloc}', '{space}')                           ('right', 'domain')
+         ('{yloc}', '{space}')                           ('lower', 'window')
+         ('{yloc}', '{xloc}', '{space}')                 ('lower', 'right', 'window')
+         ((yloc, '{unit}'), (xloc, '{unit}'), '{space}') ((0, 'm'), (.4, 'm'), 'window')
+         (xloc, yloc, '{space}')                         (0.23, 0.5, 'domain')
+         =============================================== ===============================
     axes_unit : string
          The name of the unit for the tick labels on the x and y axes.
          Defaults to None, which automatically picks an appropriate unit.

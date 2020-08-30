@@ -267,7 +267,7 @@ class GadgetDataset(SPHDataset):
                 "Otherwise something is wrong, "
                 "and you might want to check how the dataset is loaded. "
                 "Futher information about header specification can be found in "
-                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",
+                "https://yt-project.org/docs/dev/examining/loading_data.html#header-specification.",  # NOQA E501
                 header_size,
             )
         self._field_spec = self._setup_binary_spec(field_spec, gadget_field_specs)
@@ -646,7 +646,8 @@ class GadgetHDF5Dataset(GadgetDataset):
 
         # note the contents of the HDF5 Units group are in _unit_base
         # note the velocity stored on disk is sqrt(a) dx/dt
-        # physical velocity [cm/s] = a dx/dt = sqrt(a) * velocity_on_disk * UnitVelocity_in_cm_per_s
+        # physical velocity [cm/s] = a dx/dt
+        # = sqrt(a) * velocity_on_disk * UnitVelocity_in_cm_per_s
         self.length_unit = self.quan(self._unit_base["UnitLength_in_cm"], "cmcm/h")
         self.mass_unit = self.quan(self._unit_base["UnitMass_in_g"], "g/h")
         self.velocity_unit = self.quan(

@@ -221,8 +221,8 @@ class RAMSESDomainSubset(OctreeSubset):
             self._base_domain = base_domain
         elif num_ghost_zones < 0:
             raise RuntimeError(
-                "Cannot initialize a domain subset with a negative number of ghost zones,"
-                " was called with num_ghost_zones=%s" % num_ghost_zones
+                "Cannot initialize a domain subset with a negative number "
+                "of ghost zones, was called with num_ghost_zones=%s" % num_ghost_zones
             )
 
     def _fill_no_ghostzones(self, fd, fields, selector, file_handler):
@@ -354,6 +354,14 @@ class RAMSESDomainSubset(OctreeSubset):
             )
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
+        if smoothed:
+            mylog.warning(
+                f"{self}.retrieve_ghost_zones was called with the "
+                f"`smoothed` argument set to True. This is not supported, "
+                "ignoring it."
+            )
+            smoothed = False
+
         try:
             new_subset = self._subset_with_gz
             mylog.debug(
@@ -368,6 +376,9 @@ class RAMSESDomainSubset(OctreeSubset):
                 base_grid=self,
             )
             self._subset_with_gz = new_subset
+
+            # Cache the fields
+            new_subset.get_data(fields)
 
         return new_subset
 
@@ -585,8 +596,8 @@ class RAMSESDataset(Dataset):
 
         if group_folder == "group_00001":
             # Count the number of groups
-            # note: we exclude the unlikely event that one of the group is actually a file
-            # instad of a folder
+            # note: we exclude the unlikely event that one of the group is actually a
+            # file instad of a folder
             self.num_groups = len(
                 [
                     _
@@ -648,8 +659,8 @@ class RAMSESDataset(Dataset):
         # Check max_level_convention is set and acceptable
         if max_level_convention is None:
             raise ValueError(
-                "You specified `max_level` without specifying any `max_level_convention`. "
-                "You have to pick either 'yt' or 'ramses'."
+                f"Received `max_level`={max_level}, but no `max_level_convention`. "
+                "Valid conventions are 'yt' and 'ramses'."
             )
         if max_level_convention not in ("ramses", "yt"):
             raise ValueError(
@@ -768,7 +779,8 @@ class RAMSESDataset(Dataset):
         self.domain_left_edge = np.zeros(3, dtype="float64")
         self.domain_dimensions = np.ones(3, dtype="int32") * 2 ** (self.min_level + 1)
         self.domain_right_edge = np.ones(3, dtype="float64")
-        # This is likely not true, but it's not clear how to determine the boundary conditions
+        # This is likely not true, but it's not clear
+        # how to determine the boundary conditions
         self.periodicity = (True, True, True)
 
         if self.force_cosmological is not None:

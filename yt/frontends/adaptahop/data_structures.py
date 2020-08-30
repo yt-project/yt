@@ -15,11 +15,9 @@ import numpy as np
 
 from yt.data_objects.data_containers import YTSelectionContainer
 from yt.data_objects.static_output import Dataset
-from yt.frontends.halo_catalog.data_structures import (
-    HaloCatalogFile,
-    HaloCatalogParticleIndex,
-)
+from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
 from yt.funcs import setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.units import Mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 
@@ -27,8 +25,24 @@ from .definitions import HEADER_ATTRIBUTES
 from .fields import AdaptaHOPFieldInfo
 
 
+class AdaptaHOPParticleIndex(ParticleIndex):
+    def _setup_filenames(self):
+        template = self.dataset.filename_template
+        ndoms = self.dataset.file_count
+        cls = self.dataset._file_class
+        if ndoms > 1:
+            self.data_files = [
+                cls(self.dataset, self.io, template % {"num": i}, i, None)
+                for i in range(ndoms)
+            ]
+        else:
+            self.data_files = [
+                cls(self.dataset, self.io, self.dataset.parameter_filename, 0, None,)
+            ]
+
+
 class AdaptaHOPDataset(Dataset):
-    _index_class = HaloCatalogParticleIndex
+    _index_class = AdaptaHOPParticleIndex
     _file_class = HaloCatalogFile
     _field_info_class = AdaptaHOPFieldInfo
 
@@ -49,7 +63,8 @@ class AdaptaHOPDataset(Dataset):
         self.over_refine_factor = over_refine_factor
         if parent_ds is None:
             raise RuntimeError(
-                "The AdaptaHOP frontend requires a parent dataset to be passed as `parent_ds`."
+                "The AdaptaHOP frontend requires a parent dataset "
+                "to be passed as `parent_ds`."
             )
         self.parent_ds = parent_ds
 
@@ -178,8 +193,10 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
     --------
 
     >>> import yt
-    >>> ds = yt.load('output_00080_halos/tree_bricks080', parent_ds=yt.load('output_00080/info_00080.txt'))
-    >>>
+    >>> ds = yt.load(
+    ...      'output_00080_halos/tree_bricks080',
+    ...       parent_ds=yt.load('output_00080/info_00080.txt')
+    ... )
     >>> ds.halo(1, ptype='io')
     >>> print(halo.mass)
     119.22804260253906 100000000000.0*Msun

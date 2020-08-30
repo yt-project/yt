@@ -121,7 +121,8 @@ class Scene:
 
         Parameters
         ----------
-        render_source: :class:`yt.visualization.volume_rendering.render_source.RenderSource`
+        render_source:
+            :class:`yt.visualization.volume_rendering.render_source.RenderSource`
             A source to contribute to the volume rendering scene.
 
         keyname: string (optional)
@@ -287,7 +288,7 @@ class Scene:
         >>> sc.save('test.png', sigma_clip=4)
 
         When saving multiple images without modifying the scene (camera,
-        sources,etc.), render=False can be used to avoid re-rendering when a scene is saved.
+        sources,etc.), render=False can be used to avoid re-rendering.
         This is useful for generating images at a range of sigma_clip values:
 
         >>> import yt

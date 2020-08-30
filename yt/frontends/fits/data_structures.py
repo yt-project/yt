@@ -174,13 +174,14 @@ class FITSHierarchy(GridIndex):
                         mylog.info("Adding field %s to the list of fields.", fname)
                         if units == "dimensionless":
                             mylog.warning(
-                                "Could not determine dimensions for field %s, setting to dimensionless.",
+                                "Could not determine dimensions for field %s, "
+                                "setting to dimensionless.",
                                 fname,
                             )
                 else:
                     mylog.warning(
-                        "Image block %s does not have the same dimensions as the primary and will not be "
-                        "available as a field.",
+                        "Image block %s does not have the same dimensions "
+                        "as the primary and will not be available as a field.",
                         hdu.name.lower(),
                     )
 
@@ -880,7 +881,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
         for k, v in self.primary_header.items():
             if k.startswith("TTYP"):
                 if v.lower() in ["x", "y"]:
-                    num = k.strip("TTYPE")
+                    num = k.replace("TTYPE", "")
                     self.events_info[v.lower()] = (
                         self.primary_header["TLMIN" + num],
                         self.primary_header["TLMAX" + num],
@@ -890,7 +891,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
                         self.primary_header["TCRPX" + num],
                     )
                 elif v.lower() in ["energy", "time"]:
-                    num = k.strip("TTYPE")
+                    num = k.replace("TTYPE", "")
                     unit = self.primary_header["TUNIT" + num].lower()
                     if unit.endswith("ev"):
                         unit = unit.replace("ev", "eV")

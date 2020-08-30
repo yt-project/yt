@@ -6,9 +6,9 @@ import unittest
 import mock
 import numpy as np
 
-from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import create_profile
+from yt.loaders import load
 from yt.testing import (
     assert_allclose,
     assert_array_almost_equal,

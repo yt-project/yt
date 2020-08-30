@@ -68,7 +68,7 @@ class SwiftDataset(SPHDataset):
         of the information in the Header.attrs.
         """
 
-        with h5py.File(self.filename, "r") as handle:
+        with h5py.File(self.filename, mode="r") as handle:
             header = dict(handle[dataset].attrs)
 
         return header
@@ -172,7 +172,7 @@ class SwiftDataset(SPHDataset):
         valid = True
         # Attempt to open the file, if it's not a hdf5 then this will fail:
         try:
-            handle = h5py.File(filename, "r")
+            handle = h5py.File(filename, mode="r")
             valid = handle["Header"].attrs["Code"].decode("utf-8") == "SWIFT"
             handle.close()
         except (IOError, KeyError, ImportError):

@@ -93,22 +93,16 @@ class GadgetFOFParticleIndex(ParticleIndex):
         ds.particle_types_raw = ds.particle_types
 
     def _setup_filenames(self):
-        if not hasattr(self, "data_files"):
-            template = self.ds.filename_template
-            ndoms = self.ds.file_count
-            cls = self.ds._file_class
-            self.data_files = [
-                cls(self.ds, self.io, template % {"num": i}, i, frange=None)
-                for i in range(ndoms)
-            ]
-        if not hasattr(self, "total_particles"):
-            self.total_particles = sum(
-                sum(d.total_particles.values()) for d in self.data_files
-            )
+        template = self.ds.filename_template
+        ndoms = self.ds.file_count
+        cls = self.ds._file_class
+        self.data_files = [
+            cls(self.ds, self.io, template % {"num": i}, i, frange=None)
+            for i in range(ndoms)
+        ]
 
     def _setup_data_io(self):
         super(GadgetFOFParticleIndex, self)._setup_data_io()
-        self._setup_filenames()
         self._calculate_particle_count()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
@@ -205,7 +199,7 @@ class GadgetFOFDataset(ParticleDataset):
 
     def _setup_classes(self):
         super(GadgetFOFDataset, self)._setup_classes()
-        self.halo = partial(GagdetFOFHaloContainer, ds=self._halos_ds)
+        self.halo = partial(GadgetFOFHaloContainer, ds=self._halos_ds)
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename, mode="r") as f:
@@ -329,10 +323,6 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
         self.real_ds = weakref.proxy(ds.real_ds)
         super(GadgetFOFHaloParticleIndex, self).__init__(ds, dataset_type)
 
-    def _setup_data_io(self):
-        super(GadgetFOFHaloParticleIndex, self)._setup_data_io()
-        self._create_halo_id_table()
-
     def _create_halo_id_table(self):
         """
         Create a list of halo start ids so we know which file
@@ -437,6 +427,10 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
 
         return data
 
+    def _setup_data_io(self):
+        super(GadgetFOFHaloParticleIndex, self)._setup_data_io()
+        self._create_halo_id_table()
+
 
 class GadgetFOFHaloDataset(ParticleDataset):
     _index_class = GadgetFOFHaloParticleIndex
@@ -457,11 +451,6 @@ class GadgetFOFHaloDataset(ParticleDataset):
         super(GadgetFOFHaloDataset, self).__init__(
             self.real_ds.parameter_filename, dataset_type
         )
-
-    @classmethod
-    def _is_valid(self, *args, **kwargs):
-        # This class is not meant to be instanciated by yt.load()
-        return False
 
     def print_key_parameters(self):
         pass
@@ -502,8 +491,13 @@ class GadgetFOFHaloDataset(ParticleDataset):
     def _setup_classes(self):
         self.objects = []
 
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        # This class is not meant to be instanciated by yt.load()
+        return False
 
-class GagdetFOFHaloContainer(YTSelectionContainer):
+
+class GadgetFOFHaloContainer(YTSelectionContainer):
     """
     Create a data container to get member particles and individual
     values from halos and subhalos. Halo mass, position, and
@@ -589,7 +583,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
 
         self.ptype = ptype
         self._current_particle_type = ptype
-        super(GagdetFOFHaloContainer, self).__init__(ds, {})
+        super(GadgetFOFHaloContainer, self).__init__(ds, {})
 
         if ptype == "Subhalo" and isinstance(particle_identifier, tuple):
             self.group_identifier, self.subgroup_identifier = particle_identifier

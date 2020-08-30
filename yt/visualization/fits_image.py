@@ -562,7 +562,7 @@ class FITSImageData:
         if output is None:
             output = sys.stdout
         if num_cols == 8:
-            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"
+            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"  # NOQA E501
             format = "{:3d}  {:10}  {:3} {:11}  {:5d}   {}   {}   {}"
         else:
             header = (

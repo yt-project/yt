@@ -1,9 +1,9 @@
 import glob
 
-from yt.convenience import load
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import only_on_root
-from yt.utilities.exceptions import YTOutputNotIdentified
+from yt.loaders import load
+from yt.utilities.exceptions import YTUnidentifiedDataType
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 
@@ -21,7 +21,7 @@ class ExodusIISimulation(DatasetSeries):
     Examples
     --------
     >>> import yt
-    >>> sim = yt.simulation("demo_second", "ExodusII")
+    >>> sim = yt.load_simulation("demo_second", "ExodusII")
     >>> sim.get_time_series()
     >>> for ds in sim:
     ...     print(ds.current_time)
@@ -91,7 +91,7 @@ class ExodusIISimulation(DatasetSeries):
         ):
             try:
                 ds = load(output)
-            except (FileNotFoundError, YTOutputNotIdentified):
+            except (FileNotFoundError, YTUnidentifiedDataType):
                 mylog.error("Failed to load %s", output)
                 continue
             my_storage.result = {"filename": output, "num_steps": ds.num_steps}
