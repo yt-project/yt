@@ -169,7 +169,8 @@ class VolumeSource(RenderSource, abc.ABC):
     camera, and renders an image.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Scene, VolumeSource, Camera
+    >>> from yt.visualization.volume_rendering.api import\
+    ...     Scene, create_volume_source, Camera
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> sc = Scene()
     >>> source = create_volume_source(ds.all_data(), 'density')
