@@ -156,6 +156,7 @@ def _get_answer_files(request):
         os.remove(answer_file)
     if os.path.exists(raw_answer_file) and raw_storing and raw and overwrite:
         os.remove(raw_answer_file)
+    print(os.abspath(answer_file)
     return answer_file, raw_answer_file
 
 
