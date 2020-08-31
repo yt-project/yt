@@ -1,11 +1,8 @@
 # This is a part of the experimental Interactive Data Visualization
 import os
-import random
 import time
 from collections import defaultdict, namedtuple
 
-import cyglfw3 as glfw
-import matplotlib.cm as cm
 import numpy as np
 import OpenGL.GL as GL
 
@@ -13,6 +10,11 @@ from yt.utilities.math_utils import get_orthographic_matrix, get_perspective_mat
 from yt.visualization.image_writer import write_bitmap
 
 from .opengl_support import ColormapTexture
+
+try:
+    import cyglfw3 as glfw
+except ImportError:
+    pass
 
 event_registry = {}
 
@@ -225,7 +227,7 @@ def camera_proj(event_coll, event):
 def shader_max(event_coll, event):
     """Use maximum intensity shader"""
     print("Changing shader to max(intensity)")
-    scene = event_coll.scene
+    _ = event_coll.scene
     for comp in filter_comp(event_coll.scene, "block_rendering"):
         comp.fragment_shader = "max_intensity"
         comp.vertex_shader = "default"
