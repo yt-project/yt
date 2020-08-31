@@ -124,3 +124,14 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
     registry.add_field(
         (ftype, "entropy"), sampling_type="local", units="keV*cm**2", function=_entropy
     )
+
+    def _relativistic_gamma(field, data):
+        v = data[ftype, "velocity_magnitude"].to_value("c")
+        return 1.0/np.sqrt(1.0-v*v)
+
+    registry.add_field(
+        (ftype, "relativistic_gamma"), 
+        sampling_type="local",
+        units="", 
+        function=_relativistic_gamma,
+    )
