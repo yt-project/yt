@@ -1,13 +1,6 @@
-import array
-import contextlib
-import ctypes
-import itertools
-from math import ceil, floor
-
 import imgui
 import matplotlib.pyplot as plt
 import numpy as np
-import pyglet
 from imgui.integrations.pyglet import create_renderer
 
 from ..image_writer import write_bitmap
@@ -59,7 +52,7 @@ class SimpleGUI:
             changed = changed or _
             # imgui.show_style_editor()
             for i, element in enumerate(scene):
-                if imgui.tree_node("element {}: {}".format(i + 1, element.name)):
+                if imgui.tree_node(f"element {i + 1}: {element.name}"):
                     changed = changed or element.render_gui(imgui, self.renderer)
                     imgui.tree_pop()
             self.window._do_update = self.window._do_update or changed

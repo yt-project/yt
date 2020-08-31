@@ -1,6 +1,6 @@
 # encoding: utf-8
 """
-Shader and ShaderProgram wrapper classes for vertex and fragment shaders used 
+Shader and ShaderProgram wrapper classes for vertex and fragment shaders used
 in Interactive Data Visualization
 """
 
@@ -21,8 +21,6 @@ import numpy as np
 import OpenGL.GL as GL
 import traitlets
 import traittypes
-
-from yt.utilities.traitlets_support import ndarray_ro, ndarray_shape
 
 try:
     from contextlib import ExitStack
@@ -160,14 +158,14 @@ class GLValue(traitlets.TraitType):
         # GL_ if needed.
         if isinstance(value, str):
             if not value.startswith("GL"):
-                value = "GL_%s" % value
+                value = f"GL_{value}"
             value = getattr(GL, value.upper().replace(" ", "_"), None)
             if value is None:
                 self.error(obj, value)
         return value
 
 
-TEX_TARGETS = {i: getattr(GL, "GL_TEXTURE%s" % i) for i in range(10)}
+TEX_TARGETS = {i: getattr(GL, f"GL_TEXTURE{i}") for i in range(10)}
 
 
 class Texture(traitlets.HasTraits):
@@ -183,10 +181,10 @@ class Texture(traitlets.HasTraits):
 
     @contextmanager
     def bind(self, target=0):
-        rv = GL.glActiveTexture(TEX_TARGETS[target])
-        rv = GL.glBindTexture(self.dim_enum, self.texture_name)
+        _ = GL.glActiveTexture(TEX_TARGETS[target])
+        _ = GL.glBindTexture(self.dim_enum, self.texture_name)
         yield
-        rv = GL.glActiveTexture(TEX_TARGETS[target])
+        _ = GL.glActiveTexture(TEX_TARGETS[target])
         GL.glBindTexture(self.dim_enum, 0)
 
 
@@ -354,8 +352,8 @@ class VertexAttribute(traitlets.HasTraits):
         if program is not None:
             loc = GL.glGetAttribLocation(program.program, self.name)
             if loc >= 0:
-                rv = GL.glEnableVertexAttribArray(loc)
-        rv = GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.id)
+                _ = GL.glEnableVertexAttribArray(loc)
+        _ = GL.glBindBuffer(GL.GL_ARRAY_BUFFER, self.id)
         if loc >= 0:
             GL.glVertexAttribPointer(loc, self.each, self.opengl_type, False, 0, None)
         yield
