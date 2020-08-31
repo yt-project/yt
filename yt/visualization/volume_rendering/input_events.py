@@ -98,7 +98,7 @@ class EventCollection:
         if not callable(func):
             func = event_registry[func]
         if isinstance(key, str):
-            key = getattr(glfw, "KEY_%s" % key.upper())
+            key = getattr(glfw, f"KEY_{key.upper()}")
         if isinstance(action, str):
             action = getattr(glfw, action.upper())
         if not isinstance(mods, tuple):
@@ -106,7 +106,7 @@ class EventCollection:
         mod = 0
         for m in mods:
             if isinstance(m, str):
-                m = getattr(glfw, "MOD_%s" % m.upper())
+                m = getattr(glfw, f"MOD_{m.upper()}")
             elif m is None:
                 m = 0
             mod |= m
@@ -279,7 +279,7 @@ def cmap_cycle(event_coll, event):
     cmap = ["arbre", "algae", "kamae", "viridis", "inferno", "magma"]
     cmi = event_coll.current_colormap % len(cmap)
     event_coll.current_component.colormap = ColormapTexture(colormap_name=cmap[cmi])
-    print("Setting colormap to {}".format(cmap[cmi]))
+    print(f"Setting colormap to {cmap[cmi]}")
     event_coll.current_colormap += 1
     return True
 
@@ -376,7 +376,7 @@ def screenshot(event_coll, event):
     while os.path.exists(base % n):
         n += 1
     fn = base % n
-    print("Writing %s" % fn)
+    print(f"Writing {fn}")
     write_bitmap(buffer, fn)
 
 
@@ -388,7 +388,7 @@ def print_help(event_coll, event):
         key_map[glfw.__dict__.get(key)] = key[4:]
     for cb in (f for f in sorted(event_coll.key_callbacks) if isinstance(f, tuple)):
         for e in event_coll.key_callbacks[cb]:
-            print("%s - %s" % (key_map[cb[0]], e.__doc__))
+            print(f"{key_map[cb[0]]} - {e.__doc__}")
     return False
 
 

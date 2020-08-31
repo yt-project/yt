@@ -28,12 +28,12 @@ class IOHandlerSwift(IOHandlerSPH):
                 sub_files.update(obj.data_files)
         for sub_file in sorted(sub_files, key=lambda x: x.filename):
             si, ei = sub_file.start, sub_file.end
-            f = h5py.File(sub_file.filename, "r")
+            f = h5py.File(sub_file.filename, mode="r")
             # This double-reads
-            for ptype, field_list in sorted(ptf.items()):
+            for ptype in sorted(ptf):
                 if sub_file.total_particles[ptype] == 0:
                     continue
-                pos = f["/%s/Coordinates" % ptype][si:ei, :]
+                pos = f[f"/{ptype}/Coordinates"][si:ei, :]
                 pos = pos.astype("float64", copy=False)
                 if ptype == self.ds._sph_ptypes[0]:
                     hsml = self._get_smoothing_length(sub_file)
@@ -44,7 +44,7 @@ class IOHandlerSwift(IOHandlerSPH):
 
     def _yield_coordinates(self, sub_file, needed_ptype=None):
         si, ei = sub_file.start, sub_file.end
-        f = h5py.File(sub_file.filename, "r")
+        f = h5py.File(sub_file.filename, mode="r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
@@ -67,7 +67,7 @@ class IOHandlerSwift(IOHandlerSPH):
         ptype = self.ds._sph_ptypes[0]
         ind = int(ptype[-1])
         si, ei = sub_file.start, sub_file.end
-        with h5py.File(sub_file.filename, "r") as f:
+        with h5py.File(sub_file.filename, mode="r") as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
             # we upscale to float64
@@ -84,11 +84,11 @@ class IOHandlerSwift(IOHandlerSPH):
 
         for sub_file in sorted(sub_files, key=lambda x: x.filename):
             si, ei = sub_file.start, sub_file.end
-            f = h5py.File(sub_file.filename, "r")
+            f = h5py.File(sub_file.filename, mode="r")
             for ptype, field_list in sorted(ptf.items()):
                 if sub_file.total_particles[ptype] == 0:
                     continue
-                g = f["/%s" % ptype]
+                g = f[f"/{ptype}"]
                 # this should load as float64
                 coords = g["Coordinates"][si:ei]
                 if ptype == "PartType0":
@@ -113,18 +113,18 @@ class IOHandlerSwift(IOHandlerSPH):
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         f.close()
         # if this data_file was a sub_file, then we just extract the region
         # defined by the subfile
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
-        npart = dict(("PartType%s" % (i), v) for i, v in enumerate(pcount))
+        npart = dict((f"PartType{i}", v) for i, v in enumerate(pcount))
         return npart
 
     def _identify_fields(self, data_file):
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         fields = []
         cname = self.ds._particle_coordinates_name  # Coordinates
         mname = self.ds._particle_mass_name  # Coordinates

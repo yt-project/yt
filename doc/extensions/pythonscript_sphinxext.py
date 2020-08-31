@@ -101,4 +101,3 @@ def thread_safe_mkdir(dirname):
     except OSError as e:
         if e.errno != errno.EEXIST:
             raise
-        pass

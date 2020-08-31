@@ -96,7 +96,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         for axi, ax in enumerate(self.axis_order):
             f1, f2 = _get_coord_fields(axi)
             registry.add_field(
-                ("index", "d%s" % ax),
+                ("index", f"d{ax}"),
                 sampling_type="cell",
                 function=f1,
                 display_field=False,
@@ -104,7 +104,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             )
 
             registry.add_field(
-                ("index", "path_element_%s" % ax),
+                ("index", f"path_element_{ax}"),
                 sampling_type="cell",
                 function=f1,
                 display_field=False,
@@ -112,7 +112,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             )
 
             registry.add_field(
-                ("index", "%s" % ax),
+                ("index", f"{ax}"),
                 sampling_type="cell",
                 function=f2,
                 display_field=False,
@@ -121,7 +121,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
 
             f3 = _get_vert_fields(axi)
             registry.add_field(
-                ("index", "vertex_%s" % ax),
+                ("index", f"vertex_{ax}"),
                 sampling_type="cell",
                 function=f3,
                 display_field=False,
@@ -201,7 +201,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
-                    "High order elements not yet supported, " + "dropping to 1st order."
+                    "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
@@ -257,7 +257,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             if field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
-                    "High order elements not yet supported, " + "dropping to 1st order."
+                    "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
@@ -366,6 +366,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                     # We use code length here, but to get the path length right
                     # we need to multiply by the conversion factor between
@@ -393,11 +395,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                             weight_field=chunk[weight].in_units(wounits),
                         )
                     mylog.info(
-                        "Making a fixed resolution buffer of (%s) %d by %d"
-                        % (weight, size[0], size[1])
+                        "Making a fixed resolution buffer of (%s) %d by %d",
+                        weight,
+                        size[0],
+                        size[1],
                     )
                     for chunk in proj_reg.chunks([], "io"):
                         data_source._initialize_projected_units([weight], chunk)
@@ -410,6 +416,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[weight].in_units(wounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                     normalization_2d_utility(buff, weight_buff)
             elif isinstance(data_source, YTSlice):
@@ -431,6 +439,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
@@ -442,6 +452,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 chunk[ptype, "density"].to("code_density"),
                                 np.ones(chunk[ptype, "density"].shape[0]),
                                 bnds,
+                                check_period=int(periodic),
+                                period=period,
                             )
 
                     if normalize:

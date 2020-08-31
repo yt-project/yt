@@ -63,7 +63,7 @@ class LineBuffer:
     def __getitem__(self, item):
         if item in self.data:
             return self.data[item]
-        mylog.info("Making a line buffer with %d points of %s" % (self.npoints, item))
+        mylog.info("Making a line buffer with %d points of %s", self.npoints, item)
         self.points, self.data[item] = self.ds.coordinates.pixelize_line(
             item, self.start_point, self.end_point, self.npoints
         )
@@ -232,11 +232,17 @@ class LinePlot(PlotContainer):
 
         Example
         --------
-        >>> ds = yt.load('SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e', step=-1)
+        >>> ds = yt.load(
+        >>>          'SecondOrderTris/RZ_p_no_parts_do_nothing_bcs_cone_out.e',
+        >>>          step=-1
+        >>> )
         >>> fields = [field for field in ds.field_list if field[0] == 'all']
-        >>> lines = []
-        >>> lines.append(yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'))
-        >>> lines.append(yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5'))
+        >>> lines = [
+        ...    yt.LineBuffer(ds, [0.25, 0, 0], [0.25, 1, 0], 100, label='x = 0.25'),
+        ...    yt.LineBuffer(ds, [0.5, 0, 0], [0.5, 1, 0], 100, label='x = 0.5')
+        ... ]
+        >>> lines.append()
+
         >>> plot = yt.LinePlot.from_lines(ds, fields, lines)
         >>> plot.save()
 
@@ -434,7 +440,7 @@ def _validate_point(point, ds, start=False):
     if not iterable(point):
         raise RuntimeError("Input point must be array-like")
     if not isinstance(point, YTArray):
-        point = ds.arr(point, "code_length")
+        point = ds.arr(point, "code_length", dtype=np.float64)
     if len(point.shape) != 1:
         raise RuntimeError("Input point must be a 1D array")
     if point.shape[0] < ds.dimensionality:

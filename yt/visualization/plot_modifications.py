@@ -47,14 +47,7 @@ def _verify_geometry(func):
     return _check_geometry
 
 
-class RegisteredCallback(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        callback_registry[name] = cls
-        cls.__call__ = _verify_geometry(cls.__call__)
-
-
-class PlotCallback(metaclass=RegisteredCallback):
+class PlotCallback:
     # _supported_geometries is set by subclasses of PlotCallback to a tuple of
     # strings corresponding to the names of the geometries that a callback
     # supports.  By default it is None, which means it supports everything.
@@ -63,6 +56,11 @@ class PlotCallback(metaclass=RegisteredCallback):
     # will *not* check whether or not the coord_system is in axis or figure,
     # and will only look at the geometries.
     _supported_geometries = None
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        callback_registry[cls.__name__] = cls
+        cls.__call__ = _verify_geometry(cls.__call__)
 
     def __init__(self, *args, **kwargs):
         pass
@@ -362,8 +360,8 @@ class VelocityCallback(PlotCallback):
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = "velocity_%s" % axis_names[xax]
-                yv = "velocity_%s" % axis_names[yax]
+                xv = f"velocity_{axis_names[xax]}"
+                yv = f"velocity_{axis_names[yax]}"
 
             qcb = QuiverCallback(
                 xv,
@@ -439,8 +437,8 @@ class MagFieldCallback(PlotCallback):
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = "magnetic_field_%s" % axis_names[xax]
-                yv = "magnetic_field_%s" % axis_names[yax]
+                xv = f"magnetic_field_{axis_names[xax]}"
+                yv = f"magnetic_field_{axis_names[yax]}"
 
             qcb = QuiverCallback(
                 xv,
@@ -507,7 +505,7 @@ class QuiverCallback(PlotCallback):
                 return data[field_name] - data.ds.arr(vector_value, field_units)
 
             plot.data.ds.add_field(
-                ("gas", "transformed_%s" % field_name),
+                ("gas", f"transformed_{field_name}"),
                 sampling_type="cell",
                 function=_transformed_field,
                 units=field_units,
@@ -518,8 +516,8 @@ class QuiverCallback(PlotCallback):
             # We create a relative vector field
             transform(self.field_x, self.bv_x)
             transform(self.field_y, self.bv_y)
-            field_x = "transformed_%s" % self.field_x
-            field_y = "transformed_%s" % self.field_y
+            field_x = f"transformed_{self.field_x}"
+            field_y = f"transformed_{self.field_y}"
         else:
             field_x, field_y = self.field_x, self.field_y
 
@@ -779,7 +777,7 @@ class GridBoundaryCallback(PlotCallback):
         else:
             pxs, pys = np.mgrid[0:0:1j, 0:0:1j]
         GLE, GRE, levels, block_ids = [], [], [], []
-        for block, mask in plot.data.blocks:
+        for block, _mask in plot.data.blocks:
             GLE.append(block.LeftEdge.in_units("code_length"))
             GRE.append(block.RightEdge.in_units("code_length"))
             levels.append(block.Level)
@@ -793,7 +791,7 @@ class GridBoundaryCallback(PlotCallback):
         min_level = self.min_level or 0
         max_level = self.max_level or levels.max()
 
-        # sorts the four arrays in order of ascending level - this makes images look nicer
+        # sort the four arrays in order of ascending level, this makes images look nicer
         new_indices = np.argsort(levels)
         levels = levels[new_indices]
         GLE = GLE[new_indices]
@@ -953,13 +951,13 @@ class StreamlineCallback(PlotCallback):
                 try:
                     linewidth *= mask
                     self.plot_args["linewidth"] = linewidth
-                except ValueError:
+                except ValueError as e:
                     err_msg = (
                         "Error applying display threshold: linewidth"
                         + "must have shape ({}, {}) or be scalar"
                     )
                     err_msg = err_msg.format(nx, ny)
-                    raise ValueError(err_msg)
+                    raise ValueError(err_msg) from e
 
         else:
             field_colors = None
@@ -1216,8 +1214,8 @@ class ClumpContourCallback(PlotCallback):
 
         xf = plot.data.ds.coordinates.axis_name[px_index]
         yf = plot.data.ds.coordinates.axis_name[py_index]
-        dxf = "d%s" % xf
-        dyf = "d%s" % yf
+        dxf = f"d{xf}"
+        dyf = f"d{yf}"
 
         ny, nx = plot.image._A.shape
         buff = np.zeros((nx, ny), dtype="float64")
@@ -1230,7 +1228,7 @@ class ClumpContourCallback(PlotCallback):
                 ftype = "grid"
             else:
                 raise RuntimeError(
-                    "Unknown field type for object of type %s." % type(clump)
+                    f"Unknown field type for object of type {type(clump)}."
                 )
 
             xf_copy = clump[ftype, xf].copy().in_units("code_length")
@@ -1778,7 +1776,8 @@ class HaloCatalogCallback(PlotCallback):
 
     Parameters
     ----------
-    halo_catalog : Dataset, DataContainer, or ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
+    halo_catalog : Dataset, DataContainer,
+                   or ~yt.analysis_modules.halo_analysis.halo_catalog.HaloCatalog
         The object containing halos to be overplotted. This can
         be a HaloCatalog object, a loaded halo catalog dataset,
         or a data container from a halo catalog dataset.
@@ -1928,9 +1927,9 @@ class HaloCatalogCallback(PlotCallback):
         axis_names = plot.data.ds.coordinates.axis_name
         xax = plot.data.ds.coordinates.x_axis[data.axis]
         yax = plot.data.ds.coordinates.y_axis[data.axis]
-        field_x = "%s_%s" % (self.center_field_prefix, axis_names[xax])
-        field_y = "%s_%s" % (self.center_field_prefix, axis_names[yax])
-        field_z = "%s_%s" % (self.center_field_prefix, axis_names[data.axis])
+        field_x = f"{self.center_field_prefix}_{axis_names[xax]}"
+        field_y = f"{self.center_field_prefix}_{axis_names[yax]}"
+        field_z = f"{self.center_field_prefix}_{axis_names[data.axis]}"
 
         # Set up scales for pixel size and original data
         pixel_scale = self._pixel_scale(plot)[0]
@@ -1987,7 +1986,7 @@ class HaloCatalogCallback(PlotCallback):
 
         if self.annotate_field:
             annotate_dat = halo_data[self.annotate_field]
-            texts = ["{:g}".format(float(dat)) for dat in annotate_dat]
+            texts = [f"{float(dat):g}" for dat in annotate_dat]
             labels = []
             for pos_x, pos_y, t in zip(px, py, texts):
                 labels.append(plot._axes.text(pos_x, pos_y, t, **self.text_args))
@@ -2066,8 +2065,8 @@ class ParticleCallback(PlotCallback):
         xax = plot.data.ds.coordinates.x_axis[ax]
         yax = plot.data.ds.coordinates.y_axis[ax]
         axis_names = plot.data.ds.coordinates.axis_name
-        field_x = "particle_position_%s" % axis_names[xax]
-        field_y = "particle_position_%s" % axis_names[yax]
+        field_x = f"particle_position_{axis_names[xax]}"
+        field_y = f"particle_position_{axis_names[yax]}"
         pt = self.ptype
         self.periodic_x = plot.data.ds.periodicity[xax]
         self.periodic_y = plot.data.ds.periodicity[yax]
@@ -2351,13 +2350,10 @@ class TimestampCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
 
-            "data" -- the 3D dataset coordinates
-
-            "plot" -- the 2D coordinates defined by the actual plot limits
-
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
-
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
+        - "data": 3D dataset coordinates
+        - "plot": 2D coordinates defined by the actual plot limits
+        - "axis": MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
+        - "figure": MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     time_offset : float, (value, unit) tuple, or YTQuantity, optional
         Apply an offset to the time shown in the annotation from the
@@ -2585,13 +2581,10 @@ class ScaleCallback(PlotCallback):
         This string defines the coordinate system of the coordinates of pos
         Valid coordinates are:
 
-            "data" -- the 3D dataset coordinates
-
-            "plot" -- the 2D coordinates defined by the actual plot limits
-
-            "axis" -- the MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
-
-            "figure" -- the MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
+        - "data": 3D dataset coordinates
+        - "plot": 2D coordinates defined by the actual plot limits
+        - "axis": MPL axis coordinates: (0,0) is lower left; (1,1) is upper right
+        - "figure": MPL figure coordinates: (0,0) is lower left, (1,1) is upper right
 
     text_args : dictionary, optional
         A dictionary of parameters to used to update the font_properties
@@ -2739,12 +2732,12 @@ class ScaleCallback(PlotCallback):
             setter_func = "set_" + key
             try:
                 getattr(fontproperties, setter_func)(val)
-            except AttributeError:
+            except AttributeError as e:
                 raise AttributeError(
                     "Cannot set text_args keyword "
                     "to include '%s' because MPL's fontproperties object does "
                     "not contain function '%s'." % (key, setter_func)
-                )
+                ) from e
 
         # this "anchors" the size bar to a box centered on self.pos in axis
         # coordinates

@@ -73,7 +73,7 @@ class FITSHierarchy(GridIndex):
         for k, v in field_from_unit.items():
             if k in units:
                 mylog.warning(
-                    "Guessing this is a %s field based on its units of %s." % (v, k)
+                    "Guessing this is a %s field based on its units of %s.", v, k
                 )
                 return v
         return None
@@ -151,9 +151,11 @@ class FITSHierarchy(GridIndex):
                             dup_field_index[fname] = 1
                         mylog.warning(
                             "This field has the same name as a previously loaded "
-                            + "field. Changing the name from %s to %s_%d. To avoid "
-                            % (fname, fname, dup_field_index[fname])
-                            + " this, change one of the BTYPE header keywords."
+                            "field. Changing the name from %s to %s_%d. To avoid "
+                            "this, change one of the BTYPE header keywords.",
+                            fname,
+                            fname,
+                            dup_field_index[fname],
                         )
                         fname += "_%d" % (dup_field_index[fname])
                     for k in range(naxis4):
@@ -169,18 +171,18 @@ class FITSHierarchy(GridIndex):
                             self._scale_map[fname][1] = hdu.header["bscale"]
                         self.field_list.append(("fits", fname))
                         self.dataset.field_units[fname] = units
-                        mylog.info("Adding field %s to the list of fields." % (fname))
+                        mylog.info("Adding field %s to the list of fields.", fname)
                         if units == "dimensionless":
                             mylog.warning(
                                 "Could not determine dimensions for field %s, "
-                                % (fname)
-                                + "setting to dimensionless."
+                                "setting to dimensionless.",
+                                fname,
                             )
                 else:
                     mylog.warning(
-                        "Image block %s does not have " % (hdu.name.lower())
-                        + "the same dimensions as the primary and will not be "
-                        + "available as a field."
+                        "Image block %s does not have the same dimensions "
+                        "as the primary and will not be available as a field.",
+                        hdu.name.lower(),
                     )
 
     def _count_grids(self):
@@ -351,7 +353,7 @@ class FITSDataset(Dataset):
         if isinstance(
             self.filenames[0], _astropy.pyfits.hdu.image._ImageBaseHDU
         ) or isinstance(self.filenames[0], _astropy.pyfits.HDUList):
-            fn = "InMemoryFITSFile_%s" % uuid.uuid4().hex
+            fn = f"InMemoryFITSFile_{uuid.uuid4().hex}"
         else:
             fn = self.filenames[0]
         self._handle._fits_files.append(self._handle)
@@ -404,7 +406,7 @@ class FITSDataset(Dataset):
             if len(set(file_units)) == 1:
                 length_factor = self.wcs.wcs.cdelt[0]
                 length_unit = str(file_units[0])
-                mylog.info("Found length units of %s." % length_unit)
+                mylog.info("Found length units of %s.", length_unit)
             else:
                 self.no_cgs_equiv_length = True
                 mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
@@ -416,7 +418,7 @@ class FITSDataset(Dataset):
             if getattr(self, unit + "_unit", None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
-            setdefaultattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+            setdefaultattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
             4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
         )
@@ -583,28 +585,30 @@ class YTFITSDataset(FITSDataset):
             if unit == "magnetic":
                 short_unit = "bfunit"
             else:
-                short_unit = "%sunit" % unit[0]
+                short_unit = f"{unit[0]}unit"
             if short_unit in self.primary_header:
                 # units should now be in header
                 u = self.quan(
                     self.primary_header[short_unit],
                     self.primary_header.comments[short_unit].strip("[]"),
                 )
-                mylog.info("Found %s units of %s." % (unit, u))
+                mylog.info("Found %s units of %s.", unit, u)
             else:
                 if unit == "length":
                     # Falling back to old way of getting units for length
                     # in old files
                     u = self.quan(1.0, str(self.wcs.wcs.cunit[0]))
-                    mylog.info("Found %s units of %s." % (unit, u))
+                    mylog.info("Found %s units of %s.", unit, u)
                 else:
                     # Give up otherwise
                     u = self.quan(1.0, cgs)
                     mylog.warning(
-                        "No unit for %s found. Assuming 1.0 code_%s = 1.0 %s"
-                        % (unit, unit, cgs)
+                        "No unit for %s found. Assuming 1.0 code_%s = 1.0 %s",
+                        unit,
+                        unit,
+                        cgs,
                     )
-            setdefaultattr(self, "%s_unit" % unit, u)
+            setdefaultattr(self, f"{unit}_unit", u)
 
     def _determine_bbox(self):
         dx = np.zeros(3)
@@ -655,7 +659,7 @@ class SkyDataFITSDataset(FITSDataset):
         self.geometry = "spectral_cube"
 
         log_str = "Detected these axes: " + "%s " * len(self.ctypes)
-        mylog.info(log_str % tuple([ctype for ctype in self.ctypes]))
+        mylog.info(log_str, *self.ctypes)
 
         self.lat_axis = np.zeros((end - 1), dtype="bool")
         for p in lat_prefixes:
@@ -687,7 +691,7 @@ class SkyDataFITSDataset(FITSDataset):
         if units == "rad":
             units = "radian"
         pixel_area = np.prod(np.abs(self.wcs_2d.wcs.cdelt))
-        pixel_area = self.quan(pixel_area, "%s**2" % (units)).in_cgs()
+        pixel_area = self.quan(pixel_area, f"{units}**2").in_cgs()
         pixel_dims = pixel_area.units.dimensions
         self.unit_registry.add("pixel", float(pixel_area.value), dimensions=pixel_dims)
         if "beam_size" in self.specified_parameters:
@@ -783,7 +787,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
                 max(self.domain_dimensions[[self.lon_axis, self.lat_axis]])
             )
             self.spectral_factor /= self.domain_dimensions[self.spec_axis]
-            mylog.info("Setting the spectral factor to %f" % (self.spectral_factor))
+            mylog.info("Setting the spectral factor to %f", self.spectral_factor)
         Dz = (
             self.domain_right_edge[self.spec_axis]
             - self.domain_left_edge[self.spec_axis]
@@ -823,7 +827,7 @@ class EventsFITSHierarchy(FITSHierarchy):
         self.field_list = []
         for k, v in ds.events_info.items():
             fname = "event_" + k
-            mylog.info("Adding field %s to the list of fields." % (fname))
+            mylog.info("Adding field %s to the list of fields.", fname)
             self.field_list.append(("io", fname))
             if k in ["x", "y"]:
                 field_unit = "code_length"
@@ -877,7 +881,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
         for k, v in self.primary_header.items():
             if k.startswith("TTYP"):
                 if v.lower() in ["x", "y"]:
-                    num = k.strip("TTYPE")
+                    num = k.replace("TTYPE", "")
                     self.events_info[v.lower()] = (
                         self.primary_header["TLMIN" + num],
                         self.primary_header["TLMAX" + num],
@@ -887,7 +891,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
                         self.primary_header["TCRPX" + num],
                     )
                 elif v.lower() in ["energy", "time"]:
-                    num = k.strip("TTYPE")
+                    num = k.replace("TTYPE", "")
                     unit = self.primary_header["TUNIT" + num].lower()
                     if unit.endswith("ev"):
                         unit = unit.replace("ev", "eV")

@@ -65,7 +65,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
 
     """
 
-    mylog.info("Saving field data to yt dataset: %s." % filename)
+    mylog.info("Saving field data to yt dataset: %s.", filename)
 
     if extra_attrs is None:
         extra_attrs = {}
@@ -76,6 +76,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
         "current_redshift",
         "current_time",
         "domain_dimensions",
+        "geometry",
         "periodicity",
         "cosmological_simulation",
         "omega_lambda",
@@ -138,6 +139,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
         if "num_elements" not in fh[field_type].attrs:
             fh[field_type].attrs["num_elements"] = data[field].size
     fh.close()
+    return filename
 
 
 def _hdf5_yt_array(fh, field, ds=None):
@@ -225,7 +227,7 @@ def _yt_array_hdf5_attr(fh, attr, val):
     if val is None:
         val = "None"
     if hasattr(val, "units"):
-        fh.attrs["%s_units" % attr] = str(val.units)
+        fh.attrs[f"{attr}_units"] = str(val.units)
     try:
         fh.attrs[str(attr)] = val
     # This is raised if no HDF5 equivalent exists.

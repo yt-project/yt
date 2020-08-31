@@ -55,7 +55,7 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
                     self.cache[i] = np.zeros(offset)
 
     def _read_particle_selection(self, chunks, selector, fields):
-        """Reads given particle fields for given particle species masked by a given selection.
+        """Read particle fields for particle species masked by a selection.
 
         Parameters
         ----------
@@ -63,8 +63,8 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
             A list of chunks
             A chunk is a list of grids
         selector
-            A region (inside your domain) specifying which parts of the field you want to read
-            See [1] and [2]
+            A region (inside your domain) specifying which parts of the field
+            you want to read. See [1] and [2]
         fields : array_like
             Tuples (ptype, pfield) representing a field
 
@@ -89,7 +89,8 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
 
         for (ptype, pname) in fields:
             pfield = (ptype, pname)
-            # Overestimate the size of all pfields so they include all particles, shrink it later
+            # Overestimate the size of all pfields so they include all particles
+            # and shrink it later
             particle_count[pfield] = 0
             if ptype in unions:
                 for pt in unions[ptype]:
@@ -147,8 +148,8 @@ class IOHandlerOpenPMDHDF5(BaseIOHandler):
             A list of chunks
             A chunk is a list of grids
         selector
-            A region (inside your domain) specifying which parts of the field you want to read
-            See [1] and [2]
+            A region (inside your domain) specifying which parts of the field
+            you want to read. See [1] and [2]
         fields : array_like
             Tuples (fname, ftype) representing a field
         size : int

@@ -17,9 +17,6 @@ class IOHandlerStream(BaseIOHandler):
 
     def _read_data_set(self, grid, field):
         # This is where we implement processor-locking
-        # if grid.id not in self.grids_in_memory:
-        #    mylog.error("Was asked for %s but I have %s", grid.id, self.grids_in_memory.keys())
-        #    raise KeyError
         tr = self.fields[grid.id][field]
         # If it's particles, we copy.
         if len(tr.shape) == 1:
@@ -58,13 +55,11 @@ class IOHandlerStream(BaseIOHandler):
                 if g.NumberOfParticles == 0:
                     continue
                 gf = self.fields[g.id]
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (
-                            gf[ptype, "particle_position_%s" % ax] for ax in "xyz"
-                        )
+                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for ax in "xyz")
                     yield ptype, (x, y, z)
 
     def _read_particle_fields(self, chunks, ptf, selector):
@@ -78,9 +73,7 @@ class IOHandlerStream(BaseIOHandler):
                     if (ptype, "particle_position") in gf:
                         x, y, z = gf[ptype, "particle_position"].T
                     else:
-                        x, y, z = (
-                            gf[ptype, "particle_position_%s" % ax] for ax in "xyz"
-                        )
+                        x, y, z = (gf[ptype, f"particle_position_{ax}"] for ax in "xyz")
                     mask = selector.select_points(x, y, z, 0.0)
                     if mask is None:
                         continue
@@ -109,7 +102,7 @@ class StreamParticleIOHandler(BaseIOHandler):
         ):
             f = self.fields[data_file.filename]
             # This double-reads
-            for ptype, field_list in sorted(ptf.items()):
+            for ptype in sorted(ptf):
                 yield ptype, (
                     f[ptype, "particle_position_x"],
                     f[ptype, "particle_position_y"],
@@ -151,7 +144,7 @@ class StreamParticleIOHandler(BaseIOHandler):
                     y = ppos[:, 1]
                     z = ppos[:, 2]
                 else:
-                    x, y, z = (f[ptype, "particle_position_%s" % ax] for ax in "xyz")
+                    x, y, z = (f[ptype, f"particle_position_{ax}"] for ax in "xyz")
                 if (ptype, "smoothing_length") in self.ds.field_list:
                     hsml = f[ptype, "smoothing_length"]
                 else:
@@ -172,7 +165,7 @@ class StreamParticleIOHandler(BaseIOHandler):
                 pos = np.column_stack(
                     [
                         self.fields[data_file.filename][
-                            (ptype, "particle_position_%s" % ax)
+                            (ptype, f"particle_position_{ax}")
                         ]
                         for ax in "xyz"
                     ]

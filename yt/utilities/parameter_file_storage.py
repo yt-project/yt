@@ -4,12 +4,11 @@ from itertools import islice
 
 from yt.config import ytcfg
 from yt.funcs import mylog
+from yt.utilities.object_registries import output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_simple_proxy,
 )
 
-output_type_registry = {}
-simulation_time_series_registry = {}
 _field_names = ("hash", "bn", "fp", "tt", "ctid", "class_name", "last_seen")
 
 
@@ -22,10 +21,10 @@ class UnknownDatasetType(Exception):
         self.name = name
 
     def __str__(self):
-        return "%s" % self.name
+        return f"{self.name}"
 
     def __repr__(self):
-        return "%s" % self.name
+        return f"{self.name}"
 
 
 class ParameterFileStore:
@@ -86,7 +85,7 @@ class ParameterFileStore:
         base_file_name = ytcfg.get("yt", "ParameterFileStore")
         if not os.access(os.path.expanduser("~/"), os.W_OK):
             return os.path.abspath(base_file_name)
-        return os.path.expanduser("~/.yt/%s" % base_file_name)
+        return os.path.expanduser(f"~/.yt/{base_file_name}")
 
     def get_ds_hash(self, hash):
         """ This returns a dataset based on a hash. """
@@ -174,7 +173,7 @@ class ParameterFileStore:
         if self._read_only:
             return
         fn = self._get_db_name()
-        f = open("%s.tmp" % fn, "wb")
+        f = open(f"{fn}.tmp", "wb")
         w = csv.DictWriter(f, _field_names)
         maxn = ytcfg.getint("yt", "maximumstoreddatasets")  # number written
         for h, v in islice(
@@ -183,7 +182,7 @@ class ParameterFileStore:
             v["hash"] = h
             w.writerow(v)
         f.close()
-        os.rename("%s.tmp" % fn, fn)
+        os.rename(f"{fn}.tmp", fn)
 
     @parallel_simple_proxy
     def read_db(self):
@@ -198,30 +197,3 @@ class ParameterFileStore:
             else:
                 v["last_seen"] = float(v["last_seen"])
         return db
-
-
-class ObjectStorage:
-    pass
-
-
-class EnzoRunDatabase:
-    conn = None
-
-    def __init__(self, path=None):
-        if path is None:
-            path = ytcfg.get("yt", "enzo_db")
-            if len(path) == 0:
-                raise RuntimeError
-        import sqlite3
-
-        self.conn = sqlite3.connect(path)
-
-    def find_uuid(self, u):
-        cursor = self.conn.execute(
-            "select ds_path from enzo_outputs where dset_uuid = '%s'" % (u)
-        )
-        # It's a 'unique key'
-        result = cursor.fetchone()
-        if result is None:
-            return None
-        return result[0]

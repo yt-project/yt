@@ -16,19 +16,16 @@ import urllib
 import zlib
 from collections import defaultdict
 
-import matplotlib.image as mpimg
 import numpy as np
+from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 
-import yt.visualization.particle_plots as particle_plots
-import yt.visualization.plot_window as pw
-import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
-from yt.convenience import load, simulation
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
 from yt.funcs import get_pbar
+from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
     assert_almost_equal,
@@ -36,13 +33,13 @@ from yt.testing import (
     assert_rel_equal,
 )
 from yt.utilities.command_line import get_yt_version
-from yt.utilities.exceptions import (
-    YTCloudError,
-    YTNoAnswerNameSpecified,
-    YTNoOldAnswer,
-    YTOutputNotIdentified,
-)
+from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
+from yt.visualization import (
+    particle_plots as particle_plots,
+    plot_window as pw,
+    profile_plotter as profile_plotter,
+)
 
 mylog = logging.getLogger("nose.plugins.answer-testing")
 run_big_data = False
@@ -103,7 +100,7 @@ class AnswerTesting(Plugin):
             try:
                 version = get_yt_version()
             except Exception:
-                version = "UNKNOWN%s" % (time.time())
+                version = f"UNKNOWN{time.time()}"
         self._my_version = version
         return self._my_version
 
@@ -214,7 +211,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         except urllib.error.HTTPError:
             raise YTNoOldAnswer(url)
         else:
-            for this_try in range(3):
+            for _ in range(3):
                 try:
                     data = resp.read()
                 except Exception:
@@ -248,7 +245,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         for i, ds_name in enumerate(result_storage):
             pb.update(i)
             rs = pickle.dumps(result_storage[ds_name])
-            object_name = "%s_%s" % (self.answer_name, ds_name)
+            object_name = f"{self.answer_name}_{ds_name}"
             if object_name in c.get_object_names():
                 obj = c.get_object(object_name)
                 c.delete_object(obj)
@@ -268,7 +265,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         # Store data using shelve
         ds = shelve.open(self.answer_name, protocol=-1)
         for ds_name in result_storage:
-            answer_name = "%s" % ds_name
+            answer_name = f"{ds_name}"
             if answer_name in ds:
                 mylog.info("Overwriting %s", answer_name)
             ds[answer_name] = result_storage[ds_name]
@@ -278,7 +275,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         if self.reference_name is None:
             return default
         # Read data using shelve
-        answer_name = "%s" % ds_name
+        answer_name = f"{ds_name}"
         ds = shelve.open(self.reference_name, protocol=-1)
         try:
             result = ds[answer_name]
@@ -307,7 +304,7 @@ def can_run_ds(ds_fn, file_check=False):
         return os.path.isfile(os.path.join(path, ds_fn)) and result_storage is not None
     try:
         load(ds_fn)
-    except YTOutputNotIdentified:
+    except FileNotFoundError:
         if ytcfg.getboolean("yt", "requires_ds_strict"):
             if result_storage is not None:
                 result_storage["tainted"] = True
@@ -326,8 +323,8 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
     if file_check:
         return os.path.isfile(os.path.join(path, sim_fn)) and result_storage is not None
     try:
-        simulation(sim_fn, sim_type)
-    except YTOutputNotIdentified:
+        load_simulation(sim_fn, sim_type)
+    except FileNotFoundError:
         if ytcfg.getboolean("yt", "requires_ds_strict"):
             if result_storage is not None:
                 result_storage["tainted"] = True
@@ -357,7 +354,9 @@ def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):
         raise IOError
     if os.path.exists(sim_fn) or not path:
         path = "."
-    return simulation(os.path.join(path, sim_fn), sim_type, find_outputs=find_outputs)
+    return load_simulation(
+        os.path.join(path, sim_fn), sim_type, find_outputs=find_outputs
+    )
 
 
 class AnswerTestingTest:
@@ -391,8 +390,8 @@ class AnswerTestingTest:
         # nosetests command line arguments. In this case, set the answer_name
         # from the `answer_name` keyword in the test case
         if self.options.answer_name is None:
-            pyver = "py{}{}".format(sys.version_info.major, sys.version_info.minor)
-            self.answer_name = "{}_{}".format(pyver, self.answer_name)
+            pyver = f"py{sys.version_info.major}{sys.version_info.minor}"
+            self.answer_name = f"{pyver}_{self.answer_name}"
 
             answer_store_dir = os.path.realpath(self.options.output_dir)
             ref_name = os.path.join(
@@ -414,7 +413,7 @@ class AnswerTestingTest:
             # Compare test generated values against the golden answer
             dd = self.reference_storage.get(self.storage_name)
             if dd is None or self.description not in dd:
-                raise YTNoOldAnswer("%s : %s" % (self.storage_name, self.description))
+                raise YTNoOldAnswer(f"{self.storage_name} : {self.description}")
             ov = dd[self.description]
             self.compare(nv, ov)
         else:
@@ -425,7 +424,7 @@ class AnswerTestingTest:
     @property
     def storage_name(self):
         if self.prefix != "":
-            return "%s_%s" % (self.prefix, self.ds)
+            return f"{self.prefix}_{self.ds}"
         return str(self.ds)
 
     def compare(self, new_result, old_result):
@@ -505,7 +504,7 @@ class FieldValuesTest(AnswerTestingTest):
         return [avg, mi, ma]
 
     def compare(self, new_result, old_result):
-        err_msg = "Field values for %s not equal." % (self.field,)
+        err_msg = f"Field values for {self.field} not equal."
         if hasattr(new_result, "d"):
             new_result = new_result.d
         if hasattr(old_result, "d"):
@@ -544,7 +543,7 @@ class AllFieldValuesTest(AnswerTestingTest):
         return obj[self.field]
 
     def compare(self, new_result, old_result):
-        err_msg = "All field values for %s not equal." % self.field
+        err_msg = f"All field values for {self.field} not equal."
         if hasattr(new_result, "d"):
             new_result = new_result.d
         if hasattr(old_result, "d"):
@@ -654,7 +653,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
         d = frb.data
         for f in proj.field_data:
             # Sometimes f will be a tuple.
-            d["%s_sum" % (f,)] = proj.field_data[f].sum(dtype="float64")
+            d[f"{f}_sum"] = proj.field_data[f].sum(dtype="float64")
         return d
 
     def compare(self, new_result, old_result):
@@ -780,7 +779,7 @@ class ParentageRelationshipsTest(AnswerTestingTest):
 
 def compare_image_lists(new_result, old_result, decimals):
     fns = []
-    for i in range(2):
+    for _ in range(2):
         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
         os.close(tmpfd)
         fns.append(tmpname)
@@ -798,7 +797,7 @@ def compare_image_lists(new_result, old_result, decimals):
                     if line.endswith(".png")
                 ]
                 for fn in tempfiles:
-                    sys.stderr.write("\n[[ATTACHMENT|{}]]".format(fn))
+                    sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
                 sys.stderr.write("\n")
         assert_equal(results, None, results)
         for fn in fns:
@@ -1058,8 +1057,8 @@ class AxialPixelizationTest(AnswerTestingTest):
             # Wipe out invalid values (fillers)
             pix_x[~np.isfinite(pix_x)] = 0.0
             pix_y[~np.isfinite(pix_y)] = 0.0
-            rv["%s_x" % axis] = pix_x
-            rv["%s_y" % axis] = pix_y
+            rv[f"{axis}_x"] = pix_x
+            rv[f"{axis}_y"] = pix_y
         return rv
 
     def compare(self, new_result, old_result):

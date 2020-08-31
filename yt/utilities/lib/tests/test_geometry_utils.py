@@ -905,18 +905,14 @@ def test_get_morton_neighbors():
             np.array([mi[i]], dtype=np.uint64), order=order, periodic=False
         )
         ans = get_morton_indices(np.vstack([p[i, :], pn_non[i]]))
-        assert_array_equal(
-            np.unique(out), np.unique(ans), err_msg="Non-periodic: {}".format(i)
-        )
+        assert_array_equal(np.unique(out), np.unique(ans), err_msg=f"Non-periodic: {i}")
     # Periodic
     for i in range(N):
         out = get_morton_neighbors(
             np.array([mi[i]], dtype=np.uint64), order=order, periodic=True
         )
         ans = get_morton_indices(np.vstack([p[i, :], pn_per[i]]))
-        assert_array_equal(
-            np.unique(out), np.unique(ans), err_msg="Periodic: {}".format(i)
-        )
+        assert_array_equal(np.unique(out), np.unique(ans), err_msg=f"Periodic: {i}")
 
 
 def test_dist():
@@ -946,7 +942,7 @@ def test_knn_direct(seed=1):
     rad = np.arange(N, dtype=np.float64)
     pos = np.vstack(3 * [rad ** 2 / 3.0]).T
     sort_shf = np.arange(N, dtype=np.uint64)
-    for i in range(20):
+    for _ in range(20):
         np.random.shuffle(sort_shf)
         sort_ans = np.argsort(sort_shf)[:k]
         sort_out = knn_direct(pos[sort_shf, :], k, sort_ans[0], idx)

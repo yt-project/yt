@@ -178,7 +178,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         raise NotImplementedError
 
     def _yield_coordinates(self, data_file):
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             for ptype in f.keys():
                 if "x" not in f[ptype].keys():
                     continue
@@ -200,7 +200,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, mode="r") as f:
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0:
                         continue
@@ -318,7 +318,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, mode="r") as f:
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
                     if pcount == 0:
                         continue

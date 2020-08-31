@@ -79,7 +79,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                     if ptype != "io":
                         if g.NumberOfActiveParticles[ptype] == 0:
                             continue
-                        pds = ds.get("Particles/%s" % ptype)
+                        pds = ds.get(f"Particles/{ptype}")
                     else:
                         pds = ds
                     pn = _particle_position_names.get(ptype, r"particle_position_%s")
@@ -255,7 +255,7 @@ class IOHandlerInMemory(BaseIOHandler):
                 nap = sum(g.NumberOfActiveParticles.values())
                 if g.NumberOfParticles == 0 and nap == 0:
                     continue
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     x, y, z = (
                         self.grids_in_memory[g.id]["particle_position_x"],
                         self.grids_in_memory[g.id]["particle_position_y"],

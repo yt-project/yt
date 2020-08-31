@@ -120,7 +120,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         # Here we perform our particle deposition.
         if fields is None:
             fields = []
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
@@ -203,8 +203,8 @@ class ARTIOIndex(Index):
         mylog.debug("Searching for maximum value of %s", field)
         max_val, mx, my, mz = source.quantities["MaxLocation"](field)
         mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", max_val, mx, my, mz)
-        self.ds.parameters["Max%sValue" % (field)] = max_val
-        self.ds.parameters["Max%sPos" % (field)] = "%s" % ((mx, my, mz),)
+        self.ds.parameters[f"Max{field}Value"] = max_val
+        self.ds.parameters[f"Max{field}Pos"] = f"{mx, my, mz}"
         return max_val, np.array((mx, my, mz), dtype="float64")
 
     def _detect_output_fields(self):
@@ -289,7 +289,7 @@ class ARTIOIndex(Index):
                     )
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
-                mylog.info("Created %d chunks for ARTIO" % len(list_sfc_ranges))
+                mylog.info("Created %d chunks for ARTIO", len(list_sfc_ranges))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _data_size(self, dobj, dobjs):
@@ -306,7 +306,7 @@ class ARTIOIndex(Index):
         if ngz > 0:
             raise NotImplementedError
         sobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for i, og in enumerate(sobjs):
+        for og in sobjs:
             if ngz > 0:
                 g = og.retrieve_ghost_zones(ngz, [], smoothed=True)
             else:
@@ -410,7 +410,7 @@ class ARTIODataset(Dataset):
             if labels.count("N-BODY") > 1:
                 for species, label in enumerate(labels):
                     if label == "N-BODY":
-                        labels[species] = "N-BODY_{}".format(species)
+                        labels[species] = f"N-BODY_{species}"
 
             self.particle_types_raw = self.artio_parameters["particle_species_labels"]
             self.particle_types = tuple(self.particle_types_raw)

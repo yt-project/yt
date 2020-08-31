@@ -101,9 +101,7 @@ class EGLRenderingContext(object):
         return callbacks
 
     def start_loop(self, scene, camera):
-        callbacks = self.setup_loop(scene, camera)
-        for i in self(scene, camera, callbacks):
-            pass
+        self.setup_loop(scene, camera)
 
     def __call__(self, scene, camera, callbacks):
         camera.compute_matrices()

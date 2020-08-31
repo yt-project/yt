@@ -1,7 +1,7 @@
 import numpy as np
 
-from yt.convenience import load
 from yt.frontends.athena_pp.api import AthenaPPDataset
+from yt.loaders import load
 from yt.testing import (
     assert_allclose,
     assert_equal,

@@ -37,7 +37,7 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                     vel_field, sampling_type="cell", units="code_length/code_time"
                 )
                 self.alias(
-                    ("gas", "%s_%s" % (vel_prefix, comp)),
+                    ("gas", f"{vel_prefix}_{comp}"),
                     vel_field,
                     units=unit_system["velocity"],
                 )
@@ -48,7 +48,7 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                     units="code_mass/code_time/code_length**2",
                 )
                 self.add_field(
-                    ("gas", "%s_%s" % (vel_prefix, comp)),
+                    ("gas", f"{vel_prefix}_{comp}"),
                     sampling_type="cell",
                     function=velocity_field(i + 1),
                     units=unit_system["velocity"],

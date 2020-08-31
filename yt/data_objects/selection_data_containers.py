@@ -150,8 +150,8 @@ class YTOrthoRay(YTSelectionContainer1D):
         self.px_ax = xax
         self.py_ax = yax
         # Even though we may not be using x,y,z we use them here.
-        self.px_dx = "d%s" % ("xyz"[self.px_ax])
-        self.py_dx = "d%s" % ("xyz"[self.py_ax])
+        self.px_dx = f"d{'xyz'[self.px_ax]}"
+        self.py_dx = f"d{'xyz'[self.py_ax]}"
         # Convert coordinates to code length.
         if isinstance(coords[0], YTQuantity):
             self.px = self.ds.quan(coords[0]).to("code_length")
@@ -239,9 +239,9 @@ class YTRay(YTSelectionContainer1D):
         if (self.start_point < self.ds.domain_left_edge).any() or (
             self.end_point > self.ds.domain_right_edge
         ).any():
-            mylog.warn(
+            mylog.warning(
                 "Ray start or end is outside the domain. "
-                + "Returned data will only be for the ray section inside the domain."
+                "Returned data will only be for the ray section inside the domain."
             )
         self.vec = self.end_point - self.start_point
         self._set_center(self.start_point)
@@ -373,9 +373,6 @@ class YTSlice(YTSelectionContainer2D):
     @property
     def _mrep(self):
         return MinimalSliceData(self)
-
-    def hub_upload(self):
-        self._mrep.upload()
 
     def to_pw(self, fields=None, center="c", width=None, origin="center-window"):
         r"""Create a :class:`~yt.visualization.plot_window.PWViewerMPL` from this
@@ -776,7 +773,7 @@ class YTRegion(YTSelectionContainer3D):
         """
         Return the minimum bounding box for the region.
         """
-        return self.left_edge, self.right_edge
+        return self.left_edge.copy(), self.right_edge.copy()
 
 
 class YTDataCollection(YTSelectionContainer3D):
@@ -887,7 +884,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
         points = fix_length(points, ds)
         if len(points) < 2:
             raise YTException(
-                "Not enough points. Expected at least 2, got %s" % len(points)
+                f"Not enough points. Expected at least 2, got {len(points)}"
             )
         mylog.debug("Building minimal sphere around points.")
         mb = _miniball.Miniball(points)
@@ -1124,7 +1121,8 @@ class YTCutRegion(YTSelectionContainer3D):
         locals = self.locals.copy()
         if "obj" in locals:
             raise RuntimeError(
-                '"obj" has been defined in the "locals" ; this is not supported, please rename the variable.'
+                "'obj' has been defined in the 'locals' ; "
+                "this is not supported, please rename the variable."
             )
         locals["obj"] = obj
         with obj._field_parameter_state(self.field_parameters):

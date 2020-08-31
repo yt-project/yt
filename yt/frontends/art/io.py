@@ -81,8 +81,8 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        for chunk in chunks:
-            for ptype, field_list in sorted(ptf.items()):
+        for _chunk in chunks:
+            for ptype in sorted(ptf):
                 x = self._get_field((ptype, "particle_position_x"))
                 y = self._get_field((ptype, "particle_position_y"))
                 z = self._get_field((ptype, "particle_position_z"))
@@ -90,7 +90,7 @@ class IOHandlerART(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        for chunk in chunks:
+        for _chunk in chunks:
             for ptype, field_list in sorted(ptf.items()):
                 x = self._get_field((ptype, "particle_position_x"))
                 y = self._get_field((ptype, "particle_position_y"))
@@ -116,12 +116,12 @@ class IOHandlerART(BaseIOHandler):
         rp = partial(
             read_particles, self.file_particle, self.Nrow, idxa=idxa, idxb=idxb
         )
-        for i, ax in enumerate("xyz"):
-            if fname.startswith("particle_position_%s" % ax):
+        for ax in "xyz":
+            if fname.startswith(f"particle_position_{ax}"):
                 dd = self.ds.domain_dimensions[0]
                 off = 1.0 / dd
                 tr[field] = rp(fields=[ax])[0] / dd - off
-            if fname.startswith("particle_velocity_%s" % ax):
+            if fname.startswith(f"particle_velocity_{ax}"):
                 (tr[field],) = rp(["v" + ax])
         if fname.startswith("particle_mass"):
             a = 0
@@ -228,13 +228,13 @@ class IOHandlerDarkMatterART(IOHandlerART):
         rp = partial(
             read_particles, self.file_particle, self.Nrow, idxa=idxa, idxb=idxb
         )
-        for i, ax in enumerate("xyz"):
-            if fname.startswith("particle_position_%s" % ax):
+        for ax in "xyz":
+            if fname.startswith(f"particle_position_{ax}"):
                 # This is not the same as domain_dimensions
                 dd = self.ds.parameters["ng"]
                 off = 1.0 / dd
                 tr[field] = rp(fields=[ax])[0] / dd - off
-            if fname.startswith("particle_velocity_%s" % ax):
+            if fname.startswith(f"particle_velocity_{ax}"):
                 (tr[field],) = rp(["v" + ax])
         if fname.startswith("particle_mass"):
             a = 0
@@ -300,7 +300,7 @@ def interpolate_ages(
         if current_time:
             tdiff = YTQuantity(b2t(t_stars), "Gyr") - current_time.in_units("Gyr")
             if np.abs(tdiff) > 1e-4:
-                mylog.info("Timestamp mismatch in star " + "particle header: %s", tdiff)
+                mylog.info("Timestamp mismatch in star particle header: %s", tdiff)
         mylog.info("Interpolating ages")
         interp_tb, interp_ages = b2t(data)
         interp_tb = YTArray(interp_tb, "Gyr")
@@ -372,7 +372,7 @@ def _read_art_level_info(
     if root_level is None:
         root_level = np.floor(np.log2(le.max() * 1.0 / coarse_grid))
         root_level = root_level.astype("int64")
-        for i in range(10):
+        for _ in range(10):
             fc = cfc(root_level, level, le)
             go = np.diff(np.unique(fc)).min() < 1.1
             if go:
@@ -426,7 +426,7 @@ def get_ranges(
     arr_size = np_per_page * real_size
     idxa, idxb = 0, 0
     posa, posb = 0, 0
-    for page in range(num_pages):
+    for _page in range(num_pages):
         idxb += np_per_page
         for i, fname in enumerate(["x", "y", "z", "vx", "vy", "vz"]):
             posb += arr_size
@@ -513,7 +513,7 @@ def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
 
 
 nchem = 8 + 2
-dtyp = np.dtype(">i4,>i8,>i8" + ",>%sf4" % (nchem) + ",>%sf4" % (2) + ",>i4")
+dtyp = np.dtype(">i4,>i8,>i8" + f",>{nchem}f4" + ",>%sf4" % (2) + ",>i4")
 
 
 def _read_child_level(

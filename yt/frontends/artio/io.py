@@ -25,7 +25,7 @@ class IOHandlerARTIO(BaseIOHandler):
         for chunk in chunks:  # These should be organized by grid filename
             for subset in chunk.objs:
                 rv = dict(**subset.fill_particles(fields))
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     x, y, z = (
                         np.asarray(rv[ptype][pn % ax], dtype="=f8") for ax in "XYZ"
                     )

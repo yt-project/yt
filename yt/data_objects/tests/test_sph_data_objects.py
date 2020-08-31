@@ -7,7 +7,7 @@ from yt.testing import assert_equal, fake_sph_grid_ds, fake_sph_orientation_ds
 def test_point():
     ds = fake_sph_orientation_ds()
     field_data = ds.stream_handler.fields["stream_file"]
-    ppos = [field_data["io", "particle_position_%s" % d] for d in "xyz"]
+    ppos = [field_data["io", f"particle_position_{d}"] for d in "xyz"]
     ppos = np.array(ppos).T
     for pos in ppos:
         for i in range(-1, 2):
@@ -171,7 +171,7 @@ def test_cutting():
     ds = fake_sph_orientation_ds()
     for (normal, center), answer in CUTTING_ANSWERS.items():
         for i in range(-1, 2):
-            cen = [c + 0.1 * c for c in center]
+            cen = [c + 0.1 * i for c in center]
             cut = ds.cutting(normal, cen)
             assert_equal(cut["gas", "density"].shape[0], answer)
 

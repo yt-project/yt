@@ -12,7 +12,7 @@ answer_tests:
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
     
-  local_arepo_005:
+  local_arepo_006:
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
     - yt/frontends/arepo/tests/test_outputs.py:test_index_override
@@ -59,7 +59,7 @@ answer_tests:
     - yt/frontends/flash/tests/test_outputs.py:test_wind_tunnel
     - yt/frontends/flash/tests/test_outputs.py:test_fid_1to3_b1
 
-  local_gadget_003:
+  local_gadget_004:
     - yt/frontends/gadget/tests/test_outputs.py:test_iso_collapse
     - yt/frontends/gadget/tests/test_outputs.py:test_pid_uniqueness
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
@@ -73,7 +73,7 @@ answer_tests:
   local_gdf_001:
     - yt/frontends/gdf/tests/test_outputs.py:test_sedov_tunnel
 
-  local_gizmo_004:
+  local_gizmo_005:
     - yt/frontends/gizmo/tests/test_outputs.py:test_gizmo_64
 
   local_halos_009:
@@ -82,7 +82,7 @@ answer_tests:
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_owls_004:
+  local_owls_005:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
@@ -94,7 +94,7 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
     - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
 
-  local_tipsy_005:
+  local_tipsy_006:
     - yt/frontends/tipsy/tests/test_outputs.py:test_pkdgrav
     - yt/frontends/tipsy/tests/test_outputs.py:test_gasoline_dmonly
     - yt/frontends/tipsy/tests/test_outputs.py:test_tipsy_galaxy
@@ -161,6 +161,5 @@ answer_tests:
 other_tests:
   unittests:
      - '--exclude=test_mesh_slices'  # disable randomly failing test
-     - '--exclude=test_load_from_path'  # py2
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'

@@ -14,18 +14,16 @@ def apply_filter(f):
     return newfunc
 
 
-class RegisteredFilter(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        filter_registry[name] = cls
-
-
-class FixedResolutionBufferFilter(metaclass=RegisteredFilter):
+class FixedResolutionBufferFilter:
 
     """
     This object allows to apply data transformation directly to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     """
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        filter_registry[cls.__name__] = cls
 
     def __init__(self, *args, **kwargs):
         pass

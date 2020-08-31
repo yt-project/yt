@@ -4,7 +4,6 @@ import itertools
 import os
 import pickle
 import time
-import warnings
 import weakref
 from collections import defaultdict
 from stat import ST_CTIME
@@ -12,11 +11,10 @@ from stat import ST_CTIME
 import numpy as np
 
 from yt.config import ytcfg
-from yt.data_objects.data_containers import data_object_registry
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.region_expression import RegionExpression
-from yt.fields.derived_field import DerivedField, ValidateSpatial
+from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
@@ -38,7 +36,7 @@ from yt.geometry.coordinates.api import (
     SpectralCubeCoordinateHandler,
     SphericalCoordinateHandler,
 )
-from yt.units import UnitContainer, _wrap_display_ytarray
+from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks
 from yt.units.unit_object import Unit, define_unit
 from yt.units.unit_registry import UnitRegistry
@@ -52,12 +50,9 @@ from yt.utilities.exceptions import (
     YTObjectNotImplemented,
 )
 from yt.utilities.minimal_representation import MinimalDataset
+from yt.utilities.object_registries import data_object_registry, output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
-from yt.utilities.parameter_file_storage import (
-    NoParameterShelf,
-    ParameterFileStore,
-    output_type_registry,
-)
+from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileStore
 
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
@@ -72,13 +67,6 @@ def _unsupported_object(ds, obj_name):
         raise YTObjectNotImplemented(ds, obj_name)
 
     return _raise_unsupp
-
-
-class RegisteredDataset(abc.ABCMeta):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        output_type_registry[name] = cls
-        mylog.debug("Registering: %s as %s", name, cls)
 
 
 class IndexProxy:
@@ -143,7 +131,7 @@ def requires_index(attr_name):
     return ireq
 
 
-class Dataset(metaclass=RegisteredDataset):
+class Dataset:
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
@@ -197,6 +185,11 @@ class Dataset(metaclass=RegisteredDataset):
         else:
             obj = _cached_datasets[cache_key]
         return obj
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        output_type_registry[cls.__name__] = cls
+        mylog.debug("Registering: %s as %s", cls.__name__, cls)
 
     def __init__(
         self,
@@ -255,6 +248,7 @@ class Dataset(metaclass=RegisteredDataset):
 
         self._parse_parameter_file()
         self.set_units()
+        self.setup_cosmology()
         self._assign_unit_system(unit_system)
         self._setup_coordinate_handler()
 
@@ -291,13 +285,15 @@ class Dataset(metaclass=RegisteredDataset):
     @abc.abstractmethod
     def _parse_parameter_file(self):
         # set up various attributes from self.parameter_filename
-        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
+        # for a full description of what is required here see
+        # yt.frontends._skeleton.SkeletonDataset
         pass
 
     @abc.abstractmethod
     def _set_code_unit_attributes(self):
         # set up code-units to physical units normalization factors
-        # see yt.frontends._skeleton.SkeletonDataset for a full description of what is required here
+        # for a full description of what is required here see
+        # yt.frontends._skeleton.SkeletonDataset
         pass
 
     def _set_derived_attrs(self):
@@ -310,7 +306,7 @@ class Dataset(metaclass=RegisteredDataset):
         if not isinstance(self.current_time, YTQuantity):
             self.current_time = self.quan(self.current_time, "code_time")
         for attr in ("center", "width", "left_edge", "right_edge"):
-            n = "domain_%s" % attr
+            n = f"domain_{attr}"
             v = getattr(self, n)
             if not isinstance(v, YTArray) and v is not None:
                 # Note that we don't add on _ipython_display_ here because
@@ -326,7 +322,7 @@ class Dataset(metaclass=RegisteredDataset):
         return self.basename
 
     def _hash(self):
-        s = "%s;%s;%s" % (self.basename, self.current_time, self.unique_identifier)
+        s = f"{self.basename};{self.current_time};{self.unique_identifier}"
         try:
             import hashlib
 
@@ -385,9 +381,6 @@ class Dataset(metaclass=RegisteredDataset):
     @property
     def _skip_cache(self):
         return False
-
-    def hub_upload(self):
-        self._mrep.upload()
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):
@@ -623,7 +616,7 @@ class Dataset(metaclass=RegisteredDataset):
         available_formats = {"ionization_label": ("plus_minus", "roman_numeral")}
         if format_property in available_formats:
             if value in available_formats[format_property]:
-                setattr(self, "_%s_format" % format_property, value)
+                setattr(self, f"_{format_property}_format", value)
             else:
                 raise ValueError(
                     "{0} not an acceptable value for format_property "
@@ -813,24 +806,32 @@ class Dataset(metaclass=RegisteredDataset):
 
     def _get_field_info(self, ftype, fname=None):
         self.index
+
+        # store the original inputs in case we need to raise an error
+        INPUT = ftype, fname
         if fname is None:
-            if isinstance(ftype, DerivedField):
+            try:
                 ftype, fname = ftype.name
-            else:
+            except AttributeError:
                 ftype, fname = "unknown", ftype
-        guessing_type = False
-        if ftype == "unknown":
-            guessing_type = True
+
+        # storing this condition before altering it
+        guessing_type = ftype == "unknown"
+        if guessing_type:
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
-        if field == self._last_freq:
-            if field not in self.field_info.field_aliases.values():
-                return self._last_finfo
+
+        if (
+            field == self._last_freq
+            and field not in self.field_info.field_aliases.values()
+        ):
+            return self._last_finfo
         if field in self.field_info:
             self._last_freq = field
             self._last_finfo = self.field_info[(ftype, fname)]
             return self._last_finfo
-        if fname in self.field_info:
+
+        try:
             # Sometimes, if guessing_type == True, this will be switched for
             # the type of field it is.  So we look at the field type and
             # determine if we need to change the type.
@@ -847,6 +848,9 @@ class Dataset(metaclass=RegisteredDataset):
                 field = self.default_fluid_type, field[1]
             self._last_freq = field
             return self._last_finfo
+        except KeyError:
+            pass
+
         # We also should check "all" for particles, which can show up if you're
         # mixing deposition/gas fields with particle fields.
         if guessing_type:
@@ -860,7 +864,7 @@ class Dataset(metaclass=RegisteredDataset):
                     self._last_freq = (ftype, fname)
                     self._last_finfo = self.field_info[(ftype, fname)]
                     return self._last_finfo
-        raise YTFieldNotFound((ftype, fname), self)
+        raise YTFieldNotFound(field=INPUT, ds=self)
 
     def _setup_classes(self):
         # Called by subclass
@@ -886,47 +890,78 @@ class Dataset(metaclass=RegisteredDataset):
         obj.__doc__ = base.__doc__
         setattr(self, name, obj)
 
-    def find_max(self, field):
+    def _find_extremum(self, field, ext, source=None, to_array=True):
+        """
+        Find the extremum value of a field in a data object (source) and its position.
+
+        Parameters
+        ----------
+        field: str or tuple(str, str)
+
+        ext: str
+            'min' or 'max', select an extremum
+
+        source: a Yt data object
+
+        to_array: bool
+            select the return type.
+
+        Returns
+        -------
+        val, coords
+
+        val: unyt.unyt_quantity
+            extremum value detected
+
+        coords: unyt.unyt_array or list(unyt.unyt_quantity)
+            Conversion to a single unyt_array object is only possible for coordinate
+            systems with homogeneous dimensions across axes (i.e. cartesian).
+        """
+        ext = ext.lower()
+        if source is None:
+            source = self.all_data()
+        method = {
+            "min": source.quantities.min_location,
+            "max": source.quantities.max_location,
+        }[ext]
+        val, x1, x2, x3 = method(field)
+        coords = [x1, x2, x3]
+        mylog.info("%s value is %0.5e at %0.16f %0.16f %0.16f", ext, val, *coords)
+        if to_array:
+            if any(x.units.is_dimensionless for x in coords):
+                mylog.warning(
+                    f"dataset {self} has angular coordinates. "
+                    "Use 'to_array=False' to preserve "
+                    "dimensionality in each coordinate."
+                )
+
+            # force conversion to length
+            alt_coords = []
+            for x in coords:
+                alt_coords.append(
+                    self.quan(x.v, "code_length") if x.units.is_dimensionless else x
+                )
+
+            coords = self.arr(alt_coords, dtype="float64").to("code_length")
+        return val, coords
+
+    def find_max(self, field, source=None, to_array=True):
         """
         Returns (value, location) of the maximum of a given field.
+
+        This is a wrapper around _find_extremum
         """
         mylog.debug("Searching for maximum value of %s", field)
-        source = self.all_data()
-        max_val, mx, my, mz = source.quantities.max_location(field)
-        # This is a hack to fix the fact that some non-cartesian datasets have
-        # dimensionless quantities, and we can't yet handle that.
-        if mx.units.is_dimensionless:
-            mx = self.quan(mx.v, "code_length")
-        if my.units.is_dimensionless:
-            my = self.quan(my.v, "code_length")
-        if mz.units.is_dimensionless:
-            mz = self.quan(mz.v, "code_length")
-        center = self.arr([mx, my, mz], dtype="float64").to("code_length")
-        mylog.info(
-            "Max Value is %0.5e at %0.16f %0.16f %0.16f",
-            max_val,
-            center[0],
-            center[1],
-            center[2],
-        )
-        return max_val, center
+        return self._find_extremum(field, "max", source=source, to_array=to_array)
 
-    def find_min(self, field):
+    def find_min(self, field, source=None, to_array=True):
         """
         Returns (value, location) for the minimum of a given field.
+
+        This is a wrapper around _find_extremum
         """
         mylog.debug("Searching for minimum value of %s", field)
-        source = self.all_data()
-        min_val, mx, my, mz = source.quantities.min_location(field)
-        center = self.arr([mx, my, mz], dtype="float64").to("code_length")
-        mylog.info(
-            "Min Value is %0.5e at %0.16f %0.16f %0.16f",
-            min_val,
-            center[0],
-            center[1],
-            center[2],
-        )
-        return min_val, center
+        return self._find_extremum(field, "min", source=source, to_array=to_array)
 
     def find_field_values_at_point(self, fields, coords):
         """
@@ -1081,8 +1116,6 @@ class Dataset(metaclass=RegisteredDataset):
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
-        import yt.units.dimensions as dimensions
-
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
         # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
@@ -1112,46 +1145,52 @@ class Dataset(metaclass=RegisteredDataset):
         Creates the unit registry for this dataset.
 
         """
-        from yt.units.dimensions import length
 
         if getattr(self, "cosmological_simulation", False):
             # this dataset is cosmological, so add cosmological units.
             self.unit_registry.modify("h", self.hubble_constant)
-            # Comoving lengths
-            for my_unit in ["m", "pc", "AU", "au"]:
-                new_unit = "%scm" % my_unit
-                my_u = Unit(my_unit, registry=self.unit_registry)
-                self.unit_registry.add(
-                    new_unit,
-                    my_u.base_value / (1 + self.current_redshift),
-                    length,
-                    "\\rm{%s}/(1+z)" % my_unit,
-                    prefixable=True,
-                )
-            self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
+            if getattr(self, "current_redshift", None) is not None:
+                # Comoving lengths
+                for my_unit in ["m", "pc", "AU", "au"]:
+                    new_unit = f"{my_unit}cm"
+                    my_u = Unit(my_unit, registry=self.unit_registry)
+                    self.unit_registry.add(
+                        new_unit,
+                        my_u.base_value / (1 + self.current_redshift),
+                        dimensions.length,
+                        "\\rm{%s}/(1+z)" % my_unit,
+                        prefixable=True,
+                    )
+                self.unit_registry.modify("a", 1 / (1 + self.current_redshift))
 
         self.set_code_units()
 
-        if getattr(self, "cosmological_simulation", False):
-            # this dataset is cosmological, add a cosmology object
+    def setup_cosmology(self):
+        """
+        If this dataset is cosmological, add a cosmology object.
+        """
+        if not getattr(self, "cosmological_simulation", False):
+            return
 
-            # Set dynamical dark energy parameters
-            use_dark_factor = getattr(self, "use_dark_factor", False)
-            w_0 = getattr(self, "w_0", -1.0)
-            w_a = getattr(self, "w_a", 0.0)
+        # Set dynamical dark energy parameters
+        use_dark_factor = getattr(self, "use_dark_factor", False)
+        w_0 = getattr(self, "w_0", -1.0)
+        w_a = getattr(self, "w_a", 0.0)
 
-            # many frontends do not set this
-            setdefaultattr(self, "omega_radiation", 0.0)
+        # many frontends do not set this
+        setdefaultattr(self, "omega_radiation", 0.0)
 
-            self.cosmology = Cosmology(
-                hubble_constant=self.hubble_constant,
-                omega_matter=self.omega_matter,
-                omega_lambda=self.omega_lambda,
-                omega_radiation=self.omega_radiation,
-                use_dark_factor=use_dark_factor,
-                w_0=w_0,
-                w_a=w_a,
-            )
+        self.cosmology = Cosmology(
+            hubble_constant=self.hubble_constant,
+            omega_matter=self.omega_matter,
+            omega_lambda=self.omega_lambda,
+            omega_radiation=self.omega_radiation,
+            use_dark_factor=use_dark_factor,
+            w_0=w_0,
+            w_a=w_a,
+        )
+
+        if getattr(self, "current_redshift", None) is not None:
             self.critical_density = self.cosmology.critical_density(
                 self.current_redshift
             )
@@ -1219,14 +1258,14 @@ class Dataset(metaclass=RegisteredDataset):
             ("magnetic", "gauss"),
             ("temperature", "K"),
         ]:
-            val = self.units_override.get("%s_unit" % unit, None)
+            val = self.units_override.get(f"{unit}_unit", None)
             if val is not None:
                 if isinstance(val, YTQuantity):
                     val = (val.v, str(val.units))
                 elif not isinstance(val, tuple):
                     val = (val, cgs)
                 mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
-                setattr(self, "%s_unit" % unit, self.quan(val[0], val[1]))
+                setattr(self, f"{unit}_unit", self.quan(val[0], val[1]))
 
     _units = None
     _unit_system_id = None
@@ -1336,7 +1375,7 @@ class Dataset(metaclass=RegisteredDataset):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function=None, sampling_type=None, **kwargs):
+    def add_field(self, name, function, sampling_type, **kwargs):
         """
         Dataset-specific call to add_field
 
@@ -1353,6 +1392,8 @@ class Dataset(metaclass=RegisteredDataset):
         function : callable
            A function handle that defines the field.  Should accept
            arguments (field, data)
+        sampling_type: str
+           "cell" or "particle" or "local"
         units : str
            A plain text string encoding the unit.  Powers must be in
            python syntax (** instead of ^).
@@ -1360,8 +1401,6 @@ class Dataset(metaclass=RegisteredDataset):
            Describes whether the field should be logged
         validators : list
            A list of :class:`FieldValidator` objects
-        particle_type : bool
-           Is this a particle (1D) field?
         vector_field : bool
            Describes the dimensionality of the field.  Currently unused.
         display_name : str
@@ -1380,27 +1419,11 @@ class Dataset(metaclass=RegisteredDataset):
             )
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
-            mylog.error(
-                "Field %s already exists. To override use " + "force_override=True.",
-                name,
+            mylog.warning(
+                "Field %s already exists. To override use `force_override=True`.", name,
             )
-        if kwargs.setdefault("particle_type", False):
-            if sampling_type is not None and sampling_type != "particle":
-                raise RuntimeError(
-                    "Clashing definition of 'sampling_type' and "
-                    "'particle_type'. Note that 'particle_type' is "
-                    "deprecated. Please just use 'sampling_type'."
-                )
-            else:
-                sampling_type = "particle"
-        if sampling_type is None:
-            warnings.warn(
-                "Because 'sampling_type' not specified, yt will "
-                "assume a cell 'sampling_type'",
-                stacklevel=2,
-            )
-            sampling_type = "cell"
-        self.field_info.add_field(name, sampling_type, function=function, **kwargs)
+
+        self.field_info.add_field(name, function, sampling_type, **kwargs)
         self.field_info._show_field_errors.append(name)
         deps, _ = self.field_info.check_derived_fields([name])
         self.field_dependencies.update(deps)
@@ -1502,9 +1525,9 @@ class Dataset(metaclass=RegisteredDataset):
         field_name = field_name % (ptype, deposit_field.replace("particle_", ""))
 
         if method == "count":
-            field_name = "%s_count" % ptype
+            field_name = f"{ptype}_count"
             if ("deposit", field_name) in self.field_info:
-                mylog.warning("The deposited field %s already exists" % field_name)
+                mylog.warning("The deposited field %s already exists", field_name)
                 return ("deposit", field_name)
             else:
                 units = "dimensionless"
@@ -1597,8 +1620,9 @@ class Dataset(metaclass=RegisteredDataset):
          ('gas', 'temperature_gradient_z'),
          ('gas', 'temperature_gradient_magnitude')]
 
-        Note that the above example assumes ds.geometry == 'cartesian'. In general, the function
-        will create gradients components along the axes of the dataset coordinate system.
+        Note that the above example assumes ds.geometry == 'cartesian'. In general,
+        the function will create gradients components along the axes of the dataset
+        coordinate system.
         For instance, with cylindrical data, one gets 'temperature_gradient_<r,theta,z>'
         """
         self.index
@@ -1610,7 +1634,7 @@ class Dataset(metaclass=RegisteredDataset):
         # Now we make a list of the fields that were just made, to check them
         # and to return them
         grad_fields = [
-            (ftype, input_field + "_gradient_%s" % suffix)
+            (ftype, input_field + f"_gradient_{suffix}")
             for suffix in self.coordinates.axis_order
         ]
         grad_fields.append((ftype, input_field + "_gradient_magnitude"))
