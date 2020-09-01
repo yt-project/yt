@@ -890,7 +890,7 @@ Overplot the Path of a Ray
 
 
 Applying filters on the final image
------------------------------
+-----------------------------------
 
 It is also possible to operate on the plotted image directly by using
 one of the fixed resolution buffer filter as described in
