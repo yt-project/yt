@@ -133,8 +133,8 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
     try:
         cls = simulation_time_series_registry[simulation_type]
-    except KeyError:
-        raise YTSimulationNotIdentified(simulation_type)
+    except KeyError as e:
+        raise YTSimulationNotIdentified(simulation_type) from e
 
     return cls(fn, find_outputs=find_outputs)
 
@@ -1332,12 +1332,12 @@ def load_sample(fn=None, specific_file=None, pbar=True):
         try:
             import tqdm  # noqa: F401
 
-            downloader = pooch.HTTPDownloader(progressbar=True)
+            downloader = pooch.pooch.HTTPDownloader(progressbar=True)
         except ImportError:
             mylog.warning("tqdm is not installed, progress bar can not be displayed.")
 
     if extension == "h5":
-        processor = pooch.Untar()
+        processor = pooch.pooch.Untar()
     else:
         # we are going to assume most files that exist on the hub are
         # compressed in .tar folders. Some may not.

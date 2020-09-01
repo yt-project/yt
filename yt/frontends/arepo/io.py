@@ -15,7 +15,7 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
         ptype = self.ds._sph_ptypes[0]
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
             # Arepo cells do not have "smoothing lengths" by definition, so

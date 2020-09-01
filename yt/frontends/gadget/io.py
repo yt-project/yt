@@ -69,7 +69,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         si, ei = data_file.start, data_file.end
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
@@ -93,7 +93,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             return
         hsml_fn = data_files[0].filename.replace(".hdf5", ".hsml.hdf5")
         if os.path.exists(hsml_fn):
-            with h5py.File(hsml_fn, "r") as f:
+            with h5py.File(hsml_fn, mode="r") as f:
                 file_hash = f.attrs["q"]
             if file_hash != self.ds._file_hash:
                 mylog.warning("Replacing hsml files.")

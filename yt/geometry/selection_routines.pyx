@@ -149,6 +149,7 @@ cdef class SelectorObject:
             DRE = _ensure_code(ds.domain_right_edge)
             for i in range(3):
                 self.domain_width[i] = DRE[i] - DLE[i]
+                self.domain_center[i] = DLE[i] + 0.5 * self.domain_width[i]
                 self.periodicity[i] = ds.periodicity[i]
 
     def get_periodicity(self):
@@ -449,7 +450,7 @@ cdef class SelectorObject:
         mask = np.zeros(npoints, dtype='uint8')
         for i in range(npoints):
             selected = 0
-            for k in range(ndim):
+            for k in range(3):
                 le[k] = 1e60
                 re[k] = -1e60
             for j in range(nv):
@@ -457,6 +458,9 @@ cdef class SelectorObject:
                     pos = coords[indices[i, j] - offset, k]
                     le[k] = fmin(pos, le[k])
                     re[k] = fmax(pos, re[k])
+                for k in range(2, ndim - 1, -1):
+                    le[k] = self.domain_center[k]
+                    re[k] = self.domain_center[k]
             selected = self.select_bbox(le, re)
             total += selected
             mask[i] = selected
