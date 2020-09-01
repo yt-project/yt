@@ -817,6 +817,8 @@ def requires_file(req_file):
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
+            if ytcfg.getboolean("yt", "__strict_requires"):
+                raise FileNotFoundError(req_file)
             return None
 
         return false_wrapper
