@@ -35,6 +35,7 @@ def test_filter_wiring():
     ds = fake_amr_ds(fields=("density",))
     p = yt.SlicePlot(ds, "x", "density")
 
+    # Note: frb is a FixedResolutionBuffer object
     frb1 = p.frb
     data_orig = frb1["density"].value
 
@@ -47,15 +48,15 @@ def test_filter_wiring():
     frb3 = p.frb
     data_white = frb3["density"].value
 
-    # We check the frb have changed
-    assert frb1 != frb2
-    assert frb1 != frb3
-    assert frb2 != frb3
+    # We check the frb objects are different
+    assert frb1 is not frb2
+    assert frb1 is not frb3
+    assert frb2 is not frb3
 
     # We check the resulting image are different each time
-    assert np.allclose(data_orig, data_gauss) is False
-    assert np.allclose(data_orig, data_white) is False
-    assert np.allclose(data_gauss, data_white) is False
+    assert not np.allclose(data_orig, data_gauss)
+    assert not np.allclose(data_orig, data_white)
+    assert not np.allclose(data_gauss, data_white)
 
-    # Check the gaussian filtering should is ok
+    # Check the gaussian filtering is ok
     assert np.allclose(gaussian_filter(data_orig, sigma), data_gauss)
