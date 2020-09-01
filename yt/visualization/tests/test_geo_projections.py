@@ -11,20 +11,20 @@ from yt.visualization.geo_plot_utils import get_mpl_transform, transform_list
 
 
 def compare(ds, field, idir, projection, annotate=False):
-    def slice_image():
-        tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
-        os.close(tmpfd)
+    def slice_image(im_name):
         sl = yt.SlicePlot(ds, idir, field, origin="native")
         sl.set_mpl_projection(projection)
         if annotate:
             sl._setup_plots()
             sl.annotate_mesh_lines()
         sl.set_log("all", False)
-        image_file = sl.save(tmpfname)
+        image_file = sl.save(im_name)
         return image_file
 
     gi = generic_image(slice_image)
-    return gi
+    # generic_image returns a list. In this case, there's only one entry,
+    # which is a np array with the data we want
+    return gi[0]
 
 
 @pytest.mark.answer_test
@@ -36,7 +36,7 @@ class TestGeoSlicesAMR:
     @requires_module("cartopy")
     def test_geo_slices_amr(self, transform, field, ds):
         if transform not in ("UTM", "OSNI"):
-            gi = compare(ds, field, "altitude")
+            gi = compare(ds, field, "altitude", transform)
             self.hashes.update({"generic_image": gi})
 
 

@@ -12,16 +12,16 @@ from yt.utilities.lib.mesh_triangulation import triangulate_indices
 
 
 def compare(ds, field, idir):
-    def slice_image():
-        tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
-        os.close(tmpfd)
+    def slice_image(im_name):
         sl = yt.SlicePlot(ds, idir, field)
         sl.set_log("all", False)
-        image_file = sl.save(tmpfname)
+        image_file = sl.save(im_name)
         return image_file
 
     gi = generic_image(slice_image)
-    return gi
+    # generic_image returns a list. In this case, there's only one entry,
+    # which is a np array with the data we want
+    return gi[0]
 
 
 @pytest.mark.answer_test

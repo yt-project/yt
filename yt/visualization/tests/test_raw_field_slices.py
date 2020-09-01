@@ -13,7 +13,9 @@ def compare(ds, field):
         return image_file
 
     gi = generic_image(slice_image)
-    return gi
+    # generic_image returns a list. In this case, there's only one entry,
+    # which is a np array with the data we want
+    return gi[0]
 
 
 raw_fields = "Laser/plt00015"

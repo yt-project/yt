@@ -26,7 +26,7 @@ def compare(im_name, im):
         return im.write_image(im_name)
 
     gi = generic_image(mesh_render_image_func)
-    return gi
+    return gi[0]
 
 
 def surface_mesh_render():

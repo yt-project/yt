@@ -66,11 +66,8 @@ class TestVROrientation:
             ds_vr, center, orientation, width, 512, "density", no_ghost=False
         )
 
-        def offaxis_image_func():
-            tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
-            os.close(tmpfd)
-            image.write_image(tmpfname)
-            return tmpfname
+        def offaxis_image_func(im_name):
+            image.write_image(im_name)
 
         gi = generic_image(offaxis_image_func)
-        self.hashes.update({"generic_image": gi})
+        self.hashes.update({"generic_image": gi[0]})

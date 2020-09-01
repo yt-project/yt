@@ -10,13 +10,11 @@ from yt.visualization.line_plot import _validate_point
 
 
 def compare(plot):
-    def image_from_plot():
-        tmpfd, tmpfname = tempfile.mkstemp(suffix=".png")
-        os.close(tmpfd)
-        return plot.save(tmpfname)
+    def image_from_plot(im_name):
+        return plot.save(im_name)
 
     gi = generic_image(image_from_plot)
-    return gi
+    return gi[0]
 
 
 @pytest.mark.answer_test

@@ -10,11 +10,7 @@ class TestAxialPixelization:
     saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
-    def test_axial_pixelization(self, geom, axis):
+    def test_axial_pixelization(self, geom):
         ds = fake_amr_ds(geometry=geom)
         ap = axial_pixelization(ds)
-        if axis == "x_axis":
-            ap = ap[0]
-        elif axis == "y_axis":
-            ap = ap[1]
         self.hashes.update({"axial_pixelization": ap})
