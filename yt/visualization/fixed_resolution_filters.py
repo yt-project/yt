@@ -54,8 +54,7 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
                 "The `nbeam` argument has been deprecated and should be replaced by "
                 "the `truncate` argument where `truncate=nbeam/sigma`."
             )
-            if truncate is None:
-                truncate = kwargs["nbeam"] / sigma
+            truncate = kwargs["nbeam"] / sigma
 
         self.sigma = sigma
         self.truncate = truncate
