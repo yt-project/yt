@@ -52,18 +52,16 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
         if nbeam is not None:
             issue_deprecation_warning(
                 "The `nbeam` argument has been deprecated and should be replaced by "
-                "the `truncate` argument where `truncate=nbeam/sigma`.")
-            kwa['truncate'] = nbeam / sigma
+                "the `truncate` argument where `truncate=nbeam/sigma`."
+            )
+            kwa["truncate"] = nbeam / sigma
         self.sigma = sigma
         self.extra_args = kwa
 
     def apply(self, buff):
         from yt.utilities.on_demand_imports import _scipy
-        spl = _scipy.ndimage.gaussian_filter(
-            buff,
-            self.sigma,
-            **self.extra_args
-        )
+
+        spl = _scipy.ndimage.gaussian_filter(buff, self.sigma, **self.extra_args)
         return spl
 
 

@@ -724,6 +724,7 @@ class GridBoundaryCallback(PlotCallback):
     One can set min and maximum level of grids to display, and
     can change the linewidth of the displayed grids.
     """
+
     _type_name = "annotate_grids"
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 

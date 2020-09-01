@@ -430,7 +430,7 @@ class PlotContainer:
             new_object = getattr(new_ds, name)(**kwargs)
 
         self.data_source = new_object
-        
+
         if self._frb is not None:
             self._frb._data_valid = False
         self._plot_valid = False
