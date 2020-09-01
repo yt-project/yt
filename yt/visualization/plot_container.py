@@ -97,7 +97,7 @@ def validate_plot(f):
     @wraps(f)
     def newfunc(*args, **kwargs):
         plot = args[0]
-        if not plot.data_is_valid:
+        if hasattr(plot, "data_is_valid") and not plot.data_is_valid:
             plot._recreate_frb()
         if hasattr(plot, "_profile_valid") and not plot._profile_valid:
             plot._recreate_profile()
