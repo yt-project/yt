@@ -113,7 +113,7 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
             self._ds_mrep.store(storage)
         metadata, (final_name, chunks) = self._generate_post()
         metadata["obj_type"] = self.type
-        with h5py.File(storage, mode="w") as h5f:
+        with h5py.File(storage, mode="r") as h5f:
             dset = str(uuid4())[:8]
             h5f.create_group(dset)
             _serialize_to_h5(h5f[dset], metadata)
