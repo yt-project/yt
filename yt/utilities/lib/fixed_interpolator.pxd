@@ -10,6 +10,7 @@ Fixed interpolator includes
 cimport numpy as np
 from libc.math cimport fabs, sqrt
 
+
 cdef inline int VINDEX(int A, int B, int C, int ds[3], int ci[3]) nogil:
     return ((((A)+ci[0])*(ds[1]+1)+((B)+ci[1]))*(ds[2]+1)+ci[2]+(C))
 
@@ -123,18 +124,22 @@ cdef inline void offset_fill(int *ds, np.float64_t *data, np.float64_t *gridval)
     gridval[6] = data[OINDEX(1,1,1,ds)]
     gridval[7] = data[OINDEX(0,1,1,ds)]
 
+
 cdef inline void vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t isovalue,
                        np.float64_t vl[3], np.float64_t dds[3],
                        np.float64_t x, np.float64_t y, np.float64_t z,
                                int vind1, int vind2) nogil:
     cdef int i
-
-    cdef np.float64_t **cverts = \
-            [[0,0,0], [1,0,0], [1,1,0], [0,1,0],
-             [0,0,1], [1,0,1], [1,1,1], [0,1,1]]
-
-
     cdef np.float64_t mu = ((isovalue - v1) / (v2 - v1))
+    cdef np.float64_t* cverts[8]
+    cverts[0] = [0, 0, 0]
+    cverts[1] = [1, 0, 0]
+    cverts[2] = [1, 1, 0]
+    cverts[3] = [0, 1, 0]
+    cverts[4] = [0, 0, 1]
+    cverts[5] = [1, 0, 1]
+    cverts[6] = [1, 1, 1]
+    cverts[7] = [0, 1, 1]
 
     if (fabs(1.0 - isovalue/v1) < 0.000001):
         mu = 0.0
@@ -147,6 +152,7 @@ cdef inline void vertex_interp(np.float64_t v1, np.float64_t v2, np.float64_t is
     vl[0] = x
     vl[1] = y
     vl[2] = z
+
     for i in range(3):
         vl[i] += (dds[i] * cverts[vind1][i]
                + dds[i] * mu*(cverts[vind2][i] - cverts[vind1][i]))
