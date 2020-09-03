@@ -6,18 +6,9 @@ from io import StringIO
 import nose
 import numpy
 import yaml
-from coverage import Coverage
 
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
-
-cov = Coverage(
-    config_file=".coveragerc",
-    branch=True,
-    auto_data=True,
-    concurrency="multiprocessing",
-)
-cov.start()
 
 numpy.set_printoptions(threshold=5, edgeitems=1, precision=4)
 
@@ -54,8 +45,6 @@ class NoseTask(object):
         self.exclusive = exclusive
 
     def __call__(self):
-        old_stderr = sys.stderr
-        sys.stderr = mystderr = StringIO()
         test_dir = ytcfg.get("yt", "test_data_dir")
         answers_dir = os.path.join(test_dir, "answers")
         if "--with-answer-testing" in self.argv and not os.path.isdir(
@@ -69,8 +58,7 @@ class NoseTask(object):
         if os.path.isfile("{}.xml".format(self.name)):
             os.remove("{}.xml".format(self.name))
         nose.run(argv=self.argv, addplugins=[AnswerTesting()], exit=False)
-        sys.stderr = old_stderr
-        return mystderr.getvalue()
+        return ""
 
     def __str__(self):
         return "WILL DO self.name = %s" % self.name
@@ -78,12 +66,16 @@ class NoseTask(object):
 
 def generate_tasks_input():
     pyver = "py{}{}".format(sys.version_info.major, sys.version_info.minor)
+    if sys.version_info < (3, 0, 0):
+        DROP_TAG = "py3"
+    else:
+        DROP_TAG = "py2"
 
     test_dir = ytcfg.get("yt", "test_data_dir")
     answers_dir = os.path.join(test_dir, "answers")
     with open("tests/tests.yaml", "r") as obj:
         lines = obj.read()
-    data = "\n".join([line for line in lines.split("\n") if "py2" not in line])
+    data = "\n".join([line for line in lines.split("\n") if DROP_TAG not in line])
     tests = yaml.load(data, Loader=yaml.FullLoader)
 
     base_argv = ["-s", "--nologcapture", "--with-xunit"]
@@ -108,40 +100,44 @@ def generate_tasks_input():
         argv += tests["answer_tests"][answer]
         args.append((argv, False))
 
+    exclude_answers = []
+    answer_tests = tests["answer_tests"]
+    for key in answer_tests:
+        for t in answer_tests[key]:
+            exclude_answers.append(t.replace('.py:', '.').replace('/', '.'))
+    exclude_answers = ["--exclude-test={}".format(ex) for ex in exclude_answers]
+
     args = [
         (item + ["--xunit-file=%s.xml" % item[0]], exclusive)
+        if item[0] != "unittests"
+        else (item + ["--xunit-file=unittests.xml"] + exclude_answers, exclusive)
         for item, exclusive in args
     ]
     return args
 
 
 if __name__ == "__main__":
-    try:
-        # multiprocessing.log_to_stderr(logging.DEBUG)
-        tasks = multiprocessing.JoinableQueue()
-        results = multiprocessing.Queue()
+    # multiprocessing.log_to_stderr(logging.DEBUG)
+    tasks = multiprocessing.JoinableQueue()
+    results = multiprocessing.Queue()
 
-        num_consumers = int(os.environ.get("NUM_WORKERS", 6))
-        consumers = [NoseWorker(tasks, results) for i in range(num_consumers)]
-        for w in consumers:
-            w.start()
+    num_consumers = int(os.environ.get("NUM_WORKERS", 6))
+    consumers = [NoseWorker(tasks, results) for i in range(num_consumers)]
+    for w in consumers:
+        w.start()
 
-        num_jobs = 0
-        for job in generate_tasks_input():
-            if job[1]:
-                num_consumers -= 1  # take into account exclusive jobs
-            tasks.put(NoseTask(job))
-            num_jobs += 1
+    num_jobs = 0
+    for job in generate_tasks_input():
+        if job[1]:
+            num_consumers -= 1  # take into account exclusive jobs
+        tasks.put(NoseTask(job))
+        num_jobs += 1
 
-        for i in range(num_consumers):
-            tasks.put(None)
+    for i in range(num_consumers):
+        tasks.put(None)
 
-        tasks.join()
+    tasks.join()
 
-        while num_jobs:
-            result = results.get()
-            num_jobs -= 1
-    finally:
-        cov.stop()
-        cov.combine()
-        cov.xml_report(outfile="coverage.xml", ignore_errors=True)
+    while num_jobs:
+        result = results.get()
+        num_jobs -= 1
