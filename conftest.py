@@ -86,7 +86,7 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_answer)
         # If it's an answer test that requires big data and the CL
         # option hasn't been set, skip it
-        if "big_data" in item.keywords and not config.getoption("--answer-big-data"):
+        if "big_data" in item.keywords and not config.getoption("--with-answer-testing") and not config.getoption("--answer-big-data"):
             item.add_marker(skip_big)
         if "answer_test" not in item.keywords and config.getoption(
             "--with-answer-testing"
