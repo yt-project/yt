@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import tempfile
 
 import pytest
@@ -86,7 +87,11 @@ def pytest_collection_modifyitems(config, items):
             item.add_marker(skip_answer)
         # If it's an answer test that requires big data and the CL
         # option hasn't been set, skip it
-        if "big_data" in item.keywords and not config.getoption("--with-answer-testing") and not config.getoption("--answer-big-data"):
+        if (
+            "big_data" in item.keywords
+            and not config.getoption("--with-answer-testing")
+            and not config.getoption("--answer-big-data")
+        ):
             item.add_marker(skip_big)
         if "answer_test" not in item.keywords and config.getoption(
             "--with-answer-testing"
@@ -125,9 +130,10 @@ def _get_answer_files(request):
         ytLogger.error(f"Answer files for `{request.cls.__name__}` not found.")
         sys.exit()
     except ValueError:
-        ytLogger.error(
-            "Missing either hashed file name or raw file name for `{request.cls.__name__}`in `{request.config.getini('answer_file_list')}`."
-        )
+        msg = "Missing either hashed file name or raw file name for "
+        msg += f"`{request.cls.__name__}`in "
+        msg += f"`{request.config.getini('answer_file_list')}`."
+        ytLogger.error(msg)
     # Add the local-dir aspect of the path. If there's a command line value,
     # have that override the ini file value
     clLocalDir = request.config.getoption("--local-dir")
@@ -170,9 +176,10 @@ def hashing(request):
     store_hash = request.config.getoption("--answer-store")
     raw = request.config.getoption("--answer-raw-arrays")
     raw_store = request.config.getoption("--raw-answer-store")
-    # This check is so that, when checking if the answer file exists in _get_answer_files,
-    # we don't continuously fail. With this check, _get_answer_files is called once
-    # per class, despite this having function scope
+    # This check is so that, when checking if the answer file exists in
+    # _get_answer_files, we don't continuously fail. With this check,
+    # _get_answer_files is called once per class, despite this having function
+    # scope
     if request.cls.answer_file is None:
         request.cls.answer_file, request.cls.raw_answer_file = _get_answer_files(
             request
