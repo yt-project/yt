@@ -125,9 +125,19 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         (ftype, "entropy"), sampling_type="local", units="keV*cm**2", function=_entropy
     )
 
+    def _relativistic_beta(field, data):
+        return data[ftype, "velocity_magnitude"].to_value("c")
+    
+    registry.add_field(
+        (ftype, "relativistic_beta"),
+        sampling_type="local",
+        units="",
+        function=_relativistic_beta,
+    )
+
     def _relativistic_gamma(field, data):
-        v = data[ftype, "velocity_magnitude"].to_value("c")
-        return 1.0/np.sqrt(1.0-v*v)
+        b2 = data[ftype, "relativistic_beta"]
+        return 1.0/np.sqrt(1.0-b2)
 
     registry.add_field(
         (ftype, "relativistic_gamma"), 
