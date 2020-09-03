@@ -100,8 +100,10 @@ answer_tests:
     - yt/frontends/tipsy/tests/test_outputs.py:test_tipsy_galaxy
 
   local_varia_015:
-    - yt/frontends/moab/tests/test_c5.py
-    - yt/fields/tests/test_xray_fields.py
+    - yt/frontends/moab/tests/test_c5.py:test_cantor_5
+    - yt/fields/tests/test_xray_fields.py:test_sloshing_apec
+    - yt/fields/tests/test_xray_fields.py:test_d9p_cloudy
+    - yt/fields/tests/test_xray_fields.py:test_d9p_cloudy_local
 
   local_unstructured_011:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render
@@ -146,8 +148,16 @@ answer_tests:
     - yt/frontends/ramses/tests/test_outputs.py:test_output_00080
 
   local_ytdata_007:
-    - yt/frontends/ytdata/tests/test_outputs.py
-    - yt/frontends/ytdata/tests/test_old_outputs.py
+    - yt/frontends/ytdata/tests/test_outputs.py:test_datacontainer_data
+    - yt/frontends/ytdata/tests/test_outputs.py:test_grid_datacontainer_data
+    - yt/frontends/ytdata/tests/test_outputs.py:test_spatial_data
+    - yt/frontends/ytdata/tests/test_outputs.py:test_profile_data
+    - yt/frontends/ytdata/tests/test_outputs.py:test_nonspatial_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_datacontainer_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_grid_datacontainer_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_spatial_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_profile_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_nonspatial_data
 
   local_axialpix_006:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
