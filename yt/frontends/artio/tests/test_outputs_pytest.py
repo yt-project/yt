@@ -6,7 +6,7 @@ from yt.utilities.answer_testing.answer_tests import (
     field_values,
     pixelized_projection_values,
 )
-from yt.utilities.answer_testing.utils import create_obj
+from yt.utilities.answer_testing.utils import create_obj, requires_ds
 
 # Data file
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/"
@@ -67,6 +67,7 @@ class TestArtIo:
     def test_ARTIODataset(self, ds):
         assert isinstance(ds, ARTIODataset)
 
+    @requires_ds(sizmbhloz)
     def test_units_override(self):
         units_override_check(sizmbhloz)
 

@@ -16,6 +16,7 @@ from yt.utilities.answer_testing.answer_tests import (
     parentage_relationships,
     projection_values,
 )
+from yt.utilities.answer_testing.utils import requires_ds
 
 # Test data
 radadvect = "RadAdvect/plt00000"
@@ -239,6 +240,7 @@ class TestBoxLib:
     def test_WarpXDataset(self, ds):
         assert isinstance(ds, WarpXDataset)
 
+    @requires_ds(rt)
     def test_units_override(self):
         units_override_check(rt)
 
