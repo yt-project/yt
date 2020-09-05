@@ -25,6 +25,7 @@ from numbers import Number as numeric_type
 
 import matplotlib
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
@@ -52,15 +53,42 @@ def has_len(obj):
     """
     try:
         len(obj)
+        return True
     except TypeError:
         return False
-    return True
 
 
-def iter_fields(obj):
-    from more_itertools import always_iterable
+def iter_fields(field_or_fields):
+    """
+    Create an iterator for field names, specified as single strings or tuples(fname,
+    ftype) alike.
+    This can safely be used in places where we accept a single field or a list as input.
 
-    return always_iterable(obj, base_type=(tuple, str, bytes))
+    Parameters
+    ----------
+    obj: str, tuple(str, str), or any iterable of the previous types.
+
+    Examples
+    --------
+
+    >>> fields = "density"
+    >>> for field is iter_fields(fields):
+    ...     print(field)
+    "density"
+
+    >>> fields = ("gas", "density")
+    >>> for field is iter_fields(fields):
+    ...     print(field)
+    "gas", "density"
+
+    >>> fields = ["density", "temperature", ("index", "dx")]
+    >>> for field is iter_fields(fields):
+    ...     print(field)
+    "density"
+    "temperature"
+    ("index", "dx")
+    """
+    return always_iterable(field_or_fields, base_type=(tuple, str, bytes))
 
 
 def ensure_list(obj):
