@@ -11,7 +11,7 @@ import numpy as np
 import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import ensure_list, iterable
+from yt.funcs import ensure_list, has_len
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
@@ -413,7 +413,7 @@ class ProcessorPool:
         pool = cls()
         rank = pool.comm.rank
         for i, size in enumerate(sizes):
-            if iterable(size):
+            if has_len(size):
                 size, name = size
             else:
                 name = "workgroup_%02i" % i

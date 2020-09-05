@@ -5,9 +5,9 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import ensure_numpy_array, iterable, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_geometry_handler import OctreeIndex
+from yt.funcs import ensure_numpy_array, has_len, mylog
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.lib.bounding_volume_hierarchy import BVH
 from yt.utilities.lib.misc_utilities import zlines, zpoints
@@ -1001,7 +1001,7 @@ class PointSource(OpaqueSource):
         if colors is not None:
             assert colors.ndim == 2 and colors.shape[1] == 4
             assert colors.shape[0] == positions.shape[0]
-        if not iterable(radii):
+        if not has_len(radii):
             if radii is not None:  # broadcast the value
                 radii = radii * np.ones(positions.shape[0], dtype="int64")
             else:  # default radii to 0 pixels (i.e. point is 1 pixel wide)

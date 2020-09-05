@@ -1,4 +1,4 @@
-from yt.funcs import iterable
+from yt.funcs import has_len
 from yt.utilities.logger import ytLogger as mylog
 
 from .field_info_container import FieldInfoContainer
@@ -12,7 +12,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
             sampling_type, kwargs.get("particle_type")
         )
 
-        if isinstance(name, str) or not iterable(name):
+        if isinstance(name, str) or not has_len(name):
             if sampling_type == "particle":
                 ftype = "all"
             else:

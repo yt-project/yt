@@ -13,8 +13,8 @@ from yt.funcs import (
     ensure_dir,
     ensure_list,
     get_image_suffix,
+    has_len,
     issue_deprecation_warning,
-    iterable,
     mylog,
 )
 from yt.units import YTQuantity
@@ -222,7 +222,7 @@ class PlotContainer:
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
-        if iterable(figure_size):
+        if has_len(figure_size):
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
@@ -323,7 +323,7 @@ class PlotContainer:
 
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
-            if not iterable(ts):
+            if not has_len(ts):
                 ts = [ts]
             ts = DatasetSeries(ts)
         return ts

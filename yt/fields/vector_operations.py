@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import iterable, just_one
+from yt.funcs import has_len, just_one
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 from yt.utilities.math_utils import (
@@ -105,7 +105,7 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
         else:
             fns = field_comps
         ax = data.get_field_parameter("axis")
-        if iterable(ax):
+        if has_len(ax):
             # Make sure this is a unit vector
             ax /= np.sqrt(np.dot(ax, ax))
             ret = data[fns[0]] * ax[0] + data[fns[1]] * ax[1] + data[fns[2]] * ax[2]

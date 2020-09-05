@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.data_objects.api import ImageArray
-from yt.funcs import iterable, mylog
+from yt.funcs import has_len, mylog
 from yt.units.unit_object import Unit
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.lib.pixelization_routines import (
@@ -332,10 +332,10 @@ def off_axis_projection(
     vol.set_transfer_function(ptf)
     camera = sc.add_camera(data_source)
     camera.set_width(width)
-    if not iterable(resolution):
+    if not has_len(resolution):
         resolution = [resolution] * 2
     camera.resolution = resolution
-    if not iterable(width):
+    if not has_len(width):
         width = data_source.ds.arr([width] * 3)
     normal = np.array(normal_vector)
     normal = normal / np.linalg.norm(normal)

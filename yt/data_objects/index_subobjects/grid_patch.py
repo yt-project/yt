@@ -8,7 +8,7 @@ from yt.config import ytcfg
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
-from yt.funcs import iterable
+from yt.funcs import has_len
 from yt.geometry.selection_routines import convert_mask_to_indices
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import (
@@ -170,7 +170,7 @@ class AMRGridPatch(YTSelectionContainer):
         # This can be expensive so we allow people to disable this behavior
         # via a config option
         if RECONSTRUCT_INDEX:
-            if iterable(self.Parent) and len(self.Parent) > 0:
+            if has_len(self.Parent) and len(self.Parent) > 0:
                 p = self.Parent[0]
             else:
                 p = self.Parent

@@ -3,7 +3,7 @@ from numbers import Number
 
 import numpy as np
 
-from yt.funcs import fix_unitary, iterable, validate_width_tuple
+from yt.funcs import fix_unitary, has_len, validate_width_tuple
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTCoordinateNotImplemented, YTInvalidWidthError
 
@@ -198,7 +198,7 @@ class CoordinateHandler:
         raise NotImplementedError
 
     def sanitize_depth(self, depth):
-        if iterable(depth):
+        if has_len(depth):
             validate_width_tuple(depth)
             depth = (self.ds.quan(depth[0], fix_unitary(depth[1])),)
         elif isinstance(depth, Number):
@@ -216,7 +216,7 @@ class CoordinateHandler:
             # initialize the index if it is not already initialized
             self.ds.index
             # Default to code units
-            if not iterable(axis):
+            if not has_len(axis):
                 xax = self.x_axis[axis]
                 yax = self.y_axis[axis]
                 w = self.ds.domain_width[np.array([xax, yax])]
@@ -226,7 +226,7 @@ class CoordinateHandler:
                 mi = np.argmin(self.ds.domain_width)
                 w = self.ds.domain_width[np.array((mi, mi))]
             width = (w[0], w[1])
-        elif iterable(width):
+        elif has_len(width):
             width = validate_iterable_width(width, self.ds)
         elif isinstance(width, YTQuantity):
             width = (width, width)
@@ -256,7 +256,7 @@ class CoordinateHandler:
                 raise RuntimeError(f'center keyword "{center}" not recognized')
         elif isinstance(center, YTArray):
             return self.ds.arr(center), self.convert_to_cartesian(center)
-        elif iterable(center):
+        elif has_len(center):
             if isinstance(center[0], str) and isinstance(center[1], str):
                 if center[0].lower() == "min":
                     v, center = self.ds.find_min(center[1])
@@ -265,7 +265,7 @@ class CoordinateHandler:
                 else:
                     raise RuntimeError(f'center keyword "{center}" not recognized')
                 center = self.ds.arr(center, "code_length")
-            elif iterable(center[0]) and isinstance(center[1], str):
+            elif has_len(center[0]) and isinstance(center[1], str):
                 center = self.ds.arr(center[0], center[1])
             else:
                 center = self.ds.arr(center, "code_length")

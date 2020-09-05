@@ -34,7 +34,18 @@ from yt.utilities.logger import ytLogger as mylog
 # Some functions for handling sequences and other types
 
 
-def iterable(obj):
+def is_iterable(obj):
+    """Whether obj is iterable (bool)."""
+    try:
+        iter(obj)
+        return True
+    except TypeError:
+        return False
+
+
+def has_len(obj):
+    # todo : deprecate this in favour of is_iterable
+    # this was previously named "iterable" which was both confusing and inaccurate
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
@@ -109,7 +120,7 @@ def just_one(obj):
         if isinstance(obj, YTArray):
             return YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
         return obj.flat[0]
-    elif iterable(obj):
+    elif has_len(obj):
         return obj[0]
     return obj
 
@@ -1005,7 +1016,7 @@ def ensure_dir(path):
 
 
 def validate_width_tuple(width):
-    if not iterable(width) or len(width) != 2:
+    if not has_len(width) or len(width) != 2:
         raise YTInvalidWidthError(f"width ({width}) is not a two element tuple")
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
@@ -1338,7 +1349,7 @@ def issue_deprecation_warning(msg, stacklevel=3):
 
 
 def obj_length(v):
-    if iterable(v):
+    if has_len(v):
         return len(v)
     else:
         # If something isn't iterable, we return 0
@@ -1367,7 +1378,7 @@ def array_like_field(data, x, field):
 
 
 def validate_3d_array(obj):
-    if not iterable(obj) or len(obj) != 3:
+    if not has_len(obj) or len(obj) != 3:
         raise TypeError(
             "Expected an array of size (3,), received '%s' of "
             "length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1419,7 +1430,7 @@ def validate_float(obj):
             )
         else:
             return
-    if iterable(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
+    if has_len(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
             "received '%s' of length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1427,7 +1438,7 @@ def validate_float(obj):
 
 
 def validate_iterable(obj):
-    if obj is not None and not iterable(obj):
+    if obj is not None and not has_len(obj):
         raise TypeError(
             "Expected an iterable object,"
             " received '%s'" % str(type(obj)).split("'")[1]
@@ -1467,7 +1478,7 @@ def validate_center(center):
                 "'m', 'max', 'min'] or the prefix to be "
                 "'max_'/'min_', received '%s'." % center
             )
-    elif not isinstance(center, (numeric_type, YTQuantity)) and not iterable(center):
+    elif not isinstance(center, (numeric_type, YTQuantity)) and not has_len(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "

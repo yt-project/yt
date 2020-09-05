@@ -11,9 +11,9 @@ from yt.fields.derived_field import DerivedField
 from yt.funcs import (
     ensure_list,
     fix_axis,
+    has_len,
     issue_deprecation_warning,
     iter_fields,
-    iterable,
     mylog,
 )
 from yt.units import dimensions
@@ -327,7 +327,7 @@ class FITSImageData:
             else:
                 # If img_data is just an array we use the width and img_ctr
                 # parameters to determine the cell widths
-                if not iterable(width):
+                if not has_len(width):
                     width = [width] * self.dimensionality
                 if isinstance(width[0], YTQuantity):
                     cdelt = [
@@ -854,7 +854,7 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     else:
         width = ds.coordinates.sanitize_width(axis, width, None)
         unit = str(width[0].units)
-    if iterable(image_res):
+    if has_len(image_res):
         nx, ny = image_res
     else:
         nx, ny = image_res, image_res
@@ -873,12 +873,12 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     cunit = [length_unit] * 2
     ctype = ["LINEAR"] * 2
     cdelt = [dx.in_units(length_unit), dy.in_units(length_unit)]
-    if iterable(axis):
+    if has_len(axis):
         crval = center.in_units(length_unit)
     else:
         crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
     if hasattr(data_source, "to_frb"):
-        if iterable(axis):
+        if has_len(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
         else:
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
@@ -1245,7 +1245,7 @@ class FITSOffAxisProjection(FITSImageData):
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
         wd = tuple(el.in_units("code_length").v for el in width)
-        if not iterable(image_res):
+        if not has_len(image_res):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1])
         if data_source is None:

@@ -20,9 +20,9 @@ from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
 from yt.funcs import (
+    has_len,
     issue_deprecation_warning,
     iter_fields,
-    iterable,
     mylog,
     set_intersection,
     setdefaultattr,
@@ -1880,7 +1880,7 @@ class ParticleDataset(Dataset):
 def validate_index_order(index_order):
     if index_order is None:
         index_order = (7, 5)
-    elif not iterable(index_order):
+    elif not has_len(index_order):
         index_order = (int(index_order), 1)
     else:
         if len(index_order) != 2:

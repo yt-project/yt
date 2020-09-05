@@ -8,7 +8,7 @@ from yt.funcs import (
     get_brewer_cmap,
     get_image_suffix,
     get_interactivity,
-    iterable,
+    has_len,
     matplotlib_style_context,
     mylog,
 )
@@ -74,7 +74,7 @@ class PlotMPL:
 
         self._plot_valid = True
         if figure is None:
-            if not iterable(fsize):
+            if not has_len(fsize):
                 fsize = (fsize, fsize)
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
         else:
@@ -346,7 +346,7 @@ class ImagePlotMPL(PlotMPL):
     def _get_best_layout(self):
 
         # Ensure the figure size along the long axis is always equal to _figure_size
-        if iterable(self._figure_size):
+        if has_len(self._figure_size):
             x_fig_size = self._figure_size[0]
             y_fig_size = self._figure_size[1]
         else:

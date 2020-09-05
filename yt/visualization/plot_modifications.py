@@ -11,7 +11,7 @@ from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTClumpContainer
-from yt.funcs import iterable, mylog, validate_width_tuple
+from yt.funcs import has_len, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
@@ -1380,7 +1380,7 @@ class ArrowCallback(PlotCallback):
                 "the length keyword in 'axis' units instead. "
                 "Setting code_size overrides length value."
             )
-            if iterable(self.code_size):
+            if has_len(self.code_size):
                 self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
                 self.code_size = np.float64(self.code_size.in_units(plot.xlim[0].units))
             self.code_size = self.code_size * self._pixel_scale(plot)[0]
@@ -1588,7 +1588,7 @@ class SphereCallback(PlotCallback):
     def __call__(self, plot):
         from matplotlib.patches import Circle
 
-        if iterable(self.radius):
+        if has_len(self.radius):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
             self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
         if isinstance(self.radius, YTQuantity):
@@ -2042,7 +2042,7 @@ class ParticleCallback(PlotCallback):
 
     def __call__(self, plot):
         data = plot.data
-        if iterable(self.width):
+        if has_len(self.width):
             validate_width_tuple(self.width)
             self.width = plot.data.ds.quan(self.width[0], self.width[1])
         elif isinstance(self.width, YTQuantity):
