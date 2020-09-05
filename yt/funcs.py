@@ -46,6 +46,12 @@ def iterable(obj):
     return True
 
 
+def iter_fields(obj):
+    from more_itertools import always_iterable
+
+    return always_iterable(obj, base_type=(tuple, str, bytes))
+
+
 def ensure_list(obj):
     """
     This function ensures that *obj* is a list.  Typically used to convert a

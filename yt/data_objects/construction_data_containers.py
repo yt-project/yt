@@ -19,7 +19,14 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 from yt.extern.tqdm import tqdm
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import ensure_list, get_memory_usage, iterable, mylog, only_on_root
+from yt.funcs import (
+    ensure_list,
+    get_memory_usage,
+    iter_fields,
+    iterable,
+    mylog,
+    only_on_root,
+)
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
@@ -205,7 +212,7 @@ class YTProj(YTSelectionContainer2D):
             self.weight_field = self._determine_fields(weight_field)[0]
 
         field = field or []
-        field = self._determine_fields(ensure_list(field))
+        field = self._determine_fields(field)
 
         for f in field:
             nodal_flag = self.ds._get_field_info(f).nodal_flag
@@ -1143,7 +1150,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         if length_unit is None:
             length_unit = self.ds.length_unit
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         fid = FITSImageData(self, fields, length_unit=length_unit)
         return fid
 
