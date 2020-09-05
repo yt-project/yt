@@ -91,19 +91,6 @@ def iter_fields(field_or_fields):
     return always_iterable(field_or_fields, base_type=(tuple, str, bytes))
 
 
-def ensure_list(obj):
-    """
-    This function ensures that *obj* is a list.  Typically used to convert a
-    string to a list, for instance ensuring the *fields* as an argument is a
-    list.
-    """
-    if obj is None:
-        return [obj]
-    if not isinstance(obj, list):
-        return [obj]
-    return obj
-
-
 def ensure_numpy_array(obj):
     """
     This function ensures that *obj* is a numpy array. Typically used to
