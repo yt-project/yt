@@ -8,7 +8,14 @@ import numpy as np
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import ensure_list, fix_axis, issue_deprecation_warning, iterable, mylog
+from yt.funcs import (
+    ensure_list,
+    fix_axis,
+    issue_deprecation_warning,
+    iter_fields,
+    iterable,
+    mylog,
+)
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity
@@ -128,7 +135,7 @@ class FITSImageData:
         """
 
         if fields is not None:
-            fields = ensure_list(fields)
+            fields = list(iter_fields(fields))
 
         if "units" in kwargs:
             issue_deprecation_warning(
@@ -977,7 +984,7 @@ class FITSSlice(FITSImageData):
         length_unit=None,
         **kwargs,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
@@ -1051,7 +1058,7 @@ class FITSProjection(FITSImageData):
         length_unit=None,
         **kwargs,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
@@ -1128,7 +1135,7 @@ class FITSOffAxisSlice(FITSImageData):
         north_vector=None,
         length_unit=None,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         cut = ds.cutting(normal, center, north_vector=north_vector)
         center = ds.arr([0.0] * 2, "code_length")
@@ -1233,7 +1240,7 @@ class FITSOffAxisProjection(FITSImageData):
         method="integrate",
         length_unit=None,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
