@@ -7,11 +7,18 @@ from functools import wraps
 
 import matplotlib
 import numpy as np
+from more_itertools.more import always_iterable
 
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
-from yt.funcs import ensure_list, get_image_suffix, has_len, matplotlib_style_context
+from yt.funcs import (
+    ensure_list,
+    get_image_suffix,
+    has_len,
+    iter_fields,
+    matplotlib_style_context,
+)
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
@@ -237,7 +244,7 @@ class ProfilePlot:
     ):
 
         data_source = data_object_or_all_data(data_source)
-        y_fields = ensure_list(y_fields)
+        y_fields = list(iter_fields(y_fields))
         logs = {x_field: bool(x_log)}
         if isinstance(y_log, bool):
             y_log = {y_field: y_log for y_field in y_fields}
@@ -426,7 +433,7 @@ class ProfilePlot:
 
         obj._font_properties = FontProperties(family="stixgeneral", size=18)
         obj._font_color = None
-        obj.profiles = ensure_list(profiles)
+        obj.profiles = list(always_iterable(profiles))
         obj.x_log = None
         obj.y_log = sanitize_field_tuple_keys(y_log, obj.profiles[0].data_source) or {}
         obj.y_title = {}
@@ -953,7 +960,7 @@ class PhasePlot(ImagePlotContainer):
             profile = create_profile(
                 data_source,
                 [x_field, y_field],
-                ensure_list(z_fields),
+                list(always_iterable(z_fields)),
                 n_bins=[x_bins, y_bins],
                 weight_field=weight_field,
                 accumulation=accumulation,
