@@ -3,7 +3,7 @@ import sys
 from numbers import Number as numeric_type
 
 import numpy as np
-from more_itertools import always_iterable, first, mark_ends
+from more_itertools import first, mark_ends
 
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
@@ -721,12 +721,13 @@ class FITSImageData:
         image_list : list of FITSImageData instances
             The images to be combined.
         """
-        image_list = always_iterable(image_list)
+        image_list = image_list if isinstance(image_list, list) else [image_list]
         first_image = first(image_list)
+
         w = first_image.wcs
         img_shape = first_image.shape
         data = []
-        for is_first, _, fid in mark_ends(image_list):
+        for is_first, _is_last, fid in mark_ends(image_list):
             assert_same_wcs(w, fid.wcs)
             if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
