@@ -703,10 +703,7 @@ class ProfilePlot:
         >>> pp.save()
 
         """
-        if field == "all":
-            fields = list(self.axes.keys())
-        else:
-            fields = ensure_list(field)
+        fields = list(self.axes.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -787,10 +784,7 @@ class ProfilePlot:
                                 ["temperature", "dark_matter_density"])
 
         """
-        if field == "all":
-            fields = list(self.axes.keys())
-        else:
-            fields = ensure_list(field)
+        fields = list(self.axes.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -840,10 +834,7 @@ class ProfilePlot:
         >>>  plot.save()
 
         """
-        if field == "all":
-            fields = list(self.axes.keys())
-        else:
-            fields = ensure_list(field)
+        fields = list(self.axes.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
