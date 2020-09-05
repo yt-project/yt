@@ -22,6 +22,7 @@ from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
 from yt.funcs import (
     ensure_list,
     issue_deprecation_warning,
+    iter_fields,
     iterable,
     mylog,
     set_intersection,
@@ -992,7 +993,7 @@ class Dataset(abc.ABC):
         except AttributeError:
             pass
 
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         out = []
 
         # This may be slow because it creates a data object for each point
