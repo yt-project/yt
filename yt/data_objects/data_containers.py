@@ -1006,14 +1006,10 @@ class YTDataContainer:
         >>> max_temp_proj = reg.max("temperature", axis="x")
         """
         if axis is None:
-            rv = ()
-            fields = ensure_list(field)
-            for f in fields:
-                rv += (self._compute_extrema(f)[1],)
-            if len(fields) == 1:
+            rv = tuple(self._compute_extrema(f)[1] for f in iter_fields(field))
+            if len(rv) == 1:
                 return rv[0]
-            else:
-                return rv
+            return rv
         elif axis in self.ds.coordinates.axis_name:
             r = self.ds.proj(field, axis, data_source=self, method="mip")
             return r
@@ -1044,14 +1040,9 @@ class YTDataContainer:
         >>> min_temp = reg.min("temperature")
         """
         if axis is None:
-            rv = ()
-            fields = ensure_list(field)
-            for f in ensure_list(fields):
-                rv += (self._compute_extrema(f)[0],)
-            if len(fields) == 1:
+            rv = tuple(self._compute_extrema(f)[0] for f in iter_fields(field))
+            if len(rv) == 1:
                 return rv[0]
-            else:
-                return rv
             return rv
         elif axis in self.ds.coordinates.axis_name:
             raise NotImplementedError(
