@@ -105,7 +105,7 @@ def accepts_all_fields(func):
         if field == "all":
             field = self.plots.keys()
         for f in self.data_source._determine_fields(field):
-            func(self, field, *args, **kwargs)
+            func(self, f, *args, **kwargs)
         return self
 
     return newfunc
