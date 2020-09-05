@@ -3,12 +3,14 @@ import weakref
 from contextlib import contextmanager
 
 import numpy as np
+from more_itertools import always_iterable
+from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, iterable, mylog
+from yt.funcs import get_output_filename, has_len, mylog
 from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
