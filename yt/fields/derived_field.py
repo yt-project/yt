@@ -6,7 +6,7 @@ import warnings
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
-from yt.funcs import VisibleDeprecationWarning, ensure_list
+from yt.funcs import VisibleDeprecationWarning, iter_fields
 from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 
@@ -481,7 +481,7 @@ class ValidateParameter(FieldValidator):
         is available for all permutations of the field parameter.
         """
         FieldValidator.__init__(self)
-        self.parameters = ensure_list(parameters)
+        self.parameters = list(always_iterable(parameters))
         self.parameter_values = parameter_values
 
     def __call__(self, data):
@@ -501,7 +501,7 @@ class ValidateDataField(FieldValidator):
         in it.
         """
         FieldValidator.__init__(self)
-        self.fields = ensure_list(field)
+        self.fields = list(iter_fields(field))
 
     def __call__(self, data):
         doesnt_have = []
@@ -521,7 +521,7 @@ class ValidateProperty(FieldValidator):
         This validator ensures that the data object has a given python attribute.
         """
         FieldValidator.__init__(self)
-        self.prop = ensure_list(prop)
+        self.prop = list(always_iterable(prop))
 
     def __call__(self, data):
         doesnt_have = []
