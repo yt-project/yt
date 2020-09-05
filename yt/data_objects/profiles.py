@@ -4,9 +4,9 @@ from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
-    ensure_list,
     get_output_filename,
     issue_deprecation_warning,
+    iter_fields,
     iterable,
     mylog,
 )
@@ -566,7 +566,6 @@ class Profile1D(ProfileND):
         if fields is None:
             fields = self.field_data.keys()
         else:
-            fields = ensure_list(fields)
             fields = self.data_source._determine_fields(fields)
         return idxs, masked, fields
 
@@ -1271,7 +1270,7 @@ def create_profile(
 
     """
     bin_fields = data_source._determine_fields(bin_fields)
-    fields = ensure_list(fields)
+    fields = list(iter_fields(fields))
     is_pfield = [
         data_source.ds._get_field_info(f).sampling_type == "particle"
         for f in bin_fields + fields
