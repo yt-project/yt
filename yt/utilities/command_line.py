@@ -14,6 +14,7 @@ import urllib.request
 from urllib.parse import urlparse
 
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.config import CURRENT_CONFIG_FILE, ytcfg
 from yt.extern.tqdm import tqdm
@@ -22,7 +23,6 @@ from yt.funcs import (
     enable_plugins,
     ensure_dir,
     ensure_dir_exists,
-    ensure_list,
     get_hg_or_git_version,
     get_yt_version,
     mylog,
@@ -180,31 +180,29 @@ _subparsers_description = {
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
-        if cls.name is not None:
-            names = ensure_list(cls.name)
-            if cls.subparser not in _subparsers:
-                try:
-                    description = _subparsers_description[cls.subparser]
-                except KeyError:
-                    description = cls.subparser
-                parent_parser = argparse.ArgumentParser(add_help=False)
-                p = subparsers.add_parser(
-                    cls.subparser,
-                    help=description,
-                    description=description,
-                    parents=[parent_parser],
-                )
-                _subparsers[cls.subparser] = p.add_subparsers(
-                    title=cls.subparser, dest=cls.subparser
-                )
-            sp = _subparsers[cls.subparser]
-            for name in names:
-                sc = sp.add_parser(
-                    name, description=cls.description, help=cls.description
-                )
-                sc.set_defaults(func=cls.run)
-                for arg in cls.args:
-                    _add_arg(sc, arg)
+        if cls.name is None:
+            return
+        if cls.subparser not in _subparsers:
+            try:
+                description = _subparsers_description[cls.subparser]
+            except KeyError:
+                description = cls.subparser
+            parent_parser = argparse.ArgumentParser(add_help=False)
+            p = subparsers.add_parser(
+                cls.subparser,
+                help=description,
+                description=description,
+                parents=[parent_parser],
+            )
+            _subparsers[cls.subparser] = p.add_subparsers(
+                title=cls.subparser, dest=cls.subparser
+            )
+        sp = _subparsers[cls.subparser]
+        for name in always_iterable(cls.name):
+            sc = sp.add_parser(name, description=cls.description, help=cls.description)
+            sc.set_defaults(func=cls.run)
+            for arg in cls.args:
+                _add_arg(sc, arg)
 
 
 class YTCommand(metaclass=YTCommandSubtype):
@@ -1269,11 +1267,11 @@ class YTPlotCmd(YTCommand):
         center = np.array(center)
         if ds.dimensionality < 3:
             dummy_dimensions = np.nonzero(ds.index.grids[0].ActiveDimensions <= 1)
-            axes = ensure_list(dummy_dimensions[0][0])
+            axes = dummy_dimensions[0][0]
         elif args.axis == 4:
             axes = range(3)
         else:
-            axes = [args.axis]
+            axes = args.axis
 
         unit = args.unit
         if unit is None:
@@ -1283,7 +1281,7 @@ class YTPlotCmd(YTCommand):
         else:
             width = (args.width, args.unit)
 
-        for ax in axes:
+        for ax in always_iterable(axes):
             mylog.info("Adding plot for axis %i", ax)
             if args.projection:
                 plt = ProjectionPlot(
