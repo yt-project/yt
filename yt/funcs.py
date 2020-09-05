@@ -25,7 +25,7 @@ from numbers import Number as numeric_type
 
 import matplotlib
 import numpy as np
-from more_itertools import always_iterable
+from more_itertools import always_iterable, collapse, first
 
 from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
@@ -144,13 +144,7 @@ def read_struct(f, fmt):
 
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item
-    if hasattr(obj, "flat"):
-        if isinstance(obj, YTArray):
-            return YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
-        return obj.flat[0]
-    elif has_len(obj):
-        return obj[0]
-    return obj
+    return first(collapse(obj))
 
 
 def compare_dicts(dict1, dict2):
