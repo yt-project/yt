@@ -3,7 +3,7 @@ import sys
 from numbers import Number as numeric_type
 
 import numpy as np
-from more_itertools.more import always_iterable, first, mark_ends
+from more_itertools import always_iterable, first, mark_ends
 
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
