@@ -1,7 +1,8 @@
 import numpy as np
 from matplotlib.cm import get_cmap
+from more_itertools import always_iterable
 
-from yt.funcs import ensure_list, mylog
+from yt.funcs import mylog
 from yt.utilities.physical_constants import clight, hcgs, kboltz
 
 
@@ -354,8 +355,7 @@ class MultiVariateTransferFunction:
         >>> mv.add_field_table(tf, 0)
         >>> mv.link_channels(0, [0,1,2])
         """
-        channels = ensure_list(channels)
-        for c in channels:
+        for c in always_iterable(channels):
             self.field_table_ids[c] = table_id
 
 
