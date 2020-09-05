@@ -1,21 +1,14 @@
 import re
 import sys
-from itertools import count
 from numbers import Number as numeric_type
 
 import numpy as np
+from more_itertools.more import always_iterable, first, mark_ends
 
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import (
-    ensure_list,
-    fix_axis,
-    has_len,
-    issue_deprecation_warning,
-    iter_fields,
-    mylog,
-)
+from yt.funcs import fix_axis, has_len, issue_deprecation_warning, iter_fields, mylog
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity
@@ -251,8 +244,9 @@ class FITSImageData:
                         )
                     self.fields[i] = f"{ftype}_{fname}"
 
-        first = True
-        for i, name, field in zip(count(), self.fields, fields):
+        for is_first, _is_last, (i, (name, field)) in mark_ends(
+            enumerate(zip(self.fields, fields))
+        ):
             if name not in exclude_fields:
                 this_img = img_data[field]
                 if hasattr(img_data[field], "units"):
@@ -276,9 +270,8 @@ class FITSImageData:
                     if i == 0:
                         self.shape = this_img.shape
                     this_img = np.asarray(this_img.T)
-                if first:
+                if is_first:
                     hdu = _astropy.pyfits.PrimaryHDU(this_img)
-                    first = False
                 else:
                     hdu = _astropy.pyfits.ImageHDU(this_img)
                 hdu.name = name
@@ -728,23 +721,22 @@ class FITSImageData:
         image_list : list of FITSImageData instances
             The images to be combined.
         """
-        image_list = ensure_list(image_list)
-        w = image_list[0].wcs
-        img_shape = image_list[0].shape
+        image_list = always_iterable(image_list)
+        first_image = first(image_list)
+        w = first_image.wcs
+        img_shape = first_image.shape
         data = []
-        first = True
-        for fid in image_list:
+        for is_first, _, fid in mark_ends(image_list):
             assert_same_wcs(w, fid.wcs)
             if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
             for hdu in fid.hdulist:
-                if first:
+                if is_first:
                     data.append(_astropy.pyfits.PrimaryHDU(hdu.data, header=hdu.header))
-                    first = False
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
         data = _astropy.pyfits.HDUList(data)
-        return cls(data, current_time=image_list[0].current_time)
+        return cls(data, current_time=first_image.current_time)
 
     def create_sky_wcs(
         self,
