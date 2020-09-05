@@ -4,7 +4,7 @@ from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
-from yt.funcs import ensure_list
+from more_itertools import always_iterable
 from yt.utilities.exceptions import (
     YTDataSelectorNotImplemented,
     YTNonIndexedDataContainer,
@@ -29,8 +29,8 @@ class ParticleContainer(YTSelectionContainer):
             overlap_files = []
         self.field_data = YTFieldData()
         self.field_parameters = {}
-        self.data_files = ensure_list(data_files)
-        self.overlap_files = ensure_list(overlap_files)
+        self.data_files = list(always_iterable(data_files))
+        self.overlap_files = list(always_iterable(overlap_files))
         self.ds = self.data_files[0].ds
         self._last_mask = None
         self._last_selector_id = None
