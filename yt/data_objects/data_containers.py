@@ -544,7 +544,6 @@ class YTDataContainer:
         from astropy.table import QTable
 
         t = QTable()
-        fields = ensure_list(fields)
         fields = self._determine_fields(fields)
         for field in fields:
             t[field[-1]] = self[field].to_astropy()
