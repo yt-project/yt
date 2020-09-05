@@ -145,3 +145,9 @@ def test_nested_dict_get():
 
     my_def = "devron"
     assert nested_dict_get(my_dict, "system", default=my_def) == my_def
+
+
+def test_nested_dict_get_real_none():
+    my_dict = {"a": None}
+    response = nested_dict_get(my_dict, "a", default="fail")
+    assert response is None
