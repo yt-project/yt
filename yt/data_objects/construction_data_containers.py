@@ -19,14 +19,7 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 from yt.extern.tqdm import tqdm
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import (
-    ensure_list,
-    get_memory_usage,
-    iter_fields,
-    iterable,
-    mylog,
-    only_on_root,
-)
+from yt.funcs import get_memory_usage, iter_fields, iterable, mylog, only_on_root
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
@@ -230,8 +223,7 @@ class YTProj(YTSelectionContainer2D):
         return [k for k in self.field_data.keys() if k not in self._container_fields]
 
     def get_data(self, fields=None):
-        fields = fields or []
-        fields = self._determine_fields(ensure_list(fields))
+        fields = self._determine_fields(fields)
         # We need a new tree for every single set of fields we add
         if len(fields) == 0:
             return
@@ -793,7 +785,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def get_data(self, fields=None):
         if fields is None:
             return
-        fields = self._determine_fields(ensure_list(fields))
+        fields = self._determine_fields(fields)
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0:
