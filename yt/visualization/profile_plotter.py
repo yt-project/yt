@@ -7,7 +7,7 @@ from functools import wraps
 
 import matplotlib
 import numpy as np
-from more_itertools.more import always_iterable
+from more_itertools.more import always_iterable, unzip
 
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
@@ -101,20 +101,30 @@ class AxesContainer(OrderedDict):
         self.ylim[key] = (None, None)
 
 
-def sanitize_label(label, nprofiles):
-    label = ensure_list(label)
+def sanitize_label(labels, nprofiles):
+    labels = ensure_list(labels)
 
-    if len(label) == 1:
-        label = label * nprofiles
+    if len(labels) == 1:
+        labels = labels * nprofiles
 
-    if len(label) != nprofiles:
-        raise RuntimeError("Number of labels must match number of profiles")
+    if len(labels) != nprofiles:
+        raise ValueError(
+            f"Number of labels {len(labels)} must match number of profiles {nprofiles}"
+        )
 
-    for l in label:
-        if l is not None and not isinstance(l, str):
-            raise RuntimeError("All labels must be None or a string")
+    invalid_data = [
+        (label, type(label))
+        for label in labels
+        if label is not None and not isinstance(label, str)
+    ]
+    if invalid_data:
+        invalid_labels, types = unzip(invalid_data)
+        raise TypeError(
+            "All labels must be None or a string, "
+            f"received {invalid_labels} with type {types}"
+        )
 
-    return label
+    return labels
 
 
 def data_object_or_all_data(data_source):
