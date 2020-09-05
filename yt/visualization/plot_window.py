@@ -16,6 +16,7 @@ from yt.funcs import (
     fix_axis,
     fix_unitary,
     issue_deprecation_warning,
+    iter_fields,
     iterable,
     mylog,
     obj_length,
@@ -204,10 +205,8 @@ class PlotWindow(ImagePlotContainer):
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
-        if fields is None:
-            fields = []
-        else:
-            fields = ensure_list(fields)
+
+        fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
@@ -2087,7 +2086,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
         )
-        fields = ensure_list(fields)[:]
+        fields = list(iter_fields(fields))[:]
         oap_width = ds.arr(
             (bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
         )
