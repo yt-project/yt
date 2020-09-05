@@ -3,6 +3,8 @@ import inspect
 import re
 import warnings
 
+from more_itertools import always_iterable
+
 import yt.units.dimensions as ytdims
 from yt.funcs import VisibleDeprecationWarning, ensure_list
 from yt.units.unit_object import Unit
@@ -136,10 +138,7 @@ class DerivedField:
 
         self._function = function
 
-        if validators:
-            self.validators = ensure_list(validators)
-        else:
-            self.validators = []
+        self.validators = list(always_iterable(validators))
 
         # handle units
         if units is None:
