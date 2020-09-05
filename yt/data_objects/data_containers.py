@@ -515,7 +515,6 @@ class YTDataContainer:
         import pandas as pd
 
         data = {}
-        fields = ensure_list(fields)
         fields = self._determine_fields(fields)
         for field in fields:
             data[field[-1]] = self[field]
@@ -1437,10 +1436,9 @@ class YTDataContainer:
         raise YTFieldNotParseable(field)
 
     def _determine_fields(self, fields):
-        from more_itertools import collapse
 
         explicit_fields = []
-        for field in collapse(fields, base_type=tuple, levels=1):
+        for field in iter_fields(fields):
             if field in self._container_fields:
                 explicit_fields.append(field)
                 continue
