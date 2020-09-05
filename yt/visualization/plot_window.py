@@ -6,13 +6,13 @@ from numbers import Number
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from more_itertools import always_iterable, zip_equal
 from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import (
-    ensure_list,
     fix_axis,
     fix_unitary,
     has_len,
@@ -420,13 +420,7 @@ class PlotWindow(ImagePlotContainer):
         if equivalency_kwargs is None:
             equivalency_kwargs = {}
         field = self.data_source._determine_fields(field)[0]
-        field = ensure_list(field)
-        new_unit = ensure_list(new_unit)
-        if len(field) > 1 and len(new_unit) != len(field):
-            raise RuntimeError(
-                f"Field list {field} and unit list {new_unit} are incompatible"
-            )
-        for f, u in zip(field, new_unit):
+        for f, u in zip_equal(iter_fields(field), always_iterable(new_unit)):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
             self._equivalencies[f] = (equivalency, equivalency_kwargs)
         return self
