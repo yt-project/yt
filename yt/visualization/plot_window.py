@@ -15,7 +15,7 @@ from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import (
     fix_axis,
     fix_unitary,
-    has_len,
+    is_sequence,
     issue_deprecation_warning,
     iter_fields,
     mylog,
@@ -101,10 +101,10 @@ def get_axes_unit(width, ds):
     """
     if ds.no_cgs_equiv_length:
         return ("code_length",) * 2
-    if has_len(width):
+    if is_sequence(width):
         if isinstance(width[1], str):
             axes_unit = (width[1], width[1])
-        elif has_len(width[1]):
+        elif is_sequence(width[1]):
             axes_unit = (width[0][1], width[1][1])
         elif isinstance(width[0], YTArray):
             axes_unit = (str(width[0].units), str(width[1].units))
@@ -675,7 +675,7 @@ class PlotWindow(ImagePlotContainer):
         )
         if new_center is None:
             self.center = None
-        elif has_len(new_center):
+        elif is_sequence(new_center):
             if len(new_center) != 2:
                 raise error
             for el in new_center:
@@ -709,7 +709,7 @@ class PlotWindow(ImagePlotContainer):
             The number of data elements in the buffer on the x and y axes.
             If a scalar is provided,  then the buffer is assumed to be square.
         """
-        if has_len(size):
+        if is_sequence(size):
             self.buff_size = size
         else:
             self.buff_size = (size, size)
@@ -2165,7 +2165,7 @@ class WindowPlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        if has_len(figure_size):
+        if is_sequence(figure_size):
             fsize = figure_size[0]
         else:
             fsize = figure_size
@@ -2363,7 +2363,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if has_len(normal) and not isinstance(normal, str):
+    if is_sequence(normal) and not isinstance(normal, str):
         if np.count_nonzero(normal) == 1:
             normal = ("x", "y", "z")[np.nonzero(normal)[0][0]]
         else:
@@ -2371,7 +2371,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal, normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if has_len(normal) and not isinstance(normal, str):
+    if is_sequence(normal) and not isinstance(normal, str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if "origin" in kwargs:
             mylog.warning(

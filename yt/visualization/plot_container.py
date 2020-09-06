@@ -12,7 +12,7 @@ from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import (
     ensure_dir,
     get_image_suffix,
-    has_len,
+    is_sequence,
     issue_deprecation_warning,
     iter_fields,
     mylog,
@@ -220,7 +220,7 @@ class PlotContainer:
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
-        if has_len(figure_size):
+        if is_sequence(figure_size):
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
@@ -321,7 +321,7 @@ class PlotContainer:
 
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
-            if not has_len(ts):
+            if not is_sequence(ts):
                 ts = [ts]
             ts = DatasetSeries(ts)
         return ts

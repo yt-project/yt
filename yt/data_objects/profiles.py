@@ -5,7 +5,7 @@ from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
     get_output_filename,
-    has_len,
+    is_sequence,
     issue_deprecation_warning,
     iter_fields,
     mylog,
@@ -1338,9 +1338,9 @@ def create_profile(
         wf = data_source.ds._get_field_info(weight_field)
         if not wf.sampling_type == "particle":
             weight_field = None
-    if not has_len(n_bins):
+    if not is_sequence(n_bins):
         n_bins = [n_bins] * len(bin_fields)
-    if not has_len(accumulation):
+    if not is_sequence(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
         logs = {}
@@ -1406,10 +1406,10 @@ def create_profile(
                     fe = data_source.ds.arr(field_ex, bf_units)
             fe.convert_to_units(bf_units)
             field_ex = [fe[0].v, fe[1].v]
-            if has_len(field_ex[0]):
+            if is_sequence(field_ex[0]):
                 field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
-            if has_len(field_ex[1]):
+            if is_sequence(field_ex[1]):
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)

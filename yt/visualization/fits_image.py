@@ -8,7 +8,13 @@ from more_itertools import first, mark_ends
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import fix_axis, has_len, issue_deprecation_warning, iter_fields, mylog
+from yt.funcs import (
+    fix_axis,
+    is_sequence,
+    issue_deprecation_warning,
+    iter_fields,
+    mylog,
+)
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity
@@ -320,7 +326,7 @@ class FITSImageData:
             else:
                 # If img_data is just an array we use the width and img_ctr
                 # parameters to determine the cell widths
-                if not has_len(width):
+                if not is_sequence(width):
                     width = [width] * self.dimensionality
                 if isinstance(width[0], YTQuantity):
                     cdelt = [
@@ -847,7 +853,7 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     else:
         width = ds.coordinates.sanitize_width(axis, width, None)
         unit = str(width[0].units)
-    if has_len(image_res):
+    if is_sequence(image_res):
         nx, ny = image_res
     else:
         nx, ny = image_res, image_res
@@ -866,12 +872,12 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     cunit = [length_unit] * 2
     ctype = ["LINEAR"] * 2
     cdelt = [dx.in_units(length_unit), dy.in_units(length_unit)]
-    if has_len(axis):
+    if is_sequence(axis):
         crval = center.in_units(length_unit)
     else:
         crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
     if hasattr(data_source, "to_frb"):
-        if has_len(axis):
+        if is_sequence(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
         else:
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
@@ -1238,7 +1244,7 @@ class FITSOffAxisProjection(FITSImageData):
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
         wd = tuple(el.in_units("code_length").v for el in width)
-        if not has_len(image_res):
+        if not is_sequence(image_res):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1])
         if data_source is None:

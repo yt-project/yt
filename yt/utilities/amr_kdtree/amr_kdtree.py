@@ -2,7 +2,7 @@ import operator
 
 import numpy as np
 
-from yt.funcs import has_len, mylog
+from yt.funcs import is_sequence, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.amr_kdtree.amr_kdtools import (
     receive_and_reduce,
@@ -214,7 +214,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             or self.fields != new_fields
             or force
         )
-        if not has_len(log_fields):
+        if not is_sequence(log_fields):
             log_fields = [log_fields]
         new_log_fields = list(log_fields)
         self.tree.trunk.set_dirty(regenerate_data)

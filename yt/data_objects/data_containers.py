@@ -10,7 +10,7 @@ from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, has_len, mylog
+from yt.funcs import get_output_filename, is_sequence, mylog
 from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
@@ -1392,7 +1392,7 @@ class YTDataContainer:
         except AttributeError:
             pass
 
-        if has_len(field) and not isinstance(field, str):
+        if is_sequence(field) and not isinstance(field, str):
             try:
                 ftype, fname = field
                 if not all(isinstance(_, str) for _ in field):

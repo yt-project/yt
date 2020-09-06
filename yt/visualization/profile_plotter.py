@@ -12,7 +12,12 @@ from more_itertools.more import always_iterable, unzip
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
-from yt.funcs import get_image_suffix, has_len, iter_fields, matplotlib_style_context
+from yt.funcs import (
+    get_image_suffix,
+    is_sequence,
+    iter_fields,
+    matplotlib_style_context,
+)
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
@@ -1636,7 +1641,7 @@ class PhasePlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        if has_len(figure_size):
+        if is_sequence(figure_size):
             self._cb_size = 0.0375 * figure_size[0]
         else:
             self._cb_size = 0.0375 * figure_size
