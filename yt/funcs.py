@@ -1446,7 +1446,7 @@ def validate_float(obj):
         )
 
 
-def validate_iterable(obj):
+def validate_sequence(obj):
     if obj is not None and not is_sequence(obj):
         raise TypeError(
             "Expected an iterable object,"
