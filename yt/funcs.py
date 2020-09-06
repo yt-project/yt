@@ -35,15 +35,6 @@ from yt.utilities.logger import ytLogger as mylog
 # Some functions for handling sequences and other types
 
 
-def is_iterable(obj):
-    """Whether obj is iterable (bool)."""
-    try:
-        iter(obj)
-        return True
-    except TypeError:
-        return False
-
-
 def is_sequence(obj):
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
@@ -107,16 +98,11 @@ def ensure_numpy_array(obj):
 
 def ensure_tuple(obj):
     """
-    This function ensures that *obj* is a tuple.  Typically used to convert
+    This function ensures that *obj* is a tuple. Typically used to convert
     scalar, list, or array arguments specified by a user in a context where
     we assume a tuple internally
     """
-    if isinstance(obj, tuple):
-        return obj
-    elif isinstance(obj, (list, np.ndarray)):
-        return tuple(obj)
-    else:
-        return (obj,)
+    return tuple(always_iterable(obj))
 
 
 def read_struct(f, fmt):
