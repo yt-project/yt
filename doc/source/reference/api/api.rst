@@ -731,7 +731,6 @@ Function List
    ~yt.funcs.humanize_time
    ~yt.funcs.insert_ipython
    ~yt.funcs.is_root
-   ~yt.funcs.is_iterable
    ~yt.funcs.is_sequence
    ~yt.funcs.just_one
    ~yt.funcs.only_on_root

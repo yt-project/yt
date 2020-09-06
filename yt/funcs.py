@@ -45,8 +45,6 @@ def is_iterable(obj):
 
 
 def is_sequence(obj):
-    # todo : deprecate this in favour of is_iterable
-    # this was previously named "iterable" which was both confusing and inaccurate
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
