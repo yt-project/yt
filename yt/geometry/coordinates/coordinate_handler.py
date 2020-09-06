@@ -32,7 +32,7 @@ def _get_vert_fields(axi, units="code_length"):
     return _vert
 
 
-def validate_iterable_width(width, ds, unit=None):
+def validate_sequence_width(width, ds, unit=None):
     if isinstance(width[0], tuple) and isinstance(width[1], tuple):
         validate_width_tuple(width[0])
         validate_width_tuple(width[1])
@@ -227,7 +227,7 @@ class CoordinateHandler:
                 w = self.ds.domain_width[np.array((mi, mi))]
             width = (w[0], w[1])
         elif is_sequence(width):
-            width = validate_iterable_width(width, self.ds)
+            width = validate_sequence_width(width, self.ds)
         elif isinstance(width, YTQuantity):
             width = (width, width)
         elif isinstance(width, Number):
