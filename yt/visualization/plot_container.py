@@ -275,6 +275,8 @@ class PlotContainer:
         log = {}
         if field == "all":
             fields = list(self.plots.keys())
+        else:
+            fields = field
         for field in self.data_source._determine_fields(fields):
             log[field] = self._field_transform[field] == log_transform
         return log
@@ -915,6 +917,8 @@ class ImagePlotContainer(PlotContainer):
 
         if field == "all":
             fields = list(self.plots.keys())
+        else:
+            fields = field
         for field in self.data_source._determine_fields(fields):
             myzmin = _sanitize_units(zmin, field)
             myzmax = _sanitize_units(zmax, field)
