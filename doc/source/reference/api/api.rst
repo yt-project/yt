@@ -732,6 +732,7 @@ Function List
    ~yt.funcs.insert_ipython
    ~yt.funcs.is_root
    ~yt.funcs.is_sequence
+   ~yt.funcs.iter_fields
    ~yt.funcs.just_one
    ~yt.funcs.only_on_root
    ~yt.funcs.paste_traceback
