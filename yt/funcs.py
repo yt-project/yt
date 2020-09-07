@@ -61,21 +61,21 @@ def iter_fields(field_or_fields):
     --------
 
     >>> fields = "density"
-    >>> for field is iter_fields(fields):
+    >>> for field in iter_fields(fields):
     ...     print(field)
-    "density"
+    density
 
     >>> fields = ("gas", "density")
-    >>> for field is iter_fields(fields):
+    >>> for field in iter_fields(fields):
     ...     print(field)
-    "gas", "density"
+    ('gas', 'density')
 
     >>> fields = ["density", "temperature", ("index", "dx")]
-    >>> for field is iter_fields(fields):
+    >>> for field in iter_fields(fields):
     ...     print(field)
-    "density"
-    "temperature"
-    ("index", "dx")
+    density
+    temperature
+    ('index', 'dx')
     """
     return always_iterable(field_or_fields, base_type=(tuple, str, bytes))
 
