@@ -204,14 +204,11 @@ class YTProj(YTSelectionContainer2D):
         else:
             self.weight_field = self._determine_fields(weight_field)[0]
 
-        field = field or []
-        field = self._determine_fields(field)
-
-        for f in field:
+        for f in self._determine_fields(field):
             nodal_flag = self.ds._get_field_info(f).nodal_flag
             if any(nodal_flag):
                 raise RuntimeError(
-                    "Nodal fields are currently not supported " "for projections."
+                    "Nodal fields are currently not supported for projections."
                 )
 
     @property

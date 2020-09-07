@@ -1428,7 +1428,6 @@ class YTDataContainer:
         raise YTFieldNotParseable(field)
 
     def _determine_fields(self, fields):
-
         explicit_fields = []
         for field in iter_fields(fields):
             if field in self._container_fields:
