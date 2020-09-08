@@ -1082,8 +1082,16 @@ class AxialPixelizationTest(AnswerTestingTest):
 
 
 def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
+    from functools import wraps
+
+    from nose import SkipTest
+
     def ffalse(func):
-        return lambda: None
+        @wraps(func)
+        def fskip(*args, **kwargs):
+            raise SkipTest
+
+        return fskip
 
     def ftrue(func):
         return func
@@ -1097,8 +1105,16 @@ def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
 
 
 def requires_answer_testing():
+    from functools import wraps
+
+    from nose import SkipTest
+
     def ffalse(func):
-        return lambda: None
+        @wraps(func)
+        def fskip(*args, **kwargs):
+            raise SkipTest
+
+        return fskip
 
     def ftrue(func):
         return func
@@ -1110,8 +1126,16 @@ def requires_answer_testing():
 
 
 def requires_ds(ds_fn, big_data=False, file_check=False):
+    from functools import wraps
+
+    from nose import SkipTest
+
     def ffalse(func):
-        return lambda: None
+        @wraps(func)
+        def fskip(*args, **kwargs):
+            raise SkipTest
+
+        return fskip
 
     def ftrue(func):
         return func
