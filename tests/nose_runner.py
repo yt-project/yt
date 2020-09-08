@@ -1,7 +1,6 @@
 import multiprocessing
 import os
 import sys
-from io import StringIO
 
 import nose
 import numpy
@@ -66,17 +65,9 @@ class NoseTask(object):
 
 def generate_tasks_input():
     pyver = "py{}{}".format(sys.version_info.major, sys.version_info.minor)
-    if sys.version_info < (3, 0, 0):
-        DROP_TAG = "py3"
-    else:
-        DROP_TAG = "py2"
-
     test_dir = ytcfg.get("yt", "test_data_dir")
     answers_dir = os.path.join(test_dir, "answers")
-    with open("tests/tests.yaml", "r") as obj:
-        lines = obj.read()
-    data = "\n".join([line for line in lines.split("\n") if DROP_TAG not in line])
-    tests = yaml.load(data, Loader=yaml.FullLoader)
+    tests = yaml.load(open("tests/tests.yaml", "r"), Loader=yaml.FullLoader)
 
     base_argv = ["-s", "--nologcapture", "--with-xunit"]
 
@@ -104,7 +95,7 @@ def generate_tasks_input():
     answer_tests = tests["answer_tests"]
     for key in answer_tests:
         for t in answer_tests[key]:
-            exclude_answers.append(t.replace('.py:', '.').replace('/', '.'))
+            exclude_answers.append(t.replace(".py:", ".").replace("/", "."))
     exclude_answers = ["--exclude-test={}".format(ex) for ex in exclude_answers]
 
     args = [
