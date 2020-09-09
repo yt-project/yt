@@ -1,18 +1,15 @@
 import multiprocessing
 import os
 import sys
-from io import StringIO
 
 import nose
 import numpy
 import pytest
 import yaml
-from coverage import Coverage
 
 from yt.config import ytcfg
 from yt.utilities.answer_testing.framework import AnswerTesting
 
-# cov = Coverage(
 #     config_file=".coveragerc",
 #     branch=True,
 #     auto_data=True,
