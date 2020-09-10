@@ -633,8 +633,6 @@ def obtain_relative_velocity_vector(
     units = data[field_names[0]].units
     bulk_vector = data.get_field_parameter(bulk_vector).to(units)
     dim = data[field_names[0]].ndim
-    if dim == 2:
-        raise NotImplementedError
     if dim == 1:
         # One dimensional data
         vxf = data[field_names[0]].astype("float64")
@@ -678,6 +676,8 @@ def obtain_relative_velocity_vector(
                     rvg[1,i,j,k] = vyg[i,j,k] - bv[1]
                     rvg[2,i,j,k] = vzg[i,j,k] - bv[2]
         return rvg
+    else:
+        raise NotImplementedError("Unsupported dim {}".format(dim))
 
 def grow_flagging_field(oofield):
     cdef np.ndarray[np.uint8_t, ndim=3] ofield = oofield.astype("uint8")
