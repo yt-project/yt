@@ -632,7 +632,7 @@ def obtain_relative_velocity_vector(
 
     units = data[field_names[0]].units
     bulk_vector = data.get_field_parameter(bulk_vector).to(units)
-    dim = len(data[field_names[0]].shape) == 1
+    dim = data[field_names[0]].ndim
     if dim == 2:
         raise NotImplementedError
     if dim == 1:
