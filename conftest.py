@@ -184,12 +184,22 @@ def hashing(request):
         request.cls.answer_file, request.cls.raw_answer_file = _get_answer_files(
             request
         )
+    if not no_hash and not store_hash and request.cls.saved_hashes is None:
+        try:
+            with open(request.cls.answer_file, "r") as fd:
+                request.cls.saved_hashes = yaml.safe_load(fd)
+        except FileNotFoundError:
+            # On travis and appveyor only a minimal set of answer tests are
+            # run, which means that, for most answer tests, there won't be
+            # an existing answer file when comparing. There is currently no
+            # list of the minimal answer tests, so they can't be marked.
+            # As such, if we're comparing and the file of saved hashes isn't
+            # found, we just skip the test. We do the skip before the test
+            # is run to save time
+            pytest.skip("Answer file not found.")
     request.cls.hashes = {}
     # Load the saved answers if we're comparing. We don't do this for the raw
     # answers because those are huge
-    if not no_hash and not store_hash and request.cls.saved_hashes is None:
-        with open(request.cls.answer_file, "r") as fd:
-            request.cls.saved_hashes = yaml.safe_load(fd)
     yield
     # Get arguments and their values passed to the test (e.g., axis, field, etc.)
     params = _param_list(request)
