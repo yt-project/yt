@@ -677,7 +677,7 @@ def obtain_relative_velocity_vector(
                     rvg[2,i,j,k] = vzg[i,j,k] - bv[2]
         return rvg
     else:
-        raise NotImplementedError("Unsupported dim {}".format(dim))
+        raise NotImplementedError(f"Unsupported dimensionality `{dim}`.")
 
 def grow_flagging_field(oofield):
     cdef np.ndarray[np.uint8_t, ndim=3] ofield = oofield.astype("uint8")
