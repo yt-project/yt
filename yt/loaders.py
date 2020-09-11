@@ -13,8 +13,8 @@ from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
     YTIllDefinedAMR,
-    YTOutputNotIdentified,
     YTSimulationNotIdentified,
+    YTUnidentifiedDataType,
 )
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -57,7 +57,7 @@ def load(fn, *args, **kwargs):
     FileNotFoundError
         If fn does not match any existing file or directory.
 
-    yt.utilities.exceptions.YTOutputNotIdentified
+    yt.utilities.exceptions.YTUnidentifiedDataType
         If fn matches existing files or directories with undetermined format.
 
     yt.utilities.exceptions.YTAmbiguousDataType
@@ -97,7 +97,7 @@ def load(fn, *args, **kwargs):
     if len(candidates) > 1:
         raise YTAmbiguousDataType(fn, candidates)
 
-    raise YTOutputNotIdentified(fn, args, kwargs)
+    raise YTUnidentifiedDataType(fn, *args, **kwargs)
 
 
 def load_simulation(fn, simulation_type, find_outputs=False):
@@ -133,8 +133,8 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
     try:
         cls = simulation_time_series_registry[simulation_type]
-    except KeyError:
-        raise YTSimulationNotIdentified(simulation_type)
+    except KeyError as e:
+        raise YTSimulationNotIdentified(simulation_type) from e
 
     return cls(fn, find_outputs=find_outputs)
 
@@ -1332,15 +1332,15 @@ def load_sample(fn=None, specific_file=None, pbar=True):
         try:
             import tqdm  # noqa: F401
 
-            downloader = pooch.HTTPDownloader(progressbar=True)
+            downloader = pooch.pooch.HTTPDownloader(progressbar=True)
         except ImportError:
             mylog.warning("tqdm is not installed, progress bar can not be displayed.")
 
-    if extension == "h5":
-        processor = pooch.Untar()
-    else:
+    if extension != "h5":
         # we are going to assume most files that exist on the hub are
         # compressed in .tar folders. Some may not.
+        processor = pooch.pooch.Untar()
+    else:
         processor = None
 
     storage_fname = fido.pooch_obj.fetch(

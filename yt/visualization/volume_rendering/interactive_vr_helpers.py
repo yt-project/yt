@@ -44,11 +44,11 @@ def _render_opengl(
     try:
         import cyglfw3  # NOQA
         import OpenGL.GL  # NOQA
-    except ImportError:
+    except ImportError as e:
         raise ImportError(
             "This functionality requires the cyglfw3 and PyOpenGL "
             "packages to be installed."
-        )
+        ) from e
 
     from .interactive_loop import RenderingContext
     from .interactive_vr import (

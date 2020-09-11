@@ -1555,6 +1555,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
             
                                     buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
 
+
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
                                np.ndarray[np.float64_t, ndim=1] start_point,

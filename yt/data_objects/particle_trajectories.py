@@ -124,10 +124,10 @@ class ParticleTrajectories:
                     # duplicate. This is due to the fact that the rhs
                     # would then have a different shape as the lhs
                     output_field[indices, i] = pfields[field]
-                except ValueError:
+                except ValueError as e:
                     raise YTIllDefinedParticleData(
                         "This dataset contains duplicate particle indices!"
-                    )
+                    ) from e
             self.field_data[field] = array_like_field(
                 dd_first, output_field.copy(), fds[field]
             )

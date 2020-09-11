@@ -13,7 +13,7 @@ from yt.utilities.exceptions import (
     InvalidSimulationTimeSeries,
     MissingParameter,
     NoStoppingCondition,
-    YTOutputNotIdentified,
+    YTUnidentifiedDataType,
 )
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
@@ -522,7 +522,7 @@ class GadgetSimulation(SimulationTimeSeries):
         ):
             try:
                 ds = load(output)
-            except (FileNotFoundError, YTOutputNotIdentified):
+            except (FileNotFoundError, YTUnidentifiedDataType):
                 mylog.error("Failed to load %s", output)
                 continue
             my_storage.result = {

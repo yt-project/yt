@@ -589,12 +589,12 @@ def show_colormaps(subset="all", filename=None):
             maps = [m for m in plt.colormaps() if m in subset]
             if len(maps) == 0:
                 raise AttributeError
-        except AttributeError:
+        except AttributeError as e:
             raise AttributeError(
                 "show_colormaps requires subset attribute "
                 "to be 'all', 'yt_native', or a list of "
                 "valid colormap names."
-            )
+            ) from e
     maps = sorted(set(maps))
     # scale the image size by the number of cmaps
     plt.figure(figsize=(2.0 * len(maps) / 10.0, 6))

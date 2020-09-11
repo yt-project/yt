@@ -7,8 +7,8 @@ from yt.loaders import load, load_simulation
 from yt.testing import assert_raises
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
-    YTOutputNotIdentified,
     YTSimulationNotIdentified,
+    YTUnidentifiedDataType,
 )
 from yt.utilities.object_registries import output_type_registry
 
@@ -39,8 +39,8 @@ def test_load_unidentified_data():
     with tempfile.TemporaryDirectory() as tmpdir:
         empty_file_path = Path(tmpdir) / "empty_file"
         empty_file_path.touch()
-        assert_raises(YTOutputNotIdentified, load, tmpdir)
-        assert_raises(YTOutputNotIdentified, load, empty_file_path)
+        assert_raises(YTUnidentifiedDataType, load, tmpdir)
+        assert_raises(YTUnidentifiedDataType, load, empty_file_path)
         assert_raises(
             YTSimulationNotIdentified,
             load_simulation,
