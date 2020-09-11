@@ -1,12 +1,4 @@
-from .data_structures import \
-      AthenaGrid, \
-      AthenaHierarchy, \
-      AthenaDataset
-
-from .fields import \
-      AthenaFieldInfo
-
-from .io import \
-      IOHandlerAthena
-
 from . import tests
+from .data_structures import AthenaDataset, AthenaGrid, AthenaHierarchy
+from .fields import AthenaFieldInfo
+from .io import IOHandlerAthena

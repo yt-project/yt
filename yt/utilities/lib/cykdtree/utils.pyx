@@ -1,3 +1,8 @@
+# distutils: libraries = STD_LIBS
+# distutils: sources = yt/utilities/lib/cykdtree/c_utils.cpp
+# distutils: depends = yt/utilities/lib/cykdtree/c_utils.hpp
+# distutils: language = c++
+# distutils: extra_compile_args = -std=c++03
 import numpy as np
 cimport numpy as np
 cimport cython

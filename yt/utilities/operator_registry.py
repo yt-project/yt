@@ -1,5 +1,6 @@
 import copy
 
+
 class OperatorRegistry(dict):
     def find(self, op, *args, **kwargs):
         if isinstance(op, str):

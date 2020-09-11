@@ -30,7 +30,7 @@ the plot object.  All of the callbacks listed below are available via
 similar ``annotate_`` functions.
 
 To clear one or more annotations from an existing plot, see the
-:ref:`annotate_clear() function <annotate-clear>`.
+:ref:`clear_annotations() function <clear-annotations>`.
 
 For a brief demonstration of a few of these callbacks in action together,
 see the cookbook recipe: :ref:`annotations-recipe`.
@@ -85,17 +85,47 @@ of the x-plane (i.e. with axes in the y and z directions):
                     text_args={'color':'black'})
     s.save()
 
+Note that for non-cartesian geometries and ``coord_system="data"``, the coordinates
+are still interpreted in the corresponding cartesian system. For instance using a polar
+dataset from AMRVAC :
+
+.. python-script::
+
+    import yt
+
+    ds = yt.load("amrvac/bw_polar_2D0000.dat")
+    s = yt.plot2d(ds, 'density')
+    s.set_background_color("density", "black")
+
+    # Plot marker and text in data coords
+    s.annotate_marker((0.2, 0.5, 0.9), coord_system='data')
+    s.annotate_text((0.2, 0.5, 0.9), 'data: (0.2, 0.5, 0.9)', coord_system='data')
+
+    # Plot marker and text in plot coords
+    s.annotate_marker((0.4, -0.5), coord_system='plot')
+    s.annotate_text((0.4, -0.5), 'plot: (0.4, -0.5)', coord_system='plot')
+
+    # Plot marker and text in axis coords
+    s.annotate_marker((0.1, 0.2), coord_system='axis')
+    s.annotate_text((0.1, 0.2), 'axis: (0.1, 0.2)', coord_system='axis')
+
+    # Plot marker and text in figure coords
+    # N.B. marker will not render outside of axis bounds
+    s.annotate_marker((0.6, 0.2), coord_system='figure')
+    s.annotate_text((0.6, 0.2), 'figure: (0.6, 0.2)', coord_system='figure')
+    s.save()
+
 Available Callbacks
 -------------------
 
 The underlying functions are more thoroughly documented in :ref:`callback-api`.
 
-.. _annotate-clear:
+.. _clear-annotations:
 
 Clear Callbacks (Some or All)
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-.. function:: annotate_clear(index=None)
+.. function:: clear_annotations(index=None)
 
     This function will clear previous annotations (callbacks) in the plot.
     If no index is provided, it will clear all annotations to the plot.
@@ -112,8 +142,29 @@ Clear Callbacks (Some or All)
     p.annotate_timestamp()
 
     # Oops, I didn't want any of that.
-    p.annotate_clear()
+    p.clear_annotations()
     p.save()
+
+.. _annotate-list:
+
+List Currently Applied Callbacks
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+.. function:: list_annotations()
+
+   This function will print a list of each of the currently applied
+   callbacks together with their index.  The index can be used with
+   :ref:`annotate_clear() function <annotate-clear>` to remove a
+   specific callback.
+
+.. python-script::
+
+    import yt
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    p = yt.SlicePlot(ds, 'z', 'density', center='c', width=(20, 'kpc'))
+    p.annotate_scale()
+    p.annotate_timestamp()
+    p.list_annotations()
 
 .. _annotate-arrow:
 
@@ -473,6 +524,7 @@ Overplotting Particle Positions
 To plot only the central particles
 
 .. python-script::
+
    import yt
    ds = yt.load("Enzo_64/DD0043/data0043")
    p = yt.ProjectionPlot(ds, "x", "density", center='m', width=(10, 'Mpc'))
@@ -729,7 +781,7 @@ Annotate Triangle Facets Callback
    #setup file path for yt test directory
    filename = os.path.join(yt.config.ytcfg.get("yt", "test_data_dir"),
                            "MoabTest/mcnp_n_impr_fluka.h5m")
-   f = h5py.File(filename, "r")
+   f = h5py.File(filename, mode="r")
    coords = f["/tstt/nodes/coordinates"][:]
    conn = f["/tstt/elements/Tri3/connectivity"][:]
    points = coords[conn-1]

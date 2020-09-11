@@ -1,3 +1,9 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: extra_compile_args = OMP_ARGS
+# distutils: extra_link_args = OMP_ARGS
+# distutils: language = c++
+# distutils: libraries = STD_LIBS
+# distutils: sources = yt/utilities/lib/pixelization_constants.c
 """
 Pixelization routines
 
@@ -5,13 +11,6 @@ Pixelization routines
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
@@ -246,7 +245,7 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                                 # conservative about the iteration indices.
                                 # This will reduce artifacts if we ever move to
                                 # compositing instead of replacing bitmaps.
-                                if overlap1 * overlap2 == 0.0: continue
+                                if overlap1 * overlap2 < 1.e-6: continue
                                 buff[i,j] += (dsp * overlap1) * overlap2
                             else:
                                 buff[i,j] = dsp
@@ -756,6 +755,7 @@ def pixelize_element_mesh(np.ndarray[np.float64_t, ndim=2] coords,
                           int index_offset = 0):
     cdef np.ndarray[np.float64_t, ndim=3] img
     img = np.zeros(buff_size, dtype="float64")
+    img[:] = np.nan
     # Two steps:
     #  1. Is image point within the mesh bounding box?
     #  2. Is image point within the mesh element?

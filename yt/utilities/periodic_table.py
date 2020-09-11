@@ -1,5 +1,6 @@
-import numpy as np
 import numbers
+
+import numpy as np
 
 _elements = (
     (1, 1.0079400000, "Hydrogen", "H"),
@@ -124,6 +125,7 @@ _elements = (
     (-1, 0.00054858, "Electron", "El"),
 )
 
+
 class Element:
     def __init__(self, num, weight, name, symbol):
         self.num = num
@@ -133,6 +135,7 @@ class Element:
 
     def __repr__(self):
         return "Element: %s (%s)" % (self.symbol, self.name)
+
 
 class PeriodicTable:
     def __init__(self):
@@ -158,5 +161,6 @@ class PeriodicTable:
         else:
             raise KeyError(key)
         return d[key]
+
 
 periodic_table = PeriodicTable()

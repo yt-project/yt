@@ -1,8 +1,7 @@
 import numpy as np
-from yt.utilities.io_handler import \
-    BaseIOHandler
-from yt.utilities.file_handler import \
-    NetCDF4FileHandler
+
+from yt.utilities.file_handler import NetCDF4FileHandler
+from yt.utilities.io_handler import BaseIOHandler
 
 
 class IOHandlerExodusII(BaseIOHandler):
@@ -37,8 +36,12 @@ class IOHandlerExodusII(BaseIOHandler):
             for field in fields:
                 ftype, fname = field
                 if ftype == "all":
-                    ci = np.concatenate([mesh.connectivity_indices - self._INDEX_OFFSET \
-                                         for mesh in self.ds.index.mesh_union])
+                    ci = np.concatenate(
+                        [
+                            mesh.connectivity_indices - self._INDEX_OFFSET
+                            for mesh in self.ds.index.mesh_union
+                        ]
+                    )
                 else:
                     ci = ds.variables[ftype][:] - self._INDEX_OFFSET
                 num_elem = ci.shape[0]
@@ -54,12 +57,12 @@ class IOHandlerExodusII(BaseIOHandler):
                     mesh_ids = [mesh.mesh_id + 1 for mesh in self.ds.index.mesh_union]
                     objs = [mesh for mesh in self.ds.index.mesh_union]
                 else:
-                    mesh_ids = [int(ftype[-1])]
+                    mesh_ids = [int(ftype.replace("connect", ""))]
                     chunk = chunks[mesh_ids[0] - 1]
                     objs = chunk.objs
                 if fname in self.node_fields:
                     field_ind = self.node_fields.index(fname)
-                    fdata = ds.variables['vals_nod_var%d' % (field_ind + 1)]
+                    fdata = ds.variables["vals_nod_var%d" % (field_ind + 1)]
                     for g in objs:
                         ci = g.connectivity_indices - self._INDEX_OFFSET
                         data = fdata[self.ds.step][ci]
@@ -67,8 +70,9 @@ class IOHandlerExodusII(BaseIOHandler):
                 if fname in self.elem_fields:
                     field_ind = self.elem_fields.index(fname)
                     for g, mesh_id in zip(objs, mesh_ids):
-                        fdata = ds.variables['vals_elem_var%deb%s' %
-                                                       (field_ind + 1, mesh_id)][:]
+                        fdata = ds.variables[
+                            "vals_elem_var%deb%s" % (field_ind + 1, mesh_id)
+                        ][:]
                         data = fdata[self.ds.step, :]
                         ind += g.select(selector, data, rv[field], ind)  # caches
                 rv[field] = rv[field][:ind]

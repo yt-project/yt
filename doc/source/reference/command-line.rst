@@ -210,7 +210,7 @@ upload_notebook
 
 This command will accept the filename of a ``.ipynb`` file (generated from an
 IPython notebook session) and upload it to the `yt hub
-<https://hub.yt/>`__ where others will be able to view it, and
+<https://girder.hub.yt/>`__ where others will be able to view it, and
 download it.  This is an easy method for recording a sequence of commands,
 their output, narrative information, and then sharing that with others.  These
 notebooks will be viewable online, and the appropriate URLs will be returned on
@@ -254,7 +254,7 @@ share a piece of code that generates an image, or you're trying to
 debug image-generation scripts, it can be useful to send your
 co-authors a link to the image.  This subcommand makes such sharing
 a breeze.  By specifying the image to share, ``upload_image`` automatically
-uploads it anonymously to the website `imgur.com <http://imgur.com/>`_ and
+uploads it anonymously to the website `imgur.com <https://imgur.com/>`_ and
 provides you with a link to share with your collaborators.  Note that the
 image *must* be in the PNG format in order to use this function.
 
@@ -263,13 +263,13 @@ delete_image
 
 The image uploaded using ``upload_image`` is assigned with a unique hash that
 can be used to remove it. This subcommand provides an easy way to send a delete
-request directly to the `imgur.com <http://imgur.com/>`_.
+request directly to the `imgur.com <https://imgur.com/>`_.
 
 Hub helper
 ~~~~~~~~~~
 
 The :code:`yt hub` command-line tool allows to interact with the `yt hub
-<https://hub.yt>`__. The following subcommands are currently available:
+<https://girder.hub.yt>`__. The following subcommands are currently available:
 
 .. config_help:: yt hub
 
@@ -277,14 +277,14 @@ register
 ++++++++
 
 This subcommand starts an interactive process of creating an account on the `yt
-hub <https://hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
+hub <https://girder.hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
 providers such as Google, Bitbucket and GitHub for authentication. 
 See :ref:`hub-APIkey` for more information.
 
 start
 +++++
 
-This subcommand launches the Jupyter Notebook on the `yt Hub <https://hub.yt>`__
+This subcommand launches the Jupyter Notebook on the `yt Hub <https://girder.hub.yt>`__
 with a chosen Hub folder mounted to the ``/data`` directory inside the notebook.
 If no path is given all the `example yt datasets
 <https://yt-project.org/data>`_ are mounted by default. The appropriate URL
@@ -300,7 +300,7 @@ Example:
 download
 ~~~~~~~~
 
-This subcommand downloads a file from http://yt-project.org/data. Using ``yt download``, 
+This subcommand downloads a file from https://yt-project.org/data. Using ``yt download``, 
 one can download a file to:
 
 * ``"test_data_dir"``: Save the file to the location specified in 

@@ -1,3 +1,5 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Geometry selection routines.
 
@@ -6,13 +8,6 @@ Geometry selection routines.
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
 cimport numpy as np
@@ -30,9 +25,6 @@ from yt.utilities.lib.volume_container cimport \
 from yt.utilities.lib.grid_traversal cimport \
     sampler_function, walk_volume
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
-from yt.utilities.lib.ewah_bool_wrap cimport BoolArrayCollection
-# from yt.utilities.lib.ewah_bool_wrap cimport SparseUnorderedBitmaskSet #as SparseUnorderedBitmask
-# from yt.utilities.lib.ewah_bool_wrap cimport SparseUnorderedRefinedBitmaskSet #as SparseUnorderedRefinedBitmask
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit, \
     bounded_morton_dds, morton_neighbors_coarse, morton_neighbors_refined
 
@@ -221,7 +213,7 @@ cdef class SelectorObject:
             sdds[i] = dds[i]/2.0
             LE[i] = pos[i] - dds[i]/2.0
             RE[i] = pos[i] + dds[i]/2.0
-        #print LE[0], RE[0], LE[1], RE[1], LE[2], RE[2]
+        #print(LE[0], RE[0], LE[1], RE[1], LE[2], RE[2])
         res = self.select_grid(LE, RE, level, root)
         if res == 1 and visitor.domain > 0 and root.domain != visitor.domain:
             res = -1
@@ -959,9 +951,11 @@ cdef class RegionSelector(SelectorObject):
         cdef np.float64_t[:] DW = _ensure_code(dobj.ds.domain_width)
         cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
         cdef np.float64_t[:] DRE = _ensure_code(dobj.ds.domain_right_edge)
-        le_all = (np.array(LE) == dobj.ds.domain_left_edge).all()
-        re_all = (np.array(RE) == dobj.ds.domain_right_edge).all()
-        if le_all and re_all:
+        le_all = (np.array(LE) == _ensure_code(dobj.ds.domain_left_edge)).all()
+        re_all = (np.array(RE) == _ensure_code(dobj.ds.domain_right_edge)).all()
+        # If we have a bounding box, then we should *not* revert to all data
+        domain_override = getattr(dobj.ds, '_domain_override', False)
+        if le_all and re_all and not domain_override:
             self.is_all_data = True
         else:
             self.is_all_data = False
@@ -1152,7 +1146,10 @@ cdef class CutRegionSelector(SelectorObject):
     cdef tuple _conditionals
 
     def __init__(self, dobj):
-        positions = np.array([dobj['index', 'x'], dobj['index', 'y'], dobj['index', 'z']]).T
+        axis_name = dobj.ds.coordinates.axis_name
+        positions = np.array([dobj['index', axis_name[0]],
+                              dobj['index', axis_name[1]],
+                              dobj['index', axis_name[2]]]).T
         self._conditionals = tuple(dobj.conditionals)
         self._positions = set(tuple(position) for position in positions)
 
@@ -1797,7 +1794,7 @@ cdef class RaySelector(SelectorObject):
                         dtr[ni] = dt[i, j, k]
                         ni += 1
         if not (ni == ia.hits):
-            print ni, ia.hits
+            print(ni, ia.hits)
         free(ia)
         return dtr, tr
 

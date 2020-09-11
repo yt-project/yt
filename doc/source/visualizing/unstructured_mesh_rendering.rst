@@ -7,7 +7,7 @@ Beginning with version 3.3, yt has the ability to volume render unstructured
 mesh data like that created by finite element calculations. No additional 
 dependencies are required in order to use this feature. However, it is 
 possible to speed up the rendering operation by installing with 
-`Embree <https://embree.github.io>`_ support. Embree is a fast ray-tracing
+`Embree <https://www.embree.org>`_ support. Embree is a fast ray-tracing
 library from Intel that can substantially speed up the mesh rendering operation
 on large datasets. You can read about how to install yt with Embree support 
 below, or you can skip to the examples.
@@ -33,7 +33,7 @@ and then run like so:
 Alternatively, you can install the additional dependencies by hand.
 First, you will need to install Embree, either by compiling from source 
 or by using one of the pre-built binaries available at Embree's 
-`downloads <https://embree.github.io/downloads.html>`_ page.
+`downloads <https://www.embree.org/downloads.html>`_ page.
 
 Second, the python bindings for Embree (called
 `pyembree <https://github.com/scopatz/pyembree>`_) must also be installed. To
@@ -357,6 +357,46 @@ with two meshes on it:
     # create two distinct MeshSources from 'connect1' and 'connect2'
     ms1 = MeshSource(ds, ('connect1', 'diffused'))
     ms2 = MeshSource(ds, ('connect2', 'diffused'))
+
+    sc.add_source(ms1)
+    sc.add_source(ms2)
+
+    # render and save
+    im = sc.render()
+    sc.save()
+
+However, in the rendered image above, we note that the color is discontinuous on
+in the middle and upper part of the cylinder's side. In the original data,
+there are two parts but the value of `diffused` is continuous at the interface.
+This discontinuous color is due to an independent colormap setting for the two
+mesh sources. To fix it, we can explicitly specify the colormap bound for each
+mesh source as follows:
+
+.. python-script::
+
+    import yt
+    from yt.visualization.volume_rendering.api import MeshSource, Scene
+
+    ds = yt.load("MOOSE_sample_data/out.e-s010")
+
+    # this time we create an empty scene and add sources to it one-by-one
+    sc = Scene()
+
+    # set up our Camera
+    cam = sc.add_camera(ds)
+    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
+    cam.set_position(ds.arr([-3.0, 3.0, -3.0], 'code_length'),
+                     ds.arr([0.0, -1.0, 0.0], 'dimensionless'))
+    cam.set_width = ds.arr([8.0, 8.0, 8.0], 'code_length')
+    cam.resolution = (800, 800)
+
+    # create two distinct MeshSources from 'connect1' and 'connect2'
+    ms1 = MeshSource(ds, ('connect1', 'diffused'))
+    ms2 = MeshSource(ds, ('connect2', 'diffused'))
+
+    # add the following lines to set the range of the two mesh sources
+    ms1.color_bounds = (0.0, 3.0)
+    ms2.color_bounds = (0.0, 3.0)
 
     sc.add_source(ms1)
     sc.add_source(ms2)

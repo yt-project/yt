@@ -172,11 +172,24 @@ These classes and functions enable yt's symbolic unit handling system.
    ~yt.units.yt_array.uvstack
    ~yt.units.yt_array.uhstack
    ~yt.units.yt_array.ustack
+   ~yt.units.yt_array.display_ytarray
 
 Frontends
 ---------
 
 .. autosummary::
+
+AMRVAC
+^^^^^^
+
+.. autosummary::
+
+   ~yt.frontends.amrvac.data_structures.AMRVACGrid
+   ~yt.frontends.amrvac.data_structures.AMRVACHierarchy
+   ~yt.frontends.amrvac.data_structures.AMRVACDataset
+   ~yt.frontends.amrvac.fields.AMRVACFieldInfo
+   ~yt.frontends.amrvac.io.AMRVACIOHandler
+   ~yt.frontends.amrvac.read_amrvac_namelist
 
 ARTIO
 ^^^^^
@@ -625,6 +638,7 @@ particularly with complicated layouts.
    ~yt.visualization.eps_writer.multiplot
    ~yt.visualization.eps_writer.multiplot_yt
    ~yt.visualization.eps_writer.return_cmap
+   ~yt.visualization.eps_writer.return_colormap
 
 .. _derived-quantities-api:
 
@@ -662,6 +676,7 @@ See also :ref:`callbacks`.
 .. autosummary::
 
    ~yt.visualization.plot_window.PWViewerMPL.annotate_clear
+   ~yt.visualization.plot_window.PWViewerMPL.clear_annotations
    ~yt.visualization.plot_modifications.ArrowCallback
    ~yt.visualization.plot_modifications.CellEdgesCallback
    ~yt.visualization.plot_modifications.ClumpContourCallback
@@ -695,6 +710,7 @@ See also :ref:`colormaps`.
 .. autosummary::
 
    ~yt.visualization.color_maps.add_cmap
+   ~yt.visualization.color_maps.add_colormap
    ~yt.visualization.color_maps.make_colormap
    ~yt.visualization.color_maps.show_colormaps
 
@@ -828,3 +844,31 @@ These are yt-provided functions:
    ~yt.testing.amrspace
    ~yt.testing.fake_random_ds
    ~yt.testing.expand_keywords
+
+These are for the pytest infrastructure:
+
+.. autosummary::
+
+    ~conftest.tempdir
+    ~conftest.answer_file
+    ~conftest.hashing
+    ~yt.utilities.answer_testing.answer_tests.grid_hierarchy
+    ~yt.utilities.answer_testing.answer_tests.parentage_relationships
+    ~yt.utilities.answer_testing.answer_tests.grid_values
+    ~yt.utilities.answer_testing.answer_tests.projection_values
+    ~yt.utilities.answer_testing.answer_tests.field_values
+    ~yt.utilities.answer_testing.answer_tests.pixelized_projection_values
+    ~yt.utilities.answer_testing.answer_tests.simulated_halo_mass_function
+    ~yt.utilities.answer_testing.answer_tests.analytic_halo_mass_function
+    ~yt.utilities.answer_testing.answer_tests.small_patch_amr
+    ~yt.utilities.answer_testing.answer_tests.big_patch_amr
+    ~yt.utilities.answer_testing.answer_tests.generic_array
+    ~yt.utilities.answer_testing.answer_tests.sph_answer
+    ~yt.utilities.answer_testing.answer_tests.get_field_size_and_mean
+    ~yt.utilities.answer_testing.answer_tests.plot_window_attribute
+    ~yt.utilities.answer_testing.answer_tests.phase_plot_attribute
+    ~yt.utilities.answer_testing.answer_tests.generic_image
+    ~yt.utilities.answer_testing.answer_tests.axial_pixelization
+    ~yt.utilities.answer_testing.answer_tests.light_cone_projection
+    ~yt.utilities.answer_testing.answer_tests.extract_connected_sets
+    ~yt.utilities.answer_testing.answer_tests.VR_image_comparison

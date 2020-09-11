@@ -3,7 +3,7 @@
 Auxiliary Data Files for use with yt's Photon Simulator
 =======================================================
 
-Included in the `xray_data <http://yt-project.org/data/xray_data.tar.gz>`_ package are a number of files that you may find
+Included in the `xray_data <https://yt-project.org/data/xray_data.tar.gz>`_ package are a number of files that you may find
 useful when working with yt's X-ray `photon_simulator
 <photon_simulator.html>`_  analysis module. They have been tested to give spectral fitting results
 consistent with input parameters.
@@ -52,12 +52,12 @@ Other Useful Things Not Included Here
   FITS table data for emission lines and continuum emission. Must have
   it installed to use the TableApecModel spectral model.
 
-* PyXspec: http://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/
+* PyXspec: https://heasarc.gsfc.nasa.gov/xanadu/xspec/python/html/
 
   Python interface to the XSPEC spectral-fitting program. Two of the
   spectral models for the photon simulator use it.
 
-* MARX: http://space.mit.edu/ASC/MARX/
+* MARX: https://space.mit.edu/ASC/MARX/
 
   Detailed ray-trace simulations of Chandra.
 

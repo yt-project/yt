@@ -8,7 +8,7 @@ yt.enable_parallelism()
 
 # By using wildcards such as ? and * with the load command, we can load up a
 # Time Series containing all of these datasets simultaneously.
-ts = yt.load('GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*')
+ts = yt.load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0*")
 
 storage = {}
 
@@ -22,19 +22,19 @@ storage = {}
 for store, ds in ts.piter(storage=storage):
 
     # Create a sphere of radius 100 kpc at the center of the dataset volume
-    sphere = ds.sphere("c", (100., "kpc"))
+    sphere = ds.sphere("c", (100.0, "kpc"))
     # Calculate the entropy within that sphere
     entr = sphere["entropy"].sum()
     # Store the current time and sphere entropy for this dataset in our
     # storage dictionary as a tuple
-    store.result = (ds.current_time.in_units('Gyr'), entr)
+    store.result = (ds.current_time.in_units("Gyr"), entr)
 
 # Convert the storage dictionary values to a Nx2 array, so the can be easily
 # plotted
 arr = np.array(list(storage.values()))
 
 # Plot up the results: time versus entropy
-plt.semilogy(arr[:,0], arr[:,1], 'r-')
+plt.semilogy(arr[:, 0], arr[:, 1], "r-")
 plt.xlabel("Time (Gyr)")
 plt.ylabel("Entropy (ergs/K)")
 plt.savefig("time_versus_entropy.png")

@@ -1,3 +1,4 @@
+# distutils: libraries = STD_LIBS
 """
 
 This file contains definitions of the various primitives that can be used

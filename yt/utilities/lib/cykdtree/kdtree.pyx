@@ -1,3 +1,9 @@
+# distutils: libraries = STD_LIBS
+# Note that we used to include the empty c_kdtree.cpp file, but that seems to break cythonize.
+# distutils: sources = yt/utilities/lib/cykdtree/c_utils.cpp
+# distutils: depends = yt/utilities/lib/cykdtree/c_kdtree.hpp, yt/utilities/lib/cykdtree/c_utils.hpp
+# distutils: language = c++
+# distutils: extra_compile_args = -std=c++03
 import cython
 import numpy as np
 cimport numpy as np

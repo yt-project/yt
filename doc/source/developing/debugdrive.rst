@@ -89,7 +89,7 @@ Remote and Disconnected Debugging
 
 If you are running a parallel job that fails, often it can be difficult to do a
 post-mortem analysis to determine what went wrong.  To facilitate this, yt
-has implemented an `XML-RPC <http://en.wikipedia.org/wiki/XML-RPC>`_ interface
+has implemented an `XML-RPC <https://en.wikipedia.org/wiki/XML-RPC>`_ interface
 to the Python debugger (``pdb``) event loop.
 
 Running with the ``--rpdb`` command will cause any uncaught exception during

@@ -1,7 +1,7 @@
 import numpy as np
 
-from yt.funcs import \
-    ensure_tuple
+from yt.funcs import ensure_tuple
+
 
 def bdecode(block):
     """
@@ -16,18 +16,20 @@ def bdecode(block):
         level = len(block) - block.find(":") - 1
     else:
         level = 0
-    bst   = block.replace(":", "")
-    d     = float(2**len(bst))
-    left  = int(bst, 2)
+    bst = block.replace(":", "")
+    d = float(2 ** len(bst))
+    left = int(bst, 2)
     right = left + 1
-    left  /= d
+    left /= d
     right /= d
     return level, left, right
+
 
 def get_block_string_and_dim(block, min_dim=3):
     mybs = block[1:].split("_")
     dim = max(len(mybs), min_dim)
     return mybs, dim
+
 
 def get_block_level(block):
     if ":" in block:
@@ -36,55 +38,74 @@ def get_block_level(block):
         l = len(block)
     return l
 
+
 def get_block_info(block, min_dim=3):
-    mybs, dim = get_block_string_and_dim(
-        block, min_dim=min_dim)
+    """Decode a block name to get its left and right sides and level.
+
+    Given a block name, this function returns the locations of the block's left
+    and right edges (measured as binary fractions of the domain along each
+    axis) and level.
+
+    Unrefined blocks in the root array (which can each hold an of octree) have
+    a refinement level of 0 while their ancestors (used internally by Enzo-p's
+    solvers - they don't actually hold meaningful data) have negative levels.
+    Because identification of negative refinement levels requires knowledge of
+    the root array shape (the 'root_blocks' value specified in the parameter
+    file), all unrefined blocks are assumed to have a level of 0.
+    """
+    mybs, dim = get_block_string_and_dim(block, min_dim=min_dim)
     left = np.zeros(dim)
     right = np.ones(dim)
+    level = 0
     for i, myb in enumerate(mybs):
-        if myb == '': continue
+        if myb == "":
+            continue
         level, left[i], right[i] = bdecode(myb)
     return level, left, right
 
+
 def get_root_blocks(block, min_dim=3):
-    mybs, dim = get_block_string_and_dim(
-        block, min_dim=min_dim)
+    mybs, dim = get_block_string_and_dim(block, min_dim=min_dim)
     nb = np.ones(dim, dtype=int)
     for i, myb in enumerate(mybs):
-        if myb == '': continue
+        if myb == "":
+            continue
         s = get_block_level(myb)
-        nb[i] = 2**s
+        nb[i] = 2 ** s
     return nb
 
+
 def get_root_block_id(block, min_dim=3):
-    mybs, dim = get_block_string_and_dim(
-        block, min_dim=min_dim)
+    mybs, dim = get_block_string_and_dim(block, min_dim=min_dim)
     rbid = np.zeros(dim, dtype=int)
     for i, myb in enumerate(mybs):
-        if myb == '': continue
+        if myb == "":
+            continue
         s = get_block_level(myb)
+        if s == 0:
+            continue
         rbid[i] = int(myb[:s], 2)
     return rbid
 
+
 def get_child_index(anc_id, desc_id):
     cid = ""
-    for aind, dind in zip( anc_id.split("_"),
-                          desc_id.split("_")):
+    for aind, dind in zip(anc_id.split("_"), desc_id.split("_")):
         cid += dind[len(aind)]
     cid = int(cid, 2)
     return cid
 
+
 def is_parent(anc_block, desc_block):
-    dim = anc_block.count("_")
-    if ( len(desc_block.replace(":", "")) -
-         len( anc_block.replace(":", "")) ) / dim != 1:
+    dim = anc_block.count("_") + 1
+    if (len(desc_block.replace(":", "")) - len(anc_block.replace(":", ""))) / dim != 1:
         return False
 
-    for aind, dind in zip( anc_block.split("_"),
-                          desc_block.split("_")):
+    for aind, dind in zip(anc_block.split("_"), desc_block.split("_")):
         if not dind.startswith(aind):
             return False
     return True
+
 
 def nested_dict_get(pdict, keys, default=None):
     """

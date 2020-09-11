@@ -5,17 +5,6 @@ Utilities for line integral convolution annotation
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Code originally from Scipy Cookbook (http://wiki.scipy.org/Cookbook/LineIntegralConvolution),
-# with bug fixed which leads to crash when non equal-size vector field in two
-# dimensions is provided.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 
 import numpy as np

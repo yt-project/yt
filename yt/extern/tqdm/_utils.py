@@ -67,8 +67,7 @@ def _environ_cols_windows(fp):  # pragma: no cover
              maxx, maxy) = struct.unpack("hhhhHhhhhhh", csbi.raw)
             # nlines = bottom - top + 1
             return right - left  # +1
-    except:
-        pass
+    except Exception: pass
     return None
 
 
@@ -80,8 +79,7 @@ def _environ_cols_tput(*args):  # pragma: no cover
         cols = int(subprocess.check_call(shlex.split('tput cols')))
         # rows = int(subprocess.check_call(shlex.split('tput lines')))
         return cols
-    except:
-        pass
+    except Exception: pass
     return None
 
 
@@ -91,7 +89,7 @@ def _environ_cols_linux(fp):  # pragma: no cover
     # if fp is None:
     #     try:
     #         fp = os.open(os.ctermid(), os.O_RDONLY)
-    #     except:
+    #     except Exception:
     #         pass
     try:
         from termios import TIOCGWINSZ
@@ -102,7 +100,7 @@ def _environ_cols_linux(fp):  # pragma: no cover
     else:
         try:
             return array('h', ioctl(fp, TIOCGWINSZ, '\0' * 8))[1]
-        except:
+        except Exception:
             try:
                 from os.environ import get
             except ImportError:

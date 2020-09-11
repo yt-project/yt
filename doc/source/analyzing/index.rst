@@ -24,3 +24,4 @@ multiple processors to accomplish tasks faster.
    time_series_analysis
    particle_trajectories
    parallel_computation
+   astropy_integrations

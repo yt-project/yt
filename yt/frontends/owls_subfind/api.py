@@ -1,10 +1,4 @@
-from .data_structures import \
-     OWLSSubfindDataset
-
-from .io import \
-     IOHandlerOWLSSubfindHDF5
-
-from .fields import \
-     OWLSSubfindFieldInfo
-
 from . import tests
+from .data_structures import OWLSSubfindDataset
+from .fields import OWLSSubfindFieldInfo
+from .io import IOHandlerOWLSSubfindHDF5

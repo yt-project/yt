@@ -74,7 +74,7 @@ with a series of
 hanging off of it that describe the contents
 of that volume.  It also contains a
 :class:`~yt.visualization.volume_rendering.camera.Camera` for rendering that
-volume..  All of its classes can be
+volume.  All of its classes can be
 accessed and modified as properties hanging off of the scene.
 The scene's most important functions are
 :meth:`~yt.visualization.volume_rendering.scene.Scene.render` for

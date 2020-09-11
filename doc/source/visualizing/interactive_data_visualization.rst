@@ -32,9 +32,9 @@ Installation
 ^^^^^^^^^^^^
 
 In order to use Interactive Data Visualization (IDV) you need to install
-`PyOpenGL <https://pypi.python.org/pypi/PyOpenGL>`_ and `cyglfw3
-<https://pypi.python.org/pypi/cyglfw3/>`_ along with their respective
-dependencies, e.g. `glfw3 <http://www.glfw.org/>`_ is required to be installed
+`PyOpenGL <https://pypi.org/project/PyOpenGL>`_ and `cyglfw3
+<https://pypi.org/project/cyglfw3/>`_ along with their respective
+dependencies, e.g. `glfw3 <https://www.glfw.org/>`_ is required to be installed
 before you can ``pip install cyglfw3``. Please carefully read installation
 instructions provided on pypi pages of both packages. 
 

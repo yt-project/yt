@@ -1,10 +1,4 @@
-from .data_structures import \
-     RockstarDataset
-
-from .io import \
-     IOHandlerRockstarBinary
-
-from .fields import \
-     RockstarFieldInfo
-
 from . import tests
+from .data_structures import RockstarDataset
+from .fields import RockstarFieldInfo
+from .io import IOHandlerRockstarBinary

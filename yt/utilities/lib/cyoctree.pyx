@@ -1,3 +1,8 @@
+# distutils: libraries = STD_LIBS
+# distutils: extra_link_args = OMP_ARGS
+# distutils: extra_compile_args = OMP_ARGS
+# distutils: include_dirs = LIB_DIR
+# distutils: language = c++
 """
 CyOctree building, loading and refining routines
 
@@ -5,13 +10,6 @@ CyOctree building, loading and refining routines
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2018, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
 import numpy as np

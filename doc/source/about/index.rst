@@ -16,7 +16,7 @@ written to analyze 3D grid-based astrophysical simulation data,
 it has grown to handle any kind of data represented in a 2D or 3D volume.
 yt is an Python-based open source project and is open for anyone to use or
 contribute code.  The entire source code and history is available to all
-at http://github.com/yt-project/yt .
+at https://github.com/yt-project/yt .
 
 .. _who-is-yt:
 
@@ -28,7 +28,7 @@ In September of 2014, the yt developer community collectively decided to endow
 the title of *member* on individuals who had contributed in a significant way
 to the project.  For a list of those members and a description of their
 contributions to the code, see
-`our members website. <http://yt-project.org/members.html>`_
+`our members website. <https://yt-project.org/members.html>`_
 
 For an up-to-date list of everyone who has contributed to the yt codebase,
 see the current `CREDITS <https://github.com/yt-project/yt/blob/master/CREDITS>`_ file.
@@ -57,7 +57,7 @@ How do I contact yt?
 --------------------
 
 If you have any questions about the code, please contact the `yt users email
-list <https://mail.python.org/mm3/archives/list/yt-users@python.org/>`_.  If
+list <https://mail.python.org/archives/list/yt-users@python.org/>`_.  If
 you're having other problems, please follow the steps in
 :ref:`asking-for-help`.
 
@@ -66,7 +66,7 @@ How do I cite yt?
 
 If you use yt in a publication, we'd very much appreciate a citation!  You
 should feel free to cite the `ApJS paper
-<http://adsabs.harvard.edu/abs/2011ApJS..192....9T>`_ with the following BibTeX
+<https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T>`_ with the following BibTeX
 entry: ::
 
    @ARTICLE{2011ApJS..192....9T,
@@ -84,6 +84,6 @@ entry: ::
          eid = {9},
        pages = {9},
          doi = {10.1088/0067-0049/192/1/9},
-      adsurl = {http://adsabs.harvard.edu/abs/2011ApJS..192....9T},
+      adsurl = {https://ui.adsabs.harvard.edu/abs/2011ApJS..192....9T},
      adsnote = {Provided by the SAO/NASA Astrophysics Data System}
    }

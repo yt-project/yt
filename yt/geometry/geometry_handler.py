@@ -1,21 +1,25 @@
 import os
 import pickle
 import weakref
-from yt.utilities.on_demand_imports import _h5py as h5py
+
 import numpy as np
 
 from yt.config import ytcfg
 from yt.funcs import iterable
-from yt.units.yt_array import \
-    YTArray, uconcatenate
+from yt.units.yt_array import YTArray, uconcatenate
+from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface, parallel_root_only
-from yt.utilities.exceptions import YTFieldNotFound
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+    parallel_root_only,
+)
+
 
 class Index(ParallelAnalysisInterface):
     """The base index class"""
+
     _unsupported_objects = ()
     _index_properties = ()
 
@@ -47,18 +51,19 @@ class Index(ParallelAnalysisInterface):
         self.num_grids = None
 
     def _initialize_data_storage(self):
-        if not ytcfg.getboolean('yt','serialize'): return
+        if not ytcfg.getboolean("yt", "serialize"):
+            return
         fn = self.ds.storage_filename
         if fn is None:
-            if os.path.isfile(os.path.join(self.directory,
-                                "%s.yt" % self.ds.unique_identifier)):
-                fn = os.path.join(self.directory,"%s.yt" % self.ds.unique_identifier)
+            if os.path.isfile(
+                os.path.join(self.directory, "%s.yt" % self.ds.unique_identifier)
+            ):
+                fn = os.path.join(self.directory, "%s.yt" % self.ds.unique_identifier)
             else:
-                fn = os.path.join(self.directory,
-                        "%s.yt" % self.dataset.basename)
+                fn = os.path.join(self.directory, "%s.yt" % self.dataset.basename)
         dir_to_check = os.path.dirname(fn)
-        if dir_to_check == '':
-            dir_to_check = '.'
+        if dir_to_check == "":
+            dir_to_check = "."
         # We have four options:
         #    Writeable, does not exist      : create, open as append
         #    Writeable, does exist          : open as append
@@ -69,19 +74,21 @@ class Index(ParallelAnalysisInterface):
             writeable = os.access(dir_to_check, os.W_OK)
         else:
             writeable = os.access(fn, os.W_OK)
-        writeable = writeable and not ytcfg.getboolean('yt','onlydeserialize')
+        writeable = writeable and not ytcfg.getboolean("yt", "onlydeserialize")
         # We now have our conditional stuff
         self.comm.barrier()
-        if not writeable and not exists: return
+        if not writeable and not exists:
+            return
         if writeable:
             try:
-                if not exists: self.__create_data_file(fn)
-                self._data_mode = 'a'
+                if not exists:
+                    self.__create_data_file(fn)
+                self._data_mode = "a"
             except IOError:
                 self._data_mode = None
                 return
         else:
-            self._data_mode = 'r'
+            self._data_mode = "r"
 
         self.__data_filename = fn
         self._data_file = h5py.File(fn, self._data_mode)
@@ -89,22 +96,26 @@ class Index(ParallelAnalysisInterface):
     def __create_data_file(self, fn):
         # Note that this used to be parallel_root_only; it no longer is,
         # because we have better logic to decide who owns the file.
-        f = h5py.File(fn, 'a')
+        f = h5py.File(fn, mode="a")
         f.close()
 
     def _setup_data_io(self):
-        if getattr(self, "io", None) is not None: return
+        if getattr(self, "io", None) is not None:
+            return
         self.io = io_registry[self.dataset_type](self.dataset)
 
     @parallel_root_only
-    def save_data(self, array, node, name, set_attr=None, force=False, passthrough = False):
+    def save_data(
+        self, array, node, name, set_attr=None, force=False, passthrough=False
+    ):
         """
         Arbitrary numpy data will be saved to the region in the datafile
         described by *node* and *name*.  If data file does not exist, it throws
         no error and simply does not save.
         """
 
-        if self._data_mode != 'a': return
+        if self._data_mode != "a":
+            return
         try:
             node_loc = self._data_file[node]
             if name in node_loc and force:
@@ -112,18 +123,21 @@ class Index(ParallelAnalysisInterface):
                 del self._data_file[node][name]
             elif name in node_loc and passthrough:
                 return
-        except:
+        except Exception:
             pass
-        myGroup = self._data_file['/']
-        for q in node.split('/'):
-            if q: myGroup = myGroup.require_group(q)
-        arr = myGroup.create_dataset(name,data=array)
+        myGroup = self._data_file["/"]
+        for q in node.split("/"):
+            if q:
+                myGroup = myGroup.require_group(q)
+        arr = myGroup.create_dataset(name, data=array)
         if set_attr is not None:
-            for i, j in set_attr.items(): arr.attrs[i] = j
+            for i, j in set_attr.items():
+                arr.attrs[i] = j
         self._data_file.flush()
 
     def _reload_data_file(self, *args, **kwargs):
-        if self._data_file is None: return
+        if self._data_file is None:
+            return
         self._data_file.close()
         del self._data_file
         self._data_file = h5py.File(self.__data_filename, self._data_mode)
@@ -134,7 +148,7 @@ class Index(ParallelAnalysisInterface):
         under the name *name* on the node /Objects.
         """
         s = pickle.dumps(obj, protocol=-1)
-        self.save_data(np.array(s, dtype='c'), "/Objects", name, force = True)
+        self.save_data(np.array(s, dtype="c"), "/Objects", name, force=True)
 
     def load_object(self, name):
         """
@@ -146,8 +160,9 @@ class Index(ParallelAnalysisInterface):
             return
         obj = pickle.loads(obj.value)
         if iterable(obj) and len(obj) == 2:
-            obj = obj[1] # Just the object, not the ds
-        if hasattr(obj, '_fix_pickle'): obj._fix_pickle()
+            obj = obj[1]  # Just the object, not the ds
+        if hasattr(obj, "_fix_pickle"):
+            obj._fix_pickle()
         return obj
 
     def get_data(self, node, name):
@@ -157,10 +172,11 @@ class Index(ParallelAnalysisInterface):
         """
         if self._data_file is None:
             return None
-        if node[0] != "/": node = "/%s" % node
+        if node[0] != "/":
+            node = "/%s" % node
 
-        myGroup = self._data_file['/']
-        for group in node.split('/'):
+        myGroup = self._data_file["/"]
+        for group in node.split("/"):
             if group:
                 if group not in myGroup:
                     return None
@@ -190,29 +206,33 @@ class Index(ParallelAnalysisInterface):
         for ftype, fname in fields:
             if fname in self.field_list or (ftype, fname) in self.field_list:
                 fields_to_read.append((ftype, fname))
-            elif fname in self.ds.derived_field_list or (ftype, fname) in self.ds.derived_field_list:
+            elif (
+                fname in self.ds.derived_field_list
+                or (ftype, fname) in self.ds.derived_field_list
+            ):
                 fields_to_generate.append((ftype, fname))
             else:
-                raise YTFieldNotFound((ftype,fname), self.ds)
+                raise YTFieldNotFound((ftype, fname), self.ds)
         return fields_to_read, fields_to_generate
 
-    def _read_particle_fields(self, fields, dobj, chunk = None):
-        if len(fields) == 0: return {}, []
+    def _read_particle_fields(self, fields, dobj, chunk=None):
+        if len(fields) == 0:
+            return {}, []
         fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
         selector = dobj.selector
         if chunk is None:
             self._identify_base_chunk(dobj)
-        chunks = self._chunk_io(dobj, cache = False)
+        chunks = self._chunk_io(dobj, cache=False)
         fields_to_return = self.io._read_particle_selection(
-            chunks,
-            selector,
-            fields_to_read)
+            chunks, selector, fields_to_read
+        )
         return fields_to_return, fields_to_generate
 
-    def _read_fluid_fields(self, fields, dobj, chunk = None):
-        if len(fields) == 0: return {}, []
+    def _read_fluid_fields(self, fields, dobj, chunk=None):
+        if len(fields) == 0:
+            return {}, []
         fields_to_read, fields_to_generate = self._split_fields(fields)
         if len(fields_to_read) == 0:
             return {}, fields_to_generate
@@ -223,13 +243,11 @@ class Index(ParallelAnalysisInterface):
         else:
             chunk_size = chunk.data_size
         fields_to_return = self.io._read_fluid_selection(
-            self._chunk_io(dobj),
-            selector,
-            fields_to_read,
-            chunk_size)
+            self._chunk_io(dobj), selector, fields_to_read, chunk_size
+        )
         return fields_to_return, fields_to_generate
 
-    def _chunk(self, dobj, chunking_style, ngz = 0, **kwargs):
+    def _chunk(self, dobj, chunking_style, ngz=0, **kwargs):
         # A chunk is either None or (grids, size)
         if dobj._current_chunk is None:
             self._identify_base_chunk(dobj)
@@ -244,8 +262,10 @@ class Index(ParallelAnalysisInterface):
         else:
             raise NotImplementedError
 
+
 def cached_property(func):
-    n = '_%s' % func.__name__
+    n = "_%s" % func.__name__
+
     def cached_func(self):
         if self._cache and getattr(self, n, None) is not None:
             return getattr(self, n)
@@ -257,12 +277,21 @@ def cached_property(func):
 
             setattr(self, n, tr)
         return tr
+
     return property(cached_func)
 
-class YTDataChunk(object):
 
-    def __init__(self, dobj, chunk_type, objs, data_size = None,
-                 field_type = None, cache = False, fast_index = None):
+class YTDataChunk:
+    def __init__(
+        self,
+        dobj,
+        chunk_type,
+        objs,
+        data_size=None,
+        field_type=None,
+        cache=False,
+        fast_index=None,
+    ):
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
@@ -290,72 +319,72 @@ class YTDataChunk(object):
     @cached_property
     def fcoords(self):
         if self._fast_index is not None:
-            ci = self._fast_index.select_fcoords(
-                self.dobj.selector, self.data_size)
-            ci = YTArray(ci, units = "code_length",
-                         registry = self.dobj.ds.unit_registry)
+            ci = self._fast_index.select_fcoords(self.dobj.selector, self.data_size)
+            ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
             return ci
-        ci = np.empty((self.data_size, 3), dtype='float64')
-        ci = YTArray(ci, units = "code_length",
-                     registry = self.dobj.ds.unit_registry)
-        if self.data_size == 0: return ci
+        ci = np.empty((self.data_size, 3), dtype="float64")
+        ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
+        if self.data_size == 0:
+            return ci
         ind = 0
         for obj in self._fast_index or self.objs:
             c = obj.select_fcoords(self.dobj)
-            if c.shape[0] == 0: continue
-            ci[ind:ind+c.shape[0], :] = c
+            if c.shape[0] == 0:
+                continue
+            ci[ind : ind + c.shape[0], :] = c
             ind += c.shape[0]
         return ci
 
     @cached_property
     def icoords(self):
         if self._fast_index is not None:
-            ci = self._fast_index.select_icoords(
-                self.dobj.selector, self.data_size)
+            ci = self._fast_index.select_icoords(self.dobj.selector, self.data_size)
             return ci
-        ci = np.empty((self.data_size, 3), dtype='int64')
-        if self.data_size == 0: return ci
+        ci = np.empty((self.data_size, 3), dtype="int64")
+        if self.data_size == 0:
+            return ci
         ind = 0
         for obj in self._fast_index or self.objs:
             c = obj.select_icoords(self.dobj)
-            if c.shape[0] == 0: continue
-            ci[ind:ind+c.shape[0], :] = c
+            if c.shape[0] == 0:
+                continue
+            ci[ind : ind + c.shape[0], :] = c
             ind += c.shape[0]
         return ci
 
     @cached_property
     def fwidth(self):
         if self._fast_index is not None:
-            ci = self._fast_index.select_fwidth(
-                self.dobj.selector, self.data_size)
-            ci = YTArray(ci, units = "code_length",
-                         registry = self.dobj.ds.unit_registry)
+            ci = self._fast_index.select_fwidth(self.dobj.selector, self.data_size)
+            ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
             return ci
-        ci = np.empty((self.data_size, 3), dtype='float64')
-        ci = YTArray(ci, units = "code_length",
-                     registry = self.dobj.ds.unit_registry)
-        if self.data_size == 0: return ci
+        ci = np.empty((self.data_size, 3), dtype="float64")
+        ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
+        if self.data_size == 0:
+            return ci
         ind = 0
         for obj in self._fast_index or self.objs:
             c = obj.select_fwidth(self.dobj)
-            if c.shape[0] == 0: continue
-            ci[ind:ind+c.shape[0], :] = c
+            if c.shape[0] == 0:
+                continue
+            ci[ind : ind + c.shape[0], :] = c
             ind += c.shape[0]
         return ci
 
     @cached_property
     def ires(self):
         if self._fast_index is not None:
-            ci = self._fast_index.select_ires(
-                self.dobj.selector, self.data_size)
+            ci = self._fast_index.select_ires(self.dobj.selector, self.data_size)
             return ci
-        ci = np.empty(self.data_size, dtype='int64')
-        if self.data_size == 0: return ci
+        ci = np.empty(self.data_size, dtype="int64")
+        if self.data_size == 0:
+            return ci
         ind = 0
         for obj in self._fast_index or self.objs:
             c = obj.select_ires(self.dobj)
-            if c.shape == 0: continue
-            ci[ind:ind+c.size] = c
+            if c.shape == 0:
+                continue
+            ci[ind : ind + c.size] = c
             ind += c.size
         return ci
 
@@ -366,16 +395,18 @@ class YTDataChunk(object):
 
     @cached_property
     def dtcoords(self):
-        ct = np.empty(self.data_size, dtype='float64')
-        cdt = np.empty(self.data_size, dtype='float64')
-        self._tcoords = ct # Se this for tcoords
-        if self.data_size == 0: return cdt
+        ct = np.empty(self.data_size, dtype="float64")
+        cdt = np.empty(self.data_size, dtype="float64")
+        self._tcoords = ct  # Se this for tcoords
+        if self.data_size == 0:
+            return cdt
         ind = 0
         for obj in self._fast_index or self.objs:
             gdt, gt = obj.select_tcoords(self.dobj)
-            if gt.size == 0: continue
-            ct[ind:ind+gt.size] = gt
-            cdt[ind:ind+gdt.size] = gdt
+            if gt.size == 0:
+                continue
+            ct[ind : ind + gt.size] = gt
+            cdt[ind : ind + gdt.size] = gdt
             ind += gt.size
         return cdt
 
@@ -383,22 +414,22 @@ class YTDataChunk(object):
     def fcoords_vertex(self):
         nodes_per_elem = self.dobj.index.meshes[0].connectivity_indices.shape[1]
         dim = self.dobj.ds.dimensionality
-        ci = np.empty((self.data_size, nodes_per_elem, dim), dtype='float64')
-        ci = YTArray(ci, units = "code_length",
-                     registry = self.dobj.ds.unit_registry)
-        if self.data_size == 0: return ci
+        ci = np.empty((self.data_size, nodes_per_elem, dim), dtype="float64")
+        ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
+        if self.data_size == 0:
+            return ci
         ind = 0
         for obj in self.objs:
             c = obj.select_fcoords_vertex(self.dobj)
-            if c.shape[0] == 0: continue
-            ci[ind:ind+c.shape[0], :, :] = c
+            if c.shape[0] == 0:
+                continue
+            ci[ind : ind + c.shape[0], :, :] = c
             ind += c.shape[0]
         return ci
 
 
-class ChunkDataCache(object):
-    def __init__(self, base_iter, preload_fields, geometry_handler,
-                 max_length = 256):
+class ChunkDataCache:
+    def __init__(self, base_iter, preload_fields, geometry_handler, max_length=256):
         # At some point, max_length should instead become a heuristic function,
         # potentially looking at estimated memory usage.  Note that this never
         # initializes the iterator; it assumes the iterator is already created,
@@ -414,9 +445,6 @@ class ChunkDataCache(object):
         return self
 
     def __next__(self):
-        return self.next()
-
-    def next(self):
         if len(self.queue) == 0:
             for i in range(self.max_length):
                 try:
@@ -424,10 +452,21 @@ class ChunkDataCache(object):
                 except StopIteration:
                     break
             # If it's still zero ...
-            if len(self.queue) == 0: raise StopIteration
+            if len(self.queue) == 0:
+                raise StopIteration
             chunk = YTDataChunk(None, "cache", self.queue, cache=False)
-            self.cache = self.geometry_handler.io._read_chunk_data(
-                chunk, self.preload_fields) or {}
+            self.cache = (
+                self.geometry_handler.io._read_chunk_data(chunk, self.preload_fields)
+                or {}
+            )
         g = self.queue.pop(0)
         g._initialize_cache(self.cache.pop(g.id, {}))
         return g
+
+
+def is_curvilinear(geo):
+    # tell geometry is curvilinear or not
+    if geo in ["polar", "cylindrical", "spherical"]:
+        return True
+    else:
+        return False
