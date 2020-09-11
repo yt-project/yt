@@ -118,8 +118,13 @@ def _param_list(request):
     ]
     test_params = {}
     for key, val in request.node.funcargs.items():
-        # if key not in blacklist and not key.startswith('ds'):
         if key not in blacklist:
+            # For plotwindow, the callback arg is a tuple and the second
+            # element contains a memory address, so we need to drop it.
+            # The first element is the callback name, which is all that's
+            # needed
+            if key == "callback":
+                val = val[0]
             test_params[key] = str(val)
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
