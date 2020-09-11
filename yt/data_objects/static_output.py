@@ -288,10 +288,14 @@ class Dataset(abc.ABC):
             "In the future, this will become an error. "
             "Use `Dataset.force_periodicity` instead."
         )
-
+        err_msg = f"Expected a 3-element boolean tuple, received `{val}`."
+        if not is_sequence(val):
+            raise TypeError(err_msg)
         if len(val) != 3:
-            raise ValueError("periodicity setter expected a 3-element boolean tuple.")
-        self._periodicity = ensure_tuple(val)
+            raise ValueError(err_msg)
+        if any(not isinstance(p, bool) for p in val):
+            raise TypeError(err_msg)
+        self._periodicity = tuple(val)
 
     def force_periodicity(self, val=True):
         """
