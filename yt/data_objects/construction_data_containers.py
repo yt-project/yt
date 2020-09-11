@@ -11,7 +11,7 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
-from yt.data_objects.selection_objects.base_objects import (
+from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer1D,
     YTSelectionContainer2D,
     YTSelectionContainer3D,

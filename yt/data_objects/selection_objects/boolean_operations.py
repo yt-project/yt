@@ -1,7 +1,7 @@
 import numpy as np
 
 import yt.geometry
-from yt.data_objects.selection_objects.base_objects import (
+from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
     YTSelectionContainer3D,
 )
@@ -23,7 +23,8 @@ class YTBooleanContainer(YTSelectionContainer3D):
     ----------
     op : string
         Can be AND, OR, XOR, NOT or NEG.
-    dobj1 : yt.data_objects.selection_objects.base_objects.YTSelectionContainer
+    dobj1 : yt.data_objects.selection_objects.data_selection_objects.
+            YTSelectionContainer
         The first selection object
     dobj2 : yt.data_objects.selection_objects.base_objects.YTSelectionContainer
         The second object

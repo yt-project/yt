@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt import YTArray
-from yt.data_objects.selection_objects.base_objects import (
+from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
     YTSelectionContainer3D,
 )

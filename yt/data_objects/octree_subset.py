@@ -5,7 +5,9 @@ import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
-from yt.data_objects.selection_objects.base_objects import YTSelectionContainer
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
+)
 from yt.funcs import mylog
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.units.dimensions import length

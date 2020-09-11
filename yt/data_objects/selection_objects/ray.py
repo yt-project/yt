@@ -2,7 +2,7 @@ import numpy as np
 from unyt import udot, unorm
 
 from yt import YTArray, YTQuantity
-from yt.data_objects.selection_objects.base_objects import (
+from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
     YTSelectionContainer1D,
 )

@@ -1,6 +1,8 @@
 import numpy as np
 
-from yt.data_objects.selection_objects.data_selection_objects import YTSelectionContainer3D
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer3D,
+)
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib import bounding_volume_hierarchy
 from yt.utilities.lib.image_samplers import (

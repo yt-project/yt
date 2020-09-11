@@ -1,7 +1,9 @@
 import contextlib
 
 from yt.data_objects.data_containers import YTFieldData
-from yt.data_objects.selection_objects.base_objects import YTSelectionContainer
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
+)
 from yt.funcs import ensure_list
 from yt.utilities.exceptions import (
     YTDataSelectorNotImplemented,

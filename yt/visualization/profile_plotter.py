@@ -15,7 +15,7 @@ from yt.funcs import ensure_list, get_image_suffix, iterable, matplotlib_style_c
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
-from ..data_objects.selection_objects.base_objects import YTSelectionContainer
+from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
 from .base_plot_types import ImagePlotMPL, PlotMPL
 from .plot_container import (
     ImagePlotContainer,
