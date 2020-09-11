@@ -300,10 +300,9 @@ class Dataset(abc.ABC):
         """
         # This is a user-facing method that embrace a long-standing
         # workaround in yt user codes.
-        try:
-            self._force_periodicity = bool(val)
-        except TypeError as e:
-            raise TypeError("force_periodicity expected a boolean.") from e
+        if not isinstance(val, bool):
+            raise TypeError("force_periodicity expected a boolean.")
+        self._force_periodicity = val
 
     # abstract methods require implementation in subclasses
     @classmethod
