@@ -496,19 +496,3 @@ In order to add a new set of answer tests, it is sufficient to extend the
    +
     other_tests:
       unittests:
-
-Restricting Python Versions for Answer Tests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If for some reason a test can be run only for a specific version of python it is
-possible to indicate this by adding a ``[py2]`` or ``[py3]`` tag. For example:
-
-.. code-block:: yaml
-
-   answer_tests:
-      local_test_000:
-         - yt/test_A.py  # [py2]
-         - yt/test_B.py  # [py3]
-
-would result in ``test_A.py`` being run only for *python2* and ``test_B.py``
-being run only for *python3*.

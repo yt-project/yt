@@ -33,5 +33,5 @@ class ExtractConnectedSetsTest(AnswerTestingTest):
         return result
 
     def compare(self, new_result, old_result):
-        err_msg = "Size and/or mass of connected sets do not agree for %s." % self.ds_fn
+        err_msg = f"Size and/or mass of connected sets do not agree for {self.ds_fn}."
         assert_equal(new_result, old_result, err_msg=err_msg, verbose=True)

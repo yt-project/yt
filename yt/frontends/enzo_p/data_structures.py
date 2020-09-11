@@ -144,7 +144,7 @@ class EnzoPHierarchy(GridIndex):
         f.seek(0)
         offset = f.tell()
         ngrids = 0
-        for ib in range(nblocks):
+        for _ in range(nblocks):
             my_block = min(fblock_size, file_size - offset)
             buff = f.read(my_block)
             ngrids += buff.count("\n")
@@ -171,11 +171,11 @@ class EnzoPHierarchy(GridIndex):
         child_id = nroot_blocks
 
         last_pid = None
-        for ib in range(nblocks):
+        for _ib in range(nblocks):
             fblock = min(fblock_size, file_size - offset)
             buff = lstr + f.read(fblock)
             bnl = 0
-            for inl in range(buff.count("\n")):
+            for _inl in range(buff.count("\n")):
                 nnl = buff.find("\n", bnl)
                 line = buff[bnl:nnl]
                 block_name, block_file = line.split()
@@ -377,7 +377,7 @@ class EnzoPDataset(Dataset):
                     for attr in co_pars
                 )
                 for attr in ["hubble_constant", "omega_matter", "omega_lambda"]:
-                    setattr(self, attr, co_dict["%s_now" % attr])
+                    setattr(self, attr, co_dict[f"{attr}_now"])
 
                 # Current redshift is not stored, so it's not possible
                 # to set all cosmological units yet.
@@ -444,7 +444,7 @@ class EnzoPDataset(Dataset):
             p = self.parameters
             for d, u in zip(("length", "time"), ("cm", "s")):
                 val = nested_dict_get(p, ("Units", d), default=1)
-                setdefaultattr(self, "%s_unit" % d, self.quan(val, u))
+                setdefaultattr(self, f"{d}_unit", self.quan(val, u))
             mass = nested_dict_get(p, ("Units", "mass"))
             if mass is None:
                 density = nested_dict_get(p, ("Units", "density"))

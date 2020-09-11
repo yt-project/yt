@@ -1,11 +1,10 @@
 # This is a part of the experimental Interactive Data Visualization
-
 import os
 
-import numpy as np
-
 import cyglfw3 as glfw
-import OpenGL.GL as GL
+import numpy as np
+from OpenGL import GL as GL
+
 from yt import write_bitmap
 
 from .input_events import EventCollection, MouseRotation
@@ -85,9 +84,7 @@ class EGLRenderingContext:
         return callbacks
 
     def start_loop(self, scene, camera):
-        callbacks = self.setup_loop(scene, camera)
-        for i in self(scene, camera, callbacks):
-            pass
+        self.setup_loop(scene, camera)
 
     def __call__(self, scene, camera, callbacks):
         camera.compute_matrices()
@@ -181,9 +178,7 @@ class RenderingContext:
         return callbacks
 
     def start_loop(self, scene, camera):
-        callbacks = self.setup_loop(scene, camera)
-        for i in self(scene, camera, callbacks):
-            pass
+        self.setup_loop(scene, camera)
 
     def __call__(self, scene, camera, callbacks):
         while not glfw.WindowShouldClose(self.window) or self.should_quit:

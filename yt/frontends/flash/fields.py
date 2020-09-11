@@ -90,10 +90,10 @@ class FLASHFieldInfo(FieldInfoContainer):
         Na = self.ds.quan(6.022140857e23, "g**-1")
         for i in range(1, 1000):
             self.add_output_field(
-                ("flash", "r{0:03}".format(i)),
+                ("flash", f"r{i:03}"),
                 sampling_type="cell",
                 units="",
-                display_name="Energy Group {0}".format(i),
+                display_name=f"Energy Group {i}",
             )
         # Add energy fields
         def ekin(data):
@@ -225,4 +225,4 @@ class FLASHFieldInfo(FieldInfoContainer):
             units=unit_system["number_density"],
         )
 
-        setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
+        setup_magnetic_field_aliases(self, "flash", [f"mag{ax}" for ax in "xyz"])

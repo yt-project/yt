@@ -10,16 +10,22 @@ Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 
 
 import struct
-from libcpp.map cimport map as cmap
-from libcpp.map cimport map
-from libcpp.algorithm cimport sort
-from libc.stdlib cimport malloc, free, qsort
+
 from cython.operator cimport dereference, preincrement
+from libc.stdlib cimport free, malloc, qsort
+from libcpp.algorithm cimport sort
+from libcpp.map cimport map as cmap
+
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from yt.utilities.lib.geometry_utils cimport \
-    morton_neighbors_coarse, morton_neighbors_refined
+cimport numpy as np
+
+from yt.utilities.lib.geometry_utils cimport (
+    morton_neighbors_coarse,
+    morton_neighbors_refined,
+)
+
 
 cdef extern from "<algorithm>" namespace "std" nogil:
     Iter unique[Iter](Iter first, Iter last)
@@ -151,17 +157,17 @@ cdef class FileBitmasks:
         cdef np.int32_t ifile
         cdef ewah_bool_array iarr, arr_two, arr_swap
         cdef ewah_bool_array* coll_refn
-        cdef map[np.uint64_t, ewah_bool_array] map_keys, map_refn
-        cdef map[np.uint64_t, ewah_bool_array]* coll_coll
-        cdef map[np.uint64_t, ewah_bool_array]* map_bitmask
+        cdef cmap[np.uint64_t, ewah_bool_array] map_keys, map_refn
+        cdef cmap[np.uint64_t, ewah_bool_array]* coll_coll
+        cdef cmap[np.uint64_t, ewah_bool_array]* map_bitmask
         coll_refn = <ewah_bool_array*> coll.ewah_refn
         if coll_refn[0].numberOfOnes() == 0:
             if verbose == 1:
                 print("{: 10d}/{: 10d} collisions at refined refinement. ({: 10.5f}%)".format(0,0,0))
             return (0,0)
-        coll_coll = <map[np.uint64_t, ewah_bool_array]*> coll.ewah_coll
+        coll_coll = <cmap[np.uint64_t, ewah_bool_array]*> coll.ewah_coll
         for ifile in range(self.nfiles):
-            map_bitmask = (<map[np.uint64_t, ewah_bool_array]**> self.ewah_coll)[ifile]
+            map_bitmask = (<cmap[np.uint64_t, ewah_bool_array]**> self.ewah_coll)[ifile]
             for it_mi1 in map_bitmask[0]:
                 mi1 = it_mi1.first
                 iarr = it_mi1.second

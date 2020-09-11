@@ -4,7 +4,6 @@ import tempfile
 
 import numpy as np
 
-from yt.convenience import load
 from yt.data_objects.api import create_profile
 from yt.frontends.ytdata.api import (
     YTDataContainerDataset,
@@ -14,6 +13,7 @@ from yt.frontends.ytdata.api import (
     YTSpatialPlotDataset,
     save_as_dataset,
 )
+from yt.loaders import load
 from yt.testing import assert_allclose_units, assert_array_equal, assert_equal
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import (
@@ -63,7 +63,7 @@ class YTDataFieldTest(AnswerTestingTest):
         return np.array([num_e, avg])
 
     def compare(self, new_result, old_result):
-        err_msg = "YTData field values for %s not equal." % (self.field,)
+        err_msg = f"YTData field values for {self.field} not equal."
         if self.decimals is None:
             assert_equal(new_result, old_result, err_msg=err_msg, verbose=True)
         else:

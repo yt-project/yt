@@ -2,12 +2,12 @@ import builtins
 
 import numpy as np
 
-import yt.utilities.lib.image_utilities as au
-import yt.utilities.png_writer as pw
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
 from yt.units.yt_array import YTQuantity
+from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook
+from yt.utilities.lib import image_utilities as au
 
 from . import _colormap_data as cmd
 from .color_maps import mcm
@@ -168,7 +168,8 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
 
     This function will scale an image and directly call libpng to write out a
     colormapped version of that image.  It is designed for rapid-fire saving of
-    image buffers generated using `yt.visualization.api.FixedResolutionBuffers` and the like.
+    image buffers generated using `yt.visualization.api.FixedResolutionBuffers`
+    and the likes.
 
     Parameters
     ----------
@@ -212,7 +213,8 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
 
     This function will scale an image and directly call libpng to write out a
     colormapped version of that image.  It is designed for rapid-fire saving of
-    image buffers generated using `yt.visualization.api.FixedResolutionBuffers` and the like.
+    image buffers generated using `yt.visualization.api.FixedResolutionBuffers`
+    and the likes.
 
     Parameters
     ----------
@@ -252,7 +254,7 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
 def map_to_colors(buff, cmap_name):
     try:
         lut = cmd.color_map_luts[cmap_name]
-    except KeyError:
+    except KeyError as e:
         try:
             # if cmap is tuple, then we're using palettable or brewer2mpl cmaps
             if isinstance(cmap_name, tuple):
@@ -265,7 +267,7 @@ def map_to_colors(buff, cmap_name):
             raise KeyError(
                 "Your color map (%s) was not found in either the extracted"
                 " colormap file or matplotlib colormaps" % cmap_name
-            )
+            ) from e
 
     if isinstance(cmap_name, tuple):
         # If we are using the colorbrewer maps, don't interpolate
@@ -298,6 +300,7 @@ def strip_colormap_data(
     ),
 ):
     import pprint
+
     from . import color_maps as rcm
 
     f = open(fn, "w")
@@ -310,8 +313,8 @@ def strip_colormap_data(
         cmaps = [cmaps]
     for cmap_name in sorted(cmaps):
         vals = rcm._extract_lookup_table(cmap_name)
-        f.write("### %s ###\n\n" % (cmap_name))
-        f.write("color_map_luts['%s'] = \\\n" % (cmap_name))
+        f.write(f"### {cmap_name} ###\n\n")
+        f.write(f"color_map_luts['{cmap_name}'] = \\\n")
         f.write("   (\n")
         for v in vals:
             f.write(pprint.pformat(v, indent=3))
@@ -392,8 +395,9 @@ def write_projection(
     """
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
-    import matplotlib.figure
     import matplotlib.colors
+    import matplotlib.figure
+
     from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
     # If this is rendered as log, then apply now.
@@ -441,7 +445,7 @@ def write_projection(
 
     if suffix == "":
         suffix = ".png"
-        filename = "%s%s" % (filename, suffix)
+        filename = f"{filename}{suffix}"
     mylog.info("Saving plot %s", filename)
     if suffix == ".pdf":
         canvas = FigureCanvasPdf(fig)

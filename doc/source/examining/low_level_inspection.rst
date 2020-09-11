@@ -88,15 +88,12 @@ normal, you can access the grid as you would a normal object:
    print(g["density"])
    print(g["density"].min())
 
-To access the raw data, you have to call the IO handler from the index
-instead.  This is somewhat more low-level.
+To access the raw data (as found in the file), use
 
 .. code-block:: python
 
    g = ds.index.grids[1043]
-   rho = ds.index.io.pop(g, "density")
-
-This field will be the raw data found in the file.
+   rho = g["density"].in_base("code")
 
 .. _finding-data-at-fixed-points:
 

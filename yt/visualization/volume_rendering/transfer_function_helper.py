@@ -106,8 +106,8 @@ class TransferFunctionHelper:
         """
         if self.bounds is None:
             mylog.info(
-                "Calculating data bounds. This may take a while."
-                + "  Set the TransferFunctionHelper.bounds to avoid this."
+                "Calculating data bounds. This may take a while. "
+                "Set the TransferFunctionHelper.bounds to avoid this."
             )
             self.set_bounds()
 
@@ -154,8 +154,9 @@ class TransferFunctionHelper:
         If fn is None, will return an image to an IPython notebook.
 
         """
-        from yt.visualization._mpl_imports import FigureCanvasAgg
         from matplotlib.figure import Figure
+
+        from yt.visualization._mpl_imports import FigureCanvasAgg
 
         if self.tf is None:
             self.build_transfer_function()

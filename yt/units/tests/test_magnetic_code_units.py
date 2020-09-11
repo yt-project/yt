@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.frontends.stream.api import load_uniform_grid
+from yt.loaders import load_uniform_grid
 from yt.testing import assert_allclose
 
 

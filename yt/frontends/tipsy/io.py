@@ -96,9 +96,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             poff = data_file.field_offsets
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
-            for ptype, field_list in sorted(
-                ptf.items(), key=lambda a: poff.get(a[0], -1)
-            ):
+            for ptype in sorted(ptf, key=lambda a: poff.get(a, -1)):
                 if data_file.total_particles[ptype] == 0:
                     continue
                 f.seek(poff[ptype])
@@ -117,9 +115,9 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
     @property
     def hsml_filename(self):
-        return "%s-%s" % (self.ds.parameter_filename, "hsml")
+        return f"{self.ds.parameter_filename}-{'hsml'}"
 
-    def _generate_smoothing_length(self, data_files, kdtree):
+    def _generate_smoothing_length(self, index):
         if os.path.exists(self.hsml_filename):
             with open(self.hsml_filename, "rb") as f:
                 file_hash = struct.unpack("q", f.read(struct.calcsize("q")))[0]
@@ -128,13 +126,14 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             else:
                 return
         positions = []
-        for data_file in data_files:
+        for data_file in index.data_files:
             for _, ppos in self._yield_coordinates(
                 data_file, needed_ptype=self.ds._sph_ptypes[0]
             ):
                 positions.append(ppos)
         if positions == []:
             return
+        kdtree = index.kdtree
         positions = np.concatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
         hsml = hsml[np.argsort(kdtree.idx)]
@@ -246,7 +245,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             f.seek(ds._header_offset)
             mi = np.array([1e30, 1e30, 1e30], dtype="float64")
             ma = -np.array([1e30, 1e30, 1e30], dtype="float64")
-            for iptype, ptype in enumerate(self._ptypes):
+            for ptype in self._ptypes:
                 # We'll just add the individual types separately
                 count = data_file.total_particles[ptype]
                 if count == 0:
@@ -288,7 +287,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     def _yield_coordinates(self, data_file, needed_ptype=None):
         with open(data_file.filename, "rb") as f:
             poff = data_file.field_offsets
-            for iptype, ptype in enumerate(self._ptypes):
+            for ptype in self._ptypes:
                 if ptype not in poff:
                     continue
                 f.seek(poff[ptype])
@@ -332,7 +331,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         pds = {}
         for ptype, field in cls._fields:
             dtbase = field_dtypes.get(field, "f")
-            ff = "%s%s" % (endian, dtbase)
+            ff = f"{endian}{dtbase}"
             if field in cls._vector_fields:
                 dt = (field, [("x", ff), ("y", ff), ("z", ff)])
             else:
@@ -422,8 +421,8 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         return self._field_list, {}
 
     def _calculate_particle_offsets(self, data_file, pcounts):
-        # This computes the offsets for each particle type into a "data_file."  Note that
-        # the term "data_file" here is a bit overloaded, and also refers to a
+        # This computes the offsets for each particle type into a "data_file."
+        # Note that the term "data_file" here is a bit overloaded, and also refers to a
         # "chunk" of particles inside a data file.
         # data_file.start represents the *particle count* that we should start at.
         #
@@ -438,7 +437,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         pos = data_file.ds._header_offset
         global_offsets = {}
         field_offsets = {}
-        for i, ptype in enumerate(self._ptypes):
+        for ptype in self._ptypes:
             if ptype not in self._pdtypes:
                 # This means we don't have any, I think, and so we shouldn't
                 # stick it in the offsets.

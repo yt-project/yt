@@ -155,7 +155,7 @@ class EnzoHierarchy(GridIndex):
             self._bn = ds.file_style
         else:
             self._bn = "%s.cpu%%04i"
-        self.index_filename = os.path.abspath("%s.hierarchy" % (ds.parameter_filename))
+        self.index_filename = os.path.abspath(f"{ds.parameter_filename}.hierarchy")
         if os.path.getsize(self.index_filename) == 0:
             raise IOError(-1, "File empty", self.index_filename)
         self.directory = os.path.dirname(self.index_filename)
@@ -413,8 +413,8 @@ class EnzoHierarchy(GridIndex):
                     continue
                 try:
                     gf = self.io._read_field_names(grid)
-                except self.io._read_exception:
-                    raise IOError("Grid %s is a bit funky?", grid.id)
+                except self.io._read_exception as e:
+                    raise IOError("Grid %s is a bit funky?", grid.id) from e
                 mylog.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.dataset.parameters:
@@ -972,9 +972,9 @@ class EnzoDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        if ("%s" % (args[0])).endswith(".hierarchy"):
+        if (f"{args[0]}").endswith(".hierarchy"):
             return True
-        return os.path.exists("%s.hierarchy" % args[0])
+        return os.path.exists(f"{args[0]}.hierarchy")
 
     @classmethod
     def _guess_candidates(cls, base, directories, files):

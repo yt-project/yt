@@ -36,7 +36,7 @@ def compare(ds, plot, test_prefix, test_name, decimals=12):
     def image_from_plot(filename_prefix):
         return plot.save(filename_prefix)
 
-    image_from_plot.__name__ = "profile_{}".format(test_prefix)
+    image_from_plot.__name__ = f"profile_{test_prefix}"
     test = GenericImageTest(ds, image_from_plot, decimals)
     test.prefix = test_prefix
     test.answer_name = test_name
@@ -64,7 +64,7 @@ def test_phase_plot_attributes():
             test = PhasePlotAttributeTest(
                 ds, x_field, y_field, z_field, attr_name, args, decimals
             )
-            test.prefix = "%s_%s" % (attr_name, args)
+            test.prefix = f"{attr_name}_{args}"
             test.answer_name = "phase_plot_attributes"
             yield test
 
@@ -98,7 +98,7 @@ def test_profile_plot():
     )
     profiles[0]._repr_html_()
     for idx, plot in enumerate(profiles):
-        test_prefix = "%s_%s" % (plot.plots.keys(), idx)
+        test_prefix = f"{plot.plots.keys()}_{idx}"
         yield compare(test_ds, plot, test_prefix=test_prefix, test_name="profile_plots")
 
 
@@ -146,7 +146,7 @@ def test_phase_plot():
     phases.append(pp)
     phases[0]._repr_html_()
     for idx, plot in enumerate(phases):
-        test_prefix = "%s_%s" % (plot.plots.keys(), idx)
+        test_prefix = f"{plot.plots.keys()}_{idx}"
         yield compare(test_ds, plot, test_prefix=test_prefix, test_name="phase_plots")
 
 

@@ -92,8 +92,9 @@ def apply_callback(f):
 
 
 def accepts_all_fields(f):
-    """Decorate a function whose second argument is <field> and deal with the special case
-    field == 'all', looping over all fields already present in the PlotContainer instance.
+    """
+    Decorate a function whose second argument is <field> and deal with the special case
+    field == 'all', looping over all fields already present in the PlotContainer object.
 
     """
     # This is to be applied to PlotContainer class methods with the following signature:
@@ -271,7 +272,8 @@ class PlotContainer:
             if field == 'all', applies to all plots.
 
         """
-        # devnote : accepts_all_fields decorator is not applicable here because the return variable isn't self
+        # devnote : accepts_all_fields decorator is not applicable here because
+        # the return variable isn't self
         log = {}
         if field == "all":
             fields = list(self.plots.keys())
@@ -499,7 +501,7 @@ class PlotContainer:
         if suffix is None:
             suffix = get_image_suffix(name)
             if suffix != "":
-                for k, v in self.plots.items():
+                for v in self.plots.values():
                     names.append(v.save(name, mpl_kwargs))
                 return names
         if hasattr(self.data_source, "axis"):
@@ -518,12 +520,12 @@ class PlotContainer:
             if isinstance(k, tuple):
                 k = k[1]
             if axis:
-                n = "%s_%s_%s_%s" % (name, type, axis, k.replace(" ", "_"))
+                n = f"{name}_{type}_{axis}_{k.replace(' ', '_')}"
             else:
                 # for cutting planes
-                n = "%s_%s_%s" % (name, type, k.replace(" ", "_"))
+                n = f"{name}_{type}_{k.replace(' ', '_')}"
             if weight:
-                n += "_%s" % (weight)
+                n += f"_{weight}"
             if suffix != "":
                 n = ".".join([n, suffix])
             names.append(v.save(n, mpl_kwargs))
@@ -555,7 +557,7 @@ class PlotContainer:
         """
         interactivity = self.plots[list(self.plots.keys())[0]].interactivity
         if interactivity:
-            for k, v in sorted(self.plots.items()):
+            for v in sorted(self.plots.values()):
                 v.show()
         else:
             if "__IPYTHON__" in dir(builtins):
@@ -633,7 +635,7 @@ class PlotContainer:
                     # This *forces* an override
                     unn = self.ds.coordinates.image_units[self.data_source.axis][i]
                 elif hasattr(self.ds.coordinates, "default_unit_label"):
-                    axax = getattr(self.ds.coordinates, "%s_axis" % ("xy"[i]))[
+                    axax = getattr(self.ds.coordinates, f"{'xy'[i]}_axis")[
                         self.data_source.axis
                     ]
                     unn = self.ds.coordinates.default_unit_label.get(axax, None)
@@ -909,10 +911,12 @@ class ImagePlotContainer(PlotContainer):
                     plot_units = self.frb[_field].units
                     z = z.to(plot_units).value
                 except AttributeError:
-                    # only certain subclasses have a frb attribute they can rely on for inspecting units
+                    # only certain subclasses have a frb attribute
+                    # they can rely on for inspecting units
                     mylog.warning(
-                        "%s class doesn't support zmin/zmax set as tuples or YTQuantity"
-                        % self.__class__.__name__
+                        "%s class doesn't support zmin/zmax"
+                        " as tuples or unyt_quantitiy",
+                        self.__class__.__name__,
                     )
                     z = z.value
             return z
@@ -943,7 +947,7 @@ class ImagePlotContainer(PlotContainer):
     def set_cbar_minorticks(self, field, state):
         """Deprecated alias, kept for backward compatibility.
 
-        turn colorbar minor ticks "on" or "off" in the current plot, according to *state*
+        turn colorbar minor ticks "on" or "off" in the current plot, following *state*
 
         Parameters
         ----------

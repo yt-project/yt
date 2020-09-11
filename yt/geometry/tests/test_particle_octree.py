@@ -37,7 +37,7 @@ def test_add_particles_random():
     for ndom in [1, 2, 4, 8]:
         octree = ParticleOctreeContainer((1, 1, 1), DLE, DRE)
         octree.n_ref = 32
-        for dom, split in enumerate(np.array_split(morton, ndom)):
+        for split in np.array_split(morton, ndom):
             octree.add(split)
         octree.finalize()
         # This visits every oct.
@@ -147,9 +147,7 @@ def FakeBitmap(
             reg._set_coarse_index_data_file(i)
         if i != (nfiles - 1):
             raise RuntimeError(
-                "There are positions for {} files, but there should be {}.".format(
-                    i + 1, nfiles
-                )
+                f"There are positions for {i + 1} files, but there should be {nfiles}."
             )
         # Refined index
         mask = reg.masks.sum(axis=1).astype("uint8")
@@ -336,8 +334,8 @@ def test_bitmap_select():
                 selector = RegionSelector(fr)
                 (df, gf), (dmask, gmask) = reg.identify_data_files(selector, ngz=1)
                 if exact_division:
-                    assert_equal(len(df), 1, "selector {}, number of files".format(i))
-                    assert_equal(df[0], i, "selector {}, file selected".format(i))
+                    assert_equal(len(df), 1, f"selector {i}, number of files")
+                    assert_equal(df[0], i, f"selector {i}, file selected")
                     if periodic and (nfiles != 2):
                         ans_gf = sorted([(i - 1) % nfiles, (i + 1) % nfiles])
                     elif i == 0:
@@ -347,14 +345,10 @@ def test_bitmap_select():
                     else:
                         ans_gf = [i - 1, i + 1]
                     assert_equal(
-                        len(gf),
-                        len(ans_gf),
-                        "selector {}, number of ghost files".format(i),
+                        len(gf), len(ans_gf), f"selector {i}, number of ghost files",
                     )
                     for i in range(len(gf)):
-                        assert_equal(
-                            gf[i], ans_gf[i], "selector {}, ghost files".format(i)
-                        )
+                        assert_equal(gf[i], ans_gf[i], f"selector {i}, ghost files")
 
                 else:
                     lf_frac = np.floor(float(fr.left_edge[0]) / div) * div
@@ -375,7 +369,7 @@ def test_bitmap_select():
                     if (lf + 0.5) <= (lf_frac - div):
                         lf += 1
                     df_ans = np.arange(max(lf, 0), min(rf + 1, nfiles))
-                    assert_array_equal(df, df_ans, "selector {}, file array".format(i))
+                    assert_array_equal(df, df_ans, f"selector {i}, file array")
                     # Ghost zones selected files
                     lf_ghost = int(
                         np.floor(lf_frac - div)
@@ -398,9 +392,7 @@ def test_bitmap_select():
                     if rf_ghost > rf:
                         gf_ans.append(rf_ghost % nfiles)
                     gf_ans = np.array(sorted(gf_ans))
-                    assert_array_equal(
-                        gf, gf_ans, "selector {}, ghost file array".format(i)
-                    )
+                    assert_array_equal(gf, gf_ans, f"selector {i}, ghost file array")
 
 
 def cell_centers(order, left_edge, right_edge):
@@ -468,14 +460,14 @@ def makeall_decomp_hilbert_gaussian(
     np.random.seed(int(0x4D3D3D3))
     DW = DRE - DLE
     if fname_base is None:
-        fname_base = "hilbert{}_gaussian_np{}_nf{}_".format(order, npart, nfiles)
+        fname_base = f"hilbert{order}_gaussian_np{npart}_nf{nfiles}_"
     if width is None:
         width = 0.1 * DW
     if center is None:
         center = DLE + 0.5 * DW
 
     def load_pos(file_id):
-        filename = fname_base + "file{}".format(file_id)
+        filename = fname_base + f"file{file_id}"
         if os.path.isfile(filename):
             fd = open(filename, "rb")
             positions = pickle.load(fd)
@@ -485,7 +477,7 @@ def makeall_decomp_hilbert_gaussian(
         return positions
 
     def save_pos(file_id, positions):
-        filename = fname_base + "file{}".format(file_id)
+        filename = fname_base + f"file{file_id}"
         fd = open(filename, "wb")
         pickle.dump(positions, fd)
         fd.close()
@@ -560,7 +552,7 @@ def fake_decomp_hilbert_gaussian(
         gpos = np.clip(
             np.random.normal(DLE[k] + DW[k] / 2.0, DW[k] / 10.0, npart), DLE[k], DRE[k]
         )
-        for p, ipos in enumerate(gpos):
+        for ipos in gpos:
             for i in range(len(hlist)):
                 if iLE[i, k] <= ipos < iRE[i, k]:
                     pos[count[k], k] = ipos
@@ -678,7 +670,7 @@ def fake_decomp(
     import pickle
 
     if fname is None and distrib == "gaussian":
-        fname = "{}6_{}_np{}_nf{}_file{}".format(decomp, distrib, npart, nfiles, ifile)
+        fname = f"{decomp}6_{distrib}_np{npart}_nf{nfiles}_file{ifile}"
     if fname is not None and os.path.isfile(fname):
         fd = open(fname, "rb")
         pos = pickle.load(fd)
@@ -734,7 +726,7 @@ def fake_decomp(
             pos = fake_decomp_random(npart, nfiles, ifile, DLE, DRE, **kws)
         else:
             raise ValueError(
-                "Unsupported value {} for input parameter 'distrib'".format(distrib)
+                f"Unsupported value {distrib} for input parameter 'distrib'"
             )
     # Each file contains a slab (part of x domain, all of y/z domain)
     elif decomp == "sliced":
@@ -742,7 +734,7 @@ def fake_decomp(
             pos = fake_decomp_sliced(npart, nfiles, ifile, DLE, DRE, **kws)
         else:
             raise ValueError(
-                "Unsupported value {} for input parameter 'distrib'".format(distrib)
+                f"Unsupported value {distrib} for input parameter 'distrib'"
             )
     # Particles are assigned to files based on their location on a
     # Peano-Hilbert curve of order 6
@@ -770,7 +762,7 @@ def fake_decomp(
             )
         else:
             raise ValueError(
-                "Unsupported value {} for input parameter 'distrib'".format(distrib)
+                f"Unsupported value {distrib} for input parameter 'distrib'"
             )
     # Particles are assigned to files based on their location on a
     # Morton ordered Z-curve of order 6
@@ -783,12 +775,10 @@ def fake_decomp(
             pos = fake_decomp_morton(npart, nfiles, ifile, DLE, DRE, **kws)
         else:
             raise ValueError(
-                "Unsupported value {} for input parameter 'distrib'".format(distrib)
+                f"Unsupported value {distrib} for input parameter 'distrib'"
             )
     else:
-        raise ValueError(
-            "Unsupported value {} for input parameter 'decomp'".format(decomp)
-        )
+        raise ValueError(f"Unsupported value {decomp} for input parameter 'decomp'")
     # Save
     if fname is not None:
         fd = open(fname, "wb")

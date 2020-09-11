@@ -9,9 +9,12 @@ Matching points on the grid to specific grids
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 from yt.utilities.lib.bitarray cimport bitarray
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

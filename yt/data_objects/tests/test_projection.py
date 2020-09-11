@@ -1,6 +1,7 @@
 import os
 import tempfile
 
+import mock
 import numpy as np
 
 from yt.testing import assert_equal, assert_rel_equal, fake_amr_ds, fake_random_ds
@@ -23,7 +24,8 @@ def teardown_func(fns):
             pass
 
 
-def test_projection():
+@mock.patch("yt.visualization._mpl_imports.FigureCanvasAgg.print_figure")
+def test_projection(pf):
     fns = []
     for nprocs in [8, 1]:
         # We want to test both 1 proc and 8 procs, to make sure that
@@ -92,7 +94,7 @@ def test_projection():
                         else:
                             proj_unit = "cm"
                         if field_unit != "" and field_unit != Unit():
-                            proj_unit = "({0}) * {1}".format(field_unit, proj_unit)
+                            proj_unit = f"({field_unit}) * {proj_unit}"
                         assert_equal(
                             frb[proj_field].units,
                             Unit(proj_unit, registry=ds.unit_registry),
@@ -110,7 +112,7 @@ def test_projection():
             # wf == None
             assert_equal(wf, None)
             v1 = proj["density"].sum()
-            v2 = (dd["density"] * dd["d%s" % an]).sum()
+            v2 = (dd["density"] * dd[f"d{an}"]).sum()
             assert_rel_equal(v1, v2.in_units(v1.units), 10)
     teardown_func(fns)
 

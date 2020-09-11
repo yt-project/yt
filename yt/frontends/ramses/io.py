@@ -133,7 +133,7 @@ class IOHandlerRAMSES(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         pn = "particle_position_%s"
         fields = [
-            (ptype, "particle_position_%s" % ax)
+            (ptype, f"particle_position_{ax}")
             for ptype, field_list in ptf.items()
             for ax in "xyz"
         ]
@@ -234,7 +234,7 @@ def _read_part_file_descriptor(fname):
     with open(fname, "r") as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.debug("Reading part file descriptor %s." % fname)
+        mylog.debug("Reading part file descriptor %s.", fname)
         if not tmp:
             raise YTParticleOutputFormatNotImplemented()
 
@@ -256,7 +256,7 @@ def _read_part_file_descriptor(fname):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = "particle_%s" % varname
+                    varname = f"particle_{varname}"
 
                 fields.append((varname, dtype))
         else:
@@ -284,9 +284,7 @@ def _read_fluid_file_descriptor(fname):
     mapping += [
         (key, key)
         for key in (
-            "B_{0}_{1}".format(dim, side)
-            for side in ["left", "right"]
-            for dim in ["x", "y", "z"]
+            f"B_{dim}_{side}" for side in ["left", "right"] for dim in ["x", "y", "z"]
         )
     ]
 
@@ -296,7 +294,7 @@ def _read_fluid_file_descriptor(fname):
     with open(fname, "r") as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.debug("Reading fluid file descriptor %s." % fname)
+        mylog.debug("Reading fluid file descriptor %s.", fname)
         if not tmp:
             return []
 
@@ -318,7 +316,7 @@ def _read_fluid_file_descriptor(fname):
                 if varname in mapping:
                     varname = mapping[varname]
                 else:
-                    varname = "hydro_%s" % varname
+                    varname = f"hydro_{varname}"
 
                 fields.append((varname, dtype))
         else:

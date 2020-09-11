@@ -19,24 +19,22 @@ def _make_io_key(args, *_args, **kwargs):
     return _make_key((obj.id, field), *_args, **kwargs)
 
 
-class RegisteredIOHandler(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if hasattr(cls, "_dataset_type"):
-            io_registry[cls._dataset_type] = cls
-        if use_caching and hasattr(cls, "_read_obj_field"):
-            cls._read_obj_field = lru_cache(
-                maxsize=use_caching, typed=True, make_key=_make_io_key
-            )(cls._read_obj_field)
-
-
-class BaseIOHandler(metaclass=RegisteredIOHandler):
+class BaseIOHandler:
     _vector_fields = ()
     _dataset_type = None
     _particle_reader = False
     _cache_on = False
     _misses = 0
     _hits = 0
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if hasattr(cls, "_dataset_type"):
+            io_registry[cls._dataset_type] = cls
+        if use_caching and hasattr(cls, "_read_obj_field"):
+            cls._read_obj_field = lru_cache(
+                maxsize=use_caching, typed=True, make_key=_make_io_key
+            )(cls._read_obj_field)
 
     def __init__(self, ds):
         self.queue = defaultdict(dict)
@@ -55,13 +53,6 @@ class BaseIOHandler(metaclass=RegisteredIOHandler):
     @contextmanager
     def preload(self, chunk, fields, max_size):
         yield self
-
-    def pop(self, grid, field):
-        if grid.id in self.queue and field in self.queue[grid.id]:
-            return self.modify(self.queue[grid.id].pop(field))
-        else:
-            # We only read the one set and do not store it if it isn't pre-loaded
-            return self._read_data_set(grid, field)
 
     def peek(self, grid, field):
         return self.queue[grid.id].get(field, None)
@@ -132,6 +123,13 @@ class BaseIOHandler(metaclass=RegisteredIOHandler):
             else:
                 ind[field] += obj.select(selector, data, rv[field], ind[field])
         return rv
+
+    def io_iter(self, chunks, fields):
+        raise NotImplementedError(
+            "subclassing Dataset.io_iter this is required in order to use the default "
+            "implementation of Dataset._read_fluid_selection. "
+            "Custom implementations of the latter may not rely on this method."
+        )
 
     def _read_data_slice(self, grid, field, axis, coord):
         sl = [slice(None), slice(None), slice(None)]

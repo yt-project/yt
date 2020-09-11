@@ -52,8 +52,8 @@ class UnilinearFieldInterpolator:
         if np.any((x_i == -1) | (x_i == len(self.x_bins) - 1)):
             if not self.truncate:
                 mylog.error(
-                    "Sorry, but your values are outside"
-                    + " the table!  Dunno what to do, so dying."
+                    "Sorry, but your values are outside "
+                    "the table!  Dunno what to do, so dying."
                 )
                 mylog.error("Error was in: %s", data_object)
                 raise ValueError
@@ -128,8 +128,8 @@ class BilinearFieldInterpolator:
         ):
             if not self.truncate:
                 mylog.error(
-                    "Sorry, but your values are outside"
-                    + " the table!  Dunno what to do, so dying."
+                    "Sorry, but your values are outside "
+                    "the table!  Dunno what to do, so dying."
                 )
                 mylog.error("Error was in: %s", data_object)
                 raise ValueError
@@ -197,7 +197,8 @@ class TrilinearFieldInterpolator:
             self.z_bins = boundaries[2]
         else:
             mylog.error(
-                "Boundaries must be given as (x0, x1, y0, y1, z0, z1) or as (x_bins, y_bins, z_bins)"
+                "Boundaries must be given as (x0, x1, y0, y1, z0, z1) "
+                "or as (x_bins, y_bins, z_bins)"
             )
             raise ValueError
 
@@ -217,8 +218,8 @@ class TrilinearFieldInterpolator:
         ):
             if not self.truncate:
                 mylog.error(
-                    "Sorry, but your values are outside"
-                    + " the table!  Dunno what to do, so dying."
+                    "Sorry, but your values are outside "
+                    "the table!  Dunno what to do, so dying."
                 )
                 mylog.error("Error was in: %s", data_object)
                 raise ValueError

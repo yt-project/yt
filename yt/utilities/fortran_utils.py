@@ -52,7 +52,7 @@ def read_attrs(f, attrs, endian="="):
     """
     vv = {}
     net_format = endian
-    for a, n, t in attrs:
+    for _a, n, t in attrs:
         for end in "@=<>":
             t = t.replace(end, "")
         net_format += "".join(["I"] + ([t] * n) + ["I"])
@@ -130,7 +130,7 @@ def read_cattrs(f, attrs, endian="="):
     """
     vv = {}
     net_format = endian
-    for a, n, t in attrs:
+    for _a, n, t in attrs:
         for end in "@=<>":
             t = t.replace(end, "")
         net_format += "".join([t] * n)
@@ -186,10 +186,10 @@ def read_vector(f, d, endian="="):
     >>> f = open("fort.3", "rb")
     >>> rv = read_vector(f, 'd')
     """
-    pad_fmt = "%sI" % (endian)
+    pad_fmt = f"{endian}I"
     pad_size = struct.calcsize(pad_fmt)
     vec_len = struct.unpack(pad_fmt, f.read(pad_size))[0]  # bytes
-    vec_fmt = "%s%s" % (endian, d)
+    vec_fmt = f"{endian}{d}"
     vec_size = struct.calcsize(vec_fmt)
     if vec_len % vec_size != 0:
         raise IOError(
@@ -315,9 +315,9 @@ def read_record(f, rspec, endian="="):
     """
     vv = {}
     net_format = endian + "I"
-    for a, n, t in rspec:
+    for _a, n, t in rspec:
         t = t if len(t) == 1 else t[-1]
-        net_format += "%s%s" % (n, t)
+        net_format += f"{n}{t}"
     net_format += "I"
     size = struct.calcsize(net_format)
     vals = list(struct.unpack(net_format, f.read(size)))
@@ -331,7 +331,7 @@ def read_record(f, rspec, endian="="):
             s2,
         )
     pos = 0
-    for a, n, t in rspec:
+    for a, n, _t in rspec:
         vv[a] = vals[pos : pos + n]
         pos += n
     return vv

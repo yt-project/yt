@@ -105,7 +105,7 @@ class AthenaDistributedConverter(Converter):
                     + ".vtk"
                 )
 
-            print("Reading file %s" % fn)
+            print(f"Reading file {fn}")
             f = open(fn, "rb")
             grid = {}
             grid["read_field"] = None

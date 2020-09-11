@@ -20,6 +20,7 @@ cdef class SelectorObject:
     cdef public np.int32_t max_level
     cdef int overlap_cells
     cdef np.float64_t domain_width[3]
+    cdef np.float64_t domain_center[3]
     cdef bint periodicity[3]
     cdef bint _hash_initialized
     cdef np.int64_t _hash

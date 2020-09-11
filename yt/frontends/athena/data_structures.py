@@ -158,8 +158,9 @@ class AthenaHierarchy(GridIndex):
                     grid_dims[grid_dims == 0] = 1
                 if np.prod(grid_dims) != grid_ncells:
                     mylog.error(
-                        "product of dimensions %i not equal to number of cells %i"
-                        % (np.prod(grid_dims), grid_ncells)
+                        "product of dimensions %i not equal to number of cells %i",
+                        np.prod(grid_dims),
+                        grid_ncells,
                     )
                     raise TypeError
                 break
@@ -187,7 +188,7 @@ class AthenaHierarchy(GridIndex):
                 field = str23(splitup[1])
                 dtype = str23(splitup[-1]).lower()
                 for ax in "xyz":
-                    field_map[("athena", "%s_%s" % (field, ax))] = (
+                    field_map[("athena", f"{field}_{ax}")] = (
                         "vector",
                         f.tell() - read_table_offset,
                         dtype,
@@ -222,8 +223,9 @@ class AthenaHierarchy(GridIndex):
             grid["dimensions"][grid["dimensions"] == 0] = 1
         if np.prod(grid["dimensions"]) != grid["ncells"]:
             mylog.error(
-                "product of dimensions %i not equal to number of cells %i"
-                % (np.prod(grid["dimensions"]), grid["ncells"])
+                "product of dimensions %i not equal to number of cells %i",
+                np.prod(grid["dimensions"]),
+                grid["ncells"],
             )
             raise TypeError
 
@@ -235,18 +237,16 @@ class AthenaHierarchy(GridIndex):
             dataset_dir = dataset_dir[:-3]
 
         gridlistread = sglob(
-            os.path.join(dataset_dir, "id*/%s-id*%s" % (dname[4:-9], dname[-9:]))
+            os.path.join(dataset_dir, f"id*/{dname[4:-9]}-id*{dname[-9:]}")
         )
         gridlistread.insert(0, self.index_filename)
         if "id0" in dname:
             gridlistread += sglob(
-                os.path.join(
-                    dataset_dir, "id*/lev*/%s*-lev*%s" % (dname[4:-9], dname[-9:])
-                )
+                os.path.join(dataset_dir, f"id*/lev*/{dname[4:-9]}*-lev*{dname[-9:]}")
             )
         else:
             gridlistread += sglob(
-                os.path.join(dataset_dir, "lev*/%s*-lev*%s" % (dname[:-9], dname[-9:]))
+                os.path.join(dataset_dir, f"lev*/{dname[:-9]}*-lev*{dname[-9:]}")
             )
         ndots = dname.count(".")
         gridlistread = [
@@ -298,8 +298,9 @@ class AthenaHierarchy(GridIndex):
                 gridread["dimensions"][gridread["dimensions"] == 0] = 1
             if np.prod(gridread["dimensions"]) != gridread["ncells"]:
                 mylog.error(
-                    "product of dimensions %i not equal to number of cells %i"
-                    % (np.prod(gridread["dimensions"]), gridread["ncells"])
+                    "product of dimensions %i not equal to number of cells %i",
+                    np.prod(gridread["dimensions"]),
+                    gridread["ncells"],
                 )
                 raise TypeError
             gdims[j, 0] = gridread["dimensions"][0]
@@ -443,7 +444,7 @@ class AthenaHierarchy(GridIndex):
                 g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1
             ]
         mylog.debug("Second pass; identifying parents")
-        for i, grid in enumerate(self.grids):  # Second pass
+        for grid in self.grids:  # Second pass
             for child in grid.Children:
                 child.Parent.append(grid)
 
@@ -485,12 +486,13 @@ class AthenaDataset(Dataset):
             units_override = {}
         # This is for backwards-compatibility
         already_warned = False
-        for k, v in list(self.specified_parameters.items()):
+        for k in list(self.specified_parameters.keys()):
             if k.endswith("_unit") and k not in units_override:
                 if not already_warned:
                     mylog.warning(
-                        "Supplying unit conversions from the parameters dict is deprecated, "
-                        + "and will be removed in a future release. Use units_override instead."
+                        "Supplying unit conversions from the parameters dict "
+                        "is deprecated, and will be removed in a future release. "
+                        "Use units_override instead."
                     )
                     already_warned = True
                 units_override[k] = self.specified_parameters.pop(k)
@@ -503,7 +505,7 @@ class AthenaDataset(Dataset):
         )
         self.filename = filename
         if storage_filename is None:
-            storage_filename = "%s.yt" % filename.split("/")[-1]
+            storage_filename = f"{filename.split('/')[-1]}.yt"
         self.storage_filename = storage_filename
         self.backup_filename = self.filename[:-4] + "_backup.gdf"
         # Unfortunately we now have to mandate that the index gets
@@ -523,7 +525,7 @@ class AthenaDataset(Dataset):
             if getattr(self, unit + "_unit", None) is not None:
                 continue
             mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
-            setattr(self, "%s_unit" % unit, self.quan(1.0, cgs))
+            setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
             4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
         )
@@ -559,8 +561,8 @@ class AthenaDataset(Dataset):
 
         self.domain_left_edge = grid["left_edge"]
         mylog.info(
-            "Temporarily setting domain_right_edge = -domain_left_edge."
-            + " This will be corrected automatically if it is not the case."
+            "Temporarily setting domain_right_edge = -domain_left_edge. "
+            "This will be corrected automatically if it is not the case."
         )
         self.domain_right_edge = -self.domain_left_edge
         self.domain_width = self.domain_right_edge - self.domain_left_edge
@@ -608,17 +610,15 @@ class AthenaDataset(Dataset):
             dataset_dir = dataset_dir[:-3]
 
         gridlistread = sglob(
-            os.path.join(dataset_dir, "id*/%s-id*%s" % (dname[4:-9], dname[-9:]))
+            os.path.join(dataset_dir, f"id*/{dname[4:-9]}-id*{dname[-9:]}")
         )
         if "id0" in dname:
             gridlistread += sglob(
-                os.path.join(
-                    dataset_dir, "id*/lev*/%s*-lev*%s" % (dname[4:-9], dname[-9:])
-                )
+                os.path.join(dataset_dir, f"id*/lev*/{dname[4:-9]}*-lev*{dname[-9:]}")
             )
         else:
             gridlistread += sglob(
-                os.path.join(dataset_dir, "lev*/%s*-lev*%s" % (dname[:-9], dname[-9:]))
+                os.path.join(dataset_dir, f"lev*/{dname[:-9]}*-lev*{dname[-9:]}")
             )
         ndots = dname.count(".")
         gridlistread = [

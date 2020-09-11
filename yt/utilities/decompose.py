@@ -1,6 +1,8 @@
 import numpy as np
 
-SIEVE_PRIMES = lambda l: l and l[:1] + SIEVE_PRIMES([n for n in l if n % l[0]])
+
+def SIEVE_PRIMES(x):
+    return x and x[:1] + SIEVE_PRIMES([n for n in x if n % x[0]])
 
 
 def decompose_to_primes(max_prime):

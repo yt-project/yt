@@ -9,22 +9,22 @@ Simple utilities that don't fit anywhere else
 """
 
 
-from yt.funcs import get_pbar
 import numpy as np
+
+from yt.funcs import get_pbar
 from yt.units.yt_array import YTArray
-cimport numpy as np
+
 cimport cython
 cimport libc.math as math
+cimport numpy as np
+from cpython cimport buffer
+from cython.view cimport array as cvarray, memoryview
 from libc.math cimport abs, sqrt
-from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max
-from yt.geometry.selection_routines cimport _ensure_code
-
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free, malloc
 from libc.string cimport strcmp
 
-from cython.view cimport memoryview
-from cython.view cimport array as cvarray
-from cpython cimport buffer
+from yt.geometry.selection_routines cimport _ensure_code
+from yt.utilities.lib.fp_utils cimport fmax, fmin, i64max, i64min
 
 
 cdef extern from "platform_dep.h":
@@ -32,7 +32,9 @@ cdef extern from "platform_dep.h":
     void *alloca(int)
 
 from cython.parallel import prange
+
 from cpython.exc cimport PyErr_CheckSignals
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

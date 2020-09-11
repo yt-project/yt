@@ -39,6 +39,8 @@ from yt.funcs import (
     toggle_interactivity,
 )
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import set_log_level
+
 
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units
@@ -94,15 +96,8 @@ from yt.frontends.api import _frontend_container
 
 frontends = _frontend_container()
 
-from yt.frontends.stream.api import (
-    load_uniform_grid,
-    load_amr_grids,
-    load_particles,
-    load_hexahedral_mesh,
-    load_octree,
-    hexahedral_connectivity,
-    load_unstructured_mesh,
-)
+from yt.frontends.stream.api import hexahedral_connectivity
+
 
 from yt.frontends.ytdata.api import save_as_dataset
 
@@ -164,9 +159,18 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
     communication_system,
 )
 
-from yt.convenience import load, simulation
-
-from yt.utilities.load_sample import load_sample
+from yt.loaders import (
+    load,
+    load_simulation,
+    simulation,  # deprecated alias for load_simulation
+    load_uniform_grid,
+    load_amr_grids,
+    load_particles,
+    load_hexahedral_mesh,
+    load_octree,
+    load_unstructured_mesh,
+    load_sample,
+)
 
 from yt.testing import run_nose
 
@@ -175,4 +179,15 @@ from yt.utilities.math_utils import ortho_find, quartiles, periodic_position
 
 from yt.units.unit_systems import UnitSystem, unit_system_registry
 
-_called_from_pytest = False
+
+def _check_deprecated_parameters():
+    from yt.config import ytcfg
+    from yt.funcs import issue_deprecation_warning
+
+    if ytcfg.getboolean("yt", "loadfieldplugins"):
+        issue_deprecation_warning(
+            "Found deprecated parameter 'loadfieldplugins' parameter in yt rcfile."
+        )
+
+
+_check_deprecated_parameters()

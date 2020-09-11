@@ -4,13 +4,52 @@ AMRVAC-specific IO functions
 
 
 """
+import os
 
 import numpy as np
 
+from yt.funcs import ensure_list
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.on_demand_imports import _f90nml as f90nml
 
 from .datfile_utils import get_single_block_field_data
+
+
+def read_amrvac_namelist(parfiles):
+    """Read one or more parfiles, and return a unified f90nml.Namelist object.
+
+    This function replicates the patching logic of MPI-AMRVAC where redundant parameters
+    only retain last-in-line values, with the exception of `&filelist:base_filename`,
+    which is accumulated. When passed a single file, this function acts as a mere
+    wrapper of f90nml.read().
+
+    Parameters
+    ----------
+    parfiles : str, os.Pathlike, byte, or an iterable returning those types
+        A file path, or a list of file paths to MPI-AMRVAC configuration parfiles.
+
+    Returns
+    -------
+    unified_namelist : f90nml.Namelist
+        A single namelist object. The class inherits from ordereddict.
+
+    """
+    parfiles = [os.path.expanduser(pf) for pf in ensure_list(parfiles)]
+
+    # first merge the namelists
+    namelists = [f90nml.read(parfile) for parfile in parfiles]
+    unified_namelist = f90nml.Namelist()
+    for nml in namelists:
+        unified_namelist.patch(nml)
+
+    # accumulate `&filelist:base_filename`
+    base_filename = "".join(
+        [nml.get("filelist", {}).get("base_filename", "") for nml in namelists]
+    )
+    unified_namelist["filelist"]["base_filename"] = base_filename
+
+    return unified_namelist
 
 
 class AMRVACIOHandler(BaseIOHandler):
@@ -89,15 +128,17 @@ class AMRVACIOHandler(BaseIOHandler):
         Returns
         -------
         data_dict : dict
-            keys are the (ftype, fname) tuples and values are arrays that have been masked using
-            whatever selector method is appropriate. Arrays have dtype float64.
+            keys are the (ftype, fname) tuples, values are arrays that have been masked
+            using whatever selector method is appropriate. Arrays have dtype float64.
         """
 
         # @Notes from Niels:
         # The chunks list has YTDataChunk objects containing the different grids.
-        # The list of grids can be obtained by doing eg. grids_list = chunks[0].objs or chunks[1].objs etc.
-        # Every element in "grids_list" is then an AMRVACGrid object, and has hence all attributes of a grid
-        #    (Level, ActiveDimensions, LeftEdge, etc.)
+        # The list of grids can be obtained by doing eg.
+        # grids_list = chunks[0].objs or chunks[1].objs etc.
+        # Every element in "grids_list" is then an AMRVACGrid object,
+        # and has hence all attributes of a grid :
+        # (Level, ActiveDimensions, LeftEdge, etc.)
 
         chunks = list(chunks)
         data_dict = {}  # <- return variable

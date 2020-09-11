@@ -11,10 +11,13 @@ Oct visitor functions
 
 cimport cython
 cimport numpy as np
+
 import numpy as np
+
+from libc.stdlib cimport free, malloc
+
+from yt.geometry.oct_container cimport OctInfo, OctreeContainer
 from yt.utilities.lib.fp_utils cimport *
-from libc.stdlib cimport malloc, free
-from yt.geometry.oct_container cimport OctreeContainer, OctInfo
 from yt.utilities.lib.geometry_utils cimport encode_morton_64bit
 
 # Now some visitor functions
