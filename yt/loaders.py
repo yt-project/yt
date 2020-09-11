@@ -1211,15 +1211,7 @@ def load_unstructured_mesh(
         field_units.update(_f_unit)
         sfh[i] = _data
         particle_types.update(set_particle_types(d))
-    # Simple check for axis length correctness
-    if 0 and len(data) > 0:
-        fn = list(sorted(data))[0]
-        array_values = data[fn]
-        if array_values.size != connectivity.shape[0]:
-            mylog.error(
-                "Dimensions of array must be one fewer than the coordinate set."
-            )
-            raise RuntimeError
+
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
     grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
