@@ -265,10 +265,10 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                         fd = self.ds.arr(fd, "")
                         if fi.units != "":
                             raise YTFieldUnitError(fi, fd.units)
-                    except UnitConversionError:
-                        raise YTFieldUnitError(fi, fd.units)
-                    except UnitParseError:
-                        raise YTFieldUnitParseError(fi)
+                    except UnitConversionError as e:
+                        raise YTFieldUnitError(fi, fd.units) from e
+                    except UnitParseError as e:
+                        raise YTFieldUnitParseError(fi) from e
                     self.field_data[field] = fd
                 except GenerationInProgress as gip:
                     for f in gip.fields:
