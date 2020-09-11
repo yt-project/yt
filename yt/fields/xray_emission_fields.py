@@ -216,11 +216,11 @@ def add_xray_emissivity_field(
     if not isinstance(metallicity, float) and metallicity is not None:
         try:
             metallicity = ds._get_field_info(*metallicity)
-        except YTFieldNotFound:
+        except YTFieldNotFound as e:
             raise RuntimeError(
                 f"Your dataset does not have a {metallicity} field! "
                 + "Perhaps you should specify a constant metallicity instead?"
-            )
+            ) from e
 
     if table_type == "cloudy":
         # Cloudy wants to scale by nH**2
@@ -327,16 +327,17 @@ def add_xray_emissivity_field(
             )
         else:
             redshift = 0.0  # Only for local sources!
-            if not isinstance(dist, YTQuantity):
-                try:
-                    dist = ds.quan(dist[0], dist[1])
-                except TypeError:
-                    raise RuntimeError(
-                        "Please specifiy 'dist' as a YTQuantity "
-                        "or a (value, unit) tuple!"
-                    )
-            else:
+            try:
+                # normal behaviour, if dist is a YTQuantity
                 dist = ds.quan(dist.value, dist.units)
+            except AttributeError as e:
+                try:
+                    dist = ds.quan(*dist)
+                except (RuntimeError, TypeError):
+                    raise TypeError(
+                        "dist should be a YTQuantity " "or a (value, unit) tuple!"
+                    ) from e
+
             angular_scale = dist / ds.quan(1.0, "radian")
             dist_fac = ds.quan(
                 1.0 / (4.0 * np.pi * dist * dist * angular_scale * angular_scale).v,

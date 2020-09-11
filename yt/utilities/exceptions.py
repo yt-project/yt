@@ -13,23 +13,35 @@ class YTException(Exception):
 # Data access exceptions:
 
 
-class YTOutputNotIdentified(YTException):
-    def __init__(self, filename, args=None, kwargs=None):
+class YTUnidentifiedDataType(YTException):
+    def __init__(self, filename, *args, **kwargs):
         self.filename = filename
         self.args = args
         self.kwargs = kwargs
 
     def __str__(self):
-        msg = f"Could not determine input format from {self.filename}"
-        if self.args is not None:
-            msg += ", {self.args}"
-        if self.kwargs is not None:
-            msg += f", {self.kwargs}"
-        msg += "."
+        msg = [f"Could not determine input format from `'{self.filename}'"]
+        if self.args:
+            msg.append(", ".join(str(a) for a in self.args))
+        if self.kwargs:
+            msg.append(", ".join(f"{k}={v}" for k, v in self.kwargs.items()))
+        msg = ", ".join(msg) + "`."
         return msg
 
 
-class YTAmbiguousDataType(YTOutputNotIdentified):
+class YTOutputNotIdentified(YTUnidentifiedDataType):
+    # kept for backwards compatibility
+    def __init__(self, filename, args=None, kwargs=None):
+        super(YTUnidentifiedDataType, self).__init__(filename, args, kwargs)
+        # this cannot be imported at the module level (creates circular imports)
+        from yt.funcs import issue_deprecation_warning
+
+        issue_deprecation_warning(
+            "YTOutputNotIdentified is a deprecated alias for YTUnidentifiedDataType"
+        )
+
+
+class YTAmbiguousDataType(YTUnidentifiedDataType):
     def __init__(self, filename, candidates):
         self.filename = filename
         self.candidates = candidates
@@ -594,13 +606,11 @@ class YTInvalidUnitEquivalence(Exception):
 
 
 class YTPlotCallbackError(Exception):
-    def __init__(self, callback, error):
+    def __init__(self, callback):
         self.callback = "annotate_" + callback
-        self.error = error
 
     def __str__(self):
-        msg = "%s callback failed with the following error: %s"
-        return msg % (self.callback, self.error)
+        return f"{self.callback} callback failed"
 
 
 class YTPixelizeError(YTException):

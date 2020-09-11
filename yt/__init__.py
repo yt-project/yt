@@ -39,6 +39,8 @@ from yt.funcs import (
     toggle_interactivity,
 )
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import set_log_level
+
 
 import yt.utilities.physical_constants as physical_constants
 import yt.units as units

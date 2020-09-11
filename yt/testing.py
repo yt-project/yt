@@ -788,11 +788,12 @@ def requires_module(module):
     being imported will not fail if the module is not installed on the testing
     platform.
     """
+    from nose import SkipTest
 
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            return None
+            raise SkipTest
 
         return false_wrapper
 
@@ -812,12 +813,16 @@ def requires_module(module):
 
 
 def requires_file(req_file):
+    from nose import SkipTest
+
     path = ytcfg.get("yt", "test_data_dir")
 
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            return None
+            if ytcfg.getboolean("yt", "__strict_requires"):
+                raise FileNotFoundError(req_file)
+            raise SkipTest
 
         return false_wrapper
 
@@ -1133,11 +1138,11 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         des = des.in_units(act.units)
-    except UnitOperationError:
+    except UnitOperationError as e:
         raise AssertionError(
             "Units of actual (%s) and desired (%s) do not have "
             "equivalent dimensions" % (act.units, des.units)
-        )
+        ) from e
 
     rt = YTArray(rtol)
     if not rt.units.is_dimensionless:
@@ -1148,11 +1153,11 @@ def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):
 
     try:
         at = at.in_units(act.units)
-    except UnitOperationError:
+    except UnitOperationError as e:
         raise AssertionError(
             "Units of atol (%s) and actual (%s) do not have "
             "equivalent dimensions" % (at.units, act.units)
-        )
+        ) from e
 
     # units have been validated, so we strip units before calling numpy
     # to avoid spurious errors

@@ -181,6 +181,17 @@ class YTDataContainer:
                 self.center = self.ds.find_min(center[4:])[1]
         else:
             self.center = self.ds.arr(center, "code_length", dtype="float64")
+
+        if self.center.ndim > 1:
+            mylog.debug("Removing singleton dimensions from 'center'.")
+            self.center = np.squeeze(self.center)
+            if self.center.ndim > 1:
+                msg = (
+                    "center array must be 1 dimensional, supplied center has "
+                    f"{self.center.ndim} dimensions with shape {self.center.shape}."
+                )
+                raise YTException(msg)
+
         self.set_field_parameter("center", self.center)
 
     def get_field_parameter(self, name, default=None):
@@ -359,7 +370,7 @@ class YTDataContainer:
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
             if ngt_exception.ghost_zones != 0:
-                raise NotImplementedError
+                raise NotImplementedError from ngt_exception
             size = self._count_particles(ftype)
             rv = self.ds.arr(np.empty(size, dtype="float64"), finfo.units)
             ind = 0
@@ -776,13 +787,13 @@ class YTDataContainer:
         try:
             from firefly_api.particlegroup import ParticleGroup
             from firefly_api.reader import Reader
-        except ImportError:
+        except ImportError as e:
             raise ImportError(
                 "Can't find firefly_api, ensure it"
-                + "is in your python path or install it with"
-                + "'$ pip install firefly_api'. It is also available"
-                + "on github at github.com/agurvich/firefly_api"
-            )
+                "is in your python path or install it with"
+                "'$ pip install firefly_api'. It is also available"
+                "on github at github.com/agurvich/firefly_api"
+            ) from e
 
         ## handle default arguments
         fields_to_include = [] if fields_to_include is None else fields_to_include

@@ -193,14 +193,12 @@ class FLASHDataset(Dataset):
                 mylog.info(
                     "Particle file found: %s", self.particle_filename.split("/")[-1]
                 )
-            except IOError:
+            except OSError:
                 self._particle_handle = self._handle
         else:
             # particle_filename is specified by user
-            try:
-                self._particle_handle = HDF5FileHandler(self.particle_filename)
-            except Exception:
-                raise IOError(self.particle_filename)
+            self._particle_handle = HDF5FileHandler(self.particle_filename)
+
         # Check if the particle file has the same time
         if self._particle_handle != self._handle:
             part_time = self._particle_handle.handle.get("real scalars")[0][1]
