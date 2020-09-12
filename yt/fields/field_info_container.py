@@ -507,6 +507,7 @@ class FieldInfoContainer(dict):
                 YTCoordinateNotImplemented,
                 NeedsConfiguration,
                 # builtin errors
+                NotImplementedError,  # checked
                 # those are probably fine (but should be checked)
                 TypeError,
                 ValueError,
@@ -515,7 +516,6 @@ class FieldInfoContainer(dict):
                 KeyError,
                 # other builtin errors
                 # code smells -> those are very likely bugs
-                UnboundLocalError,  # This should be fixed in #2850
                 RecursionError,
             ) as e:
                 if field in self._show_field_errors:
