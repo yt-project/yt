@@ -27,8 +27,6 @@ from .particle_fields import (
     standard_particle_fields,
 )
 
-# from unyt.exceptions import UnitConversionError
-
 
 def tupleize(inp):
     if isinstance(inp, tuple):
