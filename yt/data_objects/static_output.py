@@ -293,9 +293,9 @@ class Dataset(abc.ABC):
             raise TypeError(err_msg)
         if len(val) != 3:
             raise ValueError(err_msg)
-        if any(not isinstance(p, bool) for p in val):
+        if any(not isinstance(p, (bool, np.bool_)) for p in val):
             raise TypeError(err_msg)
-        self._periodicity = tuple(val)
+        self._periodicity = tuple(bool(p) for p in val)
 
     def force_periodicity(self, val=True):
         """
