@@ -489,7 +489,7 @@ class FieldInfoContainer(dict):
         # - a greylist (excpetions that may hide bugs but should be checked)
 
         # in the long run, the greylist should be removed
-        blacklist = (UnitConversionError,)
+        blacklist = (UnitConversionError,)  # solved in GH PR 2897
         whitelist = (NotImplementedError,)
         greylist = (
             YTFieldNotFound,
