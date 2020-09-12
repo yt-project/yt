@@ -1,4 +1,5 @@
 import numpy as np
+from unyt.exceptions import UnitConversionError
 
 from yt.funcs import mylog
 from yt.geometry.geometry_handler import is_curvilinear
@@ -172,7 +173,16 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
 
     def _kT(field, data):
-        return (pc.kboltz * data[ftype, "temperature"]).in_units("keV")
+        ret = pc.kboltz * data[ftype, "temperature"]
+        try:
+            return ret.in_units("keV")
+        except UnitConversionError as err:
+            # Chances are this is a non-weighted projection object and the
+            # 'temperature' field is expressed in K*cm
+            # see GH PR 2897
+            raise NotImplementedError(
+                "Can not define a kT field if temperature can not be converted to 'K'. "
+            ) from err
 
     registry.add_field(
         (ftype, "kT"),
