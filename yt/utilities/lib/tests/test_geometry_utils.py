@@ -14,7 +14,6 @@ from yt.utilities.lib.misc_utilities import (
 
 _fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 _units = ("g/cm**3", "cm/s", "cm/s", "cm/s")
-
 # TODO: error compact/spread bits for incorrect size
 # TODO: test msdb for [0,0], [1,1], [2,2] etc.
 

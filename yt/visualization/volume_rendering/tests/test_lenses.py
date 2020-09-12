@@ -30,6 +30,7 @@ class LensTest(TestCase):
             self.curdir, self.tmpdir = None, None
 
         self.field = ("gas", "density")
+        # TODO: Check this (I wrote this as self.field[1] in an earlier draft)
         self.ds = fake_random_ds(32, fields=(self.field,), units=("g/cm**3",))
         self.ds.index
 
