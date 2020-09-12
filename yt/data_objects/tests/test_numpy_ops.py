@@ -90,6 +90,8 @@ def test_mean_sum_integrate():
 
 
 def test_min_max():
+    fields = ("density", "temperature")
+    units = ("g/cm**3", "K")
     for nprocs in [-1, 1, 2, 16]:
         fields = ["density", "temperature"]
         units = ["g/cm**3", "K"]
