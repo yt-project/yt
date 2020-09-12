@@ -7,10 +7,11 @@ import pickle
 import shutil
 import tempfile
 import unittest
+import warnings
 
 import matplotlib
 import numpy as np
-from more_itertools import always_iterable
+from more_itertools import always_iterable, zip_equal
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
@@ -228,6 +229,17 @@ def fake_random_ds(
 ):
     from yt.loaders import load_uniform_grid
 
+    if fields is None:
+        fields = ("density", "velocity_x", "velocity_y", "velocity_z")
+        if units is not None:
+            warnings.warn(
+                "Received `units` keyword argument but no `fields`, "
+                "ignoring `units`."
+            )
+        units = ("g/cm**3", "cm/s", "cm/s", "cm/s")
+    if units is None:
+        raise ValueError("missing required keyword argument `units`.")
+
     prng = RandomState(0x4D3D3D3)
     if not is_sequence(ndims):
         ndims = [ndims, ndims, ndims]
@@ -259,7 +271,7 @@ def fake_random_ds(
         else:
             offsets.append(0.0)
     data = {}
-    for field, offset, u in zip(fields, offsets, units):
+    for field, offset, u in zip_equal(fields, offsets, units):
         v = (prng.random_sample(ndims) - offset) * peak_value
         if field[0] == "all":
             v = v.ravel()
