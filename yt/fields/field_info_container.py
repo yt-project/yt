@@ -588,7 +588,7 @@ class FieldInfoContainer(dict):
             AttributeError,
             KeyError,
             # code smells -> those are very likely bugs
-            UnitConversionError,  # solved in GH PR 2897 ?
+            # UnitConversionError,  # solved in GH PR 2897 ?
             # RecursionError is clearly a bug, and was already solved once
             # in GH PR 2851
             RecursionError,
