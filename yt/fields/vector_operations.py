@@ -170,10 +170,10 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
     xn, yn, zn = [(ftype, f"{basename}_{ax}") for ax in "xyz"]
 
     # Is this safe?
-    if registry.ds.dimensionality < 3:
-        zn = ("index", "zeros")
-    if registry.ds.dimensionality < 2:
-        yn = ("index", "zeros")
+    # if registry.ds.dimensionality < 3:
+    #    zn = ("index", "zeros")
+    # if registry.ds.dimensionality < 2:
+    #    yn = ("index", "zeros")
 
     create_relative_field(
         registry,
