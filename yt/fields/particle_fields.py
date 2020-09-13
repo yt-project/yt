@@ -1,7 +1,6 @@
 import numpy as np
 
 from yt.fields.derived_field import ValidateParameter, ValidateSpatial
-from yt.fields.field_detector import FieldDetector
 from yt.funcs import issue_deprecation_warning
 from yt.units.yt_array import uconcatenate, ucross
 from yt.utilities.lib.misc_utilities import (
@@ -439,28 +438,13 @@ def standard_particle_fields(
         field_names = [(ptype, f"particle_velocity_{ax}") for ax in "xyz"]
         return obtain_relative_velocity_vector(data, field_names=field_names).T
 
-    def _particle_velocity_relative(field, data):
-        if not isinstance(data, FieldDetector):
-            issue_deprecation_warning(
-                "The 'particle_velocity_relative' field has been deprecated in "
-                + "favor of 'relative_particle_velocity'."
-            )
-        if isinstance(field.name, tuple):
-            return data[field.name[0], "relative_particle_velocity"]
-        else:
-            return data["relative_particle_velocity"]
-
-    for name, func in zip(
-        ["particle_velocity_relative", "relative_particle_velocity"],
-        [_particle_velocity_relative, _relative_particle_velocity],
-    ):
-        registry.add_field(
-            (ptype, name),
-            sampling_type="particle",
-            function=func,
-            units=unit_system["velocity"],
-            validators=[ValidateParameter("normal"), ValidateParameter("center")],
-        )
+    registry.add_field(
+        (ptype, "relative_particle_velocity"),
+        sampling_type="particle",
+        function=_relative_particle_velocity,
+        units=unit_system["velocity"],
+        validators=[ValidateParameter("normal"), ValidateParameter("center")],
+    )
 
     def _get_coord_funcs_relative(axi, _ptype):
         def _particle_pos_rel(field, data):
