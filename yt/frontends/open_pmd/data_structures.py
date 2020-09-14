@@ -6,7 +6,7 @@ from re import match
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import DatasetSeries
 from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
