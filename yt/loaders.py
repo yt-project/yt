@@ -220,7 +220,7 @@ def load_uniform_grid(
 
     Examples
     --------
-
+    >>> np.random.seed(int(0x4D3D3D3))
     >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> arr = np.random.random((128, 128, 128))
     >>> data = dict(density=arr)
@@ -228,8 +228,8 @@ def load_uniform_grid(
     ...                        bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
     >>> dd['density']
-    YTArray([ 0.87568064,  0.33686453,  0.70467189, ...,  0.70439916,
-            0.97506269,  0.03047113]) g/cm**3
+    unyt_array([0.76017901, 0.96855994, 0.49205428, ..., 0.78798258,
+                0.97569432, 0.99453904], 'g/cm**3')
     """
     from yt.frontends.stream.data_structures import (
         StreamDataset,
@@ -933,7 +933,6 @@ def load_octree(
     Example
     -------
 
-    >>> import yt
     >>> import numpy as np
     >>> oct_mask = [8, 0, 0, 0, 0, 8, 0, 8,
     ...             0, 0, 0, 0, 0, 0, 0, 0,
@@ -942,14 +941,14 @@ def load_octree(
     >>>
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities['gas', 'density'] = np.random.random((22, 1), dtype='f8')
+    >>> quantities['gas', 'density'] = np.random.random((22, 1))
     >>> bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
     >>>
-    >>> ds = yt.load_octree(octree_mask=octree_mask,
-    ...                     data=quantities,
-    ...                     bbox=bbox,
-    ...                     over_refine_factor=0,
-    ...                     partial_coverage=0)
+    >>> ds = load_octree(octree_mask=octree_mask,
+    ...                  data=quantities,
+    ...                  bbox=bbox,
+    ...                  over_refine_factor=0,
+    ...                  partial_coverage=0)
 
     """
     from yt.frontends.stream.data_structures import (
@@ -1133,9 +1132,9 @@ def load_unstructured_mesh(
       ...                                           [0.0, 1.0, 2.0, 3.0]])
       ... }
       >>>
-      >>> ds = yt.load_unstructured_mesh(connectivity, coordinates,
-      ...                                elem_data=elem_data,
-      ...                                node_data=node_data)
+      >>> ds = load_unstructured_mesh(connectivity, coordinates,
+      ...                             elem_data=elem_data,
+      ...                             node_data=node_data)
     """
     from yt.frontends.exodus_ii.util import get_num_pseudo_dims
     from yt.frontends.stream.data_structures import (
