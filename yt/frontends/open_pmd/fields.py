@@ -5,7 +5,7 @@ from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.frontends.open_pmd.misc import is_const_component, parse_unit_dimension
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.physical_constants import mu_0, speed_of_light
 
 
@@ -151,7 +151,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
             fields = f[bp + mp]
             for fname in fields.keys():
                 field = fields[fname]
-                if isinstance(field, h5.Dataset) or is_const_component(field):
+                if isinstance(field, h5py.Dataset) or is_const_component(field):
                     # Don't consider axes.
                     # This appears to be a vector field of single dimensionality
                     ytname = str("_".join([fname.replace("_", "-")]))
@@ -198,7 +198,9 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                             # interpretation of the pfield particle_position is later
                             # derived in setup_absolute_positions in the way yt expects
                             ytattrib = "positionCoarse"
-                        if isinstance(record, h5.Dataset) or is_const_component(record):
+                        if isinstance(record, h5py.Dataset) or is_const_component(
+                            record
+                        ):
                             name = ["particle", ytattrib]
                             self.known_particle_fields += (
                                 (str("_".join(name)), (unit, [], None)),
