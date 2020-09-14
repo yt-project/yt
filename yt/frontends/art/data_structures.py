@@ -6,7 +6,7 @@ import weakref
 import numpy as np
 
 import yt.utilities.fortran_utils as fpu
-from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.frontends.art.definitions import (
@@ -934,7 +934,3 @@ class ARTDomainFile:
 
     def included(self, selector):
         return True
-        if getattr(selector, "domain_id", None) is not None:
-            return selector.domain_id == self.domain_id
-        domain_ids = self.ds.index.oct_handler.domain_identify(selector)
-        return self.domain_id in domain_ids

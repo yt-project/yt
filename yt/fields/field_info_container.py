@@ -470,7 +470,7 @@ class FieldInfoContainer(dict):
             fi = self[field]
             try:
                 fd = fi.get_dependencies(ds=self.ds)
-            except Exception as e:
+            except (NotImplementedError, Exception) as e:  # noqa: B014
                 if field in self._show_field_errors:
                     raise
                 if not isinstance(e, YTFieldNotFound):

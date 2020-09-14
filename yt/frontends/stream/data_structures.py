@@ -8,12 +8,15 @@ from numbers import Number as numeric_type
 import numpy as np
 
 from yt.data_objects.field_data import YTFieldData
-from yt.data_objects.grid_patch import AMRGridPatch
-from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.unstructured_mesh import (
+    SemiStructuredMesh,
+    UnstructuredMesh,
+)
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import MeshUnion
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh, UnstructuredMesh
 from yt.frontends.sph.data_structures import SPHParticleIndex
 from yt.funcs import ensure_list
 from yt.geometry.geometry_handler import YTDataChunk

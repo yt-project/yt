@@ -3,7 +3,7 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import ensure_tuple, just_one, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -202,7 +202,7 @@ class GDFDataset(Dataset):
         if "dataset_units" in h5f:
             for unit_name in h5f["/dataset_units"]:
                 current_unit = h5f[f"/dataset_units/{unit_name}"]
-                value = current_unit.value
+                value = current_unit[()]
                 unit = current_unit.attrs["unit"]
                 # need to convert to a Unit object and check dimensions
                 # because unit can be things like
