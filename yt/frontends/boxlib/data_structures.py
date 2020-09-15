@@ -831,17 +831,13 @@ class BoxlibDataset(Dataset):
         # This is traditionally a index attribute, so we will set it, but
         # in a slightly hidden variable.
         self._max_level = int(header_file.readline())
-        dle = np.zeros(3, dtype="float64")
-        dle[: self.dimensionality] = np.array(
-            header_file.readline().split(), dtype="float64"
-        )
-        self.domain_left_edge = dle
-        dre = np.ones(3, dtype="float64")
-        dre[: self.dimensionality] = np.array(
-            header_file.readline().split(), dtype="float64"
-        )
-        self.domain_right_edge = dre
-        ref_factors = np.array([int(i) for i in header_file.readline().split()])
+
+        for side, init in zip(["left", "right"], [np.zeros, np.ones]):
+            domain_edge = init(3, dtype="float64")
+            domain_edge[: self.dimensionality] = header_file.readline().split()
+            setattr(self, f"domain_{side}_edge", domain_edge)
+
+        ref_factors = np.array(header_file.readline().split(), dtype="int64")
         if ref_factors.size == 0:
             # We use a default of two, as Nyx doesn't always output this value
             ref_factors = [2] * (self._max_level + 1)
