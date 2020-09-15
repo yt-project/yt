@@ -127,9 +127,10 @@ class EagleNetworkFieldInfo(OWLSFieldInfo):
         "Fe27",
     )
 
-    def __init__(self, *args, **kwargs):
-
-        super(EagleNetworkFieldInfo, self).__init__(*args, **kwargs)
+    def __init__(self, ds, field_list, slice_info=None):
+        super(EagleNetworkFieldInfo, self).__init__(
+            ds, field_list, slice_info=slice_info
+        )
 
     def _create_ion_density_func(self, ftype, ion):
         """ returns a function that calculates the ion density of a particle.

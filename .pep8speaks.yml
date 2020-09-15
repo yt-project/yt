@@ -75,8 +75,6 @@ pycodestyle:
         - \*/__config__.py
         - yt/visualization/_mpl_imports.py
         - yt/utilities/lodgeit.py
-        - yt/utilities/lru_cache.py
-        - yt/utilities/poster/\*
         - yt/extern/\*
         - yt/mods.py
         - yt/utilities/fits_image.py

@@ -9,5 +9,5 @@ mergeable:
           message: "WIP pull requests can't be merged."
       - do: label
         must_include:
-          regex: 'bug|enhancement|new feature|docs|infrastructure'
+          regex: 'bug|enhancement|new feature|docs|infrastructure|dead code|refactor'
           message: "Please label this pull request with one of: bug, enhancement, new feature, docs or infrastructure."

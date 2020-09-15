@@ -26,7 +26,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
                 data_files.update(obj.data_files)
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             with h5py.File(data_file.filename, mode="r") as f:
-                for ptype, field_list in sorted(ptf.items()):
+                for ptype in sorted(ptf):
                     pcount = data_file.total_particles[ptype]
                     coords = f[ptype]["CenterOfMass"][()].astype("float64")
                     coords = np.resize(coords, (pcount, 3))
@@ -221,8 +221,10 @@ def subfind_field_list(fh, ptype, pcount):
                 offset_fields.append(fname)
             else:
                 mylog.warning(
-                    "Cannot add field (%s, %s) with size %d."
-                    % (ptype, fh[field].name, fh[field].size)
+                    "Cannot add field (%s, %s) with size %d.",
+                    ptype,
+                    fh[field].name,
+                    fh[field].size,
                 )
                 continue
     return fields, offset_fields

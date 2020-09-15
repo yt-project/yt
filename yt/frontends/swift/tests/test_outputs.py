@@ -21,7 +21,7 @@ def test_non_cosmo_dataset():
     yt_coords = ad[(field[0], "position")]
 
     # load some data the old fashioned way
-    fh = h5py.File(ds.parameter_filename, "r")
+    fh = h5py.File(ds.parameter_filename, mode="r")
     part_data = fh["PartType0"]
 
     # set up a conversion factor by loading the unit mas and unit length in cm,
@@ -67,7 +67,7 @@ def test_cosmo_dataset():
     yt_coords = ad[(field[0], "position")]
 
     # load some data the old fashioned way
-    fh = h5py.File(ds.parameter_filename, "r")
+    fh = h5py.File(ds.parameter_filename, mode="r")
     part_data = fh["PartType0"]
 
     # set up a conversion factor by loading the unit mas and unit length in cm,

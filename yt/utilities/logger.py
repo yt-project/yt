@@ -30,7 +30,33 @@ def add_coloring_to_emit_ansi(fn):
     return new
 
 
-level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
+def set_log_level(level):
+    """
+    Select which minimal logging level should be displayed.
+
+    Parameters
+    ----------
+    level: int or str
+        Possible values by increasing level:
+        0 or "notset"
+        1 or "all"
+        10 or "debug"
+        20 or "info"
+        30 or "warning"
+        40 or "error"
+        50 or "critical"
+    """
+    # this is a user-facing interface to avoid importing from yt.utilities in user code.
+
+    if isinstance(level, str):
+        level = level.upper()
+
+    if level == "ALL":  # non-standard alias
+        level = 1
+    ytLogger.setLevel(level)
+    ytLogger.debug("Set log level to %d", level)
+
+
 ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
 cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
 
@@ -40,6 +66,22 @@ else:
     stream = sys.stderr
 
 ytLogger = logging.getLogger("yt")
+
+
+class DuplicateFilter(logging.Filter):
+    """A filter that removes duplicated successive log entries."""
+
+    # source
+    # https://stackoverflow.com/questions/44691558/suppress-multiple-messages-with-same-content-in-python-logging-module-aka-log-co  # noqa
+    def filter(self, record):
+        current_log = (record.module, record.levelno, record.msg)
+        if current_log != getattr(self, "last_log", None):
+            self.last_log = current_log
+            return True
+        return False
+
+
+ytLogger.addFilter(DuplicateFilter())
 
 
 def disable_stream_logging():
@@ -67,6 +109,8 @@ def uncolorize_logging():
         pass
 
 
+_level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
+
 if ytcfg.getboolean("yt", "suppressStreamLogging"):
     disable_stream_logging()
 else:
@@ -76,12 +120,10 @@ else:
     yt_sh.setFormatter(formatter)
     # add the handler to the logger
     ytLogger.addHandler(yt_sh)
-    ytLogger.setLevel(level)
+    set_log_level(_level)
     ytLogger.propagate = False
 
     original_emitter = yt_sh.emit
 
     if ytcfg.getboolean("yt", "coloredlogs"):
         colorize_logging()
-
-ytLogger.debug("Set log level to %s", level)

@@ -8,12 +8,15 @@ flagging_method_registry = {}
 class RegisteredFlaggingMethod(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
+
+
+class FlaggingMethod:
+    _skip_add = False
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
         if hasattr(cls, "_type_name") and not cls._skip_add:
             flagging_method_registry[cls._type_name] = cls
-
-
-class FlaggingMethod(metaclass=RegisteredFlaggingMethod):
-    _skip_add = False
 
 
 class OverDensity(FlaggingMethod):
@@ -52,7 +55,7 @@ class FlaggingGrid:
                 continue
             while not psg.acceptable:
                 new_psgs = []
-                for i, dim in enumerate(np.argsort(psg.dimensions)[::-1]):
+                for dim in np.argsort(psg.dimensions)[::-1]:
                     new_psgs = psg.find_by_zero_signature(dim)
                     if len(new_psgs) > 1:
                         break
@@ -168,4 +171,4 @@ class ProtoSubgrid:
         return [psg1, psg2]
 
     def __str__(self):
-        return "LI: (%s) DIMS: (%s)" % (self.left_index, self.dimensions)
+        return f"LI: ({self.left_index}) DIMS: ({self.dimensions})"

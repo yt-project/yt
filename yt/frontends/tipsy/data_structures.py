@@ -1,7 +1,6 @@
 import glob
 import os
 import struct
-import sys
 
 import numpy as np
 
@@ -13,9 +12,6 @@ from yt.utilities.physical_constants import G
 from yt.utilities.physical_ratios import cm_per_kpc
 
 from .fields import TipsyFieldInfo
-
-if sys.version_info > (3,):
-    long = int
 
 
 class TipsyFile(ParticleFile):
@@ -269,7 +265,7 @@ class TipsyDataset(SPHDataset):
                         if isinstance(my_val, tuple)
                         else self.quan(my_val)
                     )
-                    setattr(self, "%s_unit" % my_unit, my_val)
+                    setattr(self, f"{my_unit}_unit", my_val)
 
         # Finally, set the dependent units
         if self.cosmological_simulation:

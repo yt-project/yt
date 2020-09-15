@@ -56,13 +56,13 @@ class GAMERFieldInfo(FieldInfoContainer):
         # velocity
         def velocity_xyz(v):
             def _velocity(field, data):
-                return data["gas", "momentum_%s" % v] / data["gas", "density"]
+                return data["gas", f"momentum_{v}"] / data["gas", "density"]
 
             return _velocity
 
         for v in "xyz":
             self.add_field(
-                ("gas", "velocity_%s" % v),
+                ("gas", f"velocity_{v}"),
                 sampling_type="cell",
                 function=velocity_xyz(v),
                 units=unit_system["velocity"],
@@ -162,7 +162,7 @@ class GAMERFieldInfo(FieldInfoContainer):
 
         # magnetic field aliases --> magnetic_field_x/y/z
         if self.ds.mhd:
-            setup_magnetic_field_aliases(self, "gamer", ["CCMag%s" % v for v in "XYZ"])
+            setup_magnetic_field_aliases(self, "gamer", [f"CCMag{v}" for v in "XYZ"])
 
     def setup_particle_fields(self, ptype):
         super(GAMERFieldInfo, self).setup_particle_fields(ptype)

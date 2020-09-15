@@ -12,17 +12,19 @@ CyOctree building, loading and refining routines
 
 
 cimport numpy as np
+
 import numpy as np
+
 cimport cython
+
 import struct
 
-from libcpp.vector cimport vector
-from libcpp cimport bool
 cimport libc.math as math
-from libc.stdlib cimport malloc, free
+from libc.stdlib cimport free, malloc
+from libcpp cimport bool
+from libcpp.vector cimport vector
 
-from yt.geometry.particle_deposit cimport \
-    kernel_func, get_kernel_func
+from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
 
 ################################################################################
 #                       OCTREE IMPLEMENTATION DETAILS                          #

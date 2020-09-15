@@ -16,8 +16,8 @@ from .derived_field import NeedsParameter, ValidateParameter, ValidateSpatial
 
 
 def get_bulk(data, basename, unit):
-    if data.has_field_parameter("bulk_%s" % basename):
-        bulk = data.get_field_parameter("bulk_%s" % basename)
+    if data.has_field_parameter(f"bulk_{basename}"):
+        bulk = data.get_field_parameter(f"bulk_{basename}")
     else:
         bulk = [0, 0, 0] * unit
     return bulk
@@ -35,26 +35,26 @@ def create_magnitude_field(
 
     axis_order = registry.ds.coordinates.axis_order
 
-    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
+    field_components = [(ftype, f"{basename}_{ax}") for ax in axis_order]
 
     if sampling_type is None:
         sampling_type = "local"
 
     def _magnitude(field, data):
         fn = field_components[0]
-        if data.has_field_parameter("bulk_%s" % basename):
-            fn = (fn[0], "relative_%s" % fn[1])
+        if data.has_field_parameter(f"bulk_{basename}"):
+            fn = (fn[0], f"relative_{fn[1]}")
         d = data[fn]
         mag = (d) ** 2
         for idim in range(1, registry.ds.dimensionality):
             fn = field_components[idim]
-            if data.has_field_parameter("bulk_%s" % basename):
-                fn = (fn[0], "relative_%s" % fn[1])
+            if data.has_field_parameter(f"bulk_{basename}"):
+                fn = (fn[0], f"relative_{fn[1]}")
             mag += (data[fn]) ** 2
         return np.sqrt(mag)
 
     registry.add_field(
-        (ftype, "%s_magnitude" % basename),
+        (ftype, f"{basename}_magnitude"),
         sampling_type=sampling_type,
         function=_magnitude,
         units=field_units,
@@ -68,7 +68,7 @@ def create_relative_field(
 
     axis_order = registry.ds.coordinates.axis_order
 
-    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
+    field_components = [(ftype, f"{basename}_{ax}") for ax in axis_order]
 
     def relative_vector(ax):
         def _relative_vector(field, data):
@@ -81,7 +81,7 @@ def create_relative_field(
 
     for d in axis_order:
         registry.add_field(
-            (ftype, "relative_%s_%s" % (basename, d)),
+            (ftype, f"relative_{basename}_{d}"),
             sampling_type="local",
             function=relative_vector(d),
             units=field_units,
@@ -93,15 +93,15 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
     axis_order = registry.ds.coordinates.axis_order
 
     validators = [
-        ValidateParameter("bulk_%s" % basename),
+        ValidateParameter(f"bulk_{basename}"),
         ValidateParameter("axis", {"axis": [0, 1, 2]}),
     ]
 
-    field_comps = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
+    field_comps = [(ftype, f"{basename}_{ax}") for ax in axis_order]
 
     def _los_field(field, data):
-        if data.has_field_parameter("bulk_%s" % basename):
-            fns = [(fc[0], "relative_%s" % fc[1]) for fc in field_comps]
+        if data.has_field_parameter(f"bulk_{basename}"):
+            fns = [(fc[0], f"relative_{fc[1]}") for fc in field_comps]
         else:
             fns = field_comps
         ax = data.get_field_parameter("axis")
@@ -116,7 +116,7 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
         return ret
 
     registry.add_field(
-        (ftype, "%s_los" % basename),
+        (ftype, f"{basename}_los"),
         sampling_type="local",
         function=_los_field,
         units=field_units,
@@ -130,12 +130,12 @@ def create_squared_field(
 
     axis_order = registry.ds.coordinates.axis_order
 
-    field_components = [(ftype, "%s_%s" % (basename, ax)) for ax in axis_order]
+    field_components = [(ftype, f"{basename}_{ax}") for ax in axis_order]
 
     def _squared(field, data):
         fn = field_components[0]
-        if data.has_field_parameter("bulk_%s" % basename):
-            fn = (fn[0], "relative_%s" % fn[1])
+        if data.has_field_parameter(f"bulk_{basename}"):
+            fn = (fn[0], f"relative_{fn[1]}")
         squared = data[fn] * data[fn]
         for idim in range(1, registry.ds.dimensionality):
             fn = field_components[idim]
@@ -143,7 +143,7 @@ def create_squared_field(
         return squared
 
     registry.add_field(
-        (ftype, "%s_squared" % basename),
+        (ftype, f"{basename}_squared"),
         sampling_type="local",
         function=_squared,
         units=field_units,
@@ -167,7 +167,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
     else:
         sl_left, sl_right, div_fac = slice_info
 
-    xn, yn, zn = [(ftype, "%s_%s" % (basename, ax)) for ax in "xyz"]
+    xn, yn, zn = [(ftype, f"{basename}_{ax}") for ax in "xyz"]
 
     # Is this safe?
     if registry.ds.dimensionality < 3:
@@ -181,7 +181,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         field_units,
         ftype=ftype,
         slice_info=slice_info,
-        validators=[ValidateParameter("bulk_%s" % basename)],
+        validators=[ValidateParameter(f"bulk_{basename}")],
     )
 
     create_magnitude_field(
@@ -190,7 +190,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         field_units,
         ftype=ftype,
         slice_info=slice_info,
-        validators=[ValidateParameter("bulk_%s" % basename)],
+        validators=[ValidateParameter(f"bulk_{basename}")],
     )
 
     if not is_curvilinear(registry.ds.geometry):
@@ -204,7 +204,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             """
             normal = data.get_field_parameter("normal")
             vectors = obtain_relative_velocity_vector(
-                data, (xn, yn, zn), "bulk_%s" % basename
+                data, (xn, yn, zn), f"bulk_{basename}"
             )
             theta = data["index", "spherical_theta"]
             phi = data["index", "spherical_phi"]
@@ -215,14 +215,14 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             return rv
 
         registry.add_field(
-            (ftype, "%s_spherical_radius" % basename),
+            (ftype, f"{basename}_spherical_radius"),
             sampling_type="local",
             function=_spherical_radius_component,
             units=field_units,
             validators=[
                 ValidateParameter("normal"),
                 ValidateParameter("center"),
-                ValidateParameter("bulk_%s" % basename),
+                ValidateParameter(f"bulk_{basename}"),
             ],
         )
         create_los_field(
@@ -230,19 +230,19 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         )
 
         def _radial(field, data):
-            return data[ftype, "%s_spherical_radius" % basename]
+            return data[ftype, f"{basename}_spherical_radius"]
 
         def _radial_absolute(field, data):
-            return np.abs(data[ftype, "%s_spherical_radius" % basename])
+            return np.abs(data[ftype, f"{basename}_spherical_radius"])
 
         def _tangential(field, data):
             return np.sqrt(
-                data[ftype, "%s_spherical_theta" % basename] ** 2.0
-                + data[ftype, "%s_spherical_phi" % basename] ** 2.0
+                data[ftype, f"{basename}_spherical_theta"] ** 2.0
+                + data[ftype, f"{basename}_spherical_phi"] ** 2.0
             )
 
         registry.add_field(
-            (ftype, "radial_%s" % basename),
+            (ftype, f"radial_{basename}"),
             sampling_type="local",
             function=_radial,
             units=field_units,
@@ -250,14 +250,14 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         )
 
         registry.add_field(
-            (ftype, "radial_%s_absolute" % basename),
+            (ftype, f"radial_{basename}_absolute"),
             sampling_type="local",
             function=_radial_absolute,
             units=field_units,
         )
 
         registry.add_field(
-            (ftype, "tangential_%s" % basename),
+            (ftype, f"tangential_{basename}"),
             sampling_type="local",
             function=_tangential,
             units=field_units,
@@ -271,21 +271,21 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             """
             normal = data.get_field_parameter("normal")
             vectors = obtain_relative_velocity_vector(
-                data, (xn, yn, zn), "bulk_%s" % basename
+                data, (xn, yn, zn), f"bulk_{basename}"
             )
             theta = data["index", "spherical_theta"]
             phi = data["index", "spherical_phi"]
             return get_sph_theta_component(vectors, theta, phi, normal)
 
         registry.add_field(
-            (ftype, "%s_spherical_theta" % basename),
+            (ftype, f"{basename}_spherical_theta"),
             sampling_type="local",
             function=_spherical_theta_component,
             units=field_units,
             validators=[
                 ValidateParameter("normal"),
                 ValidateParameter("center"),
-                ValidateParameter("bulk_%s" % basename),
+                ValidateParameter(f"bulk_{basename}"),
             ],
         )
 
@@ -297,36 +297,36 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             """
             normal = data.get_field_parameter("normal")
             vectors = obtain_relative_velocity_vector(
-                data, (xn, yn, zn), "bulk_%s" % basename
+                data, (xn, yn, zn), f"bulk_{basename}"
             )
             phi = data["index", "spherical_phi"]
             return get_sph_phi_component(vectors, phi, normal)
 
         registry.add_field(
-            (ftype, "%s_spherical_phi" % basename),
+            (ftype, f"{basename}_spherical_phi"),
             sampling_type="local",
             function=_spherical_phi_component,
             units=field_units,
             validators=[
                 ValidateParameter("normal"),
                 ValidateParameter("center"),
-                ValidateParameter("bulk_%s" % basename),
+                ValidateParameter(f"bulk_{basename}"),
             ],
         )
 
         def _cp_vectors(ax):
             def _cp_val(field, data):
-                vec = data.get_field_parameter("cp_%s_vec" % (ax))
-                tr = data[xn[0], "relative_%s" % xn[1]] * vec.d[0]
-                tr += data[yn[0], "relative_%s" % yn[1]] * vec.d[1]
-                tr += data[zn[0], "relative_%s" % zn[1]] * vec.d[2]
+                vec = data.get_field_parameter(f"cp_{ax}_vec")
+                tr = data[xn[0], f"relative_{xn[1]}"] * vec.d[0]
+                tr += data[yn[0], f"relative_{yn[1]}"] * vec.d[1]
+                tr += data[zn[0], f"relative_{zn[1]}"] * vec.d[2]
                 return tr
 
             return _cp_val
 
         for ax in "xyz":
             registry.add_field(
-                (ftype, "cutting_plane_%s_%s" % (basename, ax)),
+                (ftype, f"cutting_plane_{basename}_{ax}"),
                 sampling_type="local",
                 function=_cp_vectors(ax),
                 units=field_units,
@@ -334,34 +334,34 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
 
         def _divergence(field, data):
             ds = div_fac * just_one(data["index", "dx"])
-            f = data[xn[0], "relative_%s" % xn[1]][sl_right, 1:-1, 1:-1] / ds
-            f -= data[xn[0], "relative_%s" % xn[1]][sl_left, 1:-1, 1:-1] / ds
+            f = data[xn[0], f"relative_{xn[1]}"][sl_right, 1:-1, 1:-1] / ds
+            f -= data[xn[0], f"relative_{xn[1]}"][sl_left, 1:-1, 1:-1] / ds
             ds = div_fac * just_one(data["index", "dy"])
-            f += data[yn[0], "relative_%s" % yn[1]][1:-1, sl_right, 1:-1] / ds
-            f -= data[yn[0], "relative_%s" % yn[1]][1:-1, sl_left, 1:-1] / ds
+            f += data[yn[0], f"relative_{yn[1]}"][1:-1, sl_right, 1:-1] / ds
+            f -= data[yn[0], f"relative_{yn[1]}"][1:-1, sl_left, 1:-1] / ds
             ds = div_fac * just_one(data["index", "dz"])
-            f += data[zn[0], "relative_%s" % zn[1]][1:-1, 1:-1, sl_right] / ds
-            f -= data[zn[0], "relative_%s" % zn[1]][1:-1, 1:-1, sl_left] / ds
+            f += data[zn[0], f"relative_{zn[1]}"][1:-1, 1:-1, sl_right] / ds
+            f -= data[zn[0], f"relative_{zn[1]}"][1:-1, 1:-1, sl_left] / ds
             new_field = data.ds.arr(np.zeros(data[xn].shape, dtype=np.float64), f.units)
             new_field[1:-1, 1:-1, 1:-1] = f
             return new_field
 
         def _divergence_abs(field, data):
-            return np.abs(data[ftype, "%s_divergence" % basename])
+            return np.abs(data[ftype, f"{basename}_divergence"])
 
         field_units = Unit(field_units, registry=registry.ds.unit_registry)
         div_units = field_units / registry.ds.unit_system["length"]
 
         registry.add_field(
-            (ftype, "%s_divergence" % basename),
+            (ftype, f"{basename}_divergence"),
             sampling_type="local",
             function=_divergence,
             units=div_units,
-            validators=[ValidateSpatial(1), ValidateParameter("bulk_%s" % basename)],
+            validators=[ValidateSpatial(1), ValidateParameter(f"bulk_{basename}")],
         )
 
         registry.add_field(
-            (ftype, "%s_divergence_absolute" % basename),
+            (ftype, f"{basename}_divergence_absolute"),
             sampling_type="local",
             function=_divergence_abs,
             units=div_units,
@@ -369,13 +369,13 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
 
         def _tangential_over_magnitude(field, data):
             tr = (
-                data[ftype, "tangential_%s" % basename]
-                / data[ftype, "%s_magnitude" % basename]
+                data[ftype, f"tangential_{basename}"]
+                / data[ftype, f"{basename}_magnitude"]
             )
             return np.abs(tr)
 
         registry.add_field(
-            (ftype, "tangential_over_%s_magnitude" % basename),
+            (ftype, f"tangential_over_{basename}_magnitude"),
             sampling_type="local",
             function=_tangential_over_magnitude,
             take_log=False,
@@ -389,13 +389,13 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             """
             normal = data.get_field_parameter("normal")
             vectors = obtain_relative_velocity_vector(
-                data, (xn, yn, zn), "bulk_%s" % basename
+                data, (xn, yn, zn), f"bulk_{basename}"
             )
             theta = data["index", "cylindrical_theta"]
             return get_cyl_r_component(vectors, theta, normal)
 
         registry.add_field(
-            (ftype, "%s_cylindrical_radius" % basename),
+            (ftype, f"{basename}_cylindrical_radius"),
             sampling_type="local",
             function=_cylindrical_radius_component,
             units=field_units,
@@ -404,10 +404,10 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
 
         def _cylindrical_radial(field, data):
             """This field is deprecated and will be removed in a future version"""
-            return data[ftype, "%s_cylindrical_radius" % basename]
+            return data[ftype, f"{basename}_cylindrical_radius"]
 
         registry.add_field(
-            (ftype, "cylindrical_radial_%s" % basename),
+            (ftype, f"cylindrical_radial_{basename}"),
             sampling_type="local",
             function=_cylindrical_radial,
             units=field_units,
@@ -415,10 +415,10 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
 
         def _cylindrical_radial_absolute(field, data):
             """This field is deprecated and will be removed in a future version"""
-            return np.abs(data[ftype, "%s_cylindrical_radius" % basename])
+            return np.abs(data[ftype, f"{basename}_cylindrical_radius"])
 
         registry.add_field(
-            (ftype, "cylindrical_radial_%s_absolute" % basename),
+            (ftype, f"cylindrical_radial_{basename}_absolute"),
             sampling_type="local",
             function=_cylindrical_radial_absolute,
             units=field_units,
@@ -433,41 +433,41 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             """
             normal = data.get_field_parameter("normal")
             vectors = obtain_relative_velocity_vector(
-                data, (xn, yn, zn), "bulk_%s" % basename
+                data, (xn, yn, zn), f"bulk_{basename}"
             )
             theta = data["index", "cylindrical_theta"].copy()
             theta = np.tile(theta, (3,) + (1,) * len(theta.shape))
             return get_cyl_theta_component(vectors, theta, normal)
 
         registry.add_field(
-            (ftype, "%s_cylindrical_theta" % basename),
+            (ftype, f"{basename}_cylindrical_theta"),
             sampling_type="local",
             function=_cylindrical_theta_component,
             units=field_units,
             validators=[
                 ValidateParameter("normal"),
                 ValidateParameter("center"),
-                ValidateParameter("bulk_%s" % basename),
+                ValidateParameter(f"bulk_{basename}"),
             ],
         )
 
         def _cylindrical_tangential(field, data):
             """This field is deprecated and will be removed in a future release"""
-            return data[ftype, "%s_cylindrical_theta" % basename]
+            return data[ftype, f"{basename}_cylindrical_theta"]
 
         def _cylindrical_tangential_absolute(field, data):
             """This field is deprecated and will be removed in a future release"""
-            return np.abs(data[ftype, "cylindrical_tangential_%s" % basename])
+            return np.abs(data[ftype, f"cylindrical_tangential_{basename}"])
 
         registry.add_field(
-            (ftype, "cylindrical_tangential_%s" % basename),
+            (ftype, f"cylindrical_tangential_{basename}"),
             sampling_type="local",
             function=_cylindrical_tangential,
             units=field_units,
         )
 
         registry.add_field(
-            (ftype, "cylindrical_tangential_%s_absolute" % basename),
+            (ftype, f"cylindrical_tangential_{basename}_absolute"),
             sampling_type="local",
             function=_cylindrical_tangential_absolute,
             units=field_units,
@@ -481,19 +481,19 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             """
             normal = data.get_field_parameter("normal")
             vectors = obtain_relative_velocity_vector(
-                data, (xn, yn, zn), "bulk_%s" % basename
+                data, (xn, yn, zn), f"bulk_{basename}"
             )
             return get_cyl_z_component(vectors, normal)
 
         registry.add_field(
-            (ftype, "%s_cylindrical_z" % basename),
+            (ftype, f"{basename}_cylindrical_z"),
             sampling_type="local",
             function=_cylindrical_z_component,
             units=field_units,
             validators=[
                 ValidateParameter("normal"),
                 ValidateParameter("center"),
-                ValidateParameter("bulk_%s" % basename),
+                ValidateParameter(f"bulk_{basename}"),
             ],
         )
 
@@ -502,38 +502,38 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         def _cartesian_x(field, data):
             if registry.ds.geometry == "polar":
 
-                return data["%s_r" % basename] * np.cos(data["theta"])
+                return data[f"{basename}_r"] * np.cos(data["theta"])
 
             elif registry.ds.geometry == "cylindrical":
 
                 if data.ds.dimensionality == 2:
-                    return data["%s_r" % basename]
+                    return data[f"{basename}_r"]
                 elif data.ds.dimensionality == 3:
-                    return data["%s_r" % basename] * np.cos(data["theta"]) - data[
-                        "%s_theta" % basename
+                    return data[f"{basename}_r"] * np.cos(data["theta"]) - data[
+                        f"{basename}_theta"
                     ] * np.sin(data["theta"])
 
             elif registry.ds.geometry == "spherical":
 
                 if data.ds.dimensionality == 2:
-                    return data["%s_r" % basename] * np.sin(data["theta"]) + data[
-                        "%s_theta" % basename
+                    return data[f"{basename}_r"] * np.sin(data["theta"]) + data[
+                        f"{basename}_theta"
                     ] * np.cos(data["theta"])
                 elif data.ds.dimensionality == 3:
                     return (
-                        data["%s_r" % basename]
+                        data[f"{basename}_r"]
                         * np.sin(data["theta"])
                         * np.cos(data["phi"])
-                        + data["%s_theta" % basename]
+                        + data[f"{basename}_theta"]
                         * np.cos(data["theta"])
                         * np.cos(["phi"])
-                        - data["%s_phi" % basename] * np.sin(data["phi"])
+                        - data[f"{basename}_phi"] * np.sin(data["phi"])
                     )
 
         # it's redundant to define a cartesian x field for 1D data
         if registry.ds.dimensionality > 1:
             registry.add_field(
-                (ftype, "%s_cartesian_x" % basename),
+                (ftype, f"{basename}_cartesian_x"),
                 sampling_type="local",
                 function=_cartesian_x,
                 units=field_units,
@@ -544,37 +544,37 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
 
             if registry.ds.geometry == "polar":
 
-                return data["%s_r" % basename] * np.sin(data["theta"])
+                return data[f"{basename}_r"] * np.sin(data["theta"])
 
             elif registry.ds.geometry == "cylindrical":
 
                 if data.ds.dimensionality == 2:
-                    return data["%s_z" % basename]
+                    return data[f"{basename}_z"]
                 elif data.ds.dimensionality == 3:
-                    return data["%s_r" % basename] * np.sin(data["theta"]) + data[
-                        "%s_theta" % basename
+                    return data[f"{basename}_r"] * np.sin(data["theta"]) + data[
+                        f"{basename}_theta"
                     ] * np.cos(data["theta"])
 
             elif registry.ds.geometry == "spherical":
 
                 if data.ds.dimensionality == 2:
-                    return data["%s_r" % basename] * np.cos(data["theta"]) - data[
-                        "%s_theta" % basename
+                    return data[f"{basename}_r"] * np.cos(data["theta"]) - data[
+                        f"{basename}_theta"
                     ] * np.sin(data["theta"])
                 elif data.ds.dimensionality == 3:
                     return (
-                        data["%s_r" % basename]
+                        data[f"{basename}_r"]
                         * np.sin(data["theta"])
                         * np.sin(data["phi"])
-                        + data["%s_theta" % basename]
+                        + data[f"{basename}_theta"]
                         * np.cos(data["theta"])
                         * np.sin(["phi"])
-                        + data["%s_phi" % basename] * np.cos(data["phi"])
+                        + data[f"{basename}_phi"] * np.cos(data["phi"])
                     )
 
         if registry.ds.dimensionality >= 2:
             registry.add_field(
-                (ftype, "%s_cartesian_y" % basename),
+                (ftype, f"{basename}_cartesian_y"),
                 sampling_type="local",
                 function=_cartesian_y,
                 units=field_units,
@@ -584,15 +584,15 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         def _cartesian_z(field, data):
 
             if registry.ds.geometry == "cylindrical":
-                return data["%s_z" % basename]
+                return data[f"{basename}_z"]
             elif registry.ds.geometry == "spherical":
-                return data["%s_r" % basename] * np.cos(data["theta"]) - data[
-                    "%s_theta" % basename
+                return data[f"{basename}_r"] * np.cos(data["theta"]) - data[
+                    f"{basename}_theta"
                 ] * np.sin(data["theta"])
 
         if registry.ds.dimensionality == 3:
             registry.add_field(
-                (ftype, "%s_cartesian_z" % basename),
+                (ftype, f"{basename}_cartesian_z"),
                 sampling_type="local",
                 function=_cartesian_z,
                 units=field_units,
@@ -641,7 +641,7 @@ def create_averaged_field(
         return new_field2
 
     registry.add_field(
-        (ftype, "averaged_%s" % basename),
+        (ftype, f"averaged_{basename}"),
         sampling_type="cell",
         function=_averaged_field,
         units=field_units,

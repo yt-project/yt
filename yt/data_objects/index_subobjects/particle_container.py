@@ -1,6 +1,9 @@
 import contextlib
 
-from yt.data_objects.data_containers import YTFieldData, YTSelectionContainer
+from yt.data_objects.data_containers import YTFieldData
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
+)
 from yt.funcs import ensure_list
 from yt.utilities.exceptions import (
     YTDataSelectorNotImplemented,
@@ -21,7 +24,9 @@ class ParticleContainer(YTSelectionContainer):
     _skip_add = True
     _con_args = ("base_region", "data_files", "overlap_files")
 
-    def __init__(self, base_region, data_files, overlap_files=[], domain_id=-1):
+    def __init__(self, base_region, data_files, overlap_files=None, domain_id=-1):
+        if overlap_files is None:
+            overlap_files = []
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.data_files = ensure_list(data_files)

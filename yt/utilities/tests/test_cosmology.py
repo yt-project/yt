@@ -126,9 +126,7 @@ def t_from_z_analytic(z, hubble_constant=0.7, omega_matter=0.3, omega_lambda=0.7
         )
 
     else:
-        raise NotImplementedError(
-            "%s, %s, %s" % (hubble_constant, omega_matter, omega_lambda)
-        )
+        raise NotImplementedError(f"{hubble_constant}, {omega_matter}, {omega_lambda}")
 
     # Now convert from Time * H0 to time.
 
@@ -179,8 +177,7 @@ def test_z_t_analytic():
             t_an,
             t_co,
             4,
-            err_msg="t_from_z does not match analytic version for cosmology %s."
-            % cosmo,
+            err_msg=f"t_from_z does not match analytic version for cosmology {cosmo}.",
         )
 
         # random sample in log(t/t0) from -3 to 1
@@ -195,8 +192,7 @@ def test_z_t_analytic():
             1 / (1 + z_an),
             1 / (1 + z_co),
             5,
-            err_msg="z_from_t does not match analytic version for cosmology %s."
-            % cosmo,
+            err_msg=f"z_from_t does not match analytic version for cosmology {cosmo}.",
         )
 
 

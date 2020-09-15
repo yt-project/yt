@@ -99,7 +99,7 @@ provided through the yt command.  So if you run the command:
 
 .. code-block:: bash
 
-   $ mpirun -np 4 python2.7 some_script.py --parallel --rpdb
+   $ mpirun -np 4 python some_script.py --parallel --rpdb
 
 and it reaches an error or an exception, it will launch the debugger.
 Additionally, instructions will be printed for connecting to the debugger.

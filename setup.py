@@ -1,6 +1,7 @@
 import glob
 import os
 import sys
+from distutils.ccompiler import get_default_compiler
 from distutils.version import LooseVersion
 
 import pkg_resources
@@ -12,11 +13,6 @@ from setupext import (
     create_build_ext,
     install_ccompiler,
 )
-
-if sys.version_info < (3, 5):
-    print("yt currently supports versions newer than Python 3.5")
-    print("certain features may fail unexpectedly and silently with older " "versions.")
-    sys.exit(1)
 
 install_ccompiler()
 
@@ -50,6 +46,11 @@ if os.name == "nt":
 else:
     std_libs = ["m"]
 
+if get_default_compiler() == "msvc":
+    CPP14_FLAG = ["/std:c++14"]
+else:
+    CPP14_FLAG = ["--std=c++14"]
+
 cythonize_aliases = {
     "LIB_DIR": "yt/utilities/lib/",
     "LIB_DIR_EWAH": ["yt/utilities/lib/", "yt/utilities/lib/ewahboolarray/"],
@@ -61,8 +62,9 @@ cythonize_aliases = {
     ],
     "STD_LIBS": std_libs,
     "OMP_ARGS": omp_args,
-    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.c",
+    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
     "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
+    "CPP14_FLAG": CPP14_FLAG,
 }
 
 lib_exts = [
@@ -140,5 +142,5 @@ if __name__ == "__main__":
         zip_safe=False,
         scripts=["scripts/iyt"],
         ext_modules=[],  # !!! We override this inside build_ext above
-        python_requires=">=2.7,!=3.0.*,!=3.1.*,!=3.2.*,!=3.3.*,!=3.4.*",
+        python_requires=">=3.6",
     )

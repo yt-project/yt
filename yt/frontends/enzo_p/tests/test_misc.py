@@ -27,7 +27,7 @@ def get_random_block_string(max_n=64, random_state=None, level=None):
     if level is None:
         level = random_state.randint(0, high=max_l)
     if level > 0:
-        my_block = "%s:%s" % (num2[:-level], num2[-level:])
+        my_block = f"{num2[:-level]}:{num2[-level:]}"
     else:
         my_block = num2
     my_block = "B" + my_block
@@ -45,7 +45,7 @@ def flip_random_block_bit(block, rs):
     # choose which descriptor to modify
     flippable = [i for i, descr in enumerate(descriptors) if len(descr) > 0]
     if len(flippable) == 0:  # when block in ['B', 'B_', 'B__']
-        raise ValueError("%s has no bits that can be flipped" % block)
+        raise ValueError(f"{block} has no bits that can be flipped")
     descr_index = flippable[rs.randint(0, len(flippable))]
 
     # split block descriptor into left and right parts
@@ -73,7 +73,7 @@ def flip_random_block_bit(block, rs):
 def test_get_block_info():
     rs = np.random.RandomState(45047)
     max_n = 64
-    for i in range(10):
+    for _ in range(10):
         n, l, b = get_random_block_string(max_n=max_n, random_state=rs)
         level, left, right = get_block_info(b, min_dim=1)
         assert level == l
@@ -93,7 +93,7 @@ def test_root_blocks():
         max_n = 2 ** i
         n1, l1, b1 = get_random_block_string(max_n=max_n, random_state=rs, level=0)
         n2, l2, b2 = get_random_block_string(max_n=32, random_state=rs, level=0)
-        block = "%s:%s" % (b1, b2[1:])
+        block = f"{b1}:{b2[1:]}"
 
         nrb = get_root_blocks(block, min_dim=1)
         assert nrb == max_n
@@ -108,12 +108,12 @@ def test_is_parent():
             max_n = 2 ** i
 
             descriptors = []
-            for j in range(dim):
+            for _ in range(dim):
                 n1, l1, b1 = get_random_block_string(
                     max_n=max_n, random_state=rs, level=0
                 )
                 n2, l2, b2 = get_random_block_string(max_n=32, random_state=rs, level=0)
-                descriptors.append("%s:%s" % (b1[1:], b2[1:]))
+                descriptors.append(f"{b1[1:]}:{b2[1:]}")
             block = "B" + "_".join(descriptors)
             # since b2 is computed with max_n=32 in the for-loop, block always
             # has a refined great-great-grandparent
@@ -131,7 +131,7 @@ def test_nested_dict_get():
     rs = np.random.RandomState(47988)
     keys = []
     my_dict = None
-    for i in range(5):
+    for _ in range(5):
         k = str(rs.randint(0, high=1000000))
         if my_dict is None:
             v = str(rs.randint(0, high=1000000))

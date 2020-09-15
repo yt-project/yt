@@ -1,0 +1,79 @@
+name: Style Checks
+on: [pull_request]
+
+jobs:
+  flake8:
+    name: flake8
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Setup Python
+      uses: actions/setup-python@master
+      with:
+        python-version: 3.8
+    - name: install
+      id: install
+      run : pip install -r tests/lint_requirements.txt
+
+    - name: check
+      id: flake8
+      run: |
+        flake8 --version
+        flake8 yt/
+
+  black:
+    name: black
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Setup Python
+      uses: actions/setup-python@master
+      with:
+        python-version: 3.8
+    - name: install
+      id: install
+      run : pip install -r tests/lint_requirements.txt
+
+    - name: check
+      id: black
+      run: |
+        black --version
+        black --check --diff yt/ 
+        
+  isort:
+    name: isort
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Setup Python
+      uses: actions/setup-python@master
+      with:
+        python-version: 3.8
+    - name: install
+      id: install
+      run : pip install -r tests/lint_requirements.txt
+
+    - name: check
+      id: isort
+      run: |
+        isort --version-number
+        isort . --check --diff
+
+  flynt:
+    name: flynt
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@master
+    - name: Setup Python
+      uses: actions/setup-python@master
+      with:
+        python-version: 3.8
+    - name: install
+      id: install
+      run : pip install -r tests/lint_requirements.txt
+
+    - name: check
+      id: flynt
+      run: |
+        flynt --version
+        flynt yt --fail-on-change --dry-run --exclude yt/extern

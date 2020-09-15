@@ -165,9 +165,16 @@ def periodic_ray(start, end, left=None, right=None):
     >>> start = yt.YTArray([0.5, 0.5, 0.5])
     >>> end = yt.YTArray([1.25, 1.25, 1.25])
     >>> periodic_ray(start, end)
-    [[YTArray([0.5, 0.5, 0.5]) (dimensionless), YTArray([1., 1., 1.]) (dimensionless)],
-     [YTArray([0., 0., 0.]) (dimensionless), YTArray([0.25, 0.25, 0.25]) (dimensionless)]]
-
+    [
+        [
+            YTArray([0.5, 0.5, 0.5]) (dimensionless),
+            YTArray([1., 1., 1.]) (dimensionless)
+        ],
+        [
+            YTArray([0., 0., 0.]) (dimensionless),
+            YTArray([0.25, 0.25, 0.25]) (dimensionless)
+        ]
+     ]
     """
 
     if left is None:

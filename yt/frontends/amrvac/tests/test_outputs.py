@@ -138,8 +138,8 @@ def test_rmi_cartesian_dust_2D():
         yield test
 
 
-# Tests for units: verify that overriding certain units yields the correct derived units.
-# The following are correct normalisations based on length, numberdensity and temperature
+# Tests for units: verify that overriding certain units yields the correct derived units
+# The following are correct normalisations based on length, numberdensity and temp
 length_unit = (1e9, "cm")
 numberdensity_unit = (1e9, "cm**-3")
 temperature_unit = (1e6, "K")

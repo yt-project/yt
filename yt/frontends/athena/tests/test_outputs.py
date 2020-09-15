@@ -1,6 +1,6 @@
 import yt.units as u
-from yt.convenience import load
 from yt.frontends.athena.api import AthenaDataset
+from yt.loaders import load
 from yt.testing import (
     assert_allclose_units,
     assert_equal,
@@ -107,8 +107,8 @@ def test_nprocs():
     )
     for ax in "xyz":
         assert_equal(
-            sp1.quantities.extrema("velocity_%s" % ax),
-            sp2.quantities.extrema("velocity_%s" % ax),
+            sp1.quantities.extrema(f"velocity_{ax}"),
+            sp2.quantities.extrema(f"velocity_{ax}"),
         )
     assert_allclose_units(
         sp1.quantities.bulk_velocity(), sp2.quantities.bulk_velocity()

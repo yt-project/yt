@@ -85,7 +85,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
     _add_ions = "PartType0"
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, ds, field_list, slice_info=None):
 
         new_particle_fields = (
             ("Hydrogen", ("", ["H_fraction"], None)),
@@ -99,9 +99,12 @@ class OWLSFieldInfo(SPHFieldInfo):
             ("Iron", ("", ["Fe_fraction"], None)),
         )
 
+        if ds.gen_hsmls:
+            new_particle_fields += (("smoothing_length", ("code_length", [], None)),)
+
         self.known_particle_fields += new_particle_fields
 
-        super(OWLSFieldInfo, self).__init__(*args, **kwargs)
+        super(OWLSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
 
         # This enables the machinery in yt.fields.species_fields
         self.species_names += list(self._elements)
@@ -340,7 +343,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         owls_ion_path = os.path.join(data_dir, "owls_ion_data")
 
         if not os.path.exists(owls_ion_path):
-            mylog.info(txt % (data_url, data_dir))
+            mylog.info(txt, data_url, data_dir)
             fname = data_dir + "/" + data_file
             download_file(os.path.join(data_url, data_file), fname)
 

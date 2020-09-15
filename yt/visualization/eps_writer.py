@@ -1,8 +1,7 @@
-import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib import cm
-
 import pyx
+from matplotlib import cm, pyplot as plt
+
 from yt.config import ytcfg
 from yt.funcs import issue_deprecation_warning
 from yt.units.unit_object import Unit
@@ -416,18 +415,18 @@ class DualEPS:
                     if data.axis != 4:
                         xi = plot.ds.coordinates.x_axis[data.axis]
                         x_name = plot.ds.coordinates.axis_name[xi]
-                        _xlabel = "%s (%s)" % (x_name, units)
+                        _xlabel = f"{x_name} ({units})"
                     else:
-                        _xlabel = "x (%s)" % (units)
+                        _xlabel = f"x ({units})"
                 if ylabel is not None:
                     _ylabel = ylabel
                 else:
                     if data.axis != 4:
                         yi = plot.ds.coordinates.y_axis[data.axis]
                         y_name = plot.ds.coordinates.axis_name[yi]
-                        _ylabel = "%s (%s)" % (y_name, units)
+                        _ylabel = f"{y_name} ({units})"
                     else:
-                        _ylabel = "y (%s)" % (units)
+                        _ylabel = f"y ({units})"
             if tickcolor is None:
                 _tickcolor = pyx.color.cmyk.white
         elif isinstance(plot, ProfilePlot):
@@ -608,12 +607,12 @@ class DualEPS:
             if field is None:
                 self.field = list(plot.plots.keys())[0]
                 mylog.warning(
-                    "No field specified.  Choosing first field (%s)" % str(self.field)
+                    "No field specified.  Choosing first field (%s)", self.field
                 )
             else:
                 self.field = plot.data_source._determine_fields(field)[0]
             if self.field not in plot.plots.keys():
-                raise RuntimeError("Field '%s' does not exist!" % str(self.field))
+                raise RuntimeError("Field '%s' does not exist!", self.field)
             if isinstance(plot, PlotWindow):
                 plot.hide_colorbar()
                 plot.hide_axes()
@@ -668,7 +667,7 @@ class DualEPS:
         log=False,
         tickcolor=None,
         orientation="right",
-        pos=[0, 0],
+        pos=None,
         shrink=1.0,
     ):
         r"""Places a colorbar adjacent to the current figure.
@@ -703,6 +702,9 @@ class DualEPS:
                        label="Density [cm$^{-3}$]")
         >>> d.save_fig()
         """
+        if pos is None:
+            pos = [0, 0]
+
         if orientation == "right":
             origin = (pos[0] + self.figsize[0] + 0.5, pos[1])
             size = (0.1 * self.figsize[0], self.figsize[1])
@@ -722,8 +724,7 @@ class DualEPS:
             size = (self.figsize[0], 0.1 * self.figsize[1])
             imsize = (256, 1)
         else:
-            raise RuntimeError("orientation %s unknown" % orientation)
-            return
+            raise RuntimeError(f"orientation {orientation} unknown")
 
         # If shrink is a scalar, then convert into tuple
         if not isinstance(shrink, (tuple, list)):
@@ -742,7 +743,7 @@ class DualEPS:
 
         # Convert the colormap into a string
         x = np.linspace(1, 0, 256)
-        cm_string = cm.cmap_d[name](x, bytes=True)[:, 0:3].tostring()
+        cm_string = cm.get_cmap[name](x, bytes=True)[:, 0:3].tostring()
 
         cmap_im = pyx.bitmap.image(imsize[0], imsize[1], "RGB", cm_string)
         if orientation == "top" or orientation == "bottom":
@@ -1085,7 +1086,7 @@ class DualEPS:
         loc=(0.02, 0.98),
         halign=pyx.text.halign.left,
         valign=pyx.text.valign.top,
-        text_opts=[],
+        text_opts=None,
     ):
         r"""Inserts a box with text in the current figure.
 
@@ -1112,6 +1113,8 @@ class DualEPS:
         >>> d.title_box("Halo 1", loc=(0.05,0.95))
         >>> d.save_fig()
         """
+        if text_opts is None:
+            text_opts = []
         tbox = self.canvas.text(
             self.figsize[0] * loc[0],
             self.figsize[1] * loc[1],
@@ -1139,7 +1142,6 @@ class DualEPS:
         --------
         >>> d = DualEPS()
         >>> d.axis_box(xrange=(0,100), yrange=(1e-3,1), ylog=True)
-        >>> d.save_fig("image1", format="pdf")
         """
         if format == "eps":
             self.canvas.writeEPSfile(filename)
@@ -1150,7 +1152,7 @@ class DualEPS:
         elif format == "jpg":
             self.canvas.writeGSfile(filename + ".jpeg", "jpeg", resolution=resolution)
         else:
-            raise RuntimeError("format %s unknown." % (format))
+            raise RuntimeError(f"format {format} unknown.")
 
 
 # =============================================================================
@@ -1268,10 +1270,8 @@ def multiplot(
                 "Number of images (%d) doesn't match nrow(%d)"
                 " x ncol(%d)." % (len(images), nrow, ncol)
             )
-            return
     if yt_plots is None and images is None:
         raise RuntimeError("Must supply either yt_plots or image filenames.")
-        return
     if yt_plots is not None and images is not None:
         mylog.warning("Given both images and yt plots.  Ignoring images.")
     if yt_plots is not None:
@@ -1285,19 +1285,19 @@ def multiplot(
     if not _yt:
         if xranges is None:
             xranges = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 xranges.append((0, 1))
         if yranges is None:
             yranges = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 yranges.append((0, 1))
         if xlabels is None:
             xlabels = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 xlabels.append("")
         if ylabels is None:
             ylabels = []
-            for i in range(npanels):
+            for _ in range(npanels):
                 ylabels.append("")
 
     d = DualEPS(figsize=figsize)
@@ -1422,9 +1422,8 @@ def multiplot(
                     if isinstance(cb_location, dict):
                         if fields[index] not in cb_location.keys():
                             raise RuntimeError(
-                                "%s not found in cb_location dict" % fields[index]
+                                f"{fields[index]} not found in cb_location dict"
                             )
-                            return
                         orientation = cb_location[fields[index]]
                     elif isinstance(cb_location, list):
                         orientation = cb_location[index]
@@ -1444,8 +1443,8 @@ def multiplot(
                     xpos = xpos0
                 else:
                     mylog.warning(
-                        "Unknown colorbar location %s. "
-                        "No colorbar displayed." % orientation
+                        "Unknown colorbar location %s. No colorbar displayed.",
+                        orientation,
                     )
                     orientation = None  # Marker for interior plot
 
@@ -1525,7 +1524,6 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
                 "Number of plots ({0}) is less "
                 "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
             )
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow * ncol:
@@ -1533,11 +1531,9 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
                 "Number of plots ({0}) is less "
                 "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
             )
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:
         raise RuntimeError("Unknown plot type in multiplot_yt")
-        return
     return figure
 
 

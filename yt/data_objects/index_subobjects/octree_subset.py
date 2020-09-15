@@ -1,11 +1,14 @@
 from contextlib import contextmanager
+from itertools import product, repeat
 
 import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
-from yt.data_objects.data_containers import YTSelectionContainer
-from yt.funcs import mylog
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
+)
+from yt.funcs import issue_deprecation_warning, mylog
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.units.dimensions import length
 from yt.units.yt_array import YTArray
@@ -37,11 +40,14 @@ class OctreeSubset(YTSelectionContainer):
     _con_args = ("base_region", "domain", "ds")
     _domain_offset = 0
     _cell_count = -1
-    _block_reorder = None
+    _block_order = "C"
 
-    def __init__(self, base_region, domain, ds, over_refine_factor=1):
+    def __init__(
+        self, base_region, domain, ds, over_refine_factor=1, num_ghost_zones=0
+    ):
         super(OctreeSubset, self).__init__(ds, None)
         self._num_zones = 1 << (over_refine_factor)
+        self._num_ghost_zones = num_ghost_zones
         self._oref = over_refine_factor
         self.domain = domain
         self.domain_id = domain.domain_id
@@ -101,7 +107,7 @@ class OctreeSubset(YTSelectionContainer):
 
     def select_blocks(self, selector):
         mask = self.oct_handler.mask(selector, domain_id=self.domain_id)
-        slicer = OctreeSubsetBlockSlice(self)
+        slicer = OctreeSubsetBlockSlice(self, self.ds)
         for i, sl in slicer:
             yield sl, np.atleast_3d(mask[i, ...])
 
@@ -160,7 +166,7 @@ class OctreeSubset(YTSelectionContainer):
         # Here we perform our particle deposition.
         if fields is None:
             fields = []
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
@@ -343,7 +349,7 @@ class OctreeSubset(YTSelectionContainer):
             fields = []
         if index_fields is None:
             index_fields = []
-        cls = getattr(particle_smooth, "%s_smooth" % method, None)
+        cls = getattr(particle_smooth, f"{method}_smooth", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
@@ -444,7 +450,7 @@ class OctreeSubset(YTSelectionContainer):
         pdom_ind = particle_octree.domain_ind(self.selector)
         if fields is None:
             fields = []
-        cls = getattr(particle_smooth, "%s_smooth" % method, None)
+        cls = getattr(particle_smooth, f"{method}_smooth", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         nz = self.nz
@@ -518,6 +524,35 @@ class OctreeSubset(YTSelectionContainer):
         mask = selector.select_points(x, y, z, 0.0)
         return mask
 
+    def get_vertex_centered_data(self, fields):
+        _old_api = isinstance(fields, (str, tuple))
+        if _old_api:
+            message = (
+                "get_vertex_centered_data() requires list of fields, rather than "
+                "a single field as an argument."
+            )
+            issue_deprecation_warning(message)
+            fields = [fields]
+
+        # Make sure the field list has only unique entries
+        fields = list(set(fields))
+        new_fields = {}
+        cg = self.retrieve_ghost_zones(1, fields)
+        for field in fields:
+            new_fields[field] = cg[field][1:, 1:, 1:].copy()
+            np.add(new_fields[field], cg[field][:-1, 1:, 1:], new_fields[field])
+            np.add(new_fields[field], cg[field][1:, :-1, 1:], new_fields[field])
+            np.add(new_fields[field], cg[field][1:, 1:, :-1], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1, 1:, :-1], new_fields[field])
+            np.add(new_fields[field], cg[field][1:, :-1, :-1], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1, :-1, 1:], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1, :-1, :-1], new_fields[field])
+            np.multiply(new_fields[field], 0.125, new_fields[field])
+
+        if _old_api:
+            return new_fields[fields[0]]
+        return new_fields
+
 
 class OctreeSubsetBlockSlicePosition:
     def __init__(self, ind, block_slice):
@@ -525,12 +560,14 @@ class OctreeSubsetBlockSlicePosition:
         self.block_slice = block_slice
         nz = self.block_slice.octree_subset.nz
         self.ActiveDimensions = np.array([nz, nz, nz], dtype="int64")
+        self.ds = block_slice.ds
 
     def __getitem__(self, key):
         bs = self.block_slice
-        rv = bs.octree_subset[key][:, :, :, self.ind].T
-        if bs.octree_subset._block_reorder:
-            rv = rv.copy(order=bs.octree_subset._block_reorder)
+        rv = np.require(
+            bs.octree_subset[key][:, :, :, self.ind].T,
+            requirements=bs.octree_subset._block_order,
+        )
         return rv
 
     @property
@@ -568,8 +605,10 @@ class OctreeSubsetBlockSlicePosition:
     def clear_data(self):
         pass
 
-    def get_vertex_centered_data(self, *args, **kwargs):
-        raise NotImplementedError
+    def get_vertex_centered_data(self, fields, smoothed=False, no_ghost=False):
+        field = fields[0]
+        new_field = self.block_slice.get_vertex_centered_data(fields)[field]
+        return {field: new_field[..., self.ind]}
 
     @contextmanager
     def _field_parameter_state(self, field_parameters):
@@ -577,12 +616,53 @@ class OctreeSubsetBlockSlicePosition:
 
 
 class OctreeSubsetBlockSlice:
-    def __init__(self, octree_subset):
+    def __init__(self, octree_subset, ds):
         self.octree_subset = octree_subset
+        self.ds = ds
+        self._vertex_centered_data = {}
         # Cache some attributes
         for attr in ["ires", "icoords", "fcoords", "fwidth"]:
             v = getattr(octree_subset, attr)
-            setattr(self, "_%s" % attr, octree_subset._reshape_vals(v))
+            setattr(self, f"_{attr}", octree_subset._reshape_vals(v))
+
+    @property
+    def octree_subset_with_gz(self):
+        subset_with_gz = getattr(self, "_octree_subset_with_gz", None)
+        if not subset_with_gz:
+            self._octree_subset_with_gz = self.octree_subset.retrieve_ghost_zones(1, [])
+        return self._octree_subset_with_gz
+
+    def get_vertex_centered_data(self, fields, smoothed=False, no_ghost=False):
+        if no_ghost is True:
+            raise NotImplementedError(
+                "get_vertex_centered_data without ghost zones for "
+                "oct-based datasets has not been implemented."
+            )
+
+        # Make sure the field list has only unique entries
+        fields = list(set(fields))
+        new_fields = {}
+        cg = self.octree_subset_with_gz
+        for field in fields:
+            if field in self._vertex_centered_data:
+                new_fields[field] = self._vertex_centered_data[field]
+            else:
+                finfo = self.ds._get_field_info(field)
+                orig_field = cg[field]
+                nocts = orig_field.shape[-1]
+                new_field = np.zeros((3, 3, 3, nocts), order="F")
+
+                # Compute vertex-centred data as mean of 8 neighbours cell data
+                slices = (slice(1, None), slice(None, -1))
+                for slx, sly, slz in product(*repeat(slices, 3)):
+                    new_field += orig_field[slx, sly, slz]
+                new_field *= 0.125
+
+                new_fields[field] = self.ds.arr(new_field, finfo.output_units)
+
+                self._vertex_centered_data[field] = new_fields[field]
+
+        return new_fields
 
     def __iter__(self):
         for i in range(self._ires.shape[-1]):

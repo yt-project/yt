@@ -1,12 +1,9 @@
 import re
 import string
-import sys
 from collections import OrderedDict
 from itertools import takewhile
 
 import numpy as np
-
-_printable = set([ord(_) for _ in string.printable])
 
 
 def get_num_pseudo_dims(coords):
@@ -15,9 +12,8 @@ def get_num_pseudo_dims(coords):
 
 
 def sanitize_string(s):
-    if sys.version_info > (3,):
-        return "".join([chr(_) for _ in takewhile(lambda a: a in _printable, s)])
-    return "".join([_ for _ in takewhile(lambda a: a in string.printable, s)])
+    _printable = set([ord(_) for _ in string.printable])
+    return "".join([chr(_) for _ in takewhile(lambda a: a in _printable, s)])
 
 
 def load_info_records(info_records):

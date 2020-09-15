@@ -14,13 +14,13 @@ from yt.utilities.logger import ytLogger as mylog
 # group grids with consecutive indices together to improve the I/O performance
 # --> grids are assumed to be sorted into ascending numerical order already
 def grid_sequences(grids):
-    for k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
+    for _k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
         seq = list(v[1] for v in g)
         yield seq
 
 
 def particle_sequences(grids):
-    for k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
+    for _k, g in groupby(enumerate(grids), lambda i_x: i_x[0] - i_x[1].id):
         seq = list(v[1] for v in g)
         yield seq[0], seq[-1]
 

@@ -18,7 +18,7 @@ def compare(ds, plot, test_prefix, test_name, decimals=12):
     def image_from_plot(filename_prefix):
         return plot.save(filename_prefix)
 
-    image_from_plot.__name__ = "line_{}".format(test_prefix)
+    image_from_plot.__name__ = f"line_{test_prefix}"
     test = GenericImageTest(ds, image_from_plot, decimals)
     test.prefix = test_prefix
     test.answer_name = test_name

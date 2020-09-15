@@ -7,8 +7,9 @@ Faster, cythonized file IO
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
 
 DTYPE = np.float64
 ctypedef np.float64_t DTYPE_t
