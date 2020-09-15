@@ -756,8 +756,9 @@ class BoxlibDataset(Dataset):
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
                 vals = tuple(p == "1" for p in vals.split())
-                periodicity = [False, False, False]
-                periodicity[: len(vals)] = vals
+                assert len(vals) == self.dimensionality
+                periodicity = [False, False, False]  # default to non periodic
+                periodicity[: self.dimensionality] = vals  # fill in ndim parsed values
                 self.periodicity = tuple(periodicity)
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
