@@ -1,0 +1,3 @@
+# We need this file mostly because of Cartopy..
+numpy==1.17.5
+cython==0.29.14
