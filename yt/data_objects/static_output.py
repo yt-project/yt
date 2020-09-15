@@ -131,7 +131,7 @@ def requires_index(attr_name):
     return ireq
 
 
-class Dataset:
+class Dataset(abc.ABC):
 
     default_fluid_type = "gas"
     default_field = ("gas", "density")
