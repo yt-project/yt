@@ -1,10 +1,11 @@
 import contextlib
 
+from more_itertools import always_iterable
+
 from yt.data_objects.data_containers import YTFieldData
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
-from more_itertools import always_iterable
 from yt.utilities.exceptions import (
     YTDataSelectorNotImplemented,
     YTNonIndexedDataContainer,
