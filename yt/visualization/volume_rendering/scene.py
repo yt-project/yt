@@ -50,10 +50,11 @@ class Scene:
     and a Camera.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Scene, VolumeSource, Camera
+    >>> from yt.visualization.volume_rendering.api import\
+    ...     Scene, create_volume_source, Camera
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> sc = Scene()
-    >>> source = VolumeSource(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), 'density')
     >>> sc.add_source(source)
     >>> cam = sc.add_camera()
     >>> im = sc.render()

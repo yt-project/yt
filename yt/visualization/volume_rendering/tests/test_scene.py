@@ -7,8 +7,8 @@ import numpy as np
 
 from yt.testing import assert_fname, fake_random_ds, fake_vr_orientation_test_ds
 from yt.visualization.volume_rendering.api import (
-    VolumeSource,
     create_scene,
+    create_volume_source,
     volume_render,
 )
 
@@ -58,7 +58,7 @@ class RotationTest(TestCase):
         ma_bound = ((ma - mi) * (0.90)) + mi
         tf.map_to_colormap(mi_bound, ma_bound, scale=0.01, colormap="Blues_r")
 
-        vol2 = VolumeSource(dd2, field=("gas", "density"))
+        vol2 = create_volume_source(dd2, field=("gas", "density"))
         sc.add_source(vol2)
 
         tf = vol2.transfer_function
