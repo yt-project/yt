@@ -6,9 +6,9 @@ import unittest
 import mock
 import numpy as np
 
-from yt.convenience import load
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import create_profile
+from yt.loaders import load
 from yt.testing import (
     assert_allclose,
     assert_array_almost_equal,
@@ -41,8 +41,8 @@ PROJ_ATTR_ARGS["set_cmap"] = [
 ]
 PROJ_ATTR_ARGS["set_log"] = [(("particle_mass", False), {})]
 PROJ_ATTR_ARGS["set_zlim"] = [
-    (("particle_mass", 1e-25, 1e-23), {}),
-    (("particle_mass", 1e-25, None), {"dynamic_range": 4}),
+    (("particle_mass", 1e39, 1e42), {}),
+    (("particle_mass", 1e39, None), {"dynamic_range": 4}),
 ]
 
 PHASE_ATTR_ARGS = {

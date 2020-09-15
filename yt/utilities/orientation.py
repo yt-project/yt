@@ -70,8 +70,9 @@ class Orientation:
             t = np.cross(normal_vector, vecs).sum(axis=1)
             ax = t.argmax()
             east_vector = np.cross(vecs[ax, :], normal_vector).ravel()
-            # self.north_vector must remain None otherwise rotations about a fixed axis will break.
-            # The north_vector calculated here will still be included in self.unit_vectors.
+            # self.north_vector must remain None otherwise rotations about a fixed axis
+            # will break. The north_vector calculated here will still be included
+            # in self.unit_vectors.
             north_vector = np.cross(normal_vector, east_vector).ravel()
         else:
             if self.steady_north or (np.dot(north_vector, normal_vector) != 0.0):

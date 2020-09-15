@@ -40,8 +40,10 @@ def return_all_clumps(clump):
 
 
 def return_bottom_clumps(clump, dbg=0):
-    """Recursively return clumps at the bottom of the index.
-    This gives a list of clumps similar to what one would get from a CLUMPFIND routine"""
+    """
+    Recursively return clumps at the bottom of the index.
+    This gives a list of clumps similar to what one would get from a CLUMPFIND routine
+    """
     global counter
     counter = 0
     list = []

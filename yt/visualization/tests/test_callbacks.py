@@ -6,7 +6,7 @@ from numpy.testing import assert_array_equal, assert_raises
 
 import yt.units as u
 from yt.config import ytcfg
-from yt.convenience import load
+from yt.loaders import load
 from yt.testing import (
     assert_fname,
     fake_amr_ds,

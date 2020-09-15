@@ -12,7 +12,7 @@ answer_tests:
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
     
-  local_arepo_005:
+  local_arepo_006:
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
     - yt/frontends/arepo/tests/test_outputs.py:test_index_override
@@ -59,7 +59,7 @@ answer_tests:
     - yt/frontends/flash/tests/test_outputs.py:test_wind_tunnel
     - yt/frontends/flash/tests/test_outputs.py:test_fid_1to3_b1
 
-  local_gadget_003:
+  local_gadget_004:
     - yt/frontends/gadget/tests/test_outputs.py:test_iso_collapse
     - yt/frontends/gadget/tests/test_outputs.py:test_pid_uniqueness
     - yt/frontends/gadget/tests/test_outputs.py:test_bigendian_field_access
@@ -73,7 +73,7 @@ answer_tests:
   local_gdf_001:
     - yt/frontends/gdf/tests/test_outputs.py:test_sedov_tunnel
 
-  local_gizmo_004:
+  local_gizmo_005:
     - yt/frontends/gizmo/tests/test_outputs.py:test_gizmo_64
 
   local_halos_009:
@@ -82,11 +82,11 @@ answer_tests:
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
-  local_owls_004:
+  local_owls_005:
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
 
-  local_pw_030:  # PR 2735
+  local_pw_031:  # PR 2902
     - yt/visualization/tests/test_plotwindow.py:test_attributes
     - yt/visualization/tests/test_plotwindow.py:test_attributes_wt
     - yt/visualization/tests/test_particle_plot.py:test_particle_projection_answers
@@ -94,14 +94,16 @@ answer_tests:
     - yt/visualization/tests/test_particle_plot.py:test_particle_phase_answers
     - yt/visualization/tests/test_raw_field_slices.py:test_raw_field_slices
 
-  local_tipsy_005:
+  local_tipsy_006:
     - yt/frontends/tipsy/tests/test_outputs.py:test_pkdgrav
     - yt/frontends/tipsy/tests/test_outputs.py:test_gasoline_dmonly
     - yt/frontends/tipsy/tests/test_outputs.py:test_tipsy_galaxy
 
   local_varia_015:
-    - yt/frontends/moab/tests/test_c5.py
-    - yt/fields/tests/test_xray_fields.py
+    - yt/frontends/moab/tests/test_c5.py:test_cantor_5
+    - yt/fields/tests/test_xray_fields.py:test_sloshing_apec
+    - yt/fields/tests/test_xray_fields.py:test_d9p_cloudy
+    - yt/fields/tests/test_xray_fields.py:test_d9p_cloudy_local
 
   local_unstructured_011:
     - yt/visualization/volume_rendering/tests/test_mesh_render.py:test_composite_mesh_render
@@ -146,13 +148,21 @@ answer_tests:
     - yt/frontends/ramses/tests/test_outputs.py:test_output_00080
 
   local_ytdata_007:
-    - yt/frontends/ytdata/tests/test_outputs.py
-    - yt/frontends/ytdata/tests/test_old_outputs.py
+    - yt/frontends/ytdata/tests/test_outputs.py:test_datacontainer_data
+    - yt/frontends/ytdata/tests/test_outputs.py:test_grid_datacontainer_data
+    - yt/frontends/ytdata/tests/test_outputs.py:test_spatial_data
+    - yt/frontends/ytdata/tests/test_outputs.py:test_profile_data
+    - yt/frontends/ytdata/tests/test_outputs.py:test_nonspatial_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_datacontainer_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_grid_datacontainer_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_spatial_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_profile_data
+    - yt/frontends/ytdata/tests/test_old_outputs.py:test_old_nonspatial_data
 
   local_axialpix_006:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_002:
+  local_cylindrical_background_003:  # PR 2902
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:

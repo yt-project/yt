@@ -4,11 +4,10 @@ import tempfile
 
 import numpy as np
 
-from yt.convenience import load
 from yt.data_objects.level_sets.api import Clump, add_clump_info, find_clumps
 from yt.data_objects.level_sets.clump_info_items import clump_info_registry
 from yt.fields.derived_field import ValidateParameter
-from yt.frontends.stream.api import load_uniform_grid
+from yt.loaders import load, load_uniform_grid
 from yt.testing import assert_array_equal, assert_equal, requires_file
 from yt.utilities.answer_testing.framework import data_dir_load
 

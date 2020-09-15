@@ -12,7 +12,6 @@ from yt.funcs import ensure_list, ensure_numpy_array
 from yt.geometry.geometry_handler import ChunkDataCache, Index, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .grid_container import GridTree, MatchPointsToGrids
 
@@ -73,19 +72,6 @@ class GridIndex(Index, abc.ABC):
     def _detect_output_fields_backup(self):
         # grab fields from backup file as well, if present
         return
-        try:
-            backup_filename = self.dataset.backup_filename
-            f = h5py.File(backup_filename, mode="r")
-            g = f["data"]
-            grid = self.grids[0]  # simply check one of the grids
-            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
-            for field_name in grid_group:
-                if field_name != "particles":
-                    self.field_list.append(field_name)
-        except KeyError:
-            return
-        except IOError:
-            return
 
     def select_grids(self, level):
         """
@@ -215,7 +201,7 @@ class GridIndex(Index, abc.ABC):
         """
         header = "%3s\t%6s\t%14s\t%14s" % ("level", "# grids", "# cells", "# cells^3")
         print(header)
-        print("%s" % (len(header.expandtabs()) * "-"))
+        print(f"{len(header.expandtabs()) * '-'}")
         for level in range(MAXLEVEL):
             if (self.level_stats["numgrids"][level]) == 0:
                 continue
@@ -290,13 +276,14 @@ class GridIndex(Index, abc.ABC):
 
     def _find_points(self, x, y, z):
         """
-        Returns the (objects, indices) of leaf grids containing a number of (x,y,z) points
+        Returns the (objects, indices) of leaf grids
+        containing a number of (x,y,z) points
         """
         x = ensure_numpy_array(x)
         y = ensure_numpy_array(y)
         z = ensure_numpy_array(z)
         if not len(x) == len(y) == len(z):
-            raise AssertionError("Arrays of indices must be of the same size")
+            raise ValueError("Arrays of indices must be of the same size")
 
         grid_tree = self._get_grid_tree()
         pts = MatchPointsToGrids(grid_tree, len(x), x, y, z)
@@ -444,7 +431,7 @@ class GridIndex(Index, abc.ABC):
             size = self._grid_chunksize
         else:
             raise RuntimeError(
-                "%s is an invalid value for the 'chunk_sizing' argument." % chunk_sizing
+                f"{chunk_sizing} is an invalid value for the 'chunk_sizing' argument."
             )
         for fn in sorted(gfiles):
             gs = gfiles[fn]
@@ -464,7 +451,7 @@ class GridIndex(Index, abc.ABC):
     def _add_mesh_sampling_particle_field(self, deposit_field, ftype, ptype):
         units = self.ds.field_info[ftype, deposit_field].units
         take_log = self.ds.field_info[ftype, deposit_field].take_log
-        field_name = "cell_%s_%s" % (ftype, deposit_field)
+        field_name = f"cell_{ftype}_{deposit_field}"
 
         def _mesh_sampling_particle_field(field, data):
             pos = data[ptype, "particle_position"]

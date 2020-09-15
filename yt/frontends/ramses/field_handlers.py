@@ -75,7 +75,7 @@ class FieldFileHandler:
             igroup = ((domain.domain_id - 1) // ds.group_size) + 1
             full_path = os.path.join(
                 basename,
-                "group_{:05d}".format(igroup),
+                f"group_{igroup:05d}",
                 self.fname.format(iout=iout, icpu=domain.domain_id),
             )
         else:
@@ -87,8 +87,7 @@ class FieldFileHandler:
             self.fname = full_path
         else:
             raise FileNotFoundError(
-                "Could not find fluid file (type: %s). Tried %s"
-                % (self.ftype, full_path)
+                f"Could not find fluid file (type: {self.ftype}). Tried {full_path}"
             )
 
         if self.file_descriptor is not None:
@@ -342,7 +341,8 @@ class HydroFieldFileHandler(FieldFileHandler):
             else:
                 if nvar < 5:
                     mylog.debug(
-                        "nvar=%s is too small! YT doesn't currently support 1D/2D runs in RAMSES %s"
+                        "nvar=%s is too small! YT doesn't currently "
+                        "support 1D/2D runs in RAMSES %s"
                     )
                     raise ValueError
                 # Basic hydro runs
@@ -363,7 +363,8 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "Pressure",
                         "Metallicity",
                     ]
-                # MHD runs - NOTE: THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
+                # MHD runs - NOTE:
+                # THE MHD MODULE WILL SILENTLY ADD 3 TO THE NVAR IN THE MAKEFILE
                 if nvar == 11:
                     fields = [
                         "Density",
@@ -437,10 +438,10 @@ class GravFieldFileHandler(FieldFileHandler):
         ndim = ds.dimensionality
 
         if nvar == ndim + 1:
-            fields = ["potential"] + ["%s-acceleration" % k for k in "xyz"[:ndim]]
+            fields = ["potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
             ndetected = ndim
         else:
-            fields = ["%s-acceleration" % k for k in "xyz"[:ndim]]
+            fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
             ndetected = ndim
 
         if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
@@ -448,7 +449,7 @@ class GravFieldFileHandler(FieldFileHandler):
             ds._warned_extra_fields["gravity"] = True
 
             for i in range(nvar - ndetected):
-                fields.append("var%s" % i)
+                fields.append(f"var{i}")
 
         cls.field_list = [(cls.ftype, e) for e in fields]
 
@@ -501,8 +502,8 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(float)
 
             # Read rt_c_frac
-            # Note: when using variable speed of light, this line will contain multiple values
-            # corresponding the the velocity at each level
+            # Note: when using variable speed of light, this line will contain multiple
+            # values corresponding the the velocity at each level
             read_rhs(lambda line: [float(e) for e in line.split()])
             f.readline()
 

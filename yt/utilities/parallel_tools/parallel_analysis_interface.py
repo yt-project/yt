@@ -49,10 +49,10 @@ class FilterAllMessages(logging.Filter):
 def traceback_writer_hook(file_suffix=""):
     def write_to_file(exc_type, exc, tb):
         sys.__excepthook__(exc_type, exc, tb)
-        fn = "yt_traceback%s" % file_suffix
+        fn = f"yt_traceback{file_suffix}"
         with open(fn, "w") as fhandle:
             traceback.print_exception(exc_type, exc, tb, file=fhandle)
-            print("Wrote traceback to %s" % fn)
+            print(f"Wrote traceback to {fn}")
         MPI.COMM_WORLD.Abort(1)
 
     return write_to_file
@@ -1270,7 +1270,6 @@ class ParallelAnalysisInterface:
         LE, RE = left_edge[:], right_edge[:]
         if not self._distributed:
             raise NotImplementedError
-            return LE, RE  # , re
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size // rank_ratio)

@@ -423,12 +423,12 @@ behavior in yt-3.0.
 How can I change yt's log level?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt's default log level is ``INFO``. However, you may want less voluminous logging, especially
-if you are in an IPython notebook or running a long or parallel script. On the other
-hand, you may want it to output a lot more, since you can't figure out exactly what's going
-wrong, and you want to output some debugging information. The yt log level can be
-changed using the :ref:`configuration-file`, either by setting it in the
-``$HOME/.config/yt/ytrc`` file:
+yt's default log level is ``INFO``. However, you may want less voluminous logging,
+especially if you are in an IPython notebook or running a long or parallel script.
+On the other hand, you may want it to output a lot more, since you can't figure out
+exactly what's going wrong, and you want to output some debugging information.
+The default yt log level can be changed using the :ref:`configuration-file`,
+either by setting it in the ``$HOME/.config/yt/ytrc`` file:
 
 .. code-block:: bash
 
@@ -438,11 +438,16 @@ which would produce debug (as well as info, warning, and error) messages, or at 
 
 .. code-block:: python
 
-   from yt.funcs import mylog
-   mylog.setLevel(40) # This sets the log level to "ERROR"
+   yt.set_log_level("error")
 
-which in this case would suppress everything below error messages. For reference, the numerical
-values corresponding to different log levels are:
+This is the same as doing:
+
+.. code-block:: python
+
+   yt.set_log_level(40)
+
+which in this case would suppress everything below error messages. For reference,
+the numerical values corresponding to different log levels are:
 
 .. csv-table::
    :header: Level, Numeric Value

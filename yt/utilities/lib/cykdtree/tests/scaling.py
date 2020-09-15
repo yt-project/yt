@@ -41,15 +41,13 @@ def stats_run(
         perstr = "_periodic"
     if suppress_final_output:
         outstr = "_noout"
-    fname_stat = "stat_{}part_{}proc_{}dim{}{}.txt".format(
-        npart, nproc, ndim, perstr, outstr
-    )
+    fname_stat = f"stat_{npart}part_{nproc}proc_{ndim}dim{perstr}{outstr}.txt"
     if overwrite or not os.path.isfile(fname_stat):
         cProfile.run(
             "from yt.utilities.lib.cykdtree.tests import run_test; "
-            + "run_test({}, {}, nproc={}, ".format(npart, ndim, nproc)
-            + "periodic={}, ".format(periodic)
-            + "suppress_final_output={})".format(suppress_final_output),
+            + f"run_test({npart}, {ndim}, nproc={nproc}, "
+            + f"periodic={periodic}, "
+            + f"suppress_final_output={suppress_final_output})",
             fname_stat,
         )
     if display:
@@ -147,7 +145,7 @@ def strong_scaling(
                 leafsize=leafsize,
                 suppress_final_output=suppress_final_output,
             )
-            print("Finished {}D on {}.".format(ndim, nproc))
+            print(f"Finished {ndim}D on {nproc}.")
     fig, axs = plt.subplots(1, 1)
     for i in range(len(ndim_list)):
         ndim = ndim_list[i]
@@ -157,7 +155,7 @@ def strong_scaling(
             times[:, i, 0],
             yerr=times[:, i, 1],
             fmt=clr,
-            label="ndim = {}".format(ndim),
+            label=f"ndim = {ndim}",
         )
     axs.set_xlabel("# of Processors")
     axs.set_ylabel("Time (s)")
@@ -229,7 +227,7 @@ def weak_scaling(
             times[:, i, 0],
             yerr=times[:, i, 1],
             fmt=clr,
-            label="ndim = {}".format(ndim),
+            label=f"ndim = {ndim}",
         )
     axs.set_xlabel("# of Processors")
     axs.set_ylabel("Time (s)")

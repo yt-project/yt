@@ -88,7 +88,7 @@ class Cosmology:
             unit_registry = UnitRegistry(unit_system=unit_system)
             unit_registry.add("h", hubble_constant, dimensions.dimensionless, r"h")
             for my_unit in ["m", "pc", "AU", "au"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 my_u = Unit(my_unit, registry=unit_registry)
                 # technically not true, but distances here are actually comoving
                 unit_registry.add(
@@ -625,8 +625,9 @@ class Cosmology:
         note that there's a typo in his eq. There should be no negative sign).
 
         At the moment, this only works using the parameterization given in Linder 2002
-        eq. 7: w(a) = w0 + wa(1 - a) = w0 + wa * z / (1+z). This gives rise to an analytic
-        expression. It is also only functional for Gadget simulations, at the moment.
+        eq. 7: w(a) = w0 + wa(1 - a) = w0 + wa * z / (1+z). This gives rise to an
+        analytic expression.
+        It is also only functional for Gadget simulations, at the moment.
 
         Parameters
         ----------

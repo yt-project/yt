@@ -490,7 +490,7 @@ add_colormap("turbo_r", _turbo_r_data)
 # Add colormaps from cmocean, if it's installed
 if cmocean is not None:
     cmo_cmapnames = cmocean.cm.cmapnames
-    cmo_cmapnames += ["%s_r" % name for name in cmo_cmapnames]
+    cmo_cmapnames += [f"{name}_r" for name in cmo_cmapnames]
     for cmname in cmo_cmapnames:
         cm = getattr(cmocean.cm, cmname)
         # cmocean has a colormap named 'algae', so let's avoid overwriting
@@ -589,12 +589,12 @@ def show_colormaps(subset="all", filename=None):
             maps = [m for m in plt.colormaps() if m in subset]
             if len(maps) == 0:
                 raise AttributeError
-        except AttributeError:
+        except AttributeError as e:
             raise AttributeError(
                 "show_colormaps requires subset attribute "
                 "to be 'all', 'yt_native', or a list of "
                 "valid colormap names."
-            )
+            ) from e
     maps = sorted(set(maps))
     # scale the image size by the number of cmaps
     plt.figure(figsize=(2.0 * len(maps) / 10.0, 6))

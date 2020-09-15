@@ -1,8 +1,7 @@
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
 
-from .render_source import MeshSource, VolumeSource
-from .scene import Scene
+from .api import MeshSource, Scene, create_volume_source
 from .utils import data_source_or_all
 
 
@@ -55,16 +54,15 @@ def create_scene(data_source, field=None, lens_type="plane-parallel"):
         field = data_source.ds.default_field
         if field not in data_source.ds.derived_field_list:
             raise YTSceneFieldNotFound(
-                """Could not find field '%s' in %s.
+                f"""Could not find field '{field}' in {data_source.ds}.
                   Please specify a field in create_scene()"""
-                % (field, data_source.ds)
             )
         mylog.info("Setting default field to %s", field.__repr__())
 
     if hasattr(data_source.ds.index, "meshes"):
         source = MeshSource(data_source, field=field)
     else:
-        source = VolumeSource(data_source, field=field)
+        source = create_volume_source(data_source, field=field)
 
     sc.add_source(source)
     sc.add_camera(data_source=data_source, lens_type=lens_type)

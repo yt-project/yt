@@ -5,15 +5,15 @@ import numpy as np
 from unyt import dimensions, unyt_array
 from unyt.unit_registry import UnitRegistry
 
-from yt.convenience import load
 from yt.data_objects.time_series import DatasetSeries, SimulationTimeSeries
 from yt.funcs import only_on_root
+from yt.loaders import load
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import (
     InvalidSimulationTimeSeries,
     MissingParameter,
     NoStoppingCondition,
-    YTOutputNotIdentified,
+    YTUnidentifiedDataType,
 )
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
@@ -42,7 +42,7 @@ class GadgetSimulation(SimulationTimeSeries):
     Examples
     --------
     >>> import yt
-    >>> gs = yt.simulation("my_simulation.par", "Gadget")
+    >>> gs = yt.load_simulation("my_simulation.par", "Gadget")
     >>> gs.get_time_series()
     >>> for ds in gs:
     ...     print(ds.current_time)
@@ -75,7 +75,7 @@ class GadgetSimulation(SimulationTimeSeries):
                 )
             # Comoving lengths
             for my_unit in ["m", "pc", "AU"]:
-                new_unit = "%scm" % my_unit
+                new_unit = f"{my_unit}cm"
                 # technically not true, but should be ok
                 self.unit_registry.add(
                     new_unit,
@@ -190,7 +190,7 @@ class GadgetSimulation(SimulationTimeSeries):
         --------
 
         >>> import yt
-        >>> gs = yt.simulation("my_simulation.par", "Gadget")
+        >>> gs = yt.load_simulation("my_simulation.par", "Gadget")
 
         >>> gs.get_time_series(initial_redshift=10, final_time=(13.7, "Gyr"))
 
@@ -405,7 +405,7 @@ class GadgetSimulation(SimulationTimeSeries):
             count = "*"
         else:
             count = "%03d" % index
-        filename = "%s_%s%s" % (self.parameters["SnapshotFileBase"], count, suffix)
+        filename = f"{self.parameters['SnapshotFileBase']}_{count}{suffix}"
         return os.path.join(self.data_dir, filename)
 
     def _get_all_outputs(self, find_outputs=False):
@@ -522,7 +522,7 @@ class GadgetSimulation(SimulationTimeSeries):
         ):
             try:
                 ds = load(output)
-            except (FileNotFoundError, YTOutputNotIdentified):
+            except (FileNotFoundError, YTUnidentifiedDataType):
                 mylog.error("Failed to load %s", output)
                 continue
             my_storage.result = {
@@ -545,5 +545,5 @@ class GadgetSimulation(SimulationTimeSeries):
         mylog.info("Writing redshift output list to %s.", filename)
         f = open(filename, "w")
         for output in outputs:
-            f.write("%f\n" % (1.0 / (1.0 + output["redshift"])))
+            f.write(f"{1.0 / (1.0 + output['redshift']):f}\n")
         f.close()

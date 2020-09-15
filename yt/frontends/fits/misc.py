@@ -53,7 +53,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
     """
     for (emin, emax) in ebounds:
         cfunc = _make_counts(emin, emax)
-        fname = "counts_%s-%s" % (emin, emax)
+        fname = f"counts_{emin}-{emax}"
         mylog.info("Creating counts field %s.", fname)
         ds.add_field(
             (ftype, fname),
@@ -61,7 +61,7 @@ def setup_counts_fields(ds, ebounds, ftype="gas"):
             function=cfunc,
             units="counts/pixel",
             validators=[ValidateSpatial()],
-            display_name="Counts (%s-%s keV)" % (emin, emax),
+            display_name=f"Counts ({emin}-{emax} keV)",
         )
 
 
@@ -189,7 +189,7 @@ def ds9_region(ds, reg, obj=None, field_parameters=None):
     if field_parameters is not None:
         for k, v in field_parameters.items():
             obj.set_field_parameter(k, v)
-    return obj.cut_region(["obj['%s'] > 0" % (reg_name)])
+    return obj.cut_region([f"obj['{reg_name}'] > 0"])
 
 
 class PlotWindowWCS:
@@ -241,8 +241,8 @@ class PlotWindowWCS:
             wcs = pw.ds.wcs_2d.wcs
             xax = pw.ds.coordinates.x_axis[pw.data_source.axis]
             yax = pw.ds.coordinates.y_axis[pw.data_source.axis]
-            xlabel = "%s (%s)" % (wcs.ctype[xax].split("-")[0], wcs.cunit[xax])
-            ylabel = "%s (%s)" % (wcs.ctype[yax].split("-")[0], wcs.cunit[yax])
+            xlabel = f"{wcs.ctype[xax].split('-')[0]} ({wcs.cunit[xax]})"
+            ylabel = f"{wcs.ctype[yax].split('-')[0]} ({wcs.cunit[yax]})"
             fp = pw._font_properties
             wcs_ax.coords[0].set_axislabel(xlabel, fontproperties=fp, minpad=0.5)
             wcs_ax.coords[1].set_axislabel(ylabel, fontproperties=fp, minpad=0.4)

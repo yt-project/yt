@@ -5,7 +5,9 @@ import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
 from yt.config import ytcfg
-from yt.data_objects.data_containers import YTSelectionContainer
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
+)
 from yt.funcs import iterable
 from yt.geometry.selection_routines import convert_mask_to_indices
 from yt.units.yt_array import YTArray
@@ -363,7 +365,7 @@ class AMRGridPatch(YTSelectionContainer):
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
         # Here we perform our particle deposition.
-        cls = getattr(particle_deposit, "deposit_%s" % method, None)
+        cls = getattr(particle_deposit, f"deposit_{method}", None)
         if cls is None:
             raise YTParticleDepositionNotImplemented(method)
         # We allocate number of zones, not number of octs. Everything
@@ -414,7 +416,7 @@ class AMRGridPatch(YTSelectionContainer):
         else:
             slices = get_nodal_slices(source.shape, nodal_flag, dim)
             for i, sl in enumerate(slices):
-                dest[offset : offset + count, i] = source[sl][np.squeeze(mask)]
+                dest[offset : offset + count, i] = source[tuple(sl)][np.squeeze(mask)]
         return count
 
     def count(self, selector):

@@ -20,7 +20,7 @@ def compare(ds, field, test_prefix, decimals=12):
         image_file = sl.save(filename_prefix)
         return image_file
 
-    slice_image.__name__ = "slice_{}".format(test_prefix)
+    slice_image.__name__ = f"slice_{test_prefix}"
     test = GenericImageTest(ds, slice_image, decimals)
     test.prefix = test_prefix
     return test
@@ -44,4 +44,4 @@ _raw_field_names = [
 def test_raw_field_slices():
     ds = data_dir_load(raw_fields)
     for field in _raw_field_names:
-        yield compare(ds, field, "answers_raw_%s" % field[1])
+        yield compare(ds, field, f"answers_raw_{field[1]}")

@@ -6,7 +6,7 @@ from glob import glob
 import numpy as np
 
 from yt.arraytypes import blankRecordArray
-from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
@@ -38,7 +38,7 @@ class RAMSESDomainFile:
         rootdir = ds.root_folder
         basedir = os.path.abspath(os.path.dirname(ds.parameter_filename))
         basename = "%s/%%s_%s.out%05i" % (basedir, num, domain_id)
-        part_file_descriptor = "%s/part_file_descriptor.txt" % basedir
+        part_file_descriptor = f"{basedir}/part_file_descriptor.txt"
         if ds.num_groups > 0:
             igroup = ((domain_id - 1) // ds.group_size) + 1
             basename = "%s/group_%05i/%%s_%s.out%05i" % (
@@ -50,7 +50,7 @@ class RAMSESDomainFile:
         else:
             basename = "%s/%%s_%s.out%05i" % (basedir, num, domain_id)
         for t in ["grav", "amr"]:
-            setattr(self, "%s_fn" % t, basename % t)
+            setattr(self, f"{t}_fn", basename % t)
         self._part_file_descriptor = part_file_descriptor
         self._read_amr_header()
 
@@ -221,8 +221,8 @@ class RAMSESDomainSubset(OctreeSubset):
             self._base_domain = base_domain
         elif num_ghost_zones < 0:
             raise RuntimeError(
-                "Cannot initialize a domain subset with a negative number of ghost zones,"
-                " was called with num_ghost_zones=%s" % num_ghost_zones
+                "Cannot initialize a domain subset with a negative number "
+                "of ghost zones, was called with num_ghost_zones=%s" % num_ghost_zones
             )
 
     def _fill_no_ghostzones(self, fd, fields, selector, file_handler):
@@ -276,14 +276,19 @@ class RAMSESDomainSubset(OctreeSubset):
             selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
         )
 
-        (
-            levels,
-            cell_inds,
-            file_inds,
-            domains,
-        ) = self.oct_handler.file_index_octs_with_ghost_zones(
-            selector, self.domain_id, cell_count
-        )
+        gz_cache = getattr(self, "_ghost_zone_cache", None)
+        if gz_cache:
+            levels, cell_inds, file_inds, domains = gz_cache
+        else:
+            gz_cache = (
+                levels,
+                cell_inds,
+                file_inds,
+                domains,
+            ) = self.oct_handler.file_index_octs_with_ghost_zones(
+                selector, self.domain_id, cell_count
+            )
+            self._ghost_zone_cache = gz_cache
 
         # Initializing data container
         for field in fields:
@@ -349,9 +354,31 @@ class RAMSESDomainSubset(OctreeSubset):
             )
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
-        new_subset = RAMSESDomainSubset(
-            self.base_region, self.domain, self.ds, num_ghost_zones=ngz, base_grid=self
-        )
+        if smoothed:
+            mylog.warning(
+                f"{self}.retrieve_ghost_zones was called with the "
+                f"`smoothed` argument set to True. This is not supported, "
+                "ignoring it."
+            )
+            smoothed = False
+
+        try:
+            new_subset = self._subset_with_gz
+            mylog.debug(
+                "Reusing previous subset with ghost zone for domain %s", self.domain_id
+            )
+        except AttributeError:
+            new_subset = RAMSESDomainSubset(
+                self.base_region,
+                self.domain,
+                self.ds,
+                num_ghost_zones=ngz,
+                base_grid=self,
+            )
+            self._subset_with_gz = new_subset
+
+            # Cache the fields
+            new_subset.get_data(fields)
 
         return new_subset
 
@@ -485,7 +512,7 @@ class RAMSESIndex(OctreeIndex):
 
         header = "%3s\t%14s\t%14s" % ("level", "# cells", "# cells^3")
         print(header)
-        print("%s" % (len(header.expandtabs()) * "-"))
+        print(f"{len(header.expandtabs()) * '-'}")
         for level in range(self.dataset.min_level + self.dataset.max_level + 2):
             print(
                 "% 3i\t% 14i\t% 14i"
@@ -569,8 +596,8 @@ class RAMSESDataset(Dataset):
 
         if group_folder == "group_00001":
             # Count the number of groups
-            # note: we exclude the unlikely event that one of the group is actually a file
-            # instad of a folder
+            # note: we exclude the unlikely event that one of the group is actually a
+            # file instad of a folder
             self.num_groups = len(
                 [
                     _
@@ -632,8 +659,8 @@ class RAMSESDataset(Dataset):
         # Check max_level_convention is set and acceptable
         if max_level_convention is None:
             raise ValueError(
-                "You specified `max_level` without specifying any `max_level_convention`. "
-                "You have to pick either 'yt' or 'ramses'."
+                f"Received `max_level`={max_level}, but no `max_level_convention`. "
+                "Valid conventions are 'yt' and 'ramses'."
             )
         if max_level_convention not in ("ramses", "yt"):
             raise ValueError(
@@ -662,7 +689,7 @@ class RAMSESDataset(Dataset):
 
             for k in particle_families.keys():
                 mylog.info("Adding particle_type: %s", k)
-                self.add_particle_filter("%s" % k)
+                self.add_particle_filter(f"{k}")
 
     def __repr__(self):
         return self.basename.rsplit(".", 1)[0]
@@ -752,7 +779,8 @@ class RAMSESDataset(Dataset):
         self.domain_left_edge = np.zeros(3, dtype="float64")
         self.domain_dimensions = np.ones(3, dtype="int32") * 2 ** (self.min_level + 1)
         self.domain_right_edge = np.ones(3, dtype="float64")
-        # This is likely not true, but it's not clear how to determine the boundary conditions
+        # This is likely not true, but it's not clear
+        # how to determine the boundary conditions
         self.periodicity = (True, True, True)
 
         if self.force_cosmological is not None:
@@ -820,7 +848,7 @@ class RAMSESDataset(Dataset):
                 with open(namelist_file, "r") as f:
                     nml = f90nml.read(f)
             except ImportError as e:
-                nml = "An error occurred when reading the namelist: %s" % str(e)
+                nml = f"An error occurred when reading the namelist: {str(e)}"
             except (ValueError, StopIteration) as e:
                 mylog.warning(
                     "Could not parse `namelist.txt` file as it was malformed: %s", e

@@ -65,11 +65,11 @@ def test_gas_particle_fields():
     # Add species fields
     for species in ["H_p0", "H_p1"]:
         for suffix in ["density", "fraction", "mass", "number_density"]:
-            derived_fields += ["%s_%s" % (species, suffix)]
+            derived_fields += [f"{species}_{suffix}"]
     for species in metal_elements:
-        derived_fields += ["%s_nuclei_mass_density" % species]
+        derived_fields += [f"{species}_nuclei_mass_density"]
     # Add magnetic fields
-    derived_fields += ["particle_magnetic_field_%s" % axis for axis in "xyz"]
+    derived_fields += [f"particle_magnetic_field_{axis}" for axis in "xyz"]
     # Check
     for field in derived_fields:
         assert (ptype, field) in ds.derived_field_list
@@ -78,11 +78,11 @@ def test_gas_particle_fields():
     derived_fields = []
     for species in ["H_p0", "H_p1"]:
         for suffix in ["density", "number_density"]:
-            derived_fields += ["%s_%s" % (species, suffix)]
+            derived_fields += [f"{species}_{suffix}"]
     for species in metal_elements:
         for suffix in ["nuclei_mass_density", "metallicity"]:
-            derived_fields += ["%s_%s" % (species, suffix)]
-    derived_fields += ["magnetic_field_%s" % axis for axis in "xyz"]
+            derived_fields += [f"{species}_{suffix}"]
+    derived_fields += [f"magnetic_field_{axis}" for axis in "xyz"]
     for field in derived_fields:
         assert (ptype, field) in ds.derived_field_list
 

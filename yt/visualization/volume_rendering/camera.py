@@ -35,7 +35,7 @@ def _sanitize_camera_property_units(value, scene):
                     return scene.arr([scene.arr(v[0], v[1]) for v in value])
                 else:
                     raise RuntimeError(
-                        "Cannot set camera width to invalid value '%s'" % (value,)
+                        f"Cannot set camera width to invalid value '{value}'"
                     )
             return scene.arr(value, "unitary")
     else:
@@ -43,7 +43,7 @@ def _sanitize_camera_property_units(value, scene):
             return scene.arr([value.d] * 3, value.units).in_units("unitary")
         elif isinstance(value, numeric_type):
             return scene.arr([value] * 3, "unitary")
-    raise RuntimeError("Cannot set camera width to invalid value '%s'" % (value,))
+    raise RuntimeError(f"Cannot set camera width to invalid value '{value}'")
 
 
 class Camera(Orientation):
@@ -763,5 +763,5 @@ class Camera(Orientation):
             self.light,
             self.resolution,
         )
-        disp += "Lens: %s" % self.lens
+        disp += f"Lens: {self.lens}"
         return disp

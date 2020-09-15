@@ -139,7 +139,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         # items...
         #
         self.add_output_field(
-            ("enzo", "%s_Density" % species),
+            ("enzo", f"{species}_Density"),
             sampling_type="cell",
             take_log=True,
             units="code_mass/code_length**3",
@@ -147,9 +147,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         yt_name = known_species_names[species]
         # don't alias electron density since mass is wrong
         if species != "Electron":
-            self.alias(
-                ("gas", "%s_density" % yt_name), ("enzo", "%s_Density" % species)
-            )
+            self.alias(("gas", f"{yt_name}_density"), ("enzo", f"{species}_Density"))
 
     def setup_species_fields(self):
         species_names = [
@@ -185,7 +183,7 @@ class EnzoFieldInfo(FieldInfoContainer):
         if multi_species > 0 or dengo == 1:
             self.setup_species_fields()
         self.setup_energy_field()
-        setup_magnetic_field_aliases(self, "enzo", ["B%s" % ax for ax in "xyz"])
+        setup_magnetic_field_aliases(self, "enzo", [f"B{ax}" for ax in "xyz"])
 
     def setup_energy_field(self):
         unit_system = self.ds.unit_system

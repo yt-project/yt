@@ -265,7 +265,7 @@ class TipsyDataset(SPHDataset):
                         if isinstance(my_val, tuple)
                         else self.quan(my_val)
                     )
-                    setattr(self, "%s_unit" % my_unit, my_val)
+                    setattr(self, f"{my_unit}_unit", my_val)
 
         # Finally, set the dependent units
         if self.cosmological_simulation:

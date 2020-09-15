@@ -3,7 +3,7 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -94,7 +94,7 @@ class FLASHHierarchy(GridIndex):
             nzb = ds.parameters["nzb"]
         except KeyError:
             nxb, nyb, nzb = [
-                int(f["/simulation parameters"]["n%sb" % ax]) for ax in "xyz"
+                int(f["/simulation parameters"][f"n{ax}b"]) for ax in "xyz"
             ]
         self.grid_dimensions[:] *= (nxb, nyb, nzb)
         try:
@@ -193,14 +193,12 @@ class FLASHDataset(Dataset):
                 mylog.info(
                     "Particle file found: %s", self.particle_filename.split("/")[-1]
                 )
-            except IOError:
+            except OSError:
                 self._particle_handle = self._handle
         else:
             # particle_filename is specified by user
-            try:
-                self._particle_handle = HDF5FileHandler(self.particle_filename)
-            except Exception:
-                raise IOError(self.particle_filename)
+            self._particle_handle = HDF5FileHandler(self.particle_filename)
+
         # Check if the particle file has the same time
         if self._particle_handle != self._handle:
             part_time = self._particle_handle.handle.get("real scalars")[0][1]
@@ -298,7 +296,7 @@ class FLASHDataset(Dataset):
         # overwrite scalars with the same name.
         for ptype in ["scalars", "runtime parameters"]:
             for vtype in ["integer", "real", "logical", "string"]:
-                hns.append("%s %s" % (vtype, ptype))
+                hns.append(f"{vtype} {ptype}")
         if self._flash_version > 7:
             for hn in hns:
                 if hn not in self._handle:
@@ -358,7 +356,7 @@ class FLASHDataset(Dataset):
             nzb = self.parameters["nzb"]
         except KeyError:
             nxb, nyb, nzb = [
-                int(self._handle["/simulation parameters"]["n%sb" % ax]) for ax in "xyz"
+                int(self._handle["/simulation parameters"][f"n{ax}b"]) for ax in "xyz"
             ]  # FLASH2 only!
 
         # Determine dimensionality
@@ -393,12 +391,8 @@ class FLASHDataset(Dataset):
             nblocky = 1
 
         # Determine domain boundaries
-        dle = np.array([self.parameters["%smin" % ax] for ax in "xyz"]).astype(
-            "float64"
-        )
-        dre = np.array([self.parameters["%smax" % ax] for ax in "xyz"]).astype(
-            "float64"
-        )
+        dle = np.array([self.parameters[f"{ax}min"] for ax in "xyz"]).astype("float64")
+        dre = np.array([self.parameters[f"{ax}max"] for ax in "xyz"]).astype("float64")
         if self.dimensionality < 3:
             for d in [dimensionality] + list(range(3 - dimensionality)):
                 if dle[d] == dre[d]:
@@ -436,7 +430,7 @@ class FLASHDataset(Dataset):
 
         # Determine if this is a periodic box
         p = [
-            self.parameters.get("%sl_boundary_type" % ax, None) == "periodic"
+            self.parameters.get(f"{ax}l_boundary_type", None) == "periodic"
             for ax in "xyz"
         ]
         self.periodicity = tuple(p)

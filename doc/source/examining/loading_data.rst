@@ -2226,8 +2226,8 @@ information.  At this time, halo member particles cannot be loaded.
 
 .. _halocatalog:
 
-HaloCatalog
-^^^^^^^^^^^
+YTHaloCatalog
+^^^^^^^^^^^^^
 
 These are catalogs produced by the analysis discussed in :ref:`halo_catalog`.
 In the case where multiple files were produced, one need only provide the path
@@ -2252,10 +2252,29 @@ available here are similar to other catalogs.  Any addition
 .. code-block:: python
 
    import yt
-   ds = yt.load("catalogs/catalog.0.h5")
+   ds = yt.load("tiny_fof_halos/DD0046/DD0046.0.h5")
    ad = ds.all_data()
    # The halo mass
    print(ad["halos", "particle_mass"])
+
+Halo Data Containers
+""""""""""""""""""""
+
+Halo particles can be accessed by creating halo data containers with the
+type of halo ("halos") and the halo id and then querying the "member_ids"
+field. Halo containers have mass, radius, position, and velocity
+attributes. Additional fields for which there will be one value per halo
+can be accessed in the same manner as conventional data containers.
+
+.. code-block:: python
+
+   halo = ds.halo("halos", 0)
+   # particles for this halo
+   print(halo["member_ids"])
+   # halo properties
+   print(halo.mass, halo.radius, halo.position, halo.velocity)
+   # any other fields
+   print(halo[<field>])
 
 .. _loading-openpmd-data:
 

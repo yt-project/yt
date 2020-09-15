@@ -95,11 +95,11 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
         def _nuclei_mass_density_field(field, data):
             species = field.name[1][: field.name[1].find("_")]
-            return data[ptype, "density"] * data[ptype, "%s_metallicity" % species]
+            return data[ptype, "density"] * data[ptype, f"{species}_metallicity"]
 
         for species in ["H", "H_p0", "H_p1"]:
             for suf in ["_density", "_number_density"]:
-                field = "%s%s" % (species, suf)
+                field = f"{species}{suf}"
                 self.alias(("gas", field), (ptype, field))
 
         if (ptype, "ElectronAbundance") in self.field_list:
@@ -119,14 +119,14 @@ class GizmoFieldInfo(GadgetFieldInfo):
 
         for species in self.nuclei_names:
             self.add_field(
-                (ptype, "%s_nuclei_mass_density" % species),
+                (ptype, f"{species}_nuclei_mass_density"),
                 sampling_type="particle",
                 function=_nuclei_mass_density_field,
                 units=self.ds.unit_system["density"],
             )
 
             for suf in ["_nuclei_mass_density", "_metallicity"]:
-                field = "%s%s" % (species, suf)
+                field = f"{species}{suf}"
                 self.alias(("gas", field), (ptype, field))
 
         def _metal_density_field(field, data):

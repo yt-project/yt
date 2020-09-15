@@ -142,7 +142,7 @@ class PlotMPL:
         suffix = get_image_suffix(name)
         if suffix == "":
             suffix = ".png"
-            name = "%s%s" % (name, suffix)
+            name = f"{name}{suffix}"
 
         mylog.info("Saving plot %s", name)
 

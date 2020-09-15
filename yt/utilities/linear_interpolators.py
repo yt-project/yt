@@ -197,7 +197,8 @@ class TrilinearFieldInterpolator:
             self.z_bins = boundaries[2]
         else:
             mylog.error(
-                "Boundaries must be given as (x0, x1, y0, y1, z0, z1) or as (x_bins, y_bins, z_bins)"
+                "Boundaries must be given as (x0, x1, y0, y1, z0, z1) "
+                "or as (x_bins, y_bins, z_bins)"
             )
             raise ValueError
 

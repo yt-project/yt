@@ -263,7 +263,7 @@ def get_cpu_count():
         raise ValueError(
             "MAX_BUILD_CORES must be set to an integer. "
             + "See above for original error."
-        ).with_traceback(e.__traceback__)
+        ) from e
     max_cores = min(cpu_count, user_max_cores)
     return max_cores
 
@@ -307,12 +307,12 @@ def create_build_ext(lib_exts, cythonize_aliases):
             try:
                 import cython
                 import numpy
-            except ImportError:
+            except ImportError as e:
                 raise ImportError(
                     """Could not import cython or numpy. Building yt from source requires
     cython and numpy to be installed. Please install these packages using
     the appropriate package manager for your python environment."""
-                )
+                ) from e
             if LooseVersion(cython.__version__) < LooseVersion("0.26.1"):
                 raise RuntimeError(
                     """Building yt from source requires Cython 0.26.1 or newer but

@@ -7,7 +7,7 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
     _dataset_type = "arepo_hdf5"
 
-    def _generate_smoothing_length(self, data_files, kdtree):
+    def _generate_smoothing_length(self, index):
         # This is handled below in _get_smoothing_length
         return
 
@@ -15,7 +15,7 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
         ptype = self.ds._sph_ptypes[0]
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             pcount = f["/Header"].attrs["NumPart_ThisFile"][ind].astype("int")
             pcount = np.clip(pcount - si, 0, ei - si)
             # Arepo cells do not have "smoothing lengths" by definition, so

@@ -107,9 +107,15 @@ class ImageArray(YTArray):
         ...     for k in range(im.shape[2]):
         ...         im[i,:,k] = np.linspace(0.,0.3*k, im.shape[1])
 
-        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),
-        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),
-        ...     'width':0.245, 'units':'cm', 'type':'rendering'}
+        >>> myinfo = {
+        ...    'field':'dinosaurs',
+        ...    'east_vector':np.array([1.,0.,0.]),
+        ...    'north_vector':np.array([0.,0.,1.]),
+        ...    'normal_vector':np.array([0.,1.,0.]),
+        ...    'width':0.245,
+        ...    'units':'cm',
+        ...    'type':'rendering'
+        ... }
 
         >>> im_arr = ImageArray(im, info=myinfo)
         >>> im_arr.write_hdf5('test_ImageArray.h5')
@@ -361,9 +367,15 @@ class ImageArray(YTArray):
         >>> for i in range(im.shape[0]):
         ...     im[i,:] = np.linspace(0.,0.3*i, im.shape[1])
 
-        >>> myinfo = {'field':'dinosaurs', 'east_vector':np.array([1.,0.,0.]),
-        ...     'north_vector':np.array([0.,0.,1.]), 'normal_vector':np.array([0.,1.,0.]),
-        ...     'width':0.245, 'units':'cm', 'type':'rendering'}
+        >>> myinfo = {
+        ...    'field':'dinosaurs',
+        ...    'east_vector':np.array([1.,0.,0.]),
+        ...    'north_vector':np.array([0.,0.,1.]),
+        ...    'normal_vector':np.array([0.,1.,0.]),
+        ...    'width':0.245,
+        ...    'units':'cm',
+        ...    'type':'rendering'
+        ... }
 
         >>> im_arr = ImageArray(im, info=myinfo)
         >>> im_arr.write_image('test_ImageArray.png')

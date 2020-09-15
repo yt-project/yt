@@ -22,8 +22,11 @@ def test_multi_mesh():
     ds = load_unstructured_mesh(connectList, coordsMulti, dataList)
 
     sl = SlicePlot(ds, "z", ("connect1", "test"))
+    assert sl.data_source.field_data["connect1", "test"].shape == (1, 3)
     sl = SlicePlot(ds, "z", ("connect2", "test"))
+    assert sl.data_source.field_data["connect2", "test"].shape == (1, 3)
     sl = SlicePlot(ds, "z", ("all", "test"))
+    assert sl.data_source.field_data["all", "test"].shape == (2, 3)
     sl.annotate_mesh_lines()
 
 

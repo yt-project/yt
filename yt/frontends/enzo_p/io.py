@@ -26,12 +26,12 @@ class EnzoPIOHandler(BaseIOHandler):
         f = h5py.File(grid.filename, mode="r")
         try:
             group = f[grid.block_name]
-        except KeyError:
+        except KeyError as e:
             raise YTException(
                 message="Grid %s is missing from data file %s."
                 % (grid.block_name, grid.filename),
                 ds=self.ds,
-            )
+            ) from e
         fields = []
         ptypes = set()
         dtypes = set()
@@ -154,7 +154,7 @@ class EnzoPIOHandler(BaseIOHandler):
         else:
             close = False
         ftype, fname = field
-        node = "/%s/field%s%s" % (obj.block_name, self._sep, fname)
+        node = f"/{obj.block_name}/field{self._sep}{fname}"
         dg = h5py.h5d.open(fid, node.encode("latin-1"))
         rdata = np.empty(
             self.ds.grid_dimensions[: self.ds.dimensionality][::-1],

@@ -48,7 +48,7 @@ class SPHDataset(ParticleDataset):
     @num_neighbors.setter
     def num_neighbors(self, value):
         if value < 0:
-            raise ValueError("Negative value not allowed: %s" % value)
+            raise ValueError(f"Negative value not allowed: {value}")
         self._num_neighbors = value
 
     @property
@@ -84,7 +84,7 @@ class SPHParticleIndex(ParticleIndex):
         ds._file_hash = self._generate_hash()
 
         if hasattr(self.io, "_generate_smoothing_length"):
-            self.io._generate_smoothing_length(self.data_files, self.kdtree)
+            self.io._generate_smoothing_length(self)
 
         super(SPHParticleIndex, self)._initialize_index()
 

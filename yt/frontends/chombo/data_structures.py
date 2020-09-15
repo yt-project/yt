@@ -4,7 +4,7 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -176,8 +176,8 @@ class ChomboHierarchy(GridIndex):
                 self.dds_list[lev_index][2] = 1.0
 
             for level_id, box in enumerate(boxes):
-                si = np.array([box["lo_%s" % ax] for ax in "ijk"[:D]])
-                ei = np.array([box["hi_%s" % ax] for ax in "ijk"[:D]])
+                si = np.array([box[f"lo_{ax}"] for ax in "ijk"[:D]])
+                ei = np.array([box[f"hi_{ax}"] for ax in "ijk"[:D]])
 
                 if D == 1:
                     si = np.concatenate((si, [0.0, 0.0]))
@@ -430,8 +430,8 @@ class PlutoHierarchy(ChomboHierarchy):
                 self.dds_list[lev_index][2] = 1.0
 
             for level_id, box in enumerate(boxes):
-                si = np.array([box["lo_%s" % ax] for ax in "ijk"[:D]])
-                ei = np.array([box["hi_%s" % ax] for ax in "ijk"[:D]])
+                si = np.array([box[f"lo_{ax}"] for ax in "ijk"[:D]])
+                ei = np.array([box[f"hi_{ax}"] for ax in "ijk"[:D]])
 
                 if D == 1:
                     si = np.concatenate((si, [0.0, 0.0]))

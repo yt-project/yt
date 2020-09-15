@@ -6,7 +6,7 @@ import weakref
 import numpy as np
 
 import yt.utilities.fortran_utils as fpu
-from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.frontends.art.definitions import (
@@ -233,7 +233,7 @@ class ARTDataset(Dataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        setdefaultattr(self, "mass_unit", self.quan(mass, "g*%s" % ng ** 3))
+        setdefaultattr(self, "mass_unit", self.quan(mass, f"g*{ng ** 3}"))
         setdefaultattr(self, "length_unit", self.quan(box_proper, "Mpc"))
         setdefaultattr(self, "velocity_unit", self.quan(velocity, "cm/s"))
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
@@ -374,7 +374,7 @@ class ARTDataset(Dataset):
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = "%s" % args[0]
+        f = f"{args[0]}"
         prefix, suffix = filename_pattern["amr"]
         if not os.path.isfile(f):
             return False
@@ -414,9 +414,6 @@ class ARTParticleIndex(ParticleIndex):
             df = cls(self.dataset, self.io, template % {"num": i}, fi)
             fi += 1
             self.data_files.append(df)
-        self.total_particles = sum(
-            sum(d.total_particles.values()) for d in self.data_files
-        )
 
 
 class DarkMatterARTDataset(ARTDataset):
@@ -515,7 +512,7 @@ class DarkMatterARTDataset(ARTDataset):
         mass = aM0 * 1.98892e33
 
         self.cosmological_simulation = True
-        self.mass_unit = self.quan(mass, "g*%s" % ng ** 3)
+        self.mass_unit = self.quan(mass, f"g*{ng ** 3}")
         self.length_unit = self.quan(box_proper, "Mpc")
         self.velocity_unit = self.quan(velocity, "cm/s")
         self.time_unit = self.length_unit / self.velocity_unit
@@ -672,7 +669,7 @@ class DarkMatterARTDataset(ARTDataset):
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = "%s" % args[0]
+        f = f"{args[0]}"
         prefix, suffix = filename_pattern["particle_data"]
         if not os.path.isfile(f):
             return False
@@ -937,7 +934,3 @@ class ARTDomainFile:
 
     def included(self, selector):
         return True
-        if getattr(selector, "domain_id", None) is not None:
-            return selector.domain_id == self.domain_id
-        domain_ids = self.ds.index.oct_handler.domain_identify(selector)
-        return self.domain_id in domain_ids

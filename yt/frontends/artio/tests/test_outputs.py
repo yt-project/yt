@@ -1,5 +1,5 @@
-from yt.convenience import load
 from yt.frontends.artio.api import ARTIODataset
+from yt.loaders import load
 from yt.testing import (
     assert_allclose_units,
     assert_equal,

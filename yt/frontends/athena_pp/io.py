@@ -51,7 +51,7 @@ class IOHandlerAthenaPP(BaseIOHandler):
         for field in fields:
             ftype, fname = field
             dname, fdi = self.ds._field_map[fname]
-            ds = f["/%s" % dname]
+            ds = f[f"/{dname}"]
             ind = 0
             for chunk in chunks:
                 if self.ds.logarithmic:
@@ -86,7 +86,7 @@ class IOHandlerAthenaPP(BaseIOHandler):
         for field in fields:
             ftype, fname = field
             dname, fdi = self.ds._field_map[fname]
-            ds = f["/%s" % dname]
+            ds = f[f"/{dname}"]
             for gs in grid_sequences(chunk.objs):
                 start = gs[0].id - gs[0]._id_offset
                 end = gs[-1].id - gs[-1]._id_offset + 1

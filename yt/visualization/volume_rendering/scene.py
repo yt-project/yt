@@ -50,10 +50,11 @@ class Scene:
     and a Camera.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Scene, VolumeSource, Camera
+    >>> from yt.visualization.volume_rendering.api import\
+    ...     Scene, create_volume_source, Camera
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> sc = Scene()
-    >>> source = VolumeSource(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), 'density')
     >>> sc.add_source(source)
     >>> cam = sc.add_camera()
     >>> im = sc.render()
@@ -121,7 +122,8 @@ class Scene:
 
         Parameters
         ----------
-        render_source: :class:`yt.visualization.volume_rendering.render_source.RenderSource`
+        render_source:
+            :class:`yt.visualization.volume_rendering.render_source.RenderSource`
             A source to contribute to the volume rendering scene.
 
         keyname: string (optional)
@@ -287,7 +289,7 @@ class Scene:
         >>> sc.save('test.png', sigma_clip=4)
 
         When saving multiple images without modifying the scene (camera,
-        sources,etc.), render=False can be used to avoid re-rendering when a scene is saved.
+        sources,etc.), render=False can be used to avoid re-rendering.
         This is useful for generating images at a range of sigma_clip values:
 
         >>> import yt
@@ -311,14 +313,14 @@ class Scene:
                     field = rs.field
                 else:
                     field = rs.field[-1]
-                fname = "%s_Render_%s.png" % (basename, field)
+                fname = f"{basename}_Render_{field}.png"
             # if no volume source present, use a default filename
             else:
                 fname = "Render_opaque.png"
         suffix = get_image_suffix(fname)
         if suffix == "":
             suffix = ".png"
-            fname = "%s%s" % (fname, suffix)
+            fname = f"{fname}{suffix}"
 
         render = self._sanitize_render(render)
         if render:
@@ -341,7 +343,7 @@ class Scene:
             elif suffix in (".eps", ".ps"):
                 canvas = FigureCanvasPS(fig)
             else:
-                raise NotImplementedError("Unknown file suffix '{}'".format(suffix))
+                raise NotImplementedError(f"Unknown file suffix '{suffix}'")
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
             out = self._last_render
@@ -442,14 +444,14 @@ class Scene:
                     field = rs.field
                 else:
                     field = rs.field[-1]
-                fname = "%s_Render_%s.png" % (basename, field)
+                fname = f"{basename}_Render_{field}.png"
             # if no volume source present, use a default filename
             else:
                 fname = "Render_opaque.png"
         suffix = get_image_suffix(fname)
         if suffix == "":
             suffix = ".png"
-            fname = "%s%s" % (fname, suffix)
+            fname = f"{fname}{suffix}"
 
         render = self._sanitize_render(render)
         if render:
@@ -987,7 +989,7 @@ class Scene:
         disp = "<Scene Object>:"
         disp += "\nSources: \n"
         for k, v in self.sources.items():
-            disp += "    %s: %s\n" % (k, v)
+            disp += f"    {k}: {v}\n"
         disp += "Camera: \n"
-        disp += "    %s" % self.camera
+        disp += f"    {self.camera}"
         return disp

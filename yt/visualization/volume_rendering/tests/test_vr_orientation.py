@@ -9,7 +9,7 @@ from yt.utilities.answer_testing.framework import (
 from yt.visualization.volume_rendering.api import (
     ColorTransferFunction,
     Scene,
-    VolumeSource,
+    create_volume_source,
     off_axis_projection,
 )
 
@@ -20,7 +20,7 @@ def test_orientation():
 
     sc = Scene()
 
-    vol = VolumeSource(ds, field=("gas", "density"))
+    vol = create_volume_source(ds, field=("gas", "density"))
     sc.add_source(vol)
 
     tf = vol.transfer_function
@@ -93,6 +93,6 @@ def test_orientation():
             return image.write_image(filename_prefix)
 
         test5 = GenericImageTest(ds, offaxis_image_func, decimals)
-        test5.prefix = "oap_orientation_{}".format(i)
+        test5.prefix = f"oap_orientation_{i}"
         test5.answer_name = test_name
         yield test5

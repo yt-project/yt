@@ -39,12 +39,12 @@ class IOHandlerGadgetFOFHDF5(BaseIOHandler):
 
     def _yield_coordinates(self, data_file):
         ptypes = self.ds.particle_types_raw
-        with h5py.File(data_file.filename, "r") as f:
+        with h5py.File(data_file.filename, mode="r") as f:
             for ptype in sorted(ptypes):
                 pcount = data_file.total_particles[ptype]
                 if pcount == 0:
                     continue
-                coords = f[ptype]["%sPos" % ptype][()].astype("float64")
+                coords = f[ptype][f"{ptype}Pos"][()].astype("float64")
                 coords = np.resize(coords, (pcount, 3))
                 yield ptype, coords
 

@@ -105,16 +105,16 @@ class SDFDataset(ParticleDataset):
             if "offset_center" in self.parameters and self.parameters["offset_center"]:
                 self.domain_left_edge = np.array([0, 0, 0], dtype=np.float64)
                 self.domain_right_edge = np.array(
-                    [2.0 * self.parameters.get("R%s" % ax, R0) for ax in "xyz"],
+                    [2.0 * self.parameters.get(f"R{ax}", R0) for ax in "xyz"],
                     dtype=np.float64,
                 )
             else:
                 self.domain_left_edge = np.array(
-                    [-self.parameters.get("R%s" % ax, R0) for ax in "xyz"],
+                    [-self.parameters.get(f"R{ax}", R0) for ax in "xyz"],
                     dtype=np.float64,
                 )
                 self.domain_right_edge = np.array(
-                    [+self.parameters.get("R%s" % ax, R0) for ax in "xyz"],
+                    [+self.parameters.get(f"R{ax}", R0) for ax in "xyz"],
                     dtype=np.float64,
                 )
             self.domain_left_edge *= self.parameters.get("a", 1.0)

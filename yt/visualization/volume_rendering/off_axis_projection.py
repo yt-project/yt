@@ -9,7 +9,7 @@ from yt.utilities.lib.pixelization_routines import (
     off_axis_projection_SPH,
 )
 
-from .render_source import VolumeSource
+from .render_source import KDTreeVolumeSource
 from .scene import Scene
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
@@ -107,14 +107,15 @@ def off_axis_projection(
     >>> write_image(np.log10(image), "offaxis.png")
 
     """
-    if method not in ["integrate", "sum"]:
+    if method not in ("integrate", "sum"):
         raise NotImplementedError(
             "Only 'integrate' or 'sum' methods are valid for off-axis-projections"
         )
 
     if interpolated:
         raise NotImplementedError(
-            "Only interpolated=False methods are currently implemented for off-axis-projections"
+            "Only interpolated=False methods are currently implemented "
+            "for off-axis-projections"
         )
 
     data_source = data_source_or_all(data_source)
@@ -145,7 +146,7 @@ def off_axis_projection(
         raise_error = False
 
         ptype = sph_ptypes[0]
-        ppos = ["particle_position_%s" % ax for ax in "xyz"]
+        ppos = [f"particle_position_{ax}" for ax in "xyz"]
         # Assure that the field we're trying to off-axis project
         # has a field type as the SPH particle type or if the field is an
         # alias to an SPH field or is a 'gas' field
@@ -303,7 +304,8 @@ def off_axis_projection(
 
     funits = data_source.ds._get_field_info(item).units
 
-    vol = VolumeSource(data_source, item)
+    vol = KDTreeVolumeSource(data_source, item)
+    vol.num_threads = num_threads
     if weight is None:
         vol.set_field(item)
     else:

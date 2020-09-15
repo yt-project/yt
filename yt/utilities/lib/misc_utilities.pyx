@@ -628,11 +628,12 @@ def obtain_relative_velocity_vector(
     cdef np.ndarray[np.float64_t, ndim=3] vzg
     cdef np.ndarray[np.float64_t, ndim=4] rvg
     cdef np.float64_t bv[3]
-    cdef int i, j, k
+    cdef int i, j, k, dim
 
     units = data[field_names[0]].units
     bulk_vector = data.get_field_parameter(bulk_vector).to(units)
-    if len(data[field_names[0]].shape) == 1:
+    dim = data[field_names[0]].ndim
+    if dim == 1:
         # One dimensional data
         vxf = data[field_names[0]].astype("float64")
         vyf = data[field_names[1]].astype("float64")
@@ -652,7 +653,7 @@ def obtain_relative_velocity_vector(
             rvf[1, i] = vyf[i] - bv[1]
             rvf[2, i] = vzf[i] - bv[2]
         return rvf
-    else:
+    elif dim == 3:
         # Three dimensional data
         vxg = data[field_names[0]].astype("float64")
         vyg = data[field_names[1]].astype("float64")
@@ -675,6 +676,8 @@ def obtain_relative_velocity_vector(
                     rvg[1,i,j,k] = vyg[i,j,k] - bv[1]
                     rvg[2,i,j,k] = vzg[i,j,k] - bv[2]
         return rvg
+    else:
+        raise NotImplementedError(f"Unsupported dimensionality `{dim}`.")
 
 def grow_flagging_field(oofield):
     cdef np.ndarray[np.uint8_t, ndim=3] ofield = oofield.astype("uint8")

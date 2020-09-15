@@ -80,7 +80,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
 
         f1, f2 = _get_coord_fields(self.axis_id[self.radial_axis])
         registry.add_field(
-            ("index", "d%s" % (self.radial_axis,)),
+            ("index", f"d{self.radial_axis}"),
             sampling_type="cell",
             function=f1,
             display_field=False,
@@ -116,10 +116,10 @@ class GeographicCoordinateHandler(CoordinateHandler):
         registry.alias(("index", "volume"), ("index", "cell_volume"))
 
         def _path_radial_axis(field, data):
-            return data["index", "d%s" % self.radial_axis]
+            return data["index", f"d{self.radial_axis}"]
 
         registry.add_field(
-            ("index", "path_element_%s" % self.radial_axis),
+            ("index", f"path_element_{self.radial_axis}"),
             sampling_type="cell",
             function=_path_radial_axis,
             units="code_length",

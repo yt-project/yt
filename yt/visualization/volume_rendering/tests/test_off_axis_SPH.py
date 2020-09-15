@@ -44,8 +44,8 @@ def test_no_rotation():
 @requires_module("scipy")
 def test_basic_rotation_1():
     """ All particles on Z-axis should now be on the negative Y-Axis
-        fake_sph_orientation has three z-axis particles, so there should be three y-axis particles
-        after rotation
+        fake_sph_orientation has three z-axis particles,
+        so there should be three y-axis particles after rotation
         (0, 0, 1) -> (0, -1)
         (0, 0, 2) -> (0, -2)
         (0, 0, 3) -> (0, -3)
@@ -79,9 +79,9 @@ def test_basic_rotation_1():
 
 @requires_module("scipy")
 def test_basic_rotation_2():
-    """ Rotation of x-axis onto z-axis. All particles on z-axis should now be on the negative x-Axis
-    fake_sph_orientation has three z-axis particles, so there should be three x-axis particles
-    after rotation
+    """ Rotation of x-axis onto z-axis.
+    All particles on z-axis should now be on the negative x-Axis fake_sph_orientation
+    has three z-axis particles, so there should be three x-axis particles after rotation
     (0, 0, 1) -> (-1, 0)
     (0, 0, 2) -> (-2, 0)
     (0, 0, 3) -> (-3, 0)
@@ -118,9 +118,10 @@ def test_basic_rotation_2():
 
 @requires_module("scipy")
 def test_basic_rotation_3():
-    """ Rotation of z-axis onto negative z-axis. All fake particles on z-axis should now be on
-    the negative z-Axis.
-    fake_sph_orientation has three z-axis particles, so we should have a local maxima at (0, 0)
+    """Rotation of z-axis onto negative z-axis.
+    All fake particles on z-axis should now be of the negative z-Axis.
+    fake_sph_orientation has three z-axis particles,
+    so we should have a local maxima at (0, 0)
     (0, 0, 1) -> (0, 0)
     (0, 0, 2) -> (0, 0)
     (0, 0, 3) -> (0, 0)

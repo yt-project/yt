@@ -3,7 +3,7 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
 
@@ -140,7 +140,9 @@ class SkeletonDataset(Dataset):
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME) (int)
         #
-        #   self.geometry (defaults to 'cartesian') <= a lower case string ("cartesian", "polar", "cylindrical"...)
+        #   self.geometry  <= a lower case string
+        #                     ("cartesian", "polar", "cylindrical"...)
+        #                     (defaults to 'cartesian')
         pass
 
     @classmethod

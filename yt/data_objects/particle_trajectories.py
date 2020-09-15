@@ -99,7 +99,7 @@ class ParticleTrajectories:
             self.sorts.append(sort)
 
             pfields = {}
-            for field in ("particle_position_%s" % ax for ax in "xyz"):
+            for field in (f"particle_position_{ax}" for ax in "xyz"):
                 pfields[field] = dd[fds[field]].ndarray_view()[mask][sort]
 
             sto.result_id = ds.parameter_filename
@@ -117,17 +117,17 @@ class ParticleTrajectories:
         self.particle_fields = []
         output_field = np.empty((self.num_indices, self.num_steps))
         output_field.fill(np.nan)
-        for field in ("particle_position_%s" % ax for ax in "xyz"):
+        for field in (f"particle_position_{ax}" for ax in "xyz"):
             for i, (_fn, (_time, indices, pfields)) in enumerate(sorted_storage):
                 try:
                     # This will fail if particles ids are
                     # duplicate. This is due to the fact that the rhs
                     # would then have a different shape as the lhs
                     output_field[indices, i] = pfields[field]
-                except ValueError:
+                except ValueError as e:
                     raise YTIllDefinedParticleData(
                         "This dataset contains duplicate particle indices!"
-                    )
+                    ) from e
             self.field_data[field] = array_like_field(
                 dd_first, output_field.copy(), fds[field]
             )
@@ -238,7 +238,7 @@ class ParticleTrajectories:
         ]
         step = int(0)
         pbar = get_pbar(
-            "Generating [%s] fields in trajectories" % ", ".join(missing_fields),
+            f"Generating [{', '.join(missing_fields)}] fields in trajectories",
             self.num_steps,
         )
         my_storage = {}
@@ -391,4 +391,4 @@ class ParticleTrajectories:
         self.times.write_hdf5(filename, dataset_name="particle_times")
         fields = [field for field in sorted(self.field_data.keys())]
         for field in fields:
-            self[field].write_hdf5(filename, dataset_name="%s" % field)
+            self[field].write_hdf5(filename, dataset_name=f"{field}")

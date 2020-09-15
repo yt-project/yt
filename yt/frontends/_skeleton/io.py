@@ -34,8 +34,9 @@ class SkeletonIOHandler(BaseIOHandler):
         # transpose is required (e.g., using np_array.transpose() or
         # np_array.swapaxes(0,2)).
 
-        # Note this method is not abstract, and has a default implementation in the base class.
-        # However, the default implementation requires that the method io_iter be defined
+        # This method is not abstract, and has a default implementation
+        # in the base class.However, the default implementation requires that the method
+        # io_iter be defined
         pass
 
     def _read_chunk_data(self, chunk, fields):

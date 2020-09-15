@@ -82,7 +82,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                 continue
             ptype = "halos"
             field_list0 = sorted(ptf[ptype], key=_find_attr_position)
-            field_list_pos = ["raw_position_%s" % k for k in "xyz"]
+            field_list_pos = [f"raw_position_{k}" for k in "xyz"]
             field_list = sorted(
                 set(field_list0 + field_list_pos), key=_find_attr_position
             )
@@ -209,7 +209,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         # Make sure halos are loaded in increasing halo_id order
         assert np.all(np.diff(offset_map[:, 0]) > 0)
 
-        # Cache particle positions as one do not expect a (very) large number of halos anyway
+        # Cache particle positions as one do not expect a large number of halos anyway
         self._particle_positions = data
         self._offsets = offset_map
         return data

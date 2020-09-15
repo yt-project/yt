@@ -21,10 +21,10 @@ class UnknownDatasetType(Exception):
         self.name = name
 
     def __str__(self):
-        return "%s" % self.name
+        return f"{self.name}"
 
     def __repr__(self):
-        return "%s" % self.name
+        return f"{self.name}"
 
 
 class ParameterFileStore:
@@ -85,7 +85,7 @@ class ParameterFileStore:
         base_file_name = ytcfg.get("yt", "ParameterFileStore")
         if not os.access(os.path.expanduser("~/"), os.W_OK):
             return os.path.abspath(base_file_name)
-        return os.path.expanduser("~/.yt/%s" % base_file_name)
+        return os.path.expanduser(f"~/.yt/{base_file_name}")
 
     def get_ds_hash(self, hash):
         """ This returns a dataset based on a hash. """
@@ -173,7 +173,7 @@ class ParameterFileStore:
         if self._read_only:
             return
         fn = self._get_db_name()
-        f = open("%s.tmp" % fn, "wb")
+        f = open(f"{fn}.tmp", "wb")
         w = csv.DictWriter(f, _field_names)
         maxn = ytcfg.getint("yt", "maximumstoreddatasets")  # number written
         for h, v in islice(
@@ -182,7 +182,7 @@ class ParameterFileStore:
             v["hash"] = h
             w.writerow(v)
         f.close()
-        os.rename("%s.tmp" % fn, fn)
+        os.rename(f"{fn}.tmp", fn)
 
     @parallel_simple_proxy
     def read_db(self):
