@@ -8,7 +8,7 @@ from more_itertools import always_iterable
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry
-from yt import YTArray, iterable
+from yt import YTArray
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
@@ -621,7 +621,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             height = self.ds.quan(h, units=u)
         elif not isinstance(height, YTArray):
             height = self.ds.quan(height, "code_length")
-        if not iterable(resolution):
+        if not is_sequence(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
 
