@@ -880,8 +880,14 @@ def parallel_profile(prefix):
     Examples
     --------
 
+    >>> from yt import PhasePlot
+    >>> from yt.testing import fake_random_ds
+    ...
+    >>> fields = ('density', 'temperature', 'cell_mass')
+    >>> units = ('g/cm**3', 'K', 'g')
+    >>> ds = fake_random_ds(16, fields=fields, units=units)
     >>> with parallel_profile('my_profile'):
-    ...     yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+    ...     plot = PhasePlot(ds.all_data(), *fields)
     """
     import cProfile
 
@@ -925,15 +931,13 @@ def get_image_suffix(name):
 def get_output_filename(name, keyword, suffix):
     r"""Return an appropriate filename for output.
 
-    With a name provided by the user, this will decide how to
-    appropriately name the output file by the following rules:
+    With a name provided by the user, this will decide how to appropriately name the
+    output file by the following rules:
 
-    1. if name is None, the filename will be the keyword plus
-       the suffix.
-    2. if name ends with "/", assume name is a directory and
-       the file will be named name/(keyword+suffix).  If the
-       directory does not exist, first try to create it and
-       raise an exception if an error occurs.
+    1. if name is None, the filename will be the keyword plus the suffix.
+    2. if name ends with "/" (resp "\" on Windows), assume name is a directory and the
+       file will be named name/(keyword+suffix).  If the directory does not exist, first
+       try to create it and raise an exception if an error occurs.
     3. if name does not end in the suffix, add the suffix.
 
     Parameters
@@ -949,18 +953,18 @@ def get_output_filename(name, keyword, suffix):
     Examples
     --------
 
-    >>> print(get_output_filename(None, "Projection_x", ".png"))
-    Projection_x.png
-    >>> print(get_output_filename("my_file", "Projection_x", ".png"))
-    my_file.png
-    >>> print(get_output_filename("my_file/", "Projection_x", ".png"))
-    my_file/Projection_x.png
+    >>> get_output_filename(None, "Projection_x", ".png")
+    'Projection_x.png'
+    >>> get_output_filename("my_file", "Projection_x", ".png")
+    'my_file.png'
+    >>> get_output_filename("my_dir/", "Projection_x", ".png")
+    'my_dir/Projection_x.png'
 
     """
     if name is None:
         name = keyword
     name = os.path.expanduser(name)
-    if name[-1] == os.sep and not os.path.isdir(name):
+    if name.endswith(os.sep) and not os.path.isdir(name):
         ensure_dir(name)
     if os.path.isdir(name):
         name = os.path.join(name, keyword)
@@ -1043,6 +1047,7 @@ def memory_checker(interval=15, dest=None):
     ...     arr = np.zeros(1024*1024*1024, dtype="float64")
     ...     time.sleep(15)
     ...     del arr
+    MEMORY: -1.000e+00 gb
     """
     import threading
 
@@ -1178,10 +1183,10 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
 
     Examples
     --------
-    >>> import yt.funcs as funcs
-    >>> funcs.get_hash('/path/to/test.png')
-    'd38da04859093d430fa4084fd605de60'
-
+    >>> from tempfile import NamedTemporaryFile
+    >>> with NamedTemporaryFile() as file:
+    ...    get_hash(file.name)
+    'd41d8cd98f00b204e9800998ecf8427e'
     """
     import hashlib
 

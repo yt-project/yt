@@ -19,7 +19,7 @@ from yt.frontends.ytdata.api import save_as_dataset
 from yt.loaders import load, load_simulation
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.visualization import particle_plots, plot_window as pw, profile_plotter
-from yt.visualization.volume_rendering.scene import Scene
+from yt.visualization.volume_rendering.api import Scene
 
 
 def _streamline_for_io(params):
@@ -359,7 +359,7 @@ def requires_ds(ds_fn, file_check=False):
         @functools.wraps(func)
         def skip(*args, **kwargs):
             msg = f"{ds_fn} not found, skipping {func.__name__}."
-            pytest.fail(msg)
+            pytest.skip(msg)
 
         return skip
 
@@ -386,7 +386,7 @@ def requires_sim(sim_fn, sim_type, file_check=False):
         @functools.wraps(func)
         def skip(*args, **kwargs):
             msg = f"{sim_fn} not found, skipping {func.__name__}."
-            pytest.fail(msg)
+            pytest.skip(msg)
 
         return skip
 

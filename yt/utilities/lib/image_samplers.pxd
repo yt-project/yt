@@ -53,6 +53,7 @@ cdef class ImageSampler:
     cdef void *supp_data
     cdef np.float64_t width[3]
     cdef public object lens_type
+    cdef public str volume_method
     cdef calculate_extent_function *extent_function
     cdef generate_vector_info_function *vector_function
     cdef void setup(self, PartitionedGrid pg)

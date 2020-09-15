@@ -668,10 +668,14 @@ class Camera(ParallelAnalysisInterface):
             self.orienter.unit_vectors[0],
             self.orienter.unit_vectors[1],
             np.array(self.width, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "plane-parallel"}
+        kwargs = {
+            "lens_type": "plane-parallel",
+        }
+        return args, kwargs
 
     def get_sampler(self, args, kwargs):
         if self.use_light:
@@ -1359,10 +1363,14 @@ class PerspectiveCamera(Camera):
             dummy,
             dummy,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "perspective"}
+        kwargs = {
+            "lens_type": "perspective",
+        }
+        return args, kwargs
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
@@ -1499,41 +1507,6 @@ class HEALpixCamera(Camera):
     ):
         mylog.error("I am sorry, HEALpix Camera does not work yet in 3.0")
         raise NotImplementedError
-        ParallelAnalysisInterface.__init__(self)
-        if ds is not None:
-            self.ds = ds
-        self.center = np.array(center, dtype="float64")
-        self.radius = radius
-        self.inner_radius = inner_radius
-        self.nside = nside
-        self.use_kd = use_kd
-        if transfer_function is None:
-            transfer_function = ProjectionTransferFunction()
-        self.transfer_function = transfer_function
-
-        if isinstance(self.transfer_function, ProjectionTransferFunction):
-            self._sampler_object = InterpolatedProjectionSampler
-            self._needs_tf = 0
-        else:
-            self._sampler_object = VolumeRenderSampler
-            self._needs_tf = 1
-
-        if fields is None:
-            fields = ["density"]
-        self.fields = fields
-        self.sub_samples = sub_samples
-        self.log_fields = log_fields
-        dd = ds.all_data()
-        efields = dd._determine_fields(self.fields)
-        if self.log_fields is None:
-            self.log_fields = [self.ds._get_field_info(*f).take_log for f in efields]
-        self.use_light = use_light
-        self.light_dir = None
-        self.light_rgba = None
-        if volume is None:
-            volume = AMRKDTree(self.ds, data_source=self.data_source)
-        self.use_kd = isinstance(volume, AMRKDTree)
-        self.volume = volume
 
     def new_image(self):
         image = np.zeros((12 * self.nside ** 2, 1, 4), dtype="float64", order="C")
@@ -1558,10 +1531,12 @@ class HEALpixCamera(Camera):
             uv,
             uv,
             np.zeros(3, dtype="float64"),
+            "KDTree",
         )
         if self._needs_tf:
             args += (self.transfer_function,)
         args += (self.sub_samples,)
+
         return args, {}
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -1778,6 +1753,7 @@ class FisheyeCamera(Camera):
             uv,
             uv,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
@@ -2099,7 +2075,6 @@ class ProjectionCamera(Camera):
                 def temp_weightfield(a, b):
                     tr = b[f].astype("float64") * b[w]
                     return b.apply_units(tr, a.units)
-                    return tr
 
                 return temp_weightfield
 
@@ -2174,9 +2149,11 @@ class ProjectionCamera(Camera):
             self.orienter.unit_vectors[0],
             self.orienter.unit_vectors[1],
             np.array(self.width, dtype="float64"),
+            "KDTree",
             self.sub_samples,
         )
-        return args, {"lens_type": "plane-parallel"}
+        kwargs = {"lens_type": "plane-parallel"}
+        return args, kwargs
 
     def finalize_image(self, image):
         ds = self.ds
@@ -2416,10 +2393,12 @@ class StereoSphericalCamera(Camera):
             dummy,
             dummy,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "stereo-spherical"}
+        kwargs = {"lens_type": "stereo-spherical"}
+        return args, kwargs
 
     def snapshot(
         self,

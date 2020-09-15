@@ -9,7 +9,7 @@ import numpy as np
 import numpy.core.defchararray as np_char
 
 from yt.config import ytcfg
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.funcs import ensure_list, issue_deprecation_warning, mylog, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk

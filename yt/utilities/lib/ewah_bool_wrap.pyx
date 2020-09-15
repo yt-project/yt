@@ -1,6 +1,6 @@
 # distutils: language = c++
 # distutils: include_dirs = LIB_DIR_EWAH
-# distutils: extra_compile_args=["-std=c++11"]
+# distutils: extra_compile_args = CPP14_FLAG
 """
 Wrapper for EWAH Bool Array: https://github.com/lemire/EWAHBoolArray
 
