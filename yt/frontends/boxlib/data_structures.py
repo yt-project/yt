@@ -1143,7 +1143,7 @@ class CastroDataset(BoxlibDataset):
         periodicity = [False, False, False]
         for i, axis in enumerate("xyz"):
             try:
-                periodicity[i] = self.parameters["-%s" % axis] == "interior"
+                periodicity[i] = self.parameters[f"-{axis}"] == "interior"
             except KeyError:
                 break
 
