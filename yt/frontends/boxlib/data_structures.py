@@ -10,7 +10,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_tuple, mylog, setdefaultattr
+from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -628,7 +628,6 @@ class BoxlibDataset(Dataset):
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
 
-    # THIS SHOULD BE FIXED:
     periodicity = (False, False, False)
 
     def __init__(
@@ -756,7 +755,7 @@ class BoxlibDataset(Dataset):
             elif param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
-                vals = self.periodicity = ensure_tuple([p == "1" for p in vals.split()])
+                vals = self.periodicity = tuple(p == "1" for p in vals.split())
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
             else:
@@ -915,9 +914,9 @@ class BoxlibDataset(Dataset):
         tmp = self.domain_dimensions.tolist()
         tmp.extend((1, 1))
         self.domain_dimensions = np.array(tmp)
-        self.periodicity = list(self.periodicity)
-        self.periodicity[1:] = False
-        self.periodicity = ensure_tuple(self.periodicity)
+        periodicity = list(self.periodicity)
+        periodicity[1:] = False
+        self.periodicity = tuple(periodicity)
 
     def _setup2d(self):
         self.domain_left_edge = np.concatenate([self.domain_left_edge, [0.0]])
@@ -929,9 +928,9 @@ class BoxlibDataset(Dataset):
         tmp = self.domain_dimensions.tolist()
         tmp.append(1)
         self.domain_dimensions = np.array(tmp)
-        tmp = list(self.periodicity)
-        tmp[2] = False
-        self.periodicity = ensure_tuple(tmp)
+        periodicity = list(self.periodicity)
+        periodicity[2] = False
+        self.periodicity = tuple(tmp)
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -1160,14 +1159,14 @@ class CastroDataset(BoxlibDataset):
 
         # set the periodicity based on the runtime parameters
         # https://amrex-astro.github.io/Castro/docs/inputs.html?highlight=periodicity
-        self.periodicity = [False] * 3
+        periodicity = [False, False, False]
         for i, axis in enumerate("xyz"):
             try:
-                self.periodicity[i] = self.parameters["-%s" % axis] == "interior"
+                periodicity[i] = self.parameters["-%s" % axis] == "interior"
             except KeyError:
                 break
 
-        self.periodicity = ensure_tuple(self.periodicity)
+        self.periodicity = tuple(periodicity)
 
         if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
             # we have particles
@@ -1235,7 +1234,7 @@ class MaestroDataset(BoxlibDataset):
             self.parameters["HydroMethod"] = "Maestro"
 
         # set the periodicity based on the integer BC runtime parameters
-        periodicity = [True, True, True]
+        periodicity = [False, False, False]
         for i, ax in enumerate("xyz"):
             try:
                 periodicity[i] = self.parameters[f"bc{ax}_lo"] != -1
@@ -1596,13 +1595,13 @@ class WarpXDataset(BoxlibDataset):
 
         # set the periodicity based on the integer BC runtime parameters
         # https://amrex-codes.github.io/amrex/docs_html/InputsProblemDefinition.html
-        self.periodicity = [False] * 3
+        periodicity = [False, False, False]
         try:
             is_periodic = self.parameters["geometry.is_periodic"].split()
-            self.periodicity[: len(is_periodic)] = [p == "1" for p in is_periodic]
+            periodicity[: len(is_periodic)] = [p == "1" for p in is_periodic]
         except KeyError:
             pass
-        self.periodicity = ensure_tuple(self.periodicity)
+        self.periodicity = tuple(periodicity)
 
         particle_types = glob.glob(self.output_dir + "/*/Header")
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
