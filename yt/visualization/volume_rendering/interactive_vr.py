@@ -312,7 +312,9 @@ class TrackballCamera(IDVCamera):
             self.fov, self.aspect_ratio, self.near_plane, self.far_plane
         )
 
-    def offsetPosition(self, dPos=np.array([0.0, 0.0, 0.0])):
+    def offsetPosition(self, dPos=None):
+        if dPos is None:
+            dPos = np.array([0.0, 0.0, 0.0])
         self.position += dPos
         self.view_matrix = get_lookat_matrix(self.position, self.focus, self.up)
 
@@ -476,7 +478,8 @@ class SceneComponent(traitlets.HasTraits):
         return self._program2
 
     def run_program(self, scene):
-        # Store this info, because we need to render into a framebuffer that is the right size.
+        # Store this info, because we need to render into a framebuffer that is the
+        # right size.
         x0, y0, w, h = GL.glGetIntegerv(GL.GL_VIEWPORT)
         GL.glViewport(0, 0, w, h)
         if not self.visible:
@@ -512,7 +515,8 @@ class SceneComponent(traitlets.HasTraits):
                         p2._set_uniform("cmap_max", cmap_max)
                         p2._set_uniform("cmap_log", float(self.cmap_log))
                         with self.base_quad.vertex_array.bind(p2):
-                            # Now we do our viewport globally, not just within the framebuffer
+                            # Now we do our viewport globally, not just within
+                            # the framebuffer
                             GL.glViewport(x0, y0, w, h)
                             GL.glDrawArrays(GL.GL_TRIANGLES, 0, 6)
 
@@ -719,7 +723,7 @@ class BlockCollection(SceneData):
             dx.append([dds.astype("f4") for _ in range(n)])
             le.append([block.LeftEdge.astype("f4") for _ in range(n)])
             re.append([block.RightEdge.astype("f4") for _ in range(n)])
-        for (g, node, (sl, dims, gi)) in self.data_source.tiles.slice_traverse():
+        for (g, node, (sl, _dims, _gi)) in self.data_source.tiles.slice_traverse():
             block = node.data
             self.blocks_by_grid[g.id - g._id_offset].append((id(block), i))
             self.grids_by_block[id(node.data)] = (g.id - g._id_offset, sl)
@@ -821,7 +825,7 @@ class RGBALinePlot(SceneComponent):
     priority = 20
 
     def draw(self, scene, program):
-        for i, channel in enumerate("rgba"):
+        for i, _channel in enumerate("rgba"):
             program._set_uniform("channel", i)
             GL.glDrawArrays(GL.GL_LINE_STRIP, 0, self.data.n_vertices)
 
@@ -985,7 +989,7 @@ class BlockOutline(SceneAnnotation):
 
     def draw(self, scene, program):
         each = self.data.vertex_array.each
-        for tex_ind, tex, bitmap_tex in self.data.viewpoint_iter(scene.camera):
+        for tex_ind, _tex, _bitmap_tex in self.data.viewpoint_iter(scene.camera):
             GL.glDrawArrays(GL.GL_TRIANGLES, tex_ind * each, each)
 
     def render_gui(self, imgui, renderer):
