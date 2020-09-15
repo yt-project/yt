@@ -3,6 +3,7 @@
 # distutils: extra_link_args = OMP_ARGS
 # distutils: libraries = STD_LIBS
 # distutils: sources = FIXED_INTERP
+# distutils: language = c++
 """
 Image sampler definitions
 
@@ -15,30 +16,16 @@ import numpy as np
 
 cimport cython
 cimport lenses
-cimport numpy as np
 from field_interpolation_tables cimport (
     FieldInterpolationTable,
     FIT_eval_transfer,
     FIT_eval_transfer_with_light,
     FIT_initialize_table,
 )
-from libc.math cimport (
-    M_PI,
-    acos,
-    asin,
-    atan,
-    atan2,
-    cos,
-    exp,
-    fabs,
-    floor,
-    log2,
-    sin,
-    sqrt,
-)
-from libc.stdlib cimport abs, calloc, free, malloc
+from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
 
-from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, imin
+from yt.utilities.lib.fp_utils cimport fclip, i64clip, imin
 
 from .fixed_interpolator cimport (
     eval_gradient,
@@ -48,7 +35,11 @@ from .fixed_interpolator cimport (
     trilinear_interpolate,
     vertex_interp,
 )
-from .grid_traversal cimport walk_volume
+from .grid_traversal cimport sampler_function, walk_volume
+
+from yt.funcs import mylog
+
+from ._octree_raytracing cimport RayInfo, _OctreeRayTracing
 
 
 cdef extern from "platform_dep.h":
@@ -85,9 +76,12 @@ cdef class ImageSampler:
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  *args, **kwargs):
+                  str volume_method,
+                  *args,
+                  **kwargs):
         cdef int i
 
+        self.volume_method = volume_method
         camera_data = kwargs.pop("camera_data", None)
         if camera_data is not None:
             self.camera_data = camera_data
@@ -146,15 +140,25 @@ cdef class ImageSampler:
         for i in range(3):
             self.width[i] = width[i]
 
+    def __call__(self, PartitionedGrid pg, **kwa):
+        if self.volume_method == 'KDTree':
+            return self.cast_through_kdtree(pg, **kwa)
+        elif self.volume_method == 'Octree':
+            return self.cast_through_octree(pg, **kwa)
+        else:
+            raise NotImplementedError(
+                'Volume rendering has not been implemented for method: "%s"' %
+                self.volume_method
+            )
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __call__(self, PartitionedGrid pg, int num_threads = 0):
+    def cast_through_kdtree(self, PartitionedGrid pg, int num_threads = 0):
         # This routine will iterate over all of the vectors and cast each in
         # turn.  Might benefit from a more sophisticated intersection check,
         # like http://courses.csusm.edu/cs697exz/ray_box.htm
         cdef int vi, vj, hit, i, j
-        cdef np.int64_t iter[4]
         cdef VolumeContainer *vc = pg.container
         self.setup(pg)
         cdef np.float64_t *v_pos
@@ -162,6 +166,7 @@ cdef class ImageSampler:
         cdef np.float64_t max_t
         hit = 0
         cdef np.int64_t nx, ny, size
+        cdef np.int64_t iter[4]
         self.extent_function(self, vc, iter)
         iter[0] = i64clip(iter[0]-1, 0, self.nv[0])
         iter[1] = i64clip(iter[1]+1, 0, self.nv[0])
@@ -201,6 +206,109 @@ cdef class ImageSampler:
             free(v_pos)
             free(v_dir)
         return hit
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
+    def cast_through_octree(self, PartitionedGrid pg, _OctreeRayTracing oct, int num_threads = 0):
+        cdef RayInfo[int]* ri
+        self.setup(pg)
+
+        cdef sampler_function* sampler = <sampler_function*> self.sample
+
+        cdef np.int64_t nx, ny, size
+        cdef VolumeContainer *vc
+        cdef ImageAccumulator *idata
+
+        nx = self.nv[0]
+        ny = self.nv[1]
+        size = nx * ny
+
+        cdef int i, j, k, vi, vj, icell
+        cdef int[3] index = [0, 0, 0]
+        cdef int chunksize = 100
+
+        cdef int n_fields = pg.container.n_fields
+
+        cdef np.float64_t vp_dir_len
+
+        mylog.debug('Integrating rays')
+        with nogil, parallel(num_threads=num_threads):
+            idata = <ImageAccumulator *> malloc(sizeof(ImageAccumulator))
+            idata.supp_data = self.supp_data
+
+            ri = new RayInfo[int]()
+
+            vc = <VolumeContainer*> malloc(sizeof(VolumeContainer))
+            vc.n_fields = 1
+            vc.data = <np.float64_t**> malloc(sizeof(np.float64_t*))
+            vc.mask = <np.uint8_t*> malloc(8*sizeof(np.uint8_t))
+            # The actual dimensions are 2x2x2, but the sampler
+            # assumes vertex-centred data for a 1x1x1 lattice (i.e.
+            # 2^3 vertices)
+            vc.dims[0] = 1
+            vc.dims[1] = 1
+            vc.dims[2] = 1
+            for j in prange(size, schedule='static', chunksize=chunksize):
+                vj = j % ny
+                vi = (j - vj) / ny
+
+                vp_dir_len = sqrt(
+                    self.vp_dir[vi, vj, 0]**2 +
+                    self.vp_dir[vi, vj, 1]**2 +
+                    self.vp_dir[vi, vj, 2]**2)
+
+                # Cast ray
+                oct.oct.cast_ray(&self.vp_pos[vi, vj, 0], &self.vp_dir[vi, vj, 0],
+                                 ri.keys, ri.t)
+                # Contains the ordered indices of the cells hit by the ray
+                # and the entry/exit t values
+                if ri.keys.size() == 0:
+                    continue
+
+                for i in range(Nch):
+                    idata.rgba[i] = 0
+                for i in range(8):
+                    vc.mask[i] = 1
+
+                # Iterate over cells
+                for i in range(ri.keys.size()):
+                    icell = ri.keys[i]
+                    for k in range(n_fields):
+                        vc.data[k] = &pg.container.data[k][14*icell]
+
+                    # Fill the volume container with the current boundaries
+                    for k in range(3):
+                        vc.left_edge[k] = pg.container.data[0][14*icell+8+k]
+                        vc.right_edge[k] = pg.container.data[0][14*icell+11+k]
+                        vc.dds[k] = (vc.right_edge[k] - vc.left_edge[k])
+                        vc.idds[k] = 1/vc.dds[k]
+                    # Now call the sampler
+                    sampler(
+                        vc,
+                        &self.vp_pos[vi, vj, 0],
+                        &self.vp_dir[vi, vj, 0],
+                        ri.t[2*i  ]/vp_dir_len,
+                        ri.t[2*i+1]/vp_dir_len,
+                        index,
+                        <void *> idata
+                        )
+                for i in range(Nch):
+                    self.image[vi, vj, i] = idata.rgba[i]
+
+                # Empty keys and t
+                ri.keys.clear()
+                ri.t.clear()
+
+            del ri
+            free(vc.data)
+            free(vc.mask)
+            free(vc)
+            idata.supp_data = NULL
+            free(idata)
+
+        mylog.debug('Done integration')
+
 
     cdef void setup(self, PartitionedGrid pg):
         return
@@ -256,9 +364,12 @@ cdef class InterpolatedProjectionSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  n_samples = 10, **kwargs):
+                  str volume_method,
+                  n_samples = 10,
+                  **kwargs
+        ):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width, **kwargs)
+                               x_vec, y_vec, width, volume_method, **kwargs)
         # Now we handle tf_obj
         self.vra = <VolumeRenderAccumulator *> \
             malloc(sizeof(VolumeRenderAccumulator))
@@ -312,10 +423,13 @@ cdef class VolumeRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  tf_obj, n_samples = 10,
-                  **kwargs):
+                  str volume_method,
+                  tf_obj,
+                  n_samples = 10,
+                  **kwargs
+        ):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width, **kwargs)
+                               x_vec, y_vec, width, volume_method, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj
@@ -400,12 +514,14 @@ cdef class LightSourceRenderSampler(ImageSampler):
                   np.ndarray[np.float64_t, ndim=1] x_vec,
                   np.ndarray[np.float64_t, ndim=1] y_vec,
                   np.ndarray[np.float64_t, ndim=1] width,
-                  tf_obj, n_samples = 10,
+                  str volume_method,
+                  tf_obj,
+                  n_samples = 10,
                   light_dir=[1.,1.,1.],
                   light_rgba=[1.,1.,1.,1.],
                   **kwargs):
         ImageSampler.__init__(self, vp_pos, vp_dir, center, bounds, image,
-                               x_vec, y_vec, width, **kwargs)
+                               x_vec, y_vec, width, volume_method, **kwargs)
         cdef int i
         cdef np.ndarray[np.float64_t, ndim=1] temp
         # Now we handle tf_obj

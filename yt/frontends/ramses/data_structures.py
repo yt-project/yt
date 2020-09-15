@@ -276,14 +276,19 @@ class RAMSESDomainSubset(OctreeSubset):
             selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
         )
 
-        (
-            levels,
-            cell_inds,
-            file_inds,
-            domains,
-        ) = self.oct_handler.file_index_octs_with_ghost_zones(
-            selector, self.domain_id, cell_count
-        )
+        gz_cache = getattr(self, "_ghost_zone_cache", None)
+        if gz_cache:
+            levels, cell_inds, file_inds, domains = gz_cache
+        else:
+            gz_cache = (
+                levels,
+                cell_inds,
+                file_inds,
+                domains,
+            ) = self.oct_handler.file_index_octs_with_ghost_zones(
+                selector, self.domain_id, cell_count
+            )
+            self._ghost_zone_cache = gz_cache
 
         # Initializing data container
         for field in fields:

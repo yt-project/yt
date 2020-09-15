@@ -10,7 +10,7 @@ from .render_source import (
     MeshSource,
     OpaqueSource,
     PointSource,
-    VolumeSource,
+    create_volume_source,
 )
 from .scene import Scene
 from .transfer_function_helper import TransferFunctionHelper
