@@ -31,10 +31,34 @@ before_install:
         export PATH=/usr/lib/ccache:$PATH
         ;;
       windows)
-        choco install miniconda3 --params="'/AddToPath:1' '/RegisterPython:[0|1]'"
-        conda install --yes -c conda-forge numpy scipy nose pytest setuptools ipython git unyt
-    Cython sympy fastcache h5py matplotlib=3.1.3 mock pandas cartopy conda-build pooch pyyaml
-    nose-timer pykdtree
+        # From https://github.com/trichter/conda4travis/blob/master/conda4travis.sh
+        export MINICONDA=/c/miniconda
+        MINICONDA_WIN=$(cygpath --windows $MINICONDA)
+        choco install openssl.light
+        choco install miniconda3 --params="'/AddToPath:0 /D:$MINICONDA_WIN'"
+        # The following lines remove bin directories from chocolatey.
+        # Otherwise f2py might find the pre-installed fortran compiler
+        # instead of the conda fortran compiler.
+        # See dicussion in https://github.com/trichter/toeplitz/pull/2
+        echo original PATH $PATH
+        PATH=$(echo "$PATH" | sed -e 's|:/c/ProgramData/chocolatey/bin||')
+        PATH=$(echo "$PATH" | sed -e 's|:/c/ProgramData/chocolatey/lib/mingw/tools/install/mingw64/bin||')
+        echo manipulated PATH $PATH
+        # the following line is necessary since conda 4.7
+        # see travis fail https://travis-ci.org/trichter/conda4travis/jobs/592665691
+        # see fix https://github.com/conda/conda/issues/8836#issuecomment-506388019
+        source $MINICONDA/Scripts/activate
+
+        source $MINICONDA/etc/profile.d/conda.sh
+        hash -r
+        conda config --set always_yes yes
+        if [[ "$TRAVIS_OS_NAME" != "windows" ]]; then
+          conda update -q conda
+        fi
+        conda info -a
+
+        # Install dependencies
+        conda install --yes -c conda-forge numpy scipy nose pytest setuptools ipython git unyt Cython sympy fastcache h5py matplotlib=3.1.3 mock pandas cartopy conda-build pooch pyyaml nose-timer pykdtree
         ;;
       osx)
         sudo mkdir -p /usr/local/man
