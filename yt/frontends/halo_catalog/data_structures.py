@@ -5,7 +5,9 @@ from functools import partial
 
 import numpy as np
 
-from yt.data_objects.data_containers import YTSelectionContainer
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
+)
 from yt.data_objects.static_output import (
     ParticleDataset,
     ParticleFile,

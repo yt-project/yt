@@ -1,6 +1,8 @@
 import numpy as np
 
-from yt.data_objects.data_containers import YTSelectionContainer3D
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer3D,
+)
 from yt.data_objects.static_output import Dataset
 from yt.utilities.lib import bounding_volume_hierarchy
 from yt.utilities.lib.image_samplers import (
@@ -40,6 +42,7 @@ def new_mesh_sampler(camera, render_source, engine):
         params["x_vec"],
         params["y_vec"],
         params["width"],
+        render_source.volume_method,
     )
     kwargs = {"lens_type": params["lens_type"]}
     if engine == "embree":
@@ -63,10 +66,13 @@ def new_volume_render_sampler(camera, render_source):
         params["x_vec"],
         params["y_vec"],
         params["width"],
+        render_source.volume_method,
         params["transfer_function"],
         params["num_samples"],
     )
-    kwargs = {"lens_type": params["lens_type"]}
+    kwargs = {
+        "lens_type": params["lens_type"],
+    }
     if "camera_data" in params:
         kwargs["camera_data"] = params["camera_data"]
     if render_source.zbuffer is not None:
@@ -77,7 +83,6 @@ def new_volume_render_sampler(camera, render_source):
         )
     else:
         kwargs["zbuffer"] = np.ones(params["image"].shape[:2], "float64")
-
     sampler = VolumeRenderSampler(*args, **kwargs)
     return sampler
 
@@ -95,6 +100,7 @@ def new_interpolated_projection_sampler(camera, render_source):
         params["x_vec"],
         params["y_vec"],
         params["width"],
+        render_source.volume_method,
         params["num_samples"],
     )
     kwargs = {"lens_type": params["lens_type"]}
@@ -119,9 +125,12 @@ def new_projection_sampler(camera, render_source):
         params["x_vec"],
         params["y_vec"],
         params["width"],
+        render_source.volume_method,
         params["num_samples"],
     )
-    kwargs = {"lens_type": params["lens_type"]}
+    kwargs = {
+        "lens_type": params["lens_type"],
+    }
     if render_source.zbuffer is not None:
         kwargs["zbuffer"] = render_source.zbuffer.z
     else:

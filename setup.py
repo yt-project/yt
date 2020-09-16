@@ -1,6 +1,7 @@
 import glob
 import os
 import sys
+from distutils.ccompiler import get_default_compiler
 from distutils.version import LooseVersion
 
 import pkg_resources
@@ -45,6 +46,11 @@ if os.name == "nt":
 else:
     std_libs = ["m"]
 
+if get_default_compiler() == "msvc":
+    CPP14_FLAG = ["/std:c++14"]
+else:
+    CPP14_FLAG = ["--std=c++14"]
+
 cythonize_aliases = {
     "LIB_DIR": "yt/utilities/lib/",
     "LIB_DIR_EWAH": ["yt/utilities/lib/", "yt/utilities/lib/ewahboolarray/"],
@@ -56,8 +62,9 @@ cythonize_aliases = {
     ],
     "STD_LIBS": std_libs,
     "OMP_ARGS": omp_args,
-    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.c",
+    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
     "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
+    "CPP14_FLAG": CPP14_FLAG,
 }
 
 lib_exts = [

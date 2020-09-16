@@ -9,7 +9,7 @@ from yt.utilities.lib.pixelization_routines import (
     off_axis_projection_SPH,
 )
 
-from .render_source import VolumeSource
+from .render_source import KDTreeVolumeSource
 from .scene import Scene
 from .transfer_functions import ProjectionTransferFunction
 from .utils import data_source_or_all
@@ -107,7 +107,7 @@ def off_axis_projection(
     >>> write_image(np.log10(image), "offaxis.png")
 
     """
-    if method not in ["integrate", "sum"]:
+    if method not in ("integrate", "sum"):
         raise NotImplementedError(
             "Only 'integrate' or 'sum' methods are valid for off-axis-projections"
         )
@@ -304,7 +304,8 @@ def off_axis_projection(
 
     funits = data_source.ds._get_field_info(item).units
 
-    vol = VolumeSource(data_source, item)
+    vol = KDTreeVolumeSource(data_source, item)
+    vol.num_threads = num_threads
     if weight is None:
         vol.set_field(item)
     else:

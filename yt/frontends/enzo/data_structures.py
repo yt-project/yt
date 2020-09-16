@@ -8,7 +8,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import NullFunc
 from yt.frontends.enzo.misc import cosmology_get_units
