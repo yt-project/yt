@@ -898,6 +898,11 @@ class PhasePlot(ImagePlotContainer):
     figure_size : int
         Size in inches of the image.
         Default: 8 (8x8)
+    shading : str
+        This argument is directly passed down to matplotlib.axes.Axes.pcolormesh
+        see
+        https://matplotlib.org/3.3.1/gallery/images_contours_and_fields/pcolormesh_grids.html#sphx-glr-gallery-images-contours-and-fields-pcolormesh-grids-py  # noqa
+        Default: 'nearest'
 
     Examples
     --------
@@ -1200,6 +1205,11 @@ class PhasePlot(ImagePlotContainer):
              The fontsize to use, in points.
         figure_size : float
              The figure size to use, in inches.
+        shading : str
+            This argument is directly passed down to matplotlib.axes.Axes.pcolormesh
+            see
+            https://matplotlib.org/3.3.1/gallery/images_contours_and_fields/pcolormesh_grids.html#sphx-glr-gallery-images-contours-and-fields-pcolormesh-grids-py  # noqa
+            Default: 'nearest'
 
         Examples
         --------
