@@ -6,7 +6,7 @@ from glob import glob
 import numpy as np
 
 from yt.arraytypes import blankRecordArray
-from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
@@ -64,7 +64,7 @@ class RAMSESDomainFile:
 
         # Autodetect particle files
         particle_handlers = [
-            PH(ds, self) for PH in get_particle_handlers() if PH.any_exist(ds)
+            PH(self) for PH in get_particle_handlers() if PH.any_exist(ds)
         ]
         self.particle_handlers = particle_handlers
         for ph in particle_handlers:
@@ -276,14 +276,19 @@ class RAMSESDomainSubset(OctreeSubset):
             selector.count_octs(self.oct_handler, self.domain_id) * self.nz ** ndim
         )
 
-        (
-            levels,
-            cell_inds,
-            file_inds,
-            domains,
-        ) = self.oct_handler.file_index_octs_with_ghost_zones(
-            selector, self.domain_id, cell_count
-        )
+        gz_cache = getattr(self, "_ghost_zone_cache", None)
+        if gz_cache:
+            levels, cell_inds, file_inds, domains = gz_cache
+        else:
+            gz_cache = (
+                levels,
+                cell_inds,
+                file_inds,
+                domains,
+            ) = self.oct_handler.file_index_octs_with_ghost_zones(
+                selector, self.domain_id, cell_count
+            )
+            self._ghost_zone_cache = gz_cache
 
         # Initializing data container
         for field in fields:

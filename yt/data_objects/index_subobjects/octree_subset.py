@@ -5,8 +5,10 @@ import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
-from yt.data_objects.data_containers import YTSelectionContainer
-from yt.funcs import mylog
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
+)
+from yt.funcs import issue_deprecation_warning, mylog
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.units.dimensions import length
 from yt.units.yt_array import YTArray
@@ -521,6 +523,35 @@ class OctreeSubset(YTSelectionContainer):
     def select_particles(self, selector, x, y, z):
         mask = selector.select_points(x, y, z, 0.0)
         return mask
+
+    def get_vertex_centered_data(self, fields):
+        _old_api = isinstance(fields, (str, tuple))
+        if _old_api:
+            message = (
+                "get_vertex_centered_data() requires list of fields, rather than "
+                "a single field as an argument."
+            )
+            issue_deprecation_warning(message)
+            fields = [fields]
+
+        # Make sure the field list has only unique entries
+        fields = list(set(fields))
+        new_fields = {}
+        cg = self.retrieve_ghost_zones(1, fields)
+        for field in fields:
+            new_fields[field] = cg[field][1:, 1:, 1:].copy()
+            np.add(new_fields[field], cg[field][:-1, 1:, 1:], new_fields[field])
+            np.add(new_fields[field], cg[field][1:, :-1, 1:], new_fields[field])
+            np.add(new_fields[field], cg[field][1:, 1:, :-1], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1, 1:, :-1], new_fields[field])
+            np.add(new_fields[field], cg[field][1:, :-1, :-1], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1, :-1, 1:], new_fields[field])
+            np.add(new_fields[field], cg[field][:-1, :-1, :-1], new_fields[field])
+            np.multiply(new_fields[field], 0.125, new_fields[field])
+
+        if _old_api:
+            return new_fields[fields[0]]
+        return new_fields
 
 
 class OctreeSubsetBlockSlicePosition:

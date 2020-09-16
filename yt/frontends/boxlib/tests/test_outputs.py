@@ -196,6 +196,11 @@ beam = "GaussianBeam/plt03008"
 def test_beam():
     ds = data_dir_load(beam)
     assert_equal(str(ds), "plt03008")
+    for param in ("number of boxes", "maximum zones"):
+        # PR 2807
+        # these parameters are only populated if the config file attached to this
+        # dataset is read correctly
+        assert param in ds.parameters
     for test in small_patch_amr(ds, _warpx_fields, input_center="c", input_weight="Ex"):
         test_beam.__name__ = test.description
         yield test
@@ -255,14 +260,13 @@ def test_warpx_particle_io():
 
 _raw_fields = [("raw", "Bx"), ("raw", "Ey"), ("raw", "jz")]
 
-raw_fields = "Laser/plt00015"
+laser = "Laser/plt00015"
 
 
-@requires_ds(raw_fields)
+@requires_ds(laser)
 def test_raw_fields():
-    ds_fn = raw_fields
     for field in _raw_fields:
-        yield GridValuesTest(ds_fn, field)
+        yield GridValuesTest(laser, field)
 
 
 @requires_file(rt)
@@ -275,14 +279,29 @@ def test_NyxDataset():
     assert isinstance(data_dir_load(LyA), NyxDataset)
 
 
+@requires_file("nyx_small/nyx_small_00000")
+def test_NyxDataset_2():
+    assert isinstance(data_dir_load("nyx_small/nyx_small_00000"), NyxDataset)
+
+
 @requires_file(RT_particles)
 def test_CastroDataset():
     assert isinstance(data_dir_load(RT_particles), CastroDataset)
 
 
+@requires_file("castro_sod_x_plt00036")
+def test_CastroDataset_2():
+    assert isinstance(data_dir_load("castro_sod_x_plt00036"), CastroDataset)
+
+
 @requires_file(LyA)
 def test_WarpXDataset():
     assert isinstance(data_dir_load(plasma), WarpXDataset)
+
+
+@requires_ds(laser)
+def test_WarpXDataset_2():
+    assert isinstance(data_dir_load(laser), WarpXDataset)
 
 
 @requires_file(rt)

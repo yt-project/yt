@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
 from yt.units.yt_array import YTArray, uconcatenate, uvstack
 from yt.utilities.lib.pixelization_routines import (
@@ -282,7 +282,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         self, data_source, field, bounds, size, antialias, dim, periodic
     ):
         from yt.data_objects.construction_data_containers import YTParticleProj
-        from yt.data_objects.selection_data_containers import YTSlice
+        from yt.data_objects.selection_objects.slices import YTSlice
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
 

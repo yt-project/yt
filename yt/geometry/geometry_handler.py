@@ -94,7 +94,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
             self._data_mode = "r"
 
         self.__data_filename = fn
-        self._data_file = h5py.File(fn, self._data_mode)
+        self._data_file = h5py.File(fn, mode=self._data_mode)
 
     def __create_data_file(self, fn):
         # Note that this used to be parallel_root_only; it no longer is,
@@ -143,7 +143,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
             return
         self._data_file.close()
         del self._data_file
-        self._data_file = h5py.File(self.__data_filename, self._data_mode)
+        self._data_file = h5py.File(self.__data_filename, mode=self._data_mode)
 
     def get_data(self, node, name):
         """

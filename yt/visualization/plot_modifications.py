@@ -8,7 +8,7 @@ import numpy as np
 
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.level_sets.clump_handling import Clump
-from yt.data_objects.selection_data_containers import YTCutRegion
+from yt.data_objects.selection_objects.cut_region import YTCutRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTClumpContainer
 from yt.funcs import iterable, mylog, validate_width_tuple
