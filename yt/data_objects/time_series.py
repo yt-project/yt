@@ -101,7 +101,7 @@ class DatasetSeries:
         A list of filenames, for instance ["DD0001/DD0001", "DD0002/DD0002"],
         or a glob pattern (i.e. containing wildcards '[]?!*') such as "DD*/DD*.index".
         In the latter case, results are sorted automatically.
-        Filenames and patterns can be of type str, os.Patlike or bytes.
+        Filenames and patterns can be of type str, os.Pathlike or bytes.
     parallel : True, False or int
         This parameter governs the behavior when .piter() is called on the
         resultant DatasetSeries object.  If this is set to False, the time
