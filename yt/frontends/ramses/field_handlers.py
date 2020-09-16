@@ -59,9 +59,11 @@ class HandlerMixin:
         if os.path.exists(full_path):
             self.fname = full_path
         else:
-            msg = f"Could not find {self._file_type} file (type: {self.ftype})."
-            msg += f" Tried {full_path}"
-            raise FileNotFoundError(msg)
+
+            raise FileNotFoundError(
+                f"Could not find {self._file_type} file (type: {self.ftype}). "
+                f"Tried {full_path}"
+            )
 
         if self.file_descriptor is not None:
             if ds.num_groups > 0:
