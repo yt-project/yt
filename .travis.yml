@@ -31,6 +31,10 @@ before_install:
         export PATH=/usr/lib/ccache:$PATH
         ;;
       windows)
+        choco install miniconda3 --params="'/AddToPath:1' '/RegisterPython:[0|1]'"
+        conda install --yes -c conda-forge numpy scipy nose pytest setuptools ipython git unyt
+    Cython sympy fastcache h5py matplotlib=3.1.3 mock pandas cartopy conda-build pooch pyyaml
+    nose-timer pykdtree
         ;;
       osx)
         sudo mkdir -p /usr/local/man
