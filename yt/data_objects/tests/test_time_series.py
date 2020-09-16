@@ -1,4 +1,3 @@
-import os
 import tempfile
 from pathlib import Path
 
@@ -11,20 +10,22 @@ def test_pattern_expansion():
     file_list = [f"fake_data_file_{str(i).zfill(4)}" for i in range(10)]
 
     with tempfile.TemporaryDirectory() as tmpdir:
+        tmp_path = Path(tmpdir)
         for file in file_list:
-            (Path(tmpdir) / file).touch()
+            (tmp_path / file).touch()
 
-        pattern = os.path.join(tmpdir, "fake_data_file_*")
+        pattern = tmp_path / "fake_data_file_*"
+        expected = [str(tmp_path / file) for file in file_list]
         found = DatasetSeries._get_filenames_from_glob_pattern(pattern)
-        assert found == [os.path.join(tmpdir, file) for file in file_list]
+        assert found == expected
 
         found2 = DatasetSeries._get_filenames_from_glob_pattern(Path(pattern))
-        assert found2 == found
+        assert found2 == expected
 
 
 def test_no_match_pattern():
     with tempfile.TemporaryDirectory() as tmpdir:
-        pattern = os.path.join(tmpdir, "fake_data_file_*")
+        pattern = Path(tmpdir).joinpath("fake_data_file_*")
         assert_raises(
             FileNotFoundError, DatasetSeries._get_filenames_from_glob_pattern, pattern
         )
@@ -35,10 +36,10 @@ def test_init_fake_dataseries():
     file_list = [f"fake_data_file_{str(i).zfill(4)}" for i in range(10)]
     with tempfile.TemporaryDirectory() as tmpdir:
         pfile_list = [Path(tmpdir) / file for file in file_list]
-        sfile_list = [os.path.join(tmpdir, f) for f in file_list]
+        sfile_list = [str(file) for file in pfile_list]
         for file in pfile_list:
             file.touch()
-        pattern = os.path.join(tmpdir, "fake_data_file_*")
+        pattern = Path(tmpdir) / "fake_data_file_*"
 
         # init from str pattern
         ts = DatasetSeries(pattern)
