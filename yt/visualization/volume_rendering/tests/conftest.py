@@ -4,7 +4,7 @@ from yt.testing import fake_hexahedral_ds, fake_vr_orientation_test_ds
 from yt.visualization.volume_rendering.api import (
     ColorTransferFunction,
     Scene,
-    VolumeSource,
+    create_volume_source,
 )
 
 hex8_fields = [("connect1", "diffused"), ("connect2", "convected")]
@@ -62,7 +62,7 @@ def ds_vr():
 @pytest.fixture(scope="class")
 def sc(ds_vr):
     sc = Scene()
-    vol = VolumeSource(ds_vr, field=("gas", "density"))
+    vol = create_volume_source(ds_vr, field=("gas", "density"))
     sc.add_source(vol)
     tf = vol.transfer_function
     tf = ColorTransferFunction((0.1, 1.0))
