@@ -60,7 +60,8 @@ class HandlerMixin:
             self.fname = full_path
         else:
             raise FileNotFoundError(
-                f"Could not find {self._file_type} file (type: {self.ftype}). Tried {full_path}"
+                f"Could not find {self._file_type} file (type: {self.ftype}). "
+                f"Tried {full_path}"
             )
 
         if self.file_descriptor is not None:
