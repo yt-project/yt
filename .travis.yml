@@ -23,23 +23,37 @@ env:
 
 before_install:
   - |
-    if [[ $TRAVIS_OS_NAME != 'osx' ]]; then
-      $PIP install --upgrade virtualenv
-      python -m virtualenv venv
-      source venv/bin/activate
-      export PATH=/usr/lib/ccache:$PATH
-    else
-      sudo mkdir -p /usr/local/man
-      sudo chown -R "${USER}:admin" /usr/local/man
-      HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache
-      HOMEBREW_NO_AUTO_UPDATE=1 brew uninstall gdal postgis numpy  # WHY?
-      export PATH=/usr/local/opt/ccache/libexec:$PATH
-    fi
+    case $TRAVIS_OS_NAME in
+      linux)
+        $PIP install --upgrade virtualenv
+        python -m virtualenv venv
+        source venv/bin/activate
+        export PATH=/usr/lib/ccache:$PATH
+        ;;
+      windows)
+        ;;
+      osx)
+        sudo mkdir -p /usr/local/man
+        sudo chown -R "${USER}:admin" /usr/local/man
+        HOMEBREW_NO_AUTO_UPDATE=1 brew install hdf5 proj geos open-mpi netcdf ccache
+        HOMEBREW_NO_AUTO_UPDATE=1 brew uninstall gdal postgis numpy  # WHY?
+        export PATH=/usr/local/opt/ccache/libexec:$PATH
+        ;;
+    esac
     mkdir -p $HOME/.config/yt
     echo "[yt]" > $HOME/.config/yt/ytrc
     echo "suppressStreamLogging = True" >> $HOME/.config/yt/ytrc
     cat $HOME/.config/yt/ytrc
     cp tests/matplotlibrc .
+
+before_cache:
+- |-
+    case $TRAVIS_OS_NAME in
+      windows)
+        # https://unix.stackexchange.com/a/137322/107554
+        $msys2 pacman --sync --clean --noconfirm
+        ;;
+    esac
 
 install:
   - |
@@ -106,6 +120,15 @@ jobs:
         - directories:
           - $HOME/Library/Caches/pip
       script: nosetests -c nose_unit.cfg
+
+    - stage: tests
+      name: "Windows: Unit Tests"
+      os: windows
+      script: nosetests -c nose_unit.cfg
+      cache:
+          directories:
+          - $HOME/AppData/Local/Temp/chocolatey
+
 
 after_success:
   - codecov
