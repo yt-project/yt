@@ -144,7 +144,7 @@ jobs:
       name: "Windows: Unit Tests"
       os: windows
       language: shell
-      script: nosetests -c nose_unit.cfg
+      script: python -m nose -c nose_unit.cfg
       cache:
           directories:
           - $HOME/AppData/Local/Temp/chocolatey
