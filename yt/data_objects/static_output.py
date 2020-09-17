@@ -1115,7 +1115,7 @@ class Dataset(abc.ABC):
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
-        from yt.units import dimensions as dimensions
+        from yt.units import dimensions
 
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
@@ -1267,6 +1267,31 @@ class Dataset(abc.ABC):
         """
         Convert units_override values to valid input types for unyt.
         Throw meaningful errors early if units_override is ill-formed.
+
+        Parameters
+        ----------
+        units_override : dict
+
+            keys should be strings with format  "<dim>_unit" (e.g. "mass_unit"), and
+            need to match a key in cls.default_units
+
+            values should be mappable to unyt.unyt_quantity objects, and can be any
+            combinations of:
+                - unyt.unyt_quantity
+                - 2-long sequence (tuples, list, ...) with types (number, str)
+                  e.g. (10, "km"), (0.1, "s")
+                - number (in which case the associated is taken from cls.default_unit)
+
+
+        Raises
+        ------
+        TypeError
+            If unit_override has invalid types
+
+        ValueError
+            If provided units do not match the intended dimensionality,
+            or in case of a zero scaling factor.
+
         """
         uo = {}
         if units_override is None:
@@ -1279,31 +1304,36 @@ class Dataset(abc.ABC):
                 val = units_override[key]
             except KeyError:
                 continue
+
+            # Now attempt to instanciate a unyt.unyt_quantity from val ...
             try:
+                # ... directly (valid if val is a number, or a unyt_quantity)
                 uo[key] = YTQuantity(val)
                 continue
             except RuntimeError:
+                # note that unyt.unyt_quantity throws RuntimeError in lieu of TypeError
                 pass
             try:
+                # ... with tuple unpacking (valid if val is a sequence)
                 uo[key] = YTQuantity(*val)
                 continue
             except (RuntimeError, TypeError, UnitParseError):
                 pass
             raise TypeError(
-                "units_override values should be 2-tuples (float, str), "
+                "units_override values should be 2-sequence (float, str), "
                 "YTQuantity objects or real numbers; "
-                "received {} with type {}.".format(val, type(val))
+                f"received {val} with type {type(val)}."
             )
         for key, q in uo.items():
             if q.units.is_dimensionless:
                 uo[key] = YTQuantity(q, cls.default_units[key])
             try:
                 uo[key].to(cls.default_units[key])
-            except UnitConversionError:
+            except UnitConversionError as err:
                 raise ValueError(
                     "Inconsistent dimensionality in units_override. "
-                    "Received {} = {}".format(key, uo[key])
-                )
+                    f"Received {key} = {uo[key]}"
+                ) from err
             if 1 / uo[key].value == np.inf:
                 raise ValueError(
                     f"Invalid 0 normalisation factor in units_override for {key}."
