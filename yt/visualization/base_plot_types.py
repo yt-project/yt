@@ -225,7 +225,10 @@ class ImagePlotMPL(PlotMPL):
             if cblinthresh is None:
                 cblinthresh = float((np.nanmax(data) - np.nanmin(data)) / 10.0)
             norm = matplotlib.colors.SymLogNorm(
-                cblinthresh, vmin=float(np.nanmin(data)), vmax=float(np.nanmax(data))
+                cblinthresh,
+                vmin=float(np.nanmin(data)),
+                vmax=float(np.nanmax(data)),
+                base=10,
             )
         extent = [float(e) for e in extent]
         # tuple colormaps are from palettable (or brewer2mpl)
