@@ -491,7 +491,7 @@ class AMRVACDataset(Dataset):
             raise ValueError(
                 f"Combination {suo} passed to units_override "
                 "is not consistent with AMRVAC.\n"
-                "Allowed combinations are {cls.allowed_unit_combinations}"
+                f"Allowed combinations are {cls.allowed_unit_combinations}"
             )
 
         # syntax for mixing super with classmethod is weird...
