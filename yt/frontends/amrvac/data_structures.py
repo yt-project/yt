@@ -475,7 +475,7 @@ class AMRVACDataset(Dataset):
         if len(units_override) > 3:
             raise ValueError(
                 "More than 3 degrees of freedom were specified "
-                "in units_override ({} given)".format(len(units_override))
+                f"in units_override ({len(units_override)} given)"
             )
         # temperature and velocity cannot both be specified
         if "temperature_unit" in units_override and "velocity_unit" in units_override:
