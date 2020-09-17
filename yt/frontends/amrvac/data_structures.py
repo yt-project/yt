@@ -261,7 +261,7 @@ class AMRVACDataset(Dataset):
         Returns
         -------
         geometry_yt : str
-            Lower case geometry tag (cartesian", "polar", "cylindrical" or "spherical")
+            Lower case geometry tag ("cartesian", "polar", "cylindrical" or "spherical")
 
         Examples
         --------
