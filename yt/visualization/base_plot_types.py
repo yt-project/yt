@@ -224,12 +224,18 @@ class ImagePlotMPL(PlotMPL):
         elif cbnorm == "symlog":
             if cblinthresh is None:
                 cblinthresh = float((np.nanmax(data) - np.nanmin(data)) / 10.0)
-            norm = matplotlib.colors.SymLogNorm(
-                cblinthresh,
+
+            symlog_kwargs = dict(
+                linthresh=cblinthresh,
                 vmin=float(np.nanmin(data)),
                 vmax=float(np.nanmax(data)),
-                base=10,
             )
+            MPL_VERSION = LooseVersion(matplotlib.__version__)
+            if MPL_VERSION >= "3.2.0":
+                symlog_kwargs.update(dict(base=10))
+
+            norm = matplotlib.colors.SymLogNorm(**symlog_kwargs)
+
         extent = [float(e) for e in extent]
         # tuple colormaps are from palettable (or brewer2mpl)
         if isinstance(cmap, tuple):
