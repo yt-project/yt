@@ -147,7 +147,7 @@ jobs:
       name: "Windows: Unit Tests"
       os: windows
       language: shell
-      script: python -m nose -c nose_unit.cfg
+      script: python -m nose --with-timer --timer-top-n=20 --nologcapture --with-xunit -sv --traverse-namespace yt
       cache:
           directories:
           - $HOME/AppData/Local/Temp/chocolatey
