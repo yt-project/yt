@@ -374,9 +374,9 @@ def write_projection(
         the label associated with your colorbar
     title : string
         the label at the top of the figure
-    vmin : array-like
+    vmin : float or None
         the lower limit of the zaxis (part of matplotlib api)
-    vmax : array-like
+    vmax : float or None
         the lower limit of the zaxis (part of matplotlib api)
     take_log : boolean
         plot the log of the data array (and take the log of the limits if set)?
