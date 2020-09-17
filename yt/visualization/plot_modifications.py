@@ -15,7 +15,6 @@ from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
-from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity, uhstack
 from yt.utilities.exceptions import YTDataTypeUnsupported
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
@@ -2499,8 +2498,7 @@ class TimestampCallback(PlotCallback):
                 # this should only happen if self.time_unit is "code_time"
                 # in which case we drop the "_" in the time stamp
                 time_unit = str(self.time_unit).replace("_", " ")
-            self.text += self.time_format.format(time=float(t),
-                                                 units=time_unit)
+            self.text += self.time_format.format(time=float(t), units=time_unit)
 
         # If time and redshift both shown, do one on top of the other
         if self.time and self.redshift:
