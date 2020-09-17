@@ -148,6 +148,8 @@ jobs:
       cache:
           directories:
           - $HOME/AppData/Local/Temp/chocolatey
+          - $HOME/AppData/Local/conda/conda/pkgs
+          - $HOME/.conda/pkgs
 
 
 after_success:
