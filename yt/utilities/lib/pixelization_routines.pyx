@@ -176,6 +176,7 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
     with nogil:
         for p in range(px.shape[0]):
             xiter[1] = yiter[1] = 999
+            xiterv[1] = yiterv[1] = 0.0
             oxsp = px[p]
             oysp = py[p]
             dxsp = pdx[p]
@@ -360,6 +361,7 @@ def pixelize_cartesian_nodal(np.float64_t[:,:] buff,
     with nogil:
         for p in range(px.shape[0]):
             xiter[1] = yiter[1] = 999
+            xiterv[1] = yiterv[1] = 0.0
             oxsp = px[p]
             oysp = py[p]
             ozsp = pz[p]
@@ -996,7 +998,7 @@ def pixelize_sph_kernel_projection(
     cdef np.int64_t xi, yi, x0, x1, y0, y1, xxi, yyi
     cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, px, py
-    cdef np.float64_t period_x, period_y
+    cdef np.float64_t period_x = 0, period_y = 0
     cdef int index, i, j, ii, jj
     cdef np.float64_t[:] _weight_field
     cdef int * xiter
@@ -1077,6 +1079,14 @@ def pixelize_sph_kernel_projection(
                     yiter[1] = -1
                     yiterv[1] = -period_y
 
+            # we set the smoothing length squared with lower limit of the pixel
+            h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
+            ih_j2 = 1.0/h_j2
+
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**2 * quantity_to_smooth[j]
+            if weight_field is not None:
+                prefactor_j *= _weight_field[j]
+
             for ii in range(2):
                 if xiter[ii] == 999: continue
                 px = posx[j] + xiterv[ii]
@@ -1096,16 +1106,6 @@ def pixelize_sph_kernel_projection(
                     y1 = <np.int64_t> ((py + hsml[j] - y_min)*idy)
                     y0 = iclip(y0-1, 0, ysize)
                     y1 = iclip(y1+1, 0, ysize)
-        
-                    # we set the smoothing length squared with lower limit of the pixel
-                    h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
-                    ih_j2 = 1.0/h_j2
-        
-                    prefactor_j = pmass[j] / pdens[j] / hsml[j]**2
-                    if weight_field is None:
-                        prefactor_j *= quantity_to_smooth[j]
-                    else:
-                        prefactor_j *= quantity_to_smooth[j] * _weight_field[j]
         
                     # found pixels we deposit on, loop through those pixels
                     for xi in range(x0, x1):
@@ -1327,7 +1327,7 @@ def pixelize_sph_kernel_slice(
     cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j, px, py
     cdef int index, i, j, ii, jj
-    cdef np.float64_t period_x, period_y
+    cdef np.float64_t period_x = 0, period_y = 0
     cdef int * xiter
     cdef int * yiter
     cdef np.float64_t * xiterv
@@ -1385,6 +1385,13 @@ def pixelize_sph_kernel_slice(
                     yiter[1] = -1
                     yiterv[1] = -period_y
 
+            h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
+            h_j = math.sqrt(h_j2)
+            ih_j = 1.0/h_j
+
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
+            prefactor_j *= quantity_to_smooth[j]
+
             for ii in range(2):
                 if xiter[ii] == 999: continue
                 px = posx[j] + xiterv[ii]
@@ -1403,13 +1410,6 @@ def pixelize_sph_kernel_slice(
                     y1 = <np.int64_t> ( (py + hsml[j] - y_min) * idy)
                     y0 = iclip(y0-1, 0, ysize)
                     y1 = iclip(y1+1, 0, ysize)
-        
-                    h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
-                    h_j = math.sqrt(h_j2)
-                    ih_j = 1.0/h_j
-        
-                    prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
-                    prefactor_j *= quantity_to_smooth[j]
         
                     # Now we know which pixels to deposit onto for this particle,
                     # so loop over them and add this particle's contribution
@@ -1465,7 +1465,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff, px, py, pz
     cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
     cdef int index, i, j, k, ii, jj, kk
-    cdef np.float64_t period_x, period_y, period_z
+    cdef np.float64_t period_x = 0, period_y = 0, period_z = 0
 
     cdef int xiter[2]
     cdef int yiter[2]
@@ -1509,6 +1509,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                     PyErr_CheckSignals()
 
             xiter[1] = yiter[1] = ziter[1] = 999
+            xiterv[1] = yiterv[1] = ziterv[1] = 0.0
 
             if check_period == 1:
                 if posx[j] - hsml[j] < x_min:
@@ -1529,6 +1530,13 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                 elif posz[j] + hsml[j] > z_max:
                     ziter[1] = -1
                     ziterv[1] = -period_z
+
+            h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
+            h_j = math.cbrt(h_j3)
+            h_j2 = h_j*h_j
+            ih_j = 1/h_j
+
+            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3 * quantity_to_smooth[j]
 
             for ii in range(2):
                 if xiter[ii] == 999: continue
@@ -1557,14 +1565,6 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                         z1 = <np.int64_t> ( (pz + hsml[j] - z_min) * idz)
                         z0 = iclip(z0-1, 0, zsize)
                         z1 = iclip(z1+1, 0, zsize)
-            
-                        h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
-                        h_j = math.cbrt(h_j3)
-                        h_j2 = h_j*h_j
-                        ih_j = 1/h_j
-            
-                        prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
-                        prefactor_j *= quantity_to_smooth[j]
             
                         # Now we know which voxels to deposit onto for this particle,
                         # so loop over them and add this particle's contribution
