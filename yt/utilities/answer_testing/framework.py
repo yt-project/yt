@@ -36,6 +36,7 @@ from yt.utilities.command_line import get_yt_version
 from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
 from yt.visualization import (
+    image_writer as image_writer,
     particle_plots as particle_plots,
     plot_window as pw,
     profile_plotter as profile_plotter,
@@ -669,7 +670,11 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             # weight_field does not have units, so we do not directly compare them
             if k == "weight_field_sum":
                 continue
-            assert_allclose_units(new_result[k], old_result[k], 1e-10)
+            try:
+                assert_allclose_units(new_result[k], old_result[k], 1e-10)
+            except AssertionError:
+                dump_images(new_result[k], old_result[k])
+                raise
 
 
 class PixelizedParticleProjectionValuesTest(PixelizedProjectionValuesTest):
@@ -780,6 +785,23 @@ class ParentageRelationshipsTest(AnswerTestingTest):
             assert newp == oldp
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert newc == oldc
+
+
+def dump_images(new_result, old_result, decimals=10):
+    tmpfd, old_image = tempfile.mkstemp(suffix=".png")
+    os.close(tmpfd)
+    tmpfd, new_image = tempfile.mkstemp(suffix=".png")
+    os.close(tmpfd)
+    image_writer.write_projection(new_result, new_image)
+    image_writer.write_projection(old_result, old_image)
+    results = compare_images(old_image, new_image, 10 ** (-decimals))
+    if results is not None:
+        tempfiles = [
+            line.strip() for line in results.split("\n") if line.endswith(".png")
+        ]
+        for fn in tempfiles:
+            sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
+        sys.stderr.write("\n")
 
 
 def compare_image_lists(new_result, old_result, decimals):

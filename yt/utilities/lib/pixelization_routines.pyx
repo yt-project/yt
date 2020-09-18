@@ -997,7 +997,7 @@ def pixelize_sph_kernel_projection(
     cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, px, py
     cdef np.float64_t period_x, period_y
-    cdef int index, i, j
+    cdef int index, i, j, ii, jj
     cdef np.float64_t[:] _weight_field
     cdef int xiter[2]
     cdef int yiter[2]
@@ -1040,30 +1040,27 @@ def pixelize_sph_kernel_projection(
             
             xiter[1] = yiter[1] = 999
             
-            px = posx[j]
-            py = posy[j]
-
             if check_period == 1:
-                if px - hsml[j] < x_min:
+                if posx[j] - hsml[j] < x_min:
                     xiter[1] = +1
                     xiterv[1] = period_x
-                elif px + hsml[j] > x_max:
+                elif posx[j] + hsml[j] > x_max:
                     xiter[1] = -1
                     xiterv[1] = -period_x
-                if py - hsml[j] < y_min:
+                if posy[j] - hsml[j] < y_min:
                     yiter[1] = +1
                     yiterv[1] = period_y
-                elif py + hsml[j] > y_max:
+                elif posy[j] + hsml[j] > y_max:
                     yiter[1] = -1
                     yiterv[1] = -period_y
 
-            for xi in range(2):
-                if xiter[xi] == 999: continue
-                px += xiterv[xi]
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
                 if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
-                for yi in range(2):
-                    if yiter[yi] == 999: continue
-                    py += yiterv[yi]
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
                     if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
 
                     # here we find the pixels which this particle contributes to
@@ -1296,7 +1293,7 @@ def pixelize_sph_kernel_slice(
     cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
     cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j, px, py
-    cdef int index, i, j
+    cdef int index, i, j, ii, jj
     cdef np.float64_t period_x, period_y
     cdef int xiter[2]
     cdef int yiter[2]
@@ -1331,30 +1328,27 @@ def pixelize_sph_kernel_slice(
 
             xiter[1] = yiter[1] = 999
 
-            px = posx[j]
-            py = posy[j]
-
             if check_period == 1:
-                if px - hsml[j] < x_min:
+                if posx[j] - hsml[j] < x_min:
                     xiter[1] = +1
                     xiterv[1] = period_x
-                elif px + hsml[j] > x_max:
+                elif posx[j] + hsml[j] > x_max:
                     xiter[1] = -1
                     xiterv[1] = -period_x
-                if py - hsml[j] < y_min:
+                if posy[j] - hsml[j] < y_min:
                     yiter[1] = +1
                     yiterv[1] = period_y
-                elif py + hsml[j] > y_max:
+                elif posy[j] + hsml[j] > y_max:
                     yiter[1] = -1
                     yiterv[1] = -period_y
 
-            for xi in range(2):
-                if xiter[xi] == 999: continue
-                px += xiterv[xi]
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
                 if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
-                for yi in range(2):
-                    if yiter[yi] == 999: continue
-                    py += yiterv[yi]
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
                     if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
 
                     x0 = <np.int64_t> ( (px - hsml[j] - x_min) * idx)
@@ -1417,7 +1411,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
     cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff, px, py, pz
     cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
-    cdef int index, i, j, k
+    cdef int index, i, j, k, ii, jj, kk
     cdef np.float64_t period_x, period_y, period_z
 
     cdef int xiter[2]
@@ -1462,41 +1456,37 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
 
             xiter[1] = yiter[1] = ziter[1] = 999
 
-            px = posx[j]
-            py = posy[j]
-            pz = posz[j]
-
             if check_period == 1:
-                if px - hsml[j] < x_min:
+                if posx[j] - hsml[j] < x_min:
                     xiter[1] = +1
                     xiterv[1] = period_x
-                elif px + hsml[j] > x_max:
+                elif posx[j] + hsml[j] > x_max:
                     xiter[1] = -1
                     xiterv[1] = -period_x
-                if py - hsml[j] < y_min:
+                if posy[j] - hsml[j] < y_min:
                     yiter[1] = +1
                     yiterv[1] = period_y
-                elif py + hsml[j] > y_max:
+                elif posy[j] + hsml[j] > y_max:
                     yiter[1] = -1
                     yiterv[1] = -period_y
-                if pz - hsml[j] < z_min:
+                if posz[j] - hsml[j] < z_min:
                     ziter[1] = +1
                     ziterv[1] = period_z
-                elif pz + hsml[j] > z_max:
+                elif posz[j] + hsml[j] > z_max:
                     ziter[1] = -1
                     ziterv[1] = -period_z
 
-            for xi in range(2):
-                if xiter[xi] == 999: continue
-                px += xiterv[xi]
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
                 if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
-                for yi in range(2):
-                    if yiter[yi] == 999: continue
-                    py += yiterv[yi]
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
                     if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
-                    for zi in range(2):
-                        if ziter[zi] == 999: continue
-                        pz += ziterv[zi]
+                    for kk in range(2):
+                        if ziter[kk] == 999: continue
+                        pz = posz[j] + ziterv[kk]
                         if (pz + hsml[j] < z_min) or (pz - hsml[j] > z_max): continue
 
                         x0 = <np.int64_t> ( (px - hsml[j] - x_min) * idx)
