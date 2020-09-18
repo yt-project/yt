@@ -43,7 +43,6 @@ class ParticleIndex(Index):
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 
-
     @property
     def chunksize(self):
         # This can be overridden in subclasses
