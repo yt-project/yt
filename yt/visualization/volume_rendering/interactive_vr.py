@@ -21,10 +21,10 @@ from math import ceil, floor
 
 import matplotlib.font_manager
 import numpy as np
-import OpenGL.GL as GL
 import traitlets
 import traittypes
 from matplotlib.ft2font import LOAD_FORCE_AUTOHINT
+from OpenGL import GL
 
 from yt.data_objects.api import Dataset
 from yt.data_objects.data_containers import YTDataContainer

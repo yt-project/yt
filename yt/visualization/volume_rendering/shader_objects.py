@@ -4,24 +4,14 @@ Shader and ShaderProgram wrapper classes for vertex and fragment shaders used
 in Interactive Data Visualization
 """
 
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
-
-# This is a part of the experimental Interactive Data Visualization
-
 import contextlib
 import ctypes
 import os
 from collections import OrderedDict
 
-import OpenGL.GL as GL
 import traitlets
 import yaml
+from OpenGL import GL
 
 from yt.units.yt_array import YTQuantity
 from yt.utilities.exceptions import (
@@ -33,7 +23,7 @@ from yt.utilities.exceptions import (
 from .opengl_support import GLValue, num_to_const
 
 
-class ShaderProgram(object):
+class ShaderProgram:
     """
     Wrapper class that compiles and links vertex and fragment shaders
     into a shader program.
@@ -129,13 +119,13 @@ class ShaderProgram(object):
             kind = value.dtype.kind
         if kind not in "if":
             raise YTUnknownUniformKind(kind)
-        if len(value.shape) == 0:
+        if value.ndim == 0:
             return {"f": GL.glUniform1f, "i": GL.glUniform1i}[kind]
-        elif len(value.shape) == 1:
+        elif value.ndim == 1:
             if value.size > 4:
                 raise YTUnknownUniformSize(value.size)
             func = self._set_scalar_uniform(kind, value.size)
-        elif len(value.shape) == 2:
+        elif value.ndim == 2:
             if value.shape[0] != value.shape[1]:
                 raise YTUnknownUniformSize(value.shape)
             func = self._set_matrix_uniform(kind, value.shape)
@@ -316,8 +306,8 @@ _shlist_fn = os.path.join(os.path.dirname(__file__), "shaders", "shaderlist.yaml
 if os.path.exists(_shlist_fn):
     with open(_shlist_fn, "r") as f:
         shader_info = yaml.load(f, yaml.SafeLoader)
-        known_shaders.update(shader_info["shader_definitions"])
-        component_shaders.update(shader_info["component_shaders"])
-        default_shader_combos.update(
-            {_: component_shaders[_].pop("default_value") for _ in component_shaders}
-        )
+    known_shaders.update(shader_info["shader_definitions"])
+    component_shaders.update(shader_info["component_shaders"])
+    default_shader_combos.update(
+        {_: component_shaders[_].pop("default_value") for _ in component_shaders}
+    )

@@ -4,19 +4,9 @@ Event loop for Interactive Data Visualization
 
 """
 
-# ----------------------------------------------------------------------------
-# Copyright (c) 2016, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# ----------------------------------------------------------------------------
-
-# This is a part of the experimental Interactive Data Visualization
-
 import numpy as np
-import OpenGL.GL as GL
 import pyglet
+from OpenGL import GL
 
 from ..image_writer import write_bitmap
 from .input_events import EventCollection
@@ -27,7 +17,7 @@ except ImportError:
     pass
 
 
-class EGLRenderingContext(object):
+class EGLRenderingContext:
     """Rendering context using EGL (experimental)
 
     Parameters

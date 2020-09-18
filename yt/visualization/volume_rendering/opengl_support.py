@@ -18,9 +18,9 @@ from contextlib import contextmanager
 
 import matplotlib.cm as cm
 import numpy as np
-import OpenGL.GL as GL
 import traitlets
 import traittypes
+from OpenGL import GL
 
 try:
     from contextlib import ExitStack

@@ -4,7 +4,7 @@ import time
 from collections import defaultdict, namedtuple
 
 import numpy as np
-import OpenGL.GL as GL
+from OpenGL import GL
 
 from yt.utilities.math_utils import get_orthographic_matrix, get_perspective_matrix
 from yt.visualization.image_writer import write_bitmap
@@ -330,7 +330,7 @@ def cmap_toggle_log(event_coll, event):
     for comp in event_coll.scene.components:
         comp.cmap_log = not comp.cmap_log
         comp.cmap_min = comp.cmap_max = None
-        print("Switching ", comp, "to", comp.cmap_log)
+        print(f"Switching {comp} to {comp.cmap_log}")
     return True
 
 
@@ -489,7 +489,7 @@ class JoystickAction(object):
         return True
 
     def calibrate(self):
-        print("Calibrating joystick in 2 seconds.  Please return to a" "resting state.")
+        print("Calibrating joystick in 2 seconds.  Please return to a resting state.")
         time.sleep(2)
         self.calibrated = np.array(glfw.GetJoystickAxes(glfw.JOYSTICK_1), "f8")
         print("Calibrated:")
