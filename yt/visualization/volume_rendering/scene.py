@@ -50,10 +50,11 @@ class Scene:
     and a Camera.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Scene, VolumeSource, Camera
+    >>> from yt.visualization.volume_rendering.api import\
+    ...     Scene, create_volume_source, Camera
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> sc = Scene()
-    >>> source = VolumeSource(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), 'density')
     >>> sc.add_source(source)
     >>> cam = sc.add_camera()
     >>> im = sc.render()
@@ -121,7 +122,8 @@ class Scene:
 
         Parameters
         ----------
-        render_source: :class:`yt.visualization.volume_rendering.render_source.RenderSource`
+        render_source:
+            :class:`yt.visualization.volume_rendering.render_source.RenderSource`
             A source to contribute to the volume rendering scene.
 
         keyname: string (optional)
@@ -204,6 +206,16 @@ class Scene:
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
         >>> im = sc.render()
+        >>> sc.save(sigma_clip=4.0,render=False)
+
+        Altneratively, if you do not need the image array, you can just call
+        ``save`` as follows.
+
+        >>> import yt
+        >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
+        >>>
+        >>> sc = yt.create_scene(ds)
+        >>> # Modify camera, sources, etc...
         >>> sc.save(sigma_clip=4.0)
 
         """
@@ -216,13 +228,31 @@ class Scene:
         self._last_render = bmp
         return bmp
 
-    def save(self, fname=None, sigma_clip=None):
-        r"""Saves the most recently rendered image of the Scene to disk.
+    def _sanitize_render(self, render):
+        # checks for existing render before saving, in most cases we want to
+        # render every time, but in some cases pulling the previous render is
+        # desirable (e.g., if only changing sigma_clip or
+        # saving after a call to sc.show()).
+        if self._last_render is None:
+            mylog.warning("No previously rendered image found, rendering now.")
+            render = True
+        elif render:
+            mylog.warning(
+                "Previously rendered image exists, but rendering anyway. "
+                "Supply 'render=False' to save previously rendered image directly."
+            )
+        else:
+            mylog.info("Found previously rendered image to save.")
 
-        Once you have created a scene and rendered that scene to an image
-        array, this saves that image array to disk with an optional filename.
-        If an image has not yet been rendered for the current scene object,
-        it forces one and writes it out.
+        return render
+
+    def save(self, fname=None, sigma_clip=None, render=True):
+        r"""Saves a rendered image of the Scene to disk.
+
+        Once you have created a scene, this saves an image array to disk with
+        an optional filename. This function calls render() to generate an
+        image array, unless the render parameter is set to False, in which case
+        the most recently rendered scene is used if it exists.
 
         Parameters
         ----------
@@ -239,6 +269,10 @@ class Scene:
             Default: None
 
             floor(vals > std_dev*sigma_clip + mean)
+        render: boolean, optional
+            If True, will always render the scene before saving.
+            If False, will use results of previous render if it exists.
+            Default: True
 
         Returns
         -------
@@ -252,19 +286,20 @@ class Scene:
         >>>
         >>> sc = yt.create_scene(ds)
         >>> # Modify camera, sources, etc...
-        >>> sc.render()
         >>> sc.save('test.png', sigma_clip=4)
 
-        Or alternatively:
+        When saving multiple images without modifying the scene (camera,
+        sources,etc.), render=False can be used to avoid re-rendering.
+        This is useful for generating images at a range of sigma_clip values:
 
         >>> import yt
         >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
         >>>
         >>> sc = yt.create_scene(ds)
         >>> # save with different sigma clipping values
-        >>> sc.save('raw.png')
-        >>> sc.save('clipped_2.png', sigma_clip=2)
-        >>> sc.save('clipped_4.png', sigma_clip=4)
+        >>> sc.save('raw.png')  # The initial render call happens here
+        >>> sc.save('clipped_2.png', sigma_clip=2, render=False)
+        >>> sc.save('clipped_4.png', sigma_clip=4, render=False)
 
         """
         if fname is None:
@@ -278,26 +313,28 @@ class Scene:
                     field = rs.field
                 else:
                     field = rs.field[-1]
-                fname = "%s_Render_%s.png" % (basename, field)
+                fname = f"{basename}_Render_{field}.png"
             # if no volume source present, use a default filename
             else:
                 fname = "Render_opaque.png"
         suffix = get_image_suffix(fname)
         if suffix == "":
             suffix = ".png"
-            fname = "%s%s" % (fname, suffix)
+            fname = f"{fname}{suffix}"
 
-        self.render()
+        render = self._sanitize_render(render)
+        if render:
+            self.render()
+        mylog.info("Saving rendered image to %s", fname)
 
-        mylog.info("Saving render %s", fname)
         # We can render pngs natively but for other formats we defer to
         # matplotlib.
         if suffix == ".png":
             self._last_render.write_png(fname, sigma_clip=sigma_clip)
         else:
-            from matplotlib.figure import Figure
             from matplotlib.backends.backend_pdf import FigureCanvasPdf
             from matplotlib.backends.backend_ps import FigureCanvasPS
+            from matplotlib.figure import Figure
 
             shape = self._last_render.shape
             fig = Figure((shape[0] / 100.0, shape[1] / 100.0))
@@ -306,7 +343,7 @@ class Scene:
             elif suffix in (".eps", ".ps"):
                 canvas = FigureCanvasPS(fig)
             else:
-                raise NotImplementedError("Unknown file suffix '{}'".format(suffix))
+                raise NotImplementedError(f"Unknown file suffix '{suffix}'")
             ax = fig.add_axes([0, 0, 1, 1])
             ax.set_axis_off()
             out = self._last_render
@@ -321,7 +358,13 @@ class Scene:
             canvas.print_figure(fname, dpi=100)
 
     def save_annotated(
-        self, fname=None, label_fmt=None, text_annotate=None, dpi=100, sigma_clip=None
+        self,
+        fname=None,
+        label_fmt=None,
+        text_annotate=None,
+        dpi=100,
+        sigma_clip=None,
+        render=True,
     ):
         r"""Saves the most recently rendered image of the Scene to disk,
         including an image of the transfer function and and user-defined
@@ -360,7 +403,10 @@ class Scene:
            function.
 
            Each item in the main list is a separate string to write.
-
+        render: boolean, optional
+            If True, will render the scene before saving.
+            If False, will use results of previous render if it exists.
+            Default: True
 
         Returns
         -------
@@ -398,16 +444,19 @@ class Scene:
                     field = rs.field
                 else:
                     field = rs.field[-1]
-                fname = "%s_Render_%s.png" % (basename, field)
+                fname = f"{basename}_Render_{field}.png"
             # if no volume source present, use a default filename
             else:
                 fname = "Render_opaque.png"
         suffix = get_image_suffix(fname)
         if suffix == "":
             suffix = ".png"
-            fname = "%s%s" % (fname, suffix)
+            fname = f"{fname}{suffix}"
 
-        self.render()
+        render = self._sanitize_render(render)
+        if render:
+            self.render()
+        mylog.info("Saving rendered image to %s", fname)
 
         # which transfer function?
         rs = rensources[0]
@@ -492,7 +541,7 @@ class Scene:
     def _validate(self):
         r"""Validate the current state of the scene."""
 
-        for k, source in self.sources.items():
+        for source in self.sources.values():
             source._validate()
         return
 
@@ -530,11 +579,11 @@ class Scene:
         empty = camera.lens.new_image(camera)
         opaque = ZBuffer(empty, np.full(empty.shape[:2], np.inf))
 
-        for k, source in self.opaque_sources:
+        for _, source in self.opaque_sources:
             source.render(camera, zbuffer=opaque)
             im = source.zbuffer.rgba
 
-        for k, source in self.transparent_sources:
+        for _, source in self.transparent_sources:
             im = source.render(camera, zbuffer=opaque)
             opaque.rgba = im
 
@@ -769,7 +818,7 @@ class Scene:
             The opacity of the mesh lines. Default is 255 (solid).
 
         """
-        for k, source in self.opaque_sources:
+        for _, source in self.opaque_sources:
             if isinstance(source, MeshSource):
                 source.annotate_mesh_lines(color=color, alpha=alpha)
         return self
@@ -940,7 +989,7 @@ class Scene:
         disp = "<Scene Object>:"
         disp += "\nSources: \n"
         for k, v in self.sources.items():
-            disp += "    %s: %s\n" % (k, v)
+            disp += f"    {k}: {v}\n"
         disp += "Camera: \n"
-        disp += "    %s" % self.camera
+        disp += f"    {self.camera}"
         return disp

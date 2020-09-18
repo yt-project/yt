@@ -5,7 +5,6 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
-from yt.data_objects.data_containers import data_object_registry
 from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, iterable, mylog
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -24,6 +23,7 @@ from yt.utilities.lib.image_samplers import (
 from yt.utilities.lib.misc_utilities import lines
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.math_utils import get_rotation_matrix
+from yt.utilities.object_registries import data_object_registry
 from yt.utilities.orientation import Orientation
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
@@ -299,7 +299,7 @@ class Camera(ParallelAnalysisInterface):
         region = self.data_source
         corners = []
         levels = []
-        for block, mask in region.blocks:
+        for block, _mask in region.blocks:
             block_corners = np.array(
                 [
                     [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
@@ -668,10 +668,14 @@ class Camera(ParallelAnalysisInterface):
             self.orienter.unit_vectors[0],
             self.orienter.unit_vectors[1],
             np.array(self.width, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "plane-parallel"}
+        kwargs = {
+            "lens_type": "plane-parallel",
+        }
+        return args, kwargs
 
     def get_sampler(self, args, kwargs):
         if self.use_light:
@@ -972,7 +976,7 @@ class Camera(ParallelAnalysisInterface):
         ...     iw.write_bitmap(snapshot, "zoom_%04i.png" % i)
         """
         f = final ** (1.0 / n_steps)
-        for i in range(n_steps):
+        for _ in range(n_steps):
             self.zoom(f)
             yield self.snapshot(clip_ratio=clip_ratio)
 
@@ -1035,7 +1039,7 @@ class Camera(ParallelAnalysisInterface):
             else:
                 dW = self.ds.arr([0.0, 0.0, 0.0], "code_length")
             dx = (final - self.center) * 1.0 / n_steps
-        for i in range(n_steps):
+        for _ in range(n_steps):
             if exponential:
                 self.switch_view(center=self.center * dx, width=self.width * dW)
             else:
@@ -1177,7 +1181,7 @@ class Camera(ParallelAnalysisInterface):
         """
 
         dtheta = (1.0 * theta) / n_steps
-        for i in range(n_steps):
+        for _ in range(n_steps):
             self.rotate(dtheta, rot_vector=rot_vector)
             yield self.snapshot(clip_ratio=clip_ratio)
 
@@ -1189,7 +1193,7 @@ class InteractiveCamera(Camera):
     frames = []
 
     def snapshot(self, fn=None, clip_ratio=None):
-        import matplotlib.pylab as pylab
+        from matplotlib import pylab as pylab
 
         pylab.figure(2)
         self.transfer_function.show()
@@ -1359,10 +1363,14 @@ class PerspectiveCamera(Camera):
             dummy,
             dummy,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "perspective"}
+        kwargs = {
+            "lens_type": "perspective",
+        }
+        return args, kwargs
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
@@ -1499,41 +1507,6 @@ class HEALpixCamera(Camera):
     ):
         mylog.error("I am sorry, HEALpix Camera does not work yet in 3.0")
         raise NotImplementedError
-        ParallelAnalysisInterface.__init__(self)
-        if ds is not None:
-            self.ds = ds
-        self.center = np.array(center, dtype="float64")
-        self.radius = radius
-        self.inner_radius = inner_radius
-        self.nside = nside
-        self.use_kd = use_kd
-        if transfer_function is None:
-            transfer_function = ProjectionTransferFunction()
-        self.transfer_function = transfer_function
-
-        if isinstance(self.transfer_function, ProjectionTransferFunction):
-            self._sampler_object = InterpolatedProjectionSampler
-            self._needs_tf = 0
-        else:
-            self._sampler_object = VolumeRenderSampler
-            self._needs_tf = 1
-
-        if fields is None:
-            fields = ["density"]
-        self.fields = fields
-        self.sub_samples = sub_samples
-        self.log_fields = log_fields
-        dd = ds.all_data()
-        efields = dd._determine_fields(self.fields)
-        if self.log_fields is None:
-            self.log_fields = [self.ds._get_field_info(*f).take_log for f in efields]
-        self.use_light = use_light
-        self.light_dir = None
-        self.light_rgba = None
-        if volume is None:
-            volume = AMRKDTree(self.ds, data_source=self.data_source)
-        self.use_kd = isinstance(volume, AMRKDTree)
-        self.volume = volume
 
     def new_image(self):
         image = np.zeros((12 * self.nside ** 2, 1, 4), dtype="float64", order="C")
@@ -1558,10 +1531,12 @@ class HEALpixCamera(Camera):
             uv,
             uv,
             np.zeros(3, dtype="float64"),
+            "KDTree",
         )
         if self._needs_tf:
             args += (self.transfer_function,)
         args += (self.sub_samples,)
+
         return args, {}
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -1648,7 +1623,7 @@ class HEALpixCamera(Camera):
         if self.comm.rank == 0 and fn is not None:
             # This assumes Density; this is a relatively safe assumption.
             if label is None:
-                label = "Projected %s" % (self.fields[0])
+                label = f"Projected {self.fields[0]}"
             if clim is not None:
                 cmin, cmax = clim
             else:
@@ -1778,6 +1753,7 @@ class FisheyeCamera(Camera):
             uv,
             uv,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
@@ -1937,7 +1913,7 @@ class MosaicCamera(Camera):
         dy = self.width[1]
         offi = self.imi + 0.5
         offj = self.imj + 0.5
-        mylog.info("Mosaic offset: %f %f" % (offi, offj))
+        mylog.info("Mosaic offset: %f %f", offi, offj)
         global_center = self.center
         self.center = self.origin
         self.center += offi * dx * self.orienter.unit_vectors[0]
@@ -1981,7 +1957,7 @@ class MosaicCamera(Camera):
             self.initialize_source()
 
             self.imi, self.imj = xy
-            mylog.debug("Working on: %i %i" % (self.imi, self.imj))
+            mylog.debug("Working on: %i %i", self.imi, self.imj)
             self._setup_box_properties(
                 self.width, self.center, self.orienter.unit_vectors
             )
@@ -2027,8 +2003,8 @@ def plot_allsky_healpix(
     cmin=None,
     cmax=None,
 ):
-    import matplotlib.figure
     import matplotlib.backends.backend_agg
+    import matplotlib.figure
 
     if rotation is None:
         rotation = np.eye(3).astype("float64")
@@ -2040,7 +2016,11 @@ def plot_allsky_healpix(
     if take_log:
         func = np.log10
     else:
-        func = lambda a: a
+
+        def _identity(x):
+            return x
+
+        func = _identity
     implot = ax.imshow(
         func(img),
         extent=(-np.pi, np.pi, -np.pi / 2, np.pi / 2),
@@ -2095,7 +2075,6 @@ class ProjectionCamera(Camera):
                 def temp_weightfield(a, b):
                     tr = b[f].astype("float64") * b[w]
                     return b.apply_units(tr, a.units)
-                    return tr
 
                 return temp_weightfield
 
@@ -2170,9 +2149,11 @@ class ProjectionCamera(Camera):
             self.orienter.unit_vectors[0],
             self.orienter.unit_vectors[1],
             np.array(self.width, dtype="float64"),
+            "KDTree",
             self.sub_samples,
         )
-        return args, {"lens_type": "plane-parallel"}
+        kwargs = {"lens_type": "plane-parallel"}
+        return args, kwargs
 
     def finalize_image(self, image):
         ds = self.ds
@@ -2216,7 +2197,7 @@ class ProjectionCamera(Camera):
         # Now we have a bounding box.
         data_source = ds.region(self.center, mi, ma)
 
-        for i, (grid, mask) in enumerate(data_source.blocks):
+        for (grid, mask) in data_source.blocks:
             data = [(grid[field] * mask).astype("float64") for field in fields]
             pg = PartitionedGrid(
                 grid.id,
@@ -2366,8 +2347,8 @@ class StereoSphericalCamera(Camera):
         if self.disparity <= 0.0:
             self.disparity = self.width[0] / 1000.0
             mylog.info(
-                "Warning: Invalid value of disparity; "
-                "now reset it to %f" % self.disparity
+                "Warning: Invalid value of disparity; now reset it to %f",
+                self.disparity,
             )
 
     def get_sampler_args(self, image):
@@ -2412,10 +2393,12 @@ class StereoSphericalCamera(Camera):
             dummy,
             dummy,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "stereo-spherical"}
+        kwargs = {"lens_type": "stereo-spherical"}
+        return args, kwargs
 
     def snapshot(
         self,

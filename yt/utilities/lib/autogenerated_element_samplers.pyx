@@ -4,10 +4,10 @@
 # yt/utilities/mesh_code_generation.py. 
 
  
-cimport cython 
-from libc.math cimport pow 
+cimport cython
+from libc.math cimport pow
 
- 
+
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True) 

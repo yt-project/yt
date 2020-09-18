@@ -4,7 +4,7 @@ import tempfile
 
 from numpy.testing import assert_allclose, assert_equal
 
-from yt.convenience import load
+from yt.loaders import load
 from yt.testing import fake_random_ds, requires_module
 from yt.utilities.on_demand_imports import _astropy
 from yt.visualization.fits_image import (

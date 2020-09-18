@@ -6,17 +6,17 @@ def _plot2D_root(
     pts=None,
     txt=None,
     plotfile=None,
-    point_kw={},
-    box_kw={},
+    point_kw=None,
+    box_kw=None,
     axs=None,
-    subplot_kw={},
-    gridspec_kw={},
-    fig_kw={},
-    save_kw={},
+    subplot_kw=None,
+    gridspec_kw=None,
+    fig_kw=None,
+    save_kw=None,
     title=None,
     xlabel="x",
     ylabel="y",
-    label_kw={},
+    label_kw=None,
 ):
     r"""Plot a 2D kd-tree.
 
@@ -62,6 +62,20 @@ def _plot2D_root(
     import matplotlib.pyplot as plt
     from matplotlib.collections import LineCollection
 
+    if point_kw is None:
+        point_kw = {}
+    if box_kw is None:
+        box_kw = {}
+    if subplot_kw is None:
+        subplot_kw = {}
+    if gridspec_kw is None:
+        gridspec_kw = {}
+    if fig_kw is None:
+        fig_kw = {}
+    if save_kw is None:
+        save_kw = {}
+    if label_kw is None:
+        label_kw = {}
     # Axes creation
     if axs is None:
         plt.close("all")

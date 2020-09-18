@@ -28,11 +28,10 @@ def assert_less_equal(x, y):
         if not size_match:
             raise AssertionError(
                 "Shape mismatch\n\n"
-                + "x.shape: %s\ny.shape: %s\n" % (str(x.shape), str(y.shape))
+                + f"x.shape: {str(x.shape)}\ny.shape: {str(y.shape)}\n"
             )
         raise AssertionError(
-            "Variables are not less-equal ordered\n\n"
-            + "x: %s\ny: %s\n" % (str(x), str(y))
+            "Variables are not less-equal ordered\n\n" + f"x: {str(x)}\ny: {str(y)}\n"
         )
 
 
@@ -51,11 +50,10 @@ def call_subprocess(np, func, args, kwargs):
         str(np),
         sys.executable,
         "-c",
-        "'from %s import %s; %s(%s)'"
-        % (func.__module__, func.__name__, func.__name__, args_str),
+        f"'from {func.__module__} import {func.__name__}; {func.__name__}({args_str})'",
     ]
     cmd = " ".join(cmd)
-    print("Running the following command:\n%s" % cmd)
+    print(f"Running the following command:\n{cmd}")
     p = Popen(cmd, stdin=PIPE, stdout=PIPE, stderr=PIPE, shell=True)
     output, err = p.communicate()
     exit_code = p.returncode
@@ -92,7 +90,7 @@ def parametrize(**pargs):
 
             wrapped.__name__ = func.__name__
             for k, v in kwargs0.items():
-                wrapped.__name__ += "_{}{}".format(k, v)
+                wrapped.__name__ += f"_{k}{v}"
             return wrapped
 
         def func_param(*args, **kwargs):
@@ -184,7 +182,7 @@ def make_points(npts, ndim, leafsize=10, distrib="rand", seed=100):
             )
             np.clip(pts, LE, RE)
         else:
-            raise ValueError("Invalid 'distrib': {}".format(distrib))
+            raise ValueError(f"Invalid 'distrib': {distrib}")
     return pts, left_edge, right_edge, leafsize
 
 
@@ -229,7 +227,7 @@ def run_test(
     if nproc > 1:
         kwargs["suppress_final_output"] = suppress_final_output
         if profile:
-            kwargs["profile"] = "{}_mpi_profile.dat".format(unique_str)
+            kwargs["profile"] = f"{unique_str}_mpi_profile.dat"
     # Run
     if profile:
         pr = cProfile.Profile()
@@ -251,10 +249,10 @@ def run_test(
         ps.add(kwargs["profile"])
         if isinstance(profile, str):
             ps.dump_stats(profile)
-            print("Stats saved to {}".format(profile))
+            print(f"Stats saved to {profile}")
         else:
             sort_key = "tottime"
             ps.sort_stats(sort_key).print_stats(25)
             # ps.sort_stats(sort_key).print_callers(5)
-            print("{} s according to 'time'".format(t1 - t0))
+            print(f"{t1 - t0} s according to 'time'")
         return ps

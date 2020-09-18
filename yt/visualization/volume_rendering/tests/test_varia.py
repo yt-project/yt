@@ -7,8 +7,7 @@ import numpy as np
 
 import yt
 from yt.testing import fake_random_ds
-from yt.visualization.volume_rendering.render_source import VolumeSource
-from yt.visualization.volume_rendering.scene import Scene
+from yt.visualization.volume_rendering.api import Scene, create_volume_source
 
 
 def setup():
@@ -63,18 +62,15 @@ class VariousVRTests(TestCase):
     def test_rotation_volume_rendering(self):
         im, sc = yt.volume_render(self.ds)
 
-        angle = 2 * np.pi
-        frames = 4
-        for i in range(frames):
-            sc.camera.yaw(angle / frames)
-            sc.render()
+        sc.camera.yaw(np.pi)
+        sc.render()
 
     def test_simple_volume_rendering(self):
         im, sc = yt.volume_render(self.ds, sigma_clip=4.0)
 
     def test_lazy_volume_source_construction(self):
         sc = Scene()
-        source = VolumeSource(self.ds.all_data(), "density")
+        source = create_volume_source(self.ds.all_data(), "density")
 
         assert source._volume is None
         assert source._transfer_function is None
@@ -98,8 +94,9 @@ class VariousVRTests(TestCase):
 
         ad = self.ds.all_data()
 
-        assert source.transfer_function.x_bounds == list(
-            np.log10(ad.quantities.extrema("density"))
+        np.testing.assert_allclose(
+            source.transfer_function.x_bounds,
+            np.log10(ad.quantities.extrema("density")),
         )
         assert source.tfh.log == source.log_field
 

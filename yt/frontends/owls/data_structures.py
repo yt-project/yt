@@ -48,7 +48,12 @@ class OWLSDataset(GadgetHDF5Dataset):
             valid_files = []
             for f in os.listdir(args[0]):
                 fname = os.path.join(args[0], f)
-                if (".0" in f) and (".ewah" not in f) and os.path.isfile(fname):
+                fext = os.path.splitext(fname)[-1]
+                if (
+                    (".0" in f)
+                    and (fext not in {".ewah", ".kdtree"})
+                    and os.path.isfile(fname)
+                ):
                     valid_files.append(fname)
             if len(valid_files) == 0:
                 valid = False

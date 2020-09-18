@@ -5,8 +5,7 @@ from numbers import Number as numeric_type
 
 import numpy as np
 
-from yt.data_objects.data_containers import GenerationInProgress
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.profiles import (
     Profile1DFromDataset,
@@ -21,7 +20,7 @@ from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.units import dimensions
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTQuantity, uconcatenate
-from yt.utilities.exceptions import YTFieldTypeNotFound
+from yt.utilities.exceptions import GenerationInProgress, YTFieldTypeNotFound
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
@@ -92,7 +91,7 @@ class SavedDataset(Dataset):
         # assign units to parameters that have associated unit string
         del_pars = []
         for par in self.parameters:
-            ustr = "%s_units" % par
+            ustr = f"{par}_units"
             if ustr in self.parameters:
                 if isinstance(self.parameters[par], np.ndarray):
                     to_u = self.arr
@@ -105,6 +104,9 @@ class SavedDataset(Dataset):
 
         for attr in self._con_attrs:
             setattr(self, attr, self.parameters.get(attr))
+
+        if self.geometry is None:
+            self.geometry = "cartesian"
 
     def _with_parameter_file_open(self, f):
         # This allows subclasses to access the parameter file
@@ -133,12 +135,10 @@ class SavedDataset(Dataset):
                 self.parameters[attr], YTQuantity
             ):
                 uq = self.parameters[attr]
-            elif attr in self.parameters and "%s_units" % attr in self.parameters:
-                uq = self.quan(
-                    self.parameters[attr], self.parameters["%s_units" % attr]
-                )
+            elif attr in self.parameters and f"{attr}_units" in self.parameters:
+                uq = self.quan(self.parameters[attr], self.parameters[f"{attr}_units"])
                 del self.parameters[attr]
-                del self.parameters["%s_units" % attr]
+                del self.parameters[f"{attr}_units"]
             elif isinstance(unit, str):
                 uq = self.quan(1.0, unit)
             elif isinstance(unit, numeric_type):
@@ -148,7 +148,7 @@ class SavedDataset(Dataset):
             elif isinstance(unit, tuple):
                 uq = self.quan(unit[0], unit[1])
             else:
-                raise RuntimeError("%s (%s) is invalid." % (attr, unit))
+                raise RuntimeError(f"{attr} ({unit}) is invalid.")
             setattr(self, attr, uq)
 
 
@@ -164,6 +164,7 @@ class YTDataset(SavedDataset):
         "omega_lambda",
         "dimensionality",
         "domain_dimensions",
+        "geometry",
         "periodicity",
         "domain_left_edge",
         "domain_right_edge",
@@ -329,7 +330,7 @@ class YTDataLightRayDataset(YTDataContainerDataset):
             return
         self.light_ray_solution = [{} for val in self.parameters[lrs_fields[0]]]
         for sp3 in ["unique_identifier", "filename"]:
-            ksp3 = "%s_%s" % (key, sp3)
+            ksp3 = f"{key}_{sp3}"
             if ksp3 not in lrs_fields:
                 continue
             self.parameters[ksp3] = self.parameters[ksp3].astype(str)
@@ -752,9 +753,7 @@ class YTNonspatialDataset(YTGridDataset):
             v = getattr(self, a)
             if v is not None:
                 mylog.info("Parameters: %-25s = %s", a, v)
-        if hasattr(self, "cosmological_simulation") and getattr(
-            self, "cosmological_simulation"
-        ):
+        if hasattr(self, "cosmological_simulation") and self.cosmological_simulation:
             for a in [
                 "current_redshift",
                 "omega_lambda",
@@ -815,9 +814,7 @@ class YTProfileDataset(YTNonspatialDataset):
             )
 
         for a in ["profile_dimensions"] + [
-            "%s_%s" % (ax, attr)
-            for ax in "xyz"[: self.dimensionality]
-            for attr in ["log"]
+            f"{ax}_{attr}" for ax in "xyz"[: self.dimensionality] for attr in ["log"]
         ]:
             setattr(self, a, self.parameters[a])
 
@@ -831,15 +828,15 @@ class YTProfileDataset(YTNonspatialDataset):
         domain_left_edge = np.zeros(3)
         domain_right_edge = np.ones(3)
         for i, ax in enumerate("xyz"[: self.dimensionality]):
-            range_name = "%s_range" % ax
+            range_name = f"{ax}_range"
             my_range = self.parameters[range_name]
-            if getattr(self, "%s_log" % ax, False):
+            if getattr(self, f"{ax}_log", False):
                 my_range = np.log10(my_range)
             domain_left_edge[i] = my_range[0]
             domain_right_edge[i] = my_range[1]
             setattr(self, range_name, self.parameters[range_name])
 
-            bin_field = "%s_field" % ax
+            bin_field = f"{ax}_field"
             if (
                 isinstance(self.parameters[bin_field], str)
                 and self.parameters[bin_field] == "None"
@@ -874,7 +871,7 @@ class YTProfileDataset(YTNonspatialDataset):
         if is_root():
             mylog.info("YTProfileDataset")
             for a in ["dimensionality", "profile_dimensions"] + [
-                "%s_%s" % (ax, attr)
+                f"{ax}_{attr}"
                 for ax in "xyz"[: self.dimensionality]
                 for attr in ["field", "range", "log"]
             ]:
@@ -922,7 +919,7 @@ class YTClumpContainer(TreeContainer):
             return g[f][self.global_id]
         if self.contour_id == -1:
             return g[f]
-        cfield = (f[0], "contours_%s" % self.contour_key.decode("utf-8"))
+        cfield = (f[0], f"contours_{self.contour_key.decode('utf-8')}")
         if f[0] == "grid":
             return g[f][g[cfield] == self.contour_id]
         return self.parent[f][g[cfield] == self.contour_id]

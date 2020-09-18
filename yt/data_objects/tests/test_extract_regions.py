@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.convenience import load
+from yt.loaders import load
 from yt.testing import (
     assert_almost_equal,
     assert_equal,

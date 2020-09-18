@@ -56,7 +56,7 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
                 return _length_func
 
             registry.add_field(
-                ("index", "d%s" % ax),
+                ("index", f"d{ax}"),
                 sampling_type="cell",
                 function=f1,
                 display_field=False,
@@ -64,7 +64,7 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
             )
 
             registry.add_field(
-                ("index", "path_element_%s" % ax),
+                ("index", f"path_element_{ax}"),
                 sampling_type="cell",
                 function=_get_length_func(),
                 display_field=False,
@@ -72,7 +72,7 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
             )
 
             registry.add_field(
-                ("index", "%s" % ax),
+                ("index", f"{ax}"),
                 sampling_type="cell",
                 function=f2,
                 display_field=False,

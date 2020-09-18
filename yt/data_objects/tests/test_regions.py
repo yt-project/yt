@@ -1,4 +1,4 @@
-from yt.testing import assert_array_equal, fake_amr_ds, fake_random_ds
+from yt.testing import assert_array_equal, assert_raises, fake_amr_ds, fake_random_ds
 from yt.units import cm
 
 
@@ -28,3 +28,24 @@ def test_max_level_min_level_semantics():
     assert ad["grid_level"].min() == 2
     ad.min_level = 0
     assert ad["grid_level"].min() == 0
+
+
+def test_ellipsis_selection():
+    ds = fake_amr_ds()
+    reg = ds.r[:, :, :]
+    ereg = ds.r[...]
+    assert_array_equal(reg.fwidth, ereg.fwidth)
+
+    reg = ds.r[(0.5, "cm"), :, :]
+    ereg = ds.r[(0.5, "cm"), ...]
+    assert_array_equal(reg.fwidth, ereg.fwidth)
+
+    reg = ds.r[:, :, (0.5, "cm")]
+    ereg = ds.r[..., (0.5, "cm")]
+    assert_array_equal(reg.fwidth, ereg.fwidth)
+
+    reg = ds.r[:, :, (0.5, "cm")]
+    ereg = ds.r[..., (0.5, "cm")]
+    assert_array_equal(reg.fwidth, ereg.fwidth)
+
+    assert_raises(IndexError, ds.r.__getitem__, (..., (0.5, "cm"), ...))

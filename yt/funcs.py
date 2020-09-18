@@ -18,7 +18,8 @@ import traceback
 import urllib.parse
 import urllib.request
 import warnings
-from functools import wraps
+from distutils.version import LooseVersion
+from functools import lru_cache, wraps
 from math import ceil, floor
 from numbers import Number as numeric_type
 
@@ -29,7 +30,6 @@ from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.lru_cache import lru_cache
 
 # Some functions for handling sequences and other types
 
@@ -41,7 +41,7 @@ def iterable(obj):
     """
     try:
         len(obj)
-    except Exception:
+    except TypeError:
         return False
     return True
 
@@ -159,7 +159,7 @@ def get_memory_usage(subtract_share=False):
         pagesize = resource.getpagesize()
     except NameError:
         return -1024
-    status_file = "/proc/%s/statm" % (pid)
+    status_file = f"/proc/{pid}/statm"
     if not os.path.isfile(status_file):
         return -1024
     line = open(status_file).read()
@@ -238,14 +238,6 @@ def rootonly(func):
     return check_parallel_rank
 
 
-def rootloginfo(*args):
-    from yt.config import ytcfg
-
-    if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0:
-        return
-    mylog.info(*args)
-
-
 class VisibleDeprecationWarning(UserWarning):
     """Visible deprecation warning, adapted from NumPy
 
@@ -275,7 +267,7 @@ def deprecate(replacement):
         def run_func(*args, **kwargs):
             message = "%s has been deprecated and may be removed without notice!"
             if replacement is not None:
-                message += " Use %s instead." % replacement
+                message += f" Use {replacement} instead."
             warnings.warn(
                 message % func.__name__, VisibleDeprecationWarning, stacklevel=2
             )
@@ -518,7 +510,7 @@ def paste_traceback(exc_type, exc, tb):
     s = s.getvalue()
     ret = p.pastes.newPaste("pytb", s, None, "", "", True)
     print()
-    print("Traceback pasted to http://paste.yt-project.org/show/%s" % (ret))
+    print(f"Traceback pasted to http://paste.yt-project.org/show/{ret}")
     print()
 
 
@@ -528,8 +520,8 @@ def paste_traceback_detailed(exc_type, exc, tb):
     Should only be used in sys.excepthook.
     """
     import cgitb
-    from io import StringIO
     import xmlrpc.client
+    from io import StringIO
 
     s = StringIO()
     handler = cgitb.Hook(format="text", file=s)
@@ -541,7 +533,7 @@ def paste_traceback_detailed(exc_type, exc, tb):
     )
     ret = p.pastes.newPaste("text", s, None, "", "", True)
     print()
-    print("Traceback pasted to http://paste.yt-project.org/show/%s" % (ret))
+    print(f"Traceback pasted to http://paste.yt-project.org/show/{ret}")
     print()
 
 
@@ -589,12 +581,12 @@ def update_git(path):
             print("update the code. You will have to do this yourself.")
             print("Here's a set of sample commands:")
             print("")
-            print("    $ cd %s" % (path))
+            print(f"    $ cd {path}")
             print("    $ git stash")
             print("    $ git checkout master")
             print("    $ git pull")
             print("    $ git stash pop")
-            print("    $ %s setup.py develop" % (sys.executable))
+            print(f"    $ {sys.executable} setup.py develop")
             print("")
             return 1
         if repo.active_branch.name != "master":
@@ -602,10 +594,10 @@ def update_git(path):
             print("update the code. You will have to do this yourself.")
             print("Here's a set of sample commands:")
             print("")
-            print("    $ cd %s" % (path))
+            print(f"    $ cd {path}")
             print("    $ git checkout master")
             print("    $ git pull")
-            print("    $ %s setup.py develop" % (sys.executable))
+            print(f"    $ {sys.executable} setup.py develop")
             print("")
             return 1
         print("Updating the repository")
@@ -623,7 +615,7 @@ def update_git(path):
         master.checkout()
         remote.pull()
         new_version = repo.git.rev_parse("HEAD", short=12)
-        f.write("Updated from %s to %s\n\n" % (old_version, new_version))
+        f.write(f"Updated from {old_version} to {new_version}\n\n")
         rebuild_modules(path, f)
     print("Updated successfully")
 
@@ -644,9 +636,9 @@ def update_hg(path):
             print("update the code. You will have to do this yourself.")
             print("Here's a set of sample commands:")
             print("")
-            print("    $ cd %s" % (path))
+            print(f"    $ cd {path}")
             print("    $ hg up -C yt  # This will delete any unsaved changes")
-            print("    $ %s setup.py develop" % (sys.executable))
+            print(f"    $ {sys.executable} setup.py develop")
             print("")
             return 1
         print("Updating the repository")
@@ -657,7 +649,7 @@ def update_hg(path):
             repo.update("master", check=True)
         else:
             repo.update("yt", check=True)
-        f.write("Updated from %s to %s\n\n" % (ident, repo.identify()))
+        f.write(f"Updated from {ident} to {repo.identify()}\n\n")
         rebuild_modules(path, f)
     print("Updated successfully.")
 
@@ -674,7 +666,7 @@ def rebuild_modules(path, f):
     f.write(stdout.decode("utf-8"))
     f.write("\n\n")
     if p.returncode:
-        print("BROKEN: See %s" % (os.path.join(path, "yt_updater.log")))
+        print(f"BROKEN: See {os.path.join(path, 'yt_updater.log')}")
         sys.exit(1)
     f.write("Successful!\n")
 
@@ -807,7 +799,7 @@ def simple_download_file(url, filename):
 
 # This code snippet is modified from Georg Brandl
 def bb_apicall(endpoint, data, use_pass=True):
-    uri = "https://api.bitbucket.org/1.0/%s/" % endpoint
+    uri = f"https://api.bitbucket.org/1.0/{endpoint}/"
     # since bitbucket doesn't return the required WWW-Authenticate header when
     # making a request without Authorization, we cannot use the standard urllib2
     # auth handlers; we have to add the requisite header from the start
@@ -817,8 +809,8 @@ def bb_apicall(endpoint, data, use_pass=True):
     if use_pass:
         username = input("Bitbucket Username? ")
         password = getpass.getpass()
-        upw = "%s:%s" % (username, password)
-        req.add_header("Authorization", "Basic %s" % base64.b64encode(upw).strip())
+        upw = f"{username}:{password}"
+        req.add_header("Authorization", f"Basic {base64.b64encode(upw).strip()}")
     return urllib.request.urlopen(req).read()
 
 
@@ -843,7 +835,7 @@ def get_yt_supp():
             print(
                 "$ hg clone http://bitbucket.org/yt_analysis/yt-supplemental/ ", end=" "
             )
-            print("%s" % (supp_path))
+            print(f"{supp_path}")
             print()
             sys.exit(1)
         rv = hglib.clone("http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
@@ -870,7 +862,7 @@ def fix_length(length, ds):
     if length_valid_tuple and unit_is_string and length_is_number:
         return YTArray(*length, registry=registry)
     else:
-        raise RuntimeError("Length %s is invalid" % str(length))
+        raise RuntimeError(f"Length {str(length)} is invalid")
 
 
 @contextlib.contextmanager
@@ -888,10 +880,17 @@ def parallel_profile(prefix):
     Examples
     --------
 
+    >>> from yt import PhasePlot
+    >>> from yt.testing import fake_random_ds
+    ...
+    >>> fields = ('density', 'temperature', 'cell_mass')
+    >>> units = ('g/cm**3', 'K', 'g')
+    >>> ds = fake_random_ds(16, fields=fields, units=units)
     >>> with parallel_profile('my_profile'):
-    ...     yt.PhasePlot(ds.all_data(), 'density', 'temperature', 'cell_mass')
+    ...     plot = PhasePlot(ds.all_data(), *fields)
     """
     import cProfile
+
     from yt.config import ytcfg
 
     fn = "%s_%04i_%04i.cprof" % (
@@ -925,22 +924,20 @@ def get_image_suffix(name):
     if suffix in supported_suffixes or suffix == "":
         return suffix
     else:
-        mylog.warning("Unsupported image suffix requested (%s)" % suffix)
+        mylog.warning("Unsupported image suffix requested (%s)", suffix)
         return ""
 
 
 def get_output_filename(name, keyword, suffix):
     r"""Return an appropriate filename for output.
 
-    With a name provided by the user, this will decide how to
-    appropriately name the output file by the following rules:
+    With a name provided by the user, this will decide how to appropriately name the
+    output file by the following rules:
 
-    1. if name is None, the filename will be the keyword plus
-       the suffix.
-    2. if name ends with "/", assume name is a directory and
-       the file will be named name/(keyword+suffix).  If the
-       directory does not exist, first try to create it and
-       raise an exception if an error occurs.
+    1. if name is None, the filename will be the keyword plus the suffix.
+    2. if name ends with "/" (resp "\" on Windows), assume name is a directory and the
+       file will be named name/(keyword+suffix).  If the directory does not exist, first
+       try to create it and raise an exception if an error occurs.
     3. if name does not end in the suffix, add the suffix.
 
     Parameters
@@ -956,18 +953,18 @@ def get_output_filename(name, keyword, suffix):
     Examples
     --------
 
-    >>> print(get_output_filename(None, "Projection_x", ".png"))
-    Projection_x.png
-    >>> print(get_output_filename("my_file", "Projection_x", ".png"))
-    my_file.png
-    >>> print(get_output_filename("my_file/", "Projection_x", ".png"))
-    my_file/Projection_x.png
+    >>> get_output_filename(None, "Projection_x", ".png")
+    'Projection_x.png'
+    >>> get_output_filename("my_file", "Projection_x", ".png")
+    'my_file.png'
+    >>> get_output_filename("my_dir/", "Projection_x", ".png")
+    'my_dir/Projection_x.png'
 
     """
     if name is None:
         name = keyword
     name = os.path.expanduser(name)
-    if name[-1] == os.sep and not os.path.isdir(name):
+    if name.endswith(os.sep) and not os.path.isdir(name):
         ensure_dir(name)
     if os.path.isdir(name):
         name = os.path.join(name, keyword)
@@ -1003,12 +1000,12 @@ def ensure_dir(path):
 
 def validate_width_tuple(width):
     if not iterable(width) or len(width) != 2:
-        raise YTInvalidWidthError("width (%s) is not a two element tuple" % width)
+        raise YTInvalidWidthError(f"width ({width}) is not a two element tuple")
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
     unit_is_string = isinstance(width[1], str)
     if not is_numeric or length_has_units and unit_is_string:
-        msg = "width (%s) is invalid. " % str(width)
+        msg = f"width ({str(width)}) is invalid. "
         msg += "Valid widths look like this: (12, 'au')"
         raise YTInvalidWidthError(msg)
 
@@ -1050,6 +1047,7 @@ def memory_checker(interval=15, dest=None):
     ...     arr = np.zeros(1024*1024*1024, dtype="float64")
     ...     time.sleep(15)
     ...     del arr
+    MEMORY: -1.000e+00 gb
     """
     import threading
 
@@ -1081,7 +1079,7 @@ def deprecated_class(cls):
         # Note we use SyntaxWarning because by default, DeprecationWarning is
         # not shown.
         warnings.warn(
-            "This usage is deprecated.  Please use %s instead." % cls.__name__,
+            f"This usage is deprecated.  Please use {cls.__name__} instead.",
             SyntaxWarning,
             stacklevel=2,
         )
@@ -1105,8 +1103,8 @@ def enable_plugins(pluginfilename=None):
     file is shared with it.
     """
     import yt
+    from yt.config import CONFIG_DIR, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
-    from yt.config import ytcfg, CONFIG_DIR
 
     if pluginfilename is not None:
         _fn = pluginfilename
@@ -1124,8 +1122,8 @@ def enable_plugins(pluginfilename=None):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
-            mylog.error("Could not find a global system plugin file.")
-            return
+            raise FileNotFoundError("Could not find a global system plugin file.")
+
         if _fn.startswith(old_config_dir):
             mylog.warning(
                 "Your plugin file is located in a deprecated directory. "
@@ -1185,25 +1183,24 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
 
     Examples
     --------
-    >>> import yt.funcs as funcs
-    >>> funcs.get_hash('/path/to/test.png')
-    'd38da04859093d430fa4084fd605de60'
-
+    >>> from tempfile import NamedTemporaryFile
+    >>> with NamedTemporaryFile() as file:
+    ...    get_hash(file.name)
+    'd41d8cd98f00b204e9800998ecf8427e'
     """
     import hashlib
 
     try:
         hasher = getattr(hashlib, algorithm)()
-    except Exception:
+    except AttributeError as e:
         raise NotImplementedError(
-            "'%s' not available!  Available algorithms: %s"
-            % (algorithm, hashlib.algorithms)
-        )
+            f"'{algorithm}' not available!  Available algorithms: {hashlib.algorithms}"
+        ) from e
 
     filesize = os.path.getsize(infile)
     iterations = int(float(filesize) / float(BLOCKSIZE))
 
-    pbar = get_pbar("Generating %s hash" % algorithm, iterations)
+    pbar = get_pbar(f"Generating {algorithm} hash", iterations)
 
     iter = 0
     with open(infile, "rb") as f:
@@ -1266,10 +1263,13 @@ def matplotlib_style_context(style_name=None, after_reset=False):
     available, returns a dummy context manager.
     """
     if style_name is None:
-        style_name = {
-            "mathtext.fontset": "cm",
-            "mathtext.fallback_to_cm": True,
-        }
+        import matplotlib
+
+        style_name = {"mathtext.fontset": "cm"}
+        if LooseVersion(matplotlib.__version__) >= LooseVersion("3.3.0"):
+            style_name["mathtext.fallback"] = "cm"
+        else:
+            style_name["mathtext.fallback_to_cm"] = True
     try:
         import matplotlib.style
 

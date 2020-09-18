@@ -8,6 +8,7 @@ from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 from yt.testing import (
     assert_equal,
+    assert_raises,
     requires_file,
     requires_module,
     units_override_check,
@@ -21,7 +22,12 @@ from yt.utilities.answer_testing.framework import (
 )
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 
-_fields = ("temperature", "density", "velocity_magnitude")
+_fields = (
+    "temperature",
+    "density",
+    "velocity_magnitude",
+    "pressure_gradient_magnitude",
+)
 
 output_00080 = "output_00080/info_00080.txt"
 
@@ -133,7 +139,7 @@ def test_extra_fields():
 
 @requires_file(ramsesExtraFieldsSmall)
 def test_extra_fields_2():
-    extra_fields = ["particle_extra_field_%s" % (i + 1) for i in range(2)]
+    extra_fields = [f"particle_extra_field_{i + 1}" for i in range(2)]
     ds = yt.load(os.path.join(ramsesExtraFieldsSmall, "info_00001.txt"))
 
     # the dataset should contain the fields
@@ -216,9 +222,9 @@ def test_ramses_sink():
         "particle_prop_0_1",
         "particle_prop_0_2",
         "particle_prop_0_3",
-        "particle_prop_1_0",
-        "particle_prop_1_1",
-        "particle_prop_1_2",
+        "particle_prop_0_4",
+        "particle_prop_0_5",
+        "particle_prop_0_6",
         "particle_velocity_x",
         "particle_velocity_y",
         "particle_velocity_z",
@@ -239,7 +245,7 @@ def test_ramses_sink():
     ad = ds.all_data()
 
     for field in expected_fields:
-        assert ("sink", "field") not in ds.field_list
+        assert ("sink", field) not in ds.field_list
 
 
 ramses_new_format = "ramses_new_format/output_00002/info_00002.txt"
@@ -350,12 +356,12 @@ def test_grav_detection():
 
     # Test detection
     for k in "xyz":
-        assert ("gravity", "%s-acceleration" % k) in ds.field_list
-        assert ("gas", "acceleration_%s" % k) in ds.derived_field_list
+        assert ("gravity", f"{k}-acceleration") in ds.field_list
+        assert ("gas", f"acceleration_{k}") in ds.derived_field_list
 
     # Test access
     for k in "xyz":
-        ds.r["gas", "acceleration_%s" % k]
+        ds.r["gas", f"acceleration_{k}"]
 
 
 @requires_file(ramses_sink)
@@ -465,9 +471,6 @@ def test_cooling_fields():
     check_unit(ds.r[("gas", "Electron_number_density")], "cm**(-3)")
 
 
-ramses_rt = "ramses_rt_00088/output_00088/info_00088.txt"
-
-
 @requires_file(ramses_rt)
 def test_ramses_mixed_files():
     # Test that one can use derived fields that depend on different
@@ -540,3 +543,59 @@ def test_magnetic_field_aliasing():
     ]:
         assert ("gas", field) in ds.derived_field_list
         ad[("gas", field)]
+
+
+@requires_file(output_00080)
+def test_field_accession():
+    ds = yt.load(output_00080)
+    fields = [
+        ("gas", "density"),  # basic ones
+        ("gas", "pressure"),
+        ("gas", "pressure_gradient_magnitude"),  # requires ghost zones
+    ]
+    # Check accessing gradient works for a variety of spatial domains
+    for reg in (
+        ds.all_data(),
+        ds.sphere([0.1] * 3, 0.01),
+        ds.sphere([0.5] * 3, 0.05),
+        ds.box([0.1] * 3, [0.2] * 3),
+    ):
+        for field in fields:
+            reg[field]
+
+
+@requires_file(output_00080)
+def test_max_level():
+    ds = yt.load(output_00080)
+
+    assert any(ds.r["index", "grid_level"] > 2)
+
+    # Should work
+    for ds in (
+        yt.load(output_00080, max_level=2, max_level_convention="yt"),
+        yt.load(output_00080, max_level=8, max_level_convention="ramses"),
+    ):
+        assert all(ds.r["index", "grid_level"] <= 2)
+        assert any(ds.r["index", "grid_level"] == 2)
+
+
+@requires_file(ramses_new_format)
+def test_invalid_max_level():
+    invalid_value_args = (
+        (1, None),
+        (1, "foo"),
+        (1, "bar"),
+        (-1, "yt"),
+    )
+    for lvl, convention in invalid_value_args:
+        with assert_raises(ValueError):
+            yt.load(output_00080, max_level=lvl, max_level_convention=convention)
+
+    invalid_type_args = (
+        (1.0, "yt"),  # not an int
+        ("invalid", "yt"),
+    )
+    # Should fail with value errors
+    for lvl, convention in invalid_type_args:
+        with assert_raises(TypeError):
+            yt.load(output_00080, max_level=lvl, max_level_convention=convention)

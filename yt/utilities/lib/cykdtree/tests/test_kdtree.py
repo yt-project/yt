@@ -73,11 +73,11 @@ def test_neighbors(periodic=False):
                 assert len(right_neighbors[d][leaf.id]) == len(leaf.right_neighbors[d])
                 for i in range(len(leaf.right_neighbors[d])):
                     assert right_neighbors[d][leaf.id][i] == leaf.right_neighbors[d][i]
-        except:
+        except Exception as e:
             for leaf in tree.leaves:
                 print(leaf.id, leaf.left_edge, leaf.right_edge)
             print(out_str)
-            raise
+            raise e
 
 
 @parametrize(npts=100, ndim=(2, 3), periodic=(False, True))
@@ -96,7 +96,7 @@ def time_tree_construction(Ntime, LStime, ndim=2):
     t0 = time.time()
     cykdtree.PyKDTree(pts, le, re, leafsize=LStime)
     t1 = time.time()
-    print("{} {}D points, leafsize {}: took {} s".format(Ntime, ndim, LStime, t1 - t0))
+    print(f"{Ntime} {ndim}D points, leafsize {LStime}: took {t1 - t0} s")
 
 
 def time_neighbor_search(Ntime, LStime, ndim=2):
@@ -105,7 +105,7 @@ def time_neighbor_search(Ntime, LStime, ndim=2):
     t0 = time.time()
     tree.get_neighbor_ids(0.5 * np.ones(tree.ndim, "double"))
     t1 = time.time()
-    print("{} {}D points, leafsize {}: took {} s".format(Ntime, ndim, LStime, t1 - t0))
+    print(f"{Ntime} {ndim}D points, leafsize {LStime}: took {t1 - t0} s")
 
 
 def test_save_load():

@@ -40,7 +40,7 @@ class RockstarBinaryFile(HaloCatalogFile):
         f.seek(self._position_offset, os.SEEK_SET)
         halos = np.fromfile(f, dtype=self.io._halo_dt, count=pcount)
         for i, ax in enumerate("xyz"):
-            pos[:, i] = halos["particle_position_%s" % ax].astype("float64")
+            pos[:, i] = halos[f"particle_position_{ax}"].astype("float64")
 
         if close:
             f.close()
@@ -77,7 +77,7 @@ class RockstarDataset(ParticleDataset):
         self.dimensionality = 3
         self.refine_by = 2
         prefix = ".".join(self.parameter_filename.rsplit(".", 2)[:-2])
-        self.filename_template = "%s.%%(num)s%s" % (prefix, self._suffix)
+        self.filename_template = f"{prefix}.%(num)s{self._suffix}"
         self.file_count = len(glob.glob(prefix + ".*" + self._suffix))
 
         # Now we can set up things we already know.

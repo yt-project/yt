@@ -6,7 +6,7 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.particle_container import ParticleContainer
+from yt.data_objects.index_subobjects.particle_container import ParticleContainer
 from yt.funcs import get_pbar, only_on_root
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import ParticleBitmap
@@ -43,10 +43,37 @@ class ParticleIndex(Index):
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 
+
     @property
     def chunksize(self):
         # This can be overridden in subclasses
         return 64 ** 3
+
+    _data_files = None
+
+    @property
+    def data_files(self):
+        if self._data_files is not None:
+            return self._data_files
+
+        self._setup_filenames()
+        return self._data_files
+
+    @data_files.setter
+    def data_files(self, value):
+        self._data_files = value
+
+    _total_particles = None
+
+    @property
+    def total_particles(self):
+        if self._total_particles is not None:
+            return self._total_particles
+
+        self._total_particles = sum(
+            sum(d.total_particles.values()) for d in self.data_files
+        )
+        return self._total_particles
 
     def _setup_filenames(self):
         template = self.dataset.filename_template
@@ -70,9 +97,6 @@ class ParticleIndex(Index):
                     break
                 start = end
                 end += self.chunksize
-        self.total_particles = sum(
-            sum(d.total_particles.values()) for d in self.data_files
-        )
 
     def _initialize_index(self):
         ds = self.dataset
@@ -241,7 +265,6 @@ class ParticleIndex(Index):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
-        self._setup_filenames()
         dsl = []
         units = {}
         pcounts = self._get_particle_type_counts()

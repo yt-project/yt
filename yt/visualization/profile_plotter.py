@@ -8,7 +8,6 @@ from functools import wraps
 import matplotlib
 import numpy as np
 
-from yt.data_objects.data_containers import YTSelectionContainer
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
@@ -16,6 +15,7 @@ from yt.funcs import ensure_list, get_image_suffix, iterable, matplotlib_style_c
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
+from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
 from .base_plot_types import ImagePlotMPL, PlotMPL
 from .plot_container import (
     ImagePlotContainer,
@@ -193,7 +193,7 @@ class ProfilePlot:
 
     This creates profiles from a time series object.
 
-    >>> es = yt.simulation("AMRCosmology.enzo", "Enzo")
+    >>> es = yt.load_simulation("AMRCosmology.enzo", "Enzo")
     >>> es.get_time_series()
 
     >>> profiles = []
@@ -289,14 +289,14 @@ class ProfilePlot:
             iters = self.plots.items()
         if not suffix:
             suffix = "png"
-        suffix = ".%s" % suffix
+        suffix = f".{suffix}"
         fullname = False
         if name is None:
             if len(self.profiles) == 1:
                 prefix = self.profiles[0].ds
             else:
                 prefix = "Multi-data"
-            name = "%s%s" % (prefix, suffix)
+            name = f"{prefix}{suffix}"
         else:
             sfx = get_image_suffix(name)
             if sfx != "":
@@ -313,9 +313,9 @@ class ProfilePlot:
             if isinstance(uid, tuple):
                 uid = uid[1]
             if fullname:
-                fns.append("%s%s" % (prefix, suffix))
+                fns.append(f"{prefix}{suffix}")
             else:
-                fns.append("%s_1d-Profile_%s_%s%s" % (prefix, xfn, uid, suffix))
+                fns.append(f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}")
             mylog.info("Saving %s", fns[-1])
             with matplotlib_style_context():
                 plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
@@ -355,10 +355,10 @@ class ProfilePlot:
         ret = ""
         unique = set(self.plots.values())
         if len(unique) < len(self.plots):
-            iters = zip(range(len(unique)), sorted(unique))
+            iters = sorted(unique)
         else:
-            iters = self.plots.items()
-        for uid, plot in iters:
+            iters = self.plots.values()
+        for plot in iters:
             with matplotlib_style_context():
                 img = plot._repr_png_()
             img = base64.b64encode(img).decode()
@@ -463,8 +463,8 @@ class ProfilePlot:
         Examples
         --------
 
-        >>> from yt import simulation
-        >>> es = simulation("AMRCosmology.enzo", "Enzo")
+        >>> from yt import load_simulation
+        >>> es = load_simulation("AMRCosmology.enzo", "Enzo")
         >>> es.get_time_series()
 
         >>> profiles = []
@@ -548,7 +548,7 @@ class ProfilePlot:
             elif field in self.profiles[0].field_data:
                 self.y_log[field] = log
             else:
-                raise KeyError("Field %s not in profile plot!" % (field))
+                raise KeyError(f"Field {field} not in profile plot!")
         return self
 
     @invalidate_plot
@@ -571,7 +571,7 @@ class ProfilePlot:
             if field in self.profiles[0].field_data:
                 self.y_title[field] = label
             else:
-                raise KeyError("Field %s not in profile plot!" % (field))
+                raise KeyError(f"Field {field} not in profile plot!")
 
         return self
 
@@ -607,7 +607,7 @@ class ProfilePlot:
             elif fd[1] in self.profiles[0].field_map:
                 profile.set_field_unit(field, unit)
             else:
-                raise KeyError("Field %s not in profile plot!" % (field))
+                raise KeyError(f"Field {field} not in profile plot!")
         return self
 
     @invalidate_plot
@@ -898,6 +898,11 @@ class PhasePlot(ImagePlotContainer):
     figure_size : int
         Size in inches of the image.
         Default: 8 (8x8)
+    shading : str
+        This argument is directly passed down to matplotlib.axes.Axes.pcolormesh
+        see
+        https://matplotlib.org/3.3.1/gallery/images_contours_and_fields/pcolormesh_grids.html#sphx-glr-gallery-images-contours-and-fields-pcolormesh-grids-py  # noqa
+        Default: 'nearest'
 
     Examples
     --------
@@ -937,6 +942,7 @@ class PhasePlot(ImagePlotContainer):
         fractional=False,
         fontsize=18,
         figure_size=8.0,
+        shading="nearest",
     ):
 
         data_source = data_object_or_all_data(data_source)
@@ -955,11 +961,13 @@ class PhasePlot(ImagePlotContainer):
             )
 
         type(self)._initialize_instance(
-            self, data_source, profile, fontsize, figure_size
+            self, data_source, profile, fontsize, figure_size, shading
         )
 
     @classmethod
-    def _initialize_instance(cls, obj, data_source, profile, fontsize, figure_size):
+    def _initialize_instance(
+        cls, obj, data_source, profile, fontsize, figure_size, shading
+    ):
         obj.plot_title = {}
         obj.z_log = {}
         obj.z_title = {}
@@ -971,6 +979,7 @@ class PhasePlot(ImagePlotContainer):
         obj._text_ypos = {}
         obj._text_kwargs = {}
         obj._profile = profile
+        obj._shading = shading
         obj._profile_valid = True
         obj._xlim = (None, None)
         obj._ylim = (None, None)
@@ -1074,8 +1083,9 @@ class PhasePlot(ImagePlotContainer):
                     positive_values = data[data > 0.0]
                     if len(positive_values) == 0:
                         mylog.warning(
-                            "Profiled field %s has no positive "
-                            "values.  Max = %f." % (f, np.nanmax(data))
+                            "Profiled field %s has no positive " "values.  Max = %f.",
+                            f,
+                            np.nanmax(data),
                         )
                         mylog.warning("Switching to linear colorbar scaling.")
                         zmin = np.nanmin(data)
@@ -1114,6 +1124,7 @@ class PhasePlot(ImagePlotContainer):
                 fig,
                 axes,
                 cax,
+                shading=self._shading,
             )
 
             self.plots[f]._toggle_axes(draw_axes)
@@ -1181,7 +1192,7 @@ class PhasePlot(ImagePlotContainer):
         self._plot_valid = True
 
     @classmethod
-    def from_profile(cls, profile, fontsize=18, figure_size=8.0):
+    def from_profile(cls, profile, fontsize=18, figure_size=8.0, shading="nearest"):
         r"""
         Instantiate a PhasePlot object from a profile object created
         with :func:`~yt.data_objects.profiles.create_profile`.
@@ -1194,6 +1205,11 @@ class PhasePlot(ImagePlotContainer):
              The fontsize to use, in points.
         figure_size : float
              The figure size to use, in inches.
+        shading : str
+            This argument is directly passed down to matplotlib.axes.Axes.pcolormesh
+            see
+            https://matplotlib.org/3.3.1/gallery/images_contours_and_fields/pcolormesh_grids.html#sphx-glr-gallery-images-contours-and-fields-pcolormesh-grids-py  # noqa
+            Default: 'nearest'
 
         Examples
         --------
@@ -1214,7 +1230,7 @@ class PhasePlot(ImagePlotContainer):
         obj = cls.__new__(cls)
         data_source = profile.data_source
         return cls._initialize_instance(
-            obj, data_source, profile, fontsize, figure_size
+            obj, data_source, profile, fontsize, figure_size, shading
         )
 
     def annotate_text(self, xpos=0.0, ypos=0.0, text=None, **text_kwargs):
@@ -1291,7 +1307,7 @@ class PhasePlot(ImagePlotContainer):
             _f = f
             if isinstance(f, tuple):
                 _f = _f[1]
-            middle = "2d-Profile_%s_%s_%s" % (xfn, yfn, _f)
+            middle = f"2d-Profile_{xfn}_{yfn}_{_f}"
             splitname = os.path.split(name)
             if splitname[0] != "" and not os.path.isdir(splitname[0]):
                 os.makedirs(splitname[0])
@@ -1303,12 +1319,12 @@ class PhasePlot(ImagePlotContainer):
             if suffix is None:
                 suffix = get_image_suffix(name)
                 if suffix != "":
-                    for k, v in self.plots.items():
+                    for v in self.plots.values():
                         names.append(v.save(name, mpl_kwargs))
                     return names
                 else:
                     suffix = "png"
-            fn = "%s_%s.%s" % (prefix, middle, suffix)
+            fn = f"{prefix}_{middle}.{suffix}"
             names.append(fn)
             self.plots[f].save(fn, mpl_kwargs)
         return names
@@ -1450,7 +1466,7 @@ class PhasePlot(ImagePlotContainer):
             elif field in p.field_data:
                 self.z_log[field] = log
             else:
-                raise KeyError("Field %s not in phase plot!" % (field))
+                raise KeyError(f"Field {field} not in phase plot!")
         return self
 
     @invalidate_plot
@@ -1474,7 +1490,7 @@ class PhasePlot(ImagePlotContainer):
             self.profile.set_field_unit(field, unit)
             self.plots[field].zmin, self.plots[field].zmax = (None, None)
         else:
-            raise KeyError("Field %s not in phase plot!" % (field))
+            raise KeyError(f"Field {field} not in phase plot!")
         return self
 
     @invalidate_plot
@@ -1606,12 +1622,13 @@ class PhasePlotMPL(ImagePlotMPL):
         figure,
         axes,
         cax,
+        shading="nearest",
     ):
         self._initfinished = False
         self._draw_colorbar = True
         self._draw_axes = True
         self._figure_size = figure_size
-
+        self._shading = shading
         # Compute layout
         fontscale = float(fontsize) / 18.0
         if fontscale < 1.0:
@@ -1645,12 +1662,14 @@ class PhasePlotMPL(ImagePlotMPL):
             norm = matplotlib.colors.Normalize(zlim[0], zlim[1])
         self.image = None
         self.cb = None
+
         self.image = self.axes.pcolormesh(
             np.array(x_data),
             np.array(y_data),
             np.array(image_data.T),
             norm=norm,
             cmap=cmap,
+            shading=self._shading,
         )
 
         self.axes.set_xscale(x_scale)

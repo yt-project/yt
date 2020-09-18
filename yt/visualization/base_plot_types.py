@@ -134,13 +134,15 @@ class PlotMPL:
 
         if mpl_kwargs is None:
             mpl_kwargs = {}
-        if "papertype" not in mpl_kwargs:
+        if "papertype" not in mpl_kwargs and LooseVersion(
+            matplotlib.__version__
+        ) < LooseVersion("3.3.0"):
             mpl_kwargs["papertype"] = "auto"
 
         suffix = get_image_suffix(name)
         if suffix == "":
             suffix = ".png"
-            name = "%s%s" % (name, suffix)
+            name = f"{name}{suffix}"
 
         mylog.info("Saving plot %s", name)
 

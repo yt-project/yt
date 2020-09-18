@@ -6,7 +6,11 @@ from unittest import TestCase
 import numpy as np
 
 from yt.testing import fake_random_ds
-from yt.visualization.volume_rendering.api import PointSource, Scene, VolumeSource
+from yt.visualization.volume_rendering.api import (
+    PointSource,
+    Scene,
+    create_volume_source,
+)
 
 
 def setup():
@@ -43,7 +47,7 @@ class PointsVRTest(TestCase):
         sc = Scene()
         cam = sc.add_camera(ds)
         cam.resolution = (512, 512)
-        vr = VolumeSource(dd, field=ds.field_list[0])
+        vr = create_volume_source(dd, field=ds.field_list[0])
         vr.transfer_function.clear()
         vr.transfer_function.grey_opacity = False
         vr.transfer_function.map_to_colormap(0.0, 1.0, scale=10.0, colormap="Reds")

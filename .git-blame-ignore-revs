@@ -1,0 +1,15 @@
+# transition to isort
+7edfcee093cca277307aabdb180e0ffc69768291
+81418e459f16c48d6b7a75d6ef8035dfe9651b39
+
+# transition to black
+ebadee629414aed2c7b6526e22a419205329ec38
+
+# automated trailing whitespace removal
+3ee548b04a41dfbc009921c492fba6a0682651ca
+
+# converting to f-strings
+ad898e8e3954bc348daaa449d5ed73db778785e9
+ef51ad5199692afcf1a8ab491aa115c00c423113
+323ac4ddd4e99d6b951666736d4e9b03b6cfa21e
+f7445f02022293f1b089cd8907000301516354bf

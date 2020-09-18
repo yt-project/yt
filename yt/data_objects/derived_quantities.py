@@ -3,14 +3,13 @@ import numpy as np
 from yt.funcs import camelcase_to_underscore, ensure_list
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTParticleTypeNotFound
+from yt.utilities.object_registries import derived_quantity_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
     parallel_objects,
 )
 from yt.utilities.physical_constants import gravitational_constant_cgs
 from yt.utilities.physical_ratios import HUGE
-
-derived_quantity_registry = {}
 
 
 def get_position_fields(field, data):
@@ -22,25 +21,23 @@ def get_position_fields(field, data):
             ftype = finfo.alias_name[0]
         else:
             ftype = finfo.name[0]
-        position_fields = [(ftype, "particle_position_%s" % d) for d in axis_names]
+        position_fields = [(ftype, f"particle_position_{d}") for d in axis_names]
     else:
         position_fields = axis_names
 
     return position_fields
 
 
-class RegisteredDerivedQuantity(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if name != "DerivedQuantity":
-            derived_quantity_registry[name] = cls
-
-
-class DerivedQuantity(ParallelAnalysisInterface, metaclass=RegisteredDerivedQuantity):
+class DerivedQuantity(ParallelAnalysisInterface):
     num_vals = -1
 
     def __init__(self, data_source):
         self.data_source = data_source
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if cls.__name__ != "DerivedQuantity":
+            derived_quantity_registry[cls.__name__] = cls
 
     def count_values(self, *args, **kwargs):
         return
@@ -267,7 +264,7 @@ class CenterOfMass(DerivedQuantity):
         if self.use_particles:
             vals += [
                 (
-                    data[particle_type, "particle_position_%s" % ax]
+                    data[particle_type, f"particle_position_{ax}"]
                     * data[particle_type, "particle_mass"]
                 ).sum(dtype=np.float64)
                 for ax in "xyz"
@@ -339,7 +336,7 @@ class BulkVelocity(DerivedQuantity):
         vals = []
         if use_gas:
             vals += [
-                (data["gas", "velocity_%s" % ax] * data["gas", "mass"]).sum(
+                (data["gas", f"velocity_{ax}"] * data["gas", "mass"]).sum(
                     dtype=np.float64
                 )
                 for ax in "xyz"
@@ -348,7 +345,7 @@ class BulkVelocity(DerivedQuantity):
         if use_particles and "nbody" in data.ds.particle_types:
             vals += [
                 (
-                    data[particle_type, "particle_velocity_%s" % ax]
+                    data[particle_type, f"particle_velocity_{ax}"]
                     * data[particle_type, "particle_mass"]
                 ).sum(dtype=np.float64)
                 for ax in "xyz"
@@ -520,7 +517,7 @@ class AngularMomentumVector(DerivedQuantity):
             rvals.extend(
                 [
                     (
-                        data["gas", "specific_angular_momentum_%s" % axis]
+                        data["gas", f"specific_angular_momentum_{axis}"]
                         * data["gas", "mass"]
                     ).sum(dtype=np.float64)
                     for axis in "xyz"
@@ -533,7 +530,7 @@ class AngularMomentumVector(DerivedQuantity):
                     (
                         data[
                             self.particle_type,
-                            "particle_specific_angular_momentum_%s" % axis,
+                            f"particle_specific_angular_momentum_{axis}",
                         ]
                         * data[self.particle_type, "particle_mass"]
                     ).sum(dtype=np.float64)

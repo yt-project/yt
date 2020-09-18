@@ -1,8 +1,8 @@
 import numpy as np
 
+from yt.data_objects.index_subobjects.unstructured_mesh import UnstructuredMesh
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.unions import MeshUnion
-from yt.data_objects.unstructured_mesh import UnstructuredMesh
 from yt.funcs import setdefaultattr
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
@@ -227,10 +227,10 @@ class ExodusIIDataset(Dataset):
         with self._handle.open_ds() as ds:
             try:
                 return ds.variables["time_whole"][self.step]
-            except IndexError:
+            except IndexError as e:
                 raise RuntimeError(
                     "Invalid step number, max is %d" % (self.num_steps - 1)
-                )
+                ) from e
             except (KeyError, TypeError):
                 return 0.0
 
@@ -295,7 +295,7 @@ class ExodusIIDataset(Dataset):
         with self._handle.open_ds() as ds:
             if "coord" not in ds.variables:
                 coords = (
-                    np.array([ds.variables["coord%s" % ax][:] for ax in coord_axes])
+                    np.array([ds.variables[f"coord{ax}"][:] for ax in coord_axes])
                     .transpose()
                     .astype("f8")
                 )
@@ -321,8 +321,8 @@ class ExodusIIDataset(Dataset):
         coord_axes = "xyz"[: self.dimensionality]
         with self._handle.open_ds() as ds:
             for i, ax in enumerate(coord_axes):
-                if "disp_%s" % ax in self.parameters["nod_names"]:
-                    ind = self.parameters["nod_names"].index("disp_%s" % ax)
+                if f"disp_{ax}" in self.parameters["nod_names"]:
+                    ind = self.parameters["nod_names"].index(f"disp_{ax}")
                     disp = ds.variables["vals_nod_var%d" % (ind + 1)][self.step]
                     new_coords[:, i] = coords[:, i] + fac * disp + offset[i]
 

@@ -5,7 +5,9 @@ from functools import partial
 
 import numpy as np
 
-from yt.data_objects.data_containers import YTSelectionContainer
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
+)
 from yt.data_objects.static_output import ParticleDataset
 from yt.frontends.gadget.data_structures import _fix_unit_ordering
 from yt.frontends.gadget_fof.fields import GadgetFOFFieldInfo, GadgetFOFHaloFieldInfo
@@ -93,22 +95,16 @@ class GadgetFOFParticleIndex(ParticleIndex):
         ds.particle_types_raw = ds.particle_types
 
     def _setup_filenames(self):
-        if not hasattr(self, "data_files"):
-            template = self.ds.filename_template
-            ndoms = self.ds.file_count
-            cls = self.ds._file_class
-            self.data_files = [
-                cls(self.ds, self.io, template % {"num": i}, i, frange=None)
-                for i in range(ndoms)
-            ]
-        if not hasattr(self, "total_particles"):
-            self.total_particles = sum(
-                sum(d.total_particles.values()) for d in self.data_files
-            )
+        template = self.ds.filename_template
+        ndoms = self.ds.file_count
+        cls = self.ds._file_class
+        self.data_files = [
+            cls(self.ds, self.io, template % {"num": i}, i, frange=None)
+            for i in range(ndoms)
+        ]
 
     def _setup_data_io(self):
         super(GadgetFOFParticleIndex, self)._setup_data_io()
-        self._setup_filenames()
         self._calculate_particle_count()
         self._calculate_particle_index_starts()
         self._calculate_file_offset_map()
@@ -141,7 +137,7 @@ class GadgetFOFHDF5File(HaloCatalogFile):
         else:
             close = False
 
-        pos = f[ptype]["%sPos" % ptype][()].astype("float64")
+        pos = f[ptype][f"{ptype}Pos"][()].astype("float64")
 
         if close:
             f.close()
@@ -205,7 +201,7 @@ class GadgetFOFDataset(ParticleDataset):
 
     def _setup_classes(self):
         super(GadgetFOFDataset, self)._setup_classes()
-        self.halo = partial(GagdetFOFHaloContainer, ds=self._halos_ds)
+        self.halo = partial(GadgetFOFHaloContainer, ds=self._halos_ds)
 
     def _parse_parameter_file(self):
         with h5py.File(self.parameter_filename, mode="r") as f:
@@ -240,7 +236,7 @@ class GadgetFOFDataset(ParticleDataset):
             )
         )
         suffix = self.parameter_filename.rsplit(".", 1)[-1]
-        self.filename_template = "%s.%%(num)i.%s" % (prefix, suffix)
+        self.filename_template = f"{prefix}.%(num)i.{suffix}"
         self.file_count = self.parameters["NumFiles"]
         self.particle_types = ("Group", "Subhalo")
         self.particle_types_raw = ("Group", "Subhalo")
@@ -328,10 +324,6 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
     def __init__(self, ds, dataset_type):
         self.real_ds = weakref.proxy(ds.real_ds)
         super(GadgetFOFHaloParticleIndex, self).__init__(ds, dataset_type)
-
-    def _setup_data_io(self):
-        super(GadgetFOFHaloParticleIndex, self)._setup_data_io()
-        self._create_halo_id_table()
 
     def _create_halo_id_table(self):
         """
@@ -437,6 +429,10 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
 
         return data
 
+    def _setup_data_io(self):
+        super(GadgetFOFHaloParticleIndex, self)._setup_data_io()
+        self._create_halo_id_table()
+
 
 class GadgetFOFHaloDataset(ParticleDataset):
     _index_class = GadgetFOFHaloParticleIndex
@@ -483,19 +479,27 @@ class GadgetFOFHaloDataset(ParticleDataset):
             setattr(self, attr, getattr(self.real_ds, attr))
 
     def set_code_units(self):
-        for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
-            my_unit = "%s_unit" % unit
-            setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
+        self._set_code_unit_attributes()
         self.unit_registry = self.real_ds.unit_registry
 
+    def _set_code_unit_attributes(self):
+        for unit in ["length", "time", "mass", "velocity", "magnetic", "temperature"]:
+            my_unit = f"{unit}_unit"
+            setattr(self, my_unit, getattr(self.real_ds, my_unit, None))
+
     def __repr__(self):
-        return "%s" % self.real_ds
+        return f"{self.real_ds}"
 
     def _setup_classes(self):
         self.objects = []
 
+    @classmethod
+    def _is_valid(cls, *args, **kwargs):
+        # This class is not meant to be instanciated by yt.load()
+        return False
 
-class GagdetFOFHaloContainer(YTSelectionContainer):
+
+class GadgetFOFHaloContainer(YTSelectionContainer):
     """
     Create a data container to get member particles and individual
     values from halos and subhalos. Halo mass, position, and
@@ -576,13 +580,12 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
     def __init__(self, ptype, particle_identifier, ds=None):
         if ptype not in ds.particle_types_raw:
             raise RuntimeError(
-                'Possible halo types are %s, supplied "%s".'
-                % (ds.particle_types_raw, ptype)
+                f'Possible halo types are {ds.particle_types_raw}, supplied "{ptype}".'
             )
 
         self.ptype = ptype
         self._current_particle_type = ptype
-        super(GagdetFOFHaloContainer, self).__init__(ds, {})
+        super(GadgetFOFHaloContainer, self).__init__(ds, {})
 
         if ptype == "Subhalo" and isinstance(particle_identifier, tuple):
             self.group_identifier, self.subgroup_identifier = particle_identifier
@@ -612,13 +615,13 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
             ptype, self.particle_identifier
         )
 
-        halo_fields = ["%sLen" % ptype]
+        halo_fields = [f"{ptype}Len"]
         if ptype == "Subhalo":
             halo_fields.append("SubhaloGrNr")
         my_data = self.index._get_halo_values(
             ptype, np.array([self.particle_identifier]), halo_fields
         )
-        self.particle_number = np.int64(my_data["%sLen" % ptype][0])
+        self.particle_number = np.int64(my_data[f"{ptype}Len"][0])
 
         if ptype == "Group":
             self.group_identifier = self.particle_identifier
@@ -652,13 +655,11 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
             parent_subhalos = my_data["GroupNsubs"][0]
 
             mylog.debug(
-                "Subhalo %d is subgroup %s of %d in group %d."
-                % (
-                    self.particle_identifier,
-                    self.subgroup_identifier,
-                    parent_subhalos,
-                    self.group_identifier,
-                )
+                "Subhalo %d is subgroup %s of %d in group %d.",
+                self.particle_identifier,
+                self.subgroup_identifier,
+                parent_subhalos,
+                self.group_identifier,
             )
 
             # ids of the sibling subhalos that come before this one
@@ -707,7 +708,7 @@ class GagdetFOFHaloContainer(YTSelectionContainer):
         self.field_data_end = self.field_data_end.astype(np.int64)
 
         for attr in ["mass", "position", "velocity"]:
-            setattr(self, attr, self[self.ptype, "particle_%s" % attr][0])
+            setattr(self, attr, self[self.ptype, f"particle_{attr}"][0])
 
     def __repr__(self):
         return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)

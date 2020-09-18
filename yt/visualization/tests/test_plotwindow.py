@@ -11,7 +11,7 @@ import matplotlib
 import numpy as np
 from nose.tools import assert_true
 
-from yt.frontends.stream.api import load_uniform_grid
+from yt.loaders import load_uniform_grid
 from yt.testing import (
     assert_array_almost_equal,
     assert_array_equal,
@@ -155,7 +155,7 @@ def simple_streamlines(test_obj, plot):
     yax = test_obj.ds.coordinates.y_axis[ax]
     xn = test_obj.ds.coordinates.axis_name[xax]
     yn = test_obj.ds.coordinates.axis_name[yax]
-    plot.annotate_streamlines("velocity_%s" % xn, "velocity_%s" % yn)
+    plot.annotate_streamlines(f"velocity_{xn}", f"velocity_{yn}")
 
 
 CALLBACK_TESTS = (

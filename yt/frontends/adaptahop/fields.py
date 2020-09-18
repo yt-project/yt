@@ -58,14 +58,14 @@ class AdaptaHOPFieldInfo(FieldInfoContainer):
             shift = self.ds.domain_width[0] / 2
 
             def closure(field, data):
-                return data["halos", "raw_position_%s" % d] + shift
+                return data["halos", f"raw_position_{d}"] + shift
 
             return closure
 
         for k in "xyz":
             fun = generate_pos_field(k)
             self.add_field(
-                ("halos", "particle_position_%s" % k),
+                ("halos", f"particle_position_{k}"),
                 sampling_type="particle",
                 function=fun,
                 units="Mpc",

@@ -293,9 +293,7 @@ class PerspectiveLens(Lens):
         return px, py, dz
 
     def __repr__(self):
-        disp = "<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:%s" % (
-            self.viewpoint
-        )
+        disp = f"<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:{self.viewpoint}"
         return disp
 
 
@@ -520,9 +518,7 @@ class StereoPerspectiveLens(Lens):
         self.viewpoint = self.front_center
 
     def __repr__(self):
-        disp = "<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:%s" % (
-            self.viewpoint
-        )
+        disp = f"<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:{self.viewpoint}"
         return disp
 
 

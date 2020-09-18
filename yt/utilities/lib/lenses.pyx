@@ -9,9 +9,12 @@ Functions for computing the extent of lenses and whatnot
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 from .image_samplers cimport ImageSampler
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
