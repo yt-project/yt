@@ -4,8 +4,10 @@ import tempfile
 from importlib.util import find_spec
 from pathlib import Path
 
+import matplotlib
 import pytest
 import yaml
+from packaging.version import Version
 
 from yt.config import ytcfg
 from yt.utilities.answer_testing.testing_utilities import (
@@ -16,6 +18,8 @@ from yt.utilities.answer_testing.testing_utilities import (
     _streamline_for_io,
     data_dir_load,
 )
+
+MPL_VERSION = Version(matplotlib.__version__)
 
 
 def pytest_addoption(parser):
@@ -109,6 +113,14 @@ def pytest_configure(config):
     ):
         config.addinivalue_line("filterwarnings", value)
 
+    if MPL_VERSION < Version("3.0.0"):
+        config.addinivalue_line(
+            "filterwarnings",
+            (
+                "ignore:Using or importing the ABCs from 'collections' instead of from 'collections.abc' "
+                "is deprecated since Python 3.3,and in 3.9 it will stop working:DeprecationWarning"
+            ),
+        )
     # at the time of writing, astropy's wheels are behind numpy's latest
     # version but this doesn't cause actual problems in our test suite, so
     # we allow this warning to pass.

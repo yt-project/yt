@@ -31,7 +31,7 @@ jobs:
         tests-type: [unit]
         include:
           - os: ubuntu-latest
-            python-version: 3.6
+            python-version: 3.7
             dependencies: minimal
             tests-type: unit
 
