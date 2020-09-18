@@ -4,8 +4,6 @@ AMRVAC data structures
 
 
 """
-
-
 import os
 import stat
 import struct
@@ -23,14 +21,6 @@ from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 from . import read_amrvac_namelist
 from .datfile_utils import get_header, get_tree_info
 from .fields import AMRVACFieldInfo
-
-ALLOWED_UNIT_COMBINATIONS = [
-    {"numberdensity_unit", "temperature_unit", "length_unit"},
-    {"mass_unit", "temperature_unit", "length_unit"},
-    {"mass_unit", "time_unit", "length_unit"},
-    {"numberdensity_unit", "velocity_unit", "length_unit"},
-    {"mass_unit", "velocity_unit", "length_unit"},
-]
 
 
 class AMRVACGrid(AMRGridPatch):
@@ -86,23 +76,17 @@ class AMRVACHierarchy(GridIndex):
         super(AMRVACHierarchy, self).__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
-        """
-        Parse field names from datfile header, as stored in self.dataset.parameters
-
-        """
-        # required method
+        """Parse field names from the header, as stored in self.dataset.parameters"""
         self.field_list = [
             (self.dataset_type, f) for f in self.dataset.parameters["w_names"]
         ]
 
     def _count_grids(self):
         """Set self.num_grids from datfile header."""
-        # required method
         self.num_grids = self.dataset.parameters["nleafs"]
 
     def _parse_index(self):
         """Populate self.grid_* attributes from tree info from datfile header."""
-        # required method
         with open(self.index_filename, "rb") as istream:
             vaclevels, morton_indices, block_offsets = get_tree_info(istream)
             assert (
@@ -243,7 +227,6 @@ class AMRVACDataset(Dataset):
     @classmethod
     def _is_valid(self, *args, **kwargs):
         """At load time, check whether data is recognized as AMRVAC formatted."""
-        # required class method
         validation = False
         if args[0].endswith(".dat"):
             try:
@@ -278,7 +261,7 @@ class AMRVACDataset(Dataset):
         Returns
         -------
         geometry_yt : str
-            Lower case geometry tag "cartesian", "polar", "cylindrical" or "spherical"
+            Lower case geometry tag ("cartesian", "polar", "cylindrical" or "spherical")
 
         Examples
         --------
@@ -384,17 +367,9 @@ class AMRVACDataset(Dataset):
     # units stuff ======================================================================
     def _set_code_unit_attributes(self):
         """Reproduce how AMRVAC internally set up physical normalisation factors."""
-        # required method
-        # devnote: this method is never defined in the parent abstract class Dataset
-        # but it is called in Dataset.set_code_units(), which is part of
-        # Dataset.__init__() so it must be defined here.
-
-        # devnote: this gets called later than Dataset._override_code_units()
+        # This gets called later than Dataset._override_code_units()
         # This is the reason why it uses setdefaultattr: it will only fill in the gaps
         # left by the "override", instead of overriding them again.
-        # For the same reason, self.units_override is set, as well as corresponding
-        # *_unit instance attributes which may include up to 3 of the following items:
-        # length, time, mass, velocity, number_density, temperature
 
         # note: yt sets hydrogen mass equal to proton mass, amrvac doesn't.
         mp_cgs = self.quan(1.672621898e-24, "g")  # This value is taken from AstroPy
@@ -408,23 +383,17 @@ class AMRVACDataset(Dataset):
             # in this case unit_mass is supplied (and has been set as attribute)
             mass_unit = self.mass_unit
             density_unit = mass_unit / length_unit ** 3
-            numberdensity_unit = density_unit / ((1.0 + 4.0 * He_abundance) * mp_cgs)
+            nd_unit = density_unit / ((1.0 + 4.0 * He_abundance) * mp_cgs)
         else:
             # other case: numberdensity is supplied.
             # Fall back to one (default) if no overrides supplied
-            numberdensity_override = self.units_override.get(
-                "numberdensity_unit", (1, "cm**-3")
-            )
-            if (
-                "numberdensity_unit" in self.units_override
-            ):  # print similar warning as yt when overriding numberdensity
-                mylog.info(
-                    "Overriding numberdensity_unit: %g %s.", *numberdensity_override
+            try:
+                nd_unit = self.quan(self.units_override["numberdensity_unit"])
+            except KeyError:
+                nd_unit = self.quan(
+                    1.0, self.__class__.default_units["numberdensity_unit"]
                 )
-            numberdensity_unit = self.quan(
-                *numberdensity_override
-            )  # numberdensity is never set as attribute
-            density_unit = (1.0 + 4.0 * He_abundance) * mp_cgs * numberdensity_unit
+            density_unit = (1.0 + 4.0 * He_abundance) * mp_cgs * nd_unit
             mass_unit = density_unit * length_unit ** 3
 
         # 2. calculations for velocity
@@ -442,18 +411,14 @@ class AMRVACDataset(Dataset):
             # Fall back to one (default) if not
             temperature_unit = getattr(self, "temperature_unit", self.quan(1, "K"))
             pressure_unit = (
-                (2.0 + 3.0 * He_abundance)
-                * numberdensity_unit
-                * kb_cgs
-                * temperature_unit
+                (2.0 + 3.0 * He_abundance) * nd_unit * kb_cgs * temperature_unit
             ).in_cgs()
             velocity_unit = (np.sqrt(pressure_unit / density_unit)).in_cgs()
         else:
             # velocity is not zero if either time was given OR velocity was given
             pressure_unit = (density_unit * velocity_unit ** 2).in_cgs()
             temperature_unit = (
-                pressure_unit
-                / ((2.0 + 3.0 * He_abundance) * numberdensity_unit * kb_cgs)
+                pressure_unit / ((2.0 + 3.0 * He_abundance) * nd_unit * kb_cgs)
             ).in_cgs()
 
         # 4. calculations for magnetic unit and time
@@ -464,7 +429,6 @@ class AMRVACDataset(Dataset):
 
         setdefaultattr(self, "mass_unit", mass_unit)
         setdefaultattr(self, "density_unit", density_unit)
-        setdefaultattr(self, "numberdensity_unit", numberdensity_unit)
 
         setdefaultattr(self, "length_unit", length_unit)
         setdefaultattr(self, "velocity_unit", velocity_unit)
@@ -474,48 +438,61 @@ class AMRVACDataset(Dataset):
         setdefaultattr(self, "pressure_unit", pressure_unit)
         setdefaultattr(self, "magnetic_unit", magnetic_unit)
 
-    def _override_code_units(self):
-        """Add a check step to the base class' method (Dataset)."""
-        self._check_override_consistency()
-        super(AMRVACDataset, self)._override_code_units()
+    allowed_unit_combinations = [
+        {"numberdensity_unit", "temperature_unit", "length_unit"},
+        {"mass_unit", "temperature_unit", "length_unit"},
+        {"mass_unit", "time_unit", "length_unit"},
+        {"numberdensity_unit", "velocity_unit", "length_unit"},
+        {"mass_unit", "velocity_unit", "length_unit"},
+    ]
 
-    def _check_override_consistency(self):
-        """Check that keys in units_override are consistent with respect to AMRVAC's
-        internal way to set up normalisations factors.
+    default_units = {
+        "length_unit": "cm",
+        "time_unit": "s",
+        "mass_unit": "g",
+        "velocity_unit": "cm/s",
+        "magnetic_unit": "gauss",
+        "temperature_unit": "K",
+        # this is the one difference with Dataset.default_units:
+        # we accept numberdensity_unit as a valid override
+        "numberdensity_unit": "cm**-3",
+    }
 
+    @classmethod
+    def _validate_units_override_keys(cls, units_override):
+        """Check that keys in units_override are consistent with AMRVAC's internal
+        normalisations factors.
         """
-        # frontend specific method
         # YT supports overriding other normalisations, this method ensures consistency
         # between supplied 'units_override' items and those used by AMRVAC.
 
         # AMRVAC's normalisations/units have 3 degrees of freedom.
         # Moreover, if temperature unit is specified then velocity unit will be
         # calculated accordingly, and vice-versa.
-        # We replicate this by allowing a finite set of combinations in units_override
-        if not self.units_override:
-            return
-        overrides = set(self.units_override)
+        # We replicate this by allowing a finite set of combinations.
 
         # there are only three degrees of freedom, so explicitly check for this
-        if len(overrides) > 3:
+        if len(units_override) > 3:
             raise ValueError(
                 "More than 3 degrees of freedom were specified "
-                "in units_override ({} given)".format(len(overrides))
+                f"in units_override ({len(units_override)} given)"
             )
         # temperature and velocity cannot both be specified
-        if "temperature_unit" in overrides and "velocity_unit" in overrides:
+        if "temperature_unit" in units_override and "velocity_unit" in units_override:
             raise ValueError(
                 "Either temperature or velocity is allowed in units_override, not both."
             )
         # check if provided overrides are allowed
-        for allowed_combo in ALLOWED_UNIT_COMBINATIONS:
-            if overrides.issubset(allowed_combo):
+        suo = set(units_override)
+        for allowed_combo in cls.allowed_unit_combinations:
+            if suo.issubset(allowed_combo):
                 break
         else:
             raise ValueError(
-                "Combination {} passed to units_override "
-                "is not consistent with AMRVAC. \n"
-                "Allowed combinations are {}".format(
-                    overrides, ALLOWED_UNIT_COMBINATIONS
-                )
+                f"Combination {suo} passed to units_override "
+                "is not consistent with AMRVAC.\n"
+                f"Allowed combinations are {cls.allowed_unit_combinations}"
             )
+
+        # syntax for mixing super with classmethod is weird...
+        super(cls, cls)._validate_units_override_keys(units_override)
