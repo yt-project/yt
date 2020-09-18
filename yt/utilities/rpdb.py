@@ -1,13 +1,15 @@
 import cmd
 import pdb
+import signal
 import socket
 import sys
-from io import StringIO
 import traceback
-import signal
-from xmlrpc.server import SimpleXMLRPCServer
+from io import StringIO
 from xmlrpc.client import ServerProxy
+from xmlrpc.server import SimpleXMLRPCServer
+
 from yt.config import ytcfg
+
 
 class PdbXMLRPCServer(SimpleXMLRPCServer):
     """
@@ -15,7 +17,7 @@ class PdbXMLRPCServer(SimpleXMLRPCServer):
       http://code.activestate.com/recipes/114579/
     """
 
-    finished=False
+    finished = False
 
     def register_signal(self, signum):
         signal.signal(signum, self.signal_handler)
@@ -25,21 +27,22 @@ class PdbXMLRPCServer(SimpleXMLRPCServer):
         self.shutdown()
 
     def shutdown(self):
-        self.finished=True
+        self.finished = True
         return 1
 
     def serve_forever(self):
-        while not self.finished: self.handle_request()
+        while not self.finished:
+            self.handle_request()
         print("DONE SERVING")
+
 
 def rpdb_excepthook(exc_type, exc, tb):
     traceback.print_exception(exc_type, exc, tb)
     task = ytcfg.getint("yt", "__global_parallel_rank")
     size = ytcfg.getint("yt", "__global_parallel_size")
-    print("Starting RPDB server on task %s ; connect with 'yt rpdb -t %s'" \
-            % (task,task))
+    print(f"Starting RPDB server on task {task} ; connect with 'yt rpdb -t {task}'")
     handler = pdb_handler(tb)
-    server = PdbXMLRPCServer(("localhost", 8010+task))
+    server = PdbXMLRPCServer(("localhost", 8010 + task))
     server.register_introspection_functions()
     server.register_instance(handler)
     server.register_function(server.shutdown)
@@ -47,11 +50,13 @@ def rpdb_excepthook(exc_type, exc, tb):
     server.server_close()
     if size > 1:
         from mpi4py import MPI
+
         # This COMM_WORLD is okay.  We want to barrierize here, while waiting
         # for shutdown from the rest of the parallel group.  If you are running
         # with --rpdb it is assumed you know what you are doing and you won't
         # let this get out of hand.
         MPI.COMM_WORLD.Barrier()
+
 
 class pdb_handler:
     def __init__(self, tb):
@@ -70,6 +75,7 @@ class pdb_handler:
         self.cout.seek(tt)
         return self.cout.read()
 
+
 class rpdb_cmd(cmd.Cmd):
     def __init__(self, proxy):
         self.proxy = proxy
@@ -84,7 +90,7 @@ class rpdb_cmd(cmd.Cmd):
         return True
 
     def do_help(self, line):
-        print(self.proxy.execute("help %s" % line))
+        print(self.proxy.execute(f"help {line}"))
 
     def postcmd(self, stop, line):
         return stop
@@ -92,26 +98,29 @@ class rpdb_cmd(cmd.Cmd):
     def postloop(self):
         try:
             self.proxy.shutdown()
-        except Exception: pass
+        except Exception:
+            pass
 
-__header = \
-"""
+
+__header = """
 You're in a remote PDB session with task %(task)s
 
 You can run PDB commands, and when you're done, type 'shutdown' to quit.
 """
 
-def run_rpdb(task = None):
+
+def run_rpdb(task=None):
     port = 8010
     if task is None:
         try:
             task + int(sys.argv[-1])
-        except Exception: pass
+        except Exception:
+            pass
     port += task
-    sp = ServerProxy("http://localhost:%s/" % port)
+    sp = ServerProxy(f"http://localhost:{port}/")
     try:
         pp = rpdb_cmd(sp)
     except socket.error:
         print("Connection refused.  Is the server running?")
         sys.exit(1)
-    pp.cmdloop(__header % dict(task = port-8010))
+    pp.cmdloop(__header % dict(task=port - 8010))

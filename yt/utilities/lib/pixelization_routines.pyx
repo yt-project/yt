@@ -13,46 +13,55 @@ Pixelization routines
 
 
 import numpy as np
-cimport numpy as np
-cimport cython
 
-from cython.view cimport array as cvarray
+cimport cython
 cimport libc.math as math
-from yt.utilities.lib.fp_utils cimport fmin, fmax, i64min, i64max, imin, \
-    imax, fabs, iclip
-from yt.utilities.exceptions import \
-    YTPixelizeError, \
-    YTElementTypeNotRecognized
-from libc.stdlib cimport malloc, free
-from vec3_ops cimport dot, cross, subtract
-from yt.utilities.lib.element_mappings cimport \
-    ElementSampler, \
-    P1Sampler1D, \
-    P1Sampler2D, \
-    P1Sampler3D, \
-    Q1Sampler3D, \
-    Q1Sampler2D, \
-    Q2Sampler2D, \
-    S2Sampler3D, \
-    W1Sampler3D, \
-    T2Sampler2D, \
-    Tet2Sampler3D
-from yt.geometry.particle_deposit cimport \
-    kernel_func, get_kernel_func
-from cython.parallel cimport prange
-from cpython.exc cimport PyErr_CheckSignals
-from yt.funcs import get_pbar
-from yt.utilities.lib.cykdtree.kdtree cimport (
-    PyKDTree,
-    KDTree,
-    Node,
-    uint64_t,
-    uint32_t,
+cimport numpy as np
+from cython.view cimport array as cvarray
+
+from yt.utilities.lib.fp_utils cimport (
+    fabs,
+    fmax,
+    fmin,
+    i64max,
+    i64min,
+    iclip,
+    imax,
+    imin,
 )
-from yt.utilities.lib.particle_kdtree_tools cimport find_neighbors, \
-    axes_range, \
-    set_axes_range
+
+from yt.utilities.exceptions import YTElementTypeNotRecognized, YTPixelizeError
+
+from cpython.exc cimport PyErr_CheckSignals
+from cython.parallel cimport prange
+from libc.stdlib cimport free, malloc
+from vec3_ops cimport cross, dot, subtract
+
+from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
+from yt.utilities.lib.element_mappings cimport (
+    ElementSampler,
+    P1Sampler1D,
+    P1Sampler2D,
+    P1Sampler3D,
+    Q1Sampler2D,
+    Q1Sampler3D,
+    Q2Sampler2D,
+    S2Sampler3D,
+    T2Sampler2D,
+    Tet2Sampler3D,
+    W1Sampler3D,
+)
+
+from yt.funcs import get_pbar
+
 from yt.utilities.lib.bounded_priority_queue cimport BoundedPriorityQueue
+from yt.utilities.lib.cykdtree.kdtree cimport KDTree, Node, PyKDTree, uint32_t, uint64_t
+from yt.utilities.lib.particle_kdtree_tools cimport (
+    axes_range,
+    find_neighbors,
+    set_axes_range,
+)
+
 
 cdef int TABLE_NVALS=512
 
@@ -245,7 +254,7 @@ def pixelize_cartesian(np.float64_t[:,:] buff,
                                 # conservative about the iteration indices.
                                 # This will reduce artifacts if we ever move to
                                 # compositing instead of replacing bitmaps.
-                                if overlap1 * overlap2 == 0.0: continue
+                                if overlap1 * overlap2 < 1.e-6: continue
                                 buff[i,j] += (dsp * overlap1) * overlap2
                             else:
                                 buff[i,j] = dsp
@@ -978,18 +987,31 @@ def pixelize_sph_kernel_projection(
         np.float64_t[:] quantity_to_smooth,
         bounds,
         kernel_name="cubic",
-        weight_field=None):
+        weight_field=None,
+        int check_period=1,
+        period=None):
 
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef np.float64_t q_ij2, posx_diff, posy_diff, ih_j2
-    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2
-    cdef int index, i, j
+    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, px, py
+    cdef np.float64_t period_x, period_y
+    cdef int index, i, j, ii, jj
     cdef np.float64_t[:] _weight_field
+    cdef int xiter[2]
+    cdef int yiter[2]
+    cdef np.float64_t xiterv[2]
+    cdef np.float64_t yiterv[2]
 
     if weight_field is not None:
         _weight_field = weight_field
+
+    xiter[0] = yiter[0] = 0
+    xiterv[0] = yiterv[0] = 0.0
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
 
     # we find the x and y range over which we have pixels and we find how many
     # pixels we have in each dimension
@@ -1015,52 +1037,77 @@ def pixelize_sph_kernel_projection(
             if j % 100000 == 0:
                 with gil:
                     PyErr_CheckSignals()
+            
+            xiter[1] = yiter[1] = 999
+            
+            if check_period == 1:
+                if posx[j] - hsml[j] < x_min:
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif posx[j] + hsml[j] > x_max:
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if posy[j] - hsml[j] < y_min:
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif posy[j] + hsml[j] > y_max:
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
 
-            # here we find the pixels which this particle contributes to
-            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
-            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, xsize)
-            x1 = iclip(x1+1, 0, xsize)
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
+                if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
+                    if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
 
-            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
-            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, ysize)
-            y1 = iclip(y1+1, 0, ysize)
-
-            # we set the smoothing length squared with lower limit of the pixel
-            h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
-            ih_j2 = 1.0/h_j2
-
-            prefactor_j = pmass[j] / pdens[j] / hsml[j]**2
-            if weight_field is None:
-                prefactor_j *= quantity_to_smooth[j]
-            else:
-                prefactor_j *= quantity_to_smooth[j] * _weight_field[j]
-
-            # found pixels we deposit on, loop through those pixels
-            for xi in range(x0, x1):
-                # we use the centre of the pixel to calculate contribution
-                x = (xi + 0.5) * dx + x_min
-
-                posx_diff = posx[j] - x
-                posx_diff = posx_diff * posx_diff
-
-                if posx_diff > h_j2: continue
-
-                for yi in range(y0, y1):
-                    y = (yi + 0.5) * dy + y_min
-
-                    posy_diff = posy[j] - y
-                    posy_diff = posy_diff * posy_diff
-                    if posy_diff > h_j2: continue
-
-                    q_ij2 = (posx_diff + posy_diff) * ih_j2
-                    if q_ij2 >= 1:
-                        continue
-
-                    # see equation 32 of the SPLASH paper
-                    # now we just use the kernel projection
-                    buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
+                    # here we find the pixels which this particle contributes to
+                    x0 = <np.int64_t> ((px - hsml[j] - x_min)*idx)
+                    x1 = <np.int64_t> ((px + hsml[j] - x_min)*idx)
+                    x0 = iclip(x0-1, 0, xsize)
+                    x1 = iclip(x1+1, 0, xsize)
+        
+                    y0 = <np.int64_t> ((py - hsml[j] - y_min)*idy)
+                    y1 = <np.int64_t> ((py + hsml[j] - y_min)*idy)
+                    y0 = iclip(y0-1, 0, ysize)
+                    y1 = iclip(y1+1, 0, ysize)
+        
+                    # we set the smoothing length squared with lower limit of the pixel
+                    h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
+                    ih_j2 = 1.0/h_j2
+        
+                    prefactor_j = pmass[j] / pdens[j] / hsml[j]**2
+                    if weight_field is None:
+                        prefactor_j *= quantity_to_smooth[j]
+                    else:
+                        prefactor_j *= quantity_to_smooth[j] * _weight_field[j]
+        
+                    # found pixels we deposit on, loop through those pixels
+                    for xi in range(x0, x1):
+                        # we use the centre of the pixel to calculate contribution
+                        x = (xi + 0.5) * dx + x_min
+        
+                        posx_diff = px - x
+                        posx_diff = posx_diff * posx_diff
+        
+                        if posx_diff > h_j2: continue
+        
+                        for yi in range(y0, y1):
+                            y = (yi + 0.5) * dy + y_min
+        
+                            posy_diff = py - y
+                            posy_diff = posy_diff * posy_diff
+                            if posy_diff > h_j2: continue
+        
+                            q_ij2 = (posx_diff + posy_diff) * ih_j2
+                            if q_ij2 >= 1:
+                                continue
+        
+                            # see equation 32 of the SPLASH paper
+                            # now we just use the kernel projection
+                            buff[xi, yi] +=  prefactor_j * itab.interpolate(q_ij2)
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -1236,15 +1283,28 @@ def pixelize_sph_kernel_slice(
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        bounds, kernel_name="cubic"):
+        bounds, kernel_name="cubic",
+        int check_period=1,
+        period=None):
 
     # similar method to pixelize_sph_kernel_projection
     cdef np.intp_t xsize, ysize
     cdef np.float64_t x_min, x_max, y_min, y_max, prefactor_j
     cdef np.int64_t xi, yi, x0, x1, y0, y1
     cdef np.float64_t q_ij, posx_diff, posy_diff, ih_j
-    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j
-    cdef int index, i, j
+    cdef np.float64_t x, y, dx, dy, idx, idy, h_j2, h_j, px, py
+    cdef int index, i, j, ii, jj
+    cdef np.float64_t period_x, period_y
+    cdef int xiter[2]
+    cdef int yiter[2]
+    cdef np.float64_t xiterv[2]
+    cdef np.float64_t yiterv[2]
+
+    xiter[0] = yiter[0] = 0
+    xiterv[0] = yiterv[0] = 0.0
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
 
     xsize, ysize = buff.shape[0], buff.shape[1]
 
@@ -1266,48 +1326,73 @@ def pixelize_sph_kernel_slice(
                 with gil:
                     PyErr_CheckSignals()
 
-            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
-            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, xsize)
-            x1 = iclip(x1+1, 0, xsize)
+            xiter[1] = yiter[1] = 999
 
-            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
-            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, ysize)
-            y1 = iclip(y1+1, 0, ysize)
+            if check_period == 1:
+                if posx[j] - hsml[j] < x_min:
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif posx[j] + hsml[j] > x_max:
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if posy[j] - hsml[j] < y_min:
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif posy[j] + hsml[j] > y_max:
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
 
-            h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
-            h_j = math.sqrt(h_j2)
-            ih_j = 1.0/h_j
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
+                if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
+                    if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
 
-            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
-            prefactor_j *= quantity_to_smooth[j]
-
-            # Now we know which pixels to deposit onto for this particle,
-            # so loop over them and add this particle's contribution
-            for xi in range(x0, x1):
-                x = (xi + 0.5) * dx + x_min
-
-                posx_diff = posx[j] - x
-                posx_diff = posx_diff * posx_diff
-                if posx_diff > h_j2:
-                    continue
-
-                for yi in range(y0, y1):
-                    y = (yi + 0.5) * dy + y_min
-
-                    posy_diff = posy[j] - y
-                    posy_diff = posy_diff * posy_diff
-                    if posy_diff > h_j2:
-                        continue
-
-                    # see equation 4 of the SPLASH paper
-                    q_ij = math.sqrt(posx_diff + posy_diff) * ih_j
-                    if q_ij >= 1:
-                        continue
-
-                    # see equations 6, 9, and 11 of the SPLASH paper
-                    buff[xi, yi] += prefactor_j * kernel_func(q_ij)
+                    x0 = <np.int64_t> ( (px - hsml[j] - x_min) * idx)
+                    x1 = <np.int64_t> ( (px + hsml[j] - x_min) * idx)
+                    x0 = iclip(x0-1, 0, xsize)
+                    x1 = iclip(x1+1, 0, xsize)
+        
+                    y0 = <np.int64_t> ( (py - hsml[j] - y_min) * idy)
+                    y1 = <np.int64_t> ( (py + hsml[j] - y_min) * idy)
+                    y0 = iclip(y0-1, 0, ysize)
+                    y1 = iclip(y1+1, 0, ysize)
+        
+                    h_j2 = fmax(hsml[j]*hsml[j], dx*dy)
+                    h_j = math.sqrt(h_j2)
+                    ih_j = 1.0/h_j
+        
+                    prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
+                    prefactor_j *= quantity_to_smooth[j]
+        
+                    # Now we know which pixels to deposit onto for this particle,
+                    # so loop over them and add this particle's contribution
+                    for xi in range(x0, x1):
+                        x = (xi + 0.5) * dx + x_min
+        
+                        posx_diff = px - x
+                        posx_diff = posx_diff * posx_diff
+                        if posx_diff > h_j2:
+                            continue
+        
+                        for yi in range(y0, y1):
+                            y = (yi + 0.5) * dy + y_min
+        
+                            posy_diff = py - y
+                            posy_diff = posy_diff * posy_diff
+                            if posy_diff > h_j2:
+                                continue
+        
+                            # see equation 4 of the SPLASH paper
+                            q_ij = math.sqrt(posx_diff + posy_diff) * ih_j
+                            if q_ij >= 1:
+                                continue
+        
+                            # see equations 6, 9, and 11 of the SPLASH paper
+                            buff[xi, yi] += prefactor_j * kernel_func(q_ij)
 
 @cython.initializedcheck(False)
 @cython.boundscheck(False)
@@ -1318,14 +1403,31 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
         np.float64_t[:] hsml, np.float64_t[:] pmass,
         np.float64_t[:] pdens,
         np.float64_t[:] quantity_to_smooth,
-        bounds, pbar=None, kernel_name="cubic"):
+        bounds, pbar=None, kernel_name="cubic",
+        int check_period=1, period=None):
 
     cdef np.intp_t xsize, ysize, zsize
     cdef np.float64_t x_min, x_max, y_min, y_max, z_min, z_max, prefactor_j
     cdef np.int64_t xi, yi, zi, x0, x1, y0, y1, z0, z1
-    cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff
+    cdef np.float64_t q_ij, posx_diff, posy_diff, posz_diff, px, py, pz
     cdef np.float64_t x, y, z, dx, dy, dz, idx, idy, idz, h_j3, h_j2, h_j, ih_j
-    cdef int index, i, j, k
+    cdef int index, i, j, k, ii, jj, kk
+    cdef np.float64_t period_x, period_y, period_z
+
+    cdef int xiter[2]
+    cdef int yiter[2]
+    cdef int ziter[2]
+    cdef np.float64_t xiterv[2]
+    cdef np.float64_t yiterv[2]
+    cdef np.float64_t ziterv[2]
+
+    xiter[0] = yiter[0] = ziter[0] = 0
+    xiterv[0] = yiterv[0] = ziterv[0] = 0.0
+
+    if period is not None:
+        period_x = period[0]
+        period_y = period[1]
+        period_z = period[2]
 
     xsize, ysize, zsize = buff.shape[0], buff.shape[1], buff.shape[2]
     x_min = bounds[0]
@@ -1352,61 +1454,97 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
                         pbar.update(50000)
                     PyErr_CheckSignals()
 
-            x0 = <np.int64_t> ( (posx[j] - hsml[j] - x_min) * idx)
-            x1 = <np.int64_t> ( (posx[j] + hsml[j] - x_min) * idx)
-            x0 = iclip(x0-1, 0, xsize)
-            x1 = iclip(x1+1, 0, xsize)
+            xiter[1] = yiter[1] = ziter[1] = 999
 
-            y0 = <np.int64_t> ( (posy[j] - hsml[j] - y_min) * idy)
-            y1 = <np.int64_t> ( (posy[j] + hsml[j] - y_min) * idy)
-            y0 = iclip(y0-1, 0, ysize)
-            y1 = iclip(y1+1, 0, ysize)
+            if check_period == 1:
+                if posx[j] - hsml[j] < x_min:
+                    xiter[1] = +1
+                    xiterv[1] = period_x
+                elif posx[j] + hsml[j] > x_max:
+                    xiter[1] = -1
+                    xiterv[1] = -period_x
+                if posy[j] - hsml[j] < y_min:
+                    yiter[1] = +1
+                    yiterv[1] = period_y
+                elif posy[j] + hsml[j] > y_max:
+                    yiter[1] = -1
+                    yiterv[1] = -period_y
+                if posz[j] - hsml[j] < z_min:
+                    ziter[1] = +1
+                    ziterv[1] = period_z
+                elif posz[j] + hsml[j] > z_max:
+                    ziter[1] = -1
+                    ziterv[1] = -period_z
 
-            z0 = <np.int64_t> ( (posz[j] - hsml[j] - z_min) * idz)
-            z1 = <np.int64_t> ( (posz[j] + hsml[j] - z_min) * idz)
-            z0 = iclip(z0-1, 0, zsize)
-            z1 = iclip(z1+1, 0, zsize)
+            for ii in range(2):
+                if xiter[ii] == 999: continue
+                px = posx[j] + xiterv[ii]
+                if (px + hsml[j] < x_min) or (px - hsml[j] > x_max): continue
+                for jj in range(2):
+                    if yiter[jj] == 999: continue
+                    py = posy[j] + yiterv[jj]
+                    if (py + hsml[j] < y_min) or (py - hsml[j] > y_max): continue
+                    for kk in range(2):
+                        if ziter[kk] == 999: continue
+                        pz = posz[j] + ziterv[kk]
+                        if (pz + hsml[j] < z_min) or (pz - hsml[j] > z_max): continue
 
-            h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
-            h_j = math.cbrt(h_j3)
-            h_j2 = h_j*h_j
-            ih_j = 1/h_j
+                        x0 = <np.int64_t> ( (px - hsml[j] - x_min) * idx)
+                        x1 = <np.int64_t> ( (px + hsml[j] - x_min) * idx)
+                        x0 = iclip(x0-1, 0, xsize)
+                        x1 = iclip(x1+1, 0, xsize)
+            
+                        y0 = <np.int64_t> ( (py - hsml[j] - y_min) * idy)
+                        y1 = <np.int64_t> ( (py + hsml[j] - y_min) * idy)
+                        y0 = iclip(y0-1, 0, ysize)
+                        y1 = iclip(y1+1, 0, ysize)
+            
+                        z0 = <np.int64_t> ( (pz - hsml[j] - z_min) * idz)
+                        z1 = <np.int64_t> ( (pz + hsml[j] - z_min) * idz)
+                        z0 = iclip(z0-1, 0, zsize)
+                        z1 = iclip(z1+1, 0, zsize)
+            
+                        h_j3 = fmax(hsml[j]*hsml[j]*hsml[j], dx*dy*dz)
+                        h_j = math.cbrt(h_j3)
+                        h_j2 = h_j*h_j
+                        ih_j = 1/h_j
+            
+                        prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
+                        prefactor_j *= quantity_to_smooth[j]
+            
+                        # Now we know which voxels to deposit onto for this particle,
+                        # so loop over them and add this particle's contribution
+                        for xi in range(x0, x1):
+                            x = (xi + 0.5) * dx + x_min
+            
+                            posx_diff = px - x
+                            posx_diff = posx_diff * posx_diff
+                            if posx_diff > h_j2:
+                                continue
+            
+                            for yi in range(y0, y1):
+                                y = (yi + 0.5) * dy + y_min
+            
+                                posy_diff = py - y
+                                posy_diff = posy_diff * posy_diff
+                                if posy_diff > h_j2:
+                                    continue
+            
+                                for zi in range(z0, z1):
+                                    z = (zi + 0.5) * dz + z_min
+            
+                                    posz_diff = pz - z
+                                    posz_diff = posz_diff * posz_diff
+                                    if posz_diff > h_j2:
+                                        continue
+            
+                                    # see equation 4 of the SPLASH paper
+                                    q_ij = math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
+                                    if q_ij >= 1:
+                                        continue
+            
+                                    buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
 
-            prefactor_j = pmass[j] / pdens[j] / hsml[j]**3
-            prefactor_j *= quantity_to_smooth[j]
-
-            # Now we know which voxels to deposit onto for this particle,
-            # so loop over them and add this particle's contribution
-            for xi in range(x0, x1):
-                x = (xi + 0.5) * dx + x_min
-
-                posx_diff = posx[j] - x
-                posx_diff = posx_diff * posx_diff
-                if posx_diff > h_j2:
-                    continue
-
-                for yi in range(y0, y1):
-                    y = (yi + 0.5) * dy + y_min
-
-                    posy_diff = posy[j] - y
-                    posy_diff = posy_diff * posy_diff
-                    if posy_diff > h_j2:
-                        continue
-
-                    for zi in range(z0, z1):
-                        z = (zi + 0.5) * dz + z_min
-
-                        posz_diff = posz[j] - z
-                        posz_diff = posz_diff * posz_diff
-                        if posz_diff > h_j2:
-                            continue
-
-                        # see equation 4 of the SPLASH paper
-                        q_ij = math.sqrt(posx_diff + posy_diff + posz_diff) * ih_j
-                        if q_ij >= 1:
-                            continue
-
-                        buff[xi, yi, zi] += prefactor_j * kernel_func(q_ij)
 
 def pixelize_element_mesh_line(np.ndarray[np.float64_t, ndim=2] coords,
                                np.ndarray[np.int64_t, ndim=2] conn,
@@ -1582,7 +1720,8 @@ def off_axis_projection_SPH(np.float64_t[:] px,
                                    quantity_to_smooth,
                                    [rot_bounds_x0, rot_bounds_x1,
                                     rot_bounds_y0, rot_bounds_y1],
-                                    weight_field=weight_field)
+                                   weight_field=weight_field,
+                                   check_period=0)
 
 
 @cython.boundscheck(False)

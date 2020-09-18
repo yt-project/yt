@@ -1,5 +1,6 @@
-import numpy as np
 from functools import wraps
+
+import numpy as np
 
 filter_registry = {}
 
@@ -9,22 +10,20 @@ def apply_filter(f):
     def newfunc(*args, **kwargs):
         args[0]._filters.append((f.__name__, (args, kwargs)))
         return args[0]
+
     return newfunc
 
 
-class RegisteredFilter(type):
-
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        filter_registry[name] = cls
-
-
-class FixedResolutionBufferFilter(metaclass = RegisteredFilter):
+class FixedResolutionBufferFilter:
 
     """
     This object allows to apply data transformation directly to
     :class:`yt.visualization.fixed_resolution.FixedResolutionBuffer`
     """
+
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        filter_registry[cls.__name__] = cls
 
     def __init__(self, *args, **kwargs):
         pass
@@ -41,7 +40,8 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
     2d gaussian that is 'nbeam' pixels wide and has standard deviation
     'sigma'.
     """
-    _filter_name = 'gauss_beam'
+
+    _filter_name = "gauss_beam"
 
     def __init__(self, nbeam=30, sigma=2.0):
         self.nbeam = nbeam
@@ -49,19 +49,21 @@ class FixedResolutionBufferGaussBeamFilter(FixedResolutionBufferFilter):
 
     def apply(self, buff):
         from yt.utilities.on_demand_imports import _scipy
+
         hnbeam = self.nbeam // 2
         sigma = self.sigma
 
         l = np.linspace(-hnbeam, hnbeam, num=self.nbeam + 1)
         x, y = np.meshgrid(l, l)
-        g2d = (1.0 / (sigma * np.sqrt(2.0 * np.pi))) * \
-            np.exp(-((x / sigma) ** 2 + (y / sigma) ** 2) / (2 * sigma ** 2))
+        g2d = (1.0 / (sigma * np.sqrt(2.0 * np.pi))) * np.exp(
+            -((x / sigma) ** 2 + (y / sigma) ** 2) / (2 * sigma ** 2)
+        )
         g2d /= g2d.max()
 
         npm, nqm = np.shape(buff)
         spl = _scipy.signal.convolve(buff, g2d)
 
-        return spl[hnbeam:npm + hnbeam, hnbeam:nqm + hnbeam]
+        return spl[hnbeam : npm + hnbeam, hnbeam : nqm + hnbeam]
 
 
 class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
@@ -72,7 +74,8 @@ class FixedResolutionBufferWhiteNoiseFilter(FixedResolutionBufferFilter):
     If "bg_lvl" is not present, 10th percentile of the FRB's value is
     used instead.
     """
-    _filter_name = 'white_noise'
+
+    _filter_name = "white_noise"
 
     def __init__(self, bg_lvl=None):
         self.bg_lvl = bg_lvl

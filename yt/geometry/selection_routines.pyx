@@ -10,23 +10,30 @@ Geometry selection routines.
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from libc.math cimport sqrt
-from cython cimport floating
-from libc.stdlib cimport malloc, free
-from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
-from yt.utilities.lib.fp_utils cimport fclip, iclip, fmax, fmin, imin, imax
-from .oct_container cimport OctreeContainer, Oct
+cimport numpy as np
 cimport oct_visitors
-from .oct_visitors cimport cind
-from yt.utilities.lib.volume_container cimport \
-    VolumeContainer
-from yt.utilities.lib.grid_traversal cimport \
-    sampler_function, walk_volume
+from cython cimport floating
+from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
+
 from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
-from yt.utilities.lib.geometry_utils cimport encode_morton_64bit, decode_morton_64bit, \
-    bounded_morton_dds, morton_neighbors_coarse, morton_neighbors_refined
+from yt.utilities.lib.fnv_hash cimport c_fnv_hash as fnv_hash
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+from yt.utilities.lib.geometry_utils cimport (
+    bounded_morton_dds,
+    decode_morton_64bit,
+    encode_morton_64bit,
+    morton_neighbors_coarse,
+    morton_neighbors_refined,
+)
+from yt.utilities.lib.grid_traversal cimport sampler_function, walk_volume
+from yt.utilities.lib.volume_container cimport VolumeContainer
+
+from .oct_container cimport Oct, OctreeContainer
+from .oct_visitors cimport cind
+
 
 cdef extern from "math.h":
     double exp(double x) nogil
@@ -142,6 +149,7 @@ cdef class SelectorObject:
             DRE = _ensure_code(ds.domain_right_edge)
             for i in range(3):
                 self.domain_width[i] = DRE[i] - DLE[i]
+                self.domain_center[i] = DLE[i] + 0.5 * self.domain_width[i]
                 self.periodicity[i] = ds.periodicity[i]
 
     def get_periodicity(self):
@@ -442,7 +450,7 @@ cdef class SelectorObject:
         mask = np.zeros(npoints, dtype='uint8')
         for i in range(npoints):
             selected = 0
-            for k in range(ndim):
+            for k in range(3):
                 le[k] = 1e60
                 re[k] = -1e60
             for j in range(nv):
@@ -450,6 +458,9 @@ cdef class SelectorObject:
                     pos = coords[indices[i, j] - offset, k]
                     le[k] = fmin(pos, le[k])
                     re[k] = fmax(pos, re[k])
+                for k in range(2, ndim - 1, -1):
+                    le[k] = self.domain_center[k]
+                    re[k] = self.domain_center[k]
             selected = self.select_bbox(le, re)
             total += selected
             mask[i] = selected
@@ -992,14 +1003,16 @@ cdef class RegionSelector(SelectorObject):
             else:
                 if LE[i] < DLE[i] or RE[i] > DRE[i]:
                     raise RuntimeError(
-                        "Error: yt attempted to read outside the boundaries of "
+                        "yt attempted to read outside the boundaries of "
                         "a non-periodic domain along dimension %s.\n"
                         "Region left edge = %s, Region right edge = %s\n"
                         "Dataset left edge = %s, Dataset right edge = %s\n\n"
                         "This commonly happens when trying to compute ghost cells "
                         "up to the domain boundary. Two possible solutions are to "
-                        "load a smaller region that does not border the edge or "
-                        "override the periodicity for this dataset." % \
+                        "select a smaller region that does not border domain edge "
+                        "(see https://yt-project.org/docs/analyzing/objects.html?highlight=region)\n"
+                        "or override the periodicity with e.g\n"
+                        "ds.periodicity = 3*[True]" % \
                         (i, dobj.left_edge[i], dobj.right_edge[i],
                          dobj.ds.domain_left_edge[i], dobj.ds.domain_right_edge[i])
                     )
@@ -1466,10 +1479,19 @@ cdef class SliceSelector(SelectorObject):
     cdef int axis
     cdef np.float64_t coord
     cdef int ax, ay
+    cdef int reduced_dimensionality
 
     def __init__(self, dobj):
         self.axis = dobj.axis
         self.coord = _ensure_code(dobj.coord)
+        # If we have a reduced dimensionality dataset, we want to avoid any
+        # checks against it in the axes that are beyond its dimensionality.
+        # This means that if we have a 2D dataset, *all* slices along z will
+        # select all the zones.
+        if self.axis >= dobj.ds.dimensionality:
+            self.reduced_dimensionality = 1
+        else:
+            self.reduced_dimensionality = 0
 
         self.ax = (self.axis+1) % 3
         self.ay = (self.axis+2) % 3
@@ -1522,6 +1544,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_cell(self, np.float64_t pos[3], np.float64_t dds[3]) nogil:
+        if self.reduced_dimensionality == 1:
+            return 1
         if pos[self.axis] + 0.5*dds[self.axis] > self.coord \
            and pos[self.axis] - 0.5*dds[self.axis] - grid_eps <= self.coord:
             return 1
@@ -1535,6 +1559,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int select_sphere(self, np.float64_t pos[3], np.float64_t radius) nogil:
+        if self.reduced_dimensionality == 1:
+            return 1
         cdef np.float64_t dist = self.periodic_difference(
             pos[self.axis], self.coord, self.axis)
         if dist*dist < radius*radius:
@@ -1546,6 +1572,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        if self.reduced_dimensionality == 1:
+            return 1
         if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
             return 1
         return 0
@@ -1555,6 +1583,8 @@ cdef class SliceSelector(SelectorObject):
     @cython.cdivision(True)
     cdef int select_bbox_edge(self, np.float64_t left_edge[3],
                                np.float64_t right_edge[3]) nogil:
+        if self.reduced_dimensionality == 1:
+            return 2
         if left_edge[self.axis] - grid_eps <= self.coord < right_edge[self.axis]:
             return 2 # a box with non-zero volume can't be inside a plane
         return 0

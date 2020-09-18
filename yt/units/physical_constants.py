@@ -1,8 +1,10 @@
-from yt.units.unit_registry import default_unit_registry
 from unyt.array import unyt_quantity
 from unyt.unit_systems import add_constants
 
+from yt.units.unit_registry import default_unit_registry
+
 add_constants(globals(), registry=default_unit_registry)
+
 
 class _ConstantContainer:
     """A container for physical constants to associate with a dataset.
@@ -13,7 +15,7 @@ class _ConstantContainer:
     Parameters
     ----------
     registry : UnitRegistry instance
-        A unit registry to associate with units constants accessed on 
+        A unit registry to associate with units constants accessed on
         this object.
 
     Example
@@ -29,7 +31,7 @@ class _ConstantContainer:
         self._cache = {}
 
     def __dir__(self):
-        ret = [p for p in globals() if not p.startswith('_')] + object.__dir__(self)
+        ret = [p for p in globals() if not p.startswith("_")] + object.__dir__(self)
         return list(set(ret))
 
     def __getattr__(self, item):

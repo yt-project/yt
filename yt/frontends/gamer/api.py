@@ -1,13 +1,6 @@
-from .data_structures import \
-      GAMERGrid, \
-      GAMERHierarchy, \
-      GAMERDataset
-
-from .fields import \
-      GAMERFieldInfo
-
-from .io import \
-      IOHandlerGAMER
+from .data_structures import GAMERDataset, GAMERGrid, GAMERHierarchy
+from .fields import GAMERFieldInfo
+from .io import IOHandlerGAMER
 
 ### NOT SUPPORTED YET
-#from . import tests
+# from . import tests

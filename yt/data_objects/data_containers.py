@@ -1,64 +1,28 @@
-import itertools
-import uuid
-
 import os
-import numpy as np
 import weakref
-import shelve
-
-from collections import defaultdict
 from contextlib import contextmanager
 
-from yt.fields.derived_field import \
-    DerivedField
-from yt.frontends.ytdata.utilities import \
-    save_as_dataset
-from yt.funcs import \
-    get_output_filename, \
-    mylog, \
-    ensure_list, \
-    fix_axis, \
-    iterable, \
-    validate_width_tuple
-from yt.units.yt_array import \
-    YTArray, \
-    YTQuantity
-import yt.units.dimensions as ytdims
-from unyt.exceptions import \
-    UnitConversionError, \
-    UnitParseError
-from yt.utilities.exceptions import \
-    YTFieldUnitError, \
-    YTFieldUnitParseError, \
-    YTSpatialFieldUnitError, \
-    YTCouldNotGenerateField, \
-    YTFieldNotParseable, \
-    YTFieldNotFound, \
-    YTFieldTypeNotFound, \
-    YTDataSelectorNotImplemented, \
-    YTDimensionalityError, \
-    YTNonIndexedDataContainer, \
-    YTBooleanObjectError, \
-    YTBooleanObjectsWrongDataset, YTException
-from yt.utilities.lib.marching_cubes import \
-    march_cubes_grid, march_cubes_grid_flux
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
-from yt.utilities.parameter_file_storage import \
-    ParameterFileStore
-from yt.utilities.amr_kdtree.api import \
-    AMRKDTree
-from .derived_quantities import DerivedQuantityCollection
-from yt.fields.field_exceptions import \
-    NeedsGridType
-import yt.geometry.selection_routines
-from yt.geometry.selection_routines import \
-    compose_selector
-from yt.units.yt_array import uconcatenate
+import numpy as np
+
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
+from yt.fields.field_exceptions import NeedsGridType
+from yt.frontends.ytdata.utilities import save_as_dataset
+from yt.funcs import ensure_list, get_output_filename, iterable, mylog
+from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
+from yt.utilities.amr_kdtree.api import AMRKDTree
+from yt.utilities.exceptions import (
+    YTCouldNotGenerateField,
+    YTException,
+    YTFieldNotFound,
+    YTFieldNotParseable,
+    YTFieldTypeNotFound,
+    YTNonIndexedDataContainer,
+    YTSpatialFieldUnitError,
+)
+from yt.utilities.object_registries import data_object_registry
+from yt.utilities.parameter_file_storage import ParameterFileStore
 
-data_object_registry = {}
 
 def sanitize_weight_field(ds, field, weight):
     field_object = ds._get_field_info(field)
@@ -68,12 +32,13 @@ def sanitize_weight_field(ds, field, weight):
                 ptype = ds._sph_ptypes[0]
             else:
                 ptype = field_object.name[0]
-            weight_field = (ptype, 'particle_ones')
+            weight_field = (ptype, "particle_ones")
         else:
-            weight_field = ('index', 'ones')
+            weight_field = ("index", "ones")
     else:
         weight_field = weight
     return weight_field
+
 
 def _get_ipython_key_completion(ds):
     # tuple-completion (ftype, fname) was added in IPython 8.0.0
@@ -83,19 +48,14 @@ def _get_ipython_key_completion(ds):
     fnames = list(set(k[1] for k in tuple_keys))
     return tuple_keys + fnames
 
-class RegisteredDataContainer(type):
-    def __init__(cls, name, b, d):
-        type.__init__(cls, name, b, d)
-        if hasattr(cls, "_type_name") and not cls._skip_add:
-            name = getattr(cls, "_override_selector_name", cls._type_name)
-            data_object_registry[name] = cls
 
-class YTDataContainer(metaclass = RegisteredDataContainer):
+class YTDataContainer:
     """
     Generic YTDataContainer container.  By itself, will attempt to
     generate field, read fields (method defined by derived classes)
     and deal with passing back and forth field parameters.
     """
+
     _chunk_info = None
     _num_ghost_zones = 0
     _con_args = ()
@@ -113,14 +73,18 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         sets its initial set of fields, and the remainder of the arguments
         are passed as field_parameters.
         """
-        # ds is typically set in the new object type created in Dataset._add_object_class
-        # but it can also be passed as a parameter to the constructor, in which case it will
-        # override the default. This code ensures it is never not set.
+        # ds is typically set in the new object type created in
+        # Dataset._add_object_class but it can also be passed as a parameter to the
+        # constructor, in which case it will override the default.
+        # This code ensures it is never not set.
         if ds is not None:
             self.ds = ds
         else:
             if not hasattr(self, "ds"):
-                raise RuntimeError("Error: ds must be set either through class type or parameter to the constructor")
+                raise RuntimeError(
+                    "Error: ds must be set either through class type "
+                    "or parameter to the constructor"
+                )
 
         self._current_particle_type = "all"
         self._current_fluid_type = self.ds.default_fluid_type
@@ -132,19 +96,26 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         else:
             mag_unit = "G"
         self._default_field_parameters = {
-            'center': self.ds.arr(np.zeros(3, dtype='float64'), 'cm'),
-            'bulk_velocity': self.ds.arr(np.zeros(3, dtype='float64'), 'cm/s'),
-            'bulk_magnetic_field': self.ds.arr(np.zeros(3, dtype='float64'), mag_unit),
-            'normal': self.ds.arr([0.0, 0.0, 1.0], ''),
+            "center": self.ds.arr(np.zeros(3, dtype="float64"), "cm"),
+            "bulk_velocity": self.ds.arr(np.zeros(3, dtype="float64"), "cm/s"),
+            "bulk_magnetic_field": self.ds.arr(np.zeros(3, dtype="float64"), mag_unit),
+            "normal": self.ds.arr([0.0, 0.0, 1.0], ""),
         }
-        if field_parameters is None: field_parameters = {}
+        if field_parameters is None:
+            field_parameters = {}
         self._set_default_field_parameters()
         for key, val in field_parameters.items():
             self.set_field_parameter(key, val)
 
+    def __init_subclass__(cls, *args, **kwargs):
+        super().__init_subclass__(*args, **kwargs)
+        if hasattr(cls, "_type_name") and not cls._skip_add:
+            name = getattr(cls, "_override_selector_name", cls._type_name)
+            data_object_registry[name] = cls
+
     @property
     def pf(self):
-        return getattr(self, 'ds', None)
+        return getattr(self, "ds", None)
 
     @property
     def index(self):
@@ -160,18 +131,21 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         debug fields that are being called on actual objects.
         """
         import pdb
+
         pdb.set_trace()
 
     def _set_default_field_parameters(self):
         self.field_parameters = {}
-        for k,v in self._default_field_parameters.items():
-            self.set_field_parameter(k,v)
+        for k, v in self._default_field_parameters.items():
+            self.set_field_parameter(k, v)
 
     def _is_default_field_parameter(self, parameter):
         if parameter not in self._default_field_parameters:
             return False
-        return self._default_field_parameters[parameter] is \
-          self.field_parameters[parameter]
+        return (
+            self._default_field_parameters[parameter]
+            is self.field_parameters[parameter]
+        )
 
     def apply_units(self, arr, units):
         try:
@@ -185,14 +159,14 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             self.center = None
             return
         elif isinstance(center, YTArray):
-            self.center = self.ds.arr(center.astype('float64'))
-            self.center.convert_to_units('code_length')
+            self.center = self.ds.arr(center.astype("float64"))
+            self.center.convert_to_units("code_length")
         elif isinstance(center, (list, tuple, np.ndarray)):
             if isinstance(center[0], YTQuantity):
-                self.center = self.ds.arr([c.copy() for c in center], dtype='float64')
-                self.center.convert_to_units('code_length')
+                self.center = self.ds.arr([c.copy() for c in center], dtype="float64")
+                self.center.convert_to_units("code_length")
             else:
-                self.center = self.ds.arr(center, 'code_length', dtype='float64')
+                self.center = self.ds.arr(center, "code_length", dtype="float64")
         elif isinstance(center, str):
             if center.lower() in ("c", "center"):
                 self.center = self.ds.domain_center
@@ -206,8 +180,19 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             elif center.startswith("min_"):
                 self.center = self.ds.find_min(center[4:])[1]
         else:
-            self.center = self.ds.arr(center, 'code_length', dtype='float64')
-        self.set_field_parameter('center', self.center)
+            self.center = self.ds.arr(center, "code_length", dtype="float64")
+
+        if self.center.ndim > 1:
+            mylog.debug("Removing singleton dimensions from 'center'.")
+            self.center = np.squeeze(self.center)
+            if self.center.ndim > 1:
+                msg = (
+                    "center array must be 1 dimensional, supplied center has "
+                    f"{self.center.ndim} dimensions with shape {self.center.shape}."
+                )
+                raise YTException(msg)
+
+        self.set_field_parameter("center", self.center)
 
     def get_field_parameter(self, name, default=None):
         """
@@ -257,8 +242,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         f = self._determine_fields([key])[0]
         if f not in self.field_data and key not in self.field_data:
             if f in self._container_fields:
-                self.field_data[f] = \
-                    self.ds.arr(self._generate_container_field(f))
+                self.field_data[f] = self.ds.arr(self._generate_container_field(f))
                 return self.field_data[f]
             else:
                 self.get_data(f)
@@ -311,8 +295,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         # First we check the validator
         ftype, fname = field
         finfo = self.ds._get_field_info(ftype, fname)
-        if self._current_chunk is None or \
-           self._current_chunk.chunk_type != "spatial":
+        if self._current_chunk is None or self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
             gen_obj = self._current_chunk.objs[0]
@@ -340,37 +323,37 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             accumulate = True
         ind = 0
         if ngz == 0:
-            deps = self._identify_dependencies([field], spatial = True)
+            deps = self._identify_dependencies([field], spatial=True)
             deps = self._determine_fields(deps)
-            for io_chunk in self.chunks([], "io", cache = False):
-                for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0,
-                                                    preload_fields = deps)):
+            for _io_chunk in self.chunks([], "io", cache=False):
+                for _chunk in self.chunks([], "spatial", ngz=0, preload_fields=deps):
                     o = self._current_chunk.objs[0]
                     if accumulate:
-                        rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"),
-                                         units)
+                        rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"), units)
                         outputs.append(rv)
-                        ind = 0 # Does this work with mesh?
+                        ind = 0  # Does this work with mesh?
                     with o._activate_cache():
-                        ind += o.select(self.selector, self[field], rv, ind)
+                        ind += o.select(
+                            self.selector, source=self[field], dest=rv, offset=ind
+                        )
         else:
-            chunks = self.index._chunk(self, "spatial", ngz = ngz)
-            for i, chunk in enumerate(chunks):
+            chunks = self.index._chunk(self, "spatial", ngz=ngz)
+            for chunk in chunks:
                 with self._chunked_read(chunk):
                     gz = self._current_chunk.objs[0]
                     gz.field_parameters = self.field_parameters
                     wogz = gz._base_grid
                     if accumulate:
-                        rv = self.ds.arr(np.empty(wogz.ires.size,
-                                dtype="float64"), units)
+                        rv = self.ds.arr(
+                            np.empty(wogz.ires.size, dtype="float64"), units
+                        )
                         outputs.append(rv)
-                    if gz._type_name == 'octree_subset':
-                        raise NotImplementedError
-                    else:
-                        ind += wogz.select(
-                            self.selector,
-                            gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
-                            rv, ind)
+                    ind += wogz.select(
+                        self.selector,
+                        source=gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
+                        dest=rv,
+                        offset=ind,
+                    )
         if accumulate:
             rv = uconcatenate(outputs)
         return rv
@@ -378,8 +361,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
     def _generate_particle_field(self, field):
         # First we check the validator
         ftype, fname = field
-        if self._current_chunk is None or \
-           self._current_chunk.chunk_type != "spatial":
+        if self._current_chunk is None or self._current_chunk.chunk_type != "spatial":
             gen_obj = self
         else:
             gen_obj = self._current_chunk.objs[0]
@@ -388,21 +370,23 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
             if ngt_exception.ghost_zones != 0:
-                raise NotImplementedError
+                raise NotImplementedError from ngt_exception
             size = self._count_particles(ftype)
             rv = self.ds.arr(np.empty(size, dtype="float64"), finfo.units)
             ind = 0
-            for io_chunk in self.chunks([], "io", cache = False):
-                for i, chunk in enumerate(self.chunks(field, "spatial")):
-                    x, y, z = (self[ftype, 'particle_position_%s' % ax]
-                               for ax in 'xyz')
-                    if x.size == 0: continue
+            for _io_chunk in self.chunks([], "io", cache=False):
+                for _chunk in self.chunks(field, "spatial"):
+                    x, y, z = (self[ftype, f"particle_position_{ax}"] for ax in "xyz")
+                    if x.size == 0:
+                        continue
                     mask = self._current_chunk.objs[0].select_particles(
-                        self.selector, x, y, z)
-                    if mask is None: continue
+                        self.selector, x, y, z
+                    )
+                    if mask is None:
+                        continue
                     # This requests it from the grid and does NOT mask it
                     data = self[field][mask]
-                    rv[ind:ind+data.size] = data
+                    rv[ind : ind + data.size] = data
                     ind += data.size
         else:
             with self._field_type_state(ftype, finfo, gen_obj):
@@ -410,17 +394,18 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         return rv
 
     def _count_particles(self, ftype):
-        for (f1, f2), val in self.field_data.items():
+        for (f1, _f2), val in self.field_data.items():
             if f1 == ftype:
                 return val.size
         size = 0
-        for io_chunk in self.chunks([], "io", cache = False):
-            for i,chunk in enumerate(self.chunks([], "spatial")):
-                x, y, z = (self[ftype, 'particle_position_%s' % ax]
-                            for ax in 'xyz')
-                if x.size == 0: continue
+        for _io_chunk in self.chunks([], "io", cache=False):
+            for _chunk in self.chunks([], "spatial"):
+                x, y, z = (self[ftype, f"particle_position_{ax}"] for ax in "xyz")
+                if x.size == 0:
+                    continue
                 size += self._current_chunk.objs[0].count_particles(
-                    self.selector, x, y, z)
+                    self.selector, x, y, z
+                )
         return size
 
     def _generate_container_field(self, field):
@@ -486,13 +471,16 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         if len(field_types) != 1:
             diff_fields = self._determine_fields(diff_fields)
             req_ftype = self._determine_fields(self._key_fields[0])[0][0]
-            f_type = {f for f in diff_fields if f[0] != req_ftype }
-            msg = ("Field type %s of the supplied field %s is inconsistent"
-                   " with field type '%s'." %
-                   ([f[0] for f in f_type], [f[1] for f in f_type], req_ftype))
+            f_type = {f for f in diff_fields if f[0] != req_ftype}
+            msg = (
+                "Field type %s of the supplied field %s is inconsistent"
+                " with field type '%s'."
+                % ([f[0] for f in f_type], [f[1] for f in f_type], req_ftype)
+            )
             raise YTException(msg)
 
-        for field in field_order: self[field]
+        for field in field_order:
+            self[field]
         with open(filename, "w") as fid:
             field_header = [str(f) for f in field_order]
             fid.write("\t".join(["#"] + field_header + ["\n"]))
@@ -500,21 +488,6 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             for line in range(field_data.shape[1]):
                 field_data[:, line].tofile(fid, sep="\t", format=format)
                 fid.write("\n")
-
-    def save_object(self, name, filename=None):
-        """
-        Save an object.  If *filename* is supplied, it will be stored in
-        a :mod:`shelve` file of that name.  Otherwise, it will be stored via
-        :meth:`yt.data_objects.api.GridIndex.save_object`.
-        """
-        if filename is not None:
-            ds = shelve.open(filename, protocol=-1)
-            if name in ds:
-                mylog.info("Overwriting %s in %s", name, filename)
-            ds[name] = self
-            ds.close()
-        else:
-            self.index.save_object(self, name)
 
     def to_dataframe(self, fields):
         r"""Export a data object to a :class:`~pandas.DataFrame`.
@@ -540,6 +513,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         >>> df = dd.to_dataframe(["density", "temperature"])
         """
         import pandas as pd
+
         data = {}
         fields = ensure_list(fields)
         fields = self._determine_fields(fields)
@@ -561,7 +535,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         ----------
         fields : list of strings or tuple field names
             This is the list of fields to be exported into
-            the QTable. 
+            the QTable.
 
         Examples
         --------
@@ -569,6 +543,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         >>> t = sp.to_astropy_table(["density","temperature"])
         """
         from astropy.table import QTable
+
         t = QTable()
         fields = ensure_list(fields)
         fields = self._determine_fields(fields)
@@ -619,7 +594,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
         """
 
-        keyword = "%s_%s" % (str(self.ds), self._type_name)
+        keyword = f"{str(self.ds)}_{self._type_name}"
         filename = get_output_filename(filename, keyword, ".h5")
 
         data = {}
@@ -629,9 +604,8 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         else:
             data.update(self.field_data)
         # get the extra fields needed to reconstruct the container
-        tds_fields = tuple([('index', t) for t in self._tds_fields])
-        for f in [f for f in self._container_fields + tds_fields \
-                  if f not in data]:
+        tds_fields = tuple([("index", t) for t in self._tds_fields])
+        for f in [f for f in self._container_fields + tds_fields if f not in data]:
             data[f] = self[f]
         data_fields = list(data.keys())
 
@@ -656,15 +630,15 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             need_grid_positions = False
 
         if need_particle_positions:
-            for ax in "xyz":
+            for ax in self.ds.coordinates.axis_order:
                 for ptype in ptypes:
-                    p_field = (ptype, "particle_position_%s" % ax)
+                    p_field = (ptype, f"particle_position_{ax}")
                     if p_field in self.ds.field_info and p_field not in data:
                         data_fields.append(field)
                         ftypes[p_field] = p_field[0]
                         data[p_field] = self[p_field]
         if need_grid_positions:
-            for ax in "xyz":
+            for ax in self.ds.coordinates.axis_order:
                 g_field = ("index", ax)
                 if g_field in self.ds.field_info and g_field not in data:
                     data_fields.append(g_field)
@@ -676,14 +650,19 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                     ftypes[g_field] = "grid"
                     data[g_field] = self[g_field]
 
-        extra_attrs = dict([(arg, getattr(self, arg, None))
-                            for arg in self._con_args + self._tds_attrs])
+        extra_attrs = dict(
+            [
+                (arg, getattr(self, arg, None))
+                for arg in self._con_args + self._tds_attrs
+            ]
+        )
         extra_attrs["con_args"] = repr(self._con_args)
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
         extra_attrs["dimensionality"] = self._dimensionality
-        save_as_dataset(self.ds, filename, data, field_types=ftypes,
-                        extra_attrs=extra_attrs)
+        save_as_dataset(
+            self.ds, filename, data, field_types=ftypes, extra_attrs=extra_attrs
+        )
 
         return filename
 
@@ -695,11 +674,12 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         the Glue environment, you can pass a *data_collection* object,
         otherwise Glue will be started.
         """
+        from glue.core import Data, DataCollection
+
         from yt.config import ytcfg
-        from glue.core import DataCollection, Data
+
         if ytcfg.getboolean("yt", "__withintesting"):
-            from glue.core.application_base import \
-                Application as GlueApplication
+            from glue.core.application_base import Application as GlueApplication
         else:
             try:
                 from glue.app.qt.application import GlueApplication
@@ -720,17 +700,17 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                 pass
         else:
             data_collection.append(gdata)
-    
+
     def create_firefly_object(
         self,
         path_to_firefly,
-        fields_to_include = None,
-        fields_units = None,
-        default_decimation_factor = 100,
-        velocity_units = 'km/s',
-        coordinate_units = 'kpc',
-        show_unused_fields = 0,
-        dataset_name = 'yt'
+        fields_to_include=None,
+        fields_units=None,
+        default_decimation_factor=100,
+        velocity_units="km/s",
+        coordinate_units="kpc",
+        show_unused_fields=0,
+        dataset_name="yt",
     ):
         r"""This function links a region of data stored in a yt dataset
             to the Python frontend API for [Firefly](github.com/ageller/Firefly),
@@ -740,45 +720,45 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             ----------
             path_to_firefly : string
                 The (ideally) absolute path to the direction containing the index.html
-                file of Firefly. 
+                file of Firefly.
 
             fields_to_include : array_like of strings
-                A list of fields that you want to include in your 
+                A list of fields that you want to include in your
                 Firefly visualization for on-the-fly filtering and
-                colormapping. 
-            
+                colormapping.
+
             default_decimation_factor : integer
                 The factor by which you want to decimate each particle group
                 by (e.g. if there are 1e7 total particles in your simulation
                 you might want to set this to 100 at first). Randomly samples
-                your data like `shuffled_data[::decimation_factor]` so as to 
+                your data like `shuffled_data[::decimation_factor]` so as to
                 not overtax a system. This is adjustable on a per particle group
-                basis by changing the returned reader's 
-                `reader.particleGroup[i].decimation_factor` before calling 
+                basis by changing the returned reader's
+                `reader.particleGroup[i].decimation_factor` before calling
                 `reader.dumpToJSON()`.
-            
+
             velocity_units : string
-                The units that the velocity should be converted to in order to 
-                show streamlines in Firefly. Defaults to km/s. 
-            
+                The units that the velocity should be converted to in order to
+                show streamlines in Firefly. Defaults to km/s.
+
             coordinate_units: string
-                The units that the coordinates should be converted to. Defaults to 
-                kpc. 
-            
+                The units that the coordinates should be converted to. Defaults to
+                kpc.
+
             show_unused_fields: boolean
-                A flag to optionally print the fields that are available, in the 
+                A flag to optionally print the fields that are available, in the
                 dataset but were not explicitly requested to be tracked.
 
             dataset_name: string
-                The name of the subdirectory the JSON files will be stored in 
+                The name of the subdirectory the JSON files will be stored in
                 (and the name that will appear in startup.json and in the dropdown
-                menu at startup). e.g. `yt` -> json files will appear in 
+                menu at startup). e.g. `yt` -> json files will appear in
                 `Firefly/data/yt`.
 
             Returns
             -------
             reader : firefly_api.reader.Reader object
-                A reader object from the firefly_api, configured 
+                A reader object from the firefly_api, configured
                 to output
 
             Examples
@@ -802,16 +782,18 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                 >>> reader.particleGroups[0].decimation_factor=100
                 >>> reader.dumpToJSON()
         """
-        
+
         ## attempt to import firefly_api
         try:
-            from firefly_api.reader import Reader
             from firefly_api.particlegroup import ParticleGroup
-        except ImportError:
-            raise ImportError("Can't find firefly_api, ensure it"+
-                "is in your python path or install it with"+
-                "'$ pip install firefly_api'. It is also available"+
-                "on github at github.com/agurvich/firefly_api")
+            from firefly_api.reader import Reader
+        except ImportError as e:
+            raise ImportError(
+                "Can't find firefly_api, ensure it"
+                "is in your python path or install it with"
+                "'$ pip install firefly_api'. It is also available"
+                "on github at github.com/agurvich/firefly_api"
+            ) from e
 
         ## handle default arguments
         fields_to_include = [] if fields_to_include is None else fields_to_include
@@ -820,23 +802,23 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         ## handle input validation, if any
         if len(fields_units) != len(fields_to_include):
             raise RuntimeError("Each requested field must have units.")
-        
+
         ## for safety, in case someone passes a float just cast it
         default_decimation_factor = int(default_decimation_factor)
-        
+
         ## initialize a firefly reader instance
         reader = Reader(
-            JSONdir=os.path.join(path_to_firefly,'data',dataset_name),
-            prefix='ytData',
+            JSONdir=os.path.join(path_to_firefly, "data", dataset_name),
+            prefix="ytData",
             clean_JSONdir=True,
-            )
+        )
 
         ## create a ParticleGroup object that contains *every* field
         for ptype in sorted(self.ds.particle_types_raw):
-            ## skip this particle type if it has no particles in this dataset 
-            if self[ptype,'relative_particle_position'].shape[0]==0:
+            ## skip this particle type if it has no particles in this dataset
+            if self[ptype, "relative_particle_position"].shape[0] == 0:
                 continue
-            
+
             ## loop through the fields and print them to the screen
             if show_unused_fields:
                 ## read the available extra fields from yt
@@ -845,28 +827,31 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                 ## load the extra fields and print them
                 for field in this_ptype_fields:
                     if field not in fields_to_include:
-                        mylog.warning('detected (but did not request) {} {}'.format(ptype,field))
+                        mylog.warning(
+                            "detected (but did not request) %s %s", ptype, field
+                        )
 
             ## you must have velocities (and they must be named "Velocities")
             tracked_arrays = [
-                self[ptype,'relative_particle_velocity'].in_units(velocity_units)]
-            tracked_names = ['Velocities']
+                self[ptype, "relative_particle_velocity"].in_units(velocity_units)
+            ]
+            tracked_names = ["Velocities"]
 
             ## explicitly go after the fields we want
-            for field,units in zip(fields_to_include,fields_units):
+            for field, units in zip(fields_to_include, fields_units):
                 ## determine if you want to take the log of the field for Firefly
-                log_flag = 'log(' in units 
+                log_flag = "log(" in units
 
                 ## read the field array from the dataset
-                this_field_array = self[ptype,field]
+                this_field_array = self[ptype, field]
 
                 ## fix the units string and prepend 'log' to the field for
                 ##  the UI name
                 if log_flag:
-                    units = units[len('log('):-1]
-                    field = 'log{}'.format(field)
+                    units = units[len("log(") : -1]
+                    field = f"log{field}"
 
-                ## perform the unit conversion and take the log if 
+                ## perform the unit conversion and take the log if
                 ##  necessary.
                 this_field_array.in_units(units)
                 if log_flag:
@@ -874,8 +859,8 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
                 ## add this array to the tracked arrays
                 tracked_arrays += [this_field_array]
-                tracked_names = np.append(tracked_names,[field],axis=0)
-            
+                tracked_names = np.append(tracked_names, [field], axis=0)
+
             ## flag whether we want to filter and/or color by these fields
             ##  we'll assume yes for both cases, this can be changed after
             ##  the reader object is returned to the user.
@@ -884,14 +869,17 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
             ## create a firefly ParticleGroup for this particle type
             pg = ParticleGroup(
-                UIname =  ptype,
-                coordinates=self[ptype,'relative_particle_position'].in_units(coordinate_units),
+                UIname=ptype,
+                coordinates=self[ptype, "relative_particle_position"].in_units(
+                    coordinate_units
+                ),
                 tracked_arrays=tracked_arrays,
                 tracked_names=tracked_names,
                 tracked_filter_flags=tracked_filter_flags,
                 tracked_colormap_flags=tracked_colormap_flags,
-                decimation_factor=default_decimation_factor)
-            
+                decimation_factor=default_decimation_factor,
+            )
+
             ## bind this particle group to the firefly reader object
             reader.addParticleGroup(pg)
 
@@ -993,6 +981,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         return self._extrema_cache[field]
 
     _extrema_cache = None
+
     def max(self, field, axis=None):
         r"""Compute the maximum of a field, optionally along an axis.
 
@@ -1031,7 +1020,7 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             r = self.ds.proj(field, axis, data_source=self, method="mip")
             return r
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
 
     def min(self, field, axis=None):
         r"""Compute the minimum of a field.
@@ -1067,10 +1056,11 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
                 return rv
             return rv
         elif axis in self.ds.coordinates.axis_name:
-            raise NotImplementedError("Minimum intensity projection not"
-                                      " implemented.")
+            raise NotImplementedError(
+                "Minimum intensity projection not" " implemented."
+            )
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
 
     def std(self, field, weight=None):
         """Compute the variance of a field.
@@ -1116,11 +1106,19 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         ex = self._compute_extrema(field)
         return ex[1] - ex[0]
 
-    def profile(self, bin_fields, fields, n_bins=64,
-                extrema=None, logs=None, units=None,
-                weight_field="cell_mass",
-                accumulation=False, fractional=False,
-                deposition='ngp'):
+    def profile(
+        self,
+        bin_fields,
+        fields,
+        n_bins=64,
+        extrema=None,
+        logs=None,
+        units=None,
+        weight_field="cell_mass",
+        accumulation=False,
+        fractional=False,
+        deposition="ngp",
+    ):
         r"""
         Create a 1, 2, or 3D profile object from this data_source.
 
@@ -1183,9 +1181,19 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         >>> print (profile["gas", "temperature"])
         >>> plot = profile.plot()
         """
-        p = create_profile(self, bin_fields, fields, n_bins,
-                   extrema, logs, units, weight_field, accumulation,
-                   fractional, deposition)
+        p = create_profile(
+            self,
+            bin_fields,
+            fields,
+            n_bins,
+            extrema,
+            logs,
+            units,
+            weight_field,
+            accumulation,
+            fractional,
+            deposition,
+        )
         return p
 
     def mean(self, field, axis=None, weight=None):
@@ -1220,12 +1228,11 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         """
         weight_field = sanitize_weight_field(self.ds, field, weight)
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self,
-                             weight_field=weight_field)
+            r = self.ds.proj(field, axis, data_source=self, weight_field=weight_field)
         elif axis is None:
             r = self.quantities.weighted_average_quantity(field, weight_field)
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
     def sum(self, field, axis=None):
@@ -1257,12 +1264,12 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         # projection with the method="sum", we do not utilize the ``mean``
         # function.
         if axis in self.ds.coordinates.axis_name:
-            with self._field_parameter_state({'axis':axis}):
+            with self._field_parameter_state({"axis": axis}):
                 r = self.ds.proj(field, axis, data_source=self, method="sum")
         elif axis is None:
             r = self.quantities.total_quantity(field)
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
     def integrate(self, field, weight=None, axis=None):
@@ -1293,25 +1300,27 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         else:
             weight_field = None
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self,
-                             weight_field=weight_field)
+            r = self.ds.proj(field, axis, data_source=self, weight_field=weight_field)
         else:
-            raise NotImplementedError("Unknown axis %s" % axis)
+            raise NotImplementedError(f"Unknown axis {axis}")
         return r
 
     @property
     def _hash(self):
-        s = "%s" % self
+        s = f"{self}"
         try:
             import hashlib
-            return hashlib.md5(s.encode('utf-8')).hexdigest()
+
+            return hashlib.md5(s.encode("utf-8")).hexdigest()
         except ImportError:
             return s
 
     def __reduce__(self):
-        args = tuple([self.ds._hash(), self._type_name] +
-                     [getattr(self, n) for n in self._con_args] +
-                     [self.field_parameters])
+        args = tuple(
+            [self.ds._hash(), self._type_name]
+            + [getattr(self, n) for n in self._con_args]
+            + [self.field_parameters]
+        )
         return (_reconstruct_object, args)
 
     def clone(self):
@@ -1345,12 +1354,15 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
-        s = "%s (%s): " % (self.__class__.__name__, self.ds)
+        s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
             try:
-                s += ", %s=%s" % (i, getattr(self, i).in_base(unit_system=self.ds.unit_system))
+                s += ", %s=%s" % (
+                    i,
+                    getattr(self, i).in_base(unit_system=self.ds.unit_system),
+                )
             except AttributeError:
-                s += ", %s=%s" % (i, getattr(self, i))
+                s += f", {i}={getattr(self, i)}"
         return s
 
     @contextmanager
@@ -1367,8 +1379,9 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         self.field_parameters = old_field_parameters
 
     @contextmanager
-    def _field_type_state(self, ftype, finfo, obj = None):
-        if obj is None: obj = self
+    def _field_type_state(self, ftype, finfo, obj=None):
+        if obj is None:
+            obj = self
         old_particle_type = obj._current_particle_type
         old_fluid_type = obj._current_fluid_type
         fluid_types = self.ds.fluid_types
@@ -1380,6 +1393,49 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
 
+    def _tupleize_field(self, field):
+
+        try:
+            ftype, fname = field.name
+            return ftype, fname
+        except AttributeError:
+            pass
+
+        if iterable(field) and not isinstance(field, str):
+            try:
+                ftype, fname = field
+                if not all(isinstance(_, str) for _ in field):
+                    raise TypeError
+                return ftype, fname
+            except TypeError as e:
+                raise YTFieldNotParseable(field) from e
+            except ValueError:
+                pass
+
+        try:
+            fname = field
+            finfo = self.ds._get_field_info(field)
+            if finfo.sampling_type == "particle":
+                ftype = self._current_particle_type
+                if hasattr(self.ds, "_sph_ptypes"):
+                    ptypes = self.ds._sph_ptypes
+                    if finfo.name[0] in ptypes:
+                        ftype = finfo.name[0]
+                    elif finfo.alias_field and finfo.alias_name[0] in ptypes:
+                        ftype = self._current_fluid_type
+            else:
+                ftype = self._current_fluid_type
+                if (ftype, fname) not in self.ds.field_info:
+                    ftype = self.ds._last_freq[0]
+            return ftype, fname
+        except YTFieldNotFound:
+            pass
+
+        if isinstance(field, str):
+            return "unknown", field
+
+        raise YTFieldNotParseable(field)
+
     def _determine_fields(self, fields):
         fields = ensure_list(fields)
         explicit_fields = []
@@ -1387,41 +1443,22 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
             if field in self._container_fields:
                 explicit_fields.append(field)
                 continue
-            if isinstance(field, tuple):
-                if len(field) != 2 or \
-                   not isinstance(field[0], str) or \
-                   not isinstance(field[1], str):
-                    raise YTFieldNotParseable(field)
-                ftype, fname = field
-                finfo = self.ds._get_field_info(ftype, fname)
-            elif isinstance(field, DerivedField):
-                ftype, fname = field.name
-                finfo = field
-            else:
-                fname = field
-                finfo = self.ds._get_field_info("unknown", fname)
-                if finfo.sampling_type == "particle":
-                    ftype = self._current_particle_type
-                    if hasattr(self.ds, '_sph_ptypes'):
-                        ptypes = self.ds._sph_ptypes
-                        if finfo.name[0] in ptypes:
-                            ftype = finfo.name[0]
-                        elif finfo.alias_field and finfo.alias_name[0] in ptypes:
-                            ftype = self._current_fluid_type
-                else:
-                    ftype = self._current_fluid_type
-                    if (ftype, fname) not in self.ds.field_info:
-                        ftype = self.ds._last_freq[0]
 
-                # really ugly check to ensure that this field really does exist somewhere,
-                # in some naming convention, before returning it as a possible field type
-                if (ftype,fname) not in self.ds.field_info and \
-                        (ftype,fname) not in self.ds.field_list and \
-                        fname not in self.ds.field_list and \
-                        (ftype,fname) not in self.ds.derived_field_list and \
-                        fname not in self.ds.derived_field_list and \
-                        (ftype,fname) not in self._container_fields:
-                    raise YTFieldNotFound((ftype,fname),self.ds)
+            ftype, fname = self._tupleize_field(field)
+            # print(field, " : ",ftype, fname)
+            finfo = self.ds._get_field_info(ftype, fname)
+
+            # really ugly check to ensure that this field really does exist somewhere,
+            # in some naming convention, before returning it as a possible field type
+            if (
+                (ftype, fname) not in self.ds.field_info
+                and (ftype, fname) not in self.ds.field_list
+                and fname not in self.ds.field_list
+                and (ftype, fname) not in self.ds.derived_field_list
+                and fname not in self.ds.derived_field_list
+                and (ftype, fname) not in self._container_fields
+            ):
+                raise YTFieldNotFound((ftype, fname), self.ds)
 
             # these tests are really insufficient as a field type may be valid, and the
             # field name may be valid, but not the combination (field type, field name)
@@ -1440,1358 +1477,25 @@ class YTDataContainer(metaclass = RegisteredDataContainer):
 
     @property
     def tiles(self):
-        if self._tree is not None: return self._tree
+        if self._tree is not None:
+            return self._tree
         self._tree = AMRKDTree(self.ds, data_source=self)
         return self._tree
 
     @property
     def blocks(self):
-        for io_chunk in self.chunks([], "io"):
-            for i,chunk in enumerate(self.chunks([], "spatial", ngz = 0)):
+        for _io_chunk in self.chunks([], "io"):
+            for _chunk in self.chunks([], "spatial", ngz=0):
                 # For grids this will be a grid object, and for octrees it will
                 # be an OctreeSubset.  Note that we delegate to the sub-object.
                 o = self._current_chunk.objs[0]
                 cache_fp = o.field_parameters.copy()
                 o.field_parameters.update(self.field_parameters)
                 for b, m in o.select_blocks(self.selector):
-                    if m is None: continue
+                    if m is None:
+                        continue
                     yield b, m
                 o.field_parameters = cache_fp
-
-class GenerationInProgress(Exception):
-    def __init__(self, fields):
-        self.fields = fields
-        super(GenerationInProgress, self).__init__()
-
-class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
-    _locked = False
-    _sort_by = None
-    _selector = None
-    _current_chunk = None
-    _data_source = None
-    _dimensionality = None
-    _max_level = None
-    _min_level = None
-
-    def __init__(self, ds, field_parameters, data_source=None):
-        ParallelAnalysisInterface.__init__(self)
-        super(YTSelectionContainer, self).__init__(ds, field_parameters)
-        self._data_source = data_source
-        if data_source is not None:
-            if data_source.ds != self.ds:
-                raise RuntimeError("Attempted to construct a DataContainer with a data_source "
-                                   "from a different Dataset", ds, data_source.ds)
-            if data_source._dimensionality < self._dimensionality:
-                raise RuntimeError("Attempted to construct a DataContainer with a data_source "
-                                   "of lower dimensionality (%u vs %u)" %
-                                    (data_source._dimensionality, self._dimensionality))
-            self.field_parameters.update(data_source.field_parameters)
-        self.quantities = DerivedQuantityCollection(self)
-
-    @property
-    def selector(self):
-        if self._selector is not None:
-            return self._selector
-        s_module = getattr(self, '_selector_module',
-                           yt.geometry.selection_routines)
-        sclass = getattr(s_module,
-                         "%s_selector" % self._type_name, None)
-        if sclass is None:
-            raise YTDataSelectorNotImplemented(self._type_name)
-
-        if self._data_source is not None:
-            self._selector = compose_selector(
-                self, self._data_source.selector, sclass(self))
-        else:
-            self._selector = sclass(self)
-        return self._selector
-
-    def chunks(self, fields, chunking_style, **kwargs):
-        # This is an iterator that will yield the necessary chunks.
-        self.get_data() # Ensure we have built ourselves
-        if fields is None: fields = []
-        # chunk_ind can be supplied in the keyword arguments.  If it's a
-        # scalar, that'll be the only chunk that gets returned; if it's a list,
-        # those are the ones that will be.
-        chunk_ind = kwargs.pop("chunk_ind", None)
-        if chunk_ind is not None:
-            chunk_ind = ensure_list(chunk_ind)
-        for ci, chunk in enumerate(self.index._chunk(self, chunking_style,
-                                   **kwargs)):
-            if chunk_ind is not None and ci not in chunk_ind:
-                continue
-            with self._chunked_read(chunk):
-                self.get_data(fields)
-                # NOTE: we yield before releasing the context
-                yield self
-
-    def _identify_dependencies(self, fields_to_get, spatial = False):
-        inspected = 0
-        fields_to_get = fields_to_get[:]
-        for field in itertools.cycle(fields_to_get):
-            if inspected >= len(fields_to_get): break
-            inspected += 1
-            fi = self.ds._get_field_info(*field)
-            fd = self.ds.field_dependencies.get(field, None) or \
-                 self.ds.field_dependencies.get(field[1], None)
-            # This is long overdue.  Any time we *can't* find a field
-            # dependency -- for instance, if the derived field has been added
-            # after dataset instantiation -- let's just try to
-            # recalculate it.
-            if fd is None:
-                try:
-                    fd = fi.get_dependencies(ds = self.ds)
-                    self.ds.field_dependencies[field] = fd
-                except Exception:
-                    continue
-            requested = self._determine_fields(list(set(fd.requested)))
-            deps = [d for d in requested if d not in fields_to_get]
-            fields_to_get += deps
-        return sorted(fields_to_get)
-
-    def get_data(self, fields=None):
-        if self._current_chunk is None:
-            self.index._identify_base_chunk(self)
-        if fields is None: return
-        nfields = []
-        apply_fields = defaultdict(list)
-        for field in self._determine_fields(fields):
-            # We need to create the field on the raw particle types
-            # for particles types (when the field is not directly
-            # defined for the derived particle type only)
-            finfo = self.ds.field_info[field]
-
-            if field[0] in self.ds.filtered_particle_types and finfo._inherited_particle_filter:
-                f = self.ds.known_filters[field[0]]
-                apply_fields[field[0]].append(
-                    (f.filtered_type, field[1]))
-            else:
-                nfields.append(field)
-        for filter_type in apply_fields:
-            f = self.ds.known_filters[filter_type]
-            with f.apply(self):
-                self.get_data(apply_fields[filter_type])
-        fields = nfields
-        if len(fields) == 0: return
-        # Now we collect all our fields
-        # Here is where we need to perform a validation step, so that if we
-        # have a field requested that we actually *can't* yet get, we put it
-        # off until the end.  This prevents double-reading fields that will
-        # need to be used in spatial fields later on.
-        fields_to_get = []
-        # This will be pre-populated with spatial fields
-        fields_to_generate = []
-        for field in self._determine_fields(fields):
-            if field in self.field_data: continue
-            finfo = self.ds._get_field_info(*field)
-            try:
-                finfo.check_available(self)
-            except NeedsGridType:
-                fields_to_generate.append(field)
-                continue
-            fields_to_get.append(field)
-        if len(fields_to_get) == 0 and len(fields_to_generate) == 0:
-            return
-        elif self._locked:
-            raise GenerationInProgress(fields)
-        # Track which ones we want in the end
-        ofields = set(list(self.field_data.keys())
-                    + fields_to_get
-                    + fields_to_generate)
-        # At this point, we want to figure out *all* our dependencies.
-        fields_to_get = self._identify_dependencies(fields_to_get,
-            self._spatial)
-        # We now split up into readers for the types of fields
-        fluids, particles = [], []
-        finfos = {}
-        for ftype, fname in fields_to_get:
-            finfo = self.ds._get_field_info(ftype, fname)
-            finfos[ftype, fname] = finfo
-            if finfo.sampling_type == "particle":
-                particles.append((ftype, fname))
-            elif (ftype, fname) not in fluids:
-                fluids.append((ftype, fname))
-        # The _read method will figure out which fields it needs to get from
-        # disk, and return a dict of those fields along with the fields that
-        # need to be generated.
-        read_fluids, gen_fluids = self.index._read_fluid_fields(
-                                        fluids, self, self._current_chunk)
-        for f, v in read_fluids.items():
-            self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
-
-        read_particles, gen_particles = self.index._read_particle_fields(
-                                        particles, self, self._current_chunk)
-
-        for f, v in read_particles.items():
-            self.field_data[f] = self.ds.arr(v, units = finfos[f].units)
-            self.field_data[f].convert_to_units(finfos[f].output_units)
-
-        fields_to_generate += gen_fluids + gen_particles
-        self._generate_fields(fields_to_generate)
-        for field in list(self.field_data.keys()):
-            if field not in ofields:
-                self.field_data.pop(field)
-
-    def _generate_fields(self, fields_to_generate):
-        index = 0
-        with self._field_lock():
-            # At this point, we assume that any fields that are necessary to
-            # *generate* a field are in fact already available to us.  Note
-            # that we do not make any assumption about whether or not the
-            # fields have a spatial requirement.  This will be checked inside
-            # _generate_field, at which point additional dependencies may
-            # actually be noted.
-            while any(f not in self.field_data for f in fields_to_generate):
-                field = fields_to_generate[index % len(fields_to_generate)]
-                index += 1
-                if field in self.field_data: continue
-                fi = self.ds._get_field_info(*field)
-                try:
-                    fd = self._generate_field(field)
-                    if hasattr(fd, 'units'):
-                        fd.units.registry = self.ds.unit_registry
-                    if fd is None:
-                        raise RuntimeError
-                    if fi.units is None:
-                        # first time calling a field with units='auto', so we
-                        # infer the units from the units of the data we get back
-                        # from the field function and use these units for future
-                        # field accesses
-                        units = getattr(fd, 'units', '')
-                        if units == '':
-                            dimensions = ytdims.dimensionless
-                        else:
-                            dimensions = units.dimensions
-                            units = str(units.get_base_equivalent(self.ds.unit_system.name))
-                        if fi.dimensions != dimensions:
-                            raise YTDimensionalityError(fi.dimensions, dimensions)
-                        fi.units = units
-                        self.field_data[field] = self.ds.arr(fd, units)
-                        msg = ("Field %s was added without specifying units, "
-                               "assuming units are %s")
-                        mylog.warning(msg % (fi.name, units))
-                    try:
-                        fd.convert_to_units(fi.units)
-                    except AttributeError:
-                        # If the field returns an ndarray, coerce to a
-                        # dimensionless YTArray and verify that field is
-                        # supposed to be unitless
-                        fd = self.ds.arr(fd, '')
-                        if fi.units != '':
-                            raise YTFieldUnitError(fi, fd.units)
-                    except UnitConversionError:
-                        raise YTFieldUnitError(fi, fd.units)
-                    except UnitParseError:
-                        raise YTFieldUnitParseError(fi)
-                    self.field_data[field] = fd
-                except GenerationInProgress as gip:
-                    for f in gip.fields:
-                        if f not in fields_to_generate:
-                            fields_to_generate.append(f)
-
-    def __or__(self, other):
-        if not isinstance(other, YTSelectionContainer):
-            raise YTBooleanObjectError(other)
-        if self.ds is not other.ds:
-            raise YTBooleanObjectsWrongDataset()
-        # Should maybe do something with field parameters here
-        return YTBooleanContainer("OR", self, other, ds = self.ds)
-
-    def __invert__(self):
-        # ~obj
-        asel = yt.geometry.selection_routines.AlwaysSelector(self.ds)
-        return YTBooleanContainer("NOT", self, asel, ds = self.ds)
-
-    def __xor__(self, other):
-        if not isinstance(other, YTSelectionContainer):
-            raise YTBooleanObjectError(other)
-        if self.ds is not other.ds:
-            raise YTBooleanObjectsWrongDataset()
-        return YTBooleanContainer("XOR", self, other, ds = self.ds)
-
-    def __and__(self, other):
-        if not isinstance(other, YTSelectionContainer):
-            raise YTBooleanObjectError(other)
-        if self.ds is not other.ds:
-            raise YTBooleanObjectsWrongDataset()
-        return YTBooleanContainer("AND", self, other, ds = self.ds)
-
-    def __add__(self, other):
-        return self.__or__(other)
-
-    def __sub__(self, other):
-        if not isinstance(other, YTSelectionContainer):
-            raise YTBooleanObjectError(other)
-        if self.ds is not other.ds:
-            raise YTBooleanObjectsWrongDataset()
-        return YTBooleanContainer("NEG", self, other, ds = self.ds)
-
-    @contextmanager
-    def _field_lock(self):
-        self._locked = True
-        yield
-        self._locked = False
-
-    @contextmanager
-    def _ds_hold(self, new_ds):
-        """
-        This contextmanager is used to take a data object and preserve its
-        attributes but allow the dataset that underlies it to be swapped out.
-        This is typically only used internally, and differences in unit systems
-        may present interesting possibilities.
-        """
-        old_ds = self.ds
-        old_index = self._index
-        self.ds = new_ds
-        self._index = new_ds.index
-        old_chunk_info = self._chunk_info
-        old_chunk = self._current_chunk
-        old_size = self.size
-        self._chunk_info = None
-        self._current_chunk = None
-        self.size = None
-        self._index._identify_base_chunk(self)
-        with self._chunked_read(None):
-            yield
-        self._index = old_index
-        self.ds = old_ds
-        self._chunk_info = old_chunk_info
-        self._current_chunk = old_chunk
-        self.size = old_size
-
-    @contextmanager
-    def _chunked_read(self, chunk):
-        # There are several items that need to be swapped out
-        # field_data, size, shape
-        obj_field_data = []
-        if hasattr(chunk, 'objs'):
-            for obj in chunk.objs:
-                obj_field_data.append(obj.field_data)
-                obj.field_data = YTFieldData()
-        old_field_data, self.field_data = self.field_data, YTFieldData()
-        old_chunk, self._current_chunk = self._current_chunk, chunk
-        old_locked, self._locked = self._locked, False
-        yield
-        self.field_data = old_field_data
-        self._current_chunk = old_chunk
-        self._locked = old_locked
-        if hasattr(chunk, 'objs'):
-            for obj in chunk.objs:
-                obj.field_data = obj_field_data.pop(0)
-
-    @contextmanager
-    def _activate_cache(self):
-        cache = self._field_cache or {}
-        old_fields = {}
-        for field in (f for f in cache if f in self.field_data):
-            old_fields[field] = self.field_data[field]
-        self.field_data.update(cache)
-        yield
-        for field in cache:
-            self.field_data.pop(field)
-            if field in old_fields:
-                self.field_data[field] = old_fields.pop(field)
-        self._field_cache = None
-
-    def _initialize_cache(self, cache):
-        # Wipe out what came before
-        self._field_cache = {}
-        self._field_cache.update(cache)
-
-    @property
-    def icoords(self):
-        if self._current_chunk is None:
-            self.index._identify_base_chunk(self)
-        return self._current_chunk.icoords
-
-    @property
-    def fcoords(self):
-        if self._current_chunk is None:
-            self.index._identify_base_chunk(self)
-        return self._current_chunk.fcoords
-
-    @property
-    def ires(self):
-        if self._current_chunk is None:
-            self.index._identify_base_chunk(self)
-        return self._current_chunk.ires
-
-    @property
-    def fwidth(self):
-        if self._current_chunk is None:
-            self.index._identify_base_chunk(self)
-        return self._current_chunk.fwidth
-
-    @property
-    def fcoords_vertex(self):
-        if self._current_chunk is None:
-            self.index._identify_base_chunk(self)
-        return self._current_chunk.fcoords_vertex
-
-    @property
-    def max_level(self):
-        if self._max_level is None:
-            try:
-                return self.ds.max_level
-            except AttributeError:
-                return None
-        return self._max_level
-
-    @max_level.setter
-    def max_level(self, value):
-        if self._selector is not None:
-            del self._selector
-            self._selector = None
-        self._current_chunk = None
-        self.size = None
-        self.shape = None
-        self.field_data.clear()
-        self._max_level = value
-
-    @property
-    def min_level(self):
-        if self._min_level is None:
-            try:
-                return 0
-            except AttributeError:
-                return None
-        return self._min_level
-
-    @min_level.setter
-    def min_level(self, value):
-        if self._selector is not None:
-            del self._selector
-            self._selector = None
-        self.field_data.clear()
-        self.size = None
-        self.shape = None
-        self._current_chunk = None
-        self._min_level = value
-
-class YTSelectionContainer0D(YTSelectionContainer):
-    _spatial = False
-    _dimensionality = 0
-    def __init__(self, ds, field_parameters = None, data_source = None):
-        super(YTSelectionContainer0D, self).__init__(
-            ds, field_parameters, data_source)
-
-class YTSelectionContainer1D(YTSelectionContainer):
-    _spatial = False
-    _dimensionality = 1
-    def __init__(self, ds, field_parameters = None, data_source = None):
-        super(YTSelectionContainer1D, self).__init__(
-            ds, field_parameters, data_source)
-        self._grids = None
-        self._sortkey = None
-        self._sorted = {}
-
-
-class YTSelectionContainer2D(YTSelectionContainer):
-    _key_fields = ['px','py','pdx','pdy']
-    _dimensionality = 2
-    """
-    Prepares the YTSelectionContainer2D, normal to *axis*.  If *axis* is 4, we are not
-    aligned with any axis.
-    """
-    _spatial = False
-    def __init__(self, axis, ds, field_parameters = None, data_source = None):
-        super(YTSelectionContainer2D, self).__init__(
-            ds, field_parameters, data_source)
-        # We need the ds, which will exist by now, for fix_axis.
-        self.axis = fix_axis(axis, self.ds)
-        self.set_field_parameter("axis", axis)
-
-    def _convert_field_name(self, field):
-        return field
-
-    def _get_pw(self, fields, center, width, origin, plot_type):
-        from yt.visualization.plot_window import \
-            get_window_parameters, PWViewerMPL
-        from yt.visualization.fixed_resolution import \
-            FixedResolutionBuffer as frb
-        axis = self.axis
-        skip = self._key_fields
-        skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))
-        self.fields = [k for k in self.field_data if k not in skip]
-        if fields is not None:
-            self.fields = ensure_list(fields) + self.fields
-        if len(self.fields) == 0:
-            raise ValueError("No fields found to plot in get_pw")
-        (bounds, center, display_center) = \
-            get_window_parameters(axis, center, width, self.ds)
-        pw = PWViewerMPL(self, bounds, fields=self.fields, origin=origin,
-                         frb_generator=frb, plot_type=plot_type)
-        pw._setup_plots()
-        return pw
-
-
-    def to_frb(self, width, resolution, center=None, height=None,
-               periodic = False):
-        r"""This function returns a FixedResolutionBuffer generated from this
-        object.
-
-        A FixedResolutionBuffer is an object that accepts a variable-resolution
-        2D object and transforms it into an NxM bitmap that can be plotted,
-        examined or processed.  This is a convenience function to return an FRB
-        directly from an existing 2D data object.
-
-        Parameters
-        ----------
-        width : width specifier
-            This can either be a floating point value, in the native domain
-            units of the simulation, or a tuple of the (value, unit) style.
-            This will be the width of the FRB.
-        height : height specifier
-            This will be the physical height of the FRB, by default it is equal
-            to width.  Note that this will not make any corrections to
-            resolution for the aspect ratio.
-        resolution : int or tuple of ints
-            The number of pixels on a side of the final FRB.  If iterable, this
-            will be the width then the height.
-        center : array-like of floats, optional
-            The center of the FRB.  If not specified, defaults to the center of
-            the current object.
-        periodic : bool
-            Should the returned Fixed Resolution Buffer be periodic?  (default:
-            False).
-
-        Returns
-        -------
-        frb : :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
-            A fixed resolution buffer, which can be queried for fields.
-
-        Examples
-        --------
-
-        >>> proj = ds.proj("Density", 0)
-        >>> frb = proj.to_frb( (100.0, 'kpc'), 1024)
-        >>> write_image(np.log10(frb["Density"]), 'density_100kpc.png')
-        """
-
-        if (self.ds.geometry == "cylindrical" and self.axis == 1) or \
-            (self.ds.geometry == "polar" and self.axis == 2):
-            if center is not None and center != (0.0, 0.0):
-                raise NotImplementedError(
-                    "Currently we only support images centered at R=0. " +
-                    "We plan to generalize this in the near future")
-            from yt.visualization.fixed_resolution import CylindricalFixedResolutionBuffer
-            validate_width_tuple(width)
-            if iterable(resolution): resolution = max(resolution)
-            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
-            return frb
-
-        if center is None:
-            center = self.center
-            if center is None:
-                center = (self.ds.domain_right_edge
-                        + self.ds.domain_left_edge)/2.0
-        elif iterable(center) and not isinstance(center, YTArray):
-            center = self.ds.arr(center, 'code_length')
-        if iterable(width):
-            w, u = width
-            if isinstance(w, tuple) and isinstance(u, tuple):
-                height = u
-                w, u = w
-            width = self.ds.quan(w, units = u)
-        elif not isinstance(width, YTArray):
-            width = self.ds.quan(width, 'code_length')
-        if height is None:
-            height = width
-        elif iterable(height):
-            h, u = height
-            height = self.ds.quan(h, units = u)
-        elif not isinstance(height, YTArray):
-            height = self.ds.quan(height, 'code_length')
-        if not iterable(resolution):
-            resolution = (resolution, resolution)
-        from yt.visualization.fixed_resolution import FixedResolutionBuffer
-        xax = self.ds.coordinates.x_axis[self.axis]
-        yax = self.ds.coordinates.y_axis[self.axis]
-        bounds = (center[xax] - width*0.5, center[xax] + width*0.5,
-                  center[yax] - height*0.5, center[yax] + height*0.5)
-        frb = FixedResolutionBuffer(self, bounds, resolution,
-                                    periodic = periodic)
-        return frb
-
-class YTSelectionContainer3D(YTSelectionContainer):
-    """
-    Returns an instance of YTSelectionContainer3D, or prepares one.  Usually only
-    used as a base class.  Note that *center* is supplied, but only used
-    for fields and quantities that require it.
-    """
-    _key_fields = ['x','y','z','dx','dy','dz']
-    _spatial = False
-    _num_ghost_zones = 0
-    _dimensionality = 3
-    def __init__(self, center, ds, field_parameters = None, data_source = None):
-        super(YTSelectionContainer3D, self).__init__(ds, field_parameters, data_source)
-        self._set_center(center)
-        self.coords = None
-        self._grids = None
-   
-    def cut_region(self, field_cuts, field_parameters=None, locals={}):
-        """
-        Return a YTCutRegion, where the a cell is identified as being inside
-        the cut region based on the value of one or more fields.  Note that in
-        previous versions of yt the name 'grid' was used to represent the data
-        object used to construct the field cut, as of yt 3.0, this has been
-        changed to 'obj'.
-
-        Parameters
-        ----------
-        field_cuts : list of strings
-           A list of conditionals that will be evaluated. In the namespace
-           available, these conditionals will have access to 'obj' which is a
-           data object of unknown shape, and they must generate a boolean array.
-           For instance, conditionals = ["obj['temperature'] < 1e3"]
-        field_parameters : dictionary
-           A dictionary of field parameters to be used when applying the field
-           cuts.
-        locals : dictionary
-            A dictionary of local variables to use when defining the cut region.
-
-        Examples
-        --------
-        To find the total mass of hot gas with temperature greater than 10^6 K
-        in your volume:
-
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.cut_region(["obj['temperature'] > 1e6"])
-        >>> print(cr.quantities.total_quantity("cell_mass").in_units('Msun'))
-        """
-        cr = self.ds.cut_region(self, field_cuts,
-                                field_parameters=field_parameters,
-                                locals=locals)
-        return cr
-   
-    def exclude_above(self, field, value, units=None):
-        """
-        This function will return a YTCutRegion where all of the regions
-        whose field is above a given value are masked.
-
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        value : float
-            The minimum value that will not be masked in the output
-            YTCutRegion.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the field above the given value masked.
-
-        Example
-        -------
-        
-        To find the total mass of hot gas with temperature colder than 10^6 K
-        in your volume:
-
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.exclude_above('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        
-        """
-        if(units is None):
-            field_cuts = ('obj["' + field + '"] <= ' + str(value))
-        else:
-            field_cuts = ('obj["' + field + '"].in_units("' + units +
-                '") <= ' + str(value))
-        cr = self.cut_region(field_cuts)
-        return cr
-
-    def include_above(self, field, value, units=None):
-        """
-        This function will return a YTCutRegion where only the regions
-        whose field is above a given value are included.
-
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        value : float
-            The minimum value that will not be masked in the output
-            YTCutRegion.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the field above the given value masked.
-        
-        Example
-        -------
-        
-        To find the total mass of hot gas with temperature warmer than 10^6 K
-        in your volume:
-
-        Example
-        -------
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.include_above('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        """
-
-        if(units is None):
-            field_cuts = ('obj["' + field + '"] > ' + str(value))
-        else:
-            field_cuts = ('obj["' + field + '"].in_units("' + units +
-                '") > ' + str(value))
-        cr = self.cut_region(field_cuts)
-        return cr
-
-    def exclude_equal(self, field, value, units=None):
-        """
-        This function will return a YTCutRegion where all of the regions
-        whose field are equal to given value are masked.
-
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        value : float
-            The minimum value that will not be masked in the output
-            YTCutRegion.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the field equal to the given value masked.
-
-        Example
-        -------
-
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.exclude_equal('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        """
-        if(units is None):
-            field_cuts = ('obj["' + field + '"] != ' + str(value))
-        else:
-            field_cuts = ('obj["' + field + '"].in_units("' + units +
-                '") != ' + str(value))
-        cr = self.cut_region(field_cuts)
-        return cr
-
-    def include_equal(self, field, value, units=None):
-        """
-        This function will return a YTCutRegion where only the regions
-        whose field are equal to given value are included.
-
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        value : float
-            The minimum value that will not be masked in the output
-            YTCutRegion.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the field equal to the given value included.
-        
-        Example
-        -------
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.include_equal('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        """
-        if(units is None):
-            field_cuts = ('obj["' + field + '"] == ' + str(value))
-        else:
-            field_cuts = ('obj["' + field + '"].in_units("' + units +
-                '") == ' + str(value))
-        cr = self.cut_region(field_cuts)
-        return cr
-
-    def exclude_inside(self, field, min_value, max_value, units=None):
-        """
-        This function will return a YTCutRegion where all of the regions
-        whose field are inside the interval from min_value to max_value.
-        
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        min_value : float
-            The minimum value inside the interval to be excluded.
-        max_value : float
-            The maximum value inside the interval to be excluded.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-        
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the field inside the given interval excluded.
-        
-        Example
-        -------
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.exclude_inside('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        """
-        if(units is None):
-            field_cuts = ('(obj["' + field + '"] <= ' + str(min_value) + 
-                          ') | (obj["' + field + '"] >= ' + str(max_value) + 
-                          ')')
-        else:
-            field_cuts = ('(obj["' + field + '"].in_units("' + units + 
-                          '") <= ' + str(min_value) + ') | (obj["' + field + 
-                          '"].in_units("' + units + '") >= ' + str(max_value) +
-                          ')')
-        cr = self.cut_region(field_cuts)        
-        return cr
-    
-    def include_inside(self, field, min_value, max_value, units=None):
-        """
-        This function will return a YTCutRegion where only the regions
-        whose field are inside the interval from min_value to max_value are
-        included.
-        
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        min_value : float
-            The minimum value inside the interval to be excluded.
-        max_value : float
-            The maximum value inside the interval to be excluded.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-        
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the field inside the given interval excluded.
-
-        Example
-        -------
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.include_inside('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        """
-        if(units is None):
-            field_cuts = ('(obj["' + field + '"] > ' + str(min_value) + 
-                          ') & (obj["' + field + '"] < ' + str(max_value) + 
-                          ')')
-        else:
-            field_cuts = ('(obj["' + field + '"].in_units("' + units + 
-                          '") > ' + str(min_value) + ') & (obj["' + field + 
-                          '"].in_units("' + units + '") < ' + str(max_value) +
-                          ')')
-        cr = self.cut_region(field_cuts)        
-        return cr
-    
-    def exclude_outside(self, field, min_value, max_value, units=None):
-        """
-        This function will return a YTCutRegion where all of the regions
-        whose field are outside the interval from min_value to max_value.
-
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        min_value : float
-            The minimum value inside the interval to be excluded.
-        max_value : float
-            The maximum value inside the interval to be excluded.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the field outside the given interval excluded.
-        
-        Example
-        -------
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.exclude_outside('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        """
-        cr = self.exclude_below(field, min_value, units)
-        cr = cr.exclude_above(field, max_value, units)
-        return cr
-
-    def include_outside(self, field, min_value, max_value, units=None):
-        """
-        This function will return a YTCutRegion where only the regions
-        whose field are outside the interval from min_value to max_value are
-        included.
-
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        min_value : float
-            The minimum value inside the interval to be excluded.
-        max_value : float
-            The maximum value inside the interval to be excluded.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the field outside the given interval excluded.
-    
-        Example
-        -------        
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.exclude_outside('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        """
-        cr = self.exclude_inside(field, min_value, max_value, units)
-        return cr
-    
-    def exclude_below(self, field, value, units=None):
-        """
-        This function will return a YTCutRegion where all of the regions
-        whose field is below a given value are masked.
-
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        value : float
-            The minimum value that will not be masked in the output
-            YTCutRegion.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the field below the given value masked.
-        
-        Example
-        -------
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.exclude_below('temperature', 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun') 
-        """
-        if(units is None):
-            field_cuts = ('obj["' + field + '"] >= ' + str(value))
-        else:
-            field_cuts = ('obj["' + field + '"].in_units("' + units + 
-                '") >= ' + str(value))
-        cr = self.cut_region(field_cuts)
-        return cr
-
-    def exclude_nan(self, field, units=None):
-        """
-        This function will return a YTCutRegion where all of the regions
-        whose field is NaN are masked.
-
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        value : float
-            The minimum value that will not be masked in the output
-            YTCutRegion.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with the NaN entries of the field masked.
-        
-        Example
-        -------
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.exclude_nan('temperature')
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        """
-        if(units is None):
-            field_cuts = ('~np.isnan(obj["' + field + '"])')
-        else:
-            field_cuts = ('~np.isnan(obj["' + field + '"].in_units("' + units + 
-                '"))')
-        cr = self.cut_region(field_cuts, locals={'np': np})
-        return cr
-
-    def include_below(self, field, value, units=None):
-        """
-        This function will return a YTCutRegion where only the regions
-        whose field is below a given value are included.
-
-        Parameters
-        ----------
-        field : string
-            The field in which the conditional will be applied.
-        value : float
-            The minimum value that will not be masked in the output
-            YTCutRegion.
-        units : string or None
-            The units of the value threshold. None will use the default units
-            given in the field.
-
-        Returns
-        -------
-        cut_region : YTCutRegion
-            The YTCutRegion with only regions with the field below the given 
-            value included.
-
-        Example
-        -------
-        >>> ds = yt.load("RedshiftOutput0005")
-        >>> ad = ds.all_data()
-        >>> cr = ad.include_below('temperature', 1e5, 1e6)
-        >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
-        """
-        if(units is None):
-            field_cuts = ('obj["' + field + '"] < ' + str(value))
-        else:
-            field_cuts = ('obj["' + field + '"].in_units("' + units + 
-                '") < ' + str(value))
-        cr = self.cut_region(field_cuts)
-        return cr
-    
-    def extract_isocontours(self, field, value, filename = None,
-                            rescale = False, sample_values = None):
-        r"""This identifies isocontours on a cell-by-cell basis, with no
-        consideration of global connectedness, and returns the vertices of the
-        Triangles in that isocontour.
-
-        This function simply returns the vertices of all the triangles
-        calculated by the `marching cubes
-        <https://en.wikipedia.org/wiki/Marching_cubes>`_ algorithm; for more
-        complex operations, such as identifying connected sets of cells above a
-        given threshold, see the extract_connected_sets function.  This is more
-        useful for calculating, for instance, total isocontour area, or
-        visualizing in an external program (such as `MeshLab
-        <http://www.meshlab.net>`_.)
-
-        Parameters
-        ----------
-        field : string
-            Any field that can be obtained in a data object.  This is the field
-            which will be isocontoured.
-        value : float
-            The value at which the isocontour should be calculated.
-        filename : string, optional
-            If supplied, this file will be filled with the vertices in .obj
-            format.  Suitable for loading into meshlab.
-        rescale : bool, optional
-            If true, the vertices will be rescaled within their min/max.
-        sample_values : string, optional
-            Any field whose value should be extracted at the center of each
-            triangle.
-
-        Returns
-        -------
-        verts : array of floats
-            The array of vertices, x,y,z.  Taken in threes, these are the
-            triangle vertices.
-        samples : array of floats
-            If `sample_values` is specified, this will be returned and will
-            contain the values of the field specified at the center of each
-            triangle.
-
-        Examples
-        --------
-        This will create a data object, find a nice value in the center, and
-        output the vertices to "triangles.obj" after rescaling them.
-
-        >>> dd = ds.all_data()
-        >>> rho = dd.quantities["WeightedAverageQuantity"](
-        ...     "Density", weight="CellMassMsun")
-        >>> verts = dd.extract_isocontours("Density", rho,
-        ...             "triangles.obj", True)
-        """
-        from yt.data_objects.static_output import ParticleDataset
-        from yt.frontends.stream.data_structures import StreamParticlesDataset
-        verts = []
-        samples = []
-        if isinstance(self.ds, (ParticleDataset, StreamParticlesDataset)):
-            raise NotImplementedError
-        for block, mask in self.blocks:
-            my_verts = self._extract_isocontours_from_grid(
-                block, mask, field, value, sample_values)
-            if sample_values is not None:
-                my_verts, svals = my_verts
-                samples.append(svals)
-            verts.append(my_verts)
-        verts = np.concatenate(verts).transpose()
-        verts = self.comm.par_combine_object(verts, op='cat', datatype='array')
-        verts = verts.transpose()
-        if sample_values is not None:
-            samples = np.concatenate(samples)
-            samples = self.comm.par_combine_object(samples, op='cat',
-                                datatype='array')
-        if rescale:
-            mi = np.min(verts, axis=0)
-            ma = np.max(verts, axis=0)
-            verts = (verts - mi) / (ma - mi).max()
-        if filename is not None and self.comm.rank == 0:
-            if hasattr(filename, "write"): f = filename
-            else: f = open(filename, "w")
-            for v1 in verts:
-                f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
-            for i in range(len(verts)//3):
-                f.write("f %s %s %s\n" % (i*3+1, i*3+2, i*3+3))
-            if not hasattr(filename, "write"): f.close()
-        if sample_values is not None:
-            return verts, samples
-        return verts
-
-    def _extract_isocontours_from_grid(self, grid, mask, field, value,
-                                       sample_values=None):
-        vc_fields = [field]
-        if sample_values is not None:
-            vc_fields.append(sample_values)
-
-        vc_data = grid.get_vertex_centered_data(vc_fields, no_ghost=False)
-        try:
-            svals = vc_data[sample_values]
-        except KeyError:
-            svals = None
-
-        my_verts = march_cubes_grid(value, vc_data[field], mask,
-            grid.LeftEdge, grid.dds, svals)
-        return my_verts
-
-    def calculate_isocontour_flux(self, field, value,
-                    field_x, field_y, field_z, fluxing_field = None):
-        r"""This identifies isocontours on a cell-by-cell basis, with no
-        consideration of global connectedness, and calculates the flux over
-        those contours.
-
-        This function will conduct `marching cubes
-        <https://en.wikipedia.org/wiki/Marching_cubes>`_ on all the cells in a
-        given data container (grid-by-grid), and then for each identified
-        triangular segment of an isocontour in a given cell, calculate the
-        gradient (i.e., normal) in the isocontoured field, interpolate the local
-        value of the "fluxing" field, the area of the triangle, and then return:
-
-        area * local_flux_value * (n dot v)
-
-        Where area, local_value, and the vector v are interpolated at the barycenter
-        (weighted by the vertex values) of the triangle.  Note that this
-        specifically allows for the field fluxing across the surface to be
-        *different* from the field being contoured.  If the fluxing_field is
-        not specified, it is assumed to be 1.0 everywhere, and the raw flux
-        with no local-weighting is returned.
-
-        Additionally, the returned flux is defined as flux *into* the surface,
-        not flux *out of* the surface.
-
-        Parameters
-        ----------
-        field : string
-            Any field that can be obtained in a data object.  This is the field
-            which will be isocontoured and used as the "local_value" in the
-            flux equation.
-        value : float
-            The value at which the isocontour should be calculated.
-        field_x : string
-            The x-component field
-        field_y : string
-            The y-component field
-        field_z : string
-            The z-component field
-        fluxing_field : string, optional
-            The field whose passage over the surface is of interest.  If not
-            specified, assumed to be 1.0 everywhere.
-
-        Returns
-        -------
-        flux : float
-            The summed flux.  Note that it is not currently scaled; this is
-            simply the code-unit area times the fields.
-
-        Examples
-        --------
-        This will create a data object, find a nice value in the center, and
-        calculate the metal flux over it.
-
-        >>> dd = ds.all_data()
-        >>> rho = dd.quantities["WeightedAverageQuantity"](
-        ...     "Density", weight="CellMassMsun")
-        >>> flux = dd.calculate_isocontour_flux("Density", rho,
-        ...     "velocity_x", "velocity_y", "velocity_z", "Metal_Density")
-        """
-        flux = 0.0
-        for block, mask in self.blocks:
-            flux += self._calculate_flux_in_grid(block, mask, field, value, field_x,
-                                                 field_y, field_z, fluxing_field)
-        flux = self.comm.mpi_allreduce(flux, op="sum")
-        return flux
-
-    def _calculate_flux_in_grid(self, grid, mask, field, value,
-                    field_x, field_y, field_z, fluxing_field = None):
-
-        vc_fields = [field, field_x, field_y, field_z]
-        if fluxing_field is not None:
-            vc_fields.append(fluxing_field)
-
-        vc_data = grid.get_vertex_centered_data(vc_fields)
-
-        if fluxing_field is None:
-            ff = np.ones_like(vc_data[field], dtype="float64")
-        else:
-            ff = vc_data[fluxing_field]
-
-        return march_cubes_grid_flux(value, vc_data[field], vc_data[field_x],
-            vc_data[field_y], vc_data[field_z], ff, mask, grid.LeftEdge,
-            grid.dds)
-
-    def extract_connected_sets(self, field, num_levels, min_val, max_val,
-                               log_space=True, cumulative=True):
-        """
-        This function will create a set of contour objects, defined
-        by having connected cell structures, which can then be
-        studied and used to 'paint' their source grids, thus enabling
-        them to be plotted.
-
-        Note that this function *can* return a connected set object that has no
-        member values.
-        """
-        if log_space:
-            cons = np.logspace(np.log10(min_val),np.log10(max_val),
-                               num_levels+1)
-        else:
-            cons = np.linspace(min_val, max_val, num_levels+1)
-        contours = {}
-        for level in range(num_levels):
-            contours[level] = {}
-            if cumulative:
-                mv = max_val
-            else:
-                mv = cons[level+1]
-            from yt.data_objects.level_sets.api import identify_contours
-            from yt.data_objects.level_sets.clump_handling import \
-                add_contour_field
-            nj, cids = identify_contours(self, field, cons[level], mv)
-            unique_contours = set([])
-            for sl_list in cids.values():
-                for sl, ff in sl_list:
-                    unique_contours.update(np.unique(ff))
-            contour_key = uuid.uuid4().hex
-            # In case we're a cut region already...
-            base_object = getattr(self, 'base_object', self)
-            add_contour_field(base_object.ds, contour_key)
-            for cid in sorted(unique_contours):
-                if cid == -1: continue
-                contours[level][cid] = base_object.cut_region(
-                    ["obj['contours_%s'] == %s" % (contour_key, cid)],
-                    {'contour_slices_%s' % contour_key: cids})
-        return cons, contours
-
-    def _get_bbox(self):
-        """
-        Return the bounding box for this data container.
-        This generic version will return the bounds of the entire domain.
-        """
-        return self.ds.domain_left_edge, self.ds.domain_right_edge
-
-    def get_bbox(self):
-        """
-        Return the bounding box for this data container.
-        """
-        if self.ds.geometry != "cartesian":
-            raise NotImplementedError("get_bbox is currently only implemented "
-                                      "for cartesian geometries!")
-        le, re = self._get_bbox()
-        le.convert_to_units("code_length")
-        re.convert_to_units("code_length")
-        return le, re
-
-    def volume(self):
-        """
-        Return the volume of the data container.
-        This is found by adding up the volume of the cells with centers
-        in the container, rather than using the geometric shape of
-        the container, so this may vary very slightly
-        from what might be expected from the geometric volume.
-        """
-        return self.quantities.total_quantity(("index", "cell_volume"))
-
-
-class YTBooleanContainer(YTSelectionContainer3D):
-    """
-    This is a boolean operation, accepting AND, OR, XOR, and NOT for combining
-    multiple data objects.
-
-    This object is not designed to be created directly; it is designed to be
-    created implicitly by using one of the bitwise operations (&, \|, ^, \~) on
-    one or two other data objects.  These correspond to the appropriate boolean
-    operations, and the resultant object can be nested.
-
-    Parameters
-    ----------
-    op : string
-        Can be AND, OR, XOR, NOT or NEG.
-    dobj1 : YTSelectionContainer
-        The first selection object
-    dobj2 : YTSelectionContainer
-        The second object
-
-    Examples
-    --------
-
-    >>> import yt
-    >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> sp = ds.sphere("c", 0.1)
-    >>> dd = ds.r[:,:,:]
-    >>> new_obj = sp ^ dd
-    >>> print(new_obj.sum("cell_volume"), dd.sum("cell_volume") -
-    ...    sp.sum("cell_volume"))
-    """
-    _type_name = "bool"
-    _con_args = ("op", "dobj1", "dobj2")
-    def __init__(self, op, dobj1, dobj2, ds = None, field_parameters = None,
-                 data_source = None):
-        YTSelectionContainer3D.__init__(self, None, ds, field_parameters,
-                data_source)
-        self.op = op.upper()
-        self.dobj1 = dobj1
-        self.dobj2 = dobj2
-        name = "Boolean%sSelector" % (self.op,)
-        sel_cls = getattr(yt.geometry.selection_routines, name)
-        self._selector = sel_cls(self)
-
-    def _get_bbox(self):
-        le1, re1 = self.dobj1._get_bbox()
-        if self.op == "NOT":
-            return le1, re1
-        else:
-            le2, re2 = self.dobj2._get_bbox()
-            return np.minimum(le1, le2), np.maximum(re1, re2)
 
 
 # Many of these items are set up specifically to ensure that
@@ -2805,8 +1509,10 @@ class YTBooleanContainer(YTSelectionContainer3D):
 # One final detail: time series or multiple datasets in a single pickle
 # seems problematic.
 
+
 class ReconstructedObject(tuple):
     pass
+
 
 def _check_nested_args(arg, ref_ds):
     if not isinstance(arg, (tuple, list, ReconstructedObject)):
@@ -2816,14 +1522,19 @@ def _check_nested_args(arg, ref_ds):
     narg = [_check_nested_args(a, ref_ds) for a in arg]
     return narg
 
+
 def _get_ds_by_hash(hash):
     from yt.data_objects.static_output import Dataset
+
     if isinstance(hash, Dataset):
         return hash
     from yt.data_objects.static_output import _cached_datasets
+
     for ds in _cached_datasets.values():
-        if ds._hash() == hash: return ds
+        if ds._hash() == hash:
+            return ds
     return None
+
 
 def _reconstruct_object(*args, **kwargs):
     dsid = args[0]

@@ -7,8 +7,10 @@ Some simple operations for operating on ragged arrays
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 cdef fused numpy_dt:
     np.float32_t

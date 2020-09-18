@@ -9,7 +9,7 @@ Fixed interpolator includes
 cimport numpy as np
 
 
-cdef extern from "fixed_interpolator.h":
+cdef extern from "fixed_interpolator.hpp":
     np.float64_t fast_interpolate(int ds[3], int ci[3], np.float64_t dp[3],
                                   np.float64_t *data) nogil
     np.float64_t offset_interpolate(int ds[3], np.float64_t dp[3],

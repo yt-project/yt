@@ -1,8 +1,23 @@
 import numpy as np
 
-def _plot2D_root(seg, pts=None, txt=None, plotfile=None, point_kw={}, box_kw={},
-                 axs=None, subplot_kw={}, gridspec_kw={}, fig_kw={}, 
-                 save_kw={}, title=None, xlabel='x', ylabel='y', label_kw={}):
+
+def _plot2D_root(
+    seg,
+    pts=None,
+    txt=None,
+    plotfile=None,
+    point_kw=None,
+    box_kw=None,
+    axs=None,
+    subplot_kw=None,
+    gridspec_kw=None,
+    fig_kw=None,
+    save_kw=None,
+    title=None,
+    xlabel="x",
+    ylabel="y",
+    label_kw=None,
+):
     r"""Plot a 2D kd-tree.
 
     Args:
@@ -20,7 +35,7 @@ def _plot2D_root(seg, pts=None, txt=None, plotfile=None, point_kw={}, box_kw={},
         box_kw (:obj:`dict`, optional): Keywords passed directly to
             :class:`matplotlib.collections.LineCollection` for drawing the
             leaf boxes. Defaults to empty dict.
-        
+
         axs (:obj:`matplotlib.pyplot.Axes`, optional): Axes that should be used
             for plotting. Defaults to None and new axes are created.
         subplot_kw (:obj:`dict`, optional): Keywords passed directly to
@@ -47,11 +62,26 @@ def _plot2D_root(seg, pts=None, txt=None, plotfile=None, point_kw={}, box_kw={},
     import matplotlib.pyplot as plt
     from matplotlib.collections import LineCollection
 
+    if point_kw is None:
+        point_kw = {}
+    if box_kw is None:
+        box_kw = {}
+    if subplot_kw is None:
+        subplot_kw = {}
+    if gridspec_kw is None:
+        gridspec_kw = {}
+    if fig_kw is None:
+        fig_kw = {}
+    if save_kw is None:
+        save_kw = {}
+    if label_kw is None:
+        label_kw = {}
     # Axes creation
     if axs is None:
-        plt.close('all')
-        fig, axs = plt.subplots(subplot_kw=subplot_kw, gridspec_kw=gridspec_kw,
-                                **fig_kw)
+        plt.close("all")
+        fig, axs = plt.subplots(
+            subplot_kw=subplot_kw, gridspec_kw=gridspec_kw, **fig_kw
+        )
 
     # Labels
     if title is not None:
@@ -66,7 +96,7 @@ def _plot2D_root(seg, pts=None, txt=None, plotfile=None, point_kw={}, box_kw={},
                 axs.scatter(p[:, 0], p[:, 1], **point_kw)
     elif pts is not None:
         axs.scatter(pts[:, 0], pts[:, 1], **point_kw)
-    
+
     # Plot boxes
     lc = LineCollection(seg, **box_kw)
     axs.add_collection(lc)
@@ -74,8 +104,8 @@ def _plot2D_root(seg, pts=None, txt=None, plotfile=None, point_kw={}, box_kw={},
     # Labels
     if txt is not None:
         # label_kw.setdefault('axes', axs)
-        label_kw.setdefault('verticalalignment', 'bottom')
-        label_kw.setdefault('horizontalalignment', 'left')
+        label_kw.setdefault("verticalalignment", "bottom")
+        label_kw.setdefault("horizontalalignment", "left")
         for t in txt:
             plt.text(*t, **label_kw)
 
@@ -113,20 +143,20 @@ def plot2D_serial(tree, pts=None, label_boxes=False, **kwargs):
         le = leaf.left_edge
         re = leaf.right_edge
         # Top
-        seg.append(np.array([[le[0], re[1]], [re[0], re[1]]], 'float'))
+        seg.append(np.array([[le[0], re[1]], [re[0], re[1]]], "float"))
         # Bottom
-        seg.append(np.array([[le[0], le[1]], [re[0], le[1]]], 'float'))
+        seg.append(np.array([[le[0], le[1]], [re[0], le[1]]], "float"))
         # Left
-        seg.append(np.array([[le[0], le[1]], [le[0], re[1]]], 'float'))
+        seg.append(np.array([[le[0], le[1]], [le[0], re[1]]], "float"))
         # Right
-        seg.append(np.array([[re[0], le[1]], [re[0], re[1]]], 'float'))
+        seg.append(np.array([[re[0], le[1]], [re[0], re[1]]], "float"))
 
     # Labels
     txt = None
     if label_boxes:
         txt = []
         for leaf in tree.leaves:
-            txt.append((leaf.left_edge[0], leaf.left_edge[1], '%d' % leaf.id))
+            txt.append((leaf.left_edge[0], leaf.left_edge[1], "%d" % leaf.id))
 
     # Return axes
     return _plot2D_root(seg, pts=pts, txt=txt, **kwargs)

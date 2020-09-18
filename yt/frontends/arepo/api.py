@@ -1,8 +1,3 @@
-from .data_structures import \
-    ArepoHDF5Dataset, \
-    ArepoFieldInfo
-
-from .io import \
-    IOHandlerArepoHDF5
-
 from . import tests
+from .data_structures import ArepoFieldInfo, ArepoHDF5Dataset
+from .io import IOHandlerArepoHDF5

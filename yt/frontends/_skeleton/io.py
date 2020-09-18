@@ -1,10 +1,9 @@
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.utilities.io_handler import BaseIOHandler
 
 
 class SkeletonIOHandler(BaseIOHandler):
     _particle_reader = False
-    _dataset_type = 'skeleton'
+    _dataset_type = "skeleton"
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
@@ -34,6 +33,10 @@ class SkeletonIOHandler(BaseIOHandler):
         # Fortran-like input array with the dimension (z,y,x), a matrix
         # transpose is required (e.g., using np_array.transpose() or
         # np_array.swapaxes(0,2)).
+
+        # This method is not abstract, and has a default implementation
+        # in the base class.However, the default implementation requires that the method
+        # io_iter be defined
         pass
 
     def _read_chunk_data(self, chunk, fields):

@@ -1,5 +1,1 @@
-npart_mapping = {
-    'Gas': 'nsph',
-    'DarkMatter': 'ndark',
-    'Stars': 'nstar'
-}
+npart_mapping = {"Gas": "nsph", "DarkMatter": "ndark", "Stars": "nstar"}

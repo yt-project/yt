@@ -1,7 +1,6 @@
-from yt.fields.field_info_container import \
-    FieldInfoContainer
-from yt.fields.species_fields import \
-    setup_species_fields
+from yt.fields.field_info_container import FieldInfoContainer
+from yt.fields.species_fields import setup_species_fields
+
 
 class SPHFieldInfo(FieldInfoContainer):
     known_other_fields = ()
