@@ -116,9 +116,6 @@ if __name__ == "__main__":
             "Operating System :: POSIX :: AIX",
             "Operating System :: POSIX :: Linux",
             "Programming Language :: C",
-            "Programming Language :: Python :: 3",
-            "Programming Language :: Python :: 3.5",
-            "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
             "Topic :: Scientific/Engineering :: Astronomy",
@@ -163,5 +160,5 @@ if __name__ == "__main__":
         scripts=["scripts/iyt"],
         distclass=BinaryDistribution,
         ext_modules=[],  # !!! We override this inside build_ext above
-        python_requires=">=3.6",
+        python_requires=">=3.7",
     )

@@ -61,7 +61,7 @@ and work within a conda environment:
 
 ```shell
 # Create a conda environment named yt-git
-$ conda create -n yt-git python=3.6
+$ conda create -n yt-git python=3.8
 # Activate it
 $ source activate yt-git
 # Make sure you run the latest version of conda

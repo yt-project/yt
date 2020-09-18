@@ -53,6 +53,8 @@ if [[ ${dependencies} == "minimal" ]]; then
     # don't error out
     # The first numpy to support py3.6 is 1.12, but numpy 1.13 matches
     # unyt so we'll match it here.
+
+    # TODO: UPDATE THIS TO TARGET PYTHON 3.7 AS MINIMAL
     python -m pip install numpy==1.13.3 cython==0.26.1
     python -m pip install -r tests/test_minimal_requirements.txt
 else
