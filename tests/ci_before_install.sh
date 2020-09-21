@@ -44,3 +44,5 @@ echo "[yt]" > $HOME/.config/yt/ytrc
 echo "suppressStreamLogging = True" >> $HOME/.config/yt/ytrc
 cat $HOME/.config/yt/ytrc
 cp tests/matplotlibrc .
+
+set +x  # Do not show which command is being run (Travis default)

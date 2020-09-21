@@ -41,3 +41,5 @@ fi
 
 # Step 3: install yt
 $PIP install -e .
+
+set +x  # Do not show which command is being run (Travis default)
