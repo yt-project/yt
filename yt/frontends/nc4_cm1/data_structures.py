@@ -217,5 +217,8 @@ class CM1Dataset(Dataset):
                 else: return False
             if (coordspassed == ncoords): varspassed += 1 ## if all coordinates in a variable pass, the variable passes
             else: return False
+        ## TO-DO - add specific CM1 check to make sure this 
+        ## frontend doesn't step on the toes of anyone running 
+        ## xarray in the future!
         if (varspassed == nvars): return True ## if all vars pass return True
         else: return False
