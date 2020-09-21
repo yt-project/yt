@@ -5,14 +5,6 @@ Skeleton data structures
 
 """
 
-# -----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
-
 ## Written by Kelton Halbert and Leigh Orf at the 2019 yt developers workshop @ NCSA
 ## for the purpose of reading in George Bryan's Cloud Model 1 output for plotting in yt.
 
