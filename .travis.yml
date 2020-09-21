@@ -150,6 +150,7 @@ jobs:
       script: coverage run -m nose -c nose_unit.cfg --traverse-namespace
       cache:
           directories:
+          - /c/ProgramData/Miniconda3/pkgs
           - $HOME/AppData/Local/Temp/chocolatey
           - $HOME/AppData/Local/conda/conda/pkgs
           - $HOME/.conda/pkgs
