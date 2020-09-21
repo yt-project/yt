@@ -207,10 +207,15 @@ class CM1Dataset(Dataset):
         ## of the dataset
         coords = ds.coords ## get the dataset wide coordinates
         nvars = len(ds.variables.keys()) ## number of variables in dataset
-        passed = 0 ## number of variables passing the tet
+        varspassed = 0 ## number of variables passing the tet
         for var in ds.variables.keys(): ## iterate over the variables
             vcoords = ds[var].coords ## get the coordinates for the variable
+            ncoords = len(vcoords) ## number of coordinates in variable
+            coordspassed = 0 ## number of coordinates that pass for a variable
             for vc in vcoords: ## iterate over the coordinates for the variable
-                if vc in coords: passed += 1 ## check that the coordinate exists in global dataset
-        if (passed == nvars): return True ## if all vars pass return True
+                if vc in coords: coordspassed += 1 ## variable coordinate and global coordinate are same
+                else: return False
+            if (coordspassed == ncoords): varspassed += 1 ## if all coordinates in a variable pass, the variable passes
+            else: return False
+        if (varspassed == nvars): return True ## if all vars pass return True
         else: return False
