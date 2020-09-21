@@ -3,8 +3,8 @@ set -x   # Show which command is being run
 echo "Travis build stage: $TRAVIS_BUILD_STAGE_NAME"
 
 # Step 1: pre-install required packages
-if [[ "$TRAVIS_OS_NAME" == "windows" ]]; then
-    # Install some dependencies using conda
+if [[ "$TRAVIS_OS_NAME" == "windows" ]] && [[ $MINIMAL != 1 ]]; then
+    # Install some dependencies using conda (if not doing a minimal run)
     CYTHON=$(grep cython tests/test_prerequirements.txt)
     NUMPY=$(grep numpy tests/test_prerequirements.txt)
 
