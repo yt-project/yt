@@ -40,6 +40,7 @@ _frontends = [
     "swift",
     "tipsy",
     "ytdata",
+    "nc4_cm1",
 ]
 
 
