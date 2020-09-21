@@ -5,39 +5,36 @@ Skeleton data structures
 
 """
 
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 # Copyright (c) 2013, yt Development Team.
 #
 # Distributed under the terms of the Modified BSD License.
 #
 # The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
+# -----------------------------------------------------------------------------
 
 ## Written by Kelton Halbert and Leigh Orf at the 2019 yt developers workshop @ NCSA
 ## for the purpose of reading in George Bryan's Cloud Model 1 output for plotting in yt.
 
 import os
 import stat
-import numpy as np
 import weakref
+
+import numpy as np
 import xarray
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.geometry.grid_geometry_handler import GridIndex
+
 from .fields import CM1FieldInfo
-from yt.geometry.coordinates.cartesian_coordinates import CartesianCoordinateHandler
 
 
 class CM1Grid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level, dimensions):
-        super(CM1Grid, self).__init__(
-            id, filename=index.index_filename, index=index)
+        super(CM1Grid, self).__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -50,7 +47,7 @@ class CM1Grid(AMRGridPatch):
 class CM1Hierarchy(GridIndex):
     grid = CM1Grid
 
-    def __init__(self, ds, dataset_type='cm1'):
+    def __init__(self, ds, dataset_type="cm1"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
@@ -72,11 +69,14 @@ class CM1Hierarchy(GridIndex):
         # fluid type is usually the dataset_type and the on-disk particle type
         # (for a single population of particles) is "io".
         self.field_list = []
-        
+
         ## loop over the variable names in the netCDF file
         for key in self.ds._handle.variables.keys():
-            if all(x in self.ds._handle[key].dims for x in ['time', 'zh', 'yh', 'xh']) is True:
-                field_tup = ('cm1', key)
+            if (
+                all(x in self.ds._handle[key].dims for x in ["time", "zh", "yh", "xh"])
+                is True
+            ):
+                field_tup = ("cm1", key)
                 self.field_list.append(field_tup)
 
     def _count_grids(self):
@@ -99,7 +99,6 @@ class CM1Hierarchy(GridIndex):
         self.grid_levels[0][0] = 1
         self.max_level = 1
 
-
     def _populate_grid_objects(self):
         # For each grid g, this must call:
         #   g._prepare_grid()
@@ -109,7 +108,7 @@ class CM1Hierarchy(GridIndex):
         #   g.Parent   <= parent grid
         # This is handled by the frontend because often the children must be
         # identified.
-        self.grids = np.empty(self.num_grids, dtype='object')
+        self.grids = np.empty(self.num_grids, dtype="object")
         for i in range(self.num_grids):
             g = self.grid(i, self, self.grid_levels.flat[i], self.grid_dimensions[i])
             g._prepare_grid()
@@ -121,15 +120,16 @@ class CM1Dataset(Dataset):
     _index_class = CM1Hierarchy
     _field_info_class = CM1FieldInfo
 
-    def __init__(self, filename, dataset_type='cm1',
-                 storage_filename=None,
-                 units_override=None):
-        self.fluid_types += ('cm1',)
+    def __init__(
+        self, filename, dataset_type="cm1", storage_filename=None, units_override=None
+    ):
+        self.fluid_types += ("cm1",)
         self._handle = xarray.open_mfdataset(filename)
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
-        super(CM1Dataset, self).__init__(filename, dataset_type,
-                         units_override=units_override)
+        super(CM1Dataset, self).__init__(
+            filename, dataset_type, units_override=units_override
+        )
         self.storage_filename = storage_filename
 
     def _set_code_unit_attributes(self):
@@ -146,7 +146,7 @@ class CM1Dataset(Dataset):
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
-        length_unit = self._handle.variables['xh'].attrs['units']
+        length_unit = self._handle.variables["xh"].attrs["units"]
         self.length_unit = self.quan(1.0, length_unit)
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
@@ -164,19 +164,24 @@ class CM1Dataset(Dataset):
         #   self.parameters             <= full of code-specific items of use
         self.parameters = {}
         coords = self._handle.coords
-        # TO DO: Possibly figure out a way to generalize this to be coordiante variable name
-        # agnostic in order to make useful for WRF or climate data. For now, we're hard coding
-        # for CM1 specifically and have named the classes appropriately, but generalizing is good.
+        # TO DO: Possibly figure out a way to generalize this to be coordiante variable
+        # name agnostic in order to make useful for WRF or climate data. For now, we're
+        # hard coding for CM1 specifically and have named the classes appropriately, but
+        # generalizing is good.
         xh, yh, zh = [coords[i] for i in ["xh", "yh", "zh"]]
         #   self.domain_left_edge       <= array of float64
-        self.domain_left_edge = np.array([xh.min(), yh.min(), zh.min()], dtype='float64')
+        self.domain_left_edge = np.array(
+            [xh.min(), yh.min(), zh.min()], dtype="float64"
+        )
         #   self.domain_right_edge      <= array of float64
-        self.domain_right_edge = np.array([xh.max(), yh.max(), zh.max()], dtype='float64')
+        self.domain_right_edge = np.array(
+            [xh.max(), yh.max(), zh.max()], dtype="float64"
+        )
         #   self.dimensionality         <= int
         self.dimensionality = 3
         #   self.domain_dimensions      <= array of int64
         dims = [self._handle.dims[i] for i in ["xh", "yh", "zh"]]
-        self.domain_dimensions = np.array(dims, dtype='int64')
+        self.domain_dimensions = np.array(dims, dtype="int64")
         #   self.periodicity            <= three-element tuple of booleans
         self.periodicity = (False, False, False)
         #   self.current_time           <= simulation time in code units
@@ -188,7 +193,6 @@ class CM1Dataset(Dataset):
         self.omega_lambda = 0.0
         self.omega_matter = 0.0
         self.hubble_constant = 0.0
-
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
@@ -209,7 +213,7 @@ class CM1Dataset(Dataset):
         except KeyError:
             return False
 
-        if 'xh' in variables:
+        if "xh" in variables:
             return True
 
         return False
