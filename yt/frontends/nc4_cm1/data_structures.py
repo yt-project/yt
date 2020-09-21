@@ -116,7 +116,7 @@ class CM1Dataset(Dataset):
         self, filename, dataset_type="cm1", storage_filename=None, units_override=None
     ):
         self.fluid_types += ("cm1",)
-        self._handle = xarray.open_mfdataset(filename)
+        self._handle = xarray.open_dataset(filename, engine="netcdf4")
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
         super(CM1Dataset, self).__init__(
@@ -205,7 +205,16 @@ class CM1Dataset(Dataset):
         except KeyError:
             return False
 
-        if "xh" in variables:
-            return True
-
-        return False
+        ## check each variable array in the dataset
+        ## and make sure that the coordinates in the 
+        ## variable arrays matches the coordinates
+        ## of the dataset
+        coords = ds.coords ## get the dataset wide coordinates
+        nvars = len(ds.variables.keys()) ## number of variables in dataset
+        passed = 0 ## number of variables passing the tet
+        for var in ds.variables.keys(): ## iterate over the variables
+            vcoords = ds[var].coords ## get the coordinates for the variable
+            for vc in vcoords: ## iterate over the coordinates for the variable
+                if vc in coords: passed += 1 ## check that the coordinate exists in global dataset
+        if (passed == nvars): return True ## if all vars pass return True
+        else: reurn False
