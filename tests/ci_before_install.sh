@@ -1,3 +1,5 @@
+set -x   # Show which command is being run
+
 case $TRAVIS_OS_NAME in
 linux)
     $PIP install --upgrade virtualenv

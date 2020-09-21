@@ -1,3 +1,5 @@
+set -x   # Show which command is being run
+
 echo "Travis build stage: $TRAVIS_BUILD_STAGE_NAME"
 
 # Step 1: pre-install required packages
