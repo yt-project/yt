@@ -24,10 +24,10 @@ env:
     HOMEBREW_NO_AUTO_UPDATE=1
 
 before_install:
-  - source tests/ci_before_install.sh
+  - source tests/travis_before_install.sh
 
 install:
-  - source tests/ci_install.sh
+  - source tests/travis_install.sh
 
 jobs:
   include:
