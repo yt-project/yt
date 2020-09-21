@@ -5,34 +5,26 @@ Skeleton-specific fields
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
 # optionally methods on it that get called which can be subclassed.
 
+
 class CM1FieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-        ("uinterp", ("m/s",    ["velocity_x"], None)),
-        ("vinterp", ("m/s",    ["velocity_y"], None)),
-        ("winterp", ("m/s",    ["velocity_z"], None)),
-        ("hwin_sr", ("m/s",    ["storm_relative_horizontal_wind_speed"], None)),
+        ("uinterp", ("m/s", ["velocity_x"], None)),
+        ("vinterp", ("m/s", ["velocity_y"], None)),
+        ("winterp", ("m/s", ["velocity_z"], None)),
+        ("hwin_sr", ("m/s", ["storm_relative_horizontal_wind_speed"], None)),
         ("windmag_sr", ("m/s", ["storm_relative_3D_wind_speed"], None)),
-        ("hwin_gr", ("m/s",    ["ground_relative_horizontal_wind_speed"], None)),
-        ("thpert", ("K",       ["potential_temperature_perturbation"], None)),
-        ("thrhopert", ("K",    ["density_potential_temperature_perturbation"], None)),
-        ("prespert", ("hPa",   ["presure_perturbation"], None)),
+        ("hwin_gr", ("m/s", ["ground_relative_horizontal_wind_speed"], None)),
+        ("thpert", ("K", ["potential_temperature_perturbation"], None)),
+        ("thrhopert", ("K", ["density_potential_temperature_perturbation"], None)),
+        ("prespert", ("hPa", ["presure_perturbation"], None)),
         ("rhopert", ("kg/m**3", ["density_perturbation"], None)),
         ("dbz", ("dB",        ["simulated_reflectivity"], None)),
         ("qvpert", ("g/kg",    ["water_vapor_mixing_ratio_perturbation"], None)),

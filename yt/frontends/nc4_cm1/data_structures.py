@@ -205,7 +205,7 @@ class CM1Dataset(Dataset):
 
         try:
             ds = xarray.open_dataset(args[0])
-        except (FileNotFoundError, OSError):
+        except OSError:
             return False
 
         try:
