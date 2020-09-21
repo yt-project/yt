@@ -13,11 +13,11 @@ import stat
 import weakref
 
 import numpy as np
-import xarray
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.on_demand_imports import _xarray as xarray
 
 from .fields import CM1FieldInfo
 
@@ -116,7 +116,7 @@ class CM1Dataset(Dataset):
         self, filename, dataset_type="cm1", storage_filename=None, units_override=None
     ):
         self.fluid_types += ("cm1",)
-        self._handle = xarray.open_mfdataset(filename)
+        self._handle = xarray.open_dataset(filename)
         # refinement factor between a grid and its subgrid
         self.refine_by = 2
         super(CM1Dataset, self).__init__(
@@ -190,10 +190,6 @@ class CM1Dataset(Dataset):
     def _is_valid(self, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
-        try:
-            import xarray
-        except ImportError:
-            return False
 
         try:
             ds = xarray.open_dataset(args[0])
