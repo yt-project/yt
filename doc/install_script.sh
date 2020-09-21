@@ -36,6 +36,7 @@ INST_CARTOPY=0  # Install cartopy?
 INST_NOSE=1     # Install nose?
 INST_NETCDF4=1  # Install netcdf4 and its python bindings?
 INST_POOCH=1    # Install pooch?
+INST_XARRAY=0   # Install xarray?
 
 # This is the branch we will install from for INST_YT_SOURCE=1
 BRANCH="master"
