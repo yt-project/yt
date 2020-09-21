@@ -617,3 +617,21 @@ class f90nml_imports(object):
 
 
 _f90nml = f90nml_imports()
+
+
+class xarray_imports:
+    _name = "xarray"
+    _open_dataset = None
+
+    @property
+    def open_dataset(self):
+        if self._open_dataset is None:
+            try:
+                from xarray import open_dataset
+            except ImportError:
+                open_dataset = NotAModule(self._name)
+            self._open_dataset = open_dataset
+        return self._open_dataset
+
+
+_xarray = xarray_imports()
