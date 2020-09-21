@@ -34,7 +34,7 @@ class CM1FieldInfo(FieldInfoContainer):
         ("thrhopert", ("K",    ["density_potential_temperature_perturbation"], None)),
         ("prespert", ("hPa",   ["presure_perturbation"], None)),
         ("rhopert", ("kg/m**3", ["density_perturbation"], None)),
-        ("dbz", ("dBZ",        ["simulated_reflectivity"], None)),
+        ("dbz", ("dB",        ["simulated_reflectivity"], None)),
         ("qvpert", ("g/kg",    ["water_vapor_mixing_ratio_perturbation"], None)),
         ("qc", ("g/kg",        ["cloud_liquid_water_mixing_ratio"], None)),
         ("qr", ("g/kg",        ["rain_mixing_ratio"], None)),
