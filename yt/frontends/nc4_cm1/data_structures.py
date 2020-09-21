@@ -213,4 +213,4 @@ class CM1Dataset(Dataset):
             for vc in vcoords: ## iterate over the coordinates for the variable
                 if vc in coords: passed += 1 ## check that the coordinate exists in global dataset
         if (passed == nvars): return True ## if all vars pass return True
-        else: reurn False
+        else: return False
