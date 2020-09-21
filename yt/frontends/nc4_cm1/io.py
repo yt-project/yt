@@ -5,23 +5,14 @@ Skeleton-specific IO functions
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
-from yt.utilities.io_handler import \
-    BaseIOHandler
 import numpy as np
 
+from yt.utilities.io_handler import BaseIOHandler
 
 
 class CM1IOHandler(BaseIOHandler):
     _particle_reader = False
-    _dataset_type = 'cm1'
+    _dataset_type = "cm1"
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
@@ -55,7 +46,7 @@ class CM1IOHandler(BaseIOHandler):
         data = {}
         offset = 0
         for field in fields:
-            data[field] = np.empty(size, dtype='float64')
+            data[field] = np.empty(size, dtype="float64")
             for chunk in chunks:
                 for grid in chunk.objs:
                     ds = self.ds._handle
@@ -63,7 +54,7 @@ class CM1IOHandler(BaseIOHandler):
                     values = np.squeeze(variable.values[0].T)
                     offset += grid.select(selector, values, data[field], offset)
         return data
-    
+
     def _read_chunk_data(self, chunk, fields):
         # This reads the data from a single chunk without doing any selection,
         # and is only used for caching data that might be used by multiple
