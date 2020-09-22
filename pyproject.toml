@@ -33,3 +33,29 @@ exclude = '''
 )/
 | yt/visualization/_colormap_data.py
 '''
+
+
+# To be kept consistent with "Import Formatting" section in CONTRIBUTING.rst
+[tool.isort]
+profile = "black"
+combine_as_imports = true
+# isort can't be applied to yt/__init__.py because it creates circular imports
+skip =  ["venv", "doc", "benchmarks", "yt/__init__.py", "yt/extern"]
+known_third_party = [
+  "IPython",
+  "nose",
+  "numpy",
+  "sympy",
+  "matplotlib",
+  "unyt",
+  "git",
+  "yaml",
+  "dateutil",
+  "requests",
+  "coverage",
+  "pytest",
+  "pyx",
+  "glue",
+]
+known_first_party = ["yt"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
