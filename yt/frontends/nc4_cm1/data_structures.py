@@ -166,7 +166,7 @@ class CM1Dataset(Dataset):
         self.domain_dimensions = np.array(dims, dtype="int64")
         self.periodicity = (False, False, False)
         self.current_time = self._handle.time.values[0]
-        self.parameters["time"] = self.current_time 
+        self.parameters["time"] = self.current_time
 
         # We also set up cosmological information.  Set these to zero if
         # non-cosmological.
@@ -185,6 +185,14 @@ class CM1Dataset(Dataset):
             ds = xarray.open_dataset(args[0])
         except OSError:
             return False
+        except ImportError:
+            # xarray not installed. If we can tell the file is a nc4_cm1 file without
+            # xarray, would be good to warn the user here.
+            return False
+
+        # TO-DO check for global attribute here. e.g.,
+        # if 'convention' not in ds.attrs.keys():
+        #     return False
 
         try:
             variables = ds.variables.keys()
@@ -192,23 +200,31 @@ class CM1Dataset(Dataset):
             return False
 
         ## check each variable array in the dataset
-        ## and make sure that the coordinates in the 
+        ## and make sure that the coordinates in the
         ## variable arrays matches the coordinates
         ## of the dataset
-        coords = ds.coords ## get the dataset wide coordinates
-        nvars = len(ds.variables.keys()) ## number of variables in dataset
-        varspassed = 0 ## number of variables passing the tet
-        for var in ds.variables.keys(): ## iterate over the variables
-            vcoords = ds[var].coords ## get the coordinates for the variable
-            ncoords = len(vcoords) ## number of coordinates in variable
-            coordspassed = 0 ## number of coordinates that pass for a variable
-            for vc in vcoords: ## iterate over the coordinates for the variable
-                if vc in coords: coordspassed += 1 ## variable coordinate and global coordinate are same
-                else: return False
-            if (coordspassed == ncoords): varspassed += 1 ## if all coordinates in a variable pass, the variable passes
-            else: return False
-        ## TO-DO - add specific CM1 check to make sure this 
-        ## frontend doesn't step on the toes of anyone running 
-        ## xarray in the future!
-        if (varspassed == nvars): return True ## if all vars pass return True
-        else: return False
+        coords = ds.coords  # get the dataset wide coordinates
+        nvars = len(variables)  # number of variables in dataset
+        varspassed = 0  # number of variables passing the tet
+        for var in variables:  # iterate over the variables
+            vcoords = ds[var].coords  # get the coordinates for the variable
+            ncoords = len(vcoords)  # number of coordinates in variable
+            coordspassed = 0  # number of coordinates that pass for a variable
+            for vc in vcoords:  # iterate over the coordinates for the variable
+                if vc in coords:
+                    coordspassed += (
+                        1  # variable coordinate and global coordinate are same
+                    )
+                else:
+                    return False
+            if coordspassed == ncoords:
+                varspassed += (
+                    1  # if all coordinates in a variable pass, the variable passes
+                )
+            else:
+                return False
+
+        if varspassed == nvars:
+            return True  # if all vars pass return True
+        else:
+            return False
