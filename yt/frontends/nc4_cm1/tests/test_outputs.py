@@ -1,10 +1,3 @@
-from collections import OrderedDict
-
-import os
-import stat
-import weakref
-import numpy as np
-
 from yt.utilities.on_demand_imports import _xarray as xarray
 from yt.frontends.nc4_cm1.api import CM1Dataset
 from yt.testing import (
@@ -20,7 +13,6 @@ from yt.utilities.answer_testing.framework import (
 
 
 _fields = ("dbz", "thrhopert", "zvort")
-
 cm1sim = "budget-test.04400.000000.nc"
 
 
@@ -62,7 +54,3 @@ def test_dims_and_meta():
     ## check the simulation time 
     assert_equal(ds.parameters["time"], 4400.)
 
-## TO DO: perhaps an image test of 1km AGL reflectivity?
-@requires_ds(cm1sim, bid_data=True)
-def test_reflectivity_plot():
-    return
