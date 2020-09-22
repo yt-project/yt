@@ -149,6 +149,8 @@ class CM1Dataset(Dataset):
         self.parameters = {}
         coords = self._handle.coords
         self.parameters["coords"] = coords
+        self.parameters["lofs_version"] = ds.attrs["cm1_lofs_version"]
+        self.parameters["is_uniform"] = ds.attrs["uniform_mesh"]
 
         # TO DO: Possibly figure out a way to generalize this to be coordiante variable
         # name agnostic in order to make useful for WRF or climate data. For now, we're
