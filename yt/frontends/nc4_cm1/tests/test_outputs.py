@@ -54,3 +54,7 @@ def test_dims_and_meta():
     ## check the simulation time 
     assert_equal(ds.parameters["time"], 5500.)
 
+@requires_file(cm1sim)
+def test_if_cm1():
+    ds = data_dir_load(cm1sim)
+    assert float(ds.parameters["lofs_version"]) >= 1.0
