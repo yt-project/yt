@@ -13,14 +13,14 @@ from yt.utilities.answer_testing.framework import (
 
 
 _fields = ("dbz", "thrhopert", "zvort")
-cm1sim = "budget-test.04400.000000.nc"
+cm1sim = "testyt.05500.000000.nc"
 
 
 @requires_ds(cm1sim, big_data=True)
 def test_mesh():
     ds = data_dir_load(cm1sim)
     print(ds)
-    assert_equal(str(ds), "budget-test.04400.000000.nc")
+    assert_equal(str(ds), "testyt.05500.000000.nc")
     for test in small_patch_amr(ds, _fields):
         test_tprmadp.__name__ = test.description
         yield test
@@ -52,5 +52,5 @@ def test_dims_and_meta():
         assert kdim in dims
 
     ## check the simulation time 
-    assert_equal(ds.parameters["time"], 4400.)
+    assert_equal(ds.parameters["time"], 5500.)
 
