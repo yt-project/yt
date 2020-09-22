@@ -21,17 +21,14 @@ from yt.utilities.answer_testing.framework import (
 
 _fields = ("dbz", "thrhopert", "zvort")
 
-## To-Do - Need to know the actual location of test
-## data for these tests! Probably need to give a small,
-## static NetCDF file near the tornado.
-cm1sim = "CM1Tornado/test_dataset.nc"
+cm1sim = "budget-test.04400.000000.nc"
 
 
 @requires_ds(cm1sim, big_data=True)
-def test_tornado():
+def test_mesh():
     ds = data_dir_load(cm1sim)
     print(ds)
-    assert_equal(str(ds), "test_dataset.nc")
+    assert_equal(str(ds), "budget-test.04400.000000.nc")
     for test in small_patch_amr(ds, _fields):
         test_tprmadp.__name__ = test.description
         yield test
@@ -48,15 +45,24 @@ def test_units_override():
 
 
 @requires_file(cm1sim)
-def test_tornado_dataset():
+def test_dims_and_meta():
     ds = data_dir_load(cm1sim)
-    ## To-Do: Static tests for the specific
-    ## NetCDF file given above!
-    #assert_equal(ds.parameters["time"], 751000000000.0)
-    #assert_equal(ds.domain_dimensions, np.array([8, 8, 8]))
-    #assert_equal(ds.domain_left_edge, ds.arr([-2e18, -2e18, -2e18], "code_length"))
 
-    #assert_equal(ds.index.num_grids, 73)
-    #dd = ds.all_data()
-    #dd["density"]
+    known_dims = ["time", "zf", "zh", "yf", "yh", "xf", "xh"]
+    dims = ds.parameters["coords"].dims.keys()
 
+    ## check the file for 2 grids and a time dimension - 
+    ## (time, xf, xh, yf, yh, zf, zh). The dimesions ending in
+    ## f are the staggered velocity grid components and the
+    ## dimensions ending in h are the scalar grid components
+    assert_equal(len(dims), 7)
+    for kdim in known_dims:
+        assert kdim in dims
+
+    ## check the simulation time 
+    assert_equal(ds.parameters["time"], 4400.)
+
+## TO DO: perhaps an image test of 1km AGL reflectivity?
+@requires_ds(cm1sim, bid_data=True)
+def test_reflectivity_plot():
+    return

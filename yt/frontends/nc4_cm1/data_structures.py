@@ -118,7 +118,7 @@ class CM1Dataset(Dataset):
         self.fluid_types += ("cm1",)
         self._handle = xarray.open_dataset(filename, engine="netcdf4")
         # refinement factor between a grid and its subgrid
-        self.refine_by = 2
+        self.refine_by = 1
         super(CM1Dataset, self).__init__(
             filename, dataset_type, units_override=units_override
         )
@@ -129,20 +129,12 @@ class CM1Dataset(Dataset):
         # on-disk units.  These are the currently available quantities which
         # should be set, along with examples of how to set them to standard
         # values.
-        #
-        # self.length_unit = self.quan(1.0, "cm")
-        # self.mass_unit = self.quan(1.0, "g")
-        # self.time_unit = self.quan(1.0, "s")
-        # self.time_unit = self.quan(1.0, "s")
-        #
-        # These can also be set:
-        # self.velocity_unit = self.quan(1.0, "cm/s")
-        # self.magnetic_unit = self.quan(1.0, "gauss")
         length_unit = self._handle.variables["xh"].attrs["units"]
         self.length_unit = self.quan(1.0, length_unit)
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
         self.velocity_unit = self.quan(1.0, "m/s")
+        self.time_unit = self.quan(1.0, "s")
 
     def _parse_parameter_file(self):
         # This needs to set up the following items.  Note that these are all
@@ -156,28 +148,26 @@ class CM1Dataset(Dataset):
         #   self.parameters             <= full of code-specific items of use
         self.parameters = {}
         coords = self._handle.coords
+        self.parameters["coords"] = coords
+
         # TO DO: Possibly figure out a way to generalize this to be coordiante variable
         # name agnostic in order to make useful for WRF or climate data. For now, we're
         # hard coding for CM1 specifically and have named the classes appropriately, but
         # generalizing is good.
         xh, yh, zh = [coords[i] for i in ["xh", "yh", "zh"]]
-        #   self.domain_left_edge       <= array of float64
         self.domain_left_edge = np.array(
             [xh.min(), yh.min(), zh.min()], dtype="float64"
         )
-        #   self.domain_right_edge      <= array of float64
         self.domain_right_edge = np.array(
             [xh.max(), yh.max(), zh.max()], dtype="float64"
         )
-        #   self.dimensionality         <= int
         self.dimensionality = 3
-        #   self.domain_dimensions      <= array of int64
         dims = [self._handle.dims[i] for i in ["xh", "yh", "zh"]]
         self.domain_dimensions = np.array(dims, dtype="int64")
-        #   self.periodicity            <= three-element tuple of booleans
         self.periodicity = (False, False, False)
-        #   self.current_time           <= simulation time in code units
-        self.current_time = self._handle.time.values
+        self.current_time = self._handle.time.values[0]
+        self.parameters["time"] = self.current_time 
+
         # We also set up cosmological information.  Set these to zero if
         # non-cosmological.
         self.cosmological_simulation = 0.0
