@@ -75,23 +75,23 @@ jobs:
       name: "Python: 3.6 Minimal Dependency Unit Tests"
       python: 3.6
       env: MINIMAL=1
-      script:
-        - coverage run $(which pytest) -c pytest_unit.ini
-        - coverage run $(which nosetests) -c nose_unit.cfg
+      script: >-
+        coverage run $(which pytest) -c pytest_unit.ini
+        coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 3.6 Unit Tests"
       python: 3.6
-      script:
-        - coverage run $(which pytest) -c pytest_unit.ini
-        - coverage run $(which nosetests) -c nose_unit.cfg
+      script: >-
+        coverage run $(which pytest) -c pytest_unit.ini
+        coverage run $(which nosetests) -c nose_unit.cfg
 
     - stage: tests
       name: "Python: 3.8 Unit Tests"
       python: 3.8
-      script:
-        - coverage run $(which pytest) -c pytest_unit.ini
-        - coverage run $(which nosetests) -c nose_unit.cfg
+      script: >-
+        coverage run $(which pytest) -c pytest_unit.ini
+        coverage run $(which nosetests) -c nose_unit.cfg
 
       # This is not necessarily going to be forever -- once we merge yt-4.0
       # with master we will likely change this around to reduce the number of
@@ -99,9 +99,9 @@ jobs:
     - stage: tests
       name: "Python: 3.7 Answer Tests"
       python: 3.7
-      script:
-        - coverage run $(which pytest) -c pytest_answer.ini
-        - coverage run $(which nosetests) -c nose_answer.cfg
+      script: >-
+        coverage run $(which pytest) -c pytest_answer.ini
+        coverage run $(which nosetests) -c nose_answer.cfg
       # This script has not yet been converted to use pytest, so skip for now
       #after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_pytest.xml"
 
@@ -114,9 +114,9 @@ jobs:
       cache:
         - directories:
           - $HOME/Library/Caches/pip
-      script:
-        - pytest -c pytest_unit.ini
-        - nosetests -c nose_unit.cfg
+      script: >-
+        pytest -c pytest_unit.ini
+        nosetests -c nose_unit.cfg
 
 after_success:
   - codecov

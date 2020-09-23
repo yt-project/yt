@@ -1,103 +1,119 @@
-from yt.testing import assert_equal, requires_file, units_override_check
-from yt.utilities.answer_testing.framework import (
-    data_dir_load,
-    requires_ds,
-    small_patch_amr,
-)
+import pytest
 
-from ..data_structures import (
+from yt.frontends.fits.data_structures import (
     EventsFITSDataset,
     FITSDataset,
     SkyDataFITSDataset,
     SpectralCubeFITSDataset,
 )
+from yt.frontends.fits.misc import setup_counts_fields
+from yt.testing import requires_file, units_override_check
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    grid_hierarchy,
+    grid_values,
+    parentage_relationships,
+    projection_values,
+)
+from yt.utilities.answer_testing.utils import data_dir_load
 
-_fields_grs = ("temperature",)
-
+# Test data
 grs = "radio_fits/grs-50-cube.fits"
-
-
-@requires_ds(grs)
-def test_grs():
-    ds = data_dir_load(grs, cls=SpectralCubeFITSDataset, kwargs={"nan_mask": 0.0})
-    assert_equal(str(ds), "grs-50-cube.fits")
-    for test in small_patch_amr(ds, _fields_grs, input_center="c", input_weight="ones"):
-        test_grs.__name__ = test.description
-        yield test
-
-
-_fields_vels = ("velocity_x", "velocity_y", "velocity_z")
-
 vf = "UnigridData/velocity_field_20.fits"
-
-
-@requires_ds(vf)
-def test_velocity_field():
-    ds = data_dir_load(vf, cls=FITSDataset)
-    assert_equal(str(ds), "velocity_field_20.fits")
-    for test in small_patch_amr(
-        ds, _fields_vels, input_center="c", input_weight="ones"
-    ):
-        test_velocity_field.__name__ = test.description
-        yield test
-
-
-acis = "xray_fits/acisf05356N003_evt2.fits.gz"
-
-_fields_acis = ("counts_0.1-2.0", "counts_2.0-5.0")
-
-
-@requires_ds(acis)
-def test_acis():
-    from yt.frontends.fits.misc import setup_counts_fields
-
-    ds = data_dir_load(acis, cls=EventsFITSDataset)
-    ebounds = [(0.1, 2.0), (2.0, 5.0)]
-    setup_counts_fields(ds, ebounds)
-    assert_equal(str(ds), "acisf05356N003_evt2.fits.gz")
-    for test in small_patch_amr(
-        ds, _fields_acis, input_center="c", input_weight="ones"
-    ):
-        test_acis.__name__ = test.description
-        yield test
-
-
+acis = "xray_fits/acisf05356N003_evt2.fits"
 A2052 = "xray_fits/A2052_merged_0.3-2_match-core_tmap_bgecorr.fits"
 
+
+def get_acis():
+    try:
+        ds = data_dir_load(acis, cls=EventsFITSDataset)
+        ebounds = [(0.1, 2.0), (2.0, 5.0)]
+        setup_counts_fields(ds, ebounds)
+        return ds
+    except FileNotFoundError:
+        return "/does/not/exist"
+
+
+grs_kwargs = {"kwargs": {"nan_mask": 0.0}, "cls": SpectralCubeFITSDataset}
+vf_kwargs = {"cls": FITSDataset}
+A2052_kwargs = {"cls": SkyDataFITSDataset}
+
+_fields_grs = ("temperature",)
+_fields_vels = ("velocity_x", "velocity_y", "velocity_z")
+_fields_acis = ("counts_0.1-2.0", "counts_2.0-5.0")
 _fields_A2052 = ("flux",)
 
-
-@requires_ds(A2052)
-def test_A2052():
-    ds = data_dir_load(A2052, cls=SkyDataFITSDataset)
-    assert_equal(str(ds), "A2052_merged_0.3-2_match-core_tmap_bgecorr.fits")
-    for test in small_patch_amr(
-        ds, _fields_A2052, input_center="c", input_weight="ones"
-    ):
-        test_A2052.__name__ = test.description
-        yield test
-
-
-@requires_file(vf)
-def test_units_override():
-    units_override_check(vf)
-
-
-@requires_file(vf)
-def test_FITSDataset():
-    assert isinstance(data_dir_load(vf), FITSDataset)
+a_list = [0, 1, 2]
+d_list = [None, ("sphere", ("c", (0.1, "unitary")))]
+w_list = [None, "ones"]
+f_list = [
+    _fields_grs,
+    _fields_vels,
+    _fields_acis,
+    _fields_A2052,
+]
+ds_list = [
+    [grs, grs_kwargs],
+    [vf, vf_kwargs],
+    get_acis(),
+    [A2052, A2052_kwargs],
+]
 
 
-@requires_file(grs)
-def test_SpectralCubeFITSDataset():
-    assert isinstance(data_dir_load(grs), SpectralCubeFITSDataset)
+def get_pairs():
+    pairs = []
+    for i, ds in enumerate(ds_list):
+        for f in f_list[i]:
+            pairs.append((ds, f))
+    return pairs
 
 
-@requires_file(acis)
-def test_EventsFITSDataset():
-    assert isinstance(data_dir_load(acis), EventsFITSDataset)
+@pytest.mark.answer_test
+class TestFits:
+    answer_file = None
+    saved_hashes = None
 
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", ds_list, indirect=True)
+    def test_gh_pr(self, ds):
+        self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
-@requires_file(A2052)
-def test_SkyDataFITSDataset():
-    assert isinstance(data_dir_load(A2052), SkyDataFITSDataset)
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
+    def test_gv(self, f, ds):
+        self.hashes.update({"grid_values": grid_values(ds, f)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
+    @pytest.mark.parametrize("d", d_list, indirect=True)
+    def test_fv(self, d, f, ds):
+        self.hashes.update({"field_values": field_values(ds, f, d)})
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
+    @pytest.mark.parametrize("d", d_list, indirect=True)
+    @pytest.mark.parametrize("a", a_list, indirect=True)
+    @pytest.mark.parametrize("w", w_list, indirect=True)
+    def test_pv(self, a, d, w, f, ds):
+        self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
+
+    @requires_file(vf)
+    def test_units_override(self):
+        units_override_check(vf)
+
+    @pytest.mark.parametrize("ds", [[vf, vf_kwargs]], indirect=True)
+    def test_FITSDataset(self, ds):
+        assert isinstance(ds, FITSDataset)
+
+    @pytest.mark.parametrize("ds", [[grs, grs_kwargs]], indirect=True)
+    def test_SpectralCubeFITSDataset(self, ds):
+        assert isinstance(ds, SpectralCubeFITSDataset)
+
+    @pytest.mark.parametrize("ds", [get_acis(),], indirect=True)
+    def test_EventsFITSDataset(self, ds):
+        assert isinstance(ds, EventsFITSDataset)
+
+    @pytest.mark.parametrize("ds", [[A2052, A2052_kwargs]], indirect=True)
+    def test_SkyDataFITSDataset(self, ds):
+        assert isinstance(ds, SkyDataFITSDataset)

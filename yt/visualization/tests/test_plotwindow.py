@@ -4,12 +4,11 @@ import os
 import shutil
 import tempfile
 import unittest
-from collections import OrderedDict
 from distutils.version import LooseVersion
 
 import matplotlib
 import numpy as np
-from nose.tools import assert_true
+import pytest
 
 from yt.loaders import load_uniform_grid
 from yt.testing import (
@@ -24,11 +23,8 @@ from yt.testing import (
 )
 from yt.units import kboltz
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.answer_testing.framework import (
-    PlotWindowAttributeTest,
-    data_dir_load,
-    requires_ds,
-)
+from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.answer_tests import plot_window_attribute
 from yt.utilities.exceptions import YTInvalidFieldType
 from yt.visualization.api import (
     OffAxisProjectionPlot,
@@ -38,43 +34,9 @@ from yt.visualization.api import (
     plot_2d,
 )
 
-
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
-
-    ytcfg["yt", "__withintesting"] = "True"
-
-
 TEST_FLNMS = ["test.png"]
 M7 = "DD0010/moving7_0010"
 WT = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
-
-FPROPS = {"family": "sans-serif", "style": "italic", "weight": "bold", "size": 24}
-
-ATTR_ARGS = {
-    "pan": [(((0.1, 0.1),), {})],
-    "pan_rel": [(((0.1, 0.1),), {})],
-    "set_axes_unit": [
-        (("kpc",), {}),
-        (("Mpc",), {}),
-        ((("kpc", "kpc"),), {}),
-        ((("kpc", "Mpc"),), {}),
-    ],
-    "set_buff_size": [((1600,), {}), (((600, 800),), {})],
-    "set_center": [(((0.4, 0.3),), {})],
-    "set_cmap": [(("density", "RdBu"), {}), (("density", "kamae"), {})],
-    "set_font": [((OrderedDict(sorted(FPROPS.items(), key=lambda t: t[0])),), {})],
-    "set_log": [(("density", False), {})],
-    "set_window_size": [((7.0,), {})],
-    "set_zlim": [
-        (("density", 1e-25, 1e-23), {}),
-        (("density", 1e-25, None), {"dynamic_range": 4}),
-    ],
-    "zoom": [((10,), {})],
-    "toggle_right_handed": [((), {})],
-}
-
 
 CENTER_SPECS = (
     "m",
@@ -138,83 +100,49 @@ WEIGHT_FIELDS = (
 
 PROJECTION_METHODS = ("integrate", "sum", "mip")
 
-BUFF_SIZES = [(800, 800), (1600, 1600), (1254, 1254), (800, 600)]
 
+@pytest.mark.answer_test
+class TestPlotWindow:
+    answer_file = None
+    saved_hashes = None
 
-def simple_contour(test_obj, plot):
-    plot.annotate_contour(test_obj.plot_field)
+    @pytest.mark.usefixtures("hashing")
+    @utils.requires_ds(M7)
+    def test_attributes(self, axis, attr_name, attr_args, callback):
+        """Test plot member functions that aren't callbacks"""
+        plot_field = "density"
+        ds = utils.data_dir_load(M7)
+        pw = plot_window_attribute(ds, plot_field, axis, attr_name, attr_args)
+        self.hashes.update({"plot_window_attribute": pw})
+        pw = plot_window_attribute(
+            ds,
+            plot_field,
+            axis,
+            attr_name,
+            attr_args,
+            callback_id=callback[0],
+            callback_runners=callback[1],
+        )
+        self.hashes.update({"plot_window_attribute_with_callback": pw})
 
-
-def simple_velocity(test_obj, plot):
-    plot.annotate_velocity()
-
-
-def simple_streamlines(test_obj, plot):
-    ax = test_obj.plot_axis
-    xax = test_obj.ds.coordinates.x_axis[ax]
-    yax = test_obj.ds.coordinates.y_axis[ax]
-    xn = test_obj.ds.coordinates.axis_name[xax]
-    yn = test_obj.ds.coordinates.axis_name[yax]
-    plot.annotate_streamlines(f"velocity_{xn}", f"velocity_{yn}")
-
-
-CALLBACK_TESTS = (
-    ("simple_contour", (simple_contour,)),
-    ("simple_velocity", (simple_velocity,)),
-    # ("simple_streamlines", (simple_streamlines,)),
-    # ("simple_all", (simple_contour, simple_velocity, simple_streamlines)),
-)
-
-
-@requires_ds(M7)
-def test_attributes():
-    """Test plot member functions that aren't callbacks"""
-    plot_field = "density"
-    decimals = 12
-
-    ds = data_dir_load(M7)
-    for ax in "xyz":
-        for attr_name in ATTR_ARGS.keys():
-            for args in ATTR_ARGS[attr_name]:
-                test = PlotWindowAttributeTest(
-                    ds, plot_field, ax, attr_name, args, decimals
-                )
-                test_attributes.__name__ = test.description
-                yield test
-                for n, r in CALLBACK_TESTS:
-                    yield PlotWindowAttributeTest(
-                        ds,
-                        plot_field,
-                        ax,
-                        attr_name,
-                        args,
-                        decimals,
-                        callback_id=n,
-                        callback_runners=r,
-                    )
-
-
-@requires_ds(WT)
-def test_attributes_wt():
-    plot_field = "density"
-    decimals = 12
-
-    ds = data_dir_load(WT)
-    ax = "z"
-    for attr_name in ATTR_ARGS.keys():
-        for args in ATTR_ARGS[attr_name]:
-            yield PlotWindowAttributeTest(ds, plot_field, ax, attr_name, args, decimals)
-            for n, r in CALLBACK_TESTS:
-                yield PlotWindowAttributeTest(
-                    ds,
-                    plot_field,
-                    ax,
-                    attr_name,
-                    args,
-                    decimals,
-                    callback_id=n,
-                    callback_runners=r,
-                )
+    @pytest.mark.usefixtures("hashing")
+    @utils.requires_ds(WT)
+    def test_attributes_wt(self, attr_name, attr_args, callback):
+        plot_field = "density"
+        ds = utils.data_dir_load(WT)
+        ax = "z"
+        pw = plot_window_attribute(ds, plot_field, ax, attr_name, attr_args)
+        self.hashes.update({"plot_window_attribute": pw})
+        pw = plot_window_attribute(
+            ds,
+            plot_field,
+            ax,
+            attr_name,
+            attr_args,
+            callback_id=callback[0],
+            callback_runners=callback[1],
+        )
+        self.hashes.update({"plot_window_attribute_with_callback": pw})
 
 
 class TestHideAxesColorbar(unittest.TestCase):
@@ -291,7 +219,7 @@ class TestSetWidth(unittest.TestCase):
             [self.slc.xlim, self.slc.ylim, self.slc.width],
             [(0.0, 1.0), (0.0, 1.0), (1.0, 1.0)],
         )
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_set_width_nonequal(self):
         self.slc.set_width((0.5, 0.8))
@@ -300,22 +228,22 @@ class TestSetWidth(unittest.TestCase):
             [(0.25, 0.75), (0.1, 0.9), (0.5, 0.8)],
             15,
         )
-        assert_true(self.slc._axes_unit_names is None)
+        assert self.slc._axes_unit_names is None
 
     def test_twoargs_eq(self):
         self.slc.set_width(0.5, "cm")
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
     def test_tuple_eq(self):
         self.slc.set_width((0.5, "cm"))
         self._assert_05cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
     def test_tuple_of_tuples_neq(self):
         self.slc.set_width(((0.5, "cm"), (0.75, "cm")))
         self._assert_05_075cm()
-        assert_true(self.slc._axes_unit_names == ("cm", "cm"))
+        assert self.slc._axes_unit_names == ("cm", "cm")
 
 
 class TestPlotWindowSave(unittest.TestCase):
@@ -372,15 +300,6 @@ class TestPlotWindowSave(unittest.TestCase):
             proj = ProjectionPlot(test_ds, 0, "density", method=method)
             proj.save()
 
-    def test_projection_plot_bs(self):
-        test_ds = fake_random_ds(16)
-        for bf in BUFF_SIZES:
-            proj = ProjectionPlot(test_ds, 0, ("gas", "density"), buff_size=bf)
-            image = proj.frb["gas", "density"]
-
-            # note that image.shape is inverted relative to the passed in buff_size
-            assert_equal(image.shape[::-1], bf)
-
     def test_offaxis_slice_plot(self):
         test_ds = fake_random_ds(16)
         slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
@@ -406,7 +325,7 @@ class TestPlotWindowSave(unittest.TestCase):
             [assert_array_almost_equal(px, x, 14) for px, x in zip(plot.xlim, xlim)]
             [assert_array_almost_equal(py, y, 14) for py, y in zip(plot.ylim, ylim)]
             [assert_array_almost_equal(pw, w, 14) for pw, w in zip(plot.width, pwidth)]
-            assert_true(aun == plot._axes_unit_names)
+            assert aun == plot._axes_unit_names
 
 
 def test_on_off_compare():
@@ -616,13 +535,13 @@ def test_plot_2d():
     assert_array_equal(slc.frb["temperature"], slc2.frb["temperature"])
     assert_array_equal(slc.frb["temperature"], slc3.frb["temperature"])
     # Cylindrical
-    ds = data_dir_load(WD)
+    ds = utils.data_dir_load(WD)
     slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
     slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
     assert_array_equal(slc.frb["density"], slc2.frb["density"])
 
     # Spherical
-    ds = data_dir_load(blast_wave)
+    ds = utils.data_dir_load(blast_wave)
     slc = SlicePlot(ds, "phi", ["density"], width=(1, "unitary"))
     slc2 = plot_2d(ds, "density", width=(1, "unitary"))
     assert_array_equal(slc.frb["density"], slc2.frb["density"])

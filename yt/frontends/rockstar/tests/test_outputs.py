@@ -1,38 +1,29 @@
-import os.path
+import pytest
 
 from yt.frontends.rockstar.api import RockstarDataset
-from yt.testing import ParticleSelectionComparison, assert_equal, requires_file
-from yt.utilities.answer_testing.framework import (
-    FieldValuesTest,
-    data_dir_load,
-    requires_ds,
-)
+from yt.testing import ParticleSelectionComparison
+from yt.utilities.answer_testing.answer_tests import field_values
 
-_fields = (
-    "particle_position_x",
-    "particle_position_y",
-    "particle_position_z",
-    "particle_mass",
-)
-
+# Test data
 r1 = "rockstar_halos/halos_0.0.bin"
 
 
-@requires_ds(r1)
-def test_fields_r1():
-    ds = data_dir_load(r1)
-    assert_equal(str(ds), os.path.basename(r1))
-    for field in _fields:
-        yield FieldValuesTest(r1, field, particle_type=True)
+@pytest.mark.answer_test
+class TestRockstar:
+    answer_file = None
+    saved_hashes = None
 
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [r1], indirect=True)
+    def test_fields_r1(self, f, ds):
+        fv = field_values(ds, f, particle_type=True)
+        self.hashes.update({"field_values": fv})
 
-@requires_file(r1)
-def test_RockstarDataset():
-    assert isinstance(data_dir_load(r1), RockstarDataset)
+    @pytest.mark.parametrize("ds", [r1], indirect=True)
+    def test_RockstarDataset(self, ds):
+        assert isinstance(ds, RockstarDataset)
 
-
-@requires_file(r1)
-def test_particle_selection():
-    ds = data_dir_load(r1)
-    psc = ParticleSelectionComparison(ds)
-    psc.run_defaults()
+    @pytest.mark.parametrize("ds", [r1], indirect=True)
+    def test_particle_selection(self, ds):
+        psc = ParticleSelectionComparison(ds)
+        psc.run_defaults()

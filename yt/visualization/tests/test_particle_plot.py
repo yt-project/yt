@@ -3,8 +3,8 @@ import shutil
 import tempfile
 import unittest
 
-import mock
 import numpy as np
+import pytest
 
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.profiles import create_profile
@@ -12,50 +12,18 @@ from yt.loaders import load
 from yt.testing import (
     assert_allclose,
     assert_array_almost_equal,
+    assert_fname,
     fake_particle_ds,
     requires_file,
 )
 from yt.units.yt_array import YTArray
-from yt.utilities.answer_testing.framework import (
-    PhasePlotAttributeTest,
-    PlotWindowAttributeTest,
-    data_dir_load,
-    requires_ds,
+from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.answer_tests import (
+    phase_plot_attribute,
+    plot_window_attribute,
 )
 from yt.visualization.api import ParticlePhasePlot, ParticlePlot, ParticleProjectionPlot
-from yt.visualization.tests.test_plotwindow import ATTR_ARGS, WIDTH_SPECS
-
-
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
-
-    ytcfg["yt", "__withintesting"] = "True"
-
-
-#  override some of the plotwindow ATTR_ARGS
-PROJ_ATTR_ARGS = ATTR_ARGS.copy()
-PROJ_ATTR_ARGS["set_cmap"] = [
-    (("particle_mass", "RdBu"), {}),
-    (("particle_mass", "kamae"), {}),
-]
-PROJ_ATTR_ARGS["set_log"] = [(("particle_mass", False), {})]
-PROJ_ATTR_ARGS["set_zlim"] = [
-    (("particle_mass", 1e39, 1e42), {}),
-    (("particle_mass", 1e39, None), {"dynamic_range": 4}),
-]
-
-PHASE_ATTR_ARGS = {
-    "annotate_text": [
-        (((5e-29, 5e7), "Hello YT"), {}),
-        (((5e-29, 5e7), "Hello YT"), {"color": "b"}),
-    ],
-    "set_title": [(("particle_mass", "A phase plot."), {})],
-    "set_log": [(("particle_mass", False), {})],
-    "set_unit": [(("particle_mass", "Msun"), {})],
-    "set_xlim": [((-4e7, 4e7), {})],
-    "set_ylim": [((-4e7, 4e7), {})],
-}
+from yt.visualization.tests.test_plotwindow import WIDTH_SPECS
 
 TEST_FLNMS = [None, "test", "test.png", "test.eps", "test.ps", "test.pdf"]
 
@@ -69,7 +37,11 @@ CENTER_SPECS = (
     YTArray([0.3, 0.4, 0.7], "cm"),
 )
 
-WEIGHT_FIELDS = (None, "particle_ones", ("all", "particle_mass"))
+WEIGHT_FIELDS = (
+    None,
+    "particle_ones",
+    ("all", "particle_mass"),
+)
 
 PHASE_FIELDS = [
     ("particle_velocity_x", "particle_position_z", "particle_mass"),
@@ -77,106 +49,71 @@ PHASE_FIELDS = [
     ("particle_velocity_x", "particle_velocity_y", ["particle_mass", "particle_ones"]),
 ]
 
-
 g30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
-@requires_ds(g30, big_data=True)
-def test_particle_projection_answers():
-    """
+@pytest.mark.answer_test
+@pytest.mark.big_data
+class TestParticlePlot:
+    answer_file = None
+    saved_hashes = None
 
-    This iterates over the all the plot modification functions in
-    PROJ_ATTR_ARGS. Each time, it compares the images produced by
-    ParticleProjectionPlot to the gold standard.
+    @pytest.mark.usefixtures("hashing")
+    @utils.requires_ds(g30)
+    def test_particle_projection_answers(self, axis, attr_name, attr_args):
+        """
+        This iterates over the all the plot modification functions in
+        PROJ_ATTR_ARGS. Each time, it compares the images produced by
+        ParticleProjectionPlot to the gold standard.
+        """
+        plot_field = "particle_mass"
+        ds = utils.data_dir_load(g30)
+        pw = plot_window_attribute(
+            ds, plot_field, axis, attr_name, attr_args, "ParticleProjectionPlot"
+        )
+        self.hashes.update({"plot_window_attribute": pw})
 
+    @pytest.mark.usefixtures("hashing")
+    @utils.requires_ds(g30)
+    def test_particle_projection_filter(self, axis, attr_args):
+        """
+        This tests particle projection plots for filter fields.
+        """
 
-    """
+        def formed_star(pfilter, data):
+            filter = data["all", "creation_time"] > 0
+            return filter
 
-    plot_field = "particle_mass"
-    decimals = 12
-    ds = data_dir_load(g30)
-    for ax in "xyz":
-        for attr_name in PROJ_ATTR_ARGS.keys():
-            for args in PROJ_ATTR_ARGS[attr_name]:
-                test = PlotWindowAttributeTest(
-                    ds,
-                    plot_field,
-                    ax,
-                    attr_name,
-                    args,
-                    decimals,
-                    "ParticleProjectionPlot",
-                )
-                test_particle_projection_answers.__name__ = test.description
-                yield test
+        add_particle_filter(
+            "formed_star",
+            function=formed_star,
+            filtered_type="all",
+            requires=["creation_time"],
+        )
+        plot_field = ("formed_star", "particle_mass")
+        ds = utils.data_dir_load(g30)
+        ds.add_particle_filter("formed_star")
+        pw = plot_window_attribute(
+            ds, plot_field, axis, "set_log", attr_args, "ParticleProjectionPlot"
+        )
+        self.hashes.update({"plot_window_attribute": pw})
 
-
-@requires_ds(g30, big_data=True)
-def test_particle_projection_filter():
-    """
-
-    This tests particle projection plots for filter fields.
-
-
-    """
-
-    def formed_star(pfilter, data):
-        filter = data["all", "creation_time"] > 0
-        return filter
-
-    add_particle_filter(
-        "formed_star",
-        function=formed_star,
-        filtered_type="all",
-        requires=["creation_time"],
-    )
-
-    plot_field = ("formed_star", "particle_mass")
-
-    decimals = 12
-    ds = data_dir_load(g30)
-    ds.add_particle_filter("formed_star")
-    for ax in "xyz":
-        attr_name = "set_log"
-        for args in PROJ_ATTR_ARGS[attr_name]:
-            test = PlotWindowAttributeTest(
-                ds, plot_field, ax, attr_name, args, decimals, "ParticleProjectionPlot"
-            )
-            test_particle_projection_filter.__name__ = test.description
-            yield test
-
-
-@requires_ds(g30, big_data=True)
-def test_particle_phase_answers():
-    """
-
-    This iterates over the all the plot modification functions in
-    PHASE_ATTR_ARGS. Each time, it compares the images produced by
-    ParticlePhasePlot to the gold standard.
-
-    """
-
-    decimals = 12
-    ds = data_dir_load(g30)
-
-    x_field = "particle_velocity_x"
-    y_field = "particle_velocity_y"
-    z_field = "particle_mass"
-    for attr_name in PHASE_ATTR_ARGS.keys():
-        for args in PHASE_ATTR_ARGS[attr_name]:
-            test = PhasePlotAttributeTest(
-                ds,
-                x_field,
-                y_field,
-                z_field,
-                attr_name,
-                args,
-                decimals,
-                "ParticlePhasePlot",
-            )
-
-            test_particle_phase_answers.__name__ = test.description
-            yield test
+    @pytest.mark.usefixtures("hashing")
+    @utils.requires_ds(g30)
+    def test_particle_phase_answers(self, attr_name, attr_args):
+        """
+        This iterates over the all the plot modification functions in
+        PHASE_ATTR_ARGS. Each time, it compares the images produced by
+        ParticlePhasePlot to the gold standard.
+        """
+        ds = utils.data_dir_load(g30)
+        x_field = "particle_velocity_x"
+        y_field = "particle_velocity_y"
+        z_field = "particle_mass"
+        pp = phase_plot_attribute(
+            ds, x_field, y_field, z_field, attr_name, attr_args, "ParticlePhasePlot"
+        )
+        self.hashes.update({"phase_plot_attribute": pp})
 
 
 class TestParticlePhasePlotSave(unittest.TestCase):
@@ -227,17 +164,9 @@ class TestParticlePhasePlotSave(unittest.TestCase):
 
                 particle_phases.append(ParticlePhasePlot.from_profile(pp))
         particle_phases[0]._repr_html_()
-
-        with mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-        ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
-        ), mock.patch(
-            "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
-        ):
-            for p in particle_phases:
-                for fname in TEST_FLNMS:
-                    p.save(fname)
+        for p in particle_phases:
+            for fname in TEST_FLNMS:
+                assert_fname(p.save(fname)[0])
 
 
 tgal = "TipsyGalaxy/galaxy.00300"
@@ -335,15 +264,8 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         test_ds = fake_particle_ds()
         for dim in range(3):
             pplot = ParticleProjectionPlot(test_ds, dim, "particle_mass")
-            with mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-            ), mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasPdf.print_figure"
-            ), mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasPS.print_figure"
-            ):
-                for fname in TEST_FLNMS:
-                    pplot.save(fname)[0]
+            for fname in TEST_FLNMS:
+                assert_fname(pplot.save(fname)[0])
 
     def test_particle_plot_ds(self):
         test_ds = fake_particle_ds()
@@ -352,10 +274,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
             pplot_ds = ParticleProjectionPlot(
                 test_ds, dim, "particle_mass", data_source=ds_region
             )
-            with mock.patch(
-                "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-            ):
-                pplot_ds.save()
+            pplot_ds.save()
 
     def test_particle_plot_c(self):
         test_ds = fake_particle_ds()
@@ -364,10 +283,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                 pplot_c = ParticleProjectionPlot(
                     test_ds, dim, "particle_mass", center=center
                 )
-                with mock.patch(
-                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-                ):
-                    pplot_c.save()
+                pplot_c.save()
 
     def test_particle_plot_wf(self):
         test_ds = fake_particle_ds()
@@ -376,10 +292,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
                 pplot_wf = ParticleProjectionPlot(
                     test_ds, dim, "particle_mass", weight_field=weight_field
                 )
-                with mock.patch(
-                    "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
-                ):
-                    pplot_wf.save()
+                pplot_wf.save()
 
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()
