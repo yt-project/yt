@@ -18,6 +18,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import warn_netcdf
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _netCDF4 as netCDF4, _xarray as xarray
 
 from .fields import CM1FieldInfo
@@ -194,8 +195,19 @@ class CM1Dataset(Dataset):
         warn_netcdf(args[0])
         try:
             with netCDF4.Dataset(args[0], keepweakref=True) as f:
-                is_cm1 = hasattr(f, "cm1_lofs_version")
-            if is_cm1 is False:
+                is_cm1_lofs = hasattr(f, "cm1_lofs_version")
+                is_cm1 = hasattr(f, "cm1 version")
+
+            if is_cm1_lofs is False:
+                if is_cm1:
+                    mylog.error(
+                        (
+                            "It looks like you are trying to load a cm1 netcdf file, "
+                            "but at present yt only supports cm1_lofs output. Until"
+                            " support is added, you can likely use"
+                            " yt.load_uniform_grid() to load your cm1 file manually."
+                        )
+                    )
                 return False
         except Exception:
             return False
