@@ -166,6 +166,7 @@ class CM1Dataset(Dataset):
         self.dimensionality = 3
         dims = [self._handle.dims[i] for i in ["xh", "yh", "zh"]]
         self.domain_dimensions = np.array(dims, dtype="int64")
+        print(dims, self.domain_dimensions)
         self.periodicity = (False, False, False)
         self.current_time = self._handle.time.values[0]
         self.parameters["time"] = self.current_time
