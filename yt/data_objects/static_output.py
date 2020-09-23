@@ -938,9 +938,10 @@ class Dataset(abc.ABC):
             alt_coords = []
             for x in coords:
                 alt_coords.append(
-                    self.quan(x.v, "code_length") if x.units.is_dimensionless else x
+                    self.quan(x.v, "code_length")
+                    if x.units.is_dimensionless
+                    else x.to("code_length")
                 )
-
             coords = self.arr(alt_coords, dtype="float64").to("code_length")
         return val, coords
 

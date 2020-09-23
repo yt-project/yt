@@ -142,7 +142,7 @@ cdef class GridTree:
             elif name.endswith("_y") or name.endswith("_z"):
                 continue
             else:
-                f = (d.char, 1)
+                f = d.char
             dtn[n] = (f, o)
         return grids_basic.view(dtype=np.dtype(dtn))
 
