@@ -17,7 +17,8 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.on_demand_imports import _xarray as xarray
+from yt.utilities.file_handler import warn_netcdf
+from yt.utilities.on_demand_imports import _netCDF4 as netCDF4, _xarray as xarray
 
 from .fields import CM1FieldInfo
 
@@ -184,18 +185,22 @@ class CM1Dataset(Dataset):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
 
+        # first use standard netcdf4 to check for our identifying attribute
+        # following exodus_ii frontend _is_valid
+        warn_netcdf(args[0])
+        try:
+            with netCDF4.Dataset(args[0], keepweakref=True) as f:
+                is_cm1 = hasattr(f, "cm1_lofs_version")
+            if is_cm1 is False:
+                return False
+        except Exception:
+            return False
+
+        # try to open the dataset -- will raise xarray import error if not installed.
         try:
             ds = xarray.open_dataset(args[0])
         except OSError:
             return False
-        except ImportError:
-            # xarray not installed. If we can tell the file is a nc4_cm1 file without
-            # xarray, would be good to warn the user here.
-            return False
-
-        # TO-DO check for global attribute here. e.g.,
-        # if 'convention' not in ds.attrs.keys():
-        #     return False
 
         try:
             variables = ds.variables.keys()
