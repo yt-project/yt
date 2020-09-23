@@ -13,7 +13,7 @@ _fields = ("thrhopert", "zvort")
 cm1sim = "testyt.05500.000000.nc"
 
 
-@requires_ds(cm1sim, big_data=True)
+@requires_ds(cm1sim)
 def test_mesh():
     ds = data_dir_load(cm1sim)
     assert_equal(str(ds), "testyt.05500.000000.nc")
@@ -30,9 +30,8 @@ def test_mesh():
         dso = [None, ("sphere", (ic, (0.1, "unitary")))]
         for field in ["dbz"]:
             yield GridValuesTest(ds, field)
-            for axis in [0, 1, 2]:
-                for dobj_name in dso:
-                    yield FieldValuesTest(ds, field, dobj_name)
+            for dobj_name in dso:
+                yield FieldValuesTest(ds, field, dobj_name)
 
 
 @requires_file(cm1sim)
