@@ -1,23 +1,38 @@
 from yt.frontends.nc4_cm1.api import CM1Dataset
 from yt.testing import assert_equal, requires_file, units_override_check
 from yt.utilities.answer_testing.framework import (
+    FieldValuesTest,
+    GridValuesTest,
+    can_run_ds,
     data_dir_load,
     requires_ds,
     small_patch_amr,
 )
 
-_fields = ("dbz", "thrhopert", "zvort")
+_fields = ("thrhopert", "zvort")
 cm1sim = "testyt.05500.000000.nc"
 
 
 @requires_ds(cm1sim, big_data=True)
 def test_mesh():
     ds = data_dir_load(cm1sim)
-    print(ds)
     assert_equal(str(ds), "testyt.05500.000000.nc")
-    for test in small_patch_amr(ds, _fields):
+
+    # run the small_patch_amr tests on safe fields
+    ic = ds.domain_center
+    for test in small_patch_amr(ds, _fields, input_center=ic, input_weight=None):
         test_mesh.__name__ = test.description
         yield test
+
+    # manually run the Grid and Field Values tests on dbz (do not want to run the
+    # ProjectionValuesTest for this field)
+    if can_run_ds(ds):
+        dso = [None, ("sphere", (ic, (0.1, "unitary")))]
+        for field in ["dbz"]:
+            yield GridValuesTest(ds, field)
+            for axis in [0, 1, 2]:
+                for dobj_name in dso:
+                    yield FieldValuesTest(ds, field, dobj_name)
 
 
 @requires_file(cm1sim)
