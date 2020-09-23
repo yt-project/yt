@@ -118,8 +118,8 @@ class CM1Dataset(Dataset):
         self, filename, dataset_type="cm1", storage_filename=None, units_override=None
     ):
         self.fluid_types += ("cm1",)
-        self._handle = xarray.open_dataset(filename, engine="netcdf4",
-            backend_kwargs={"clobber":False})
+        self._handle = xarray.open_dataset(
+            filename, engine="netcdf4", backend_kwargs={"clobber":False})
         # refinement factor between a grid and its subgrid
         self.refine_by = 1
         super(CM1Dataset, self).__init__(
@@ -215,8 +215,9 @@ class CM1Dataset(Dataset):
 
         # try to open the dataset -- will raise xarray import error if not installed.
         try:
-            ds = xarray.open_dataset(args[0], engine="netcdf4",
-                                     backend_kwargs={"clobber":False})
+            ds = xarray.open_dataset(
+                args[0], engine="netcdf4", backend_kwargs={"clobber":False}
+            )
         except OSError:
             return False
 
