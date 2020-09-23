@@ -10,18 +10,18 @@ from yt.utilities.answer_testing.framework import (
 )
 
 _fields = ("thrhopert", "zvort")
-cm1sim = "nc4_cm1_lofs_tornado_test.nc"
+cm1sim = "cm1_tornado_lofs/nc4_cm1_lofs_tornado_test.nc"
 
 
 @requires_ds(cm1sim)
-def test_mesh():
+def test_cm1_mesh_fields():
     ds = data_dir_load(cm1sim)
-    assert_equal(str(ds), cm1sim)
+    assert_equal(str(ds), "nc4_cm1_lofs_tornado_test.nc")
 
     # run the small_patch_amr tests on safe fields
     ic = ds.domain_center
     for test in small_patch_amr(ds, _fields, input_center=ic, input_weight=None):
-        test_mesh.__name__ = test.description
+        test_cm1_mesh_fields.__name__ = test.description
         yield test
 
     # manually run the Grid and Field Values tests on dbz (do not want to run the
