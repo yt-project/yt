@@ -114,16 +114,21 @@ class CM1Dataset(Dataset):
     _field_info_class = CM1FieldInfo
 
     def __init__(
-        self, filename, dataset_type="cm1", units_override=units_override, unit_system="mks"
+        self, filename, dataset_type="cm1", storage_filename=None, units_override=None
     ):
         self.fluid_types += ("cm1",)
         self._handle = xarray.open_dataset(filename, engine="netcdf4")
         # refinement factor between a grid and its subgrid
         self.refine_by = 1
         super(CM1Dataset, self).__init__(
-            filename, dataset_type, units_override=units_override
+            filename, dataset_type, units_override=units_override, unit_system="mks"
         )
         self.storage_filename = storage_filename
+
+    def _setup_coordinate_handler(self):
+        super(CM1Dataset, self)._setup_coordinate_handler()
+        self.coordinates._x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))
+        self.coordinates._y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
