@@ -48,23 +48,23 @@ def _get_fields_to_check(fname):
     # except block prevents pytest from failing needlessly
     try:
         ds = utils.data_dir_load(fname)
-        fields = [("gas", "density"), ("gas", "velocity_magnitude")]
-        field_ids = ["density", "velocity_magnitude"]
-        raw_fields_labels = [fname for ftype, fname in ds.field_list]
-        if "b1" in raw_fields_labels:
-            fields.append(("gas", "magnetic_energy_density"))
-            field_ids.append("magnetic_energy_density")
-        if "e" in raw_fields_labels:
-            fields.append(("gas", "energy_density"))
-            field_ids.append("energy_density")
-        if "rhod1" in raw_fields_labels:
-            fields.append(("gas", "total_dust_density"))
-            field_ids.append("total_dust_density")
-            # note : not hitting dust velocity fields
-        # return [fields, field_ids]
-        return [ds, fields]
     except FileNotFoundError:
         return [None, [None,]]
+    fields = [("gas", "density"), ("gas", "velocity_magnitude")]
+    field_ids = ["density", "velocity_magnitude"]
+    raw_fields_labels = [fname for ftype, fname in ds.field_list]
+    if "b1" in raw_fields_labels:
+        fields.append(("gas", "magnetic_energy_density"))
+        field_ids.append("magnetic_energy_density")
+    if "e" in raw_fields_labels:
+        fields.append(("gas", "energy_density"))
+        field_ids.append("energy_density")
+    if "rhod1" in raw_fields_labels:
+        fields.append(("gas", "total_dust_density"))
+        field_ids.append("total_dust_density")
+        # note : not hitting dust velocity fields
+    # return [fields, field_ids]
+    return [ds, fields]
 
 
 def get_pairs():

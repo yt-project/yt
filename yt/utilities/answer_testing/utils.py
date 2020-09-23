@@ -228,7 +228,7 @@ def _compare_result(new_data, old_data):
     new_data : dict
         Just-generated hashed test results.
 
-    old_data: dict
+    old_data : dict
         Previously saved hashed test results.
     """
     for key, value in new_data.items():
