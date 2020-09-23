@@ -114,7 +114,7 @@ class CM1Dataset(Dataset):
     _field_info_class = CM1FieldInfo
 
     def __init__(
-        self, filename, dataset_type="cm1", storage_filename=None, units_override=None
+        self, filename, dataset_type="cm1", units_override=units_override, unit_system="mks"
     ):
         self.fluid_types += ("cm1",)
         self._handle = xarray.open_dataset(filename, engine="netcdf4")
@@ -167,7 +167,6 @@ class CM1Dataset(Dataset):
         self.dimensionality = 3
         dims = [self._handle.dims[i] for i in ["xh", "yh", "zh"]]
         self.domain_dimensions = np.array(dims, dtype="int64")
-        print(dims, self.domain_dimensions)
         self.periodicity = (False, False, False)
         self.current_time = self._handle.time.values[0]
         self.parameters["time"] = self.current_time
