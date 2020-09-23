@@ -10,13 +10,13 @@ from yt.utilities.answer_testing.framework import (
 )
 
 _fields = ("thrhopert", "zvort")
-cm1sim = "testyt.05500.000000.nc"
+cm1sim = "nc4_cm1_lofs_tornado_test.nc"
 
 
 @requires_ds(cm1sim)
 def test_mesh():
     ds = data_dir_load(cm1sim)
-    assert_equal(str(ds), "testyt.05500.000000.nc")
+    assert_equal(str(ds), cm1sim)
 
     # run the small_patch_amr tests on safe fields
     ic = ds.domain_center
