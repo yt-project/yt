@@ -350,7 +350,7 @@ class ExodusIIDataset(Dataset):
                 except AttributeError:
                     arbitrary_polyhedron = False
 
-                conn = var[:].astype("i8")
+                conn = var[:]
                 if arbitrary_polyhedron:
                     nodes_per_element = ds.variables[f"ebepecnt{i + 1}"]
                     if np.any(nodes_per_element != nodes_per_element[0]):
