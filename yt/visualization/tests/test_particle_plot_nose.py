@@ -23,7 +23,7 @@ from yt.utilities.answer_testing.framework import (
     requires_ds,
 )
 from yt.visualization.api import ParticlePhasePlot, ParticlePlot, ParticleProjectionPlot
-from yt.visualization.tests.test_plotwindow import ATTR_ARGS, WIDTH_SPECS
+from yt.visualization.tests.test_plotwindow_nose import ATTR_ARGS, WIDTH_SPECS
 
 
 def setup():

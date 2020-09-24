@@ -70,13 +70,14 @@ def generate_tasks_input():
     answers_dir = os.path.join(test_dir, "answers")
     tests = yaml.load(open("tests/tests.yaml", "r"), Loader=yaml.FullLoader)
 
-    base_argv = ["-s", "--nologcapture", "--with-xunit", "-c", "nose_ignore.cfg"]
+    base_argv = ["-s", "--nologcapture", "--with-xunit", "--config=nose_ignore.cfg"]
 
     base_answer_argv = [
         "--local-dir=%s" % answers_dir,
         "--with-answer-testing",
         "--answer-big-data",
         "--local",
+        "--config=nose_ignore.cfg",
     ]
 
     args = []
