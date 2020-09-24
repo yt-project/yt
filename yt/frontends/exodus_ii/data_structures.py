@@ -352,7 +352,7 @@ class ExodusIIDataset(Dataset):
 
                 conn = var[:].astype("i8")
                 if arbitrary_polyhedron:
-                    nodes_per_element = ds.variables["ebepecnt%d" % (i + 1)]
+                    nodes_per_element = ds.variables[f"ebepecnt{i + 1}"]
                     if np.any(nodes_per_element != nodes_per_element[0]):
                         raise NotImplementedError("only equal-size polyhedra supported")
                     conn.shape = (
