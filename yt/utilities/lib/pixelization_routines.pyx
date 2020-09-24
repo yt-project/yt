@@ -1039,7 +1039,7 @@ def pixelize_sph_kernel_projection(
         #   1) use multiple cores to process individual particles (the outer loop)
         #   2) use multiple cores to process individual pixels for a given particle
         #      (the inner loops)
-        # Depending on the ratio of particles' "sphere of influnce" (a.k.a. the smoothing
+        # Depending on the ratio of particles' "sphere of influence" (a.k.a. the smoothing
         # length) to the physical width of the pixels, different parallelization
         # strategies may yield different speed-ups. Strategy #1 works better in the case
         # of lots of itty bitty particles. Strategy #2 works well when we have a
