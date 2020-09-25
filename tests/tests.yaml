@@ -88,6 +88,9 @@ answer_tests:
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g5
     - yt/frontends/gadget_fof/tests/test_outputs.py:test_fields_g42
 
+  local_rockstar_001:
+    - yt/frontends/rockstar/tests/test_outputs.py:test_fields_r1
+
   local_owls_006:  # PR 2909
     - yt/frontends/owls/tests/test_outputs.py:test_snapshot_033
     - yt/frontends/owls/tests/test_outputs.py:test_OWLS_particlefilter
