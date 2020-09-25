@@ -10,7 +10,6 @@ from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
 
 from .fields import CM1FieldInfo
 
@@ -188,7 +187,9 @@ class CM1Dataset(Dataset):
 
         warn_netcdf(args[0])
         try:
-            with netCDF4.Dataset(args[0], "r", keepweakref=True) as ds:
+            from netCDF4 import Dataset
+
+            with Dataset(args[0], "r", keepweakref=True) as ds:
                 is_cm1_lofs = hasattr(ds, "cm1_lofs_version")
                 is_cm1 = hasattr(ds, "cm1 version")
                 # ensure coordinates of each variable array exists in the dataset
