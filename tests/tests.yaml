@@ -17,6 +17,9 @@ answer_tests:
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
     - yt/frontends/arepo/tests/test_outputs.py:test_index_override
 
+  local_art_001:
+    - yt/frontends/art/tests/test_outputs.py:test_d9p
+
   local_artio_003:
     - yt/frontends/artio/tests/test_outputs.py:test_sizmbhloz
 
