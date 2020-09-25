@@ -56,6 +56,15 @@ class netCDF4_imports:
     _name = "netCDF4"
     _Dataset = None
 
+    def __init__(self):
+        try:
+            import netCDF4
+
+            netCDF4.__version__
+        except ImportError:
+            pass
+        super(netCDF4_imports, self).__init__()
+
     @property
     def Dataset(self):
         if self._Dataset is None:
@@ -67,7 +76,7 @@ class netCDF4_imports:
         return self._Dataset
 
 
-_netCDF4 = netCDF4_imports()
+_netCDF4 = netCDF4_imports()  # Always do that before initializing h5py_imports() !!!
 
 
 class astropy_imports:
