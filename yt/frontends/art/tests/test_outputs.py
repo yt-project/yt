@@ -105,7 +105,7 @@ def test_d9p_ana_values():
     assert_almost_equal(ad[("gas", "cell_mass")].sum().in_units("Msun"), AnaTotGasMass)
 
     AnaTotTemp = YTQuantity(150_219_844_793.39072, "K")  # just leaves
-    assert_almost_equal(ad[("gas", "temperature")].sum(), AnaTotTemp)
+    assert_almost_equal(ad[("gas", "temperature")].sum(), AnaTotTemp, decimal=4)
 
 
 @requires_file(d9p)
