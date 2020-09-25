@@ -111,6 +111,6 @@ class NetCDF4FileHandler:
     def open_ds(self):
         from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
 
-        ds = netCDF4.Dataset(self.filename)
+        ds = netCDF4.Dataset(self.filename, "r")
         yield ds
         ds.close()
