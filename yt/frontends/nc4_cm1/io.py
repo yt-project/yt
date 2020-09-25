@@ -1,18 +1,17 @@
-"""
-Skeleton-specific IO functions
-
-
-
-"""
-
 import numpy as np
 
+from yt.utilities.file_handler import NetCDF4FileHandler
 from yt.utilities.io_handler import BaseIOHandler
 
 
 class CM1IOHandler(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "cm1"
+
+    def __init__(self, ds):
+        self.filename = ds.filename
+        self._handle = NetCDF4FileHandler(self.filename)
+        super(CM1IOHandler, self).__init__(ds)
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
@@ -45,14 +44,14 @@ class CM1IOHandler(BaseIOHandler):
 
         data = {}
         offset = 0
-        for field in fields:
-            data[field] = np.empty(size, dtype="float64")
-            for chunk in chunks:
-                for grid in chunk.objs:
-                    ds = self.ds._handle
-                    variable = ds.variables[field[1]]
-                    values = np.squeeze(variable.values[0].T)
-                    offset += grid.select(selector, values, data[field], offset)
+        with self._handle.open_ds() as ds:
+            for field in fields:
+                data[field] = np.empty(size, dtype="float64")
+                for chunk in chunks:
+                    for grid in chunk.objs:
+                        variable = ds.variables[field[1]][:][0]
+                        values = np.squeeze(variable.T)
+                        offset += grid.select(selector, values, data[field], offset)
         return data
 
     def _read_chunk_data(self, chunk, fields):

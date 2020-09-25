@@ -1,10 +1,3 @@
-"""
-Skeleton-specific fields
-
-
-
-"""
-
 from yt.fields.field_info_container import FieldInfoContainer
 
 # We need to specify which fields we might have in our dataset.  The field info

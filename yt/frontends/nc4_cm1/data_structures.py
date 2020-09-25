@@ -1,25 +1,16 @@
-"""
-Skeleton data structures
-
-
-
-"""
-
-## Written by Kelton Halbert and Leigh Orf at the 2019 yt developers workshop @ NCSA
-## for the purpose of reading in George Bryan's Cloud Model 1 output for plotting in yt.
-
 import os
 import stat
 import weakref
+from collections import OrderedDict
 
 import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.file_handler import warn_netcdf
+from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _netCDF4 as netCDF4, _xarray as xarray
+from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
 
 from .fields import CM1FieldInfo
 
@@ -56,22 +47,10 @@ class CM1Hierarchy(GridIndex):
         self.num_grids = 1
 
     def _detect_output_fields(self):
-        # This needs to set a self.field_list that contains all the available,
-        # on-disk fields. No derived fields should be defined here.
-        # NOTE: Each should be a tuple, where the first element is the on-disk
-        # fluid type or particle type.  Convention suggests that the on-disk
-        # fluid type is usually the dataset_type and the on-disk particle type
-        # (for a single population of particles) is "io".
+        # build list of on-disk fields for dataset_type 'cm1'
         self.field_list = []
-
-        ## loop over the variable names in the netCDF file
-        for key in self.ds._handle.variables.keys():
-            if (
-                all(x in self.ds._handle[key].dims for x in ["time", "zh", "yh", "xh"])
-                is True
-            ):
-                field_tup = ("cm1", key)
-                self.field_list.append(field_tup)
+        for vname in self.dataset.parameters["variable_names"]:
+            self.field_list.append(("cm1", vname))
 
     def _count_grids(self):
         # This needs to set self.num_grids
@@ -118,14 +97,14 @@ class CM1Dataset(Dataset):
         self, filename, dataset_type="cm1", storage_filename=None, units_override=None
     ):
         self.fluid_types += ("cm1",)
-        self._handle = xarray.open_dataset(
-            filename, engine="netcdf4", backend_kwargs={"clobber":False})
+        self._handle = NetCDF4FileHandler(filename)
         # refinement factor between a grid and its subgrid
         self.refine_by = 1
         super(CM1Dataset, self).__init__(
             filename, dataset_type, units_override=units_override, unit_system="mks"
         )
         self.storage_filename = storage_filename
+        self.filename = filename
 
     def _setup_coordinate_handler(self):
         super(CM1Dataset, self)._setup_coordinate_handler()
@@ -137,7 +116,8 @@ class CM1Dataset(Dataset):
         # on-disk units.  These are the currently available quantities which
         # should be set, along with examples of how to set them to standard
         # values.
-        length_unit = self._handle.variables["xh"].attrs["units"]
+        with self._handle.open_ds() as ds:
+            length_unit = ds.variables["xh"].units
         self.length_unit = self.quan(1.0, length_unit)
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
@@ -153,33 +133,48 @@ class CM1Dataset(Dataset):
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME)
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
-        #   self.parameters             <= full of code-specific items of use
-        self.parameters = {}
-        coords = self._handle.coords
-        self.parameters["coords"] = coords
-        self.parameters["lofs_version"] = self._handle.attrs["cm1_lofs_version"]
-        self.parameters["is_uniform"] = self._handle.attrs["uniform_mesh"]
+        self.parameters = {}  # code-specific items
+        with self._handle.open_ds() as ds:
+            dims = [ds.dimensions[i].size for i in ["xh", "yh", "zh"]]
+            coords = {i: ds.variables[i][:] for i in ["xh", "yh", "zh"]}
 
-        # TO DO: Possibly figure out a way to generalize this to be coordiante variable
-        # name agnostic in order to make useful for WRF or climate data. For now, we're
-        # hard coding for CM1 specifically and have named the classes appropriately, but
-        # generalizing is good.
-        xh, yh, zh = [coords[i] for i in ["xh", "yh", "zh"]]
-        self.domain_left_edge = np.array(
-            [xh.min(), yh.min(), zh.min()], dtype="float64"
-        )
-        self.domain_right_edge = np.array(
-            [xh.max(), yh.max(), zh.max()], dtype="float64"
-        )
+            # TO DO: eneralize this to be coordiante variable name agnostic in order to
+            # make useful for WRF or climate data. For now, we're hard coding for CM1
+            # specifically and have named the classes appropriately
+            xh, yh, zh = [ds.variables[i][:] for i in ["xh", "yh", "zh"]]
+            self.domain_left_edge = np.array(
+                [xh.min(), yh.min(), zh.min()], dtype="float64"
+            )
+            self.domain_right_edge = np.array(
+                [xh.max(), yh.max(), zh.max()], dtype="float64"
+            )
+
+            # loop over the variable names in the netCDF file, record only those on the
+            # "zh","yh","xh" grid.
+            varnames = []
+            for key in ds.variables.keys():
+                vardims = ds.variables[key].dimensions
+                if all(x in vardims for x in ["time", "zh", "yh", "xh"]) is True:
+                    varnames.append(key)
+            self.parameters["variable_names"] = varnames
+            self.parameters["lofs_version"] = ds.cm1_lofs_version
+            self.parameters["is_uniform"] = ds.uniform_mesh
+            self.current_time = ds.variables["time"][:][0]
+
+            # record the dimension metadata
+            dim_info = OrderedDict()
+            for dim, meta in ds.dimensions.items():
+                dim_info[dim] = meta.size
+            self.parameters["dimensions"] = dim_info
+
+        self.parameters["coords"] = coords
+
         self.dimensionality = 3
-        dims = [self._handle.dims[i] for i in ["xh", "yh", "zh"]]
         self.domain_dimensions = np.array(dims, dtype="int64")
         self.periodicity = (False, False, False)
-        self.current_time = self._handle.time.values[0]
         self.parameters["time"] = self.current_time
 
-        # We also set up cosmological information.  Set these to zero if
-        # non-cosmological.
+        # Set cosmological information to zero for non-cosmological.
         self.cosmological_simulation = 0.0
         self.current_redshift = 0.0
         self.omega_lambda = 0.0
@@ -191,13 +186,34 @@ class CM1Dataset(Dataset):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
 
-        # first use standard netcdf4 to check for our identifying attribute
-        # following exodus_ii frontend _is_valid
         warn_netcdf(args[0])
         try:
-            with netCDF4.Dataset(args[0], "r", keepweakref=True) as f:
-                is_cm1_lofs = hasattr(f, "cm1_lofs_version")
-                is_cm1 = hasattr(f, "cm1 version")
+            with netCDF4.Dataset(args[0], "r", keepweakref=True) as ds:
+                is_cm1_lofs = hasattr(ds, "cm1_lofs_version")
+                is_cm1 = hasattr(ds, "cm1 version")
+                # ensure coordinates of each variable array exists in the dataset
+                coords = ds.dimensions  # get the dataset wide coordinates
+                failed_vars = []  # list of failed variables
+                for var in ds.variables:  # iterate over the variables
+                    vcoords = ds[var].dimensions  # get the dimensions for the variable
+                    ncoords = len(vcoords)  # number of coordinates in variable
+                    coordspassed = 0  # number of coordinates that pass for a variable
+                    for vc in vcoords:  # iterate over the coordinates for the variable
+                        if vc in coords:
+                            # variable coordinate and global coordinate are same
+                            coordspassed += 1
+                    if coordspassed != ncoords:
+                        failed_vars.append(var)
+
+                if len(failed_vars) > 0:
+                    mylog.error(
+                        (
+                            "Trying to load a cm1_lofs netcdf file but the coordinates "
+                            "of the following fields do not match the coordinates of "
+                            f"the dataset: {failed_vars}"
+                        )
+                    )
+                    return False
 
             if is_cm1_lofs is False:
                 if is_cm1:
@@ -213,45 +229,4 @@ class CM1Dataset(Dataset):
         except Exception:
             return False
 
-        # try to open the dataset -- will raise xarray import error if not installed.
-        try:
-            ds = xarray.open_dataset(
-                args[0], engine="netcdf4", backend_kwargs={"clobber":False}
-            )
-        except OSError:
-            return False
-
-        try:
-            variables = ds.variables.keys()
-        except KeyError:
-            return False
-
-        ## check each variable array in the dataset
-        ## and make sure that the coordinates in the
-        ## variable arrays matches the coordinates
-        ## of the dataset
-        coords = ds.coords  # get the dataset wide coordinates
-        nvars = len(variables)  # number of variables in dataset
-        varspassed = 0  # number of variables passing the tet
-        for var in variables:  # iterate over the variables
-            vcoords = ds[var].coords  # get the coordinates for the variable
-            ncoords = len(vcoords)  # number of coordinates in variable
-            coordspassed = 0  # number of coordinates that pass for a variable
-            for vc in vcoords:  # iterate over the coordinates for the variable
-                if vc in coords:
-                    coordspassed += (
-                        1  # variable coordinate and global coordinate are same
-                    )
-                else:
-                    return False
-            if coordspassed == ncoords:
-                varspassed += (
-                    1  # if all coordinates in a variable pass, the variable passes
-                )
-            else:
-                return False
-
-        if varspassed == nvars:
-            return True  # if all vars pass return True
-        else:
-            return False
+        return True

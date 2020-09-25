@@ -49,13 +49,13 @@ def test_dims_and_meta():
     ds = data_dir_load(cm1sim)
 
     known_dims = ["time", "zf", "zh", "yf", "yh", "xf", "xh"]
-    dims = ds.parameters["coords"].dims.keys()
+    dims = ds.parameters["dimensions"]
 
     ## check the file for 2 grids and a time dimension -
     ## (time, xf, xh, yf, yh, zf, zh). The dimesions ending in
     ## f are the staggered velocity grid components and the
     ## dimensions ending in h are the scalar grid components
-    assert_equal(len(dims), 7)
+    assert_equal(len(dims), len(known_dims))
     for kdim in known_dims:
         assert kdim in dims
 
