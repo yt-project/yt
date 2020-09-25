@@ -339,14 +339,11 @@ class ExodusIIDataset(Dataset):
                 var = ds.variables["connect%d" % (i + 1)][:].astype("i8")
                 try:
                     elem_type = var.elem_type.lower()
-                    if elem_type == "nsided":
-                        arbitrary_polyhedron = True
-                    elif elem_type == "nfaced":
+                    if elem_type == "nfaced":
                         raise NotImplementedError(
                             "3D arbitrary polyhedra are not implemented yet"
                         )
-                    else:
-                        arbitrary_polyhedron = False
+                    arbitrary_polyhedron = elem_type == "nsided"
                 except AttributeError:
                     arbitrary_polyhedron = False
 
