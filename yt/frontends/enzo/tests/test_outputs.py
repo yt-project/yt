@@ -11,7 +11,8 @@ from yt.testing import (
     requires_file,
     units_override_check,
 )
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import get_parameterization
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     grid_hierarchy,
@@ -47,8 +48,8 @@ a_list = [0, 1, 2]
 d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
 w_list = [None, "density"]
 f_other = ["temperature", "density", "velocity_magnitude", "velocity_divergence"]
-f_toro1d = utils.get_parameterization(toro1d)
-f_kh2d = utils.get_parameterization(kh2d)
+f_toro1d = get_parameterization(toro1d)
+f_kh2d = get_parameterization(kh2d)
 f_list = [
     f_toro1d,
     f_kh2d,
@@ -193,8 +194,8 @@ class TestEnzo:
     @requires_file(two_sphere_test)
     @requires_file(active_particle_cosmology)
     def test_active_particle_datasets(self):
-        ds_two_sphere_test = utils.data_dir_load(two_sphere_test)
-        ds_active_particle_cosmology = utils.data_dir_load(active_particle_cosmology)
+        ds_two_sphere_test = data_dir_load(two_sphere_test)
+        ds_active_particle_cosmology = data_dir_load(active_particle_cosmology)
         # Set up lists for comparison
         pfields = [
             "GridID",

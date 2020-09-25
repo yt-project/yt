@@ -5,7 +5,8 @@ import yt  # NOQA
 from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid
 from yt.testing import requires_file
 from yt.units import YTArray
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
+from yt.utilities.answer_testing.testing_utilities import requires_ds
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     grid_hierarchy,
@@ -47,7 +48,7 @@ def _get_fields_to_check(fname):
     # is not being run, and therefore the data isn't present, this try
     # except block prevents pytest from failing needlessly
     try:
-        ds = utils.data_dir_load(fname)
+        ds = data_dir_load(fname)
     except FileNotFoundError:
         return [None, [None,]]
     fields = [("gas", "density"), ("gas", "velocity_magnitude")]
@@ -80,12 +81,12 @@ class TestAMRVAC:
 
     @requires_file(khi_cartesian_2D)
     def test_AMRVACDataset(self):
-        assert isinstance(utils.data_dir_load(khi_cartesian_2D), AMRVACDataset)
+        assert isinstance(data_dir_load(khi_cartesian_2D), AMRVACDataset)
 
-    @utils.requires_ds(blastwave_cartesian_3D)
+    @requires_ds(blastwave_cartesian_3D)
     def test_domain_size(self):
         # "Check for correct box size, see bw_3d.par"
-        ds = utils.data_dir_load(blastwave_cartesian_3D)
+        ds = data_dir_load(blastwave_cartesian_3D)
         for lb in ds.domain_left_edge:
             assert int(lb) == 0
         for rb in ds.domain_right_edge:
@@ -96,7 +97,7 @@ class TestAMRVAC:
     @requires_file(blastwave_cartesian_3D)
     def test_grid_attributes(self):
         # "Check various grid attributes"
-        ds = utils.data_dir_load(blastwave_cartesian_3D)
+        ds = data_dir_load(blastwave_cartesian_3D)
         grids = ds.index.grids
         assert ds.index.max_level == 2
         for g in grids:

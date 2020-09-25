@@ -1,7 +1,7 @@
 import pytest
 
 from yt.fields.xray_emission_fields import add_xray_emissivity_field
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
 
 sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
@@ -14,7 +14,7 @@ axes = [0, 1, 2]
 def pytest_generate_tests(metafunc):
     if metafunc.function.__name__ == "test_sloshing_apec":
         try:
-            ds = utils.data_dir_load(sloshing)
+            ds = data_dir_load(sloshing)
         except FileNotFoundError:
             pytest.skip("Data not found.")
         fields = add_xray_emissivity_field(
@@ -22,7 +22,7 @@ def pytest_generate_tests(metafunc):
         )
     if metafunc.function.__name__ == "test_d9p_cloudy":
         try:
-            ds = utils.data_dir_load(d9p)
+            ds = data_dir_load(d9p)
         except FileNotFoundError:
             pytest.skip("Data not found.")
         fields = add_xray_emissivity_field(

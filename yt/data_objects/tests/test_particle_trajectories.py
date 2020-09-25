@@ -6,7 +6,7 @@ from yt.config import ytcfg
 from yt.data_objects.particle_filters import particle_filter
 from yt.data_objects.time_series import DatasetSeries
 from yt.testing import fake_particle_ds
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import requires_ds
 from yt.utilities.answer_testing.answer_tests import generic_array
 from yt.utilities.exceptions import YTIllDefinedParticleData
 
@@ -23,7 +23,7 @@ class TestParticleTrajectories:
     saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
-    @utils.requires_ds("Orbit/orbit_hdf5_chk_0000")
+    @requires_ds("Orbit/orbit_hdf5_chk_0000")
     def test_orbit_traj(self, field, orbit_traj):
         ds, traj = orbit_traj
 
@@ -34,7 +34,7 @@ class TestParticleTrajectories:
         self.hashes.update({"generic_array": ga})
 
     @pytest.mark.usefixtures("hashing")
-    @utils.requires_ds("enzo_tiny_cosmology/DD0000/DD0000")
+    @requires_ds("enzo_tiny_cosmology/DD0000/DD0000")
     def test_etc_traj(self, field, etc_traj):
         ds, traj = etc_traj
 

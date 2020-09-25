@@ -3,7 +3,7 @@ import pytest
 
 from yt.frontends.enzo_p.api import EnzoPDataset
 from yt.testing import assert_array_equal, assert_equal
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import create_obj
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     pixelized_projection_values,
@@ -78,7 +78,7 @@ class TestEnzoP:
 
     @pytest.mark.parametrize("ds, d", sum_pairs, indirect=True)
     def test_sum(self, ds, d):
-        dobj = utils.create_obj(ds, d)
+        dobj = create_obj(ds, d)
         s1 = dobj["ones"].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)

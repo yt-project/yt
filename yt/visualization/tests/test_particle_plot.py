@@ -17,7 +17,8 @@ from yt.testing import (
     requires_file,
 )
 from yt.units.yt_array import YTArray
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import requires_ds
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.answer_testing.answer_tests import (
     phase_plot_attribute,
     plot_window_attribute,
@@ -59,7 +60,7 @@ class TestParticlePlot:
     saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
-    @utils.requires_ds(g30)
+    @requires_ds(g30)
     def test_particle_projection_answers(self, axis, attr_name, attr_args):
         """
         This iterates over the all the plot modification functions in
@@ -67,14 +68,14 @@ class TestParticlePlot:
         ParticleProjectionPlot to the gold standard.
         """
         plot_field = "particle_mass"
-        ds = utils.data_dir_load(g30)
+        ds = data_dir_load(g30)
         pw = plot_window_attribute(
             ds, plot_field, axis, attr_name, attr_args, "ParticleProjectionPlot"
         )
         self.hashes.update({"plot_window_attribute": pw})
 
     @pytest.mark.usefixtures("hashing")
-    @utils.requires_ds(g30)
+    @requires_ds(g30)
     def test_particle_projection_filter(self, axis, attr_args):
         """
         This tests particle projection plots for filter fields.
@@ -91,7 +92,7 @@ class TestParticlePlot:
             requires=["creation_time"],
         )
         plot_field = ("formed_star", "particle_mass")
-        ds = utils.data_dir_load(g30)
+        ds = data_dir_load(g30)
         ds.add_particle_filter("formed_star")
         pw = plot_window_attribute(
             ds, plot_field, axis, "set_log", attr_args, "ParticleProjectionPlot"
@@ -99,14 +100,14 @@ class TestParticlePlot:
         self.hashes.update({"plot_window_attribute": pw})
 
     @pytest.mark.usefixtures("hashing")
-    @utils.requires_ds(g30)
+    @requires_ds(g30)
     def test_particle_phase_answers(self, attr_name, attr_args):
         """
         This iterates over the all the plot modification functions in
         PHASE_ATTR_ARGS. Each time, it compares the images produced by
         ParticlePhasePlot to the gold standard.
         """
-        ds = utils.data_dir_load(g30)
+        ds = data_dir_load(g30)
         x_field = "particle_velocity_x"
         y_field = "particle_velocity_y"
         z_field = "particle_mass"

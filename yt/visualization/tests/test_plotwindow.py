@@ -23,7 +23,8 @@ from yt.testing import (
 )
 from yt.units import kboltz
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import requires_ds
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.answer_testing.answer_tests import plot_window_attribute
 from yt.utilities.exceptions import YTInvalidFieldType
 from yt.visualization.api import (
@@ -107,11 +108,11 @@ class TestPlotWindow:
     saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
-    @utils.requires_ds(M7)
+    @requires_ds(M7)
     def test_attributes(self, axis, attr_name, attr_args, callback):
         """Test plot member functions that aren't callbacks"""
         plot_field = "density"
-        ds = utils.data_dir_load(M7)
+        ds = data_dir_load(M7)
         pw = plot_window_attribute(ds, plot_field, axis, attr_name, attr_args)
         self.hashes.update({"plot_window_attribute": pw})
         pw = plot_window_attribute(
@@ -126,10 +127,10 @@ class TestPlotWindow:
         self.hashes.update({"plot_window_attribute_with_callback": pw})
 
     @pytest.mark.usefixtures("hashing")
-    @utils.requires_ds(WT)
+    @requires_ds(WT)
     def test_attributes_wt(self, attr_name, attr_args, callback):
         plot_field = "density"
-        ds = utils.data_dir_load(WT)
+        ds = data_dir_load(WT)
         ax = "z"
         pw = plot_window_attribute(ds, plot_field, ax, attr_name, attr_args)
         self.hashes.update({"plot_window_attribute": pw})
@@ -535,13 +536,13 @@ def test_plot_2d():
     assert_array_equal(slc.frb["temperature"], slc2.frb["temperature"])
     assert_array_equal(slc.frb["temperature"], slc3.frb["temperature"])
     # Cylindrical
-    ds = utils.data_dir_load(WD)
+    ds = data_dir_load(WD)
     slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
     slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
     assert_array_equal(slc.frb["density"], slc2.frb["density"])
 
     # Spherical
-    ds = utils.data_dir_load(blast_wave)
+    ds = data_dir_load(blast_wave)
     slc = SlicePlot(ds, "phi", ["density"], width=(1, "unitary"))
     slc2 = plot_2d(ds, "density", width=(1, "unitary"))
     assert_array_equal(slc.frb["density"], slc2.frb["density"])

@@ -1,7 +1,8 @@
 import pytest
 
 import yt
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import requires_ds
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.answer_testing.answer_tests import generic_image
 
 
@@ -28,8 +29,8 @@ class TestRawFieldSlices:
     saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
-    @utils.requires_ds(raw_fields)
+    @requires_ds(raw_fields)
     def test_raw_field_slices(self, field):
-        ds = utils.data_dir_load(raw_fields)
+        ds = data_dir_load(raw_fields)
         gi = compare(ds, field)
         self.hashes.update({"generic_image": gi})

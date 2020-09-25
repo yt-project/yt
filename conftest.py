@@ -8,7 +8,13 @@ import yaml
 
 import yt
 from yt.config import ytcfg
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import _streamline_for_io
+from yt.utilities.answer_testing.testing_utilities import _hash_results
+from yt.utilities.answer_testing.testing_utilities import _save_result
+from yt.utilities.answer_testing.testing_utilities import _compare_result
+from yt.utilities.answer_testing.testing_utilities import _save_raw_arrays
+from yt.utilities.answer_testing.testing_utilities import _compare_raw_arrays
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.logger import ytLogger
 
 
@@ -129,7 +135,7 @@ def _param_list(request):
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
     # in the answer yaml file)
-    test_params = utils._streamline_for_io(test_params)
+    test_params = _streamline_for_io(test_params)
     return test_params
 
 
@@ -218,27 +224,27 @@ def hashing(request):
     params = _param_list(request)
     # Hash the test results. Don't save to request.cls.hashes so we still have
     # raw data, in case we want to work with that
-    hashes = utils._hash_results(request.cls.hashes)
+    hashes = _hash_results(request.cls.hashes)
     # Add the other test parameters
     hashes.update(params)
     # Add the function name as the "master" key to the hashes dict
     hashes = {request.node.name: hashes}
     # Save hashes
     if not no_hash and store_hash:
-        utils._save_result(hashes, request.cls.answer_file)
+        _save_result(hashes, request.cls.answer_file)
     # Compare hashes
     elif not no_hash and not store_hash:
-        utils._compare_result(hashes, request.cls.saved_hashes)
+        _compare_result(hashes, request.cls.saved_hashes)
     # Save raw data
     if raw and raw_store:
-        utils._save_raw_arrays(
+        _save_raw_arrays(
             request.cls.hashes, request.cls.raw_answer_file, request.node.name
         )
     # Compare raw data. This is done one test at a time because the
     # arrays can get quite large and storing everything in memory would
     # be bad
     if raw and not raw_store:
-        utils._compare_raw_arrays(
+        _compare_raw_arrays(
             request.cls.hashes, request.cls.raw_answer_file, request.node.name
         )
 
@@ -272,9 +278,9 @@ def ds(request):
             cls = None if "cls" not in opts.keys() else opts["cls"]
             args = None if "args" not in opts.keys() else opts["args"]
             kwargs = None if "kwargs" not in opts.keys() else opts["kwargs"]
-            dataset = utils.data_dir_load(ds_fn, cls=cls, args=args, kwargs=kwargs)
+            dataset = data_dir_load(ds_fn, cls=cls, args=args, kwargs=kwargs)
         else:
-            dataset = utils.data_dir_load(request.param)
+            dataset = data_dir_load(request.param)
         return dataset
     except FileNotFoundError:
         return pytest.skip(f"Data file: `{request.param}` not found.")

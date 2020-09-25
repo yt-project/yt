@@ -15,7 +15,7 @@ from yt.frontends.ytdata.api import (
 from yt.loaders import load
 from yt.testing import assert_array_equal
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.answer_testing import utils
+from yt.utilities.answer_testing.testing_utilities import compare_unit_attributes
 from yt.utilities.answer_testing.answer_tests import yt_data_field
 from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
@@ -36,7 +36,7 @@ class TestYTData:
         fn = sphere.save_as_dataset(fields=["density", "particle_mass"])
         full_fn = os.path.join(os.getcwd(), fn)
         sphere_ds = load(full_fn)
-        utils.compare_unit_attributes(ds, sphere_ds)
+        compare_unit_attributes(ds, sphere_ds)
         assert isinstance(sphere_ds, YTDataContainerDataset)
         ytft = yt_data_field(sphere_ds, field, True)
         self.hashes.update({"yt_data_field": ytft})
@@ -56,7 +56,7 @@ class TestYTData:
         )
         full_fn = os.path.join(os.getcwd(), fn)
         cg_ds = load(full_fn)
-        utils.compare_unit_attributes(ds, cg_ds)
+        compare_unit_attributes(ds, cg_ds)
         assert isinstance(cg_ds, YTGridDataset)
         assert (
             cg["all", "particle_position"].shape
@@ -74,7 +74,7 @@ class TestYTData:
         fn = ag.save_as_dataset(fields=["density", "particle_mass"])
         full_fn = os.path.join(os.getcwd(), fn)
         ag_ds = load(full_fn)
-        utils.compare_unit_attributes(ds, ag_ds)
+        compare_unit_attributes(ds, ag_ds)
         assert isinstance(ag_ds, YTGridDataset)
         ytft = yt_data_field(ag_ds, field, True)
         self.hashes.update({"yt_data_field": ytft})
@@ -87,7 +87,7 @@ class TestYTData:
         fn = frb.save_as_dataset(fields=["density"])
         frb_ds = load(fn)
         assert_array_equal(frb["density"], frb_ds.data["density"])
-        utils.compare_unit_attributes(ds, frb_ds)
+        compare_unit_attributes(ds, frb_ds)
         assert isinstance(frb_ds, YTGridDataset)
         ytft = yt_data_field(frb_ds, field, False)
         self.hashes.update({"yt_data_field": ytft})
@@ -99,7 +99,7 @@ class TestYTData:
         fn = proj.save_as_dataset()
         full_fn = os.path.join(os.getcwd(), fn)
         proj_ds = load(full_fn)
-        utils.compare_unit_attributes(ds, proj_ds)
+        compare_unit_attributes(ds, proj_ds)
         assert isinstance(proj_ds, YTSpatialPlotDataset)
         ytft = yt_data_field(proj_ds, field, False)
         self.hashes.update({"yt_data_field": ytft})
@@ -114,7 +114,7 @@ class TestYTData:
         fn = profile_1d.save_as_dataset()
         full_fn = os.path.join(os.getcwd(), fn)
         prof_1d_ds = load(full_fn)
-        utils.compare_unit_attributes(ds, prof_1d_ds)
+        compare_unit_attributes(ds, prof_1d_ds)
         assert isinstance(prof_1d_ds, YTProfileDataset)
         for field in profile_1d.standard_deviation:
             assert_array_equal(
@@ -142,7 +142,7 @@ class TestYTData:
         fn = profile_2d.save_as_dataset()
         full_fn = os.path.join(os.getcwd(), fn)
         prof_2d_ds = load(full_fn)
-        utils.compare_unit_attributes(ds, prof_2d_ds)
+        compare_unit_attributes(ds, prof_2d_ds)
         assert isinstance(prof_2d_ds, YTProfileDataset)
         p2 = PhasePlot(
             prof_2d_ds.data, "density", "temperature", "cell_mass", weight_field=None
@@ -163,7 +163,7 @@ class TestYTData:
         save_as_dataset(ds, fn, my_data)
         full_fn = os.path.join(os.getcwd(), fn)
         array_ds = load(full_fn)
-        utils.compare_unit_attributes(ds, array_ds)
+        compare_unit_attributes(ds, array_ds)
         assert isinstance(array_ds, YTNonspatialDataset)
         ytft = yt_data_field(array_ds, field, False)
         self.hashes.update({"yt_data_field": ytft})
