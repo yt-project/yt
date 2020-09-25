@@ -103,7 +103,7 @@ def test_sphere_center():
     assert_array_equal(sp1.center, sp2.center)
 
 
-@requires_module("MiniballCpp")
+@requires_module("miniball")
 def test_minimal_sphere():
     ds = fake_random_ds(16, nprocs=8, particles=100)
 
@@ -122,7 +122,7 @@ def test_minimal_sphere():
     assert N2 < N0
 
 
-@requires_module("MiniballCpp")
+@requires_module("miniball")
 def test_minimal_sphere_bad_inputs():
     ds = fake_random_ds(16, nprocs=8, particles=100)
     pos = ds.r["particle_position"]
