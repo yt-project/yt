@@ -9,7 +9,9 @@ def test_fast_interpolate():
     N = 10000
     M = 1000
     random_values = np.random.random(shape)
-    random_index = np.random.randint((0, 0, 0), shape, size=(M, 3), dtype="u8")
+    random_index = np.empty((M, 3), dtype="u8")
+    for i in range(3):
+        random_index[:, i] = np.random.randint(0, shape[i], size=M, dtype="u8")
     random_offset = np.random.random((M, 3))
     # import time
     # t1 = time.time()
