@@ -353,12 +353,12 @@ class ExodusIIDataset(Dataset):
                 conn = var[:]
                 if arbitrary_polyhedron:
                     nodes_per_element = ds.variables[f"ebepecnt{i + 1}"]
-                    if np.any(nodes_per_element != nodes_per_element[0]):
+                    npe = nodes_per_element[0]
+                    if np.any(nodes_per_element != npe):
                         raise NotImplementedError("only equal-size polyhedra supported")
-                    conn.shape = (
-                        conn.shape[0] // nodes_per_element[0],
-                        nodes_per_element[0],
-                    )
+                    q, r = np.divmod(len(conn), npe)
+                    assert r == 0
+                    conn.shape = (q, npe)
                 connectivity.append(conn)
             return connectivity
 
