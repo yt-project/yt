@@ -300,7 +300,7 @@ def test_WarpXDataset():
     assert isinstance(data_dir_load(plasma), WarpXDataset)
 
 
-@requires_ds(laser)
+@requires_file(laser)
 def test_WarpXDataset_2():
     assert isinstance(data_dir_load(laser), WarpXDataset)
 
