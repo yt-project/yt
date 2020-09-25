@@ -51,6 +51,9 @@ answer_tests:
     - yt/frontends/enzo_p/tests/test_outputs.py:test_hello_world
     - yt/frontends/enzo_p/tests/test_outputs.py:test_particle_fields
 
+  local_exodus_ii_001:
+    - yt/frontends/exodus_ii/tests/test_outputs.py:test_displacement_fields
+
   local_fits_003:
     - yt/frontends/fits/tests/test_outputs.py:test_grs
     - yt/frontends/fits/tests/test_outputs.py:test_velocity_field
