@@ -1,4 +1,4 @@
-astropy~=3.2.3
+astropy~=4.0.1
 codecov~=2.0.15
 coverage~=4.5.4
 fastcache~=1.0.2
