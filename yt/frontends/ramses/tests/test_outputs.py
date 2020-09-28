@@ -55,7 +55,11 @@ def test_output_00080():
 
 @requires_file(output_00080)
 def test_RAMSESDataset():
-    assert isinstance(data_dir_load(output_00080), RAMSESDataset)
+    # Test that we can load a RAMSES dataset by giving it the folder name,
+    # the info file name or an amr file name
+    base_dir, info_file_fname = os.path.split(output_00080)
+    for fname in (output_00080, base_dir, os.path.join(base_dir, "amr_00080.out00001")):
+        assert isinstance(data_dir_load(fname), RAMSESDataset)
 
 
 @requires_file(output_00080)

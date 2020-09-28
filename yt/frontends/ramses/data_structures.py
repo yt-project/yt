@@ -2,6 +2,7 @@ import os
 import weakref
 from collections import defaultdict
 from glob import glob
+from pathlib import Path
 
 import numpy as np
 
@@ -18,7 +19,13 @@ from yt.utilities.lib.cosmology_time import friedman
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.utilities.physical_constants import kb, mp
 
-from .definitions import field_aliases, particle_families, ramses_header
+from .definitions import (
+    OUTPUT_DIR_RE,
+    STANDARD_FILE_RE,
+    field_aliases,
+    particle_families,
+    ramses_header,
+)
 from .field_handlers import get_field_handlers
 from .fields import _X, RAMSESFieldInfo
 from .hilbert import get_cpu_list
@@ -599,8 +606,11 @@ class RAMSESDataset(Dataset):
             max_level, max_level_convention
         )
 
+        # Sanitize the filename
+        output_folder, info_fname = self._sanitize_filename(filename)
+
         # Infer if the output is organized in groups
-        root_folder, group_folder = os.path.split(os.path.split(filename)[0])
+        root_folder, group_folder = os.path.split(output_folder)
 
         if group_folder == "group_00001":
             # Count the number of groups
@@ -615,12 +625,12 @@ class RAMSESDataset(Dataset):
             )
             self.root_folder = root_folder
         else:
-            self.root_folder = os.path.split(filename)[0]
+            self.root_folder = output_folder
             self.num_groups = 0
 
         Dataset.__init__(
             self,
-            filename,
+            info_fname,
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
@@ -873,9 +883,59 @@ class RAMSESDataset(Dataset):
 
             self.parameters["namelist"] = nml
 
+    @staticmethod
+    def _sanitize_filename(path):
+        # Do not forget to resolve so that it works with symlinks
+        filename = Path(path).resolve()
+
+        def check_standard_files(output_dir, iout):
+            # Check that the "amr_" and "info_" files exist
+            ok = (output_dir / f"amr_{iout}.out00001").is_file()
+            ok &= (output_dir / f"info_{iout}.txt").is_file()
+            return ok
+
+        def test_with_folder_name(output_dir):
+            iout_match = OUTPUT_DIR_RE.match(output_dir.name)
+            ok = output_dir.is_dir() and iout_match is not None
+            if ok:
+                iout = iout_match.group(2)
+                ok &= check_standard_files(output_dir, iout)
+                info_fname = output_dir / f"info_{iout}.txt"
+            else:
+                output_dir, info_fname = None, None
+
+            return ok, output_dir, info_fname
+
+        def test_with_standard_file(filename):
+            iout_match = OUTPUT_DIR_RE.match(filename.parent.name)
+            ok = (
+                filename.is_file()
+                and STANDARD_FILE_RE.match(filename.name) is not None
+                and iout_match is not None
+            )
+
+            if ok:
+                iout = iout_match.group(2)
+                ok &= check_standard_files(filename.parent, iout)
+                output_dir = filename.parent
+                info_fname = output_dir / f"info_{iout}.txt"
+            else:
+                output_dir, info_fname = None, None
+
+            return ok, output_dir, info_fname
+
+        for check_fun in (test_with_standard_file, test_with_folder_name):
+            ok, output_dir, info_fname = check_fun(filename)
+            if ok:
+                return output_dir, info_fname
+        else:
+            return None, None
+
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not os.path.basename(filename).startswith("info_"):
+        output_dir, info_fname = cls._sanitize_filename(filename)
+
+        if output_dir is None or info_fname is None:
             return False
-        fn = filename.replace("info_", "amr_").replace(".txt", ".out00001")
-        return os.path.exists(fn)
+        else:
+            return True
