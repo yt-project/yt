@@ -11,7 +11,8 @@ from yt.utilities.answer_testing.answer_tests import (
     pixelized_projection_values,
     sph_validation,
 )
-from yt.utilities.answer_testing.utils import data_dir_load, requires_ds
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
+from yt.utilities.answer_testing.testing_utilities import requires_ds
 
 # Test data
 bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
@@ -26,18 +27,18 @@ val_params = [
     ([tng59_h5, tng_kwargs], "halo_59", 10107142),
 ]
 
-a_list = [0, 1, 2]
+axes = [0, 1, 2]
 
-d_bullet = [None, ("sphere", ("c", (0.1, "unitary")))]
-d_tng = [None, ("sphere", ("c", (0.5, "unitary")))]
+objs_bullet = [None, ("sphere", ("c", (0.1, "unitary")))]
+objs_tng = [None, ("sphere", ("c", (0.5, "unitary")))]
 
-f_bullet = [
+fields_bullet = [
     ("gas", "density"),
     ("gas", "temperature"),
     ("gas", "temperature"),
     ("gas", "velocity_magnitude"),
 ]
-f_tng = [
+fields_tng = [
     ("gas", "density"),
     ("gas", "temperature"),
     ("gas", "temperature"),
@@ -50,13 +51,13 @@ f_tng = [
     ("gas", "magnetic_field_strength"),
 ]
 
-w_bullet = [
+weights_bullet = [
     None,
     None,
     ("gas", "density"),
     None,
 ]
-w_tng = [
+weights_tng = [
     None,
     None,
     ("gas", "density"),
@@ -70,16 +71,25 @@ w_tng = [
 ]
 
 pair_list = [
-    [bullet_h5, f_bullet, w_bullet, d_bullet],
-    [tng59_h5, f_tng, w_tng, d_tng],
+    [bullet_h5, fields_bullet, weights_bullet, objs_bullet],
+    [tng59_h5, fields_tng, weights_tng, objs_tng],
 ]
 
 
-ppv_pairs = [
-    (i[0], f[0], f[1], d) for i in pair_list for f in zip(i[1], i[2]) for d in i[3]
-]
 
-fv_pairs = [(i[0], f, d) for i in pair_list for f in i[1] for d in i[3]]
+ppv_pairs = []
+fv_pairs = []
+
+for pair in pair_list:
+    for field, weight in zip(pair[1], pair[2]):
+        for obj in pair[3]:
+            ppv_pairs.append((pair[0], field, weight, obj))
+
+
+for pair in pair_list:
+    for field in pair[1]:
+        for obj in pair[3]:
+            fv_pairs.append((pair[0], field, obj))
 
 
 @pytest.mark.answer_test
@@ -89,8 +99,8 @@ class TestArepo:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, w, d", ppv_pairs, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    def test_arepo_ppv(self, a, d, w, f, ds):
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    def test_arepo_pixelized_projection_values(self, a, d, w, f, ds):
         particle_type = f[0] in ds.particle_types
         if not particle_type:
             ppv = pixelized_projection_values(ds, a, f, w, d)
@@ -101,7 +111,7 @@ class TestArepo:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)
-    def test_arepo_fv(self, d, f, ds):
+    def test_arepo_field_values(self, d, f, ds):
         particle_type = f[0] in ds.particle_types
         fv = field_values(ds, f, d, particle_type=particle_type)
         self.hashes.update({"field_values": fv})

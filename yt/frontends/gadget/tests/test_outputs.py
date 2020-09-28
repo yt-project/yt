@@ -7,7 +7,8 @@ from yt.frontends.gadget.api import GadgetDataset, GadgetHDF5Dataset
 from yt.frontends.gadget.testing import fake_gadget_binary
 from yt.testing import ParticleSelectionComparison, requires_file
 from yt.utilities.answer_testing.answer_tests import sph_answer
-from yt.utilities.answer_testing.utils import data_dir_load, requires_ds
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
+from yt.utilities.answer_testing.testing_utilities import requires_ds
 
 # Test data
 isothermal_h5 = "IsothermalCollapse/snap_505.hdf5"

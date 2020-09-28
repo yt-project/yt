@@ -22,14 +22,14 @@ jet_units = {
     "mass_unit": (1.4690033e36, "g"),
 }
 
-a_list = [0, 1, 2]
-d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
-w_list = [None, "density"]
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("max", (0.1, "unitary")))]
+weights = [None, "density"]
 jet_fields = ["temperature", "density", "velocity_magnitude"]
 psi_fields = ["Dens", "Real", "Imag"]
 plummer_fields = [("gamer", "ParDens"), ("deposit", "io_cic")]
 mhd_fields = [("gamer", "CCMagX"), ("gamer", "CCMagY"), ("gas", "magnetic_energy")]
-f_list = [
+fields = [
     jet_fields,
     psi_fields,
     plummer_fields,
@@ -46,7 +46,7 @@ ds_list = [
 def get_pairs():
     pairs = []
     for i, ds in enumerate(ds_list):
-        for f in f_list[i]:
+        for f in fields[i]:
             pairs.append((ds, f))
     return pairs
 
@@ -59,7 +59,7 @@ class TestGamer:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
-    def test_gh_pr(self, ds, big_data):
+    def test_grid_hierarchy_parentage_relationships(self, ds, big_data):
         if str(ds) == "rps.0062" and not big_data:
             pytest.skip("--answer-big-data not used.")
         self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
@@ -68,7 +68,7 @@ class TestGamer:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    def test_gv(self, f, ds, big_data):
+    def test_grid_values(self, f, ds, big_data):
         if str(ds) == "rps.0062" and not big_data:
             pytest.skip("--answer-big-data not used.")
         self.hashes.update({"grid_values": grid_values(ds, f)})
@@ -76,8 +76,8 @@ class TestGamer:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    def test_fv(self, d, f, ds, big_data):
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    def test_field_values(self, d, f, ds, big_data):
         if str(ds) == "rps.0062" and not big_data:
             pytest.skip("--answer-big-data not used.")
         self.hashes.update({"field_values": field_values(ds, f, d)})
@@ -85,10 +85,10 @@ class TestGamer:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    @pytest.mark.parametrize("w", w_list, indirect=True)
-    def test_pv(self, a, d, w, f, ds, big_data):
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    @pytest.mark.parametrize("w", weights, indirect=True)
+    def test_projection_values(self, a, d, w, f, ds, big_data):
         if str(ds) == "rps.0062" and not big_data:
             pytest.skip("--answer-big-data not used.")
         self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})

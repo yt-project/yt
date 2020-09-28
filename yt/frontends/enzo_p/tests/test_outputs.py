@@ -31,29 +31,39 @@ ds_list = [
     hello_world,
     ep_cosmo,
 ]
-f_list = [
+fields = [
     _fields,
     _pfields,
 ]
-d_list = [
+objs = [
     [None, ("sphere", ("max", (0.25, "unitary")))],
     [None, ("sphere", ("max", (0.1, "unitary")))],
 ]
-a_list = [0, 1, 2]
-w_list = [None, "density"]
+axes = [0, 1, 2]
+weights = [None, "density"]
 
 
-fv_pairs = [
-    (ds, f, d) for i, ds in enumerate(ds_list) for f in f_list[i] for d in d_list[i]
-]
-ppv_pairs = [
-    (ds_list[0], f, d, w, a)
-    for f in f_list[0]
-    for d in d_list[0]
-    for w in w_list
-    for a in a_list
-]
-sum_pairs = [(ds, d) for i, ds in enumerate(ds_list) for d in d_list[i]]
+fv_pairs = []
+ppv_pairs = []
+sum_pairs = []
+
+
+for i, ds in enumerate(ds_list):
+    for field in fields[i]:
+        for obj in objs[i]:
+            fv_pairs.append((ds, field, obj))
+
+
+for field in fields[0]:
+    for obj in objs[0]:
+        for weight in weights[0]:
+            for a in axes:
+                ppv_pairs.append((ds_list[0], field, obj, weight, a))
+
+
+for i, ds in enumerate(ds_list):
+    for obj in objs[i]:
+        sum_pairs.append((ds, obj))
 
 
 @pytest.mark.answer_test
@@ -63,7 +73,7 @@ class TestEnzoP:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)
-    def test_fv(self, ds, f, d):
+    def test_field_values(self, ds, f, d):
         particle_type = f[0] in ds.particle_types
         if str(ds) == "ENZOP_DD0140":
             particle_type = True
@@ -72,7 +82,7 @@ class TestEnzoP:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d, w, a", ppv_pairs, indirect=True)
-    def test_ppv(self, ds, f, d, w, a):
+    def test_pixelized_projection_values(self, ds, f, d, w, a):
         ppv = pixelized_projection_values(ds, a, f, w, d)
         self.hashes.update({"pixelized_projection_values": ppv})
 

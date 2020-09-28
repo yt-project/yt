@@ -16,7 +16,7 @@ from yt.utilities.answer_testing.answer_tests import (
     parentage_relationships,
     projection_values,
 )
-from yt.utilities.answer_testing.utils import requires_ds
+from yt.utilities.answer_testing.testing_utilities import requires_ds
 
 # Test data
 radadvect = "RadAdvect/plt00000"
@@ -42,7 +42,7 @@ ds_list = [
     plasma,
     beam,
 ]
-a_list = [0, 1, 2]
+axes = [0, 1, 2]
 
 orion_fields = ["temperature", "density", "velocity_magnitude"]
 nyx_fields = ["Ne", "Temp", "particle_mass_density"]
@@ -50,36 +50,53 @@ castro_fields = ["Temp", "density", "particle_count"]
 warpx_fields = ["Ex", "By", "jz"]
 raw_fields = [("raw", "Bx"), ("raw", "Ey"), ("raw", "jz")]
 
-w_radadvect = [None, "density"]
-w_rt = [None, "density"]
-w_star = [None, "density"]
-w_lya = [None, "Ne"]
-w_RTP = [None, "density"]
-w_warp = [None, "Ex"]
+weights_radadvect = [None, "density"]
+weights_rt = [None, "density"]
+weights_star = [None, "density"]
+weights_lya = [None, "Ne"]
+weights_RTP = [None, "density"]
+weights_warp = [None, "Ex"]
 
-d_radadvect = [None, ("sphere", ("max", (0.1, "unitary")))]
-d_rt = [None, ("sphere", ("max", (0.1, "unitary")))]
-d_star = [None, ("sphere", ("max", (0.1, "unitary")))]
-d_lya = [None, ("sphere", ("c", (0.1, "unitary")))]
-d_RTP = [None, ("sphere", ("max", (0.1, "unitary")))]
-d_warp = [None, ("sphere", ("c", (0.1, "unitary")))]
+objs_radadvect = [None, ("sphere", ("max", (0.1, "unitary")))]
+objs_rt = [None, ("sphere", ("max", (0.1, "unitary")))]
+objs_star = [None, ("sphere", ("max", (0.1, "unitary")))]
+objs_lya = [None, ("sphere", ("c", (0.1, "unitary")))]
+objs_RTP = [None, ("sphere", ("max", (0.1, "unitary")))]
+objs_warp = [None, ("sphere", ("c", (0.1, "unitary")))]
 
-pair_list = [
-    [radadvect, orion_fields, w_radadvect, d_radadvect],
-    [rt, orion_fields, w_rt, d_rt],
-    [star, orion_fields, w_star, d_star],
-    [LyA, nyx_fields, w_lya, d_lya],
-    [RT_particles, castro_fields, w_RTP, d_RTP],
-    [langmuir, warpx_fields, w_warp, d_warp],
-    [plasma, warpx_fields, w_warp, d_warp],
-    [beam, warpx_fields, w_warp, d_warp],
+pairs = [
+    [radadvect, orion_fields, weights_radadvect, objs_radadvect],
+    [rt, orion_fields, weights_rt, objs_rt],
+    [star, orion_fields, weights_star, objs_star],
+    [LyA, nyx_fields, weights_lya, objs_lya],
+    [RT_particles, castro_fields, weights_RTP, objs_RTP],
+    [langmuir, warpx_fields, weights_warp, objs_warp],
+    [plasma, warpx_fields, weights_warp, objs_warp],
+    [beam, warpx_fields, weights_warp, objs_warp],
 ]
 
-gv_pairs = [(i[0], f) for i in pair_list for f in i[1]]
-fv_pairs = [(i[0], f, d) for i in pair_list for f in i[1] for d in i[3]]
-pv_pairs = [
-    (i[0], f, d, w) for i in pair_list for f in i[1] for d in i[3] for w in i[2]
-]
+
+gv_pairs = []
+fv_pairs = []
+pv_pairs = []
+
+
+for pair in pairs:
+    for field in pair[1]:
+        gv_pairs.append((pair[0], field))
+
+
+for pair in pairs:
+    for field in pair[1]:
+        for obj in pair[3]:
+            fv_pairs.append((pair[0], field, obj))
+
+
+for pair in pairs:
+    for field in pair[1]:
+        for obj in pair[3]:
+            for weight in pair[2]:
+                pv_pairs.append((pair[0], field, obj, weight))
 
 
 @pytest.mark.answer_test
@@ -89,24 +106,24 @@ class TestBoxLib:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
-    def test_gh_pr(self, ds):
+    def test_grid_hierarchy_parentage_relationships(self, ds):
         self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
         self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", gv_pairs, indirect=True)
-    def test_gv(self, f, ds):
+    def test_grid_values(self, f, ds):
         self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)
-    def test_fv(self, d, f, ds):
+    def test_field_values(self, d, f, ds):
         self.hashes.update({"field_values": field_values(ds, f, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d, w", pv_pairs, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    def test_pv(self, a, d, w, f, ds):
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    def test_projection_values(self, a, d, w, f, ds):
         self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
 
     @pytest.mark.parametrize("ds", [LyA], indirect=True)

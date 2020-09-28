@@ -5,7 +5,7 @@ from yt.frontends.halo_catalog.data_structures import YTHaloCatalogDataset
 from yt.loaders import load
 from yt.testing import assert_array_equal, requires_module
 from yt.units.yt_array import YTArray
-from yt.utilities.answer_testing.utils import fake_halo_catalog
+from yt.utilities.answer_testing.testing_utilities import fake_halo_catalog
 
 
 @pytest.mark.answer_test

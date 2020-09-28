@@ -44,17 +44,17 @@ ds_list = [
     m7,
     g30,
 ]
-a_list = [0, 1, 2]
-d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
-w_list = [None, "density"]
-f_other = ["temperature", "density", "velocity_magnitude", "velocity_divergence"]
-f_toro1d = get_parameterization(toro1d)
-f_kh2d = get_parameterization(kh2d)
-f_list = [
-    f_toro1d,
-    f_kh2d,
-    f_other,
-    f_other,
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("max", (0.1, "unitary")))]
+weights = [None, "density"]
+fields_other = ["temperature", "density", "velocity_magnitude", "velocity_divergence"]
+fields_toro1d = get_parameterization(toro1d)
+fields_kh2d = get_parameterization(kh2d)
+fields = [
+    fields_toro1d,
+    fields_kh2d,
+    fields_other,
+    fields_other,
 ]
 
 
@@ -69,12 +69,12 @@ ppv_pairs = []
 # small_patch suite, but instead of field_values and projection_values it run
 # pixelized_projection_values
 for i, ds in enumerate(ds_list):
-    for f in f_list[i]:
+    for f in fields[i]:
         gv_pairs.append((ds, f))
-        for d in d_list:
+        for d in objs:
             if ds != g30:
                 fv_pairs.append((ds, f, d))
-            for w in w_list:
+            for w in weights:
                 if ds != g30:
                     pv_pairs.append((ds, f, d, w))
                 else:
@@ -120,7 +120,7 @@ class TestEnzo:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
-    def test_gh_pr(self, ds, big_data):
+    def test_grid_hierarchy_parentage_relationships(self, ds, big_data):
         if str(ds) == "galaxy0030" and not big_data:
             pytest.skip("--answer-big-data not set.")
         self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
@@ -128,26 +128,26 @@ class TestEnzo:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", gv_pairs, indirect=True)
-    def test_gv(self, f, ds, big_data):
+    def test_grid_values(self, f, ds, big_data):
         if str(ds) == "galaxy0030" and not big_data:
             pytest.skip("--answer-big-data not set.")
         self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d", fv_pairs, indirect=True)
-    def test_fv(self, d, f, ds):
+    def test_field_values(self, d, f, ds):
         self.hashes.update({"field_values": field_values(ds, f, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d, w", pv_pairs, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    def test_pv(self, a, d, w, f, ds):
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    def test_projection_values(self, a, d, w, f, ds):
         self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f, d, w", ppv_pairs, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    def test_ppv(self, a, d, w, f, ds, big_data):
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    def test_pixelized_projection_values(self, a, d, w, f, ds, big_data):
         if str(ds) == "galaxy0030" and not big_data:
             pytest.skip("--answer-big-data not set.")
         self.hashes.update(

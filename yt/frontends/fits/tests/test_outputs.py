@@ -15,7 +15,7 @@ from yt.utilities.answer_testing.answer_tests import (
     parentage_relationships,
     projection_values,
 )
-from yt.utilities.answer_testing.utils import data_dir_load
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
 
 # Test data
 grs = "radio_fits/grs-50-cube.fits"
@@ -43,10 +43,10 @@ _fields_vels = ("velocity_x", "velocity_y", "velocity_z")
 _fields_acis = ("counts_0.1-2.0", "counts_2.0-5.0")
 _fields_A2052 = ("flux",)
 
-a_list = [0, 1, 2]
-d_list = [None, ("sphere", ("c", (0.1, "unitary")))]
-w_list = [None, "ones"]
-f_list = [
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("c", (0.1, "unitary")))]
+weights = [None, "ones"]
+fields = [
     _fields_grs,
     _fields_vels,
     _fields_acis,
@@ -63,7 +63,7 @@ ds_list = [
 def get_pairs():
     pairs = []
     for i, ds in enumerate(ds_list):
-        for f in f_list[i]:
+        for f in fields[i]:
             pairs.append((ds, f))
     return pairs
 
@@ -75,27 +75,27 @@ class TestFits:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
-    def test_gh_pr(self, ds):
+    def test_grid_hierarchy_parentage_relationships(self, ds):
         self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
         self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    def test_gv(self, f, ds):
+    def test_grid_values(self, f, ds):
         self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    def test_fv(self, d, f, ds):
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    def test_field_values(self, d, f, ds):
         self.hashes.update({"field_values": field_values(ds, f, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    @pytest.mark.parametrize("w", w_list, indirect=True)
-    def test_pv(self, a, d, w, f, ds):
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    @pytest.mark.parametrize("w", weights, indirect=True)
+    def test_projection_values(self, a, d, w, f, ds):
         self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
 
     @requires_file(vf)

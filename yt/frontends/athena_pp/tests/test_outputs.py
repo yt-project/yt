@@ -23,10 +23,10 @@ uo_AM06 = {
     "time_unit": (1.0, "Myr"),
 }
 AM06_kwargs = {"kwargs": {"units_override": uo_AM06}}
-a_list = [0, 1, 2]
-d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
-w_list = [None, "density"]
-f_list = ["temperature", "density", "velocity_magnitude", "magnetic_field_x"]
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("max", (0.1, "unitary")))]
+weights = [None, "density"]
+fields = ["temperature", "density", "velocity_magnitude", "magnetic_field_x"]
 
 
 @pytest.mark.answer_test
@@ -69,28 +69,28 @@ class TestAthenaPP:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [AM06], indirect=True)
-    def test_gh_pr(self, ds):
+    def test_grid_hierarchy_parentage_relationships(self, ds):
         self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
         self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [AM06], indirect=True)
-    @pytest.mark.parametrize("f", f_list, indirect=True)
-    def test_gv(self, f, ds):
+    @pytest.mark.parametrize("f", fields, indirect=True)
+    def test_grid_values(self, f, ds):
         self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [AM06], indirect=True)
-    @pytest.mark.parametrize("f", f_list, indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    def test_fv(self, d, f, ds):
+    @pytest.mark.parametrize("f", fields, indirect=True)
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    def test_field_values(self, d, f, ds):
         self.hashes.update({"field_values": field_values(ds, f, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [AM06], indirect=True)
-    @pytest.mark.parametrize("f", f_list, indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    @pytest.mark.parametrize("w", w_list, indirect=True)
-    def test_pv(self, a, d, w, f, ds):
+    @pytest.mark.parametrize("f", fields, indirect=True)
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    @pytest.mark.parametrize("w", weights, indirect=True)
+    def test_projection_values(self, a, d, w, f, ds):
         self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})

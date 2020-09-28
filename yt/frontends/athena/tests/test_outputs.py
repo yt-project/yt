@@ -48,9 +48,9 @@ ds_list = [
     blast,
     [stripping, {"kwargs": {"units_override": uo_stripping}}],
 ]
-a_list = [0, 1, 2]
-w_list = [None, "density"]
-d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
+axes = [0, 1, 2]
+weights = [None, "density"]
+objs = [None, ("sphere", ("max", (0.1, "unitary")))]
 cloud_fields = [
     ("athena", "scalar[0]"),
     ("athena", "density"),
@@ -66,7 +66,7 @@ stripping_fields = [
     ("athena", "density"),
     ("athena", "specific_scalar[0]"),
 ]
-f_list = [
+fields = [
     cloud_fields,
     blast_fields,
     stripping_fields,
@@ -76,7 +76,7 @@ f_list = [
 def get_pairs():
     pairs = []
     for i, ds in enumerate(ds_list):
-        for f in f_list[i]:
+        for f in fields[i]:
             pairs.append((ds, f))
     return pairs
 
@@ -88,7 +88,7 @@ class TestAthena:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", ds_list, indirect=True)
-    def test_gh_pr(self, ds, big_data):
+    def test_grid_hierarchy_parentage_relationships(self, ds, big_data):
         if str(ds) == "rps.0062" and not big_data:
             pytest.skip("--answer-big-data not used.")
         self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
@@ -96,25 +96,25 @@ class TestAthena:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    def test_gv(self, f, ds, big_data):
+    def test_grid_values(self, f, ds, big_data):
         if str(ds) == "rps.0062" and not big_data:
             pytest.skip("--answer-big-data not used.")
         self.hashes.update({"grid_values": grid_values(ds, f)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    def test_fv(self, d, f, ds, big_data):
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    def test_field_values(self, d, f, ds, big_data):
         if str(ds) == "rps.0062" and not big_data:
             pytest.skip("--answer-big-data not used.")
         self.hashes.update({"field_values": field_values(ds, f, d)})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    @pytest.mark.parametrize("w", w_list, indirect=True)
-    def test_pv(self, a, d, w, f, ds, big_data):
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    @pytest.mark.parametrize("w", weights, indirect=True)
+    def test_projection_values(self, a, d, w, f, ds, big_data):
         if str(ds) == "rps.0062" and not big_data:
             pytest.skip("--answer-big-data not used.")
         self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})

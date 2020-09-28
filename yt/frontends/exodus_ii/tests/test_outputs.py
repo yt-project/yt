@@ -2,7 +2,8 @@ import pytest
 
 from yt.testing import assert_array_equal, assert_equal
 from yt.utilities.answer_testing.answer_tests import generic_array
-from yt.utilities.answer_testing.utils import data_dir_load, requires_ds
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
+from yt.utilities.answer_testing.testing_utilities import requires_ds
 
 # Test data
 out = "ExodusII/out.e"

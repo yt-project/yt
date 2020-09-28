@@ -6,20 +6,21 @@ from yt.utilities.answer_testing.answer_tests import (
     field_values,
     pixelized_projection_values,
 )
-from yt.utilities.answer_testing.utils import create_obj, requires_ds
+from yt.utilities.answer_testing.testing_utilities import create_obj
+from yt.utilities.answer_testing.testing_utilities import requires_ds
 
 # Data file
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/"
 sizmbhloz += "sizmbhloz-clref04SNth-rs9_a0.9011.art"
 
 # Test data
-a_list = [0, 1, 2]
-d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
-w_list = [None, "density"]
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("max", (0.1, "unitary")))]
+weights = [None, "density"]
 
 # Which velocity magnitude? gas? all? just velocity_magnitude isn't a field
 # Does fv need particle_type?
-f_list = [
+fields = [
     "temperature",
     "density",
     "velocity_magnitude",
@@ -34,7 +35,7 @@ class TestArtIo:
     saved_hashes = None
 
     @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
+    @pytest.mark.parametrize("d", objs, indirect=True)
     def test_sizmbhloz_validation(self, d, ds):
         ds.max_range = 1024 * 1024
         dobj = create_obj(ds, d)
@@ -45,20 +46,20 @@ class TestArtIo:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    @pytest.mark.parametrize("w", w_list, indirect=True)
-    @pytest.mark.parametrize("f", f_list, indirect=True)
-    def test_sizmbhloz_ppv(self, d, a, w, f, ds):
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    @pytest.mark.parametrize("w", weights, indirect=True)
+    @pytest.mark.parametrize("f", fields, indirect=True)
+    def test_sizmbhloz_pixelized_projection_values(self, d, a, w, f, ds):
         ds.max_range = 1024 * 1024
         ppv = pixelized_projection_values(ds, a, f, w, d)
         self.hashes.update({"pixelized_projection_values": ppv})
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [sizmbhloz], indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    @pytest.mark.parametrize("f", f_list, indirect=True)
-    def test_sizmbhloz_fv(self, d, f, ds):
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    @pytest.mark.parametrize("f", fields, indirect=True)
+    def test_sizmbhloz_field_values(self, d, f, ds):
         ds.max_range = 1024 * 1024
         fv = field_values(ds, f, d)
         self.hashes.update({"field_values": fv})

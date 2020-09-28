@@ -19,10 +19,10 @@ from yt.utilities.answer_testing.answer_tests import (
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
 dmonly = "DMonly/PMcrs0.0100.DAT"
 
-a_list = [0, 1, 2]
-d_list = [None, ("sphere", ("max", (0.1, "unitary")))]
-w_list = [None, "density"]
-f_list = [
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("max", (0.1, "unitary")))]
+weights = [None, "density"]
+fields = [
     ("gas", "density"),
     ("gas", "temperature"),
     ("all", "particle_mass"),
@@ -38,11 +38,11 @@ class TestArt:
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [d9p], indirect=True)
-    @pytest.mark.parametrize("f", f_list, indirect=True)
-    @pytest.mark.parametrize("w", w_list, indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    @pytest.mark.parametrize("a", a_list, indirect=True)
-    def test_d9p_ppv(self, f, d, a, w, ds):
+    @pytest.mark.parametrize("f", fields, indirect=True)
+    @pytest.mark.parametrize("w", weights, indirect=True)
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    def test_d9p_pixelized_projection_values(self, f, d, a, w, ds):
         ds.index
         particle_type = f[0] in ds.particle_types
         if not particle_type:
@@ -53,9 +53,9 @@ class TestArt:
             self.hashes.update({"pixelized_projection_values": np.array(-1)})
 
     @pytest.mark.parametrize("ds", [d9p], indirect=True)
-    @pytest.mark.parametrize("f", f_list, indirect=True)
-    @pytest.mark.parametrize("d", d_list, indirect=True)
-    def test_d9p_fv(self, f, d, ds):
+    @pytest.mark.parametrize("f", fields, indirect=True)
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    def test_d9p_field_values(self, f, d, ds):
         ds.index
         particle_type = f[0] in ds.particle_types
         fv = field_values(ds, f, d, particle_type=particle_type)
