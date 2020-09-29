@@ -701,8 +701,39 @@ cdef class SelectorObject:
                 ("periodicity[2]", self.periodicity[2]),
                 ("domain_width[0]", self.domain_width[0]),
                 ("domain_width[1]", self.domain_width[1]),
-                ("domain_width[2]", self.domain_width[2]))
+                ("domain_width[2]", self.domain_width[2]),
+                ("domain_center[0]", self.domain_center[0]),
+                ("domain_center[1]", self.domain_center[1]),
+                ("domain_center[2]", self.domain_center[2]))
 
+    def __getstate__(self):
+        try: 
+          hash_vals = self._hash_vals()
+        except NotImplementedError:
+          hash_vals = ()
+        return (hash_vals,self._base_hash())
+
+    def __getnewargs__(self):
+        # __setstate__ will always call __cinit__, this pickle hoook returns arguments
+        # to __cinit__. We will give it None so we dont error then set attributes in
+        # __setstate__ Note that we could avoid this by making dobj an optional argument
+        # to __cinit__
+        return (None,)
+
+    def __setstate__(self, hashes):
+        all_hash = hashes[0] + hashes[1]
+        for bh in all_hash:
+            indx = [int(s) for s in bh[0] if s.isdigit()]
+            if len(indx) > 0 and '[' in bh[0]  and ']' in bh[0]:
+              # dealing with an indexed attribute, e.g., 'periodicity[0]', 'center[2]'
+              # more complex attributes require child class implementation of
+              # __setstate__, see SphereSelector for an example.
+              attname = bh[0].split('[')[0] # the name, 'periodicity'
+              the_att = getattr(self,attname) # get the object
+              the_att[indx[0]] = bh[1] # set the index value
+              setattr(self,attname,the_att) # and set it again
+            else:
+              setattr(self,bh[0],bh[1])
 
 cdef class PointSelector(SelectorObject):
     cdef np.float64_t p[3]
@@ -781,28 +812,31 @@ point_selector = PointSelector
 
 
 cdef class SphereSelector(SelectorObject):
-    cdef np.float64_t radius
-    cdef np.float64_t radius2
-    cdef np.float64_t center[3]
+    cdef public np.float64_t radius
+    cdef public np.float64_t radius2
+    cdef public np.float64_t center[3]
     cdef np.float64_t bbox[3][2]
-    cdef bint check_box[3]
+    cdef public bint check_box[3]
 
     def __init__(self, dobj):
         for i in range(3):
             self.center[i] = _ensure_code(dobj.center[i])
         self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
-        center = _ensure_code(dobj.center)
+        self.set_bbox(_ensure_code(dobj.center))
         for i in range(3):
-            self.center[i] = center[i]
-            self.bbox[i][0] = self.center[i] - self.radius
-            self.bbox[i][1] = self.center[i] + self.radius
             if self.bbox[i][0] < dobj.ds.domain_left_edge[i]:
                 self.check_box[i] = False
             elif self.bbox[i][1] > dobj.ds.domain_right_edge[i]:
                 self.check_box[i] = False
             else:
                 self.check_box[i] = True
+
+    def set_bbox(self, center):
+        for i in range(3):
+            self.center[i] = center[i]
+            self.bbox[i][0] = self.center[i] - self.radius
+            self.bbox[i][1] = self.center[i] + self.radius
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -939,8 +973,15 @@ cdef class SphereSelector(SelectorObject):
                 ("radius2", self.radius2),
                 ("center[0]", self.center[0]),
                 ("center[1]", self.center[1]),
-                ("center[2]", self.center[2]))
-
+                ("center[2]", self.center[2]),
+                ("check_box[0]",self.check_box[0]),
+                ("check_box[1]",self.check_box[1]),
+                ("check_box[2]",self.check_box[2]))
+    
+    def __setstate__(self, hashes):
+        super(SphereSelector, self).__setstate__(hashes)
+        self.set_bbox(self.center)
+        
 sphere_selector = SphereSelector
 
 cdef class RegionSelector(SelectorObject):

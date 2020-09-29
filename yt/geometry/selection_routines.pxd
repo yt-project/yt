@@ -18,10 +18,10 @@ from yt.utilities.lib.fp_utils cimport _ensure_code
 cdef class SelectorObject:
     cdef public np.int32_t min_level
     cdef public np.int32_t max_level
-    cdef int overlap_cells
-    cdef np.float64_t domain_width[3]
-    cdef np.float64_t domain_center[3]
-    cdef bint periodicity[3]
+    cdef public int overlap_cells
+    cdef public np.float64_t domain_width[3]
+    cdef public np.float64_t domain_center[3]
+    cdef public bint periodicity[3]
     cdef bint _hash_initialized
     cdef np.int64_t _hash
 
@@ -81,4 +81,3 @@ cdef inline np.float64_t _periodic_dist(np.float64_t x1, np.float64_t x2,
     elif rel < -dw * 0.5:
         rel += dw
     return rel
-
