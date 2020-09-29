@@ -116,11 +116,13 @@ _field_name_aliases = [
     ("VorticityRPGrowthTimescale", "vorticity_radiation_pressure_growth_timescale"),
     ("DiskAngle", "theta"),
     ("Height", "height"),
-    ("HI density", "H_density"),
+    ("HI density", "H_p0_density"),
     ("HII density", "H_p1_density"),
-    ("HeI density", "He_density"),
+    ("HeI density", "He_p0_density"),
     ("HeII density", "He_p1_density"),
     ("HeIII density", "He_p2_density"),
+    ("H_density", "H_p0_density"),
+    ("He_density", "He_p0_density"),
 ]
 
 _field_units_aliases = [
