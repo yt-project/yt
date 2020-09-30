@@ -9,7 +9,7 @@ import yt.visualization.particle_plots as particle_plots
 import yt.visualization.plot_window as pw
 from yt.testing import assert_equal
 
-from . import utils
+from . import testing_utilities
 
 
 def grid_hierarchy(ds):
@@ -46,7 +46,7 @@ def grid_values(ds, field):
 
 def projection_values(ds, axis, field, weight_field=None, dobj_type=None):
     if dobj_type is not None:
-        dobj = utils.create_obj(ds, dobj_type)
+        dobj = testing_utilities.create_obj(ds, dobj_type)
     else:
         dobj = None
     if ds.domain_dimensions[axis] == 1:
@@ -57,7 +57,7 @@ def projection_values(ds, axis, field, weight_field=None, dobj_type=None):
 
 def field_values(ds, field, obj_type=None, particle_type=False):
     # If needed build an instance of the dataset type
-    obj = utils.create_obj(ds, obj_type)
+    obj = testing_utilities.create_obj(ds, obj_type)
     determined_field = obj._determine_fields(field)[0]
     fd = ds.field_info[determined_field]
     # Get the proper weight field depending on if we're looking at
@@ -78,13 +78,13 @@ def field_values(ds, field, obj_type=None, particle_type=False):
 
 
 def all_field_values(ds, field, obj_type=None):
-    obj = utils.create_obj(ds, obj_type)
+    obj = testing_utilities.create_obj(ds, obj_type)
     return obj[field]
 
 
 def pixelized_projection_values(ds, axis, field, weight_field=None, dobj_type=None):
     if dobj_type is not None:
-        obj = utils.create_obj(ds, dobj_type)
+        obj = testing_utilities.create_obj(ds, dobj_type)
     else:
         obj = None
     proj = ds.proj(field, axis, weight_field=weight_field, data_source=obj)
@@ -212,7 +212,7 @@ def plot_window_attribute(
 ):
     if callback_runners is None:
         callback_runners = []
-    plot = utils._create_plot_window_attribute_plot(
+    plot = testing_utilities._create_plot_window_attribute_plot(
         ds, plot_type, plot_field, plot_axis, {}
     )
     for r in callback_runners:
@@ -240,7 +240,7 @@ def phase_plot_attribute(
     if plot_kwargs is None:
         plot_kwargs = {}
     data_source = ds.all_data()
-    plot = utils._create_phase_plot_attribute_plot(
+    plot = testing_utilities._create_phase_plot_attribute_plot(
         data_source, x_field, y_field, z_field, plot_type, plot_kwargs
     )
     attr = getattr(plot, attr_name)

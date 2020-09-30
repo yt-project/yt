@@ -56,7 +56,7 @@ for i, ds in enumerate(ds_list):
 
 for field in fields[0]:
     for obj in objs[0]:
-        for weight in weights[0]:
+        for weight in weights:
             for a in axes:
                 ppv_pairs.append((ds_list[0], field, obj, weight, a))
 
