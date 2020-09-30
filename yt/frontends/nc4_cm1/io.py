@@ -17,7 +17,7 @@ class CM1IOHandler(BaseIOHandler):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
         # chunks is a list of chunks, and ptf is a dict where the keys are
         # ptypes and the values are lists of fields.
-        pass
+        raise NotImplementedError
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # This gets called after the arrays have been allocated.  It needs to
@@ -25,7 +25,7 @@ class CM1IOHandler(BaseIOHandler):
         # reading ptype, field and applying the selector to the data read in.
         # Selector objects have a .select_points(x,y,z) that returns a mask, so
         # you need to do your masking here.
-        pass
+        raise NotImplementedError
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # This needs to allocate a set of arrays inside a dictionary, where the

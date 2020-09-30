@@ -25,7 +25,7 @@ class CM1Grid(AMRGridPatch):
         self.ActiveDimensions = dimensions
 
     def __repr__(self):
-        return "CM1Grid_%04i (%s)" % (self.id, self.ActiveDimensions)
+        return f"CM1Grid_{self.id:d} ({self.ActiveDimensions})"
 
 
 class CM1Hierarchy(GridIndex):
@@ -56,14 +56,6 @@ class CM1Hierarchy(GridIndex):
         self.num_grids = 1
 
     def _parse_index(self):
-        # This needs to fill the following arrays, where N is self.num_grids:
-        #   self.grid_left_edge         (N, 3) <= float64
-        #   self.grid_right_edge        (N, 3) <= float64
-        #   self.grid_dimensions        (N, 3) <= int
-        #   self.grid_particle_count    (N, 1) <= int
-        #   self.grid_levels            (N, 1) <= int
-        #   self.grids                  (N, 1) <= grid objects
-        #   self.max_level = self.grid_levels.max()
         self.grid_left_edge[0][:] = self.ds.domain_left_edge[:]
         self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
         self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
@@ -72,14 +64,6 @@ class CM1Hierarchy(GridIndex):
         self.max_level = 1
 
     def _populate_grid_objects(self):
-        # For each grid g, this must call:
-        #   g._prepare_grid()
-        #   g._setup_dx()
-        # This must also set:
-        #   g.Children <= list of child grids
-        #   g.Parent   <= parent grid
-        # This is handled by the frontend because often the children must be
-        # identified.
         self.grids = np.empty(self.num_grids, dtype="object")
         for i in range(self.num_grids):
             g = self.grid(i, self, self.grid_levels.flat[i], self.grid_dimensions[i])
@@ -151,9 +135,8 @@ class CM1Dataset(Dataset):
             # loop over the variable names in the netCDF file, record only those on the
             # "zh","yh","xh" grid.
             varnames = []
-            for key in ds.variables.keys():
-                vardims = ds.variables[key].dimensions
-                if all(x in vardims for x in ["time", "zh", "yh", "xh"]) is True:
+            for key, var in ds.variables.items():
+                if all(x in var.dimensions for x in ["time", "zh", "yh", "xh"]):
                     varnames.append(key)
             self.parameters["variable_names"] = varnames
             self.parameters["lofs_version"] = ds.cm1_lofs_version
@@ -174,14 +157,14 @@ class CM1Dataset(Dataset):
         self.parameters["time"] = self.current_time
 
         # Set cosmological information to zero for non-cosmological.
-        self.cosmological_simulation = 0.0
+        self.cosmological_simulation = 0
         self.current_redshift = 0.0
         self.omega_lambda = 0.0
         self.omega_matter = 0.0
         self.hubble_constant = 0.0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
 
@@ -198,15 +181,12 @@ class CM1Dataset(Dataset):
                 for var in ds.variables:  # iterate over the variables
                     vcoords = ds[var].dimensions  # get the dimensions for the variable
                     ncoords = len(vcoords)  # number of coordinates in variable
-                    coordspassed = 0  # number of coordinates that pass for a variable
-                    for vc in vcoords:  # iterate over the coordinates for the variable
-                        if vc in coords:
-                            # variable coordinate and global coordinate are same
-                            coordspassed += 1
+                    # number of coordinates that pass for a variable
+                    coordspassed = sum(vc in coords for vc in vcoords)
                     if coordspassed != ncoords:
                         failed_vars.append(var)
 
-                if len(failed_vars) > 0:
+                if failed_vars:
                     mylog.error(
                         (
                             "Trying to load a cm1_lofs netcdf file but the coordinates "
@@ -216,7 +196,7 @@ class CM1Dataset(Dataset):
                     )
                     return False
 
-            if is_cm1_lofs is False:
+            if not is_cm1_lofs:
                 if is_cm1:
                     mylog.error(
                         (
