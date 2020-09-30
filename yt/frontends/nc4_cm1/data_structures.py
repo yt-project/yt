@@ -109,8 +109,8 @@ class CM1Dataset(Dataset):
         # on-disk units.  These are the currently available quantities which
         # should be set, along with examples of how to set them to standard
         # values.
-        with self._handle.open_ds() as ds:
-            length_unit = ds.variables["xh"].units
+        with self._handle.open_ds() as _handle:
+            length_unit = _handle.variables["xh"].units
         self.length_unit = self.quan(1.0, length_unit)
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
@@ -128,7 +128,8 @@ class CM1Dataset(Dataset):
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.parameters = {}  # code-specific items
         with self._handle.open_ds() as _handle:
-            # _handle here is a netcdf Dataset object
+            # _handle here is a netcdf Dataset object, we need to parse some metadata
+            # for constructing our yt ds.
             dims = [_handle.dimensions[i].size for i in ["xh", "yh", "zh"]]
 
             # TO DO: generalize this to be coordiante variable name agnostic in order to
@@ -153,7 +154,8 @@ class CM1Dataset(Dataset):
             self.parameters["is_uniform"] = _handle.uniform_mesh
             self.current_time = _handle.variables["time"][:][0]
 
-            # record the dimension metadata
+            # record the dimension metadata: __handle.dimensions contains netcdf
+            # objects so we need to manually copy over attributes.
             dim_info = OrderedDict()
             for dim, meta in _handle.dimensions.items():
                 dim_info[dim] = meta.size
@@ -177,16 +179,15 @@ class CM1Dataset(Dataset):
 
         warn_netcdf(args[0])
         try:
-            from netCDF4 import Dataset
-
-            with Dataset(args[0], "r", keepweakref=True) as ds:
-                is_cm1_lofs = hasattr(ds, "cm1_lofs_version")
-                is_cm1 = hasattr(ds, "cm1 version")  # note: not a typo, it is a space
+            nc4_file = NetCDF4FileHandler(args[0])
+            with nc4_file.open_ds(keepweakref=True) as _handle:
+                is_cm1_lofs = hasattr(_handle, "cm1_lofs_version")
+                is_cm1 = hasattr(_handle, "cm1 version")  # not a typo, it is a space...
                 # ensure coordinates of each variable array exists in the dataset
-                coords = ds.dimensions  # get the dataset wide coordinates
+                coords = _handle.dimensions  # get the dataset wide coordinates
                 failed_vars = []  # list of failed variables
-                for var in ds.variables:  # iterate over the variables
-                    vcoords = ds[var].dimensions  # get the dimensions for the variable
+                for var in _handle.variables:  # iterate over the variables
+                    vcoords = _handle[var].dimensions  # get the dims for the variable
                     ncoords = len(vcoords)  # number of coordinates in variable
                     # number of coordinates that pass for a variable
                     coordspassed = sum(vc in coords for vc in vcoords)
@@ -194,7 +195,7 @@ class CM1Dataset(Dataset):
                         failed_vars.append(var)
 
                 if failed_vars:
-                    mylog.error(
+                    mylog.warning(
                         (
                             "Trying to load a cm1_lofs netcdf file but the coordinates "
                             "of the following fields do not match the coordinates of "
@@ -205,7 +206,7 @@ class CM1Dataset(Dataset):
 
             if not is_cm1_lofs:
                 if is_cm1:
-                    mylog.error(
+                    mylog.warning(
                         (
                             "It looks like you are trying to load a cm1 netcdf file, "
                             "but at present yt only supports cm1_lofs output. Until"
