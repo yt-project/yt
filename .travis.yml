@@ -41,15 +41,6 @@ jobs:
         - directories:
           - $HOME/Library/Caches/pip
       script: pytest -c pytest_unit.ini
-      name: "MacOS: Unit Tests"
-      os: osx
-      osx_image: xcode10.1
-      language: shell
-      env: PIP=pip3
-      cache:
-        - directories:
-          - $HOME/Library/Caches/pip
-      script: pytest -c pytest_unit.ini
 
     - stage: tests
       name: "Windows: Unit Tests"
@@ -68,32 +59,41 @@ jobs:
       name: "Python: 3.6 Minimal Dependency Unit Tests"
       python: 3.6
       env: MINIMAL=1
-      script: >-
-        coverage run $(which pytest) -c pytest_unit.ini;
-        coverage run $(which nosetests) -c nose_unit.cfg -c nose_ignore.cfg
+      script: coverage run $(which pytest) -c pytest_unit.ini
 
     - stage: tests
       name: "Python: 3.6 Unit Tests"
       python: 3.6
-      script: >-
-        coverage run $(which pytest) -c pytest_unit.ini;
-        coverage run $(which nosetests) -c nose_unit.cfg -c nose_ignore.cfg
+      script: coverage run $(which pytest) -c pytest_unit.ini
 
     - stage: tests
       name: "Python: 3.8 Unit Tests"
       python: 3.8
-      script: >-
-        coverage run $(which pytest) -c pytest_unit.ini;
-        coverage run $(which nosetests) -c nose_unit.cfg -c nose_ignore.cfg
+      script: coverage run $(which pytest) -c pytest_unit.ini
 
     - stage: tests
       name: "Python: 3.7 Answer Tests"
       python: 3.7
-      script: >-
-        coverage run $(which pytest) -c pytest_answer.ini;
-        coverage run $(which nosetests) -c nose_answer.cfg -c nose_ignore.cfg
+      script: coverage run $(which pytest) -c pytest_answer.ini
       # This script has not yet been converted to use pytest, so skip for now
       # after_failure: python tests/report_failed_answers.py -f -m --xunit-file "answer_pytest.xml"
+
+    # !!! REMOVE THIS ONCE THE TRANSITION TO PYTEST IS OVER
+    - stage: nose tests
+        name: "Python: 3.6 Minimal Dependency Unit Tests (nose)"
+        python: 3.6
+        env: MINIMAL=1
+        script: coverage run $(which nosetests) -c nose_unit.cfg -c nose_ignore.cfg
+
+    - stage: nose tests
+        name: "Python: 3.8 Unit Tests (nose)"
+        python: 3.8
+        script: coverage run $(which nosetests) -c nose_unit.cfg -c nose_ignore.cfg
+
+    - stage: nose tests
+        name: "Python: 3.7 Answer Tests (nose)"
+        python: 3.7
+        script: coverage run $(which nosetests) -c nose_answer.cfg -c nose_ignore.cfg
 
 after_success:
   - codecov
