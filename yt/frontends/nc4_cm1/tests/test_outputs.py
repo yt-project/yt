@@ -60,7 +60,7 @@ def test_dims_and_meta():
         assert kdim in dims
 
     ## check the simulation time
-    assert_equal(ds.parameters["time"], 5500.0)
+    assert_equal(ds.current_time, 5500.0)
 
 
 @requires_file(cm1sim)

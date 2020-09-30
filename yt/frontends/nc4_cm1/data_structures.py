@@ -127,14 +127,14 @@ class CM1Dataset(Dataset):
         #                                  being read (e.g., UUID or ST_CTIME)
         self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         self.parameters = {}  # code-specific items
-        with self._handle.open_ds() as ds:
-            dims = [ds.dimensions[i].size for i in ["xh", "yh", "zh"]]
-            coords = {i: ds.variables[i][:] for i in ["xh", "yh", "zh"]}
+        with self._handle.open_ds() as _handle:
+            # _handle here is a netcdf Dataset object
+            dims = [_handle.dimensions[i].size for i in ["xh", "yh", "zh"]]
 
-            # TO DO: eneralize this to be coordiante variable name agnostic in order to
+            # TO DO: generalize this to be coordiante variable name agnostic in order to
             # make useful for WRF or climate data. For now, we're hard coding for CM1
             # specifically and have named the classes appropriately
-            xh, yh, zh = [ds.variables[i][:] for i in ["xh", "yh", "zh"]]
+            xh, yh, zh = [_handle.variables[i][:] for i in ["xh", "yh", "zh"]]
             self.domain_left_edge = np.array(
                 [xh.min(), yh.min(), zh.min()], dtype="float64"
             )
@@ -145,26 +145,23 @@ class CM1Dataset(Dataset):
             # loop over the variable names in the netCDF file, record only those on the
             # "zh","yh","xh" grid.
             varnames = []
-            for key, var in ds.variables.items():
+            for key, var in _handle.variables.items():
                 if all(x in var.dimensions for x in ["time", "zh", "yh", "xh"]):
                     varnames.append(key)
             self.parameters["variable_names"] = varnames
-            self.parameters["lofs_version"] = ds.cm1_lofs_version
-            self.parameters["is_uniform"] = ds.uniform_mesh
-            self.current_time = ds.variables["time"][:][0]
+            self.parameters["lofs_version"] = _handle.cm1_lofs_version
+            self.parameters["is_uniform"] = _handle.uniform_mesh
+            self.current_time = _handle.variables["time"][:][0]
 
             # record the dimension metadata
             dim_info = OrderedDict()
-            for dim, meta in ds.dimensions.items():
+            for dim, meta in _handle.dimensions.items():
                 dim_info[dim] = meta.size
             self.parameters["dimensions"] = dim_info
-
-        self.parameters["coords"] = coords
 
         self.dimensionality = 3
         self.domain_dimensions = np.array(dims, dtype="int64")
         self.periodicity = (False, False, False)
-        self.parameters["time"] = self.current_time
 
         # Set cosmological information to zero for non-cosmological.
         self.cosmological_simulation = 0
