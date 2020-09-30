@@ -77,19 +77,29 @@ class CM1Dataset(Dataset):
     _field_info_class = CM1FieldInfo
 
     def __init__(
-        self, filename, dataset_type="cm1", storage_filename=None, units_override=None
+        self,
+        filename,
+        dataset_type="cm1",
+        storage_filename=None,
+        units_override=None,
+        unit_system="mks",
     ):
         self.fluid_types += ("cm1",)
         self._handle = NetCDF4FileHandler(filename)
         # refinement factor between a grid and its subgrid
         self.refine_by = 1
         super(CM1Dataset, self).__init__(
-            filename, dataset_type, units_override=units_override, unit_system="mks"
+            filename,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
         )
         self.storage_filename = storage_filename
         self.filename = filename
 
     def _setup_coordinate_handler(self):
+        # ensure correct ordering of axes so plots aren't rotated (z should always be
+        # on the vertical axis).
         super(CM1Dataset, self)._setup_coordinate_handler()
         self.coordinates._x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))
         self.coordinates._y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))
@@ -174,7 +184,7 @@ class CM1Dataset(Dataset):
 
             with Dataset(args[0], "r", keepweakref=True) as ds:
                 is_cm1_lofs = hasattr(ds, "cm1_lofs_version")
-                is_cm1 = hasattr(ds, "cm1 version")
+                is_cm1 = hasattr(ds, "cm1 version")  # note: not a typo, it is a space
                 # ensure coordinates of each variable array exists in the dataset
                 coords = ds.dimensions  # get the dataset wide coordinates
                 failed_vars = []  # list of failed variables

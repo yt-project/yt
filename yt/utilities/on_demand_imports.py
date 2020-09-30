@@ -57,10 +57,12 @@ class netCDF4_imports:
     _Dataset = None
 
     def __init__(self):
+        # this ensures the import ordering between netcdf4 and h5py. If hy5py is
+        # imported first, can get file lock errors on some systems (including travis-ci)
+        # so we need to do this before initializing h5py_imports()!
+        # similar to this issue https://github.com/pydata/xarray/issues/2560
         try:
-            import netCDF4
-
-            netCDF4.__version__
+            import netCDF4  # noqa F401
         except ImportError:
             pass
         super(netCDF4_imports, self).__init__()
@@ -76,7 +78,7 @@ class netCDF4_imports:
         return self._Dataset
 
 
-_netCDF4 = netCDF4_imports()  # Always do that before initializing h5py_imports() !!!
+_netCDF4 = netCDF4_imports()
 
 
 class astropy_imports:
