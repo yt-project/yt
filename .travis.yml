@@ -80,20 +80,20 @@ jobs:
 
     # !!! REMOVE THIS ONCE THE TRANSITION TO PYTEST IS OVER
     - stage: nose tests
-        name: "Python: 3.6 Minimal Dependency Unit Tests (nose)"
-        python: 3.6
-        env: MINIMAL=1
-        script: coverage run $(which nosetests) -c nose_unit.cfg -c nose_ignore.cfg
+      name: "Python: 3.6 Minimal Dependency Unit Tests (nose)"
+      python: 3.6
+      env: MINIMAL=1
+      script: coverage run $(which nosetests) -c nose_unit.cfg -c nose_ignore.cfg
 
     - stage: nose tests
-        name: "Python: 3.8 Unit Tests (nose)"
-        python: 3.8
-        script: coverage run $(which nosetests) -c nose_unit.cfg -c nose_ignore.cfg
+      name: "Python: 3.8 Unit Tests (nose)"
+      python: 3.8
+      script: coverage run $(which nosetests) -c nose_unit.cfg -c nose_ignore.cfg
 
     - stage: nose tests
-        name: "Python: 3.7 Answer Tests (nose)"
-        python: 3.7
-        script: coverage run $(which nosetests) -c nose_answer.cfg -c nose_ignore.cfg
+      name: "Python: 3.7 Answer Tests (nose)"
+      python: 3.7
+      script: coverage run $(which nosetests) -c nose_answer.cfg -c nose_ignore.cfg
 
 after_success:
   - codecov
