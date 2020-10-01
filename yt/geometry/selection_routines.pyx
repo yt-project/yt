@@ -692,19 +692,19 @@ cdef class SelectorObject:
     def _hash_vals(self):
         raise NotImplementedError
 
+    def _gen_hash_tuple(self,scalar_fields=[],arraylike_fields=[],hash_vals=(),nd=3):
+        # generates (or appends to) the hash tuple
+        for fld in scalar_fields:
+            hash_vals += ((fld,getattr(self,fld)),)
+        for fld in arraylike_fields:
+            for idx in range(nd):
+              hash_vals += ((fld,getattr(self,fld)[idx],idx),)
+        return hash_vals
+
     def _base_hash(self):
-        return (("min_level", self.min_level),
-                ("max_level", self.max_level),
-                ("overlap_cells", self.overlap_cells),
-                ("periodicity[0]", self.periodicity[0]),
-                ("periodicity[1]", self.periodicity[1]),
-                ("periodicity[2]", self.periodicity[2]),
-                ("domain_width[0]", self.domain_width[0]),
-                ("domain_width[1]", self.domain_width[1]),
-                ("domain_width[2]", self.domain_width[2]),
-                ("domain_center[0]", self.domain_center[0]),
-                ("domain_center[1]", self.domain_center[1]),
-                ("domain_center[2]", self.domain_center[2]))
+        scalar_fields = ["min_level","max_level","overlap_cells"]
+        arraylike_fields = ["periodicity","domain_width","domain_center"]
+        return self._gen_hash_tuple(scalar_fields,arraylike_fields)
 
     def __getstate__(self):
         try: 
@@ -722,21 +722,16 @@ cdef class SelectorObject:
 
     def __setstate__(self, hashes):
         all_hash = hashes[0] + hashes[1]
-        for bh in all_hash:
-            indx = [int(s) for s in bh[0] if s.isdigit()]
-            if len(indx) > 0 and '[' in bh[0]  and ']' in bh[0]:
-              # dealing with an indexed attribute, e.g., 'periodicity[0]', 'center[2]'
-              # more complex attributes require child class implementation of
-              # __setstate__, see SphereSelector for an example.
-              attname = bh[0].split('[')[0] # the name, 'periodicity'
-              the_att = getattr(self,attname) # get the object
-              the_att[indx[0]] = bh[1] # set the index value
-              setattr(self,attname,the_att) # and set it again
-            else:
-              setattr(self,bh[0],bh[1])
+        for hash_item in all_hash:
+            if len(hash_item) == 3: # we have an indexed attribute (field,value,index)
+              the_att = getattr(self,hash_item[0]) # get the object
+              the_att[hash_item[2]] = hash_item[1] # set the index value
+              setattr(self,hash_item[0],the_att) # and set it again
+            else: # we have a scalar attribute (field, value)
+              setattr(self,hash_item[0],hash_item[1])
 
 cdef class PointSelector(SelectorObject):
-    cdef np.float64_t p[3]
+    cdef public np.float64_t p[3]
 
     def __init__(self, dobj):
         cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
@@ -804,9 +799,7 @@ cdef class PointSelector(SelectorObject):
             return 0
 
     def _hash_vals(self):
-        return (("p[0]", self.p[0]),
-                ("p[1]", self.p[1]),
-                ("p[2]", self.p[2]))
+        return self._gen_hash_tuple(arraylike_fields=['p'])
 
 point_selector = PointSelector
 
@@ -969,28 +962,23 @@ cdef class SphereSelector(SelectorObject):
             return 2  # Sphere only partially overlaps box
 
     def _hash_vals(self):
-        return (("radius", self.radius),
-                ("radius2", self.radius2),
-                ("center[0]", self.center[0]),
-                ("center[1]", self.center[1]),
-                ("center[2]", self.center[2]),
-                ("check_box[0]",self.check_box[0]),
-                ("check_box[1]",self.check_box[1]),
-                ("check_box[2]",self.check_box[2]))
-    
+        scalar_fields = ["radius","radius2"]
+        arraylike_fields = ["center","check_box"]
+        return self._gen_hash_tuple(scalar_fields,arraylike_fields)
+
     def __setstate__(self, hashes):
         super(SphereSelector, self).__setstate__(hashes)
         self.set_bbox(self.center)
-        
+
 sphere_selector = SphereSelector
 
 cdef class RegionSelector(SelectorObject):
-    cdef np.float64_t left_edge[3]
-    cdef np.float64_t right_edge[3]
-    cdef np.float64_t right_edge_shift[3]
+    cdef public np.float64_t left_edge[3]
+    cdef public np.float64_t right_edge[3]
+    cdef public np.float64_t right_edge_shift[3]
     cdef public bint is_all_data
-    cdef bint loose_selection
-    cdef bint check_period[3]
+    cdef public bint loose_selection
+    cdef public bint check_period[3]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1185,13 +1173,10 @@ cdef class RegionSelector(SelectorObject):
         return total
 
 
-    def _hash_vals(self):
-        return (("left_edge[0]", self.left_edge[0]),
-                ("left_edge[1]", self.left_edge[1]),
-                ("left_edge[2]", self.left_edge[2]),
-                ("right_edge[0]", self.right_edge[0]),
-                ("right_edge[1]", self.right_edge[1]),
-                ("right_edge[2]", self.right_edge[2]))
+    def _hash_vals(self):      
+        arraylike_fields = ['left_edge','right_edge','right_edge_shift','check_period']
+        scalar_flds = ['is_all_data','loose_selection']
+        return self._gen_hash_tuple(scalar_flds,arraylike_fields)
 
 region_selector = RegionSelector
 
