@@ -8,13 +8,15 @@ import yaml
 
 import yt
 from yt.config import ytcfg
-from yt.utilities.answer_testing.testing_utilities import _streamline_for_io
-from yt.utilities.answer_testing.testing_utilities import _hash_results
-from yt.utilities.answer_testing.testing_utilities import _save_result
-from yt.utilities.answer_testing.testing_utilities import _compare_result
-from yt.utilities.answer_testing.testing_utilities import _save_raw_arrays
-from yt.utilities.answer_testing.testing_utilities import _compare_raw_arrays
-from yt.utilities.answer_testing.testing_utilities import data_dir_load
+from yt.utilities.answer_testing.testing_utilities import (
+    _compare_raw_arrays,
+    _compare_result,
+    _hash_results,
+    _save_raw_arrays,
+    _save_result,
+    _streamline_for_io,
+    data_dir_load,
+)
 from yt.utilities.logger import ytLogger
 
 
