@@ -30,3 +30,4 @@ MiniballCpp>=0.2.1
 pooch>=0.7.0
 pykdtree==1.3.1
 nose-exclude
+pytest-xdist==2.1.0
