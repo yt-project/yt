@@ -962,9 +962,7 @@ cdef class SphereSelector(SelectorObject):
             return 2  # Sphere only partially overlaps box
 
     def _hash_vals(self):
-        scalar_fields = ["radius","radius2"]
-        arraylike_fields = ["center","check_box"]
-        return self._gen_hash_tuple(scalar_fields,arraylike_fields)
+        return self._gen_hash_tuple(["radius","radius2"],["center","check_box"])
 
     def __setstate__(self, hashes):
         super(SphereSelector, self).__setstate__(hashes)
@@ -1172,11 +1170,9 @@ cdef class RegionSelector(SelectorObject):
                 pos[0] += dds[0]
         return total
 
-
-    def _hash_vals(self):      
+    def _hash_vals(self):
         arraylike_fields = ['left_edge','right_edge','right_edge_shift','check_period']
-        scalar_flds = ['is_all_data','loose_selection']
-        return self._gen_hash_tuple(scalar_flds,arraylike_fields)
+        return self._gen_hash_tuple(['is_all_data','loose_selection'],arraylike_fields)
 
 region_selector = RegionSelector
 
@@ -1222,10 +1218,10 @@ cdef class CutRegionSelector(SelectorObject):
 cut_region_selector = CutRegionSelector
 
 cdef class DiskSelector(SelectorObject):
-    cdef np.float64_t norm_vec[3]
-    cdef np.float64_t center[3]
-    cdef np.float64_t radius, radius2
-    cdef np.float64_t height
+    cdef public np.float64_t norm_vec[3]
+    cdef public np.float64_t center[3]
+    cdef public np.float64_t radius, radius2
+    cdef public np.float64_t height
 
     def __init__(self, dobj):
         cdef int i
@@ -1374,21 +1370,13 @@ cdef class DiskSelector(SelectorObject):
         # return 0
 
     def _hash_vals(self):
-        return (("norm_vec[0]", self.norm_vec[0]),
-                ("norm_vec[1]", self.norm_vec[1]),
-                ("norm_vec[2]", self.norm_vec[2]),
-                ("center[0]", self.center[0]),
-                ("center[1]", self.center[1]),
-                ("center[2]", self.center[2]),
-                ("radius", self.radius),
-                ("radius2", self.radius2),
-                ("height", self.height))
+        return self._gen_hash_tuple(['radius','radius2','height'],['norm_vec','center'])
 
 disk_selector = DiskSelector
 
 cdef class CuttingPlaneSelector(SelectorObject):
-    cdef np.float64_t norm_vec[3]
-    cdef np.float64_t d
+    cdef public np.float64_t norm_vec[3]
+    cdef public np.float64_t d
 
     def __init__(self, dobj):
         cdef int i
@@ -1494,10 +1482,7 @@ cdef class CuttingPlaneSelector(SelectorObject):
         return 2 # a box of non-zeros volume can't be inside a plane
 
     def _hash_vals(self):
-        return (("norm_vec[0]", self.norm_vec[0]),
-                ("norm_vec[1]", self.norm_vec[1]),
-                ("norm_vec[2]", self.norm_vec[2]),
-                ("d", self.d))
+        return self._gen_hash_tuple(['d'],['norm_vec'])
 
 cutting_selector = CuttingPlaneSelector
 
@@ -2060,9 +2045,9 @@ cdef class DataCollectionSelector(SelectorObject):
 data_collection_selector = DataCollectionSelector
 
 cdef class EllipsoidSelector(SelectorObject):
-    cdef np.float64_t vec[3][3]
-    cdef np.float64_t mag[3]
-    cdef np.float64_t center[3]
+    cdef public np.float64_t vec[3][3]
+    cdef public np.float64_t mag[3]
+    cdef public np.float64_t center[3]
 
     def __init__(self, dobj):
         cdef int i
@@ -2186,21 +2171,22 @@ cdef class EllipsoidSelector(SelectorObject):
             return 2
 
     def _hash_vals(self):
-        return (("vec[0][0]", self.vec[0][0]),
-                ("vec[0][1]", self.vec[0][1]),
-                ("vec[0][2]", self.vec[0][2]),
-                ("vec[1][0]", self.vec[1][0]),
-                ("vec[1][1]", self.vec[1][1]),
-                ("vec[1][2]", self.vec[1][2]),
-                ("vec[2][0]", self.vec[2][0]),
-                ("vec[2][1]", self.vec[2][1]),
-                ("vec[2][2]", self.vec[2][2]),
-                ("mag[0]", self.mag[0]),
-                ("mag[1]", self.mag[1]),
-                ("mag[2]", self.mag[2]),
-                ("center[0]", self.center[0]),
-                ("center[1]", self.center[1]),
-                ("center[2]", self.center[2]))
+        return self._gen_hash_tuple(arraylike_fields=['mag','center','vec']) 
+        # return (("vec[0][0]", self.vec[0][0]),
+        #         ("vec[0][1]", self.vec[0][1]),
+        #         ("vec[0][2]", self.vec[0][2]),
+        #         ("vec[1][0]", self.vec[1][0]),
+        #         ("vec[1][1]", self.vec[1][1]),
+        #         ("vec[1][2]", self.vec[1][2]),
+        #         ("vec[2][0]", self.vec[2][0]),
+        #         ("vec[2][1]", self.vec[2][1]),
+        #         ("vec[2][2]", self.vec[2][2]),
+        #         ("mag[0]", self.mag[0]),
+        #         ("mag[1]", self.mag[1]),
+        #         ("mag[2]", self.mag[2]),
+        #         ("center[0]", self.center[0]),
+        #         ("center[1]", self.center[1]),
+        #         ("center[2]", self.center[2]))
 
 ellipsoid_selector = EllipsoidSelector
 
