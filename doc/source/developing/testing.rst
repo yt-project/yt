@@ -3,8 +3,9 @@
 Testing
 =======
 
-yt includes a testing suite which one can run on the codebase to assure that no
-breaks in functionality have occurred.  This testing suite is based on the Nose_
+yt includes a testing suite that one can run on the codebase to assure that no
+breaks in functionality have occurred.  This testing suite is based on the
+`Pytest <https://docs.pytest.org/en/stable/>`_
 testing framework.  The suite consists of two components, unit tests and answer
 tests. Unit tests confirm that an isolated piece of functionality runs without
 failure for inputs with known correct outputs.  Answer tests verify the
@@ -12,8 +13,6 @@ integration and compatibility of the individual code unit by generating output
 from user-visible yt functions and comparing and matching the results against
 outputs of the same function produced using older versions of the yt codebase.
 This ensures consistency in results as development proceeds.
-
-.. _nosetests:
 
 The testing suite should be run locally by developers to make sure they aren't
 checking in any code that breaks existing functionality.  To further this goal,
@@ -31,32 +30,31 @@ What do Unit Tests Do
 ^^^^^^^^^^^^^^^^^^^^^
 
 Unit tests are tests that operate on some small set of machinery, and verify
-that the machinery works.  yt uses the `Nose
-<https://nose.readthedocs.io/en/latest/>`_ framework for running unit tests.  In
-practice, what this means is that we write scripts that assert statements, and
-Nose identifies those scripts, runs them, and verifies that the assertions are
+that the machinery works. In practice, what this means is that we write scripts
+that assert statements, and
+Pytest identifies those scripts, runs them, and verifies that the assertions are
 true and the code runs without crashing.
 
 How to Run the Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-One can run the unit tests very straightforwardly from any python interpreter
-that can import the yt module:
+One can run the unit tests very straightforwardly from the root yt repository
+using a python interpreter:
 
 .. code-block:: python
 
-   import yt
-   yt.run_nose()
+   import pytest
+   pytest.main()
 
 If you are developing new functionality, it is sometimes more convenient to use
-the Nose command line interface, ``nosetests``. You can run the unit tests
-using ``nose`` by navigating to the base directory of the yt git
-repository and invoking ``nosetests``:
+the Pytest command line interface, ``pytest``. You can run the unit tests
+using ``pytest`` by navigating to the base directory of the yt git
+repository and invoking ``pytest``:
 
 .. code-block:: bash
 
    $ cd $YT_GIT
-   $ nosetests
+   $ pytest
 
 where ``$YT_GIT`` is the path to the root of the yt git repository.
 
@@ -68,7 +66,7 @@ run:
 
 .. code-block:: bash
 
-   $ nosetests yt/visualization/tests/test_plotwindow.py
+   $ pytest yt/visualization/tests/test_plotwindow.py
 
 Handling yt dependencies
 ^^^^^^^^^^^^^^^^^^^^^^^^
@@ -128,11 +126,7 @@ To create new unit tests:
 #. Inside that file, create one or more routines prefixed with ``test_`` that
    accept no arguments. The test function should do some work that tests some
    functionality and should also verify that the results are correct using
-   assert statements or functions.  
-#. Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
-   ``argument_two``, etc.  For example ``yield my_test, 'banana', 2.0`` would be
-   captured by nose and the ``my_test`` function will be run with the provided
-   arguments.
+   assert statements or functions.
 #. Use ``fake_random_ds`` to test on datasets, and be sure to test for
    several combinations of ``nproc``, so that domain decomposition can be
    tested as well.
@@ -149,47 +143,47 @@ Debugging failing tests
 
 When writing new tests, often one exposes bugs or writes a test incorrectly,
 causing an exception to be raised or a failed test. To help debug issues like
-this, ``nose`` can drop into a debugger whenever a test fails or raises an
-exception. This can be accomplished by passing ``--pdb`` and ``--pdb-failures``
-to the ``nosetests`` executable. These options will drop into the pdb debugger
-whenever an error is raised or a failure happens, respectively. Inside the
+this, ``pytest`` can drop into a debugger whenever a test fails or raises an
+exception. This can be accomplished by passing ``--pdb`` to the ``pytest``
+executable. These options will drop into the pdb debugger
+whenever an error is raised or a failure happens. Inside the
 debugger you can interactively print out variables and go up and down the call
 stack to determine the context for your failure or error.
 
 .. code-block:: bash
 
-    nosetests --pdb --pdb-failures
+    pytest --pdb
 
 In addition, one can debug more crudely using print statements. To do this,
 you can add print statements to the code as normal. However, the test runner
 will capture all print output by default. To ensure that output gets printed
-to your terminal while the tests are running, pass ``-s`` to the ``nosetests``
+to your terminal while the tests are running, pass ``-s`` to the ``pytest``
 executable.
 
 Lastly, to quickly debug a specific failing test, it is best to only run that
 one test during your testing session. This can be accomplished by explicitly
-passing the name of the test function or class to ``nosetests``, as in the
+passing the name of the test function or class to ``pytest``, as in the
 following example:
 
 .. code-block:: bash
 
-    $ nosetests yt.visualization.tests.test_plotwindow:TestSetWidth
+    $ pytest yt/visualization/tests/test_plotwindow.py::TestSetWidth
 
-This nosetests invocation will only run the tests defined by the
+This pytest invocation will only run the tests defined by the
 ``TestSetWidth`` class.
 
 Finally, to determine which test is failing while the tests are running, it helps
 to run the tests in "verbose" mode. This can be done by passing the ``-v`` option
-to the ``nosetests`` executable.
+to the ``pytest`` executable.
 
-All of the above ``nosetests`` options can be combined. So, for example to run
+All of the above ``pytest`` options can be combined. So, for example to run
 the ``TestSetWidth`` tests with verbose output, letting the output of print
 statements come out on the terminal prompt, and enabling pdb debugging on errors
 or test failures, one would do:
 
 .. code-block:: bash
 
-    $ nosetests --pdb --pdb-failures -v -s yt.visualization.tests.test_plotwindow:TestSetWidth
+    $ pytest --pdb -v -s yt/visualization/tests/test_plotwindow.py::TestSetWidth
 
 .. _answer_testing:
 
@@ -235,84 +229,91 @@ project's contiguous integration server.
 .. code-block:: bash
 
    $ cd $YT_GIT
-   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-name=local-tipsy yt.frontends.tipsy
+   $ pytest --with-answer-testing --local-dir="~/Documents/test" --answer-store -k "TestTipsy"
 
 This command will create a set of local answers from the tipsy frontend tests
-and store them in ``$HOME/Documents/test`` (this can but does not have to be the
+and store them in ``~/Documents/test`` (this can but does not have to be the
 same directory as the ``test_data_dir`` configuration variable defined in your
-``~/.config/yt/ytrc`` file) in a file named ``local-tipsy``. To run the tipsy
+``~/.config/yt/ytrc`` file). The name of the file the answers are stored in is
+specified in ``tests/tests.yaml``. To run the tipsy
 frontend's answer tests using a different yt changeset, update to that
 changeset, recompile if necessary, and run the tests using the following
 command:
 
 .. code-block:: bash
 
-   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-name=local-tipsy yt.frontends.tipsy
+   $ pytest --with-answer-testing --local-dir="~/Documents/test" -k "TestTipsy"
 
-The results from a nose testing session are pretty straightforward to
+The results from a pytest testing session are pretty straightforward to
 understand, the results for each test are printed directly to STDOUT.  If a test
-passes, nose prints a period, F if a test fails, and E if the test encounters an
+passes, pytest prints a period, F if a test fails, and E if the test encounters an
 exception or errors out for some reason.  Explicit descriptions for each test
-are also printed if you pass ``-v`` to the ``nosetests`` executable.  If you
+are also printed if you pass ``-v`` to the ``pytest`` executable.  If you
 want to also run tests for the 'big' datasets, then you will need to pass
-``--answer-big-data`` to ``nosetests``.  For example, to run the tests for the
+``--answer-big-data`` to ``pytest``.  For example, to run the tests for the
 OWLS frontend, do the following:
 
 .. code-block:: bash
 
-   $ nosetests --with-answer-testing --local --local-dir $HOME/Documents/test --answer-store --answer-big-data yt.frontends.owls
+   $ pytest --with-answer-testing --local-dir="~/Documents/test" --answer-store --answer-big-data -k "TestOwls"
 
+Answer Formats
+^^^^^^^^^^^^^^
+
+By default, yt produces a hash of whatever result is returned from a test. This
+is because, oftentimes, the test results are large arrays, so using a hash
+facilitates easier comparison and much smaller, more human-readable answer
+files using the ``yaml`` format.
+
+However, there are times when you might want to actually see the result that
+a test is returning, particularly during debugging. As such, yt provides the
+``--answer-raw-arrays`` and ``--raw-answer-store`` command line options for
+``pytest``. If both of these options are passed to ``pytest``, then, in
+addition to saving a hashed version of the result, yt will also save the raw,
+un-hashed version of the result, as well. These raw results are saved in an
+hdf5 file in the directory specified by `--local-dir``. For example,
+
+.. code-block:: bash
+
+   $ pytest --with-answer-testing --answer-raw-arrays --raw-answer-store --local-dir="~/Documents/test" -k "TestTipsy"
+
+will run the answer tests for the tipsy frontend and save the un-hased test
+results in ``~/Documents/test`` with a file extension of ``.h5``.
+
+To compare raw answers to a set of already saved raw answers, you simply omit
+the ``--raw-answer-store`` option.
+
+.. note::
+
+   The raw answer files can get quite large!
 
 How to Write Answer Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Tests can be added in the file ``yt/utilities/answer_testing/framework.py`` .
+Tests can be added in the file ``yt/utilities/answer_testing/answer_tests.py`` .
 You can find examples there of how to write a test.  Here is a trivial example:
 
 .. code-block:: python
 
    #!python
-   class MaximumValueTest(AnswerTestingTest):
-       _type_name = "MaximumValue"
-       _attrs = ("field",)
-       def __init__(self, ds_fn, field):
-           super(MaximumValueTest, self).__init__(ds_fn)
-           self.field = field
-
-       def run(self):
-           v, c = self.ds.find_max(self.field)
-           result = np.empty(4, dtype="float64")
-           result[0] = v
-           result[1:] = c
-           return result
-
-       def compare(self, new_result, old_result):
-           assert_equal(new_result, old_result)
+   def maximum_value_test(ds, field):
+      v, c = ds.find_max(field)
+      result = np.empty(4, dtype="float64")
+      result[0] = v
+      result[1:] = c
+      return result
 
 What this does is calculate the location and value of the maximum of a
-field.  It then puts that into the variable result, returns that from
-``run`` and then in ``compare`` makes sure that all are exactly equal.
+field.  It then puts that into the variable result and returns. If ``--answer-
+store`` has been passed to ``pytest``, then a hash of ``result`` is saved.
+If ``--answer-raw-arrays`` and ``--raw-answer-store`` have been passed to
+``pytest`` then the un-hashed form of ``result`` is also saved.
 
-To write a new test:
-
-* Subclass ``AnswerTestingTest``
-* Add the attributes ``_type_name`` (a string) and ``_attrs``
-  (a tuple of strings, one for each attribute that defines the test --
-  see how this is done for projections, for instance)
-* Implement the two routines ``run`` and ``compare``  The first
-  should return a result and the second should compare a result to an old
-  result.  Neither should yield, but instead actually return.  If you need
-  additional arguments to the test, implement an ``__init__`` routine.
-* Keep in mind that *everything* returned from ``run`` will be stored.  So if
-  you are going to return a huge amount of data, please ensure that the test
-  only gets run for small data.  If you want a fast way to measure something as
-  being similar or different, either an md5 hash (see the grid values test) or
-  a sum and std of an array act as good proxies.  If you must store a large
-  amount of data for some reason, try serializing the data to a string
-  (e.g. using ``numpy.ndarray.dumps``), and then compressing the data stream
-  using ``zlib.compress``.
-* Typically for derived values, we compare to 10 or 12 decimal places.
-  For exact values, we compare exactly.
+If the answers are **not** being saved, then yt will look for an existing answer
+file, read in the results, and then compare the new results to the old ones.
+This is done via the ``_compare_raw_arrays`` and ``_compare_result`` functions
+in ``yt/utilities/answer_testing/testing_utilities.py`` for raw answers and
+hashed answers, respectively.
 
 How To Write Answer Tests for a Frontend
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -326,28 +327,25 @@ considered canonical.  Do these things:
 * Create a new file, ``test_outputs.py`` in the frontend's ``tests``
   directory.
 
-* Create a new routine that operates similarly to the routines you can see
-  in Enzo's output tests.
+* Create a new class with methods that operates similarly to the methods you
+ can see in Enzo's ``TestEnzo`` class.
 
-  * This routine should test a number of different fields and data objects.
+* The class should have the name ``TestFrontendName``, where ``FrontendName`` is
+the name of the frontend you are writing tests for.
 
-  * The test routine itself should be decorated with
-    ``@requires_ds(test_dataset_name)``. This decorator can accept the
-    argument ``big_data=True`` if the test is expensive. The
-    ``test_dataset_name`` should be a string containing the path you would pass
-    to the ``yt.load`` function. It does not need to be the full path to the
-    dataset, since the path will be automatically prepended with the location of
-    the test data directory.  See :ref:`configuration-file` for more information
-    about the ``test_data-dir`` configuration option.
+* The class should be decorated with ``@pytest.mark.answer_test``.
 
-  * There are ``small_patch_amr`` and ``big_patch_amr`` routines that you can
-    yield from to execute a bunch of standard tests. In addition we have created
-    ``sph_answer`` which is more suited for particle SPH datasets. This is where
-    you should start, and then yield additional tests that stress the outputs in
-    whatever ways are necessary to ensure functionality.
+* These methods should test a number of different fields and data objects.
 
-If you are adding to a frontend that has a few tests already, skip the first
-two steps.
+   * This is most easily accomplished by taking advantage of ``pytest``'s
+   `parameterization features <https://docs.pytest.org/en/2.8.7/example/parametrize.html>`_
+
+* If the methods are going to have their results saved, then the ``@pytest.mark.usefixtures("hashing")`` decorator should be used. This
+fixture takes care of hashing the results, saving the results, and comparing
+the results.
+
+* If the method requires a large data file, it should be further decorated with
+``@pytest.mark.big_data`` (see, for example, ``yt/frontends/owls/tests/test_outputs.py``).
 
 How to Write Image Comparison Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -358,123 +356,73 @@ differences, if any. Image comparison tests are used in the plotting and volume
 rendering machinery.
 
 The easiest way to use the image comparison tests is to make use of the
-``GenericImageTest`` class. This class takes three arguments:
+``generic_image`` function. This function takes three arguments:
 
-* A dataset instance (e.g. something you load with ``yt.load`` or
-  ``data_dir_load``)
-* A function the test machinery can call which will save an image to disk. The
-  test class will then find any images that get created and compare them with the
+* A function the test machinery can call which will save an image to disk. yt will then find any images that get created and compare them with the
   stored "correct" answer.
-* An integer specifying the number of decimal places to use when comparing
-  images. A smaller number of decimal places will produce a less stringent test.
-  Matplotlib uses an L2 norm on the full image to do the comparison tests, so
-  this is not a pixel-by-pixel measure, and surprisingly large variations will
-  still pass the test if the strictness of the comparison is not high enough.
-
-You *must* decorate your test function with ``requires_ds``, otherwise the
-answer testing machinery will not be properly set up.
 
 Here is an example test function:
 
 .. code-block:: python
 
-   from yt.utilities.answer_testing.framework import \
-       GenericImageTest, requires_ds, data_dir_load
+   from yt.utilities.answer_testing.answer_tests import generic_image
+   from yt.utilities.answer_testing.testing_utilities import data_dir_load
 
    from matplotlib import pyplot as plt
 
-   @requires_ds(my_ds)
-   def test_my_ds():
-       ds = data_dir_load(my_ds)
+   @pytest.mark.answer_test
+   class TestFrontendName:
+      @pytest.mark.usefixtures("hashing")
+      def test_my_ds(self):
+          ds = data_dir_load(my_ds)
+          my_plot = plt.plot([1, 2], [1, ])
 
-       def create_image(filename_prefix):
-           plt.plot([1, 2], [1, 2])
-           plt.savefig("%s_lineplot" % filename_prefix)
-       test = GenericImageTest(ds, create_image, 12)
+          def create_image(image_name):
+            return my_plot.save(image_name)
+         gi = generic_image(create_image)[0]
+         self.hashes.update({"generic_image" : gi})
 
-       # this ensures the test has a unique key in the
-       # answer test storage file
-       test.prefix = "my_unique_name"
-
-       # this ensures a nice test name in nose's output
-       test_my_ds.__name__ = test.description
-
-       yield test
-
-.. note:: The inner function ``create_image`` can create any number of images,
-   as long as the corresponding filenames conform to the prefix.
-
-Another good example of an image comparison test is the
-``PlotWindowAttributeTest`` defined in the answer testing framework and used in
-``yt/visualization/tests/test_plotwindow.py``. This test shows how a new answer
-test subclass can be used to programmatically test a variety of different methods
-of a complicated class using the same test class. This sort of image comparison
-test is more useful if you are finding yourself writing a ton of boilerplate
-code to get your image comparison test working.  The ``GenericImageTest`` is
-more useful if you only need to do a one-off image comparison test.
+Another good example of an image comparison test is
+``plot_window_attribute`` defined in ``answer_tests.py`` and used in
+``yt/visualization/tests/test_plotwindow.py``.
 
 Enabling Answer Tests on Jenkins
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Before any code is added to or modified in the yt codebase, each incoming
 changeset is run against all available unit and answer tests on our `continuous
 integration server <https://tests.yt-project.org>`_. While unit tests are
-autodiscovered by `nose <https://nose.readthedocs.io/en/latest/>`_ itself,
+autodiscovered by `pytest <https://docs.pytest.org/en/stable/>`_ itself,
 answer tests require definition of which set of tests constitute to a given
 answer. Configuration for the integration server is stored in
 *tests/tests.yaml* in the main yt repository:
 
 .. code-block:: yaml
 
-   answer_tests:
-      local_artio_000:
-         - yt/frontends/artio/tests/test_outputs.py
+   TestAdaptahop:
+      - adaptahop_answers_000.yaml
+      - adaptahop_answers_raw_000.h5
    # ...
-   other_tests:
-      unittests:
-         - '-v'
-         - '-s'
 
-Each element under *answer_tests* defines answer name (*local_artio_000* in above
-snippet) and specifies a list of files/classes/methods that will be validated
-(*yt/frontends/artio/tests/test_outputs.py* in above snippet). On the testing
-server it is translated to:
+where each answer test class is listed along with the file names to use for
+both the hashed and raw answers.
 
-.. code-block:: bash
+The number in each file name refers to the answer file revision to use.
 
-   $ nosetests --with-answer-testing --local --local-dir ... --answer-big-data \
-      --answer-name=local_artio_000 \
-      yt/frontends/artio/tests/test_outputs.py
-
-If the answer doesn't exist on the server yet, ``nosetests`` is run twice and
-during first pass ``--answer-store`` is added to the commandline.
 
 Updating Answers
 ~~~~~~~~~~~~~~~~
 
-In order to regenerate answers for a particular set of tests it is sufficient to
-change the answer name in *tests/tests.yaml* e.g.:
+If you are trying to save answers for a test class that already has an answer
+file on disk, you will get an error unless you specify the ``--force-overwrite``
+option on the command line. This is **strongly** discouraged. You should almost
+always instead bump the file revision number and re-run, e.g.,
+``enzo_answers_000.yaml -> enzo_answers_001.yaml``.
 
-.. code-block:: diff
-
-   --- a/tests/tests.yaml
-   +++ b/tests/tests.yaml
-   @@ -25,7 +25,7 @@
-        - yt/analysis_modules/halo_finding/tests/test_rockstar.py
-        - yt/frontends/owls_subfind/tests/test_outputs.py
-
-   -  local_owls_000:
-   +  local_owls_001:
-        - yt/frontends/owls/tests/test_outputs.py
-
-      local_pw_000:
-
-would regenerate answers for OWLS frontend. 
-
-When adding tests to an existing set of answers (like ``local_owls_000`` or ``local_varia_000``), 
-it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing 
-the version number. Then, allow the tests to run (resulting in "no old answer" errors for the missing
+When adding tests to an existing set of answers (like ``owls_answers_000.yaml``),
+it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing
+the version number. Then, allow the tests to run (resulting in errors for the missing
 answers). If no other failures are present, you can then increment the version number to regenerate
-the answers. This way, we can avoid accidentally covering up test breakages. 
+the answers. This way, we can avoid accidentally covering up test breakages.
 
 Adding New Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -482,17 +430,8 @@ Adding New Answer Tests
 In order to add a new set of answer tests, it is sufficient to extend the
 *answer_tests* list in *tests/tests.yaml* e.g.:
 
-.. code-block:: diff
+.. code-block:: yaml
 
-   --- a/tests/tests.yaml
-   +++ b/tests/tests.yaml
-   @@ -60,6 +60,10 @@
-        - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_non_cosmo
-        - yt/analysis_modules/absorption_spectrum/tests/test_absorption_spectrum.py:test_absorption_spectrum_cosmo
-
-   +  local_gdf_000:
-   +    - yt/frontends/gdf/tests/test_outputs.py
-   +
-   +
-    other_tests:
-      unittests:
+   TestNewFrontend:
+      - newfrontend_answers_000.yaml
+      - newfrontend_answers_raw_000.h5
