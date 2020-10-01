@@ -11,8 +11,7 @@ from yt.utilities.answer_testing.answer_tests import (
     pixelized_projection_values,
     sph_validation,
 )
-from yt.utilities.answer_testing.testing_utilities import data_dir_load
-from yt.utilities.answer_testing.testing_utilities import requires_ds
+from yt.utilities.answer_testing.testing_utilities import data_dir_load, requires_ds
 
 # Test data
 bullet_h5 = "ArepoBullet/snapshot_150.hdf5"
@@ -74,7 +73,6 @@ pair_list = [
     [bullet_h5, fields_bullet, weights_bullet, objs_bullet],
     [tng59_h5, fields_tng, weights_tng, objs_tng],
 ]
-
 
 
 ppv_pairs = []

@@ -15,8 +15,8 @@ from yt.frontends.ytdata.api import (
 from yt.loaders import load
 from yt.testing import assert_array_equal
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.answer_testing.testing_utilities import compare_unit_attributes
 from yt.utilities.answer_testing.answer_tests import yt_data_field
+from yt.utilities.answer_testing.testing_utilities import compare_unit_attributes
 from yt.visualization.profile_plotter import PhasePlot, ProfilePlot
 
 # Test data

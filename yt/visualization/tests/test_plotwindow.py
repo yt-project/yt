@@ -23,9 +23,8 @@ from yt.testing import (
 )
 from yt.units import kboltz
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.answer_testing.testing_utilities import requires_ds
-from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.answer_testing.answer_tests import plot_window_attribute
+from yt.utilities.answer_testing.testing_utilities import data_dir_load, requires_ds
 from yt.utilities.exceptions import YTInvalidFieldType
 from yt.visualization.api import (
     OffAxisProjectionPlot,

@@ -17,12 +17,11 @@ from yt.testing import (
     requires_file,
 )
 from yt.units.yt_array import YTArray
-from yt.utilities.answer_testing.testing_utilities import requires_ds
-from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.answer_testing.answer_tests import (
     phase_plot_attribute,
     plot_window_attribute,
 )
+from yt.utilities.answer_testing.testing_utilities import data_dir_load, requires_ds
 from yt.visualization.api import ParticlePhasePlot, ParticlePlot, ParticleProjectionPlot
 from yt.visualization.tests.test_plotwindow import WIDTH_SPECS
 

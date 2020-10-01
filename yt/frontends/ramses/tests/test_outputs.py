@@ -18,9 +18,11 @@ from yt.utilities.answer_testing.answer_tests import (
     field_values,
     pixelized_projection_values,
 )
-from yt.utilities.answer_testing.testing_utilities import create_obj
-from yt.utilities.answer_testing.testing_utilities import data_dir_load
-from yt.utilities.answer_testing.testing_utilities import requires_ds
+from yt.utilities.answer_testing.testing_utilities import (
+    create_obj,
+    data_dir_load,
+    requires_ds,
+)
 
 # Test data
 output_00080 = "output_00080/info_00080.txt"

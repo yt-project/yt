@@ -5,8 +5,6 @@ import yt  # NOQA
 from yt.frontends.amrvac.api import AMRVACDataset, AMRVACGrid
 from yt.testing import requires_file
 from yt.units import YTArray
-from yt.utilities.answer_testing.testing_utilities import data_dir_load
-from yt.utilities.answer_testing.testing_utilities import requires_ds
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     grid_hierarchy,
@@ -14,6 +12,7 @@ from yt.utilities.answer_testing.answer_tests import (
     parentage_relationships,
     projection_values,
 )
+from yt.utilities.answer_testing.testing_utilities import data_dir_load, requires_ds
 
 # Test parameters
 blastwave_spherical_2D = "amrvac/bw_2d0000.dat"

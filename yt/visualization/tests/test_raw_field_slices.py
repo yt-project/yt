@@ -1,9 +1,8 @@
 import pytest
 
 import yt
-from yt.utilities.answer_testing.testing_utilities import requires_ds
-from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.answer_testing.answer_tests import generic_image
+from yt.utilities.answer_testing.testing_utilities import data_dir_load, requires_ds
 
 
 def compare(ds, field):

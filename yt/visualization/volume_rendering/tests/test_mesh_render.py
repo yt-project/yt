@@ -5,9 +5,8 @@ import pytest
 
 from yt.config import ytcfg
 from yt.testing import fake_hexahedral_ds, fake_tetrahedral_ds, requires_module
-from yt.utilities.answer_testing.testing_utilities import requires_ds
-from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.answer_testing.answer_tests import generic_image
+from yt.utilities.answer_testing.testing_utilities import data_dir_load, requires_ds
 from yt.visualization.volume_rendering.api import MeshSource, Scene, create_scene
 
 hex8 = "MOOSE_sample_data/out.e-s010"

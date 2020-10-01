@@ -6,8 +6,8 @@ from yt.config import ytcfg
 from yt.data_objects.particle_filters import particle_filter
 from yt.data_objects.time_series import DatasetSeries
 from yt.testing import fake_particle_ds
-from yt.utilities.answer_testing.testing_utilities import requires_ds
 from yt.utilities.answer_testing.answer_tests import generic_array
+from yt.utilities.answer_testing.testing_utilities import requires_ds
 from yt.utilities.exceptions import YTIllDefinedParticleData
 
 data_path = ytcfg.get("yt", "test_data_dir")

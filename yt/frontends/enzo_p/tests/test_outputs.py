@@ -3,11 +3,11 @@ import pytest
 
 from yt.frontends.enzo_p.api import EnzoPDataset
 from yt.testing import assert_array_equal, assert_equal
-from yt.utilities.answer_testing.testing_utilities import create_obj
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     pixelized_projection_values,
 )
+from yt.utilities.answer_testing.testing_utilities import create_obj
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 # Test data

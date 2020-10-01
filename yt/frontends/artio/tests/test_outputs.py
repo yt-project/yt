@@ -6,8 +6,7 @@ from yt.utilities.answer_testing.answer_tests import (
     field_values,
     pixelized_projection_values,
 )
-from yt.utilities.answer_testing.testing_utilities import create_obj
-from yt.utilities.answer_testing.testing_utilities import requires_ds
+from yt.utilities.answer_testing.testing_utilities import create_obj, requires_ds
 
 # Data file
 sizmbhloz = "sizmbhloz-clref04SNth-rs9_a0.9011/"

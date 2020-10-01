@@ -11,8 +11,6 @@ from yt.testing import (
     requires_file,
     units_override_check,
 )
-from yt.utilities.answer_testing.testing_utilities import get_parameterization
-from yt.utilities.answer_testing.testing_utilities import data_dir_load
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     grid_hierarchy,
@@ -20,6 +18,10 @@ from yt.utilities.answer_testing.answer_tests import (
     parentage_relationships,
     pixelized_projection_values,
     projection_values,
+)
+from yt.utilities.answer_testing.testing_utilities import (
+    data_dir_load,
+    get_parameterization,
 )
 from yt.visualization.plot_window import SlicePlot
 
