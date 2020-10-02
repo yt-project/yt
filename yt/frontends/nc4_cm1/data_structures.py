@@ -41,10 +41,6 @@ class CM1Hierarchy(GridIndex):
         self.float_type = np.float64
         super(CM1Hierarchy, self).__init__(ds, dataset_type)
 
-    def _initialize_state_variables(self):
-        super(CM1Hierarchy, self)._initialize_state_variables()
-        self.num_grids = 1
-
     def _detect_output_fields(self):
         # build list of on-disk fields for dataset_type 'cm1'
         self.field_list = []
@@ -173,16 +169,17 @@ class CM1Dataset(Dataset):
         self.hubble_constant = 0.0
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
 
-        warn_netcdf(args[0])
+        warn_netcdf(filename)
         try:
-            nc4_file = NetCDF4FileHandler(args[0])
+            nc4_file = NetCDF4FileHandler(filename)
             with nc4_file.open_ds(keepweakref=True) as _handle:
                 is_cm1_lofs = hasattr(_handle, "cm1_lofs_version")
                 is_cm1 = hasattr(_handle, "cm1 version")  # not a typo, it is a space...
+
                 # ensure coordinates of each variable array exists in the dataset
                 coords = _handle.dimensions  # get the dataset wide coordinates
                 failed_vars = []  # list of failed variables
@@ -196,26 +193,22 @@ class CM1Dataset(Dataset):
 
                 if failed_vars:
                     mylog.warning(
-                        (
-                            "Trying to load a cm1_lofs netcdf file but the coordinates "
-                            "of the following fields do not match the coordinates of "
-                            f"the dataset: {failed_vars}"
-                        )
+                        "Trying to load a cm1_lofs netcdf file but the "
+                        "coordinates of the following fields do not match the "
+                        f"coordinates of the dataset: {failed_vars}"
                     )
                     return False
 
             if not is_cm1_lofs:
                 if is_cm1:
                     mylog.warning(
-                        (
-                            "It looks like you are trying to load a cm1 netcdf file, "
-                            "but at present yt only supports cm1_lofs output. Until"
-                            " support is added, you can likely use"
-                            " yt.load_uniform_grid() to load your cm1 file manually."
-                        )
+                        "It looks like you are trying to load a cm1 netcdf file, "
+                        "but at present yt only supports cm1_lofs output. Until"
+                        " support is added, you can likely use"
+                        " yt.load_uniform_grid() to load your cm1 file manually."
                     )
                 return False
-        except Exception:
+        except (OSError, AttributeError):
             return False
 
         return True

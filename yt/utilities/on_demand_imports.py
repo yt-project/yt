@@ -65,7 +65,6 @@ class netCDF4_imports:
             import netCDF4  # noqa F401
         except ImportError:
             pass
-        super(netCDF4_imports, self).__init__()
 
     @property
     def Dataset(self):
