@@ -33,6 +33,82 @@ from .io_utils import fill_hydro, read_amr
 from .particle_handlers import get_particle_handlers
 
 
+class RAMSESFileSanitizer:
+    """A class to handle the different files that can be passed and associated
+    safely to a RAMSES output."""
+
+    def __init__(self, filename):
+        # Resolve so that it works with symlinks
+        filename = Path(filename).resolve()
+
+        self.original_filename = filename
+
+        self.output_dir = None
+        self.info_fname = None
+
+        for check_fun in (self.test_with_standard_file, self.test_with_folder_name):
+            ok, output_dir, info_fname = check_fun(filename)
+            if ok:
+                break
+
+        # Early exit if the ok flag is False
+        if not ok:
+            return
+
+        # Special case when organized in groups
+        if output_dir.name == "group_00001":
+            self.root_folder = output_dir.parent
+            self.group_folder = output_dir.name
+        else:
+            self.root_folder = output_dir
+            self.group_folder = None
+        self.info_fname = info_fname
+
+    @property
+    def is_valid(self):
+        return (self.root_folder is not None) and (self.info_fname is not None)
+
+    @staticmethod
+    def check_standard_files(folder, iout):
+        """Return true if the folder contains an amr file and the info file."""
+        # Check that the "amr_" and "info_" files exist
+        ok = (folder / f"amr_{iout}.out00001").is_file()
+        ok &= (folder / f"info_{iout}.txt").is_file()
+        return ok
+
+    @classmethod
+    def test_with_folder_name(cls, output_dir):
+        iout_match = OUTPUT_DIR_RE.match(output_dir.name)
+        ok = output_dir.is_dir() and iout_match is not None
+        if ok:
+            iout = iout_match.group(2)
+            ok &= cls.check_standard_files(output_dir, iout)
+            info_fname = output_dir / f"info_{iout}.txt"
+        else:
+            output_dir, info_fname = None, None
+
+        return ok, output_dir, info_fname
+
+    @classmethod
+    def test_with_standard_file(cls, filename):
+        iout_match = OUTPUT_DIR_RE.match(filename.parent.name)
+        ok = (
+            filename.is_file()
+            and STANDARD_FILE_RE.match(filename.name) is not None
+            and iout_match is not None
+        )
+
+        if ok:
+            iout = iout_match.group(2)
+            ok &= cls.check_standard_files(filename.parent, iout)
+            output_dir = filename.parent
+            info_fname = output_dir / f"info_{iout}.txt"
+        else:
+            output_dir, info_fname = None, None
+
+        return ok, output_dir, info_fname
+
+
 class RAMSESDomainFile:
     _last_mask = None
     _last_selector_id = None
@@ -606,27 +682,29 @@ class RAMSESDataset(Dataset):
             max_level, max_level_convention
         )
 
+        file_handler = RAMSESFileSanitizer(filename)
+
+        # This should not happen, but let's check nonetheless.
+        if not file_handler.is_valid:
+            raise RuntimeError(
+                "Invalid filename found when building a RAMSESDataset object: %s",
+                filename,
+            )
+
         # Sanitize the filename
-        output_folder, info_fname = self._sanitize_filename(filename)
+        info_fname = file_handler.info_fname
 
-        # Infer if the output is organized in groups
-        root_folder, group_folder = os.path.split(output_folder)
-
-        if group_folder == "group_00001":
-            # Count the number of groups
-            # note: we exclude the unlikely event that one of the group is actually a
-            # file instad of a folder
+        if file_handler.group_folder is not None:
             self.num_groups = len(
                 [
                     _
-                    for _ in glob(os.path.join(root_folder, "group_?????"))
+                    for _ in glob(str(file_handler.root_folder / "group_?????"))
                     if os.path.isdir(_)
                 ]
             )
-            self.root_folder = root_folder
         else:
-            self.root_folder = output_folder
             self.num_groups = 0
+        self.root_folder = file_handler.root_folder
 
         Dataset.__init__(
             self,
@@ -883,59 +961,6 @@ class RAMSESDataset(Dataset):
 
             self.parameters["namelist"] = nml
 
-    @staticmethod
-    def _sanitize_filename(path):
-        # Do not forget to resolve so that it works with symlinks
-        filename = Path(path).resolve()
-
-        def check_standard_files(output_dir, iout):
-            # Check that the "amr_" and "info_" files exist
-            ok = (output_dir / f"amr_{iout}.out00001").is_file()
-            ok &= (output_dir / f"info_{iout}.txt").is_file()
-            return ok
-
-        def test_with_folder_name(output_dir):
-            iout_match = OUTPUT_DIR_RE.match(output_dir.name)
-            ok = output_dir.is_dir() and iout_match is not None
-            if ok:
-                iout = iout_match.group(2)
-                ok &= check_standard_files(output_dir, iout)
-                info_fname = output_dir / f"info_{iout}.txt"
-            else:
-                output_dir, info_fname = None, None
-
-            return ok, output_dir, info_fname
-
-        def test_with_standard_file(filename):
-            iout_match = OUTPUT_DIR_RE.match(filename.parent.name)
-            ok = (
-                filename.is_file()
-                and STANDARD_FILE_RE.match(filename.name) is not None
-                and iout_match is not None
-            )
-
-            if ok:
-                iout = iout_match.group(2)
-                ok &= check_standard_files(filename.parent, iout)
-                output_dir = filename.parent
-                info_fname = output_dir / f"info_{iout}.txt"
-            else:
-                output_dir, info_fname = None, None
-
-            return ok, output_dir, info_fname
-
-        for check_fun in (test_with_standard_file, test_with_folder_name):
-            ok, output_dir, info_fname = check_fun(filename)
-            if ok:
-                return output_dir, info_fname
-        else:
-            return None, None
-
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        output_dir, info_fname = cls._sanitize_filename(filename)
-
-        if output_dir is None or info_fname is None:
-            return False
-        else:
-            return True
+        return RAMSESFileSanitizer(filename).is_valid
