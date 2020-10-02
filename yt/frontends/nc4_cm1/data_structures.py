@@ -126,11 +126,13 @@ class CM1Dataset(Dataset):
         with self._handle.open_ds() as _handle:
             # _handle here is a netcdf Dataset object, we need to parse some metadata
             # for constructing our yt ds.
-            dims = [_handle.dimensions[i].size for i in ["xh", "yh", "zh"]]
 
             # TO DO: generalize this to be coordiante variable name agnostic in order to
             # make useful for WRF or climate data. For now, we're hard coding for CM1
-            # specifically and have named the classes appropriately
+            # specifically and have named the classes appropriately. Additionaly, we
+            # are only handling the cell-centered grid ("xh","yh","zh") at present.
+            # The cell-centered grid contains scalar fields and interpolated velocities.
+            dims = [_handle.dimensions[i].size for i in ["xh", "yh", "zh"]]
             xh, yh, zh = [_handle.variables[i][:] for i in ["xh", "yh", "zh"]]
             self.domain_left_edge = np.array(
                 [xh.min(), yh.min(), zh.min()], dtype="float64"
