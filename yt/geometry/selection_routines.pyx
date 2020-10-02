@@ -692,26 +692,36 @@ cdef class SelectorObject:
     def _hash_vals(self):
         raise NotImplementedError
 
-    def _gen_hash_tuple(self,scalar_fields=[],arraylike_fields=[],hash_vals=(),nd=3):
-        # generates (or appends to) the hash tuple
-        for fld in scalar_fields:
-            hash_vals += ((fld,getattr(self,fld)),)
-        for fld in arraylike_fields:
-            for idx in range(nd):
-              hash_vals += ((fld,getattr(self,fld)[idx],idx),)
-        return hash_vals
-
     def _base_hash(self):
-        scalar_fields = ["min_level","max_level","overlap_cells"]
-        arraylike_fields = ["periodicity","domain_width","domain_center"]
-        return self._gen_hash_tuple(scalar_fields,arraylike_fields)
+        return (("min_level", self.min_level),
+                ("max_level", self.max_level),
+                ("overlap_cells", self.overlap_cells),
+                ("periodicity[0]", self.periodicity[0]),
+                ("periodicity[1]", self.periodicity[1]),
+                ("periodicity[2]", self.periodicity[2]),
+                ("domain_width[0]", self.domain_width[0]),
+                ("domain_width[1]", self.domain_width[1]),
+                ("domain_width[2]", self.domain_width[2]))
 
+    def _getstatelist_(self):
+        # return a list of attrs needed for __setstate__: implement for each subclass
+        if isinstance(self,SelectorObject):
+          return []
+        else:
+          raise NotImplementedError 
+        
     def __getstate__(self):
-        try: 
-          hash_vals = self._hash_vals()
-        except NotImplementedError:
-          hash_vals = ()
-        return (hash_vals,self._base_hash())
+        # returns a tuble containing (attribute name, attribute value) tuples
+        # get list of the attributes we need to rebuild the state:
+        base_atts = ["min_level","max_level","overlap_cells",
+                     "periodicity","domain_width","domain_center"]
+        child_atts = self._getstatelist_()
+        
+        # assemble the state_tuple (('a1',a1val),('a2',a2val),...)
+        state_tuple = () 
+        for fld in base_atts + child_atts:
+            state_tuple += ((fld,getattr(self,fld)),)
+        return state_tuple
 
     def __getnewargs__(self):
         # __setstate__ will always call __cinit__, this pickle hoook returns arguments
@@ -720,15 +730,10 @@ cdef class SelectorObject:
         # to __cinit__
         return (None,)
 
-    def __setstate__(self, hashes):
-        all_hash = hashes[0] + hashes[1]
-        for hash_item in all_hash:
-            if len(hash_item) == 3: # we have an indexed attribute (field,value,index)
-              the_att = getattr(self,hash_item[0]) # get the object
-              the_att[hash_item[2]] = hash_item[1] # set the index value
-              setattr(self,hash_item[0],the_att) # and set it again
-            else: # we have a scalar attribute (field, value)
-              setattr(self,hash_item[0],hash_item[1])
+    def __setstate__(self, state_tuple):
+        # parse and set attributes from the state_tuple: (('a1',a1val),('a2',a2val),...)
+        for attr in state_tuple:
+            setattr(self,attr[0],attr[1])
 
 cdef class PointSelector(SelectorObject):
     cdef public np.float64_t p[3]
@@ -799,7 +804,12 @@ cdef class PointSelector(SelectorObject):
             return 0
 
     def _hash_vals(self):
-        return self._gen_hash_tuple(arraylike_fields=['p'])
+        return (("p[0]", self.p[0]),
+                ("p[1]", self.p[1]),
+                ("p[2]", self.p[2]))
+
+    def _getstatelist_(self):
+        return ['p']
 
 point_selector = PointSelector
 
@@ -962,11 +972,20 @@ cdef class SphereSelector(SelectorObject):
             return 2  # Sphere only partially overlaps box
 
     def _hash_vals(self):
-        return self._gen_hash_tuple(["radius","radius2"],["center","check_box"])
+        return (("radius", self.radius),
+                ("radius2", self.radius2),
+                ("center[0]", self.center[0]),
+                ("center[1]", self.center[1]),
+                ("center[2]", self.center[2]))
 
+    def _getstatelist_(self):
+        return ["radius","radius2","center","check_box"]
+        
     def __setstate__(self, hashes):
         super(SphereSelector, self).__setstate__(hashes)
         self.set_bbox(self.center)
+        
+    
 
 sphere_selector = SphereSelector
 
@@ -1171,8 +1190,16 @@ cdef class RegionSelector(SelectorObject):
         return total
 
     def _hash_vals(self):
-        arraylike_fields = ['left_edge','right_edge','right_edge_shift','check_period']
-        return self._gen_hash_tuple(['is_all_data','loose_selection'],arraylike_fields)
+        return (("left_edge[0]", self.left_edge[0]),
+                ("left_edge[1]", self.left_edge[1]),
+                ("left_edge[2]", self.left_edge[2]),
+                ("right_edge[0]", self.right_edge[0]),
+                ("right_edge[1]", self.right_edge[1]),
+                ("right_edge[2]", self.right_edge[2]))
+
+    def _getstatelist_(self):
+        return ['left_edge','right_edge','right_edge_shift','check_period',
+                'is_all_data','loose_selection']
 
 region_selector = RegionSelector
 
@@ -1370,7 +1397,19 @@ cdef class DiskSelector(SelectorObject):
         # return 0
 
     def _hash_vals(self):
-        return self._gen_hash_tuple(['radius','radius2','height'],['norm_vec','center'])
+        return (("norm_vec[0]", self.norm_vec[0]),
+                ("norm_vec[1]", self.norm_vec[1]),
+                ("norm_vec[2]", self.norm_vec[2]),
+                ("center[0]", self.center[0]),
+                ("center[1]", self.center[1]),
+                ("center[2]", self.center[2]),
+                ("radius", self.radius),
+                ("radius2", self.radius2),
+                ("height", self.height))
+
+    def _getstatelist_(self):
+        return ['radius','radius2','height','norm_vec','center']
+
 
 disk_selector = DiskSelector
 
@@ -1482,15 +1521,21 @@ cdef class CuttingPlaneSelector(SelectorObject):
         return 2 # a box of non-zeros volume can't be inside a plane
 
     def _hash_vals(self):
-        return self._gen_hash_tuple(['d'],['norm_vec'])
+        return (("norm_vec[0]", self.norm_vec[0]),
+                ("norm_vec[1]", self.norm_vec[1]),
+                ("norm_vec[2]", self.norm_vec[2]),
+                ("d", self.d))
+
+    def _getstatelist_(self):
+        return ['d','norm_vec']
 
 cutting_selector = CuttingPlaneSelector
 
 cdef class SliceSelector(SelectorObject):
-    cdef int axis
-    cdef np.float64_t coord
-    cdef int ax, ay
-    cdef int reduced_dimensionality
+    cdef public int axis
+    cdef public np.float64_t coord
+    cdef public int ax, ay
+    cdef public int reduced_dimensionality
 
     def __init__(self, dobj):
         self.axis = dobj.axis
@@ -1603,6 +1648,9 @@ cdef class SliceSelector(SelectorObject):
     def _hash_vals(self):
         return (("axis", self.axis),
                 ("coord", self.coord))
+
+    def _getstatelist_(self):
+        return ["axis","coord","ax","ay","reduced_dimensionality"]
 
 slice_selector = SliceSelector
 
@@ -2171,22 +2219,25 @@ cdef class EllipsoidSelector(SelectorObject):
             return 2
 
     def _hash_vals(self):
-        return self._gen_hash_tuple(arraylike_fields=['mag','center','vec']) 
-        # return (("vec[0][0]", self.vec[0][0]),
-        #         ("vec[0][1]", self.vec[0][1]),
-        #         ("vec[0][2]", self.vec[0][2]),
-        #         ("vec[1][0]", self.vec[1][0]),
-        #         ("vec[1][1]", self.vec[1][1]),
-        #         ("vec[1][2]", self.vec[1][2]),
-        #         ("vec[2][0]", self.vec[2][0]),
-        #         ("vec[2][1]", self.vec[2][1]),
-        #         ("vec[2][2]", self.vec[2][2]),
-        #         ("mag[0]", self.mag[0]),
-        #         ("mag[1]", self.mag[1]),
-        #         ("mag[2]", self.mag[2]),
-        #         ("center[0]", self.center[0]),
-        #         ("center[1]", self.center[1]),
-        #         ("center[2]", self.center[2]))
+        return (("vec[0][0]", self.vec[0][0]),
+                ("vec[0][1]", self.vec[0][1]),
+                ("vec[0][2]", self.vec[0][2]),
+                ("vec[1][0]", self.vec[1][0]),
+                ("vec[1][1]", self.vec[1][1]),
+                ("vec[1][2]", self.vec[1][2]),
+                ("vec[2][0]", self.vec[2][0]),
+                ("vec[2][1]", self.vec[2][1]),
+                ("vec[2][2]", self.vec[2][2]),
+                ("mag[0]", self.mag[0]),
+                ("mag[1]", self.mag[1]),
+                ("mag[2]", self.mag[2]),
+                ("center[0]", self.center[0]),
+                ("center[1]", self.center[1]),
+                ("center[2]", self.center[2]))
+        
+    def _getstatelist_(self):
+        return ['mag','center','vec']
+
 
 ellipsoid_selector = EllipsoidSelector
 
