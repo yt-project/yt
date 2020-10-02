@@ -37,6 +37,10 @@ class RAMSESFileSanitizer:
     """A class to handle the different files that can be passed and associated
     safely to a RAMSES output."""
 
+    root_folder = None  # Path | None: path to the root folder
+    info_fname = None  # Path | None: path to the info file
+    group_name = None  # str | None: name of the first group folder (if any)
+
     def __init__(self, filename):
         # Resolve so that it works with symlinks
         filename = Path(filename).resolve()
@@ -58,10 +62,10 @@ class RAMSESFileSanitizer:
         # Special case when organized in groups
         if output_dir.name == "group_00001":
             self.root_folder = output_dir.parent
-            self.group_folder = output_dir.name
+            self.group_name = output_dir.name
         else:
             self.root_folder = output_dir
-            self.group_folder = None
+            self.group_name = None
         self.info_fname = info_fname
 
     @property
@@ -694,7 +698,7 @@ class RAMSESDataset(Dataset):
         # Sanitize the filename
         info_fname = file_handler.info_fname
 
-        if file_handler.group_folder is not None:
+        if file_handler.group_name is not None:
             self.num_groups = len(
                 [
                     _
