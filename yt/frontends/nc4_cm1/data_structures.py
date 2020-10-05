@@ -209,7 +209,7 @@ class CM1Dataset(Dataset):
                         " yt.load_uniform_grid() to load your cm1 file manually."
                     )
                 return False
-        except (OSError, AttributeError):
+        except (OSError, AttributeError, ImportError):
             return False
 
         return True
