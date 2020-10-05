@@ -1656,11 +1656,11 @@ slice_selector = SliceSelector
 
 cdef class OrthoRaySelector(SelectorObject):
 
-    cdef np.uint8_t px_ax
-    cdef np.uint8_t py_ax
-    cdef np.float64_t px
-    cdef np.float64_t py
-    cdef int axis
+    cdef public np.uint8_t px_ax
+    cdef public np.uint8_t py_ax
+    cdef public np.float64_t px
+    cdef public np.float64_t py
+    cdef public int axis
 
     def __init__(self, dobj):
         self.axis = dobj.axis
@@ -1766,6 +1766,9 @@ cdef class OrthoRaySelector(SelectorObject):
                 ("py", self.py),
                 ("axis", self.axis))
 
+    def _getstatelist_(self):
+        return ['px_ax','py_ax','px','py','axis']
+
 ortho_ray_selector = OrthoRaySelector
 
 cdef struct IntegrationAccumulator:
@@ -1792,9 +1795,9 @@ cdef void dt_sampler(
 
 cdef class RaySelector(SelectorObject):
 
-    cdef np.float64_t p1[3]
-    cdef np.float64_t p2[3]
-    cdef np.float64_t vec[3]
+    cdef public np.float64_t p1[3]
+    cdef public np.float64_t p2[3]
+    cdef public np.float64_t vec[3]
 
     def __init__(self, dobj):
         cdef int i
@@ -2052,6 +2055,9 @@ cdef class RaySelector(SelectorObject):
                 ("vec[0]", self.vec[0]),
                 ("vec[1]", self.vec[1]),
                 ("vec[2]", self.vec[2]))
+
+    def _getstatelist_(self):
+        return ['p1','p2','vec']
 
 ray_selector = RaySelector
 
