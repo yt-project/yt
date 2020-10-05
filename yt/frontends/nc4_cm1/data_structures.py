@@ -43,9 +43,8 @@ class CM1Hierarchy(GridIndex):
 
     def _detect_output_fields(self):
         # build list of on-disk fields for dataset_type 'cm1'
-        self.field_list = []
-        for vname in self.dataset.parameters["variable_names"]:
-            self.field_list.append(("cm1", vname))
+        vnames = self.dataset.parameters["variable_names"]
+        self.field_list = [("cm1", vname) for vname in vnames]
 
     def _count_grids(self):
         # This needs to set self.num_grids
