@@ -703,7 +703,7 @@ cdef class SelectorObject:
                 ("domain_width[1]", self.domain_width[1]),
                 ("domain_width[2]", self.domain_width[2]))
 
-    def _getstatelist_(self):
+    def _get_state_list(self):
         # return a list of attrs needed for __setstate__: implement for each subclass
         if isinstance(self,SelectorObject):
           return []
@@ -715,7 +715,7 @@ cdef class SelectorObject:
         # get list of the attributes we need to rebuild the state:
         base_atts = ["min_level","max_level","overlap_cells",
                      "periodicity","domain_width","domain_center"]
-        child_atts = self._getstatelist_()
+        child_atts = self._get_state_list()
         
         # assemble the state_tuple (('a1',a1val),('a2',a2val),...)
         state_tuple = () 
@@ -808,7 +808,7 @@ cdef class PointSelector(SelectorObject):
                 ("p[1]", self.p[1]),
                 ("p[2]", self.p[2]))
 
-    def _getstatelist_(self):
+    def _get_state_list(self):
         return ['p']
 
 point_selector = PointSelector
@@ -978,7 +978,7 @@ cdef class SphereSelector(SelectorObject):
                 ("center[1]", self.center[1]),
                 ("center[2]", self.center[2]))
 
-    def _getstatelist_(self):
+    def _get_state_list(self):
         return ["radius","radius2","center","check_box"]
         
     def __setstate__(self, hashes):
@@ -1197,7 +1197,7 @@ cdef class RegionSelector(SelectorObject):
                 ("right_edge[1]", self.right_edge[1]),
                 ("right_edge[2]", self.right_edge[2]))
 
-    def _getstatelist_(self):
+    def _get_state_list(self):
         return ['left_edge','right_edge','right_edge_shift','check_period',
                 'is_all_data','loose_selection']
 
@@ -1407,7 +1407,7 @@ cdef class DiskSelector(SelectorObject):
                 ("radius2", self.radius2),
                 ("height", self.height))
 
-    def _getstatelist_(self):
+    def _get_state_list(self):
         return ['radius','radius2','height','norm_vec','center']
 
 
@@ -1526,7 +1526,7 @@ cdef class CuttingPlaneSelector(SelectorObject):
                 ("norm_vec[2]", self.norm_vec[2]),
                 ("d", self.d))
 
-    def _getstatelist_(self):
+    def _get_state_list(self):
         return ['d','norm_vec']
 
 cutting_selector = CuttingPlaneSelector
@@ -1649,7 +1649,7 @@ cdef class SliceSelector(SelectorObject):
         return (("axis", self.axis),
                 ("coord", self.coord))
 
-    def _getstatelist_(self):
+    def _get_state_list(self):
         return ["axis","coord","ax","ay","reduced_dimensionality"]
 
 slice_selector = SliceSelector
@@ -1766,7 +1766,7 @@ cdef class OrthoRaySelector(SelectorObject):
                 ("py", self.py),
                 ("axis", self.axis))
 
-    def _getstatelist_(self):
+    def _get_state_list(self):
         return ['px_ax','py_ax','px','py','axis']
 
 ortho_ray_selector = OrthoRaySelector
@@ -2056,7 +2056,7 @@ cdef class RaySelector(SelectorObject):
                 ("vec[1]", self.vec[1]),
                 ("vec[2]", self.vec[2]))
 
-    def _getstatelist_(self):
+    def _get_state_list(self):
         return ['p1','p2','vec']
 
 ray_selector = RaySelector
@@ -2241,7 +2241,7 @@ cdef class EllipsoidSelector(SelectorObject):
                 ("center[1]", self.center[1]),
                 ("center[2]", self.center[2]))
         
-    def _getstatelist_(self):
+    def _get_state_list(self):
         return ['mag','center','vec']
 
 
