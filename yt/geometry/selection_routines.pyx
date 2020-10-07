@@ -711,8 +711,8 @@ cdef class SelectorObject:
           raise NotImplementedError 
         
     def __getstate__(self):
-        # returns a tuble containing (attribute name, attribute value) tuples
-        # get list of the attributes we need to rebuild the state:
+        # returns a tuple containing (attribute name, attribute value) tuples needed to
+        # rebuild the state:
         base_atts = ["min_level","max_level","overlap_cells",
                      "periodicity","domain_width","domain_center"]
         child_atts = self._get_state_list()
