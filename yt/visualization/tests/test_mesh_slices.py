@@ -42,7 +42,10 @@ def test_mesh_slices_amr():
     ds = fake_amr_ds()
     for field in ds.field_list:
         prefix = f"{field[0]}_{field[1]}_{0}"
-        yield compare(ds, field, 0, test_prefix=prefix, test_name="mesh_slices_amr")
+        test = compare(ds, field, 0, test_prefix=prefix, test_name="mesh_slices_amr")
+        test.suffix = "mesh_slices_amr"
+        test_mesh_slices_amr.__name__ = test.description + test.suffix
+        yield test
 
 
 @attr(ANSWER_TEST_TAG)
@@ -55,7 +58,7 @@ def test_mesh_slices_tetrahedral():
     for field in ds.field_list:
         for idir in [0, 1, 2]:
             prefix = f"{field[0]}_{field[1]}_{idir}"
-            yield compare(
+            test = compare(
                 ds,
                 field,
                 idir,
@@ -63,7 +66,9 @@ def test_mesh_slices_tetrahedral():
                 test_name="mesh_slices_tetrahedral",
                 annotate=True,
             )
-
+            test.suffix = "mesh_slices_tetrahedral"
+            test_mesh_slices_tetrahedral.__name__ = test.description + test.suffix
+            yield test
             sl_obj = ds.slice(idir, ds.domain_center[idir])
             assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
             assert sl_obj[field].shape[0] < ad[field].shape[0]
@@ -79,7 +84,7 @@ def test_mesh_slices_hexahedral():
     for field in ds.field_list:
         for idir in [0, 1, 2]:
             prefix = f"{field[0]}_{field[1]}_{idir}"
-            yield compare(
+            test = compare(
                 ds,
                 field,
                 idir,
@@ -87,7 +92,9 @@ def test_mesh_slices_hexahedral():
                 test_name="mesh_slices_hexahedral",
                 annotate=True,
             )
-
+            test.suffix = "mesh_slices_hexahedral"
+            test_mesh_slices_hexahedral.__name__ = test.description + test.suffix
+            yield test
             sl_obj = ds.slice(idir, ds.domain_center[idir])
             assert sl_obj[field].shape[0] == mesh.count(sl_obj.selector)
             assert sl_obj[field].shape[0] < ad[field].shape[0]
