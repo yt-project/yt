@@ -705,7 +705,7 @@ cdef class SelectorObject:
 
     def _get_state_list(self):
         # return a list of attrs needed for __setstate__: implement for each subclass
-        if isinstance(self,SelectorObject):
+        if isinstance(self, SelectorObject):
           return []
         else:
           raise NotImplementedError 
@@ -713,14 +713,14 @@ cdef class SelectorObject:
     def __getstate__(self):
         # returns a tuple containing (attribute name, attribute value) tuples needed to
         # rebuild the state:
-        base_atts = ["min_level","max_level","overlap_cells",
-                     "periodicity","domain_width","domain_center"]
+        base_atts = ["min_level", "max_level", "overlap_cells",
+                     "periodicity", "domain_width", "domain_center"]
         child_atts = self._get_state_list()
         
-        # assemble the state_tuple (('a1',a1val),('a2',a2val),...)
+        # assemble the state_tuple (('a1', a1val), ('a2', a2val),...)
         state_tuple = () 
         for fld in base_atts + child_atts:
-            state_tuple += ((fld,getattr(self,fld)),)
+            state_tuple += ((fld, getattr(self,fld)), )
         return state_tuple
 
     def __getnewargs__(self):
@@ -728,12 +728,12 @@ cdef class SelectorObject:
         # to __cinit__. We will give it None so we dont error then set attributes in
         # __setstate__ Note that we could avoid this by making dobj an optional argument
         # to __cinit__
-        return (None,)
+        return (None, )
 
     def __setstate__(self, state_tuple):
         # parse and set attributes from the state_tuple: (('a1',a1val),('a2',a2val),...)
         for attr in state_tuple:
-            setattr(self,attr[0],attr[1])
+            setattr(self, attr[0], attr[1])
 
 cdef class PointSelector(SelectorObject):
     cdef public np.float64_t p[3]
@@ -979,7 +979,7 @@ cdef class SphereSelector(SelectorObject):
                 ("center[2]", self.center[2]))
 
     def _get_state_list(self):
-        return ["radius","radius2","center","check_box"]
+        return ["radius", "radius2", "center", "check_box"]
         
     def __setstate__(self, hashes):
         super(SphereSelector, self).__setstate__(hashes)
@@ -1198,8 +1198,8 @@ cdef class RegionSelector(SelectorObject):
                 ("right_edge[2]", self.right_edge[2]))
 
     def _get_state_list(self):
-        return ['left_edge','right_edge','right_edge_shift','check_period',
-                'is_all_data','loose_selection']
+        return ['left_edge', 'right_edge', 'right_edge_shift', 'check_period',
+                'is_all_data', 'loose_selection']
 
 region_selector = RegionSelector
 
@@ -1408,7 +1408,7 @@ cdef class DiskSelector(SelectorObject):
                 ("height", self.height))
 
     def _get_state_list(self):
-        return ['radius','radius2','height','norm_vec','center']
+        return ['radius', 'radius2', 'height', 'norm_vec', 'center']
 
 
 disk_selector = DiskSelector
@@ -1527,7 +1527,7 @@ cdef class CuttingPlaneSelector(SelectorObject):
                 ("d", self.d))
 
     def _get_state_list(self):
-        return ['d','norm_vec']
+        return ['d', 'norm_vec']
 
 cutting_selector = CuttingPlaneSelector
 
@@ -1650,7 +1650,7 @@ cdef class SliceSelector(SelectorObject):
                 ("coord", self.coord))
 
     def _get_state_list(self):
-        return ["axis","coord","ax","ay","reduced_dimensionality"]
+        return ["axis", "coord", "ax", "ay", "reduced_dimensionality"]
 
 slice_selector = SliceSelector
 
@@ -1767,7 +1767,7 @@ cdef class OrthoRaySelector(SelectorObject):
                 ("axis", self.axis))
 
     def _get_state_list(self):
-        return ['px_ax','py_ax','px','py','axis']
+        return ['px_ax', 'py_ax', 'px', 'py', 'axis']
 
 ortho_ray_selector = OrthoRaySelector
 
@@ -2057,7 +2057,7 @@ cdef class RaySelector(SelectorObject):
                 ("vec[2]", self.vec[2]))
 
     def _get_state_list(self):
-        return ['p1','p2','vec']
+        return ['p1', 'p2', 'vec']
 
 ray_selector = RaySelector
 
@@ -2242,7 +2242,7 @@ cdef class EllipsoidSelector(SelectorObject):
                 ("center[2]", self.center[2]))
         
     def _get_state_list(self):
-        return ['mag','center','vec']
+        return ['mag', 'center', 'vec']
 
 
 ellipsoid_selector = EllipsoidSelector
