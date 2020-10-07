@@ -9,7 +9,7 @@ def test_pickleability():
     # tests the pickleability of the selection objects.
 
     def pickle_test(sel_obj):
-        assert_fields = sel_obj._get_state_list()  # the attrs used in get/set state
+        assert_fields = sel_obj._get_state_attnames()  # the attrs used in get/set state
         new_sel_obj = pickle.loads(pickle.dumps(sel_obj))
         for attr in assert_fields:
             assert_equal(getattr(new_sel_obj, attr), getattr(sel_obj, attr))
