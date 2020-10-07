@@ -708,15 +708,15 @@ cdef class SelectorObject:
         if isinstance(self, SelectorObject):
           return []
         else:
-          raise NotImplementedError 
-        
+          raise NotImplementedError
+
     def __getstate__(self):
         # returns a tuple containing (attribute name, attribute value) tuples needed to
         # rebuild the state:
         base_atts = ["min_level", "max_level", "overlap_cells",
                      "periodicity", "domain_width", "domain_center"]
         child_atts = self._get_state_list()
-        
+
         # assemble the state_tuple (('a1', a1val), ('a2', a2val),...)
         state_tuple = () 
         for fld in base_atts + child_atts:
@@ -980,12 +980,11 @@ cdef class SphereSelector(SelectorObject):
 
     def _get_state_list(self):
         return ["radius", "radius2", "center", "check_box"]
-        
+
     def __setstate__(self, hashes):
         super(SphereSelector, self).__setstate__(hashes)
         self.set_bbox(self.center)
-        
-    
+
 
 sphere_selector = SphereSelector
 
@@ -2240,7 +2239,7 @@ cdef class EllipsoidSelector(SelectorObject):
                 ("center[0]", self.center[0]),
                 ("center[1]", self.center[1]),
                 ("center[2]", self.center[2]))
-        
+
     def _get_state_list(self):
         return ['mag', 'center', 'vec']
 
