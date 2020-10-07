@@ -1,5 +1,5 @@
 -   repo: https://github.com/ambv/black
-    rev: 19.10b0
+    rev: 19.10b0  # keep in sync with tests/lint_requirements.txt
     hooks:
     - id: black
       language_version: python3.7
