@@ -2,10 +2,7 @@ import pickle
 
 import numpy as np
 
-from yt.testing import (  # fake_amr_ds,; fake_random_ds,; requires_module,
-    assert_equal,
-    fake_particle_ds,
-)
+from yt.testing import assert_equal, fake_particle_ds
 
 
 def test_pickleability():
