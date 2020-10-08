@@ -1,3 +1,6 @@
+# distutils: language = c++
+# distutils: extra_compile_args = CPP14_FLAG
+# distutils: extra_link_args = CPP14_FLAG
 """
 Field Interpolation Tables
 
@@ -8,11 +11,10 @@ Field Interpolation Tables
 
 cimport cython
 cimport numpy as np
-from libc.math cimport isnormal
+from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
 from libc.stdlib cimport malloc
-
-from yt.utilities.lib.fp_utils cimport fabs, fclip, fmax, fmin, iclip, imax, imin
-
+cdef extern from "<cmath>" namespace "std":
+    bint isnormal(double x) nogil
 
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
