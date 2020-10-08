@@ -8,17 +8,34 @@ Definitions for the lens code
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+from libc.math cimport (
+    M_PI,
+    acos,
+    asin,
+    atan,
+    atan2,
+    cos,
+    exp,
+    fabs,
+    floor,
+    log2,
+    sin,
+    sqrt,
+)
+from vec3_ops cimport L2_norm, dot, fma, subtract
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, i64clip, iclip, imax, imin
+
+from .image_samplers cimport (
+    ImageSampler,
+    calculate_extent_function,
+    generate_vector_info_function,
+)
 from .volume_container cimport VolumeContainer
-from vec3_ops cimport dot, subtract, L2_norm, fma
-from libc.math cimport exp, floor, log2, \
-    fabs, atan, atan2, asin, cos, sin, sqrt, acos, M_PI
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, i64clip
-from .image_samplers cimport \
-    ImageSampler, \
-    calculate_extent_function, \
-    generate_vector_info_function
+
 
 cdef extern from "platform_dep.h":
     long int lrint(double x) nogil

@@ -4,16 +4,21 @@ It relies on the seminal paper by  J. Revelles,, C.Ureña and M.Lastra.
 
 
 cimport numpy as np
+
 import numpy as np
-from libcpp.vector cimport vector
+
 cimport cython
-from cython.parallel import prange, parallel
+from libcpp.vector cimport vector
+
+from cython.parallel import parallel, prange
+
 from libc.stdlib cimport free, malloc
 
-from .image_samplers cimport ImageAccumulator, ImageSampler
 from .grid_traversal cimport sampler_function
-from .volume_container cimport VolumeContainer
+from .image_samplers cimport ImageAccumulator, ImageSampler
 from .partitioned_grid cimport PartitionedGrid
+from .volume_container cimport VolumeContainer
+
 
 cdef extern from "_octree_raytracing.hpp":
     cdef cppclass RayInfo[T]:
