@@ -1,9 +1,9 @@
 import glob
-import inspect
 import os
 import re
 import warnings
 from collections import namedtuple
+from inspect import signature
 from stat import ST_CTIME
 
 import numpy as np
@@ -697,11 +697,9 @@ class BoxlibDataset(Dataset):
         return os.path.exists(header_filename)
 
     @classmethod
-    def _lookup_cparam_filepath(cls, *args, **kwargs):
-        output_dir = args[0]
-        iargs = inspect.getcallargs(cls.__init__, args, kwargs)
+    def _lookup_cparam_filepath(cls, output_dir, cparam_filename):
         lookup_table = [
-            os.path.abspath(os.path.join(p, iargs["cparam_filename"]))
+            os.path.abspath(os.path.join(p, cparam_filename))
             for p in (output_dir, os.path.dirname(output_dir))
         ]
         found = [os.path.exists(file) for file in lookup_table]
@@ -719,7 +717,14 @@ class BoxlibDataset(Dataset):
         if not BoxlibDataset._is_valid(output_dir):
             return False
 
-        cparam_filepath = cls._lookup_cparam_filepath(*args, **kwargs)
+        try:
+            cparam_filename = kwargs.get("cparam_filename") or args[1]
+        except IndexError:
+            cparam_filename = (
+                signature(cls.__init__).parameters["cparam_filename"].default
+            )
+        cparam_filepath = cls._lookup_cparam_filepath(output_dir, cparam_filename)
+
         if cparam_filepath is None:
             return False
 
@@ -772,8 +777,8 @@ class BoxlibDataset(Dataset):
             else:
                 try:
                     vals = _guess_pcast(vals)
-                except IndexError:
-                    # hitting an empty string
+                except (IndexError, ValueError):
+                    # hitting an empty string or a comment
                     vals = None
             self.parameters[param] = vals
 
@@ -1619,6 +1624,7 @@ class AMReXHierarchy(BoxlibHierarchy):
 class AMReXDataset(BoxlibDataset):
 
     _index_class = AMReXHierarchy
+    _subtype_keyword = "amrex"
 
     def __init__(
         self,
@@ -1652,4 +1658,4 @@ class AMReXDataset(BoxlibDataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        return False
+        return cls._is_valid_subtype(*args, **kwargs)
