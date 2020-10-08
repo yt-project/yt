@@ -1,6 +1,6 @@
 # distutils: include_dirs = LIB_DIR
-# distutils: extra_compile_args = OMP_ARGS
-# distutils: extra_link_args = OMP_ARGS
+# distutils: extra_compile_args = CPP14_FLAG OMP_ARGS
+# distutils: extra_link_args = CPP14_FLAG OMP_ARGS
 # distutils: language = c++
 # distutils: libraries = STD_LIBS
 # distutils: sources = yt/utilities/lib/pixelization_constants.c
