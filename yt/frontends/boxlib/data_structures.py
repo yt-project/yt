@@ -32,7 +32,8 @@ _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
 _dim_finder = [
     re.compile(r"\(\(([-+]?\d+)\) \(([-+]?\d+)\) \([-+]?\d+\)\)$"),
     re.compile(r"\(\(([-+]?\d+,[-+]?\d+)\) \(([-+]?\d+,[-+]?\d+)\) \([-+]?\d+,[-+]?\d+\)\)$"),
-    re.compile(r"\(\(([-+]?\d+,[-+]?\d+,[-+]?\d+)\) \(([-+]?\d+,[-+]?\d+,[-+]?\d+)\) \([-+]?\d+,[-+]?\d+,[-+]?\d+\)\)$")]
+    re.compile(r"\(\(([-+]?\d+,[-+]?\d+,[-+]?\d+)\) \(([-+]?\d+,[-+]?\d+,[-+]?\d+)\) \([-+]?\d+,[-+]?\d+,[-+]?\d+\)\)$"),
+]
 # This is the line that prefixes each set of data for a FAB in the FAB file
 # It is different for different dimensionalities, so we make a list
 _endian_regex = r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), \(([0-9 ]+)\)\)\)"
