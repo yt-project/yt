@@ -1,4 +1,5 @@
 set -x   # Show which command is being run
+set -e   # abort on errors
 
 echo "Travis build stage: $TRAVIS_BUILD_STAGE_NAME"
 

@@ -1,4 +1,5 @@
 set -x   # Show which command is being run
+set -e   # abort on errors
 
 case $TRAVIS_OS_NAME in
 linux)
