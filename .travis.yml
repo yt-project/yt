@@ -17,11 +17,15 @@ addons:
       - proj-bin
       - libgeos-dev
       - libopenmpi-dev
+      - gcc-5
+      - g++-5
 
 env:
   global:
     PIP=pip
     HOMEBREW_NO_AUTO_UPDATE=1
+    CC=gcc-5
+    CXX=g++-5
 
 before_install:
   - source tests/travis_before_install.sh
