@@ -37,9 +37,6 @@ if os.path.exists("MANIFEST"):
 with open("README.md") as file:
     long_description = file.read()
 
-OMP_CONFIG = defaultdict(
-    lambda: ["-fopenmp"], {"unix": ["-fopenmp"], "msvc": ["/openmp"]}
-)
 CPP14_CONFIG = defaultdict(
     lambda: ["-std=c++14"], {"unix": ["-std=c++14"], "msvc": ["/std:c++14"]}
 )
@@ -49,10 +46,7 @@ CPP03_CONFIG = defaultdict(
 
 _COMPILER = get_default_compiler()
 
-if check_for_openmp():
-    omp_args = OMP_CONFIG[_COMPILER]
-else:
-    omp_args = []
+omp_args, _ = check_for_openmp()
 
 if os.name == "nt":
     std_libs = []
