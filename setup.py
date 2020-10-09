@@ -38,13 +38,13 @@ with open("README.md") as file:
     long_description = file.read()
 
 OMP_CONFIG = defaultdict(
-    lambda: ["--fopenmp"], {"unix": ["--fopenmp"], "msvc": ["/openmp"]}
+    lambda: ["-fopenmp"], {"unix": ["-fopenmp"], "msvc": ["/openmp"]}
 )
 CPP14_CONFIG = defaultdict(
-    lambda: ["--std=c++14"], {"unix": ["--std=c++14"], "msvc": ["/std:c++14"]}
+    lambda: ["-std=c++14"], {"unix": ["-std=c++14"], "msvc": ["/std:c++14"]}
 )
 CPP03_CONFIG = defaultdict(
-    lambda: ["--std=c++03"], {"unix": ["--std=c++03"], "msvc": ["/std:c++03"]}
+    lambda: ["-std=c++03"], {"unix": ["-std=c++03"], "msvc": ["/std:c++03"]}
 )
 
 _COMPILER = get_default_compiler()
