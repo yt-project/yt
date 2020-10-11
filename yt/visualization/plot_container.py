@@ -61,8 +61,8 @@ def invalidate_data(f):
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         plot = args[0]
-        if plot._frb is not None:
-            plot._frb._data_valid = False
+        # if plot._frb is not None:
+        #   plot._frb._data_valid = False
         plot._plot_valid = False
         return rv
 
