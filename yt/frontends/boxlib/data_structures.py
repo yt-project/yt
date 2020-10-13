@@ -30,21 +30,21 @@ _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
 # This is the dimensions in the Cell_H file for each level
 # It is different for different dimensionalities, so we make a list
 _dim_finder = [
-    re.compile(r"\(\(([-+]?\d+)\) \(([-+]?\d+)\) \([-+]?\d+\)\)$"),
-    re.compile(r"\(\(([-+]?\d+,[-+]?\d+)\) \(([-+]?\d+,[-+]?\d+)\) \([-+]?\d+,[-+]?\d+\)\)$"),
-    re.compile(r"\(\(([-+]?\d+,[-+]?\d+,[-+]?\d+)\) \(([-+]?\d+,[-+]?\d+,[-+]?\d+)\) \([-+]?\d+,[-+]?\d+,[-+]?\d+\)\)$"),
+    re.compile(r"\(\(([-]?\d+)\) \(([-]?\d+)\) \([-]?\d+\)\)$"),
+    re.compile(r"\(\(([-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+)\) \([-]?\d+,[-]?\d+\)\)$"),
+    re.compile(r"\(\(([-]?\d+,[-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+,[-]?\d+)\) \([-]?\d+,[-]?\d+,[-]?\d+\)\)$"),
 ]
 # This is the line that prefixes each set of data for a FAB in the FAB file
 # It is different for different dimensionalities, so we make a list
 _endian_regex = r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), \(([0-9 ]+)\)\)\)"
 _header_pattern = [
-    re.compile(_endian_regex + r"\(\(([-+]?\d+)\) \(([-+]?\d+)\) \(([-+]?\d+)\)\) ([-+]?\d+)\n"),
+    re.compile(_endian_regex + r"\(\(([-]?\d+)\) \(([-]?\d+)\) \(([-]?\d+)\)\) ([-]?\d+)\n"),
     re.compile(
-        _endian_regex + r"\(\(([-+]?\d+,[-+]?\d+)\) \(([-+]?\d+,[-+]?\d+)\) \(([-+]?\d+,[-+]?\d+)\)\) ([-+]?\d+)\n"
+        _endian_regex + r"\(\(([-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+)\)\) ([-]?\d+)\n"
     ),
     re.compile(
         _endian_regex
-        + r"\(\(([-+]?\d+,[-+]?\d+,[-+]?\d+)\) \(([-+]?\d+,[-+]?\d+,[-+]?\d+)\) \(([-+]?\d+,[-+]?\d+,[-+]?\d+)\)\) ([-+]?\d+)\n"
+        + r"\(\(([-]?\d+,[-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+,[-]?\d+)\)\) ([-]?\d+)\n"
     ),
 ]
 
