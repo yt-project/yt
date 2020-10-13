@@ -517,18 +517,15 @@ cdef class SelectorObject:
         if level == self.max_level:
             this_level = 1
         with nogil:
-            pos[0] = left_edge[0] + dds[0] * 0.5
             for i in range(dim[0]):
-                pos[1] = left_edge[1] + dds[1] * 0.5
+                pos[0] = left_edge[0] + (i + 0.5) * dds[0]
                 for j in range(dim[1]):
-                    pos[2] = left_edge[2] + dds[2] * 0.5
+                    pos[1] = left_edge[1] + (j + 0.5) * dds[1]
                     for k in range(dim[2]):
+                        pos[2] = left_edge[2] + (k + 0.5) * dds[2]
                         if child_mask[i, j, k] == 1 or this_level == 1:
                             mask[i, j, k] = self.select_cell(pos, dds)
                             total += mask[i, j, k]
-                        pos[2] += dds[2]
-                    pos[1] += dds[1]
-                pos[0] += dds[0]
         return total
 
     @cython.boundscheck(False)
@@ -1129,18 +1126,16 @@ cdef class RegionSelector(SelectorObject):
                 si[i] = 0
                 ei[i] = dim[i]
         with nogil:
-            pos[0] = left_edge[0] + (si[0] + 0.5) * dds[0]
+
             for i in range(si[0], ei[0]):
-                pos[1] = left_edge[1] + (si[1] + 0.5) * dds[1]
+                pos[0] = left_edge[0] + (i + 0.5) * dds[0]
                 for j in range(si[1], ei[1]):
-                    pos[2] = left_edge[2] + (si[2] + 0.5) * dds[2]
+                    pos[1] = left_edge[1] + (j + 0.5) * dds[1]
                     for k in range(si[2], ei[2]):
+                        pos[2] = left_edge[2] + (k + 0.5) * dds[2]
                         if child_mask[i, j, k] == 1 or this_level == 1:
                             mask[i, j, k] = self.select_cell(pos, dds)
                             total += mask[i, j, k]
-                        pos[2] += dds[2]
-                    pos[1] += dds[1]
-                pos[0] += dds[0]
         return total
 
 
