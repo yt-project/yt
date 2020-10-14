@@ -1,4 +1,5 @@
 # distutils: libraries = STD_LIBS
+# distutils: language = c++
 # distutils: extra_compile_args = CPP14_FLAG OMP_ARGS
 # distutils: extra_link_args = CPP14_FLAG OMP_ARGS
 """
