@@ -52,6 +52,7 @@ class TestArt:
         else:
             self.hashes.update({"pixelized_projection_values": np.array(-1)})
 
+    @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [d9p], indirect=True)
     @pytest.mark.parametrize("f", fields, indirect=True)
     @pytest.mark.parametrize("d", objs, indirect=True)
