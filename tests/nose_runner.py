@@ -1,13 +1,16 @@
 # import multiprocessing
 import os
-# import sys
 
 # import nose
 # import numpy
 import pytest
-# import yaml
 
 from yt.config import ytcfg
+
+# import sys
+
+# import yaml
+
 # from yt.utilities.answer_testing.framework import AnswerTesting
 #
 # numpy.set_printoptions(threshold=5, edgeitems=1, precision=4)
