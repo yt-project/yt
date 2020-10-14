@@ -29,23 +29,27 @@ from .fields import (
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
 # This is the dimensions in the Cell_H file for each level
 # It is different for different dimensionalities, so we make a list
+_1dregx = r"[-]?\d+"
+_2dregx = r"[-]?\d+,[-]?\d+"
+_3dregx = r"[-]?\d+,[-]?\d+,[-]?\d+"
 _dim_finder = [
-    re.compile(r"\(\(([-]?\d+)\) \(([-]?\d+)\) \([-]?\d+\)\)$"),
-    re.compile(r"\(\(([-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+)\) \([-]?\d+,[-]?\d+\)\)$"),
-    re.compile(r"\(\(([-]?\d+,[-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+,[-]?\d+)\) \([-]?\d+,[-]?\d+,[-]?\d+\)\)$"),
+    re.compile(r"\(\(("+_1dregx+")\) \(("+_1dregx+")\) \("+_1dregx+"\)\)$"),
+    re.compile(r"\(\(("+_2dregx+")\) \(("+_2dregx+")\) \("+_2dregx+"\)\)$"),
+    re.compile(r"\(\(("+_3dregx+")\) \(("+_3dregx+")\) \("+_3dregx+"\)\)$"),
 ]
 # This is the line that prefixes each set of data for a FAB in the FAB file
 # It is different for different dimensionalities, so we make a list
 _endian_regex = r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), \(([0-9 ]+)\)\)\)"
 _header_pattern = [
-    re.compile(_endian_regex + r"\(\(([-]?\d+)\) \(([-]?\d+)\) \(([-]?\d+)\)\) ([-]?\d+)\n"),
-    re.compile(
-        _endian_regex + r"\(\(([-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+)\)\) ([-]?\d+)\n"
-    ),
     re.compile(
         _endian_regex
-        + r"\(\(([-]?\d+,[-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+,[-]?\d+)\) \(([-]?\d+,[-]?\d+,[-]?\d+)\)\) ([-]?\d+)\n"
-    ),
+        + r"\(\(("+_1dregx+")\) \(("+_1dregx+")\) \(("+_1dregx+")\)\) ([-]?\d+)\n"),
+    re.compile(
+        _endian_regex
+        + r"\(\(("+_2dregx+")\) \(("+_2dregx+")\) \(("+_2dregx+")\)\) ([-]?\d+)\n"),
+    re.compile(
+        _endian_regex
+        + r"\(\(("+_3dregx+")\) \(("+_3dregx+")\) \(("+_3dregx+")\)\) ([-]?\d+)\n"),
 ]
 
 class BoxlibGrid(AMRGridPatch):
