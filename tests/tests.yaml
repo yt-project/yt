@@ -36,7 +36,7 @@ answer_tests:
     - yt/frontends/chombo/tests/test_outputs.py:test_zp
     - yt/frontends/chombo/tests/test_outputs.py:test_kho
 
-  local_enzo_006:
+  local_enzo_007:  # PR 2926
     - yt/frontends/enzo/tests/test_outputs.py:test_moving7
     - yt/frontends/enzo/tests/test_outputs.py:test_galaxy0030
     - yt/frontends/enzo/tests/test_outputs.py:test_toro1d
@@ -167,6 +167,9 @@ answer_tests:
 
   #local_particle_trajectory_001:
   #  - yt/data_objects/tests/test_particle_trajectories.py
+  
+  local_nc4_cm1_000: # PR  2176
+    - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
 other_tests:
   unittests:
