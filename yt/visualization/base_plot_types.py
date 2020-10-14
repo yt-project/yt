@@ -218,7 +218,7 @@ class ImagePlotMPL(PlotMPL):
     def _init_image(self, data, cbnorm, cblinthresh, cmap, extent, aspect):
         """Store output of imshow in image variable"""
         cbnorm_kwargs = dict(
-            vmin=float(self.zmin) if self.zmax is not None else None,
+            vmin=float(self.zmin) if self.zmin is not None else None,
             vmax=float(self.zmax) if self.zmax is not None else None,
         )
         if cbnorm == "log10":
