@@ -29,9 +29,9 @@ from .fields import (
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
 # This is the dimensions in the Cell_H file for each level
 # It is different for different dimensionalities, so we make a list
-_1dregx = r"[-]?\d+"
-_2dregx = r"[-]?\d+,[-]?\d+"
-_3dregx = r"[-]?\d+,[-]?\d+,[-]?\d+"
+_1dregx = r"-?\d+"
+_2dregx = r"-?\d+,-?\d+"
+_3dregx = r"-?\d+,-?\d+,-?\d+"
 _dim_finder = [
     re.compile(r"\(\((" + _1dregx + ")\) \((" + _1dregx + ")\) \(" + _1dregx + "\)\)$"),
     re.compile(r"\(\((" + _2dregx + ")\) \((" + _2dregx + ")\) \(" + _2dregx + "\)\)$"),
