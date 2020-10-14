@@ -5,7 +5,7 @@
 // here.
 //
 
-#include "pixelization_constants.h"
+#include "pixelization_constants.hpp"
 
 /*
  Six faces, two vectors for each, two indices for each vector.  The function
