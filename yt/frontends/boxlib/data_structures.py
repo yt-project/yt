@@ -33,15 +33,9 @@ _1dregx = r"[-]?\d+"
 _2dregx = r"[-]?\d+,[-]?\d+"
 _3dregx = r"[-]?\d+,[-]?\d+,[-]?\d+"
 _dim_finder = [
-    re.compile(
-        r"\(\((" + _1dregx + ")\) \((" + _1dregx + ")\) \(" + _1dregx + "\)\)$"
-    ),
-    re.compile(
-        r"\(\((" + _2dregx + ")\) \((" + _2dregx + ")\) \(" + _2dregx + "\)\)$"
-    ),
-    re.compile(
-        r"\(\((" + _3dregx + ")\) \((" + _3dregx + ")\) \(" + _3dregx + "\)\)$"
-    ),
+    re.compile(r"\(\((" + _1dregx + ")\) \((" + _1dregx + ")\) \(" + _1dregx + "\)\)$"),
+    re.compile(r"\(\((" + _2dregx + ")\) \((" + _2dregx + ")\) \(" + _2dregx + "\)\)$"),
+    re.compile(r"\(\((" + _3dregx + ")\) \((" + _3dregx + ")\) \(" + _3dregx + "\)\)$"),
 ]
 # This is the line that prefixes each set of data for a FAB in the FAB file
 # It is different for different dimensionalities, so we make a list
@@ -78,6 +72,7 @@ _header_pattern = [
         + ")\)\) ([-]?\d+)\n"
     ),
 ]
+
 
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
