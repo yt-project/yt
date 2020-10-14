@@ -36,7 +36,9 @@ jobs:
       os: osx
       osx_image: xcode10.1
       language: shell
-      env: PIP=pip3
+      env:
+        PIP=pip3
+        USE_OMP=0
       cache:
         - directories:
           - $HOME/Library/Caches/pip
