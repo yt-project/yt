@@ -38,39 +38,52 @@ _dim_finder = [
 ]
 # This is the line that prefixes each set of data for a FAB in the FAB file
 # It is different for different dimensionalities, so we make a list
-_endian_regex = r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), \(([0-9 ]+)\)\)\)"
+_endian_regex = r"^FAB\ \(\(\d+,\ \([\d\ ]+\)\),\((\d+),\ \(([\d\ ]+)\)\)\)"
 _header_pattern = [
     re.compile(
-        _endian_regex
-        + r"\(\(("
-        + _1dregx
-        + ")\) \(("
-        + _1dregx
-        + ")\) \(("
-        + _1dregx
-        + ")\)\) ([-]?\d+)\n"
-    ),
-    re.compile(
-        _endian_regex
-        + r"\(\(("
-        + _2dregx
-        + ")\) \(("
-        + _2dregx
-        + ")\) \(("
-        + _2dregx
-        + ")\)\) ([-]?\d+)\n"
-    ),
-    re.compile(
-        _endian_regex
-        + r"\(\(("
-        + _3dregx
-        + ")\) \(("
-        + _3dregx
-        + ")\) \(("
-        + _3dregx
-        + ")\)\) ([-]?\d+)\n"
-    ),
+        rf"""{_endian_regex}            # match `endianness`
+        \(
+              \(( {ndregx} )\)          # match `start`
+            \ \(( {ndregx} )\)          # match `end`
+            \ \(( {ndregx} )\)          # match `centering`
+        \)
+        \ (-?\d+)                       # match `nc`
+        $ # end of line
+        """,
+        re.VERBOSE
+    )
+    for ndregx in (_1dregx, _2dregx, _3dregx)
 ]
+#}_endian_regex
+#        + r"\(\(("
+#        + _1dregx
+#        + ")\) \(("
+#        + _1dregx
+#        + ")\) \(("
+#        + _1dregx
+#        + ")\)\) ([-]?\d+)\n"
+#    ),
+#    re.compile(
+#        _endian_regex
+#        + r"\(\(("
+#        + _2dregx
+#        + ")\) \(("
+#        + _2dregx
+#        + ")\) \(("
+#        + _2dregx
+#        + ")\)\) ([-]?\d+)\n"
+#    ),
+#    re.compile(
+#        _endian_regex
+#        + r"\(\(("
+#        + _3dregx
+#        + ")\) \(("
+#        + _3dregx
+#        + ")\) \(("
+#        + _3dregx
+#        + ")\)\) ([-]?\d+)\n"
+#    ),
+#]
 
 
 class BoxlibGrid(AMRGridPatch):
