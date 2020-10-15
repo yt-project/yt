@@ -50,10 +50,11 @@ _header_pattern = [
         \ (-?\d+)                       # match `nc`
         $ # end of line
         """,
-        re.VERBOSE
+        re.VERBOSE,
     )
     for ndregx in (_1dregx, _2dregx, _3dregx)
 ]
+
 
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
