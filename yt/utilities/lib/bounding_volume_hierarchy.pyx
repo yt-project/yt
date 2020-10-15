@@ -1,5 +1,6 @@
 # distutils: libraries = STD_LIBS
 # distutils: include_dirs = LIB_DIR
+# distutils: language = c++
 # distutils: extra_compile_args = CPP14_FLAG OMP_ARGS
 # distutils: extra_link_args = CPP14_FLAG OMP_ARGS
 cimport cython
