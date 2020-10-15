@@ -241,7 +241,7 @@ class ImagePlotMPL(PlotMPL):
                 # note that this creates an inconsistency between mpl versions
                 # since the default value previous to mpl 3.4.0 is np.e
                 # but it is only exposed since 3.2.0
-                cbnorm_kwargs.update(dict(base=10))
+                cbnorm_kwargs["base"] = 10
 
             cbnorm_cls = matplotlib.colors.SymLogNorm
         else:
