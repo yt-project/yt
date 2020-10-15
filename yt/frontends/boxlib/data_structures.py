@@ -10,7 +10,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_tuple, mylog, setdefaultattr
+from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -628,8 +628,7 @@ class BoxlibDataset(Dataset):
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
 
-    # THIS SHOULD BE FIXED:
-    periodicity = (True, True, True)
+    periodicity = (False, False, False)
 
     def __init__(
         self,
@@ -756,7 +755,11 @@ class BoxlibDataset(Dataset):
             elif param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
-                vals = self.periodicity = ensure_tuple([i == 0 for i in vals.split()])
+                vals = tuple(p == "1" for p in vals.split())
+                assert len(vals) == self.dimensionality
+                periodicity = [False, False, False]  # default to non periodic
+                periodicity[: self.dimensionality] = vals  # fill in ndim parsed values
+                self.periodicity = tuple(periodicity)
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
             else:
@@ -829,13 +832,13 @@ class BoxlibDataset(Dataset):
         # This is traditionally a index attribute, so we will set it, but
         # in a slightly hidden variable.
         self._max_level = int(header_file.readline())
-        self.domain_left_edge = np.array(
-            header_file.readline().split(), dtype="float64"
-        )
-        self.domain_right_edge = np.array(
-            header_file.readline().split(), dtype="float64"
-        )
-        ref_factors = np.array([int(i) for i in header_file.readline().split()])
+
+        for side, init in zip(["left", "right"], [np.zeros, np.ones]):
+            domain_edge = init(3, dtype="float64")
+            domain_edge[: self.dimensionality] = header_file.readline().split()
+            setattr(self, f"domain_{side}_edge", domain_edge)
+
+        ref_factors = np.array(header_file.readline().split(), dtype="int64")
         if ref_factors.size == 0:
             # We use a default of two, as Nyx doesn't always output this value
             ref_factors = [2] * (self._max_level + 1)
@@ -873,7 +876,10 @@ class BoxlibDataset(Dataset):
         root_space = index_space.replace("(", "").replace(")", "").split()[:2]
         start = np.array(root_space[0].split(","), dtype="int64")
         stop = np.array(root_space[1].split(","), dtype="int64")
-        self.domain_dimensions = stop - start + 1
+        dd = np.ones(3, dtype="int64")
+        dd[: self.dimensionality] = stop - start + 1
+        self.domain_dimensions = dd
+
         # Skip timesteps per level
         header_file.readline()
         self._header_mesh_start = header_file.tell()
@@ -886,53 +892,23 @@ class BoxlibDataset(Dataset):
             coordinate_type = int(next_line)
         else:
             coordinate_type = 0
-        if coordinate_type == 0:
-            self.geometry = "cartesian"
-        elif coordinate_type == 1:
-            self.geometry = "cylindrical"
-        elif coordinate_type == 2:
-            self.geometry = "spherical"
-        else:
-            raise RuntimeError("Unknown BoxLib coord_type")
 
-        # overrides for 1/2-dimensional data
-        if self.dimensionality == 1:
-            self._setup1d()
-        elif self.dimensionality == 2:
-            self._setup2d()
+        known_types = {0: "cartesian", 1: "cylindrical", 2: "spherical"}
+        try:
+            self.geometry = known_types[coordinate_type]
+        except KeyError as err:
+            raise ValueError(f"Unknown BoxLib coord_type `{coordinate_type}`.") from err
+
+        if self.geometry == "cylindrical":
+            dre = self.domain_right_edge
+            dre[2] = 2.0 * np.pi
+            self.domain_right_edge = dre
 
     def _set_code_unit_attributes(self):
         setdefaultattr(self, "length_unit", self.quan(1.0, "cm"))
         setdefaultattr(self, "mass_unit", self.quan(1.0, "g"))
         setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "cm/s"))
-
-    def _setup1d(self):
-        # self._index_class = BoxlibHierarchy1D
-        # self._fieldinfo_fallback = Orion1DFieldInfo
-        self.domain_left_edge = np.concatenate([self.domain_left_edge, [0.0, 0.0]])
-        self.domain_right_edge = np.concatenate([self.domain_right_edge, [1.0, 1.0]])
-        tmp = self.domain_dimensions.tolist()
-        tmp.extend((1, 1))
-        self.domain_dimensions = np.array(tmp)
-        tmp = list(self.periodicity)
-        tmp[1] = False
-        tmp[2] = False
-        self.periodicity = ensure_tuple(tmp)
-
-    def _setup2d(self):
-        self.domain_left_edge = np.concatenate([self.domain_left_edge, [0.0]])
-        self.domain_right_edge = np.concatenate([self.domain_right_edge, [1.0]])
-        if self.geometry == "cylindrical":
-            dre = self.domain_right_edge
-            dre[2] = 2.0 * np.pi
-            self.domain_right_edge = dre
-        tmp = self.domain_dimensions.tolist()
-        tmp.append(1)
-        self.domain_dimensions = np.array(tmp)
-        tmp = list(self.periodicity)
-        tmp[2] = False
-        self.periodicity = ensure_tuple(tmp)
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -1160,17 +1136,16 @@ class CastroDataset(BoxlibDataset):
         self.parameters["HydroMethod"] = "Castro"
 
         # set the periodicity based on the runtime parameters
-        periodicity = [True, True, True]
-        if not self.parameters["-x"] == "interior":
-            periodicity[0] = False
-        if self.dimensionality >= 2:
-            if not self.parameters["-y"] == "interior":
-                periodicity[1] = False
-        if self.dimensionality == 3:
-            if not self.parameters["-z"] == "interior":
-                periodicity[2] = False
+        # https://amrex-astro.github.io/Castro/docs/inputs.html?highlight=periodicity
+        periodicity = [False, False, False]
+        for i, axis in enumerate("xyz"):
+            try:
+                periodicity[i] = self.parameters[f"-{axis}"] == "interior"
+            except KeyError:
+                break
 
-        self.periodicity = ensure_tuple(periodicity)
+        self.periodicity = tuple(periodicity)
+
         if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
             # we have particles
             self.parameters["particles"] = 1
@@ -1237,14 +1212,14 @@ class MaestroDataset(BoxlibDataset):
             self.parameters["HydroMethod"] = "Maestro"
 
         # set the periodicity based on the integer BC runtime parameters
-        periodicity = [True, True, True]
+        periodicity = [False, False, False]
         for i, ax in enumerate("xyz"):
             try:
                 periodicity[i] = self.parameters[f"bc{ax}_lo"] != -1
             except KeyError:
                 pass
 
-        self.periodicity = ensure_tuple(periodicity)
+        self.periodicity = tuple(periodicity)
 
 
 class NyxHierarchy(BoxlibHierarchy):
@@ -1597,11 +1572,14 @@ class WarpXDataset(BoxlibDataset):
                     self.parameters[l[0].strip()] = l[1].strip()
 
         # set the periodicity based on the integer BC runtime parameters
-        is_periodic = self.parameters["geometry.is_periodic"].split()
-        periodicity = [bool(val) for val in is_periodic]
-        for _ in range(self.dimensionality, 3):
-            periodicity += [True]  # pad to 3D
-        self.periodicity = ensure_tuple(periodicity)
+        # https://amrex-codes.github.io/amrex/docs_html/InputsProblemDefinition.html
+        periodicity = [False, False, False]
+        try:
+            is_periodic = self.parameters["geometry.is_periodic"].split()
+            periodicity[: len(is_periodic)] = [p == "1" for p in is_periodic]
+        except KeyError:
+            pass
+        self.periodicity = tuple(periodicity)
 
         particle_types = glob.glob(self.output_dir + "/*/Header")
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
