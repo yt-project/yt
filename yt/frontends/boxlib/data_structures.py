@@ -29,23 +29,30 @@ from .fields import (
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
 # This is the dimensions in the Cell_H file for each level
 # It is different for different dimensionalities, so we make a list
+_1dregx = r"-?\d+"
+_2dregx = r"-?\d+,-?\d+"
+_3dregx = r"-?\d+,-?\d+,-?\d+"
 _dim_finder = [
-    re.compile(r"\(\((\d+)\) \((\d+)\) \(\d+\)\)$"),
-    re.compile(r"\(\((\d+,\d+)\) \((\d+,\d+)\) \(\d+,\d+\)\)$"),
-    re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$"),
+    re.compile(rf"\(\(({ndregx})\) \(({ndregx})\) \({ndregx}\)\)$")
+    for ndregx in (_1dregx, _2dregx, _3dregx)
 ]
 # This is the line that prefixes each set of data for a FAB in the FAB file
 # It is different for different dimensionalities, so we make a list
-_endian_regex = r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), \(([0-9 ]+)\)\)\)"
+_endian_regex = r"^FAB\ \(\(\d+,\ \([\d\ ]+\)\),\((\d+),\ \(([\d\ ]+)\)\)\)"
 _header_pattern = [
-    re.compile(_endian_regex + r"\(\((\d+)\) \((\d+)\) \((\d+)\)\) (\d+)\n"),
     re.compile(
-        _endian_regex + r"\(\((\d+,\d+)\) \((\d+,\d+)\) \((\d+,\d+)\)\) (\d+)\n"
-    ),
-    re.compile(
-        _endian_regex
-        + r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
-    ),
+        rf"""{_endian_regex}            # match `endianness`
+        \(
+              \(( {ndregx} )\)          # match `start`
+            \ \(( {ndregx} )\)          # match `end`
+            \ \(( {ndregx} )\)          # match `centering`
+        \)
+        \ (-?\d+)                       # match `nc`
+        $ # end of line
+        """,
+        re.VERBOSE,
+    )
+    for ndregx in (_1dregx, _2dregx, _3dregx)
 ]
 
 
