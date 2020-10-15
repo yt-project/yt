@@ -54,37 +54,6 @@ _header_pattern = [
     )
     for ndregx in (_1dregx, _2dregx, _3dregx)
 ]
-#}_endian_regex
-#        + r"\(\(("
-#        + _1dregx
-#        + ")\) \(("
-#        + _1dregx
-#        + ")\) \(("
-#        + _1dregx
-#        + ")\)\) ([-]?\d+)\n"
-#    ),
-#    re.compile(
-#        _endian_regex
-#        + r"\(\(("
-#        + _2dregx
-#        + ")\) \(("
-#        + _2dregx
-#        + ")\) \(("
-#        + _2dregx
-#        + ")\)\) ([-]?\d+)\n"
-#    ),
-#    re.compile(
-#        _endian_regex
-#        + r"\(\(("
-#        + _3dregx
-#        + ")\) \(("
-#        + _3dregx
-#        + ")\) \(("
-#        + _3dregx
-#        + ")\)\) ([-]?\d+)\n"
-#    ),
-#]
-
 
 class BoxlibGrid(AMRGridPatch):
     _id_offset = 0
