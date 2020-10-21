@@ -6,7 +6,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
-from concurrent.futures import ThreadPoolExecutor as Pool
+from concurrent.futures import ThreadPoolExecutor
 from distutils import log
 from distutils.ccompiler import CCompiler, new_compiler
 from distutils.errors import CompileError, LinkError
@@ -354,10 +354,22 @@ def create_build_ext(lib_exts, cythonize_aliases):
 
             ncpus = get_cpu_count()
             if ncpus > 0:
-                with Pool(ncpus) as pool:
-                    pool.map(self.build_extension, self.extensions)
+                with ThreadPoolExecutor(ncpus) as executor:
+                    results = {
+                        executor.submit(self.build_extension, extension): extension
+                        for extension in self.extensions
+                    }
+                for result in results:
+                    result.result()
             else:
                 super().build_extensions()
+
+        def build_extension(self, extension):
+            try:
+                super().build_extension(extension)
+            except CompileError as exc:
+                print(f"While building '{extension.name}' following error was raised:\n {exc}")
+                raise
 
     class sdist(_sdist):
         # subclass setuptools source distribution builder to ensure cython
