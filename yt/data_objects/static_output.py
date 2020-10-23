@@ -155,14 +155,14 @@ class Dataset(abc.ABC):
     _ionization_label_format = "roman_numeral"
 
     # these are set in self._parse_parameter_file()
-    domain_left_edge = MutableAttribute()
-    domain_right_edge = MutableAttribute()
-    domain_dimensions = MutableAttribute()
+    domain_left_edge = MutableAttribute(True)
+    domain_right_edge = MutableAttribute(True)
+    domain_dimensions = MutableAttribute(True)
     periodicity = MutableAttribute()
 
     # these are set in self._set_derived_attrs()
-    domain_width = MutableAttribute()
-    domain_center = MutableAttribute()
+    domain_width = MutableAttribute(True)
+    domain_center = MutableAttribute(True)
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, str):
