@@ -9,6 +9,7 @@ Grid visitor definitions file
 
 cimport numpy as np
 
+
 cdef struct GridTreeNode:
     np.int32_t num_children
     np.int32_t level

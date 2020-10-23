@@ -6,8 +6,8 @@ Particle Deposition onto Octs
 
 """
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
 from libc.float cimport DBL_MANT_DIG
 from libc.math cimport frexp, ldexp, sqrt
 

@@ -9,8 +9,10 @@ A queue for evaluating distances to discrete points
 
 cimport cython
 cimport numpy as np
+
 import numpy as np
-from libc.stdlib cimport malloc, free
+
+from libc.stdlib cimport free, malloc
 from libc.string cimport memmove
 
 # THESE TWO STRUCTS MUST BE EQUIVALENT

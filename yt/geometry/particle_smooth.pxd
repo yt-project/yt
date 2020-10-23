@@ -8,16 +8,24 @@ Particle Deposition onto Octs
 
 
 cimport numpy as np
+
 import numpy as np
-from libc.stdlib cimport malloc, free, qsort
+
 cimport cython
 from libc.math cimport sqrt
-
-from yt.utilities.lib.fp_utils cimport *
+from libc.stdlib cimport free, malloc, qsort
 from oct_container cimport Oct, OctreeContainer
-from .particle_deposit cimport kernel_func, get_kernel_func, gind
-from yt.utilities.lib.distance_queue cimport NeighborList, Neighbor_compare, \
-    r2dist, DistanceQueue
+
+from yt.utilities.lib.distance_queue cimport (
+    DistanceQueue,
+    Neighbor_compare,
+    NeighborList,
+    r2dist,
+)
+from yt.utilities.lib.fp_utils cimport *
+
+from .particle_deposit cimport get_kernel_func, gind, kernel_func
+
 
 cdef extern from "platform_dep.h":
     void *alloca(int)
