@@ -703,9 +703,37 @@ cdef class SelectorObject:
                 ("domain_width[1]", self.domain_width[1]),
                 ("domain_width[2]", self.domain_width[2]))
 
+    def _get_state_attnames(self):
+        # return a tupe of attr names for __setstate__: implement for each subclass
+        raise NotImplementedError
+
+    def __getstate__(self):
+        # returns a tuple containing (attribute name, attribute value) tuples needed to
+        # rebuild the state:
+        base_atts = ("min_level", "max_level", "overlap_cells",
+                     "periodicity", "domain_width", "domain_center")
+        child_atts = self._get_state_attnames()
+
+        # assemble the state_tuple (('a1', a1val), ('a2', a2val),...)
+        state_tuple = () 
+        for fld in base_atts + child_atts:
+            state_tuple += ((fld, getattr(self, fld)), )
+        return state_tuple
+
+    def __getnewargs__(self):
+        # __setstate__ will always call __cinit__, this pickle hoook returns arguments
+        # to __cinit__. We will give it None so we dont error then set attributes in
+        # __setstate__ Note that we could avoid this by making dobj an optional argument
+        # to __cinit__
+        return (None, )
+
+    def __setstate__(self, state_tuple):
+        # parse and set attributes from the state_tuple: (('a1',a1val),('a2',a2val),...)
+        for attr in state_tuple:
+            setattr(self, attr[0], attr[1])
 
 cdef class PointSelector(SelectorObject):
-    cdef np.float64_t p[3]
+    cdef public np.float64_t p[3]
 
     def __init__(self, dobj):
         cdef np.float64_t[:] DLE = _ensure_code(dobj.ds.domain_left_edge)
@@ -777,32 +805,38 @@ cdef class PointSelector(SelectorObject):
                 ("p[1]", self.p[1]),
                 ("p[2]", self.p[2]))
 
+    def _get_state_attnames(self):
+        return ('p', )
+
 point_selector = PointSelector
 
 
 cdef class SphereSelector(SelectorObject):
-    cdef np.float64_t radius
-    cdef np.float64_t radius2
-    cdef np.float64_t center[3]
+    cdef public np.float64_t radius
+    cdef public np.float64_t radius2
+    cdef public np.float64_t center[3]
     cdef np.float64_t bbox[3][2]
-    cdef bint check_box[3]
+    cdef public bint check_box[3]
 
     def __init__(self, dobj):
         for i in range(3):
             self.center[i] = _ensure_code(dobj.center[i])
         self.radius = _ensure_code(dobj.radius)
         self.radius2 = self.radius * self.radius
-        center = _ensure_code(dobj.center)
+        self.set_bbox(_ensure_code(dobj.center))
         for i in range(3):
-            self.center[i] = center[i]
-            self.bbox[i][0] = self.center[i] - self.radius
-            self.bbox[i][1] = self.center[i] + self.radius
             if self.bbox[i][0] < dobj.ds.domain_left_edge[i]:
                 self.check_box[i] = False
             elif self.bbox[i][1] > dobj.ds.domain_right_edge[i]:
                 self.check_box[i] = False
             else:
                 self.check_box[i] = True
+
+    def set_bbox(self, center):
+        for i in range(3):
+            self.center[i] = center[i]
+            self.bbox[i][0] = self.center[i] - self.radius
+            self.bbox[i][1] = self.center[i] + self.radius
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -941,15 +975,23 @@ cdef class SphereSelector(SelectorObject):
                 ("center[1]", self.center[1]),
                 ("center[2]", self.center[2]))
 
+    def _get_state_attnames(self):
+        return ("radius", "radius2", "center", "check_box")
+
+    def __setstate__(self, hashes):
+        super(SphereSelector, self).__setstate__(hashes)
+        self.set_bbox(self.center)
+
+
 sphere_selector = SphereSelector
 
 cdef class RegionSelector(SelectorObject):
-    cdef np.float64_t left_edge[3]
-    cdef np.float64_t right_edge[3]
-    cdef np.float64_t right_edge_shift[3]
+    cdef public np.float64_t left_edge[3]
+    cdef public np.float64_t right_edge[3]
+    cdef public np.float64_t right_edge_shift[3]
     cdef public bint is_all_data
-    cdef bint loose_selection
-    cdef bint check_period[3]
+    cdef public bint loose_selection
+    cdef public bint check_period[3]
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -1143,7 +1185,6 @@ cdef class RegionSelector(SelectorObject):
                 pos[0] += dds[0]
         return total
 
-
     def _hash_vals(self):
         return (("left_edge[0]", self.left_edge[0]),
                 ("left_edge[1]", self.left_edge[1]),
@@ -1151,6 +1192,10 @@ cdef class RegionSelector(SelectorObject):
                 ("right_edge[0]", self.right_edge[0]),
                 ("right_edge[1]", self.right_edge[1]),
                 ("right_edge[2]", self.right_edge[2]))
+
+    def _get_state_attnames(self):
+        return ('left_edge', 'right_edge', 'right_edge_shift', 'check_period',
+                'is_all_data', 'loose_selection')
 
 region_selector = RegionSelector
 
@@ -1196,10 +1241,10 @@ cdef class CutRegionSelector(SelectorObject):
 cut_region_selector = CutRegionSelector
 
 cdef class DiskSelector(SelectorObject):
-    cdef np.float64_t norm_vec[3]
-    cdef np.float64_t center[3]
-    cdef np.float64_t radius, radius2
-    cdef np.float64_t height
+    cdef public np.float64_t norm_vec[3]
+    cdef public np.float64_t center[3]
+    cdef public np.float64_t radius, radius2
+    cdef public np.float64_t height
 
     def __init__(self, dobj):
         cdef int i
@@ -1358,11 +1403,15 @@ cdef class DiskSelector(SelectorObject):
                 ("radius2", self.radius2),
                 ("height", self.height))
 
+    def _get_state_attnames(self):
+        return ("radius", "radius2", "height", "norm_vec", "center")
+
+
 disk_selector = DiskSelector
 
 cdef class CuttingPlaneSelector(SelectorObject):
-    cdef np.float64_t norm_vec[3]
-    cdef np.float64_t d
+    cdef public np.float64_t norm_vec[3]
+    cdef public np.float64_t d
 
     def __init__(self, dobj):
         cdef int i
@@ -1473,13 +1522,16 @@ cdef class CuttingPlaneSelector(SelectorObject):
                 ("norm_vec[2]", self.norm_vec[2]),
                 ("d", self.d))
 
+    def _get_state_attnames(self):
+        return ("d", "norm_vec")
+
 cutting_selector = CuttingPlaneSelector
 
 cdef class SliceSelector(SelectorObject):
-    cdef int axis
-    cdef np.float64_t coord
-    cdef int ax, ay
-    cdef int reduced_dimensionality
+    cdef public int axis
+    cdef public np.float64_t coord
+    cdef public int ax, ay
+    cdef public int reduced_dimensionality
 
     def __init__(self, dobj):
         self.axis = dobj.axis
@@ -1593,15 +1645,18 @@ cdef class SliceSelector(SelectorObject):
         return (("axis", self.axis),
                 ("coord", self.coord))
 
+    def _get_state_attnames(self):
+        return ("axis", "coord", "ax", "ay", "reduced_dimensionality")
+
 slice_selector = SliceSelector
 
 cdef class OrthoRaySelector(SelectorObject):
 
-    cdef np.uint8_t px_ax
-    cdef np.uint8_t py_ax
-    cdef np.float64_t px
-    cdef np.float64_t py
-    cdef int axis
+    cdef public np.uint8_t px_ax
+    cdef public np.uint8_t py_ax
+    cdef public np.float64_t px
+    cdef public np.float64_t py
+    cdef public int axis
 
     def __init__(self, dobj):
         self.axis = dobj.axis
@@ -1707,6 +1762,9 @@ cdef class OrthoRaySelector(SelectorObject):
                 ("py", self.py),
                 ("axis", self.axis))
 
+    def _get_state_attnames(self):
+        return ("px_ax", "py_ax", "px", "py", "axis")
+
 ortho_ray_selector = OrthoRaySelector
 
 cdef struct IntegrationAccumulator:
@@ -1733,9 +1791,9 @@ cdef void dt_sampler(
 
 cdef class RaySelector(SelectorObject):
 
-    cdef np.float64_t p1[3]
-    cdef np.float64_t p2[3]
-    cdef np.float64_t vec[3]
+    cdef public np.float64_t p1[3]
+    cdef public np.float64_t p2[3]
+    cdef public np.float64_t vec[3]
 
     def __init__(self, dobj):
         cdef int i
@@ -1994,6 +2052,9 @@ cdef class RaySelector(SelectorObject):
                 ("vec[1]", self.vec[1]),
                 ("vec[2]", self.vec[2]))
 
+    def _get_state_attnames(self):
+        return ("p1", "p2", "vec")
+
 ray_selector = RaySelector
 
 cdef class DataCollectionSelector(SelectorObject):
@@ -2034,9 +2095,9 @@ cdef class DataCollectionSelector(SelectorObject):
 data_collection_selector = DataCollectionSelector
 
 cdef class EllipsoidSelector(SelectorObject):
-    cdef np.float64_t vec[3][3]
-    cdef np.float64_t mag[3]
-    cdef np.float64_t center[3]
+    cdef public np.float64_t vec[3][3]
+    cdef public np.float64_t mag[3]
+    cdef public np.float64_t center[3]
 
     def __init__(self, dobj):
         cdef int i
@@ -2175,6 +2236,10 @@ cdef class EllipsoidSelector(SelectorObject):
                 ("center[0]", self.center[0]),
                 ("center[1]", self.center[1]),
                 ("center[2]", self.center[2]))
+
+    def _get_state_attnames(self):
+        return ("mag", "center", "vec")
+
 
 ellipsoid_selector = EllipsoidSelector
 
