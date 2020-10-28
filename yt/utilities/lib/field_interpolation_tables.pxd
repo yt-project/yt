@@ -11,11 +11,11 @@ Field Interpolation Tables
 
 cimport cython
 cimport numpy as np
-
 from libc.math cimport isnormal
 from libc.stdlib cimport malloc
 
 from yt.utilities.lib.fp_utils cimport fabs, fclip, fmax, fmin, iclip, imax, imin
+
 
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
