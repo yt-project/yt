@@ -7,7 +7,8 @@ An allocation container and memory pool
 
 
 cimport numpy as np
-from libc.stdlib cimport malloc, free, realloc
+from libc.stdlib cimport free, malloc, realloc
+
 
 cdef struct AllocationContainer:
     np.uint64_t n

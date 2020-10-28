@@ -7,8 +7,9 @@ Contour finding exports
 
 
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
+
 
 cdef inline np.int64_t i64max(np.int64_t i0, np.int64_t i1):
     if i0 > i1: return i0

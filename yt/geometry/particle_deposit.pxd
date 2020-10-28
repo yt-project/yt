@@ -8,14 +8,18 @@ Particle Deposition onto Octs
 
 
 cimport numpy as np
+
 import numpy as np
-from libc.stdlib cimport malloc, free
+
 cimport cython
 from libc.math cimport sqrt
+from libc.stdlib cimport free, malloc
 from numpy.math cimport PI as NPY_PI
 
 from yt.utilities.lib.fp_utils cimport *
+
 from .oct_container cimport Oct, OctreeContainer
+
 
 cdef extern from "platform_dep.h":
     void *alloca(int)

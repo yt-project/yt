@@ -9,6 +9,7 @@ A volume container
 
 cimport numpy as np
 
+
 cdef struct VolumeContainer:
     #-----------------------------------------------------------------------------
     # Encapsulates a volume container used for volume rendering.
