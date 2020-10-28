@@ -16,6 +16,7 @@ from libc.stdlib cimport malloc
 cdef extern from "<cmath>" namespace "std":
     bint isnormal(double x) nogil
 
+
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
     # externally.
