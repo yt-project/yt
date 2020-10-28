@@ -18,9 +18,9 @@ from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 
-from . import read_amrvac_namelist
 from .datfile_utils import get_header, get_tree_info
 from .fields import AMRVACFieldInfo
+from .io import read_amrvac_namelist
 
 
 class AMRVACGrid(AMRGridPatch):

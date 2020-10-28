@@ -7,8 +7,10 @@ Bit array functions
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 
 cdef inline void ba_set_value(np.uint8_t *buf, np.uint64_t ind,
                               np.uint8_t val) nogil:

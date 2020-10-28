@@ -1,8 +1,12 @@
 cimport cython
+
 import numpy as np
+
 cimport numpy as np
+
 from yt.utilities.lib.element_mappings cimport ElementSampler
 from yt.utilities.lib.primitives cimport BBox, Ray
+
 
 cdef extern from "mesh_triangulation.h":
     enum:
