@@ -8,8 +8,10 @@ Definitions for the traversal code
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 from .image_samplers cimport ImageSampler
 from .volume_container cimport VolumeContainer, vc_index, vc_pos_index
 

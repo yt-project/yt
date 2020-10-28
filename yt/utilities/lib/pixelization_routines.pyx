@@ -3,7 +3,7 @@
 # distutils: extra_link_args = OMP_ARGS
 # distutils: language = c++
 # distutils: libraries = STD_LIBS
-# distutils: sources = yt/utilities/lib/pixelization_constants.c
+# distutils: sources = yt/utilities/lib/pixelization_constants.cpp
 """
 Pixelization routines
 
@@ -65,7 +65,7 @@ from yt.utilities.lib.particle_kdtree_tools cimport (
 
 cdef int TABLE_NVALS=512
 
-cdef extern from "pixelization_constants.h":
+cdef extern from "pixelization_constants.hpp":
     enum:
         MAX_NUM_FACES
 

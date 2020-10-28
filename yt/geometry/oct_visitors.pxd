@@ -9,6 +9,7 @@ Oct visitor definitions file
 
 cimport numpy as np
 
+
 cdef struct Oct
 cdef struct Oct:
     np.int64_t file_ind     # index with respect to the order in which it was
@@ -143,6 +144,7 @@ cdef inline int cind(int i, int j, int k) nogil:
     return (((i*2)+j)*2+k)
 
 from oct_container cimport OctreeContainer
+
 
 cdef class StoreIndex(OctVisitor):
     cdef np.int64_t[:,:,:,:] cell_inds
