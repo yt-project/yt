@@ -17,6 +17,10 @@ cdef extern from "<cmath>" namespace "std":
     bint isnormal(double x) nogil
 
 
+cdef extern from "platform_dep_math.hpp":
+    bint __isnormal(double) nogil
+
+
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
     # externally.
@@ -61,7 +65,7 @@ cdef inline np.float64_t FIT_get_value(const FieldInterpolationTable *fit,
     cdef np.float64_t dd, dout
     cdef int bin_id
     if dvs[fit.field_id] >= fit.bounds[1] or dvs[fit.field_id] <= fit.bounds[0]: return 0.0
-    if not isnormal(dvs[fit.field_id]): return 0.0
+    if not __isnormal(dvs[fit.field_id]): return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
     bin_id = iclip(bin_id, 0, fit.nbins-2)
 
