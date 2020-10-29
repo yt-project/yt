@@ -239,8 +239,9 @@ class ParticleTrajectories:
             field for field in missing_fields if field not in self.particle_fields
         ]
         step = int(0)
+        fields_str = ", ".join(str(f) for f in missing_fields)
         pbar = get_pbar(
-            f"Generating [{', '.join(missing_fields)}] fields in trajectories",
+            f"Generating [{fields_str}] fields in trajectories",
             self.num_steps,
         )
         my_storage = {}
