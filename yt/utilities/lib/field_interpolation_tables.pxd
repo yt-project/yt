@@ -11,10 +11,13 @@ Field Interpolation Tables
 
 cimport cython
 cimport numpy as np
-from libc.math cimport isnormal
 from libc.stdlib cimport malloc
 
 from yt.utilities.lib.fp_utils cimport fabs, fclip, fmax, fmin, iclip, imax, imin
+
+
+cdef extern from "platform_dep_math.hpp":
+    bint __isnormal(double) nogil
 
 
 cdef struct FieldInterpolationTable:
@@ -61,7 +64,7 @@ cdef inline np.float64_t FIT_get_value(const FieldInterpolationTable *fit,
     cdef np.float64_t dd, dout
     cdef int bin_id
     if dvs[fit.field_id] >= fit.bounds[1] or dvs[fit.field_id] <= fit.bounds[0]: return 0.0
-    if not isnormal(dvs[fit.field_id]): return 0.0
+    if not __isnormal(dvs[fit.field_id]): return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
     bin_id = iclip(bin_id, 0, fit.nbins-2)
 
