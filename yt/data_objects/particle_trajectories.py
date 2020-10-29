@@ -111,8 +111,8 @@ class ParticleTrajectories:
             mylog.setLevel(old_level)
 
         sorted_storage = sorted(my_storage.items())
-        times = [time for _fn, (time, *_) in sorted_storage]
-        self.times = self.data_series[0].arr(times, times[0].units)
+        times = [time.to("Myr") for _fn, (time, *_) in sorted_storage]
+        self.times = self.data_series[0].arr([time.value for time in times], times[0].units)
 
         self.particle_fields = []
         output_field = np.empty((self.num_indices, self.num_steps))
