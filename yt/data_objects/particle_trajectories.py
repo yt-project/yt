@@ -86,9 +86,13 @@ class ParticleTrajectories:
         ):
             fds[field] = self._get_full_field_name(field, ds_first, dd_first)[0]
 
+        # Note: we explicitly pass dynamic=False to prevent any change in piter from
+        # breaking the assumption that the same processors load the same datasets
         my_storage = {}
         pbar = get_pbar("Constructing trajectory information", len(self.data_series))
-        for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
+        for i, (sto, ds) in enumerate(
+            self.data_series.piter(storage=my_storage, dynamic=False)
+        ):
             dd = ds.all_data()
             newtags = dd[fds["particle_index"]].d.astype("int64")
             mask = np.in1d(newtags, indices, assume_unique=True)
@@ -112,7 +116,9 @@ class ParticleTrajectories:
 
         sorted_storage = sorted(my_storage.items())
         times = [time.to("Myr") for _fn, (time, *_) in sorted_storage]
-        self.times = self.data_series[0].arr([time.value for time in times], times[0].units)
+        self.times = self.data_series[0].arr(
+            [time.value for time in times], times[0].units
+        )
 
         self.particle_fields = []
         output_field = np.empty((self.num_indices, self.num_steps))
@@ -241,12 +247,13 @@ class ParticleTrajectories:
         step = int(0)
         fields_str = ", ".join(str(f) for f in missing_fields)
         pbar = get_pbar(
-            f"Generating [{fields_str}] fields in trajectories",
-            self.num_steps,
+            f"Generating [{fields_str}] fields in trajectories", self.num_steps,
         )
         my_storage = {}
 
-        for i, (sto, ds) in enumerate(self.data_series.piter(storage=my_storage)):
+        for i, (sto, ds) in enumerate(
+            self.data_series.piter(storage=my_storage, dynamic=False)
+        ):
             mask = self.masks[i]
             sort = self.sorts[i]
             pfield = {}
