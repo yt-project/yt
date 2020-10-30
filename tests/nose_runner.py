@@ -11,5 +11,6 @@ if __name__ == "__main__":
         "--junitxml=unittests.xml",
         "--answer-big-data",
         f"-n {int(os.environ.get('NUM_WORKERS', 6))}",
+        "--dist loadscope",
     ]
     pytest.main(pytest_args)
