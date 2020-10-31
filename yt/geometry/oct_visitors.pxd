@@ -156,6 +156,7 @@ cdef class BaseNeighbourVisitor(OctVisitor):
     cdef Oct *neighbour
     cdef OctreeContainer octree
     cdef OctInfo oi
+    cdef int n_ghost_zones
 
     cdef void set_neighbour_info(self, Oct *o, int ishift[3])
 
