@@ -565,6 +565,7 @@ def test_field_accession():
             reg[field]
 
 
+@requires_file(output_00080)
 def test_ghost_zones():
     ds = yt.load(output_00080)
 
