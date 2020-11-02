@@ -370,7 +370,9 @@ class RAMSESDomainSubset(OctreeSubset):
         try:
             new_subset = _subset_with_gz[ngz]
             mylog.debug(
-                "Reusing previous subset with ghost zone for domain %s", self.domain_id
+                "Reusing previous subset with %s ghost zones for domain %s",
+                ngz,
+                self.domain_id,
             )
         except KeyError:
             new_subset = RAMSESDomainSubset(
