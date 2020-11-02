@@ -384,8 +384,8 @@ class RAMSESDomainSubset(OctreeSubset):
             )
             _subset_with_gz[ngz] = new_subset
 
-            # Cache the fields
-            new_subset.get_data(fields)
+        # Cache the fields
+        new_subset.get_data(fields)
         self._subset_with_gz = _subset_with_gz
 
         return new_subset
