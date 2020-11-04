@@ -196,4 +196,5 @@ class ParameterFileStore:
                 v["last_seen"] = 0.0
             else:
                 v["last_seen"] = float(v["last_seen"])
+        f.close()
         return db
