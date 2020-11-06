@@ -5,6 +5,7 @@ import pytest
 from yt.config import ytcfg
 
 if __name__ == "__main__":
+    os.environ["OMP_NUM_THREADS"] = "1"
     pytest_args = [
         f"--local-dir={os.path.join(ytcfg.get('yt', 'test_data_dir'), 'answers')}",
         "-c=pytest_answer.ini",
