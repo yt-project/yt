@@ -13,5 +13,4 @@ prune doc/build
 recursive-include yt/visualization/volume_rendering/shaders *.fragmentshader *.vertexshader
 include yt/sample_data_registry.json
 prune yt/frontends/_skeleton
-include yt/visualization/volume_rendering/shaders/shaderlist.yaml
 recursive-include yt/frontends/amrvac *.par
