@@ -12,6 +12,14 @@ The `CREDITS file <https://github.com/yt-project/yt/blob/master/CREDITS>`_
 contains the most up-to-date list of everyone who has contributed to the yt 
 source code.
 
+Version 3.6.1
+-------------
+
+Version 3.6.1 is a bugfix release. It includes the following backport:
+
+- hotfix: support matplotlib 3.3.0. 
+  See `PR 2754 <https://github.com/yt-project/yt/pull/2754>`__. 
+
 Version 3.6.0
 -------------
 
