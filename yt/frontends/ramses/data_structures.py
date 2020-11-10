@@ -840,7 +840,7 @@ class RAMSESDataset(Dataset):
                     "Yt will assume the simulation is *not* cosmological."
                 )
                 self.cosmological_simulation = 0
-                self.current_time = self.paremeters["time"]
+                self.current_time = self.parameters["time"]
 
         if self.num_groups > 0:
             self.group_size = rheader["ncpu"] // self.num_groups
