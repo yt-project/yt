@@ -835,7 +835,7 @@ class RAMSESDataset(Dataset):
                     / self.parameters["unit_t"]
                 )
             except IndexError:
-                mylog.info(
+                mylog.warning(
                     "Yt could not convert conformal time to physical time. "
                     "Yt will assume the simulation is *not* cosmological."
                 )
