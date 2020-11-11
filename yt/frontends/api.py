@@ -12,6 +12,7 @@ _frontends = [
     "art",
     "arepo",
     "artio",
+    "aspect",
     "athena",
     "athena_pp",
     "boxlib",
