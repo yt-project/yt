@@ -30,7 +30,6 @@ class ParticleContainer(YTSelectionContainer):
     ):
         if overlap_files is None:
             overlap_files = []
-        # print("hello pc init")
         self.field_data = YTFieldData()
         self.field_parameters = {}
         self.data_files = list(always_iterable(data_files))
