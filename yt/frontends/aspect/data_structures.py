@@ -24,7 +24,11 @@ class ASPECTUnstructuredMesh(UnstructuredMesh):
 
 
 class ASPECTUnstructuredIndex(UnstructuredIndex):
-    def __init__(self, ds, dataset_type="exodus_ii"):
+    """
+    for on-disk vtu files. treats each vtu file as a separate mesh.
+    """
+
+    def __init__(self, ds, dataset_type="aspect"):
         super(ASPECTUnstructuredIndex, self).__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
@@ -34,8 +38,9 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
             # aspect does not displace between vtu
             # displaced_coords = self.ds._apply_displacement(coords, mesh_id)
             mesh_coords = coords[mesh_id]
+            mesh_file = self.ds.parameters["vtu_files"][mesh_id]
             mesh = ASPECTUnstructuredMesh(
-                mesh_id, self.index_filename, conn_ind, mesh_coords, self
+                mesh_id, mesh_file, conn_ind, mesh_coords, self
             )
             self.meshes.append(mesh)
         self.mesh_union = MeshUnion("mesh_union", self.meshes)
@@ -65,7 +70,7 @@ class ASPECTDataset(Dataset):
     ):
         """
 
-        A class used to represent an on-disk ExodusII dataset. The initializer takes
+        A class used to represent an on-disk ASPECT dataset. The initializer takes
         two extra optional parameters, "step" and "displacements."
 
         Parameters
@@ -102,12 +107,15 @@ class ASPECTDataset(Dataset):
             self.data_dir, "." + os.path.splitext(param_file)[0] + ".json"
         )
 
+    def _init_sidecar(self):
+        with open(self._get_sidecar_file(), "w") as shandle:
+            json.dump([{"pvtu": self.parameter_filename}], shandle)
+
     def _read_sidecar(self):
         # initialize the hidden sidecar file for this .pvtu if it is not there
         sidecar = self._get_sidecar_file()
         if not os.path.isfile(sidecar):
-            with open(sidecar, "w") as shandle:
-                json.dump([{"pvtu": self.parameter_filename}], shandle)
+            self._init_sidecar()
 
         # read in parameter info
         with open(sidecar, "r") as shandle:
@@ -126,12 +134,12 @@ class ASPECTDataset(Dataset):
         # should be set, along with examples of how to set them to standard
         # values.
         #
-        setdefaultattr(self, "length_unit", self.quan(1.0, "cm"))
-        setdefaultattr(self, "mass_unit", self.quan(1.0, "g"))
+        setdefaultattr(self, "length_unit", self.quan(1.0, "m"))
+        setdefaultattr(self, "mass_unit", self.quan(1.0, "kg"))
         setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
         #
         # These can also be set:
-        # self.velocity_unit = self.quan(1.0, "cm/s")
+        # self.velocity_unit = self.quan(1.0, "m/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
 
     def _parse_parameter_file(self):
@@ -205,46 +213,23 @@ class ASPECTDataset(Dataset):
         ]
         return [field["@Name"] for field in fields]
 
-    def _read_coordinates(self):
-        """
-
-        Loads the coordinates for the mesh
-
-        """
-
-        # this wont work for vtu: coords are within each vtu.
-
-        coord_axes = "xyz"[: self.dimensionality]
-
-        # check cache, load min/max if we've done this already
-        coords_are_cached = False
-        if coords_are_cached:
-            mylog.info("pull coords from cache?")
-        else:
-            mylog.info("Loading coordinates")
-
-            with self._handle.open_ds() as ds:
-                if "coord" not in ds.variables:
-                    coords = (
-                        np.array([ds.variables[f"coord{ax}"][:] for ax in coord_axes])
-                        .transpose()
-                        .astype("f8")
-                    )
-                else:
-                    coords = (
-                        np.array([coord for coord in ds.variables["coord"][:]])
-                        .transpose()
-                        .astype("f8")
-                    )
-                return coords
-
-    def _read_piece(self, srcFi, mesh_name, connectivity_offset=0):
+    def _read_piece(self, srcFi, connectivity_offset=0):
         meshPiece = meshio.read(srcFi)  # read it in with meshio
         coords = meshPiece.points  # coords are already global
         # need to generalize the cell type
-        self.parameters["cell_type"] = "lagrange_hexahedron"
-        cell_type = self.parameters["cell_type"]
-        connectivity = meshPiece.cells_dict[cell_type]  # 2D connectivity array
+        cell_types = list(meshPiece.cells_dict.keys())
+        if len(cell_types) > 1:
+            mylog.warn(
+                (
+                    "meshio detected more than one cell type, but the "
+                    "current aspect vtu loader\n    can only handle a single "
+                    f"cell type. Detected cell types: {cell_types}. \n"
+                    "    Will continue with the first and hope for the best..."
+                )
+            )
+        self.parameters["cell_type"] = cell_types[0]
+        mylog.info(f"detected cell type is {cell_types[0]}.")
+        connectivity = meshPiece.cells_dict[cell_types[0]]  # 2D connectivity array
         # offset the connectivity matrix to global value
         connectivity = np.array(connectivity) + connectivity_offset
         return [connectivity, coords]
@@ -259,14 +244,14 @@ class ASPECTDataset(Dataset):
         coordlist = []  # global, concatenated coordinate array
         con_offset = -1
         for mesh_id, src in enumerate(pieces):
-            mesh_name = f"connect{mesh_id + 1}"  # connect1, connect2, etc.
+            # mesh_name = f"connect{mesh_id + 1}"  # connect1, connect2, etc.
             srcfi = os.path.join(
                 self.data_dir, src["@Source"]
             )  # full path to .vtu file
-            [con, coord] = self._read_piece(srcfi, mesh_name, con_offset + 1)
-            con_offset = con.max()
+            [con, coord] = self._read_piece(srcfi, con_offset + 1)
+            # con_offset = con.max()  # reading by file, don't need to concat?
             conlist.append(con.astype("i8"))
-            coordlist.extend(coord.astype("f8"))
+            coordlist.append(coord.astype("f8"))
 
         return conlist, coordlist
 
@@ -277,16 +262,16 @@ class ASPECTDataset(Dataset):
         """
 
         # check our sidecar file first:
+        self._init_sidecar()  # temporary til we know it works...
         self.parameter_info = self._read_sidecar()
         left_edge = self.parameter_info.get("domain_left_edge", None)
         right_edge = self.parameter_info.get("domain_right_edge", None)
 
         if not left_edge:
             _, coord = self._read_pieces()
-
-            coord = np.array(coord)
-            left_edge = [coord[i, :].min() for i in range(self.dimensionality)]
-            right_edge = [coord[i, :].max() for i in range(self.dimensionality)]
+            coord = np.vstack(coord)
+            left_edge = [coord[:, i].min() for i in range(self.dimensionality)]
+            right_edge = [coord[:, i].max() for i in range(self.dimensionality)]
             self.parameter_info["domain_left_edge"] = left_edge
             self.parameter_info["domain_right_edge"] = right_edge
             self._write_sidecar()
