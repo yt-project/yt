@@ -16,17 +16,17 @@ jobs:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-18.04]
         python-version: [3.8]
-        minimal: [false]
-        answer-tests: [false]
+        dependencies: [full]
+        tests-type: [unit]
         include:
           - os: ubuntu-18.04
             python-version: 3.6
-            minimal: true
-            answer-tests: false
+            dependencies: minimal
+            tests-type: unit
           - os: ubuntu-18.04
             python-version: 3.7
-            minimal: false
-            answer-tests: true
+            dependencies: full
+            tests-type: answer
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -45,24 +45,12 @@ jobs:
         conda-channels: conda-forge
         activate-conda: true
         python-version: ${{matrix.python-version}}
-    - name: Show env
-      shell: bash
-      run: |
-        echo PATH $PATH
-        echo python `which python`
-        python -c "import sys; print(sys.version)"
     - name: Install dependencies and yt
       shell: bash
-      run: |
-        if [ "${{ matrix.minimal }}" == "true" ]; then
-          export MINIMAL=1
-        fi
-        source ./tests/ci_install.sh
+      env:
+        dependencies: ${{ matrix.dependencies }}
+      run: source ./tests/ci_install.sh
     - name: Run Tests
-      run: |
-        if [ "${{ matrix.answer-tests }}" == "true" ]; then
-          export CONFIG=nose_answer.cfg
-        else
-          export CONFIG=nose_unit.cfg
-        fi
-        python -m nose -c $CONFIG --traverse-namespace
+      env:
+        testsuite: ${{ matrix.tests-type }}
+      run: python -m nose -c nose_${testsuite}.cfg --traverse-namespace

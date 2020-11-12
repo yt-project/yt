@@ -1,7 +1,5 @@
 set -x   # Show which command is being run
 
-[[ -n ${RUNNER_OS} ]] && export TRAVIS_OS_NAME=${RUNNER_OS}
-
 case ${RUNNER_OS} in
 linux|Linux)
     sudo apt-get install \
@@ -27,7 +25,7 @@ cat $HOME/.config/yt/ytrc
 cp tests/matplotlibrc .
 
 # Step 1: pre-install required packages
-if [[ "${RUNNER_OS}" == "Windows" ]] && [[ $MINIMAL != 1 ]]; then
+if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
     # Install some dependencies using conda (if not doing a minimal run)
     CYTHON=$(grep cython tests/test_prerequirements.txt)
     NUMPY=$(grep numpy tests/test_prerequirements.txt)
@@ -46,7 +44,7 @@ else
 fi
 
 # Step 2: install required packages (depending on whether the build is minimal)
-if [[ $MINIMAL == 1 ]]; then
+if [[ ${dependencies} == "minimal" ]]; then
     # Ensure numpy and cython are installed so dependencies that need to be built
     # don't error out
     # The first numpy to support py3.6 is 1.12, but numpy 1.13 matches
