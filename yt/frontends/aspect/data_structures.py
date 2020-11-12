@@ -215,7 +215,7 @@ class ASPECTDataset(Dataset):
 
     def _read_piece(self, srcFi, connectivity_offset=0):
         meshPiece = meshio.read(srcFi)  # read it in with meshio
-        coords = meshPiece.points  # coords are already global
+        coords = meshPiece.points.astype(np.float64)  # coords are already global
         # need to generalize the cell type
         cell_types = list(meshPiece.cells_dict.keys())
         if len(cell_types) > 1:
@@ -229,6 +229,9 @@ class ASPECTDataset(Dataset):
             )
         self.parameters["cell_type"] = cell_types[0]
         mylog.info(f"detected cell type is {cell_types[0]}.")
+
+        # do an element type check here, reduce it if necessary.
+
         connectivity = meshPiece.cells_dict[cell_types[0]]  # 2D connectivity array
         # offset the connectivity matrix to global value
         connectivity = np.array(connectivity) + connectivity_offset

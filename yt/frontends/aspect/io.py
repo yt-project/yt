@@ -43,14 +43,13 @@ class IOHandlerASPECT(BaseIOHandler):
             mask = selector.fill_mesh_cell_mask(mesh)
             masked_conn = mesh.connectivity_indices[mask, :].ravel()
             vtu_file = os.path.join(self.ds.data_dir, mesh.filename)
-            print(vtu_file)
             meshPiece = meshio.read(vtu_file)
             for field in fields:
                 ftype, fname = field
                 rv[field].append(meshPiece.point_data[fname][masked_conn])
 
         for field in fields:
-            rv[field] = np.concatenate(rv[field])
+            rv[field] = np.concatenate(rv[field]).astype(np.float64)
 
         return rv
 
