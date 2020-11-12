@@ -193,9 +193,9 @@ merged into master). Once the wheels are uploaded, download the
 wheel files for the release and copy them to the ``dist`` folder in the yt 
 repository so that they are sitting next to the source distribution 
 we created earlier. Here's a
-one-liner to download all of the wheels for the yt 3.5.1 release::
+one-liner to download all of the wheels for the yt 3.6.1 release::
 
-  $ wget -r --no-parent -A 'yt-3.5.1-*.whl' http://wheels.scipy.org/
+  $ wget -r -nd -A 'yt-3.6.1-*whl' https://anaconda.org/multibuild-wheels-staging/yt/files 
 
 
 Uploading to PyPI
