@@ -872,3 +872,16 @@ class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
         super(GenerationInProgress, self).__init__()
+
+
+class YTAmbiguousFieldName(YTException):
+    def __init__(self, fname, possible_ftypes):
+        self.fname = fname
+        self.possible_ftypes = possible_ftypes
+
+    def __str__(self):
+        msg = f"You requested the field '{self.fname}'.\n"
+        msg += "Unfortunately, that could correspond to any one of "
+        msg += f"the field types\n {self.possible_ftypes}."
+        msg += "Please explicitly utilize a tuple to select the ftype you mean."
+        return msg
