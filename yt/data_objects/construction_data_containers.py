@@ -27,6 +27,7 @@ from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import (
     YTNoAPIKey,
+    YTNotInsideNotebook,
     YTParticleDepositionNotImplemented,
     YTTooManyVertices,
 )
@@ -327,7 +328,10 @@ class YTProj(YTSelectionContainer2D):
             width = self.ds.domain_width
             center = self.ds.domain_center
         pw = self._get_pw(fields, center, width, "native", "Projection")
-        pw.show()
+        try:
+            pw.show()
+        except YTNotInsideNotebook:
+            pass
         return pw
 
     def _initialize_projected_units(self, fields, chunk):
