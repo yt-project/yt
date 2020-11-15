@@ -2,7 +2,7 @@ set -x   # Show which command is being run
 
 case ${RUNNER_OS} in
 linux|Linux)
-    sudo apt-get install \
+    sudo apt-get -qqy install \
       libhdf5-serial-dev \
       libnetcdf-dev \
       libproj-dev \
@@ -18,10 +18,12 @@ osx|macOS)
     ;;
 esac
 
+# Disable excessive output
 mkdir -p $HOME/.config/yt
 echo "[yt]" > $HOME/.config/yt/ytrc
 echo "suppressStreamLogging = True" >> $HOME/.config/yt/ytrc
 cat $HOME/.config/yt/ytrc
+# Sets default backend to Agg
 cp tests/matplotlibrc .
 
 # Step 1: pre-install required packages
@@ -36,7 +38,8 @@ if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
     SCIPY=$(grep scipy tests/test_requirements.txt)
     conda config --set always_yes yes
     conda info -a
-    conda install --yes -c conda-forge $CYTHON $NUMPY $CARTOPY $H5PY $MATPLOTLIB $SCIPY
+    conda install --quiet --yes -c conda-forge \
+      $CYTHON $NUMPY $CARTOPY $H5PY $MATPLOTLIB $SCIPY
 else
     python -m pip install --upgrade pip
     python -m pip install --upgrade wheel
@@ -64,4 +67,4 @@ fi
 # Step 3: install yt
 python -m pip install -e .
 
-set +x  # Do not show which command is being run (Travis default)
+set +x
