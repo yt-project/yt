@@ -7,4 +7,4 @@ def test_ambiguous_fails():
     with assert_raises(YTAmbiguousFieldName) as ex:
         _ = ds.r[:]["particle_position_x"]
     assert_equal(ex.exception.fname, "particle_position_x")
-    assert_equal(tuple(ex.exception.possible_ftypes), ("all", "nbody"))
+    assert_equal(ex.exception.possible_ftypes, set(("all", "nbody")))
