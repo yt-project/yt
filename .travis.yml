@@ -31,7 +31,7 @@ jobs:
     - stage: tests
       name: "Python: 3.8 Unit Tests"
       python: 3.8
-      script:
+      script: |
         pip install nose
         python nose_debug.py
 
