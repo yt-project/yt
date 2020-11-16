@@ -1,5 +1,6 @@
 import os
 import sys
+import traceback
 from difflib import unified_diff
 
 from nose.plugins import Plugin
@@ -7,7 +8,7 @@ from nose.plugins.plugintest import run
 
 from yt.utilities.exceptions import YTAmbiguousFieldName
 
-ROOT = os.path.abspath(__file__)
+ROOT = os.path.join(os.path.abspath(__file__), "..")
 
 diff_file = open("diff.txt", mode="w")
 
@@ -32,12 +33,6 @@ class AmbiguousResolvePlugin(Plugin):
         t, v, tb = err
         if t is not YTAmbiguousFieldName:
             return
-
-        import traceback
-
-        # print('TYPE:', t)
-        # print('VALUE:', v)
-        # print('TRACEBACK:', tb)
 
         ambiguous_fname = v.fname
         ok = False
@@ -73,7 +68,7 @@ class AmbiguousResolvePlugin(Plugin):
             )
         )
 
-        rel_path = os.path.relpath(test_path)
+        rel_path = os.path.relpath(test_path, ROOT)
         diff_file.writelines(
             unified_diff(lines, corrected, fromfile=rel_path, tofile=rel_path)
         )
