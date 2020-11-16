@@ -54,7 +54,7 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
-        self._ambiguous_field_names = defaultdict(set)
+        self._ambiguous_field_names = defaultdict(dict)
         if ds is not None and is_curvilinear(ds.geometry):
             self.curvilinear = True
         else:
@@ -406,9 +406,11 @@ class FieldInfoContainer(dict):
 
     def __setitem__(self, key, value):
         ftype, fname = key
-        if any(fname == _fname for _ftype, _fname in self):
-            self._ambiguous_field_names[fname].add(ftype)
+        self._ambiguous_field_names[fname][ftype] = None
         super().__setitem__(key, value)
+
+    def is_ambiguous_field_name(self, fname):
+        return len(self._ambiguous_field_names[fname]) > 1
 
     def alias(self, alias_name, original_name, units=None):
         if original_name not in self:

@@ -818,9 +818,9 @@ class Dataset(abc.ABC):
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
-            if fname in self.field_info._ambiguous_field_names:
+            if self.field_info.is_ambiguous_field_name(fname):
                 raise YTAmbiguousFieldName(
-                    fname, self.field_info._ambiguous_field_names[fname]
+                    fname, list(self.field_info._ambiguous_field_names[fname].keys())
                 )
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
