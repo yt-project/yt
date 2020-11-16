@@ -18,15 +18,15 @@ def test_mean_sum_integrate():
         ad = ds.all_data()
 
         # Sums
-        q = ad.sum("density")
+        q = ad.sum(("gas", "density"))
 
-        q1 = ad.quantities.total_quantity("density")
+        q1 = ad.quantities.total_quantity(("gas", "density"))
 
         assert_equal(q, q1)
 
-        q = ad.sum("particle_ones")
+        q = ad.sum(("nbody", "particle_ones"))
 
-        q1 = ad.quantities.total_quantity("particle_ones")
+        q1 = ad.quantities.total_quantity(("nbody", "particle_ones"))
 
         assert_equal(q, q1)
 
@@ -90,11 +90,11 @@ def test_min_max():
 
         ad = ds.all_data()
 
-        q = ad.min("density").v
-        assert_equal(q, ad["density"].min())
+        q = ad.min(("gas", "density")).v
+        assert_equal(q, ad[("gas", "density")].min())
 
-        q = ad.max("density").v
-        assert_equal(q, ad["density"].max())
+        q = ad.max(("gas", "density")).v
+        assert_equal(q, ad[("gas", "density")].max())
 
         q = ad.min("particle_mass").v
         assert_equal(q, ad["particle_mass"].min())
@@ -136,10 +136,12 @@ def test_argmin():
 
         ad = ds.all_data()
 
-        q = ad.argmin("density", axis=["density"])
-        assert_equal(q, ad["density"].min())
+        q = ad.argmin(("gas", "density"), axis=[("gas", "density")])
+        assert_equal(q, ad[("gas", "density")].min())
 
-        q1, q2 = ad.argmin("density", axis=["density", "temperature"])
+        q1, q2 = ad.argmin(
+            ("gas", "density"), axis=[("gas", "density"), ("gas", "temperature")]
+        )
         mi = np.argmin(ad["density"])
         assert_equal(q1, ad["density"].min())
         assert_equal(q2, ad["temperature"][mi])
@@ -160,10 +162,12 @@ def test_argmax():
 
         ad = ds.all_data()
 
-        q = ad.argmax("density", axis=["density"])
-        assert_equal(q, ad["density"].max())
+        q = ad.argmax(("gas", "density"), axis=[("gas", "density")])
+        assert_equal(q, ad[("gas", "density")].max())
 
-        q1, q2 = ad.argmax("density", axis=["density", "temperature"])
+        q1, q2 = ad.argmax(
+            ("gas", "density"), axis=[("gas", "density"), ("gas", "temperature")]
+        )
         mi = np.argmax(ad["density"])
         assert_equal(q1, ad["density"].max())
         assert_equal(q2, ad["temperature"][mi])

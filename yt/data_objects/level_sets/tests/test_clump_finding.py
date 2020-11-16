@@ -42,9 +42,9 @@ def test_clump_finding():
     master_clump.add_validator("min_cells", 1)
 
     def _total_volume(clump):
-        total_vol = clump.data.quantities.total_quantity(["cell_volume"]).in_units(
-            "cm**3"
-        )
+        total_vol = clump.data.quantities.total_quantity(
+            [("stream", "cell_volume")]
+        ).in_units("cm**3")
         return "Cell Volume: %6e cm**3.", total_vol
 
     add_clump_info("total_volume", _total_volume)
@@ -68,9 +68,11 @@ def test_clump_finding():
     assert_equal(len(leaf_clumps), 2)
 
     # check some clump fields
-    assert_equal(master_clump.children[0]["density"][0].size, 1)
-    assert_equal(master_clump.children[0]["density"][0], ad["density"].max())
-    assert_equal(master_clump.children[0]["particle_mass"].size, 1)
+    assert_equal(master_clump.children[0][("gas", "density")][0].size, 1)
+    assert_equal(
+        master_clump.children[0][("gas", "density")][0], ad[("gas", "density")].max()
+    )
+    assert_equal(master_clump.children[0][("nbody", "particle_mass")].size, 1)
     assert_array_equal(master_clump.children[0]["particle_mass"], ad["particle_mass"])
     assert_equal(master_clump.children[1]["density"][0].size, 1)
     assert_equal(master_clump.children[1]["density"][0], ad["density"].max())
@@ -105,7 +107,13 @@ def test_clump_tree_save():
     leaf_clumps = master_clump.leaves
 
     fn = master_clump.save_as_dataset(
-        fields=["density", "x", "y", "z", "particle_mass"]
+        fields=[
+            "density",
+            ("enzo", "x"),
+            ("enzo", "y"),
+            ("enzo", "z"),
+            ("enzo", "particle_mass"),
+        ]
     )
     ds2 = load(fn)
 

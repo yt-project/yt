@@ -27,7 +27,9 @@ def test_profiles():
     ds = fake_random_ds(64, nprocs=8, fields=_fields, units=_units)
     nv = ds.domain_dimensions.prod()
     dd = ds.all_data()
-    rt, tt, dt = dd.quantities["TotalQuantity"](["density", "temperature", "dinosaurs"])
+    rt, tt, dt = dd.quantities["TotalQuantity"](
+        [("gas", "density"), ("gas", "temperature"), "dinosaurs"]
+    )
 
     e1, e2 = 0.9, 1.1
     for nb in [8, 16, 32, 64]:
@@ -35,7 +37,7 @@ def test_profiles():
             (rmi, rma), (tmi, tma), (dmi, dma) = [
                 getattr(ex, f"in_{input_units}")()
                 for ex in dd.quantities["Extrema"](
-                    ["density", "temperature", "dinosaurs"]
+                    [("gas", "density"), "temperature", "dinosaurs"]
                 )
             ]
             # We log all the fields or don't log 'em all.  No need to do them
@@ -232,9 +234,15 @@ def test_particle_profiles():
         dd = ds.all_data()
 
         p1d = Profile1D(
-            dd, "particle_position_x", 128, 0.0, 1.0, False, weight_field=None
+            dd,
+            ("nbody", "particle_position_x"),
+            128,
+            0.0,
+            1.0,
+            False,
+            weight_field=None,
         )
-        p1d.add_fields(["particle_ones"])
+        p1d.add_fields([("nbody", "particle_ones")])
         assert_equal(p1d["particle_ones"].sum(), 32 ** 3)
 
         p1d = create_profile(
@@ -302,13 +310,15 @@ def test_particle_profiles():
 def test_mixed_particle_mesh_profiles():
     ds = fake_random_ds(32, particles=10)
     ad = ds.all_data()
-    assert_raises(YTIllDefinedProfile, ProfilePlot, ad, "radius", "particle_mass")
+    assert_raises(
+        YTIllDefinedProfile, ProfilePlot, ad, "radius", ("nbody", "particle_mass")
+    )
     assert_raises(
         YTIllDefinedProfile,
         ProfilePlot,
         ad,
         "radius",
-        ["particle_mass", "particle_ones"],
+        [("nbody", "particle_mass"), ("nbody", "particle_ones")],
     )
     assert_raises(
         YTIllDefinedProfile, ProfilePlot, ad, "radius", ["particle_mass", "ones"]
@@ -480,7 +490,10 @@ def test_profile_sph_data():
     ds = fake_sph_orientation_ds()
     # test we create a profile without raising YTIllDefinedProfile
     yt.create_profile(
-        ds.all_data(), ["density", "temperature"], ["kinetic_energy"], weight_field=None
+        ds.all_data(),
+        [("all", "density"), "temperature"],
+        ["kinetic_energy"],
+        weight_field=None,
     )
 
 
@@ -490,7 +503,10 @@ def test_profile_override_limits():
     sp = ds.sphere(ds.domain_center, (10, "kpc"))
     obins = np.linspace(-5, 5, 10)
     profile = yt.create_profile(
-        sp, ["density"], ["temperature"], override_bins={"density": (obins, "g/cm**3")}
+        sp,
+        [("gas", "density")],
+        ["temperature"],
+        override_bins={("gas", "density"): (obins, "g/cm**3")},
     )
     assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
 
@@ -625,7 +641,7 @@ def test_export_astropy():
     assert prof["density"].units == YTArray.from_astropy(at1["density"]).units
     assert prof["velocity_x"].units == YTArray.from_astropy(at1["velocity_x"]).units
     assert np.all(at1.mask["density"] == prof.used)
-    at2 = prof.to_astropy_table(fields="density", only_used=True)
+    at2 = prof.to_astropy_table(fields=("gas", "density"), only_used=True)
     assert "radius" in at2.colnames
     assert "velocity_x" not in at2.colnames
     assert_equal(prof.x.d[prof.used], at2["radius"].value)
@@ -650,7 +666,7 @@ def test_export_pandas():
     assert_equal(prof.x.d, df1["radius"])
     assert_equal(prof["density"].d, np.nan_to_num(df1["density"]))
     assert_equal(prof["velocity_x"].d, np.nan_to_num(df1["velocity_x"]))
-    df2 = prof.to_dataframe(fields="density", only_used=True)
+    df2 = prof.to_dataframe(fields=("gas", "density"), only_used=True)
     assert "radius" in df2.columns
     assert "velocity_x" not in df2.columns
     assert_equal(prof.x.d[prof.used], df2["radius"])

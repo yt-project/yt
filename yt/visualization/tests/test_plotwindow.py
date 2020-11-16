@@ -418,12 +418,12 @@ def test_on_off_compare():
     bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     ds = load_uniform_grid(data, den.shape, length_unit="Mpc", bbox=bbox, nprocs=64)
 
-    sl_on = SlicePlot(ds, "z", ["density"])
+    sl_on = SlicePlot(ds, "z", [("gas", "density")])
 
     L = [0, 0, 1]
     north_vector = [0, 1, 0]
     sl_off = OffAxisSlicePlot(
-        ds, L, "density", center=[0, 0, 0], north_vector=north_vector
+        ds, L, ("gas", "density"), center=[0, 0, 0], north_vector=north_vector
     )
 
     assert_array_almost_equal(sl_on.frb["density"], sl_off.frb["density"])
@@ -520,8 +520,8 @@ def test_setup_origin():
         5.0,
     ]
     for o in origin_inputs:
-        slc = SlicePlot(ds, 2, "density", width=w, origin=o)
-        ax = slc.plots["density"].axes
+        slc = SlicePlot(ds, 2, ("gas", "density"), width=w, origin=o)
+        ax = slc.plots[("gas", "density")].axes
         xlims = ax.get_xlim()
         ylims = ax.get_ylim()
         lims = [xlims[0], xlims[1], ylims[0], ylims[1]]
@@ -532,16 +532,16 @@ def test_setup_origin():
 
 def test_frb_regen():
     ds = fake_random_ds(32)
-    slc = SlicePlot(ds, 2, "density")
+    slc = SlicePlot(ds, 2, ("gas", "density"))
     slc.set_buff_size(1200)
-    assert_equal(slc.frb["density"].shape, (1200, 1200))
+    assert_equal(slc.frb[("gas", "density")].shape, (1200, 1200))
     slc.set_buff_size((400.0, 200.7))
     assert_equal(slc.frb["density"].shape, (200, 400))
 
 
 def test_set_background_color():
     ds = fake_random_ds(32)
-    plot = SlicePlot(ds, 2, "density")
+    plot = SlicePlot(ds, 2, ("gas", "density"))
     for field in ["density", ("gas", "density")]:
         plot.set_background_color(field, "red")
         plot._setup_plots()
@@ -554,11 +554,11 @@ def test_set_background_color():
 
 def test_set_unit():
     ds = fake_random_ds(32, fields=("temperature",), units=("K",))
-    slc = SlicePlot(ds, 2, "temperature")
+    slc = SlicePlot(ds, 2, ("gas", "temperature"))
 
     orig_array = slc.frb["gas", "temperature"].copy()
 
-    slc.set_unit("temperature", "degF")
+    slc.set_unit(("gas", "temperature"), "degF")
 
     assert str(slc.frb["gas", "temperature"].units) == "°F"
     assert_array_almost_equal(
@@ -665,7 +665,7 @@ def test_nan_data():
 
     ds = load_uniform_grid(data, [16, 16, 16])
 
-    plot = SlicePlot(ds, "z", "density")
+    plot = SlicePlot(ds, "z", ("gas", "density"))
 
     with tempfile.NamedTemporaryFile(suffix="png") as f:
         plot.save(f.name)

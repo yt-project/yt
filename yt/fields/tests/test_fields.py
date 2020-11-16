@@ -240,7 +240,7 @@ def test_add_gradient_fields():
 
 def test_add_gradient_fields_by_fname():
     ds = fake_amr_ds(fields=("density", "temperature"))
-    actual = ds.add_gradient_fields("density")
+    actual = ds.add_gradient_fields(("gas", "density"))
     expected = [
         ("gas", "density_gradient_x"),
         ("gas", "density_gradient_y"),
@@ -266,7 +266,7 @@ def test_add_gradient_multiple_fields():
     assert_equal(actual, expected)
 
     ds = fake_amr_ds(fields=("density", "temperature"))
-    actual = ds.add_gradient_fields(["density", "temperature"])
+    actual = ds.add_gradient_fields([("gas", "density"), ("gas", "temperature")])
     assert_equal(actual, expected)
 
 
@@ -306,10 +306,10 @@ def test_add_field_unit_semantics():
     ad = ds.all_data()
 
     def density_alias(field, data):
-        return data["density"].in_cgs()
+        return data[("gas", "density")].in_cgs()
 
     def unitless_data(field, data):
-        return np.ones(data["density"].shape)
+        return np.ones(data[("gas", "density")].shape)
 
     ds.add_field(
         ("gas", "density_alias_no_units"), sampling_type="cell", function=density_alias
@@ -380,7 +380,7 @@ def test_add_field_unit_semantics():
 def test_array_like_field():
     ds = fake_random_ds(4, particles=64)
     ad = ds.all_data()
-    u1 = ad["particle_mass"].units
+    u1 = ad[("nbody", "particle_mass")].units
     u2 = array_like_field(ad, 1.0, ("all", "particle_mass")).units
     assert u1 == u2
 
@@ -392,7 +392,7 @@ ISOGAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 def test_array_like_field_output_units():
     ds = load(ISOGAL)
     ad = ds.all_data()
-    u1 = ad["particle_mass"].units
+    u1 = ad[("nbody", "particle_mass")].units
     u2 = array_like_field(ad, 1.0, ("all", "particle_mass")).units
     assert u1 == u2
     assert str(u1) == ds.fields.all.particle_mass.output_units
@@ -465,7 +465,7 @@ def test_field_inference():
 def test_deposit_amr():
     ds = load(ISOGAL)
     for g in ds.index.grids:
-        gpm = g["particle_mass"].sum()
+        gpm = g[("nbody", "particle_mass")].sum()
         dpm = g["deposit", "all_mass"].sum()
         assert_allclose_units(gpm, dpm)
 

@@ -46,7 +46,7 @@ def test_projection(pf):
         uc = [np.unique(c) for c in coords]
         # test if projections inherit the field parameters of their data sources
         dd.set_field_parameter("bulk_velocity", np.array([0, 1, 2]))
-        proj = ds.proj("density", 0, data_source=dd)
+        proj = ds.proj(("gas", "density"), 0, data_source=dd)
         assert_equal(
             dd.field_parameters["bulk_velocity"], proj.field_parameters["bulk_velocity"]
         )
@@ -55,8 +55,8 @@ def test_projection(pf):
         for ax, an in enumerate("xyz"):
             xax = ds.coordinates.x_axis[ax]
             yax = ds.coordinates.y_axis[ax]
-            for wf in ["density", ("gas", "density"), None]:
-                proj = ds.proj(["ones", "density"], ax, weight_field=wf)
+            for wf in [("gas", "density"), None]:
+                proj = ds.proj(["ones", ("gas", "density")], ax, weight_field=wf)
                 if wf is None:
                     assert_equal(proj["ones"].sum(), LENGTH_UNIT * proj["ones"].size)
                     assert_equal(proj["ones"].min(), LENGTH_UNIT)

@@ -193,7 +193,9 @@ def test_set_units():
 def test_set_labels():
     ds = fake_random_ds(16)
     ad = ds.all_data()
-    plot = yt.ProfilePlot(ad, "radius", ["velocity_x", "density"], weight_field=None)
+    plot = yt.ProfilePlot(
+        ad, "radius", [("gas", "velocity_x"), ("gas", "density")], weight_field=None
+    )
     # make sure we can set the labels without erroring out
     plot.set_ylabel("all", "test ylabel")
     plot.set_xlabel("test xlabel")
@@ -201,7 +203,9 @@ def test_set_labels():
 
 def test_create_from_dataset():
     ds = fake_random_ds(16)
-    plot1 = yt.ProfilePlot(ds, "radius", ["velocity_x", "density"], weight_field=None)
+    plot1 = yt.ProfilePlot(
+        ds, "radius", [("gas", "velocity_x"), ("gas", "density")], weight_field=None
+    )
     plot2 = yt.ProfilePlot(
         ds.all_data(), "radius", ["velocity_x", "density"], weight_field=None
     )
@@ -271,8 +275,8 @@ def test_phaseplot_set_log():
     assert not p2.y_log
 
     # make sure we can set the log-scaling using a string without erroring out
-    p1.set_log("density", True)
-    p2.set_log("temperature", True)
+    p1.set_log(("gas", "density"), True)
+    p2.set_log(("gas", "temperature"), True)
     assert p1.y_log["gas", "density"]
     assert p2.y_log
 

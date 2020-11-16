@@ -82,7 +82,9 @@ def test_ghost_zone_extrapolation():
     ds = fake_random_ds(16)
 
     g = ds.index.grids[0]
-    vec = g.get_vertex_centered_data(["x", "y", "z"], no_ghost=True)
+    vec = g.get_vertex_centered_data(
+        [("stream", "x"), ("stream", "y"), ("stream", "z")], no_ghost=True
+    )
     for i, ax in enumerate("xyz"):
         xc = g[ax]
 

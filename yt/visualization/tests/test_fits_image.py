@@ -31,7 +31,7 @@ def test_fits_image():
     )
     ds = fake_random_ds(64, fields=fields, units=units, nprocs=16, length_unit=100.0)
 
-    prj = ds.proj("density", 2)
+    prj = ds.proj(("gas", "density"), 2)
     prj_frb = prj.to_frb((0.5, "unitary"), 128)
 
     fid1 = prj_frb.to_fits_data(

@@ -67,9 +67,9 @@ def test_region_and_particles():
     ad = ds.all_data()
     reg = ad.cut_region('obj["x"] < .5')
 
-    mask = ad["particle_position_x"] < 0.5
-    expected = np.sort(ad["particle_position_x"][mask].value)
-    result = np.sort(reg["particle_position_x"])
+    mask = ad[("nbody", "particle_position_x")] < 0.5
+    expected = np.sort(ad[("nbody", "particle_position_x")][mask].value)
+    result = np.sort(reg[("nbody", "particle_position_x")])
 
     assert_equal(expected.shape, result.shape)
     assert_equal(expected, result)
