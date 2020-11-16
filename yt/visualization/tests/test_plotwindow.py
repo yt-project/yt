@@ -63,13 +63,16 @@ ATTR_ARGS = {
     ],
     "set_buff_size": [((1600,), {}), (((600, 800),), {})],
     "set_center": [(((0.4, 0.3),), {})],
-    "set_cmap": [(("density", "RdBu"), {}), (("density", "kamae"), {})],
+    "set_cmap": [
+        ((("gas", "density"), "RdBu"), {}),
+        ((("gas", "density"), "kamae"), {}),
+    ],
     "set_font": [((OrderedDict(sorted(FPROPS.items(), key=lambda t: t[0])),), {})],
-    "set_log": [(("density", False), {})],
+    "set_log": [((("gas", "density"), False), {})],
     "set_window_size": [((7.0,), {})],
     "set_zlim": [
-        (("density", 1e-25, 1e-23), {}),
-        (("density", 1e-25, None), {"dynamic_range": 4}),
+        ((("gas", "density"), 1e-25, 1e-23), {}),
+        ((("gas", "density"), 1e-25, None), {"dynamic_range": 4}),
     ],
     "zoom": [((10,), {})],
     "toggle_right_handed": [((), {})],
@@ -132,7 +135,6 @@ WIDTH_SPECS = {
 
 WEIGHT_FIELDS = (
     None,
-    "density",
     ("gas", "density"),
 )
 
@@ -169,7 +171,7 @@ CALLBACK_TESTS = (
 @requires_ds(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
-    plot_field = "density"
+    plot_field = ("gas", "density")
     decimals = 12
 
     ds = data_dir_load(M7)
@@ -196,7 +198,7 @@ def test_attributes():
 
 @requires_ds(WT)
 def test_attributes_wt():
-    plot_field = "density"
+    plot_field = ("gas", "density")
     decimals = 12
 
     ds = data_dir_load(WT)
@@ -224,7 +226,7 @@ class TestHideAxesColorbar(unittest.TestCase):
     def setUp(self):
         if self.ds is None:
             self.ds = fake_random_ds(64)
-            self.slc = SlicePlot(self.ds, 0, "density")
+            self.slc = SlicePlot(self.ds, 0, ("gas", "density"))
         self.tmpdir = tempfile.mkdtemp()
         self.curdir = os.getcwd()
         os.chdir(self.tmpdir)
@@ -260,7 +262,7 @@ class TestSetWidth(unittest.TestCase):
     def setUp(self):
         if self.ds is None:
             self.ds = fake_random_ds(64)
-            self.slc = SlicePlot(self.ds, 0, "density")
+            self.slc = SlicePlot(self.ds, 0, ("gas", "density"))
 
     def tearDown(self):
         del self.ds
@@ -331,19 +333,19 @@ class TestPlotWindowSave(unittest.TestCase):
     def test_slice_plot(self):
         test_ds = fake_random_ds(16)
         for dim in range(3):
-            slc = SlicePlot(test_ds, dim, "density")
+            slc = SlicePlot(test_ds, dim, ("gas", "density"))
             for fname in TEST_FLNMS:
                 assert_fname(slc.save(fname)[0])
 
     def test_repr_html(self):
         test_ds = fake_random_ds(16)
-        slc = SlicePlot(test_ds, 0, "density")
+        slc = SlicePlot(test_ds, 0, ("gas", "density"))
         slc._repr_html_()
 
     def test_projection_plot(self):
         test_ds = fake_random_ds(16)
         for dim in range(3):
-            proj = ProjectionPlot(test_ds, dim, "density")
+            proj = ProjectionPlot(test_ds, dim, ("gas", "density"))
             for fname in TEST_FLNMS:
                 assert_fname(proj.save(fname)[0])
 
@@ -351,25 +353,25 @@ class TestPlotWindowSave(unittest.TestCase):
         test_ds = fake_random_ds(16)
         reg = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
         for dim in range(3):
-            proj = ProjectionPlot(test_ds, dim, "density", data_source=reg)
+            proj = ProjectionPlot(test_ds, dim, ("gas", "density"), data_source=reg)
             proj.save()
 
     def test_projection_plot_c(self):
         test_ds = fake_random_ds(16)
         for center in CENTER_SPECS:
-            proj = ProjectionPlot(test_ds, 0, "density", center=center)
+            proj = ProjectionPlot(test_ds, 0, ("gas", "density"), center=center)
             proj.save()
 
     def test_projection_plot_wf(self):
         test_ds = fake_random_ds(16)
         for wf in WEIGHT_FIELDS:
-            proj = ProjectionPlot(test_ds, 0, "density", weight_field=wf)
+            proj = ProjectionPlot(test_ds, 0, ("gas", "density"), weight_field=wf)
             proj.save()
 
     def test_projection_plot_m(self):
         test_ds = fake_random_ds(16)
         for method in PROJECTION_METHODS:
-            proj = ProjectionPlot(test_ds, 0, "density", method=method)
+            proj = ProjectionPlot(test_ds, 0, ("gas", "density"), method=method)
             proj.save()
 
     def test_projection_plot_bs(self):
@@ -383,13 +385,13 @@ class TestPlotWindowSave(unittest.TestCase):
 
     def test_offaxis_slice_plot(self):
         test_ds = fake_random_ds(16)
-        slc = OffAxisSlicePlot(test_ds, [1, 1, 1], "density")
+        slc = OffAxisSlicePlot(test_ds, [1, 1, 1], ("gas", "density"))
         for fname in TEST_FLNMS:
             assert_fname(slc.save(fname)[0])
 
     def test_offaxis_projection_plot(self):
         test_ds = fake_random_ds(16)
-        prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], "density")
+        prj = OffAxisProjectionPlot(test_ds, [1, 1, 1], ("gas", "density"))
         for fname in TEST_FLNMS:
             assert_fname(prj.save(fname)[0])
 
@@ -397,7 +399,7 @@ class TestPlotWindowSave(unittest.TestCase):
         test_ds = fake_random_ds(16)
         for width in WIDTH_SPECS:
             xlim, ylim, pwidth, aun = WIDTH_SPECS[width]
-            plot = ProjectionPlot(test_ds, 0, "density", width=width)
+            plot = ProjectionPlot(test_ds, 0, ("gas", "density"), width=width)
 
             xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
             ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]
@@ -426,23 +428,27 @@ def test_on_off_compare():
         ds, L, ("gas", "density"), center=[0, 0, 0], north_vector=north_vector
     )
 
-    assert_array_almost_equal(sl_on.frb["density"], sl_off.frb["density"])
+    assert_array_almost_equal(
+        sl_on.frb[("gas", "density")], sl_off.frb[("gas", "density")]
+    )
 
     sl_on.set_buff_size((800, 400))
     sl_on._recreate_frb()
     sl_off.set_buff_size((800, 400))
     sl_off._recreate_frb()
 
-    assert_array_almost_equal(sl_on.frb["density"], sl_off.frb["density"])
+    assert_array_almost_equal(
+        sl_on.frb[("gas", "density")], sl_off.frb[("gas", "density")]
+    )
 
 
 def test_plot_particle_field_error():
     ds = fake_random_ds(32, particles=100)
 
     field_names = [
-        "particle_mass",
-        ["particle_mass", "density"],
-        ["density", "particle_mass"],
+        ("io", "particle_mass"),
+        [("io", "particle_mass"), ("io", "density")],
+        [("io", "density"), ("io", "particle_mass")],
     ]
 
     objects_normals = [
@@ -536,13 +542,13 @@ def test_frb_regen():
     slc.set_buff_size(1200)
     assert_equal(slc.frb[("gas", "density")].shape, (1200, 1200))
     slc.set_buff_size((400.0, 200.7))
-    assert_equal(slc.frb["density"].shape, (200, 400))
+    assert_equal(slc.frb[("gas", "density")].shape, (200, 400))
 
 
 def test_set_background_color():
     ds = fake_random_ds(32)
     plot = SlicePlot(ds, 2, ("gas", "density"))
-    for field in ["density", ("gas", "density")]:
+    for field in [("gas", "density")]:
         plot.set_background_color(field, "red")
         plot._setup_plots()
         ax = plot.plots[field].axes
@@ -573,11 +579,11 @@ def test_set_unit():
 
     slc.set_buff_size(800)
 
-    slc.set_unit("temperature", "K")
+    slc.set_unit(("gas", "temperature"), "K")
     assert str(slc.frb["gas", "temperature"].units) == "K"
     assert_array_almost_equal(slc.frb["gas", "temperature"], orig_array)
 
-    slc.set_unit("temperature", "keV", equivalency="thermal")
+    slc.set_unit(("gas", "temperature"), "keV", equivalency="thermal")
     assert str(slc.frb["gas", "temperature"].units) == "keV"
     assert_array_almost_equal(
         slc.frb["gas", "temperature"], (orig_array * kboltz).to("keV")
@@ -591,9 +597,9 @@ def test_set_unit():
 
     # test that destroying the FRB then changing the unit using an equivalency
     # doesn't error out, see issue #1316
-    slc = SlicePlot(ds, 2, "temperature")
+    slc = SlicePlot(ds, 2, ("gas", "temperature"))
     slc.set_buff_size(1000)
-    slc.set_unit("temperature", "keV", equivalency="thermal")
+    slc.set_unit(("gas", "temperature"), "keV", equivalency="thermal")
     assert str(slc.frb["gas", "temperature"].units) == "keV"
 
 
@@ -607,50 +613,70 @@ def test_plot_2d():
     # Cartesian
     ds = fake_random_ds((32, 32, 1), fields=("temperature",), units=("K",))
     slc = SlicePlot(
-        ds, "z", ["temperature"], width=(0.2, "unitary"), center=[0.4, 0.3, 0.5]
+        ds,
+        "z",
+        [("gas", "temperature")],
+        width=(0.2, "unitary"),
+        center=[0.4, 0.3, 0.5],
     )
-    slc2 = plot_2d(ds, "temperature", width=(0.2, "unitary"), center=[0.4, 0.3])
+    slc2 = plot_2d(
+        ds, ("gas", "temperature"), width=(0.2, "unitary"), center=[0.4, 0.3]
+    )
     slc3 = plot_2d(
-        ds, "temperature", width=(0.2, "unitary"), center=ds.arr([0.4, 0.3], "cm")
+        ds,
+        ("gas", "temperature"),
+        width=(0.2, "unitary"),
+        center=ds.arr([0.4, 0.3], "cm"),
     )
-    assert_array_equal(slc.frb["temperature"], slc2.frb["temperature"])
-    assert_array_equal(slc.frb["temperature"], slc3.frb["temperature"])
+    assert_array_equal(
+        slc.frb[("gas", "temperature")], slc2.frb[("gas", "temperature")]
+    )
+    assert_array_equal(
+        slc.frb[("gas", "temperature")], slc3.frb[("gas", "temperature")]
+    )
     # Cylindrical
     ds = data_dir_load(WD)
-    slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
-    slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
-    assert_array_equal(slc.frb["density"], slc2.frb["density"])
+    slc = SlicePlot(ds, "theta", [("gas", "density")], width=(30000.0, "km"))
+    slc2 = plot_2d(ds, ("gas", "density"), width=(30000.0, "km"))
+    assert_array_equal(slc.frb[("gas", "density")], slc2.frb[("gas", "density")])
 
     # Spherical
     ds = data_dir_load(blast_wave)
-    slc = SlicePlot(ds, "phi", ["density"], width=(1, "unitary"))
-    slc2 = plot_2d(ds, "density", width=(1, "unitary"))
-    assert_array_equal(slc.frb["density"], slc2.frb["density"])
+    slc = SlicePlot(ds, "phi", [("gas", "density")], width=(1, "unitary"))
+    slc2 = plot_2d(ds, ("gas", "density"), width=(1, "unitary"))
+    assert_array_equal(slc.frb[("gas", "density")], slc2.frb[("gas", "density")])
 
 
 def test_symlog_colorbar():
     ds = fake_random_ds(16)
 
     def _thresh_density(field, data):
-        wh = data["density"] < 0.5
-        ret = data["density"]
+        wh = data[("gas", "density")] < 0.5
+        ret = data[("gas", "density")]
         ret[wh] = 0
         return ret
 
     def _neg_density(field, data):
-        return -data["threshold_density"]
+        return -data["gas", "threshold_density"]
 
     ds.add_field(
-        "threshold_density",
+        ("gas", "threshold_density"),
         function=_thresh_density,
         units="g/cm**3",
         sampling_type="cell",
     )
     ds.add_field(
-        "negative_density", function=_neg_density, units="g/cm**3", sampling_type="cell"
+        ("gas", "negative_density"),
+        function=_neg_density,
+        units="g/cm**3",
+        sampling_type="cell",
     )
 
-    for field in ["density", "threshold_density", "negative_density"]:
+    for field in [
+        ("gas", "density"),
+        ("gas", "threshold_density"),
+        ("gas", "negative_density"),
+    ]:
         plot = SlicePlot(ds, 2, field)
         plot.set_log(field, True, linthresh=0.1)
         with tempfile.NamedTemporaryFile(suffix="png") as f:
@@ -661,7 +687,7 @@ def test_nan_data():
     data = np.random.random((16, 16, 16)) - 0.5
     data[:9, :9, :9] = np.nan
 
-    data = {"density": data}
+    data = {("gas", "density"): data}
 
     ds = load_uniform_grid(data, [16, 16, 16])
 

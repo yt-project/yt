@@ -8,7 +8,7 @@ from nose.plugins.plugintest import run
 
 from yt.utilities.exceptions import YTAmbiguousFieldName
 
-ROOT = os.path.join(os.path.abspath(__file__), "..")
+ROOT = os.path.abspath("/home/ccc/Documents/prog/yt")
 
 diff_file = open("diff.txt", mode="w")
 
@@ -75,4 +75,7 @@ class AmbiguousResolvePlugin(Plugin):
         diff_file.flush()
 
 
-run(argv=["nosetests", "yt"], plugins=[AmbiguousResolvePlugin()])
+run(
+    argv=["nosetests", "yt/visualization/tests/test_plotwindow.py"],
+    plugins=[AmbiguousResolvePlugin()],
+)

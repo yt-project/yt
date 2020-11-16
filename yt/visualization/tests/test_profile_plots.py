@@ -207,7 +207,7 @@ def test_create_from_dataset():
         ds, "radius", [("gas", "velocity_x"), ("gas", "density")], weight_field=None
     )
     plot2 = yt.ProfilePlot(
-        ds.all_data(), "radius", ["velocity_x", "density"], weight_field=None
+        ds.all_data(), "radius", [("gas", "velocity_x"), "density"], weight_field=None
     )
     assert_allclose_units(plot1.profiles[0]["density"], plot2.profiles[0]["density"])
     assert_allclose_units(
