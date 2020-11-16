@@ -176,7 +176,8 @@ yt's dependencies changed or if yt dropped or added support for a Python
 version. To generate new wheels you need to push the changes to GitHub. A good
 process to follow is to first submit a pull request to test the changes and make sure 
 the wheels can be built. Once they pass, you can merge the changes into master 
-and wait for the wheel files to be uploaded to http://wheels.scipy.org 
+and wait for the wheel files to be uploaded to
+https://anaconda.org/multibuild-wheels-staging/yt/files 
 (note that the wheels will not be uploaded until the changes have been 
 merged into master). Once the wheels are uploaded, download the
 wheel files for the release and copy them to the ``dist`` folder in the yt 
