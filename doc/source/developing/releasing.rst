@@ -154,17 +154,6 @@ Updating conda-forge and building wheels
 Before we finish the release, we need to generate new binary builds by updating
 yt's conda-forge feedstock and the yt-wheels repository.
 
-``conda-forge``
-+++++++++++++++
-
-Conda-forge packages for yt are managed via the yt feedstock, located at
-https://github.com/conda-forge/yt-feedstock. To update the feedstock, you will
-need to update the ``meta.yaml`` file located in the ``recipe`` folder in the
-root of the feedstock repository. Most likely you will only need to update the
-version number and the SHA256 hash of the tarball. If yt's dependencies change
-you may also need to update the recipe. Once you have updated the recipe,
-propose a pull request on github and merge it once all builds pass.
-
 Wheels and ``multibuild``
 +++++++++++++++++++++++++
 
@@ -197,9 +186,8 @@ one-liner to download all of the wheels for the yt 3.6.1 release::
 
   $ wget -r -nd -A 'yt-3.6.1-*whl' https://anaconda.org/multibuild-wheels-staging/yt/files 
 
-
 Uploading to PyPI
-~~~~~~~~~~~~~~~~~
++++++++++++++++++
 
 To actually upload the release to the Python Package Index, you just need to
 issue the following command:
@@ -225,3 +213,23 @@ binary wheel packages for various platforms that we support.
 After the release is uploaded to PyPI, you should send out an announcement
 e-mail to the yt mailing lists as well as other possibly interested mailing
 lists for all but bugfix releases.
+
+``conda-forge``
++++++++++++++++
+
+Conda-forge packages for yt are managed via the yt feedstock, located at
+https://github.com/conda-forge/yt-feedstock. When a release is pushed to PyPI a
+bot should detect a new version and issue a PR to the feedstock with the new
+version automatically. When this feedstock is updated, make sure that the
+SHA256 hash of the tarball matches the one you uploaded to dickenson and that
+the version number matches the one that is being released. 
+
+
+Should you need to update the feedstock manually, you will
+need to update the ``meta.yaml`` file located in the ``recipe`` folder in the
+root of the feedstock repository. Most likely you will only need to update the
+version number and the SHA256 hash of the tarball. If yt's dependencies change
+you may also need to update the recipe. Once you have updated the recipe,
+propose a pull request on github and merge it once all builds pass.
+
+
