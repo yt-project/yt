@@ -210,11 +210,6 @@ Britton Smith, Nathan Goldbaum, John ZuHone, Kacper Kowalik, and Madicken Munk.
 The yt package source distribution should be uploaded along with compiled 
 binary wheel packages for various platforms that we support.
 
-
-After the release is uploaded to PyPI, you should send out an announcement
-e-mail to the yt mailing lists as well as other possibly interested mailing
-lists for all but bugfix releases.
-
 ``conda-forge``
 +++++++++++++++
 
@@ -233,4 +228,13 @@ version number and the SHA256 hash of the tarball. If yt's dependencies change
 you may also need to update the recipe. Once you have updated the recipe,
 propose a pull request on github and merge it once all builds pass.
 
+
+Announcing
+~~~~~~~~~~
+
+After the release is uploaded to `PyPI <https://pypi.org/project/yt/#files>`_ and 
+`conda-forge <https://anaconda.org/conda-forge/yt>`_, 
+you should send out an announcement
+e-mail to the yt mailing lists as well as other possibly interested mailing
+lists for all but bugfix releases. 
 
