@@ -49,7 +49,7 @@ def test_stream_hexahedral():
     assert_almost_equal(float(dd[("stream", "cell_volume")].sum(dtype="float64")), 1.0)
     assert_equal(dd["ones"].size, Nx * Ny * Nz)
     assert_almost_equal(dd[("stream", "dx")].to_ndarray(), 1.0 / Nx)
-    assert_almost_equal(dd["dy"].to_ndarray(), 1.0 / Ny)
+    assert_almost_equal(dd[("stream", "dy")].to_ndarray(), 1.0 / Ny)
     assert_almost_equal(dd["dz"].to_ndarray(), 1.0 / Nz)
 
     s = SlicePlot(ds, "x", "random_field")

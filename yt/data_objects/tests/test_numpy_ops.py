@@ -31,7 +31,7 @@ def test_mean_sum_integrate():
         assert_equal(q, q1)
 
         # Weighted Averages
-        w = ad.mean("density")
+        w = ad.mean(("gas", "density"))
 
         w1 = ad.quantities.weighted_average_quantity("density", "ones")
 
@@ -96,7 +96,7 @@ def test_min_max():
         q = ad.max(("gas", "density")).v
         assert_equal(q, ad[("gas", "density")].max())
 
-        q = ad.min("particle_mass").v
+        q = ad.min(("nbody", "particle_mass")).v
         assert_equal(q, ad["particle_mass"].min())
 
         q = ad.max("particle_mass").v
@@ -142,7 +142,7 @@ def test_argmin():
         q1, q2 = ad.argmin(
             ("gas", "density"), axis=[("gas", "density"), ("gas", "temperature")]
         )
-        mi = np.argmin(ad["density"])
+        mi = np.argmin(ad[("gas", "density")])
         assert_equal(q1, ad["density"].min())
         assert_equal(q2, ad["temperature"][mi])
 
@@ -168,7 +168,7 @@ def test_argmax():
         q1, q2 = ad.argmax(
             ("gas", "density"), axis=[("gas", "density"), ("gas", "temperature")]
         )
-        mi = np.argmax(ad["density"])
+        mi = np.argmax(ad[("gas", "density")])
         assert_equal(q1, ad["density"].max())
         assert_equal(q2, ad["temperature"][mi])
 

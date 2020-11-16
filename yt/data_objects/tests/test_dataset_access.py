@@ -63,7 +63,7 @@ def test_region_from_d():
     # Test slice as an index
     reg1 = ds.r[0.1:0.8]
     reg2 = ds.region([0.45, 0.45, 0.45], [0.1, 0.1, 0.1], [0.8, 0.8, 0.8])
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
     # Test with bad boundary initialization
     with assert_raises(RuntimeError):

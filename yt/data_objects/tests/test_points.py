@@ -37,7 +37,7 @@ def test_domain_point():
     fpoint_den = ds.find_field_values_at_point(("gas", "density"), ds.domain_center)
 
     fpoint_den_vel = ds.find_field_values_at_point(
-        ["density", "velocity_x"], ds.domain_center
+        [("gas", "density"), "velocity_x"], ds.domain_center
     )
 
     assert_equal(point_den, fpoint_den)
@@ -67,7 +67,7 @@ def test_fast_find_field_values_at_points():
     ppos_den = ds.find_field_values_at_points(("gas", "density"), ppos)
     ppos_vel = ds.find_field_values_at_points(("gas", "velocity_x"), ppos)
     ppos_den_vel = ds.find_field_values_at_points(
-        [("gas", "density"), "velocity_x"], ppos
+        [("gas", "density"), ("gas", "velocity_x")], ppos
     )
 
     assert_equal(ppos_den.shape, (nparticles,))

@@ -69,7 +69,7 @@ def test_projection(pf):
                 assert_equal(np.unique(proj["py"]), uc[yax])
                 assert_equal(np.unique(proj["pdx"]), 1.0 / (dims[xax] * 2.0))
                 assert_equal(np.unique(proj["pdy"]), 1.0 / (dims[yax] * 2.0))
-                plots = [proj.to_pw(fields="density"), proj.to_pw()]
+                plots = [proj.to_pw(fields=("gas", "density")), proj.to_pw()]
                 for pw in plots:
                     for p in pw.plots.values():
                         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")

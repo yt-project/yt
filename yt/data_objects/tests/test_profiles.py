@@ -28,7 +28,7 @@ def test_profiles():
     nv = ds.domain_dimensions.prod()
     dd = ds.all_data()
     rt, tt, dt = dd.quantities["TotalQuantity"](
-        [("gas", "density"), ("gas", "temperature"), "dinosaurs"]
+        [("gas", "density"), ("gas", "temperature"), ("gas", "dinosaurs")]
     )
 
     e1, e2 = 0.9, 1.1
@@ -37,21 +37,27 @@ def test_profiles():
             (rmi, rma), (tmi, tma), (dmi, dma) = [
                 getattr(ex, f"in_{input_units}")()
                 for ex in dd.quantities["Extrema"](
-                    [("gas", "density"), "temperature", "dinosaurs"]
+                    [("gas", "density"), ("gas", "temperature"), ("gas", "dinosaurs")]
                 )
             ]
             # We log all the fields or don't log 'em all.  No need to do them
             # individually.
             for lf in [True, False]:
                 direct_profile = Profile1D(
-                    dd, "density", nb, rmi * e1, rma * e2, lf, weight_field=None
+                    dd,
+                    ("gas", "density"),
+                    nb,
+                    rmi * e1,
+                    rma * e2,
+                    lf,
+                    weight_field=None,
                 )
-                direct_profile.add_fields(["ones", "temperature"])
+                direct_profile.add_fields(["ones", ("gas", "temperature")])
 
                 indirect_profile_s = create_profile(
                     dd,
-                    "density",
-                    ["ones", "temperature"],
+                    ("gas", "density"),
+                    ["ones", ("gas", "temperature")],
                     n_bins=nb,
                     extrema={"density": (rmi * e1, rma * e2)},
                     logs={"density": lf},
@@ -74,44 +80,44 @@ def test_profiles():
 
                 p2d = Profile2D(
                     dd,
-                    "density",
+                    ("gas", "density"),
                     nb,
                     rmi * e1,
                     rma * e2,
                     lf,
-                    "temperature",
+                    ("gas", "temperature"),
                     nb,
                     tmi * e1,
                     tma * e2,
                     lf,
                     weight_field=None,
                 )
-                p2d.add_fields(["ones", "temperature"])
+                p2d.add_fields(["ones", ("gas", "temperature")])
                 assert_equal(p2d["ones"].sum(), nv)
-                assert_rel_equal(tt, p2d["temperature"].sum(), 7)
+                assert_rel_equal(tt, p2d[("gas", "temperature")].sum(), 7)
 
                 p3d = Profile3D(
                     dd,
-                    "density",
+                    ("gas", "density"),
                     nb,
                     rmi * e1,
                     rma * e2,
                     lf,
-                    "temperature",
+                    ("gas", "temperature"),
                     nb,
                     tmi * e1,
                     tma * e2,
                     lf,
-                    "dinosaurs",
+                    ("gas", "dinosaurs"),
                     nb,
                     dmi * e1,
                     dma * e2,
                     lf,
                     weight_field=None,
                 )
-                p3d.add_fields(["ones", "temperature"])
+                p3d.add_fields(["ones", ("gas", "temperature")])
                 assert_equal(p3d["ones"].sum(), nv)
-                assert_rel_equal(tt, p3d["temperature"].sum(), 7)
+                assert_rel_equal(tt, p3d[("gas", "temperature")].sum(), 7)
 
         p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False, weight_field=None)
         p1d.add_fields("ones")
@@ -119,13 +125,15 @@ def test_profiles():
         assert_equal(p1d["ones"], np.ones(nb) * av)
 
         # We re-bin ones with a weight now
-        p1d = Profile1D(dd, "x", nb, 0.0, 1.0, False, weight_field="temperature")
+        p1d = Profile1D(
+            dd, "x", nb, 0.0, 1.0, False, weight_field=("gas", "temperature")
+        )
         p1d.add_fields(["ones"])
         assert_equal(p1d["ones"], np.ones(nb))
 
         # Verify we can access "ones" after adding a new field
         # See issue 988
-        p1d.add_fields(["density"])
+        p1d.add_fields([("gas", "density")])
         assert_equal(p1d["ones"], np.ones(nb))
 
         p2d = Profile2D(
@@ -148,7 +156,7 @@ def test_profiles():
             0.0,
             1.0,
             False,
-            weight_field="temperature",
+            weight_field=("gas", "temperature"),
         )
         p2d.add_fields(["ones"])
         assert_equal(p2d["ones"], np.ones((nb, nb)))
@@ -321,7 +329,11 @@ def test_mixed_particle_mesh_profiles():
         [("nbody", "particle_mass"), ("nbody", "particle_ones")],
     )
     assert_raises(
-        YTIllDefinedProfile, ProfilePlot, ad, "radius", ["particle_mass", "ones"]
+        YTIllDefinedProfile,
+        ProfilePlot,
+        ad,
+        "radius",
+        [("nbody", "particle_mass"), "ones"],
     )
     assert_raises(
         YTIllDefinedProfile,
@@ -491,8 +503,8 @@ def test_profile_sph_data():
     # test we create a profile without raising YTIllDefinedProfile
     yt.create_profile(
         ds.all_data(),
-        [("all", "density"), "temperature"],
-        ["kinetic_energy"],
+        [("all", "density"), ("all", "temperature")],
+        [("all", "kinetic_energy")],
         weight_field=None,
     )
 
@@ -505,15 +517,15 @@ def test_profile_override_limits():
     profile = yt.create_profile(
         sp,
         [("gas", "density")],
-        ["temperature"],
+        [("gas", "temperature")],
         override_bins={("gas", "density"): (obins, "g/cm**3")},
     )
     assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
 
     profile = yt.create_profile(
         sp,
-        ["density", "dinosaurs"],
-        ["temperature"],
+        [("gas", "density"), "dinosaurs"],
+        [("gas", "temperature")],
         override_bins={"density": (obins, "g/cm**3"), "dinosaurs": obins},
     )
     assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)

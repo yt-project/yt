@@ -32,7 +32,7 @@ def test_extrema():
             assert_equal(ma, np.nanmax(sp[("gas", "density")]))
             dd = ds.all_data()
             mi, ma = dd.quantities["Extrema"](("gas", "density"))
-            assert_equal(mi, np.nanmin(dd["density"]))
+            assert_equal(mi, np.nanmin(dd[("gas", "density")]))
             assert_equal(ma, np.nanmax(dd["density"]))
             sp = ds.sphere("max", (0.25, "unitary"))
             assert_equal(np.any(np.isnan(sp["radial_velocity"])), False)
@@ -79,7 +79,7 @@ def test_variance():
             ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
             a_std = np.sqrt(
-                (ad["cell_mass"] * (ad["density"] - a_mean) ** 2).sum()
+                (ad["cell_mass"] * (ad[("gas", "density")] - a_mean) ** 2).sum()
                 / ad["cell_mass"].sum()
             )
             assert_rel_equal(my_std, a_std, 12)
@@ -98,7 +98,7 @@ def test_max_location():
 
             assert_equal(ad[("stream", "x")][mi], x)
             assert_equal(ad[("stream", "y")][mi], y)
-            assert_equal(ad["z"][mi], z)
+            assert_equal(ad[("stream", "z")][mi], z)
 
 
 def test_min_location():
@@ -114,7 +114,7 @@ def test_min_location():
 
             assert_equal(ad[("stream", "x")][mi], x)
             assert_equal(ad[("stream", "y")][mi], y)
-            assert_equal(ad["z"][mi], z)
+            assert_equal(ad[("stream", "z")][mi], z)
 
 
 def test_sample_at_min_field_values():
@@ -130,7 +130,7 @@ def test_sample_at_min_field_values():
 
             assert_equal(mv, ad[("gas", "density")].min())
 
-            mi = np.argmin(ad["density"])
+            mi = np.argmin(ad[("gas", "density")])
 
             assert_equal(ad["temperature"][mi], temp)
             assert_equal(ad["velocity_x"][mi], vm)
@@ -149,7 +149,7 @@ def test_sample_at_max_field_values():
 
             assert_equal(mv, ad[("gas", "density")].max())
 
-            mi = np.argmax(ad["density"])
+            mi = np.argmax(ad[("gas", "density")])
 
             assert_equal(ad["temperature"][mi], temp)
             assert_equal(ad["velocity_x"][mi], vm)

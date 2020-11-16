@@ -17,5 +17,6 @@ def test_relative_particle_fields():
         sp[("nbody", "particle_position")] - c,
     )
     assert_allclose_units(
-        sp[("nbody", "relative_particle_velocity")], sp["particle_velocity"] - bv
+        sp[("nbody", "relative_particle_velocity")],
+        sp[("nbody", "particle_velocity")] - bv,
     )

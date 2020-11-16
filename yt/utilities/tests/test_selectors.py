@@ -163,7 +163,7 @@ def test_cutting_plane_selector():
             cells1 = np.lexsort(
                 (data[("stream", "x")], data[("stream", "y")], data[("stream", "z")])
             )
-            cells2 = np.lexsort((data2["x"], data2["y"], data2["z"]))
+            cells2 = np.lexsort((data2[("stream", "x")], data2["y"], data2["z"]))
             for d2 in "xyz":
                 assert_equal(data[d2][cells1], data2[d2][cells2])
 

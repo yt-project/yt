@@ -27,8 +27,8 @@ def test_no_rotation():
     py = ad[("all", "particle_position_y")]
     hsml = ad[("all", "smoothing_length")]
     quantity_to_smooth = ad[("gas", "density")]
-    density = ad["density"]
-    mass = ad["particle_mass"]
+    density = ad[("gas", "density")]
+    mass = ad[("all", "particle_mass")]
     bounds = [-4, 4, -4, 4, -4, 4]
 
     buf2 = np.zeros(resolution)

@@ -124,7 +124,7 @@ def test_non_square_frb():
     assert_array_equal(
         frb[("gas", "density")].shape, reloaded_ds.data[("gas", "density")].shape
     )
-    assert_array_equal(frb["density"], reloaded_ds.data["density"])
+    assert_array_equal(frb[("gas", "density")], reloaded_ds.data[("gas", "density")])
 
     os.chdir(curdir)
     if tmpdir != ".":
