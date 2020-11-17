@@ -30,9 +30,11 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
 
     def __init__(self, ds, dataset_type="aspect"):
         super(ASPECTUnstructuredIndex, self).__init__(ds, dataset_type)
+        self.global_connectivity = None
+        self.global_coords = None
 
     def _initialize_mesh(self):
-        connectivity, coords = self.ds._read_pieces()
+        connectivity, coords, offsets = self.ds._read_pieces()
         self.meshes = []
         for mesh_id, conn_ind in enumerate(connectivity):
             # aspect does not displace between vtu
@@ -42,6 +44,7 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
             mesh = ASPECTUnstructuredMesh(
                 mesh_id, mesh_file, conn_ind, mesh_coords, self
             )
+            mesh._index_offset = offsets[mesh_id]
             self.meshes.append(mesh)
         self.mesh_union = MeshUnion("mesh_union", self.meshes)
 
@@ -53,6 +56,27 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
         for i in range(1, len(self.meshes) + 1):
             self.field_list += [("connect%d" % i, fname) for fname in fnames]
         self.field_list += [("all", fname) for fname in fnames]
+
+    def _get_mesh_union(self):
+        """
+        returns global connectivity and coordinate arrays across the meshes,
+        when the mesh is split up across chunks.
+        """
+
+        if self.global_connectivity is None:
+            indices = np.concatenate(
+                [
+                    mesh.connectivity_indices + mesh._index_offset
+                    for mesh in self.mesh_union
+                ]
+            )
+            coords = np.concatenate(
+                [mesh.connectivity_coords for mesh in self.mesh_union]
+            )
+            self.global_connectivity = indices
+            self.global_coords = coords
+        offset = 0
+        return self.global_connectivity, self.global_coords, offset
 
 
 class ASPECTDataset(Dataset):
@@ -149,6 +173,8 @@ class ASPECTDataset(Dataset):
             self.parameters["pXML"] = xmltodict.parse(pvtu_fi.read())
 
         pieces = self.parameters["pXML"]["VTKFile"]["PUnstructuredGrid"]["Piece"]
+        if not isinstance(pieces, list):
+            pieces = [pieces]
         self.parameters["vtu_files"] = [piece["@Source"] for piece in pieces]
         self.periodicity = (False, False, False)  # might not be true...
         self.unique_identifier = self._get_unique_identifier()
@@ -242,21 +268,28 @@ class ASPECTDataset(Dataset):
         with open(self.parameter_filename) as pvtu_fi:
             pXML = xmltodict.parse(pvtu_fi.read())
         pieces = pXML["VTKFile"]["PUnstructuredGrid"]["Piece"]
-
+        if not isinstance(pieces, list):
+            pieces = [pieces]
         conlist = []  # list of 2D connectivity arrays
         coordlist = []  # global, concatenated coordinate array
         con_offset = -1
+        offsets = []
         for mesh_id, src in enumerate(pieces):
             # mesh_name = f"connect{mesh_id + 1}"  # connect1, connect2, etc.
             srcfi = os.path.join(
                 self.data_dir, src["@Source"]
             )  # full path to .vtu file
-            [con, coord] = self._read_piece(srcfi, con_offset + 1)
-            # con_offset = con.max()  # reading by file, don't need to concat?
+            [con, coord] = self._read_piece(srcfi, 0)
+            offsets.append(con_offset + 1)
+            con_offset = (
+                con.max() + offsets[-1]
+            )  # reading by file, don't need to concat?
             conlist.append(con.astype("i8"))
             coordlist.append(coord.astype("f8"))
 
-        return conlist, coordlist
+        # concatenate across into a single mesh.
+
+        return conlist, coordlist, offsets
 
     def _load_domain_edge(self):
         """
@@ -271,7 +304,7 @@ class ASPECTDataset(Dataset):
         right_edge = self.parameter_info.get("domain_right_edge", None)
 
         if not left_edge:
-            _, coord = self._read_pieces()
+            _, coord, _ = self._read_pieces()
             coord = np.vstack(coord)
             left_edge = [coord[:, i].min() for i in range(self.dimensionality)]
             right_edge = [coord[:, i].max() for i in range(self.dimensionality)]

@@ -34,19 +34,48 @@ class IOHandlerASPECT(BaseIOHandler):
         # special-case a grid selector object.
 
         # always select all since these are chunks of a single mesh...
+        ftype_list = []
         rv = {}
         for field in fields:
+            ftype, fname = field
             rv[field] = []
+            ftype_list.append(ftype)
 
-        for chunk in chunks:
+        for chunk_id, chunk in enumerate(chunks):
             mesh = chunk.objs[0]
-            mask = selector.fill_mesh_cell_mask(mesh)
-            masked_conn = mesh.connectivity_indices[mask, :].ravel()
-            vtu_file = os.path.join(self.ds.data_dir, mesh.filename)
-            meshPiece = meshio.read(vtu_file)
-            for field in fields:
-                ftype, fname = field
-                rv[field].append(meshPiece.point_data[fname][masked_conn])
+
+            # operations here should not offset mesh indeces as the indices for
+            # a chunk's mesh are not global. need to temporarily
+            # zero the mesh index for use within the selector objects, then
+            # reset after for places where global concatentation of the indices
+            # is required.
+            orig_offset = mesh._index_offset
+            mesh._index_offset = 0
+
+            mesh_name = f"connect{chunk_id+1}"
+            if "all" in ftype_list or mesh_name in ftype_list:
+                # mask here is the **element** mask. i.e., shape(mask) = (n_elments,)
+                # rather than (n_elements, n_verts). These apply to all fields, so
+                # pull them out here:
+                mask = selector.fill_mesh_cell_mask(mesh)
+                if mask is not None:
+                    con_shape = mesh.connectivity_indices.shape
+                    # need a 1d connectivity for reshaping point data
+                    conn1d = mesh.connectivity_indices.ravel()
+                    vtu_file = os.path.join(self.ds.data_dir, mesh.filename)
+                    meshPiece = meshio.read(vtu_file)
+                    for field in fields:
+                        ftype, fname = field
+                        if ftype == "all" or ftype == mesh_name:
+                            # meshio returns a 1d data array, so we need to:
+                            # 1. select with 1d connectivity to ensure proper order
+                            # 2. reshape to match the expected (element, n_verts) shape
+                            # 3. select the masked data
+                            data2d = meshPiece.point_data[fname][conn1d].reshape(
+                                con_shape
+                            )
+                            rv[field].append(data2d[mask, :])
+            mesh._index_offset = orig_offset
 
         for field in fields:
             rv[field] = np.concatenate(rv[field]).astype(np.float64)
