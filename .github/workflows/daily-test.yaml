@@ -16,7 +16,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-18.04]
-        python-version: [3.7, 3.8, 3.9]
+        python-version: [3.8]
         c_compiler: [gcc, gcc-5]
         cpp_compiler: [g++, g++-5]
         exclude:
