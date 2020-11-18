@@ -37,6 +37,7 @@ class YTCutRegion(YTSelectionContainer3D):
 
     _type_name = "cut_region"
     _con_args = ("base_object", "conditionals")
+    _derived_quantity_chunking = "all"
 
     def __init__(
         self,
