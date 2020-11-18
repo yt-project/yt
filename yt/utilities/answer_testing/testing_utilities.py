@@ -291,7 +291,7 @@ def _parse_raw_answer_dict(d, h5grp):
             h5grp.create_dataset(k, data=v)
 
 
-def _compare_raw_arrays(arrays, answer_file, func_name):
+def _compare_raw_arrays(new, answer_file, func_name):
     r"""
     Reads in previously saved raw array data and compares the current
     results with the old ones.
@@ -304,7 +304,7 @@ def _compare_raw_arrays(arrays, answer_file, func_name):
 
     Parameters
     ----------
-    arrays : dict
+    new : dict
         Keys are the test name (e.g. field_values) and the values are
         the actual answer arrays produced by the test.
 
@@ -317,8 +317,49 @@ def _compare_raw_arrays(arrays, answer_file, func_name):
         (e.g, test_toro1d).
     """
     with h5py.File(answer_file, "r") as f:
-        for test_name, new_answer in arrays.items():
-            np.testing.assert_array_equal(f[func_name][test_name][:], new_answer)
+        old = f[func_name]
+        _recursive_raw_compare(func_name, old, new)
+
+
+def _recursive_raw_compare(group_name, old, new):
+    if isinstance(old, h5py.Group):
+        for key, value in old.items():
+            try:
+                temp = new[key]
+            except KeyError:
+                # Sometimes the key is a tuple
+                if "(" in key:
+                    tuple_key = _str_to_tuple(key)
+                    temp = new[tuple_key]
+                # Sometimes (e.g., parentage relationships), the key is an
+                # integer. When saving the result, this key is converted to
+                # a string, so here we have to go back to an int
+                else:
+                    temp = new[int(key)]
+            _recursive_raw_compare(key, value, temp)
+    elif isinstance(old, h5py.Dataset):
+        # Sometimes the answer is a scalar, not an array, so slicing gives
+        # an error
+        if old.shape == ():
+            old_result = old.value
+        else:
+            old_result = old[:]
+        # None can't be saved to an hdf5 file, so such results were
+        # converted to -1 when the answers were saved, so we have to do that here
+        # as well
+        if new is None:
+            new = -1
+        np.testing.assert_array_equal(old_result, new)
+    else:
+        raise TypeError("Uknown type encountered in raw answer file.")
+
+
+def _str_to_tuple(s):
+    # Assumes a tuple of the form "('string1', 'string2')"
+    t0, t1 = s.split(",")
+    t0s = t0.strip("(").strip("'")
+    t1s = t1.strip(")").strip().strip("'")
+    return (t0s, t1s)
 
 
 def can_run_ds(ds_fn, file_check=False):
