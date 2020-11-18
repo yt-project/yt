@@ -70,6 +70,7 @@ cythonize_aliases = {
     "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
     "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
     "CPP14_FLAG": CPP14_FLAG,
+    "CPP03_FLAG": CPP03_FLAG,
 }
 
 lib_exts = [
