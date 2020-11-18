@@ -281,6 +281,8 @@ def _parse_raw_answer_dict(d, h5grp):
     """
     for k, v in d.items():
         if isinstance(v, dict):
+            if not isinstance(k, str):
+                k = str(k)
             h5_sub_grp = h5grp.create_group(k)
             _parse_raw_answer_dict(v, h5_sub_grp)
         else:
