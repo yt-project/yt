@@ -5,6 +5,11 @@ on:
     # Run daily at 00:00
     - cron: '0 0 * * *'
   push:
+  pull_request:
+
+defaults:
+  run:
+    shell: bash
 
 jobs:
   build:
@@ -12,11 +17,14 @@ jobs:
       matrix:
         os: [ubuntu-18.04]
         python-version: [3.7, 3.8, 3.9]
-        include:
-          - c_compiler: gcc
-            cxx_compiler: g++
+        c_compiler: [gcc, gcc-5]
+        cpp_compiler: [g++, g++-5]
+        exclude:
+          # Exclude cross combinations
           - c_compiler: gcc-5
-            cxx_compiler: g++-5
+            cpp_compiler: g++
+          - c_compiler: gcc
+            cpp_compiler: g++-5
     runs-on: ${{ matrix.os }}
     steps:
     - name: Install Python
@@ -30,11 +38,12 @@ jobs:
     - name: Install compiler
       if: matrix.c_compiler == 'gcc-5'
       shell: bash
-      run: sudo apt-get -qqy install gcc-5 g++5
+      run: sudo apt-get -qqy install gcc-5 g++-5
     - name: Install dependencies and yt
       shell: bash
       env:
         dependencies: ${{ matrix.dependencies }}
         CC: ${{ matrix.c_compiler }}
         CXX: ${{ matrix.cpp_compiler }}
+        MAX_BUILD_CORES: 0
       run: source ./tests/ci_install.sh
