@@ -5,8 +5,7 @@ from numbers import Number as numeric_type
 
 import numpy as np
 
-from yt.data_objects.data_containers import GenerationInProgress
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.profiles import (
     Profile1DFromDataset,
@@ -21,7 +20,7 @@ from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.units import dimensions
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTQuantity, uconcatenate
-from yt.utilities.exceptions import YTFieldTypeNotFound
+from yt.utilities.exceptions import GenerationInProgress, YTFieldTypeNotFound
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only

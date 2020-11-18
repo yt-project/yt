@@ -9,7 +9,7 @@ from yt.utilities.answer_testing.framework import (
 from yt.visualization.volume_rendering.api import (
     ColorTransferFunction,
     Scene,
-    VolumeSource,
+    create_volume_source,
     off_axis_projection,
 )
 
@@ -20,7 +20,7 @@ def test_orientation():
 
     sc = Scene()
 
-    vol = VolumeSource(ds, field=("gas", "density"))
+    vol = create_volume_source(ds, field=("gas", "density"))
     sc.add_source(vol)
 
     tf = vol.transfer_function

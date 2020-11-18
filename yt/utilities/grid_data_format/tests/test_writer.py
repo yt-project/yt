@@ -6,7 +6,7 @@ from yt.frontends.gdf.data_structures import GDFDataset
 from yt.loaders import load
 from yt.testing import assert_equal, fake_random_ds, requires_module
 from yt.utilities.grid_data_format.writer import write_to_gdf
-from yt.utilities.on_demand_imports import _h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 TEST_AUTHOR = "yt test runner"
 TEST_COMMENT = "Testing write_to_gdf"
@@ -33,7 +33,7 @@ def test_write_gdf():
         del test_ds
         assert isinstance(load(tmpfile), GDFDataset)
 
-        h5f = h5.File(tmpfile, "r")
+        h5f = h5py.File(tmpfile, mode="r")
         gdf = h5f["gridded_data_format"].attrs
         assert_equal(gdf["data_author"], TEST_AUTHOR)
         assert_equal(gdf["data_comment"], TEST_COMMENT)

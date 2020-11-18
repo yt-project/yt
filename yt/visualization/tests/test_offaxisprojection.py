@@ -55,7 +55,8 @@ class TestOffAxisProjection(unittest.TestCase):
         wp_kwargs["colorbar"] = (True, False)
         wp_kwargs["colorbar_label"] = "test"
         wp_kwargs["title"] = "test"
-        wp_kwargs["limits"] = (None, (1e3, 1e5))
+        wp_kwargs["vmin"] = (None,)
+        wp_kwargs["vmax"] = (1e3, 1e5)
         wp_kwargs["take_log"] = (True, False)
         wp_kwargs["figsize"] = ((8, 6), [1, 1])
         wp_kwargs["dpi"] = (100, 50)

@@ -24,7 +24,7 @@ from nose.plugins import Plugin
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
-from yt.funcs import get_pbar
+from yt.funcs import get_pbar, issue_deprecation_warning
 from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
@@ -36,6 +36,7 @@ from yt.utilities.command_line import get_yt_version
 from yt.utilities.exceptions import YTCloudError, YTNoAnswerNameSpecified, YTNoOldAnswer
 from yt.utilities.logger import disable_stream_logging
 from yt.visualization import (
+    image_writer as image_writer,
     particle_plots as particle_plots,
     plot_window as pw,
     profile_plotter as profile_plotter,
@@ -257,7 +258,7 @@ class AnswerTestLocalStorage(AnswerTestStorage):
     def dump(self, result_storage):
         # The 'tainted' attribute is automatically set to 'True'
         # if the dataset required for an answer test is missing
-        # (see can_run_ds() and can_run_sim()).
+        # (see can_run_ds().
         # This logic check prevents creating a shelve with empty answers.
         storage_is_tainted = result_storage.get("tainted", False)
         if self.answer_name is None or storage_is_tainted:
@@ -314,6 +315,11 @@ def can_run_ds(ds_fn, file_check=False):
 
 
 def can_run_sim(sim_fn, sim_type, file_check=False):
+    issue_deprecation_warning(
+        "This function is no longer used in the "
+        + "yt project testing framework and is "
+        + "targeted for deprecation."
+    )
     result_storage = AnswerTestingTest.result_storage
     if isinstance(sim_fn, SimulationTimeSeries):
         return result_storage is not None
@@ -664,7 +670,11 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             # weight_field does not have units, so we do not directly compare them
             if k == "weight_field_sum":
                 continue
-            assert_allclose_units(new_result[k], old_result[k], 1e-10)
+            try:
+                assert_allclose_units(new_result[k], old_result[k], 1e-10)
+            except AssertionError:
+                dump_images(new_result[k], old_result[k])
+                raise
 
 
 class PixelizedParticleProjectionValuesTest(PixelizedProjectionValuesTest):
@@ -775,6 +785,23 @@ class ParentageRelationshipsTest(AnswerTestingTest):
             assert newp == oldp
         for newc, oldc in zip(new_result["children"], old_result["children"]):
             assert newc == oldc
+
+
+def dump_images(new_result, old_result, decimals=10):
+    tmpfd, old_image = tempfile.mkstemp(suffix=".png")
+    os.close(tmpfd)
+    tmpfd, new_image = tempfile.mkstemp(suffix=".png")
+    os.close(tmpfd)
+    image_writer.write_projection(new_result, new_image)
+    image_writer.write_projection(old_result, old_image)
+    results = compare_images(old_image, new_image, 10 ** (-decimals))
+    if results is not None:
+        tempfiles = [
+            line.strip() for line in results.split("\n") if line.endswith(".png")
+        ]
+        for fn in tempfiles:
+            sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
+        sys.stderr.write("\n")
 
 
 def compare_image_lists(new_result, old_result, decimals):
@@ -1082,6 +1109,12 @@ class AxialPixelizationTest(AnswerTestingTest):
 
 
 def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
+    issue_deprecation_warning(
+        "This function is no longer used in the "
+        + "yt project testing framework and is "
+        + "targeted for deprecation."
+    )
+
     from functools import wraps
 
     from nose import SkipTest

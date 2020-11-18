@@ -866,3 +866,9 @@ class YTArrayTooLargeToDisplay(YTException):
         msg += "We do not support displaying arrays larger\n"
         msg += f"than size {self.max_size}."
         return msg
+
+
+class GenerationInProgress(Exception):
+    def __init__(self, fields):
+        self.fields = fields
+        super(GenerationInProgress, self).__init__()

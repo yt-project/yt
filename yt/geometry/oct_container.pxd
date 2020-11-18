@@ -9,14 +9,16 @@ Oct definitions file
 
 cimport cython
 cimport numpy as np
-from yt.utilities.lib.fp_utils cimport *
 cimport oct_visitors
 cimport selection_routines
-from .oct_visitors cimport OctVisitor, Oct, cind, OctInfo
-from libc.stdlib cimport bsearch, qsort, realloc, malloc, free
 from libc.math cimport floor
-from yt.utilities.lib.allocation_container cimport \
-    ObjectPool, AllocationContainer
+from libc.stdlib cimport bsearch, free, malloc, qsort, realloc
+
+from yt.utilities.lib.allocation_container cimport AllocationContainer, ObjectPool
+from yt.utilities.lib.fp_utils cimport *
+
+from .oct_visitors cimport Oct, OctInfo, OctVisitor, cind
+
 
 cdef int ORDER_MAX
 
@@ -74,7 +76,7 @@ cdef class OctreeContainer:
                         OctVisitor visitor,
                         int vc = ?, np.int64_t *indices = ?)
     cdef Oct *next_root(self, int domain_id, int ind[3])
-    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent)
+    cdef Oct *next_child(self, int domain_id, int ind[3], Oct *parent) except? NULL
     cdef void append_domain(self, np.int64_t domain_count)
     # The fill_style is the ordering, C or F, of the octs in the file.  "o"
     # corresponds to C, and "r" is for Fortran.

@@ -8,9 +8,12 @@ Definitions for the partitioned grid
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 from .volume_container cimport VolumeContainer
+
 
 cdef class PartitionedGrid:
     cdef public object my_data

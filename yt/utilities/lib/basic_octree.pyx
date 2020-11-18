@@ -12,6 +12,7 @@ A refine-by-two AMR-specific octree
 import numpy as np
 
 cimport cython
+
 # Double up here for def'd functions
 cimport numpy as np
 cimport numpy as cnp

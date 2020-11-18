@@ -1,8 +1,8 @@
 import numpy as np
 
+from yt.data_objects.index_subobjects.unstructured_mesh import UnstructuredMesh
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.unions import MeshUnion
-from yt.data_objects.unstructured_mesh import UnstructuredMesh
 from yt.funcs import setdefaultattr
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
@@ -336,7 +336,27 @@ class ExodusIIDataset(Dataset):
         connectivity = []
         with self._handle.open_ds() as ds:
             for i in range(self.parameters["num_meshes"]):
-                connectivity.append(ds.variables["connect%d" % (i + 1)][:].astype("i8"))
+                var = ds.variables["connect%d" % (i + 1)][:].astype("i8")
+                try:
+                    elem_type = var.elem_type.lower()
+                    if elem_type == "nfaced":
+                        raise NotImplementedError(
+                            "3D arbitrary polyhedra are not implemented yet"
+                        )
+                    arbitrary_polyhedron = elem_type == "nsided"
+                except AttributeError:
+                    arbitrary_polyhedron = False
+
+                conn = var[:]
+                if arbitrary_polyhedron:
+                    nodes_per_element = ds.variables[f"ebepecnt{i + 1}"]
+                    npe = nodes_per_element[0]
+                    if np.any(nodes_per_element != npe):
+                        raise NotImplementedError("only equal-size polyhedra supported")
+                    q, r = np.divmod(len(conn), npe)
+                    assert r == 0
+                    conn.shape = (q, npe)
+                connectivity.append(conn)
             return connectivity
 
     def _load_domain_edge(self):

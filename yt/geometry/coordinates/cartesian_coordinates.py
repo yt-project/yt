@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
 from yt.units.yt_array import YTArray, uconcatenate, uvstack
 from yt.utilities.lib.pixelization_routines import (
@@ -254,7 +254,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
             offset = index.meshes[mesh_id]._index_offset
             ad = self.ds.all_data()
             field_data = ad[field]
-            if field_data.shape[1] == 27:
+
+            # if this is an element field, promote to 2D here
+            if len(field_data.shape) == 1:
+                field_data = np.expand_dims(field_data, 1)
+            # if this is a higher-order element, we demote to 1st order
+            # here, for now.
+            elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
                     "High order elements not yet supported, dropping to 1st order."
@@ -282,7 +288,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         self, data_source, field, bounds, size, antialias, dim, periodic
     ):
         from yt.data_objects.construction_data_containers import YTParticleProj
-        from yt.data_objects.selection_data_containers import YTSlice
+        from yt.data_objects.selection_objects.slices import YTSlice
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
 

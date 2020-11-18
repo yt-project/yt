@@ -56,6 +56,16 @@ class netCDF4_imports:
     _name = "netCDF4"
     _Dataset = None
 
+    def __init__(self):
+        # this ensures the import ordering between netcdf4 and h5py. If h5py is
+        # imported first, can get file lock errors on some systems (including travis-ci)
+        # so we need to do this before initializing h5py_imports()!
+        # similar to this issue https://github.com/pydata/xarray/issues/2560
+        try:
+            import netCDF4  # noqa F401
+        except ImportError:
+            pass
+
     @property
     def Dataset(self):
         if self._Dataset is None:

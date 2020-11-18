@@ -1,10 +1,11 @@
 import glob
 import os
 import sys
+from distutils.ccompiler import get_default_compiler
 from distutils.version import LooseVersion
 
 import pkg_resources
-from setuptools import find_packages, setup
+from setuptools import Distribution, find_packages, setup
 
 from setupext import (
     check_for_openmp,
@@ -45,6 +46,11 @@ if os.name == "nt":
 else:
     std_libs = ["m"]
 
+if get_default_compiler() == "msvc":
+    CPP14_FLAG = ["/std:c++14"]
+else:
+    CPP14_FLAG = ["--std=c++14"]
+
 cythonize_aliases = {
     "LIB_DIR": "yt/utilities/lib/",
     "LIB_DIR_EWAH": ["yt/utilities/lib/", "yt/utilities/lib/ewahboolarray/"],
@@ -56,8 +62,9 @@ cythonize_aliases = {
     ],
     "STD_LIBS": std_libs,
     "OMP_ARGS": omp_args,
-    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.c",
+    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
     "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
+    "CPP14_FLAG": CPP14_FLAG,
 }
 
 lib_exts = [
@@ -76,6 +83,16 @@ lib_exts += embree_libs
 
 # This overrides using lib_exts, so it has to happen after lib_exts is fully defined
 build_ext, sdist = create_build_ext(lib_exts, cythonize_aliases)
+
+# Force setuptools to consider that there are ext modules, even if empty.
+# See https://github.com/yt-project/yt/issues/2922 and
+# https://stackoverflow.com/a/62668026/2601223 for the fix.
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name."""
+
+    def has_ext_modules(self):
+        return True
+
 
 if __name__ == "__main__":
     setup(
@@ -134,6 +151,7 @@ if __name__ == "__main__":
         license="BSD 3-Clause",
         zip_safe=False,
         scripts=["scripts/iyt"],
+        distclass=BinaryDistribution,
         ext_modules=[],  # !!! We override this inside build_ext above
         python_requires=">=3.6",
     )

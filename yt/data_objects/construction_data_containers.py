@@ -10,12 +10,12 @@ from tempfile import NamedTemporaryFile, TemporaryFile
 import numpy as np
 
 from yt.config import ytcfg
-from yt.data_objects.data_containers import (
+from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer1D,
     YTSelectionContainer2D,
     YTSelectionContainer3D,
 )
-from yt.data_objects.field_data import YTFieldData
 from yt.extern.tqdm import tqdm
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
@@ -27,6 +27,7 @@ from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import (
     YTNoAPIKey,
+    YTNotInsideNotebook,
     YTParticleDepositionNotImplemented,
     YTTooManyVertices,
 )
@@ -327,7 +328,10 @@ class YTProj(YTSelectionContainer2D):
             width = self.ds.domain_width
             center = self.ds.domain_center
         pw = self._get_pw(fields, center, width, "native", "Projection")
-        pw.show()
+        try:
+            pw.show()
+        except YTNotInsideNotebook:
+            pass
         return pw
 
     def _initialize_projected_units(self, fields, chunk):
