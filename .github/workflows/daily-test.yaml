@@ -1,0 +1,39 @@
+name: Daily build
+
+on:
+  schedule:
+    # Run daily at 00:00
+    - cron: '0 0 * * *'
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        os: [ubuntu-18.04]
+        python-version: [3.8]
+        include:
+          - c_compiler: gcc
+            cxx_compiler: g++
+          - c_compiler: gcc-5
+            cxx_compiler: g++-5
+    runs-on: ${{ matrix.os }}
+    steps:
+    - name: Install Python
+      uses: actions/setup-python@v2
+      with:
+        python-version: ${{ matrix.python-version }}
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+        fetch-depth: 0
+    - name: Install compiler
+      if: matrix.c_compiler == 'gcc-5'
+      shell: bash
+      run: sudo apt-get -qqy install gcc-5 g++5
+    - name: Install dependencies and yt
+      shell: bash
+      env:
+        dependencies: ${{ matrix.dependencies }}
+        CC: ${{ matrix.c_compiler }}
+        CXX: ${{ matrix.cpp_compiler }}
+      run: source ./tests/ci_install.sh
