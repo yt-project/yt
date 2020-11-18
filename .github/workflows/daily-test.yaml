@@ -47,3 +47,6 @@ jobs:
         CXX: ${{ matrix.cpp_compiler }}
         MAX_BUILD_CORES: 0
       run: source ./tests/ci_install.sh
+    - name: Test yt can be imported
+      shell: bash
+      run: python -c "import yt"
