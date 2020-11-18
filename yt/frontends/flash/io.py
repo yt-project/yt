@@ -180,7 +180,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         p_fields = self._handle["/tracer particles"]
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             pxyz = np.asarray(
-                p_fields[data_file.start : data_file.end, (px, py, pz)], dtype="=f8"
+                p_fields[data_file.start : data_file.end, [px, py, pz]], dtype="=f8"
             )
             yield "io", pxyz.T
 
@@ -188,7 +188,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
         pxyz = np.asarray(
-            p_fields[data_file.start : data_file.end, (px, py, pz)], dtype="=f8"
+            p_fields[data_file.start : data_file.end, [px, py, pz]], dtype="=f8"
         )
         yield ("io", pxyz)
 

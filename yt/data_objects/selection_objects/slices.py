@@ -15,6 +15,7 @@ from yt.funcs import (
     validate_object,
     validate_width_tuple,
 )
+from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.minimal_representation import MinimalSliceData
 from yt.utilities.orientation import Orientation
 
@@ -131,7 +132,10 @@ class YTSlice(YTSelectionContainer2D):
             width = self.ds.domain_width
             center = self.ds.domain_center
         pw = self._get_pw(fields, center, width, "native", "Slice")
-        pw.show()
+        try:
+            pw.show()
+        except YTNotInsideNotebook:
+            pass
         return pw
 
 
