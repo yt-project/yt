@@ -4,13 +4,14 @@ on:
   schedule:
     # Run daily at 00:00
     - cron: '0 0 * * *'
+  push:
 
 jobs:
   build:
     strategy:
       matrix:
         os: [ubuntu-18.04]
-        python-version: [3.8]
+        python-version: [3.7, 3.8, 3.9]
         include:
           - c_compiler: gcc
             cxx_compiler: g++
