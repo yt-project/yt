@@ -48,7 +48,7 @@ class ParameterFileStore:
         self.__dict__ = cls._shared_state
         return self
 
-    def __init__(self, in_memory=False):
+    def __init__(self):
         """
         Create the dataset database if yt is configured to store them.
         Otherwise, use read-only settings.

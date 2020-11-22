@@ -96,7 +96,7 @@ class MutableAttribute:
         self.data = weakref.WeakKeyDictionary()
         self.display_array = display_array
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance, _owner):
         if not instance:
             return None
         ret = self.data.get(instance, None)
@@ -395,7 +395,8 @@ class Dataset(abc.ABC):
         return [], True
 
     def close(self):
-        pass
+        # This is implemented in some subclasses, but is not required.
+        mylog.debug("Calling Dataset.close() has no effect.")
 
     def __getitem__(self, key):
         """ Returns units, parameters, or conversion_factors in that order. """

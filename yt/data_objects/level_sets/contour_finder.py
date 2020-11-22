@@ -12,7 +12,7 @@ from yt.utilities.lib.contour_finding import (
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 
 
-def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
+def identify_contours(data_source, field, min_val, max_val):
     tree = ContourTree()
     gct = TileContourTree(min_val, max_val)
     total_contours = 0
