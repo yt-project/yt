@@ -37,6 +37,7 @@ class YTCutRegion(YTSelectionContainer3D):
 
     _type_name = "cut_region"
     _con_args = ("base_object", "conditionals")
+    _derived_quantity_chunking = "all"
 
     def __init__(
         self,
@@ -165,11 +166,14 @@ class YTCutRegion(YTSelectionContainer3D):
             ],
             axis=1,
         ).value
-        levels = self[("index", "grid_level")].astype("int32").value
-        levelmin = levels.min()
-        levelmax = levels.max()
 
         mask = np.zeros(ppos.shape[0], dtype=bool)
+        levels = self[("index", "grid_level")].astype("int32").value
+        if levels.size == 0:
+            return mask
+
+        levelmin = levels.min()
+        levelmax = levels.max()
 
         for lvl in range(levelmax, levelmin - 1, -1):
             # Filter out cells not in the current level
