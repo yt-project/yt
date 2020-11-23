@@ -21,6 +21,10 @@ jobs:
         include:
           - os: ubuntu-18.04
             python-version: 3.7
+            dependencies: minimal
+            tests-type: unit
+          - os: ubuntu-18.04
+            python-version: 3.7
             dependencies: full
             tests-type: answer
 

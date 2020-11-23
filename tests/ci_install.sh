@@ -49,13 +49,14 @@ fi
 
 # Step 2: install required packages (depending on whether the build is minimal)
 if [[ ${dependencies} == "minimal" ]]; then
-    # Ensure numpy and cython are installed so dependencies that need to be built
-    # don't error out
-    # The first numpy to support py3.6 is 1.12, but numpy 1.13 matches
-    # unyt so we'll match it here.
+    # Ensure numpy and cython are installed so dependencies that need to
+    # be built don't error out.
 
-    # TODO: UPDATE THIS TO TARGET PYTHON 3.7 AS MINIMAL
-    python -m pip install numpy==1.13.3 cython==0.26.1
+    # numpy 1.16.0 is the first feature release to support Python 3.7
+    # We'll use the last bugfix release in the series as minimal here.
+    # The corresponding release notes recommend compiling with cython>=0.29.2
+    # https://github.com/numpy/numpy/releases/tag/v1.16.6
+    python -m pip install numpy==1.16.6 cython==0.29.2
     python -m pip install -r tests/test_minimal_requirements.txt
 else
     # Getting cartopy installed requires getting cython and numpy installed
