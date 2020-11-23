@@ -3,7 +3,9 @@
 requires = [
   "setuptools>=19.6",
   "wheel",
-  "Cython>=0.26.1",
+  # cython version is imposed by that of numpy, see release notes
+  # https://github.com/numpy/numpy/releases/tag/v1.18.4
+  "Cython>=0.29.15",
   "numpy>=1.18.4; platform_system!='AIX'",
 ]
 
