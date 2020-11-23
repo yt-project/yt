@@ -13,6 +13,7 @@ requires = [
 # To be kept consistent with "Code Style" section in CONTRIBUTING.rst
 [tool.black]
 line-length = 88
+# note : 'py39' is not an available option as of black 19.10b0
 target-version = ['py36', 'py37', 'py38']
 include = '\.pyi?$'
 exclude = '''
