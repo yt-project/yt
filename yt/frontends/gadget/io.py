@@ -360,6 +360,8 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
             for ptype in ptf:
+                if tp[ptype] == 0:
+                    continue
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                 pos = self._read_field_from_file(f, tp[ptype], "Coordinates")
                 if ptype == self.ds._sph_ptypes[0]:
