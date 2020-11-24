@@ -5,9 +5,13 @@ requires = [
   "wheel",
 
   # keep in sync with travis.yml "minimal" specs (Cython and numpy for py36)
-  "Cython>=0.26.1",
+
+  # cython version is imposed by that of numpy, see release notes
+  # https://github.com/numpy/numpy/releases/tag/v1.19.2
+  "Cython>=0.26.1; python_version=='3.6'",
+  "Cython>=0.29.21; python_version>='3.7'",
   "numpy==1.13.3; python_version=='3.6' and platform_system!='AIX'",
-  "numpy>=1.18.4; python_version>='3.7' and platform_system!='AIX'",
+  "numpy>=1.19.2; python_version>='3.7' and platform_system!='AIX'",
 ]
 
 # To be kept consistent with "Code Style" section in CONTRIBUTING.rst
