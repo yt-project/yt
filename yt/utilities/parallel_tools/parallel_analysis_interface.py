@@ -747,11 +747,11 @@ class Communicator:
         if datatype is not None:
             pass
         elif isinstance(data, dict):
-            datatype == "dict"
+            datatype = "dict"
         elif isinstance(data, np.ndarray):
-            datatype == "array"
+            datatype = "array"
         elif isinstance(data, list):
-            datatype == "list"
+            datatype = "list"
         # Now we have our datatype, and we conduct our operation
         if datatype == "dict" and op == "join":
             if self.comm.rank == 0:
