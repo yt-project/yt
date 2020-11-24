@@ -27,7 +27,7 @@ from yt.frontends.ytdata.api import (
     YTProfileDataset,
     YTSpatialPlotDataset,
 )
-from yt.frontends.ytdata.tests.test_outputs import (
+from yt.frontends.ytdata.tests.test_outputs_nose import (
     YTDataFieldTest,
     compare_unit_attributes,
 )

@@ -1,25 +1,29 @@
-"""
-Title:   utils.py
-Purpose: Contains utility functions for yt answer tests
-Notes:
-"""
 import functools
 import hashlib
 import inspect
 import os
+import sys
+import tempfile
+import zlib
 
+import matplotlib.image as mpimg
 import numpy as np
 import pytest
 import yaml
+from matplotlib.testing.compare import compare_images
 
+import yt.visualization.particle_plots as particle_plots
+import yt.visualization.plot_window as pw
+import yt.visualization.profile_plotter as profile_plotter
 from yt.config import ytcfg
 from yt.data_objects.selection_objects.region import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
 from yt.loaders import load, load_simulation
+from yt.testing import assert_equal
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.visualization import particle_plots, plot_window as pw, profile_plotter
-from yt.visualization.volume_rendering.api import Scene
+from yt.utilities.on_demand_imports import _h5py as h5py
+from yt.visualization.volume_rendering.scene import Scene
 
 
 def _streamline_for_io(params):
@@ -118,19 +122,12 @@ def _hash_results(results):
     """
     # Here, results should be comprised of only the tests, not the test
     # parameters
+    # Use a new dictionary so as to not overwrite the non-hashed test
+    # results in case those are to be saved
+    hashed_results = {}
     for test_name, test_value in results.items():
-        # These tests have issues with python-specific anchors and so
-        # are already hashed
-        # (see their definitions in yt/utilites/answer_testing/answer_tests.py)
-        if test_name in [
-            "projection_values",
-            "pixelized_projection_values",
-            "grid_values",
-        ]:
-            continue
-        else:
-            results[test_name] = generate_hash(test_value)
-    return results
+        hashed_results[test_name] = generate_hash(test_value)
+    return hashed_results
 
 
 def _hash_dict(data):
@@ -148,11 +145,24 @@ def _hash_dict(data):
         The hex digest of the hashed dictionary.
     """
     hd = None
-    for key, value in sorted(data.items()):
-        if hd is None:
-            hd = hashlib.md5(bytearray(key.encode("utf8")) + bytearray(value))
+    for key, value in data.items():
+        # Some keys are tuples, not strings
+        if not isinstance(key, str):
+            key = key.__repr__()
+        # Test suites can return values that are dictionaries of other tests
+        if isinstance(value, dict):
+            hashed_data = _hash_dict(value)
         else:
-            hd.update(bytearray(key.encode("utf8")) + bytearray(value))
+            hashed_data = bytearray(key.encode("utf8")) + bytearray(value)
+        # If we're returning from a recusive call (and therefore hashed_data
+        # is a hex digest), we need to encode the string before it can be
+        # hashed
+        if isinstance(hashed_data, str):
+            hashed_data = hashed_data.encode("utf8")
+        if hd is None:
+            hd = hashlib.md5(hashed_data)
+        else:
+            hd.update(hashed_data)
     return hd.hexdigest()
 
 
@@ -185,6 +195,8 @@ def generate_hash(data):
     except TypeError:
         if isinstance(data, dict):
             hd = _hash_dict(data)
+        elif data is None:
+            hd = hashlib.md5(bytes(str(-1).encode("utf-8"))).hexdigest()
         else:
             raise
     return hd
@@ -206,90 +218,148 @@ def _save_result(data, outputFile):
         yaml.dump(data, f)
 
 
-def _compare_result(data, outputFile):
+def _compare_result(new_data, old_data):
     r"""
     Compares the just-generated test results to those that are already
     saved.
 
     Parameters
     ----------
-    data : dict
-        Just-generated test results.
+    new_data : dict
+        Just-generated hashed test results.
 
-    outputFile : str
-        Name of file where answers are already saved.
+    old_data : dict
+        Previously saved hashed test results.
     """
-    # Load the saved data
-    with open(outputFile, "r") as f:
-        savedData = yaml.safe_load(f)
-    # Define the comparison function
-    def _check_vals(newVals, oldVals):
-        for key, value in newVals.items():
-            if isinstance(value, dict):
-                _check_vals(value, oldVals[key])
-            else:
-                assert value == oldVals[key]
-
-    # Compare
-    _check_vals(data, savedData)
+    for key, value in new_data.items():
+        assert value == old_data[key]
 
 
-def _handle_hashes(save_dir_name, fname, hashes, answer_store):
+def _save_raw_arrays(arrays, answer_file, func_name):
     r"""
-    Driver function for deciding whether to save the test results or
-    compare them to already saved results.
+    Saves the raw arrays produced from answer tests to a file.
+
+    The structure of `answer_file` is: each test function (e.g.,
+    test_toro1d[0-None-None-0]) forms a group. Within each group is a
+    hdf5 dataset named after the test (e.g., field_values). The value
+    stored in each dataset is the raw array corresponding to that
+    test and function.
 
     Parameters
     ----------
-    save_dir_name : str
-        Name of the directory to save results or where results are
-        already saved.
-
-    fname : str
-        Name of the file to either save results to or where results
-        are already saved.
-
-    hashes : dict
-        The just-generated test results.
-
-    answer_store : bool
-        If true, save the just-generated test results, otherwise,
-        compare them to the previously saved results.
-    """
-    # Set up the answer file in the answer directory
-    answer_file = os.path.join(save_dir_name, fname)
-    # Save the result
-    if answer_store:
-        _save_result(hashes, answer_file)
-    # Compare to already saved results
-    else:
-        _compare_result(hashes, answer_file)
-
-
-def _save_arrays(save_dir_name, fbasename, arrays, answer_store):
-    r"""
-    Driver routine for either saving the raw arrays resulting from the
-    tests, or compare them to previously saved results.
-
-    Parameters
-    ----------
-    save_dir_name : str
-        Name of the directory to save results or where results are
-        already saved.
-
-    fbasename : str
-        Base name (no extension) of the file to either save results
-        to or where results are already saved.
-
     arrays : dict
-        The raw arrays generated from the tests, with the test name
-        as a key.
+        Keys are the test name (e.g. field_values) and the values are
+        the actual answer arrays produced by the test.
 
-    answer_store : bool
-        If true, save the just-generated test results, otherwise,
-        compare them to the previously saved results.
+    answer_file : str
+        The name of the file to save the answers to, in hdf5 format.
+
+    func_name : str
+        The name of the function (possibly augmented by pytest with
+        test parameters) that called the test functions
+        (e.g, test_toro1d).
     """
-    pass
+    with h5py.File(answer_file, "a") as f:
+        grp = f.create_group(func_name)
+        for test_name, test_data in arrays.items():
+            # Some answer tests (e.g., grid_values, projection_values)
+            # return a dictionary, which cannot be handled by h5py
+            if isinstance(test_data, dict):
+                sub_grp = grp.create_group(test_name)
+                _parse_raw_answer_dict(test_data, sub_grp)
+            else:
+                # Some tests return None, which hdf5 can't handle, and there is
+                # no proxy, so we have to make one ourselves. Using -1
+                if test_data is None:
+                    test_data = -1
+                grp.create_dataset(test_name, data=test_data)
+
+
+def _parse_raw_answer_dict(d, h5grp):
+    """
+    Doc string.
+    """
+    for k, v in d.items():
+        if isinstance(v, dict):
+            if not isinstance(k, str):
+                k = str(k)
+            h5_sub_grp = h5grp.create_group(k)
+            _parse_raw_answer_dict(v, h5_sub_grp)
+        else:
+            if not isinstance(k, str):
+                k = str(k)
+            h5grp.create_dataset(k, data=v)
+
+
+def _compare_raw_arrays(new, answer_file, func_name):
+    r"""
+    Reads in previously saved raw array data and compares the current
+    results with the old ones.
+
+    The structure of `answer_file` is: each test function (e.g.,
+    test_toro1d[0-None-None-0]) forms a group. Within each group is a
+    hdf5 dataset named after the test (e.g., field_values). The value
+    stored in each dataset is the raw array corresponding to that
+    test and function.
+
+    Parameters
+    ----------
+    new : dict
+        Keys are the test name (e.g. field_values) and the values are
+        the actual answer arrays produced by the test.
+
+    answer_file : str
+        The name of the file to load the answers from, in hdf5 format.
+
+    func_name : str
+        The name of the function (possibly augmented by pytest with
+        test parameters) that called the test functions
+        (e.g, test_toro1d).
+    """
+    with h5py.File(answer_file, "r") as f:
+        old = f[func_name]
+        _recursive_raw_compare(func_name, old, new)
+
+
+def _recursive_raw_compare(group_name, old, new):
+    if isinstance(old, h5py.Group):
+        for key, value in old.items():
+            try:
+                temp = new[key]
+            except KeyError:
+                # Sometimes the key is a tuple
+                if "(" in key:
+                    tuple_key = _str_to_tuple(key)
+                    temp = new[tuple_key]
+                # Sometimes (e.g., parentage relationships), the key is an
+                # integer. When saving the result, this key is converted to
+                # a string, so here we have to go back to an int
+                else:
+                    temp = new[int(key)]
+            _recursive_raw_compare(key, value, temp)
+    elif isinstance(old, h5py.Dataset):
+        # Sometimes the answer is a scalar, not an array, so slicing gives
+        # an error
+        if old.shape == ():
+            old_result = old.value
+        else:
+            old_result = old[:]
+        # None can't be saved to an hdf5 file, so such results were
+        # converted to -1 when the answers were saved, so we have to do that here
+        # as well
+        if new is None:
+            new = -1
+        np.testing.assert_array_equal(old_result, new)
+    else:
+        raise TypeError("Uknown type encountered in raw answer file.")
+
+
+def _str_to_tuple(s):
+    # Assumes a tuple of the form "('string1', 'string2')"
+    t0, t1 = s.split(",")
+    t0s = t0.strip("(").strip("'")
+    t1s = t1.strip(")").strip().strip("'")
+    return (t0s, t1s)
 
 
 def can_run_ds(ds_fn, file_check=False):
@@ -335,12 +405,16 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
     """
     args = args or ()
     kwargs = kwargs or {}
-    kwargs.setdefault("unit_system", "code")
     path = ytcfg.get("yt", "test_data_dir")
+    # Some frontends require their field_lists during test parameterization.
+    # If the data isn't found, the parameterizing functions return None, since
+    # pytest.skip cannot be called outside of a test or fixture.
+    if ds_fn is None:
+        raise FileNotFoundError
+    if not os.path.isdir(path):
+        raise FileNotFoundError
     if isinstance(ds_fn, Dataset):
         return ds_fn
-    if not os.path.isdir(path):
-        return False
     if cls is None:
         ds = load(ds_fn, *args, **kwargs)
     else:
@@ -366,7 +440,7 @@ def requires_ds(ds_fn, file_check=False):
     def ftrue(func):
         @functools.wraps(func)
         def true_wrapper(*args, **kwargs):
-            return func
+            return func(*args, **kwargs)
 
         return true_wrapper
 
@@ -506,3 +580,40 @@ def _create_phase_plot_attribute_plot(
         cls = getattr(particle_plots, plot_type)
     plot = cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
     return plot
+
+
+def get_parameterization(fname):
+    try:
+        ds = data_dir_load(fname)
+        return ds.field_list
+    except FileNotFoundError:
+        return [
+            None,
+        ]
+
+
+def compare_image_lists(new_result, old_result, decimals):
+    fns = []
+    for _i in range(2):
+        tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
+        os.close(tmpfd)
+        fns.append(tmpname)
+    num_images = len(old_result)
+    assert num_images > 0
+    for i in range(num_images):
+        mpimg.imsave(fns[0], np.loads(zlib.decompress(old_result[i])))
+        mpimg.imsave(fns[1], np.loads(zlib.decompress(new_result[i])))
+        results = compare_images(fns[0], fns[1], 10 ** (-decimals))
+        if results is not None:
+            if os.environ.get("JENKINS_HOME") is not None:
+                tempfiles = [
+                    line.strip()
+                    for line in results.split("\n")
+                    if line.endswith(".png")
+                ]
+                for fn in tempfiles:
+                    sys.stderr.write(f"\n[[ATTACHMENT|{fn}]]")
+                sys.stderr.write("\n")
+        assert_equal(results, None, results)
+        for fn in fns:
+            os.remove(fn)

@@ -1,77 +1,102 @@
+import pytest
+
 from yt.frontends.gamer.api import GAMERDataset
-from yt.testing import assert_equal, requires_file, units_override_check
-from yt.utilities.answer_testing.framework import (
-    data_dir_load,
-    requires_ds,
-    small_patch_amr,
+from yt.testing import requires_file, units_override_check
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    grid_hierarchy,
+    grid_values,
+    parentage_relationships,
+    projection_values,
 )
 
+# Test data
 jet = "InteractingJets/jet_000002"
-_fields_jet = ("temperature", "density", "velocity_magnitude")
+psiDM = "WaveDarkMatter/psiDM_000020"
+plummer = "Plummer/plummer_000000"
+mhd_vortex = "MHDOrszagTangVortex/Data_000018"
+
 jet_units = {
     "length_unit": (1.0, "kpc"),
     "time_unit": (3.08567758096e13, "s"),
     "mass_unit": (1.4690033e36, "g"),
 }
 
-
-@requires_ds(jet, big_data=True)
-def test_jet():
-    ds = data_dir_load(jet, kwargs={"units_override": jet_units})
-    assert_equal(str(ds), "jet_000002")
-    for test in small_patch_amr(ds, _fields_jet):
-        test_jet.__name__ = test.description
-        yield test
-
-
-psiDM = "WaveDarkMatter/psiDM_000020"
-_fields_psiDM = ("Dens", "Real", "Imag")
-
-
-@requires_ds(psiDM, big_data=True)
-def test_psiDM():
-    ds = data_dir_load(psiDM)
-    assert_equal(str(ds), "psiDM_000020")
-    for test in small_patch_amr(ds, _fields_psiDM):
-        test_psiDM.__name__ = test.description
-        yield test
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("max", (0.1, "unitary")))]
+weights = [None, "density"]
+jet_fields = ["temperature", "density", "velocity_magnitude"]
+psi_fields = ["Dens", "Real", "Imag"]
+plummer_fields = [("gamer", "ParDens"), ("deposit", "io_cic")]
+mhd_fields = [("gamer", "CCMagX"), ("gamer", "CCMagY"), ("gas", "magnetic_energy")]
+fields = [
+    jet_fields,
+    psi_fields,
+    plummer_fields,
+    mhd_fields,
+]
+ds_list = [
+    [jet, {"kwargs": {"units_override": jet_units}}],
+    psiDM,
+    plummer,
+    mhd_vortex,
+]
 
 
-plummer = "Plummer/plummer_000000"
-_fields_plummer = (("gamer", "ParDens"), ("deposit", "io_cic"))
+def get_pairs():
+    pairs = []
+    for i, ds in enumerate(ds_list):
+        for f in fields[i]:
+            pairs.append((ds, f))
+    return pairs
 
 
-@requires_ds(plummer, big_data=True)
-def test_plummer():
-    ds = data_dir_load(plummer)
-    assert_equal(str(ds), "plummer_000000")
-    for test in small_patch_amr(ds, _fields_plummer):
-        test_plummer.__name__ = test.description
-        yield test
+@pytest.mark.answer_test
+class TestGamer:
+    answer_file = None
+    saved_hashes = None
 
+    @pytest.mark.big_data
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", ds_list, indirect=True)
+    def test_grid_hierarchy_parentage_relationships(self, ds, big_data):
+        if str(ds) == "rps.0062" and not big_data:
+            pytest.skip("--answer-big-data not used.")
+        self.hashes.update({"grid_hierarchy": grid_hierarchy(ds)})
+        self.hashes.update({"parentage_relationships": parentage_relationships(ds)})
 
-mhdvortex = "MHDOrszagTangVortex/Data_000018"
-_fields_mhdvortex = (
-    ("gamer", "CCMagX"),
-    ("gamer", "CCMagY"),
-    ("gas", "magnetic_energy"),
-)
+    @pytest.mark.big_data
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
+    def test_grid_values(self, f, ds, big_data):
+        if str(ds) == "rps.0062" and not big_data:
+            pytest.skip("--answer-big-data not used.")
+        self.hashes.update({"grid_values": grid_values(ds, f)})
 
+    @pytest.mark.big_data
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    def test_field_values(self, d, f, ds, big_data):
+        if str(ds) == "rps.0062" and not big_data:
+            pytest.skip("--answer-big-data not used.")
+        self.hashes.update({"field_values": field_values(ds, f, d)})
 
-@requires_ds(mhdvortex, big_data=True)
-def test_mhdvortex():
-    ds = data_dir_load(mhdvortex)
-    assert_equal(str(ds), "Data_000018")
-    for test in small_patch_amr(ds, _fields_mhdvortex):
-        test_mhdvortex.__name__ = test.description
-        yield test
+    @pytest.mark.big_data
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds, f", get_pairs(), indirect=True)
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    @pytest.mark.parametrize("w", weights, indirect=True)
+    def test_projection_values(self, a, d, w, f, ds, big_data):
+        if str(ds) == "rps.0062" and not big_data:
+            pytest.skip("--answer-big-data not used.")
+        self.hashes.update({"projection_values": projection_values(ds, a, f, w, d)})
 
+    @pytest.mark.parametrize("ds", [psiDM], indirect=True)
+    def test_GAMERDataset(self, ds):
+        assert isinstance(ds, GAMERDataset)
 
-@requires_file(psiDM)
-def test_GAMERDataset():
-    assert isinstance(data_dir_load(psiDM), GAMERDataset)
-
-
-@requires_file(jet)
-def test_units_override():
-    units_override_check(jet)
+    @requires_file(jet)
+    def test_units_override(self):
+        units_override_check(jet)

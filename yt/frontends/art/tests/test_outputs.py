@@ -1,3 +1,6 @@
+import numpy as np
+import pytest
+
 from yt.frontends.art.api import ARTDataset
 from yt.testing import (
     ParticleSelectionComparison,
@@ -7,115 +10,126 @@ from yt.testing import (
     units_override_check,
 )
 from yt.units.yt_array import YTQuantity
-from yt.utilities.answer_testing.framework import (
-    FieldValuesTest,
-    PixelizedProjectionValuesTest,
-    data_dir_load,
-    requires_ds,
+from yt.utilities.answer_testing.answer_tests import (
+    field_values,
+    pixelized_projection_values,
 )
 
-_fields = (
+# Test data
+d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
+dmonly = "DMonly/PMcrs0.0100.DAT"
+
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("max", (0.1, "unitary")))]
+weights = [None, "density"]
+fields = [
     ("gas", "density"),
     ("gas", "temperature"),
     ("all", "particle_mass"),
     ("all", "particle_position_x"),
-)
-
-d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
-dmonly = "DMonly/PMcrs0.0100.DAT"
+]
 
 
-@requires_ds(d9p, big_data=True)
-def test_d9p():
-    ds = data_dir_load(d9p)
-    ds.index
-    assert_equal(str(ds), "10MpcBox_HartGal_csf_a0.500.d")
-    dso = [None, ("sphere", ("max", (0.1, "unitary")))]
-    for field in _fields:
-        for axis in [0, 1, 2]:
-            for dobj_name in dso:
-                for weight_field in [None, "density"]:
-                    if field[0] not in ds.particle_types:
-                        yield PixelizedProjectionValuesTest(
-                            d9p, axis, field, weight_field, dobj_name
-                        )
-            yield FieldValuesTest(d9p, field, dobj_name)
+@pytest.mark.answer_test
+class TestArt:
+    answer_file = None
+    saved_hashes = None
 
-    ad = ds.all_data()
-    # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
-    AnaNStars = 6255
-    assert_equal(ad[("stars", "particle_type")].size, AnaNStars)
-    assert_equal(ad[("specie4", "particle_type")].size, AnaNStars)
+    @pytest.mark.big_data
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [d9p], indirect=True)
+    @pytest.mark.parametrize("f", fields, indirect=True)
+    @pytest.mark.parametrize("w", weights, indirect=True)
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    def test_d9p_pixelized_projection_values(self, f, d, a, w, ds):
+        ds.index
+        particle_type = f[0] in ds.particle_types
+        if not particle_type:
+            ppv = pixelized_projection_values(ds, a, f, w, d)
+            self.hashes.update({"pixelized_projection_values": ppv})
+        # So we have something to save for this test in the answer file
+        else:
+            self.hashes.update({"pixelized_projection_values": np.array(-1)})
 
-    # The *real* asnwer is 2833405, but yt misses one particle since it lives
-    # on a domain boundary. See issue 814. When that is fixed, this test
-    # will need to be updated
-    AnaNDM = 2833404
-    assert_equal(ad[("darkmatter", "particle_type")].size, AnaNDM)
-    assert_equal(
-        (
-            ad[("specie0", "particle_type")].size
-            + ad[("specie1", "particle_type")].size
-            + ad[("specie2", "particle_type")].size
-            + ad[("specie3", "particle_type")].size
-        ),
-        AnaNDM,
-    )
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [d9p], indirect=True)
+    @pytest.mark.parametrize("f", fields, indirect=True)
+    @pytest.mark.parametrize("d", objs, indirect=True)
+    def test_d9p_field_values(self, f, d, ds):
+        ds.index
+        particle_type = f[0] in ds.particle_types
+        fv = field_values(ds, f, d, particle_type=particle_type)
+        self.hashes.update({"field_values": fv})
 
-    for spnum in range(5):
-        npart_read = ad[f"specie{spnum}", "particle_type"].size
-        npart_header = ds.particle_type_counts[f"specie{spnum}"]
-        if spnum == 3:
-            # see issue 814
-            npart_read += 1
-        assert_equal(npart_read, npart_header)
+    @pytest.mark.big_data
+    @pytest.mark.parametrize("ds", [d9p], indirect=True)
+    def test_d9p_no_params(self, ds):
+        ds.index
+        ad = ds.all_data()
+        # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
+        AnaNStars = 6255
+        assert_equal(ad[("stars", "particle_type")].size, AnaNStars)
+        assert_equal(ad[("specie4", "particle_type")].size, AnaNStars)
+        # The *real* asnwer is 2833405, but yt misses one particle since it lives
+        # on a domain boundary. See issue 814. When that is fixed, this test
+        # will need to be updated
+        AnaNDM = 2833404
+        assert_equal(ad[("darkmatter", "particle_type")].size, AnaNDM)
+        assert_equal(
+            (
+                ad[("specie0", "particle_type")].size
+                + ad[("specie1", "particle_type")].size
+                + ad[("specie2", "particle_type")].size
+                + ad[("specie3", "particle_type")].size
+            ),
+            AnaNDM,
+        )
+        for spnum in range(5):
+            npart_read = ad[f"specie{spnum}", "particle_type"].size
+            npart_header = ds.particle_type_counts[f"specie{spnum}"]
+            if spnum == 3:
+                # see issue 814
+                npart_read += 1
+            assert_equal(npart_read, npart_header)
+        AnaBoxSize = YTQuantity(7.1442196564, "Mpc")
+        AnaVolume = YTQuantity(364.640074656, "Mpc**3")
+        Volume = 1
+        for i in ds.domain_width.in_units("Mpc"):
+            assert_almost_equal(i, AnaBoxSize)
+            Volume *= i
+        assert_almost_equal(Volume, AnaVolume)
+        AnaNCells = 4087490
+        assert_equal(len(ad[("index", "cell_volume")]), AnaNCells)
+        AnaTotDMMass = YTQuantity(1.01191786808255e14, "Msun")
+        assert_almost_equal(
+            ad[("darkmatter", "particle_mass")].sum().in_units("Msun"), AnaTotDMMass
+        )
+        AnaTotStarMass = YTQuantity(1776701.3990607238, "Msun")
+        assert_almost_equal(
+            ad[("stars", "particle_mass")].sum().in_units("Msun"), AnaTotStarMass
+        )
+        AnaTotStarMassInitial = YTQuantity(2423468.2801332865, "Msun")
+        assert_almost_equal(
+            ad[("stars", "particle_mass_initial")].sum().in_units("Msun"),
+            AnaTotStarMassInitial,
+        )
+        AnaTotGasMass = YTQuantity(1.7826982029216785e13, "Msun")
+        assert_almost_equal(
+            ad[("gas", "cell_mass")].sum().in_units("Msun"), AnaTotGasMass
+        )
+        AnaTotTemp = YTQuantity(150219844793.39072, "K")  # just leaves
+        assert_almost_equal(ad[("gas", "temperature")].sum(), AnaTotTemp, decimal=4)
 
-    AnaBoxSize = YTQuantity(7.1442196564, "Mpc")
-    AnaVolume = YTQuantity(364.640074656, "Mpc**3")
-    Volume = 1
-    for i in ds.domain_width.in_units("Mpc"):
-        assert_almost_equal(i, AnaBoxSize)
-        Volume *= i
-    assert_almost_equal(Volume, AnaVolume)
+    @pytest.mark.parametrize("ds", [d9p], indirect=True)
+    def test_ARTDataset(self, ds):
+        assert isinstance(ds, ARTDataset)
 
-    AnaNCells = 4087490
-    assert_equal(len(ad[("index", "cell_volume")]), AnaNCells)
+    @requires_file(d9p)
+    def test_units_override(self):
+        units_override_check(d9p)
 
-    AnaTotDMMass = YTQuantity(1.01191786808255e14, "Msun")
-    assert_almost_equal(
-        ad[("darkmatter", "particle_mass")].sum().in_units("Msun"), AnaTotDMMass
-    )
-
-    AnaTotStarMass = YTQuantity(1776701.3990607238, "Msun")
-    assert_almost_equal(
-        ad[("stars", "particle_mass")].sum().in_units("Msun"), AnaTotStarMass
-    )
-
-    AnaTotStarMassInitial = YTQuantity(2423468.2801332865, "Msun")
-    assert_almost_equal(
-        ad[("stars", "particle_mass_initial")].sum().in_units("Msun"),
-        AnaTotStarMassInitial,
-    )
-
-    AnaTotGasMass = YTQuantity(1.7826982029216785e13, "Msun")
-    assert_almost_equal(ad[("gas", "cell_mass")].sum().in_units("Msun"), AnaTotGasMass)
-
-    AnaTotTemp = YTQuantity(150219844793.39072, "K")  # just leaves
-    assert_equal(ad[("gas", "temperature")].sum(), AnaTotTemp)
-
-
-@requires_file(d9p)
-def test_ARTDataset():
-    assert isinstance(data_dir_load(d9p), ARTDataset)
-
-
-@requires_file(d9p)
-def test_units_override():
-    units_override_check(d9p)
-
-
-@requires_file(dmonly)
-def test_particle_selection():
-    ds = data_dir_load(dmonly)
-    psc = ParticleSelectionComparison(ds)
-    psc.run_defaults()
+    @pytest.mark.parametrize("ds", [dmonly], indirect=True)
+    def test_particle_selection(self, ds):
+        psc = ParticleSelectionComparison(ds)
+        psc.run_defaults()

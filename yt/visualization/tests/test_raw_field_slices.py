@@ -1,47 +1,35 @@
+import pytest
+
 import yt
-from yt.utilities.answer_testing.framework import (
-    GenericImageTest,
-    data_dir_load,
-    requires_ds,
-)
+from yt.utilities.answer_testing.answer_tests import generic_image
+from yt.utilities.answer_testing.testing_utilities import data_dir_load, requires_ds
 
 
-def setup():
-    """Test specific setup."""
-    from yt.config import ytcfg
-
-    ytcfg["yt", "__withintesting"] = "True"
-
-
-def compare(ds, field, test_prefix, decimals=12):
-    def slice_image(filename_prefix):
+def compare(ds, field):
+    def slice_image(im_name):
         sl = yt.SlicePlot(ds, "z", field)
         sl.set_log("all", False)
-        image_file = sl.save(filename_prefix)
+        image_file = sl.save(im_name)
         return image_file
 
-    slice_image.__name__ = f"slice_{test_prefix}"
-    test = GenericImageTest(ds, slice_image, decimals)
-    test.prefix = test_prefix
-    return test
+    gi = generic_image(slice_image)
+    # generic_image returns a list. In this case, there's only one entry,
+    # which is a np array with the data we want
+    return gi[0]
 
 
 raw_fields = "Laser/plt00015"
-_raw_field_names = [
-    ("raw", "Bx"),
-    ("raw", "By"),
-    ("raw", "Bz"),
-    ("raw", "Ex"),
-    ("raw", "Ey"),
-    ("raw", "Ez"),
-    ("raw", "jx"),
-    ("raw", "jy"),
-    ("raw", "jz"),
-]
 
 
-@requires_ds(raw_fields)
-def test_raw_field_slices():
-    ds = data_dir_load(raw_fields)
-    for field in _raw_field_names:
-        yield compare(ds, field, f"answers_raw_{field[1]}")
+@pytest.mark.answer_test
+@pytest.mark.usefixtures("temp_dir")
+class TestRawFieldSlices:
+    answer_file = None
+    saved_hashes = None
+
+    @pytest.mark.usefixtures("hashing")
+    @requires_ds(raw_fields)
+    def test_raw_field_slices(self, field):
+        ds = data_dir_load(raw_fields)
+        gi = compare(ds, field)
+        self.hashes.update({"generic_image": gi})
