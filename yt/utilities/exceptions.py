@@ -336,7 +336,7 @@ class YTNoAPIKey(YTException):
         self.config_name = config_name
 
     def __str__(self):
-        return "You need to set an API key for %s in ~/.config/yt/ytrc as %s" % (
+        return "You need to set an API key for %s in ~/.config/yt/yt.toml as %s" % (
             self.service,
             self.config_name,
         )
