@@ -26,6 +26,9 @@ class ASPECTUnstructuredMesh(UnstructuredMesh):
         self.node_offsets = node_offsets
         self.element_count = element_count
 
+        # some error checking
+
+
 
 class ASPECTUnstructuredIndex(UnstructuredIndex):
     """
@@ -280,7 +283,6 @@ class ASPECTDataset(Dataset):
         element_count = []
         current_offset = 0  # the NODE offset to global coordiante index
         for mesh_id, src in enumerate(pieces):
-            # mesh_name = f"connect{mesh_id + 1}"  # connect1, connect2, etc.
             srcfi = os.path.join(
                 self.data_dir, src["@Source"]
             )  # full path to .vtu file
@@ -288,13 +290,13 @@ class ASPECTDataset(Dataset):
             node_offsets.append(current_offset)
             element_count.append(con.shape[0])
             con = con + current_offset  # offset to global
-            current_offset = con.size + current_offset
+            current_offset = coord.shape[0] + current_offset  # off set by COORD
             conlist.append(con.astype("i8"))
             coordlist.append(coord.astype("f8"))
 
         # concatenate across into a single mesh.
         coordlist = np.vstack(coordlist)
-        conlist = np.vstack(conlist)
+        conlist = np.vstack(conlist).astype('i8')
         return conlist, coordlist, node_offsets, element_count
 
     def _load_domain_edge(self):
@@ -304,7 +306,7 @@ class ASPECTDataset(Dataset):
         """
 
         # check our sidecar file first:
-        self._init_sidecar()  # temporary til we know it works...
+        # self._init_sidecar()  # temporary til we know it works...
         self.parameter_info = self._read_sidecar()
         left_edge = self.parameter_info.get("domain_left_edge", None)
         right_edge = self.parameter_info.get("domain_right_edge", None)
