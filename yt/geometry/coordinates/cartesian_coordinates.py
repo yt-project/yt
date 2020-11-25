@@ -170,20 +170,15 @@ class CartesianCoordinateHandler(CoordinateHandler):
             ftype, fname = field
             if ftype == "all":
                 mesh_id = 0
-                if hasattr(index, "_get_mesh_union"):
-                    indices, coords, offset = index._get_mesh_union()
-                else:
-                    indices = np.concatenate(
-                        [mesh.connectivity_indices for mesh in index.mesh_union]
-                    )
-                    coords = index.meshes[mesh_id].connectivity_coords
-                    offset = index.meshes[mesh_id]._index_offset
+                indices = np.concatenate(
+                    [mesh.connectivity_indices for mesh in index.mesh_union]
+                )
             else:
                 mesh_id = int(ftype[-1]) - 1
                 indices = index.meshes[mesh_id].connectivity_indices
-                coords = index.meshes[mesh_id].connectivity_coords
-                offset = index.meshes[mesh_id]._index_offset
 
+            coords = index.meshes[mesh_id].connectivity_coords
+            offset = index.meshes[mesh_id]._index_offset
             ad = data_source.ds.all_data()
             field_data = ad[field]
             buff_size = size[0:dimension] + (1,) + size[dimension:]

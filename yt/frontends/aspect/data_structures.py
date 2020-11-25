@@ -17,35 +17,38 @@ from .fields import ASPECTFieldInfo
 
 
 class ASPECTUnstructuredMesh(UnstructuredMesh):
-    _index_offset = 1
+    _type_name = "aspect_unstructured_mesh"
+    _con_args = ("mesh_id", "filename", "filenames", "vtu_offsets", "connectivity_indices", "connectivity_coords")
 
-    def __init__(self, *args, **kwargs):
-        super(ASPECTUnstructuredMesh, self).__init__(*args, **kwargs)
+    def __init__(self, mesh_id, filename, filenames, node_offsets, element_count, connectivity_indices, connectivity_coords, index):
+        super(ASPECTUnstructuredMesh, self).__init__(mesh_id, filename, connectivity_indices, connectivity_coords, index)
+        self.filenames = filenames
+        self.node_offsets = node_offsets
+        self.element_count = element_count
 
 
 class ASPECTUnstructuredIndex(UnstructuredIndex):
     """
-    for on-disk vtu files. treats each vtu file as a separate mesh.
+    for on-disk vtu files. assumes we have a single mesh split across vtu files.
     """
 
     def __init__(self, ds, dataset_type="aspect"):
         super(ASPECTUnstructuredIndex, self).__init__(ds, dataset_type)
+
+        # for when the mesh pieces are treated as independent meshes
         self.global_connectivity = None
         self.global_coords = None
 
     def _initialize_mesh(self):
-        connectivity, coords, offsets = self.ds._read_pieces()
+        connectivity, coords, node_offsets, el_count = self.ds._read_pieces()
         self.meshes = []
-        for mesh_id, conn_ind in enumerate(connectivity):
-            # aspect does not displace between vtu
-            # displaced_coords = self.ds._apply_displacement(coords, mesh_id)
-            mesh_coords = coords[mesh_id]
-            mesh_file = self.ds.parameters["vtu_files"][mesh_id]
-            mesh = ASPECTUnstructuredMesh(
-                mesh_id, mesh_file, conn_ind, mesh_coords, self
-            )
-            mesh._index_offset = offsets[mesh_id]
-            self.meshes.append(mesh)
+        mesh_files = self.ds.parameters["vtu_files"]
+        pvtu_file = self.ds.parameter_filename
+        mesh_id = 0
+        mesh = ASPECTUnstructuredMesh(
+                mesh_id, pvtu_file, mesh_files, node_offsets, el_count, connectivity, coords, self
+        )
+        self.meshes.append(mesh)
         self.mesh_union = MeshUnion("mesh_union", self.meshes)
 
     def _detect_output_fields(self):
@@ -60,7 +63,8 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
     def _get_mesh_union(self):
         """
         returns global connectivity and coordinate arrays across the meshes,
-        when the mesh is split up across chunks.
+        when the mesh is split up across chunks and treated as independent
+        meshes (no longer using this for now...).
         """
 
         if self.global_connectivity is None:
@@ -239,7 +243,7 @@ class ASPECTDataset(Dataset):
         ]
         return [field["@Name"] for field in fields]
 
-    def _read_piece(self, srcFi, connectivity_offset=0):
+    def _read_piece(self, srcFi):
         meshPiece = meshio.read(srcFi)  # read it in with meshio
         coords = meshPiece.points.astype(np.float64)  # coords are already global
         # need to generalize the cell type
@@ -260,7 +264,7 @@ class ASPECTDataset(Dataset):
 
         connectivity = meshPiece.cells_dict[cell_types[0]]  # 2D connectivity array
         # offset the connectivity matrix to global value
-        connectivity = np.array(connectivity) + connectivity_offset
+        connectivity = np.array(connectivity)
         return [connectivity, coords]
 
     def _read_pieces(self):
@@ -272,24 +276,26 @@ class ASPECTDataset(Dataset):
             pieces = [pieces]
         conlist = []  # list of 2D connectivity arrays
         coordlist = []  # global, concatenated coordinate array
-        con_offset = -1
-        offsets = []
+        node_offsets = []
+        element_count = []
+        current_offset = 0  # the NODE offset to global coordiante index
         for mesh_id, src in enumerate(pieces):
             # mesh_name = f"connect{mesh_id + 1}"  # connect1, connect2, etc.
             srcfi = os.path.join(
                 self.data_dir, src["@Source"]
             )  # full path to .vtu file
-            [con, coord] = self._read_piece(srcfi, 0)
-            offsets.append(con_offset + 1)
-            con_offset = (
-                con.max() + offsets[-1]
-            )  # reading by file, don't need to concat?
+            [con, coord] = self._read_piece(srcfi)
+            node_offsets.append(current_offset)
+            element_count.append(con.shape[0])
+            con = con + current_offset  # offset to global
+            current_offset = con.size + current_offset
             conlist.append(con.astype("i8"))
             coordlist.append(coord.astype("f8"))
 
         # concatenate across into a single mesh.
-
-        return conlist, coordlist, offsets
+        coordlist = np.vstack(coordlist)
+        conlist = np.vstack(conlist)
+        return conlist, coordlist, node_offsets, element_count
 
     def _load_domain_edge(self):
         """
@@ -304,8 +310,8 @@ class ASPECTDataset(Dataset):
         right_edge = self.parameter_info.get("domain_right_edge", None)
 
         if not left_edge:
-            _, coord, _ = self._read_pieces()
-            coord = np.vstack(coord)
+            _, coord, _ , _= self._read_pieces()
+            # coord = np.vstack(coord)
             left_edge = [coord[:, i].min() for i in range(self.dimensionality)]
             right_edge = [coord[:, i].max() for i in range(self.dimensionality)]
             self.parameter_info["domain_left_edge"] = left_edge

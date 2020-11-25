@@ -43,15 +43,16 @@ class IOHandlerASPECT(BaseIOHandler):
 
         for chunk_id, chunk in enumerate(chunks):
             mesh = chunk.objs[0]
-
+            el_counts = np.array(mesh.element_count)
             # operations here should not offset mesh indeces as the indices for
             # a chunk's mesh are not global. need to temporarily
             # zero the mesh index for use within the selector objects, then
             # reset after for places where global concatentation of the indices
             # is required.
-            orig_offset = mesh._index_offset
-            mesh._index_offset = 0
+            # orig_offset = mesh._index_offset
+            # mesh._index_offset = 0
 
+            # for now, we have all file info in single chunk
             mesh_name = f"connect{chunk_id+1}"
             if "all" in ftype_list or mesh_name in ftype_list:
                 # mask here is the **element** mask. i.e., shape(mask) = (n_elments,)
@@ -59,23 +60,37 @@ class IOHandlerASPECT(BaseIOHandler):
                 # pull them out here:
                 mask = selector.fill_mesh_cell_mask(mesh)
                 if mask is not None:
-                    con_shape = mesh.connectivity_indices.shape
-                    # need a 1d connectivity for reshaping point data
-                    conn1d = mesh.connectivity_indices.ravel()
-                    vtu_file = os.path.join(self.ds.data_dir, mesh.filename)
-                    meshPiece = meshio.read(vtu_file)
-                    for field in fields:
-                        ftype, fname = field
-                        if ftype == "all" or ftype == mesh_name:
-                            # meshio returns a 1d data array, so we need to:
-                            # 1. select with 1d connectivity to ensure proper order
-                            # 2. reshape to match the expected (element, n_verts) shape
-                            # 3. select the masked data
-                            data2d = meshPiece.point_data[fname][conn1d].reshape(
-                                con_shape
-                            )
-                            rv[field].append(data2d[mask, :])
-            mesh._index_offset = orig_offset
+                    # each mesh piece will pull the connectivity and mask values
+                    # for the indices corresponding to each vtu file
+                    for vtu_id, vtu_filename in enumerate(mesh.filenames):
+                        # load this vtu's part of the mesh
+                        vtu_file = os.path.join(self.ds.data_dir, vtu_filename)
+                        meshPiece = meshio.read(vtu_file)
+
+
+                        # the connectivty for this piece
+                        cell_types = list(meshPiece.cells_dict.keys())
+                        vtu_con = np.array(meshPiece.cells_dict[cell_types[0]])
+                        con_shape = vtu_con.shape
+                        conn1d = vtu_con.ravel()
+
+                        # the element mask for this piece
+                        element_offset_start = el_counts[0:vtu_id].sum()
+                        element_offset_end = element_offset_start + el_counts[vtu_id]
+                        vtu_mask = mask[element_offset_start:element_offset_end]
+
+                        for field in fields:
+                            ftype, fname = field
+                            if ftype == "all" or ftype == mesh_name:
+                                # meshio returns a 1d data array, so we need to:
+                                # 1. select with 1d connectivity to ensure proper order
+                                # 2. reshape to match the expected (element, n_verts) shape
+                                # 3. select the masked data
+                                # field_data = meshPiece.point_data[fname]
+                                data2d = meshPiece.point_data[fname][conn1d].reshape(
+                                    con_shape
+                                )
+                                rv[field].append(data2d[vtu_mask, :])
 
         for field in fields:
             rv[field] = np.concatenate(rv[field]).astype(np.float64)
