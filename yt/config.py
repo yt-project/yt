@@ -110,8 +110,9 @@ class YTConfig:
         self.values = {}
         self.update(defaults)
 
-    def get(self, section, *path, strict=True, **kwargs):
+    def get(self, section, *option, strict=True, **kwargs):
         config = self.values[section]
+        *option_path, option_name = option
 
         # This works as follow: if we try to access
         # field > gas > density > lognorm
@@ -119,32 +120,31 @@ class YTConfig:
         #   field > gas > density > lognorm
         #   field > gas > lognorm
         #   field > lognorm
-        if len(path) == 0:
-            return config
 
-        ok = False
-        node = None
+        node = {}
         use_fallback = "fallback" in kwargs
         fallback = kwargs.pop("fallback", None)
-        while len(path) > 0:
+        first_pass = True
+        while len(option_path) > 0 or first_pass:
+            first_pass = False
             try:
                 node = config
-                for k in path:
+                for k in option_path:
                     node = node[k]
-                ok = True
-                break
+                return node[option_name]
             except KeyError as e:
                 if strict and not use_fallback:
                     raise e
                 else:
-                    path = path[:-1]
+                    # Shorten the path and try again
+                    option_path = option_path[:-1]
 
-        if not ok and use_fallback:
+        if use_fallback:
             return fallback
-        elif not ok:
-            raise KeyError(f"Could not find {section}, {path} in configuration.")
-
-        return node
+        else:
+            raise KeyError(
+                f"Could not find {section}:{'.'.join(option)} " "in configuration."
+            )
 
     def update(self, new_values):
         def copy_helper(dict_a, dict_b):
