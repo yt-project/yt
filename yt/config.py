@@ -1,6 +1,7 @@
 import os
 import sys
 import warnings
+from collections import defaultdict
 from pathlib import Path
 
 import toml
@@ -104,16 +105,17 @@ if not os.path.exists(CURRENT_CONFIG_FILE):
 
 class YTConfig:
     def __init__(self, defaults=None):
-        if defaults is None:
-            defaults = {"yt": {}}
-        self.defaults = defaults
-        self.values = {}
+        self.defaults = defaultdict(dict)
+        self.defaults.update(defaults)
+
+        self.values = defaultdict(dict)
         self.update(defaults)
 
-    def get(self, section, *option, strict=True, **kwargs):
-        config = self.values[section]
+    @staticmethod
+    def _get_helper(
+        root, option, strict=True, lower_case=False, fallback=None, use_fallback=False
+    ):
         *option_path, option_name = option
-
         # This works as follow: if we try to access
         # field > gas > density > lognorm
         # we try in this order:
@@ -122,16 +124,25 @@ class YTConfig:
         #   field > lognorm
 
         node = {}
-        use_fallback = "fallback" in kwargs
-        fallback = kwargs.pop("fallback", None)
         first_pass = True
         while len(option_path) > 0 or first_pass:
             first_pass = False
             try:
-                node = config
+                node = root
                 for k in option_path:
-                    node = node[k]
-                return node[option_name]
+                    if lower_case:
+                        lower_keys = {k.lower(): k for k in node.keys()}
+                        k_to_load = lower_keys[k.lower()]
+                    else:
+                        k_to_load = k
+                    node = node[k_to_load]
+
+                if lower_case:
+                    lower_keys = {k.lower(): k for k in node.keys()}
+                    option_name_lower = lower_keys[option_name.lower()]
+                    return option_name_lower, node[option_name_lower]
+                else:
+                    return option_name, node[option_name]
             except KeyError as e:
                 if strict and not use_fallback:
                     raise e
@@ -142,9 +153,14 @@ class YTConfig:
         if use_fallback:
             return fallback
         else:
-            raise KeyError(
-                f"Could not find {section}:{'.'.join(option)} in configuration."
-            )
+            option_as_str = ".".join(option_path + [option_name])
+            raise KeyError(f"Could not find {option_as_str} in configuration.")
+
+    def get(self, section, *option, strict=True, **kwargs):
+        _, value = self._get_helper(
+            self.values, [section] + list(option), strict=strict, **kwargs
+        )
+        return value
 
     def update(self, new_values):
         def copy_helper(dict_a, dict_b):
@@ -167,17 +183,43 @@ class YTConfig:
         if not self.has_section(section):
             self.values[section] = {}
 
+    def remove_section(self, section):
+        if self.has_section(section):
+            self.values.pop(section)
+
     def __setitem__(self, key, value):
-        section, *option_path, option_name = key
-        if not self.has_section(section):
-            raise KeyError
+        *option_path, option_name = key
 
-        node = self.values[section]
-        for p in option_path:
-            if p not in node:
-                node[p] = {}
-            node = node[p]
+        _, node = self._get_helper(self.values, option_path, strict=True)
 
+        # Get the corresponding defaults
+        default_option_name, default_value = self._get_helper(
+            self.defaults,
+            key,
+            strict=True,
+            fallback=None,
+            use_fallback=True,
+            lower_case=True,
+        )
+
+        # ... and check the type match
+        if default_value is not None:
+            default_type = type(default_value)
+            if not type(value) == default_type:
+                raise TypeError(
+                    (
+                        "Error when setting %s to %s. "
+                        "Expected a value with type %s, got instead a value of type %s."
+                    )
+                    % (key, value, default_type, type(value))
+                )
+
+        # ... and the case match
+        if default_option_name != option_name:
+            raise KeyError(
+                "Error when setting %s to %s. Did you mean `%s`?"
+                % (key, value, list(key[:-1]) + [default_option_name])
+            )
         node[option_name] = value
 
     def set(self, section, option, value):
@@ -221,7 +263,7 @@ class YTConfig:
 
 
 # Walk the tree up until we find a config file
-ytcfg = YTConfig(ytcfg_defaults)
+ytcfg = YTConfig(defaults=ytcfg_defaults)
 if os.path.exists(CURRENT_CONFIG_FILE):
     ytcfg.read(CURRENT_CONFIG_FILE)
 cwd = Path(".").absolute()
