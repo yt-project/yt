@@ -3,7 +3,7 @@ import configparser
 import os
 import sys
 
-from yt.config import CURRENT_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig
+from yt.config import CURRENT_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig, ytcfg_defaults
 
 CONFIG = YTConfig()
 CONFIG.read(CURRENT_CONFIG_FILE)
@@ -63,15 +63,24 @@ def migrate_config():
     old_config.optionxform = str
     old_config.read(OLD_CONFIG_FILE)
 
+    default_keys = {k.lower(): k for k in ytcfg_defaults["yt"].keys()}
+
     config_as_dict = {}
     for section in old_config:
         if section == "DEFAULT":
             continue
         config_as_dict[section] = {}
         for key, value in old_config[section].items():
-            config_as_dict[section][key] = _cast_value_helper(value)
+            # Cast value to the most specific type possible
+            cast_value = _cast_value_helper(value)
 
-    print(config_as_dict)
+            # Normalize the key (if present in the defaults)
+            if key.lower() in default_keys and section == "yt":
+                normalized_key = default_keys[key.lower()]
+            else:
+                normalized_key = key
+
+            config_as_dict[section][normalized_key] = cast_value
 
     CONFIG.update(config_as_dict)
 

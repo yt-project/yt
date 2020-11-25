@@ -10,8 +10,9 @@ import yt.utilities.command_line
 from yt.config import CURRENT_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig
 
 _TEST_PLUGIN = "_test_plugin.py"
+# NOTE: the normalization of the crazy camel-case will be checked
 _DUMMY_CFG_INI = f"""[yt]
-loglevel = 49
+lOgLeVeL = 49
 pluginFilename = {_TEST_PLUGIN}
 booleanStuff = True
 """
