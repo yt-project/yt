@@ -798,8 +798,8 @@ class YTHubRegisterCmd(YTCommand):
         except ImportError as e:
             raise YTCommandRequiresModule("requests") from e
         if ytcfg.get("yt", "hub_api_key") != "":
-            print("You seem to already have an API key for the hub in")
-            print(f"{CURRENT_CONFIG_FILE} . Delete this if you want to force a")
+            print("You seem to already have an API key for the hub in ")
+            print(f"{CURRENT_CONFIG_FILE} . Delete this if you want to force a ")
             print("new user registration.")
             sys.exit()
         print("Awesome!  Let's start by registering a new user for you.")

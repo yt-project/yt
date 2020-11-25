@@ -1,5 +1,5 @@
-import configparser
 import os
+import sys
 import warnings
 from pathlib import Path
 
@@ -73,38 +73,39 @@ if not os.path.exists(CONFIG_DIR):
     except OSError:
         warnings.warn("unable to create yt config directory")
 
-CURRENT_CONFIG_FILE = os.path.join(CONFIG_DIR, "ytrc")
-NEW_CONFIG_FILE = os.path.join(CONFIG_DIR, "yt.toml")
+OLD_CONFIG_FILE = os.path.join(CONFIG_DIR, "ytrc")
+CURRENT_CONFIG_FILE = os.path.join(CONFIG_DIR, "yt.toml")
 
-# Here is the upgrade.  We're actually going to parse the file in its entirety
-# here.  Then, if it has any of the Forbidden Sections, it will be rewritten
-# without them.
+if os.path.exists(OLD_CONFIG_FILE):
+    if os.path.exists(CURRENT_CONFIG_FILE):
+        msg = (
+            "The configuration file {} is deprecated. "
+            "Please manually remove it to suppress this warning."
+        )
+        warnings.warn(msg.format(OLD_CONFIG_FILE, CURRENT_CONFIG_FILE))
+    else:
+        msg = (
+            "The configuration file {} is deprecated. "
+            "Please migrate your config to {} by running: "
+            "'yt config migrate'"
+        )
+        warnings.warn(msg.format(OLD_CONFIG_FILE, CURRENT_CONFIG_FILE))
+        sys.exit(1)
 
 
 if not os.path.exists(CURRENT_CONFIG_FILE):
-    cp = configparser.ConfigParser()
-    cp.add_section("yt")
+    cfg = {"yt": {}}
     try:
-        with open(CURRENT_CONFIG_FILE, "w") as new_cfg:
-            cp.write(new_cfg)
+        with open(CURRENT_CONFIG_FILE, mode="w") as fd:
+            toml.dump(cfg, fd)
     except IOError:
         warnings.warn("unable to write new config file")
 
 
-class YTConfigParser(configparser.ConfigParser):
-    def __setitem__(self, key, val):
-        self.set(key[0], key[1], val)
-
-    def __getitem__(self, key):
-        self.get(key[0], key[1])
-
-    def get(self, section, option, *args, **kwargs):
-        val = super(YTConfigParser, self).get(section, option, *args, **kwargs)
-        return os.path.expanduser(os.path.expandvars(val))
-
-
 class YTConfig:
-    def __init__(self, defaults, *args, **kwargs):
+    def __init__(self, defaults=None):
+        if defaults is None:
+            defaults = {"yt": {}}
         self.defaults = defaults
         self.values = {}
         self.update(defaults)
@@ -118,6 +119,9 @@ class YTConfig:
         #   field > gas > density > lognorm
         #   field > gas > lognorm
         #   field > lognorm
+        if len(path) == 0:
+            return config
+
         ok = False
         node = None
         use_fallback = "fallback" in kwargs
@@ -172,24 +176,39 @@ class YTConfig:
 
         node[entry] = value
 
+    def read(self, file_names):
+        if not isinstance(file_names, (tuple, list)):
+            file_names = (file_names,)
+
+        file_names_read = []
+        for fname in file_names:
+            if not os.path.exists(fname):
+                continue
+            self.update(toml.load(fname))
+            file_names_read.append(fname)
+
+        return file_names_read
+
+    def write(self, fd):
+        config_as_str = toml.dumps(self.values)
+        try:
+            fd.write(config_as_str)
+        except AttributeError:
+            with open(fd, mode="w") as fdd:
+                fdd.write(config_as_str)
+
 
 # Walk the tree up until we find a config file
 ytcfg = YTConfig(ytcfg_defaults)
-ytcfg.update(toml.load(NEW_CONFIG_FILE))
+if os.path.exists(CURRENT_CONFIG_FILE):
+    ytcfg.read(CURRENT_CONFIG_FILE)
 cwd = Path(".").absolute()
 while cwd.parent != cwd:
     cfg_file = cwd / "yt.toml"
-    print(f"Trying {cfg_file}")
     if cfg_file.exists():
-        ytcfg.update(toml.load(cfg_file))
+        ytcfg.read(cfg_file)
         break
     cwd = cwd.parent
-
-
-ytcfg_old = YTConfigParser(ytcfg_defaults)
-ytcfg_old.read([CURRENT_CONFIG_FILE, "yt.cfg"])
-if not ytcfg_old.has_section("yt"):
-    ytcfg_old.add_section("yt")
 
 # Now we have parsed the config file.  Overrides come from the command line.
 

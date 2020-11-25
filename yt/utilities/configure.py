@@ -1,13 +1,30 @@
 import argparse
 import configparser
 import os
-import shutil
 import sys
 
-from yt.config import _OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, YTConfigParser
+from yt.config import CURRENT_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig
 
-CONFIG = YTConfigParser()
-CONFIG.read([CURRENT_CONFIG_FILE])
+CONFIG = YTConfig()
+CONFIG.read(CURRENT_CONFIG_FILE)
+
+
+def _cast_bool_helper(value):
+    if value == "True":
+        return True
+    elif value == "False":
+        return False
+    else:
+        raise ValueError("Cannot safely cast to bool")
+
+
+def _cast_value_helper(value, types=(_cast_bool_helper, int, float, str)):
+    for t in types:
+        try:
+            retval = t(value)
+            return retval
+        except ValueError:
+            pass
 
 
 def get_config(section, option):
@@ -17,46 +34,50 @@ def get_config(section, option):
 def set_config(section, option, value):
     if not CONFIG.has_section(section):
         CONFIG.add_section(section)
-    CONFIG.set(section, option, value)
+
+    *option_path, option_name = option.split(".")
+    parent = CONFIG.get(section, *option_path)
+    parent[option_name] = _cast_value_helper(value)
     write_config()
 
 
 def write_config(fd=None):
     if fd is None:
-        with open(CURRENT_CONFIG_FILE, "w") as fd:
-            CONFIG.write(fd)
+        CONFIG.write(CURRENT_CONFIG_FILE)
     else:
         CONFIG.write(fd)
 
 
 def migrate_config():
-    if not os.path.exists(_OLD_CONFIG_FILE):
+    if not os.path.exists(OLD_CONFIG_FILE):
         print("Old config not found.")
-        sys.exit()
-    CONFIG.read(_OLD_CONFIG_FILE)
+        sys.exit(1)
+
+    old_config = configparser.ConfigParser()
+    old_config.read(OLD_CONFIG_FILE)
+
+    config_as_dict = {}
+    for section in old_config:
+        if section == "DEFAULT":
+            continue
+        config_as_dict[section] = {}
+        for key, value in old_config[section].items():
+            config_as_dict[section][key] = _cast_value_helper(value)
+
+    print(config_as_dict)
+
+    CONFIG.update(config_as_dict)
+
     print(f"Writing a new config file to: {CURRENT_CONFIG_FILE}")
     write_config()
-    print(f"Backing up the old config file: {_OLD_CONFIG_FILE}.bak")
-    os.rename(_OLD_CONFIG_FILE, _OLD_CONFIG_FILE + ".bak")
-
-    old_config_dir = os.path.dirname(_OLD_CONFIG_FILE)
-    try:
-        plugin_file = CONFIG.get("yt", "pluginFilename")
-        if plugin_file and os.path.exists(os.path.join(old_config_dir, plugin_file)):
-            print(f"Migrating plugin file {plugin_file} to new location")
-            shutil.copyfile(
-                os.path.join(old_config_dir, plugin_file),
-                os.path.join(os.path.dirname(CURRENT_CONFIG_FILE), plugin_file),
-            )
-            print(f"Backing up the old plugin file: {_OLD_CONFIG_FILE}.bak")
-            plugin_file = os.path.join(old_config_dir, plugin_file)
-            os.rename(plugin_file, plugin_file + ".bak")
-    except configparser.NoOptionError:
-        pass
+    print(f"Backing up the old config file: {OLD_CONFIG_FILE}.bak")
+    os.rename(OLD_CONFIG_FILE, OLD_CONFIG_FILE + ".bak")
 
 
 def rm_config(section, option):
-    CONFIG.remove_option(section, option)
+    *option_path, option_name = option.split(".")
+    parent = CONFIG.get(section, option_path)
+    parent.pop(option_name)
     write_config()
 
 
