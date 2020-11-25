@@ -74,12 +74,12 @@ class TestYTConfig(unittest.TestCase):
         return {"rc": retcode, "stdout": output[0], "stderr": output[1]}
 
     def _testKeyValue(self, key, val_set, val_get):
-        info = self._runYTConfig(["set", "yt", key, val_set])
+        info = self._runYTConfig(["set", "yt", key, str(val_set)])
         self.assertEqual(info["rc"], 0)
 
         info = self._runYTConfig(["get", "yt", key])
         self.assertEqual(info["rc"], 0)
-        self.assertEqual(info["stdout"].strip(), val_get)
+        self.assertEqual(info["stdout"].strip(), str(val_get))
 
         info = self._runYTConfig(["rm", "yt", key])
         self.assertEqual(info["rc"], 0)
@@ -102,9 +102,9 @@ class TestYTConfigCommands(TestYTConfig):
 
         info = self._runYTConfig(["list"])
         self.assertEqual(info["rc"], 0)
-        self.assertIn("[yt]", info["stdout"])
+        self.assertEqual(info["stdout"], "")
 
-        self._testKeyValue("internals.parallel", "True", "True")
+        self._testKeyValue("internals.parallel", True, True)
         self._testKeyValue(
             "test_data_dir", "~/yt-data", os.path.expanduser("~/yt-data")
         )

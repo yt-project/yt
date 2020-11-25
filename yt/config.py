@@ -1,10 +1,11 @@
 import os
 import sys
 import warnings
-from collections import defaultdict
 from pathlib import Path
 
 import toml
+
+from yt.utilities.configuration_tree import ConfigNode
 
 ytcfg_defaults = {}
 
@@ -105,127 +106,43 @@ if not os.path.exists(CURRENT_CONFIG_FILE):
 
 class YTConfig:
     def __init__(self, defaults=None):
-        self.defaults = defaultdict(dict)
-        self.defaults.update(defaults)
+        if defaults is None:
+            defaults = {}
+        self.config_root = ConfigNode(defaults)
 
-        self.values = defaultdict(dict)
-        self.update(defaults)
+    def get(self, section, *keys):
+        return self.config_root.get_leaf(section, *keys)
 
-    @staticmethod
-    def _get_helper(
-        root, option, strict=True, lower_case=False, fallback=None, use_fallback=False
-    ):
-        *option_path, option_name = option
-        # This works as follow: if we try to access
-        # field > gas > density > lognorm
-        # we try in this order:
-        #   field > gas > density > lognorm
-        #   field > gas > lognorm
-        #   field > lognorm
-
-        node = {}
-        first_pass = True
-        while len(option_path) > 0 or first_pass:
-            first_pass = False
-            try:
-                node = root
-                for k in option_path:
-                    if lower_case:
-                        lower_keys = {k.lower(): k for k in node.keys()}
-                        k_to_load = lower_keys[k.lower()]
-                    else:
-                        k_to_load = k
-                    node = node[k_to_load]
-
-                if lower_case:
-                    lower_keys = {k.lower(): k for k in node.keys()}
-                    option_name_lower = lower_keys[option_name.lower()]
-                    return option_name_lower, node[option_name_lower]
-                else:
-                    return option_name, node[option_name]
-            except KeyError as e:
-                if strict and not use_fallback:
-                    raise e
-                else:
-                    # Shorten the path and try again
-                    option_path = option_path[:-1]
-
-        if use_fallback:
-            return fallback
-        else:
-            option_as_str = ".".join(option_path + [option_name])
-            raise KeyError(f"Could not find {option_as_str} in configuration.")
-
-    def get(self, section, *option, strict=True, **kwargs):
-        _, value = self._get_helper(
-            self.values, [section] + list(option), strict=strict, **kwargs
-        )
-        return value
-
-    def update(self, new_values):
-        def copy_helper(dict_a, dict_b):
-            # Copies entries form dict_a in dict_b, inplace
-            for k in dict_a.keys():
-                if k not in dict_b:
-                    dict_b[k] = dict_a[k]
-                    continue
-                if isinstance(dict_a[k], dict):
-                    copy_helper(dict_a[k], dict_b[k])
-                else:
-                    dict_b[k] = dict_a[k]
-
-        copy_helper(new_values, self.values)
+    def update(self, new_values, metadata=None):
+        if metadata is None:
+            metadata = {}
+        self.config_root.update(new_values, metadata)
 
     def has_section(self, section):
-        return section in self.values
+        try:
+            self.config_root.get_child(section)
+            return True
+        except KeyError:
+            return False
 
     def add_section(self, section):
-        if not self.has_section(section):
-            self.values[section] = {}
+        self.config_root.add_child(section)
 
     def remove_section(self, section):
         if self.has_section(section):
-            self.values.pop(section)
+            self.config_root.remove_child(section)
 
-    def __setitem__(self, key, value):
-        *option_path, option_name = key
-
-        _, node = self._get_helper(self.values, option_path, strict=True)
-
-        # Get the corresponding defaults
-        default_option_name, default_value = self._get_helper(
-            self.defaults,
-            key,
-            strict=True,
-            fallback=None,
-            use_fallback=True,
-            lower_case=True,
+    def set(self, *args, metadata=None):
+        section, *keys, value = args
+        self.config_root.upsert_from_list(
+            [section] + list(keys), value, extraData=metadata
         )
 
-        # ... and check the type match
-        if default_value is not None:
-            default_type = type(default_value)
-            if not type(value) == default_type:
-                raise TypeError(
-                    (
-                        "Error when setting %s to %s. "
-                        "Expected a value with type %s, got instead a value of type %s."
-                    )
-                    % (key, value, default_type, type(value))
-                )
+    def __setitem__(self, keys, value):
+        self.set(*keys, value, metadata=None)
 
-        # ... and the case match
-        if default_option_name != option_name:
-            raise KeyError(
-                "Error when setting %s to %s. Did you mean `%s`?"
-                % (key, value, list(key[:-1]) + [default_option_name])
-            )
-        node[option_name] = value
-
-    def set(self, section, option, value):
-        if not isinstance(option, (tuple, list)):
-            option = (option,)
-        self[(section, *option)] = value
+    def remove(self, *args):
+        self.config_root.pop_leaf(args)
 
     def read(self, file_names):
         if not isinstance(file_names, (tuple, list)):
@@ -235,25 +152,15 @@ class YTConfig:
         for fname in file_names:
             if not os.path.exists(fname):
                 continue
-            self.update(toml.load(fname))
+            metadata = {"file": fname}
+            self.update(toml.load(fname), metadata=metadata)
             file_names_read.append(fname)
 
         return file_names_read
 
     def write(self, fd):
-        def cleaner(d):
-            new_d = {}
-            for k, v in d.items():
-                if isinstance(v, dict):
-                    if len(v) > 0:
-                        new_d[k] = cleaner(v)
-                else:
-                    new_d[k] = v
-            return new_d
-
-        # Clean up the sections
-        cleaned_values = cleaner(self.values)
-        config_as_str = toml.dumps(cleaned_values)
+        value = self.config_root.as_dict()
+        config_as_str = toml.dumps(value)
 
         try:
             fd.write(config_as_str)
@@ -263,9 +170,12 @@ class YTConfig:
 
 
 # Walk the tree up until we find a config file
-ytcfg = YTConfig(defaults=ytcfg_defaults)
+ytcfg = YTConfig()
+ytcfg.update(ytcfg_defaults, metadata={"source": "defaults"})
+
 if os.path.exists(CURRENT_CONFIG_FILE):
     ytcfg.read(CURRENT_CONFIG_FILE)
+
 cwd = Path(".").absolute()
 while cwd.parent != cwd:
     cfg_file = cwd / "yt.toml"

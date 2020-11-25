@@ -41,7 +41,7 @@ def set_config(section, option, value):
         CONFIG.add_section(section)
 
     option_path = option.split(".")
-    CONFIG.set(section, option_path, _cast_value_helper(value))
+    CONFIG.set(section, *option_path, _cast_value_helper(value))
     write_config()
 
 
@@ -91,9 +91,8 @@ def migrate_config():
 
 
 def rm_config(section, option):
-    *option_path, option_name = option.split(".")
-    parent = CONFIG.get(section, *option_path)
-    parent.pop(option_name)
+    option_path = option.split(".")
+    CONFIG.remove(section, *option_path)
     write_config()
 
 
