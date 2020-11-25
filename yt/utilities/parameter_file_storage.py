@@ -27,7 +27,7 @@ class UnknownDatasetType(Exception):
         return f"{self.name}"
 
 
-class ParameterFilestore:
+class ParameterFileStore:
     """
     This class is designed to be a semi-persistent storage for parameter
     files.  By identifying each dataset with a unique hash, objects
@@ -82,7 +82,7 @@ class ParameterFilestore:
         # these will be broadcast
 
     def _get_db_name(self):
-        base_file_name = ytcfg.get("yt", "parameterFilestore")
+        base_file_name = ytcfg.get("yt", "parameterFileStore")
         if not os.access(os.path.expanduser("~/"), os.W_OK):
             return os.path.abspath(base_file_name)
         return os.path.expanduser(f"~/.yt/{base_file_name}")

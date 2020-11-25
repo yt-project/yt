@@ -21,7 +21,7 @@ from yt.utilities.exceptions import (
     YTSpatialFieldUnitError,
 )
 from yt.utilities.object_registries import data_object_registry
-from yt.utilities.parameter_file_storage import ParameterFilestore
+from yt.utilities.parameter_file_storage import ParameterFileStore
 
 
 def sanitize_weight_field(ds, field, weight):
@@ -1529,7 +1529,7 @@ def _reconstruct_object(*args, **kwargs):
     dtype = args[1]
     ds = _get_ds_by_hash(dsid)
     if not ds:
-        datasets = ParameterFilestore()
+        datasets = ParameterFileStore()
         ds = datasets.get_ds_hash(dsid)
     field_parameters = args[-1]
     # will be much nicer when we can do dsid, *a, fp = args
