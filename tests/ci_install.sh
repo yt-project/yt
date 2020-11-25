@@ -27,24 +27,9 @@ cat $HOME/.config/yt/ytrc
 cp tests/matplotlibrc .
 
 # Step 1: pre-install required packages
-if [[ "${RUNNER_OS}" == "Windows" ]] && [[ ${dependencies} != "minimal" ]]; then
-    # Install some dependencies using conda (if not doing a minimal run)
-    CYTHON=$(grep cython tests/test_prerequirements.txt)
-    NUMPY=$(grep numpy tests/test_prerequirements.txt)
-
-    CARTOPY=$(grep cartopy tests/test_requirements.txt)
-    H5PY=$(grep h5py tests/test_requirements.txt)
-    MATPLOTLIB=$(grep matplotlib tests/test_requirements.txt)
-    SCIPY=$(grep scipy tests/test_requirements.txt)
-    conda config --set always_yes yes
-    conda info -a
-    conda install --quiet --yes -c conda-forge \
-      $CYTHON $NUMPY $CARTOPY $H5PY $MATPLOTLIB $SCIPY
-else
-    python -m pip install --upgrade pip
-    python -m pip install --upgrade wheel
-    python -m pip install --upgrade setuptools
-fi
+python -m pip install --upgrade pip
+python -m pip install --upgrade wheel
+python -m pip install --upgrade setuptools
 
 # Step 2: install required packages (depending on whether the build is minimal)
 if [[ ${dependencies} == "minimal" ]]; then

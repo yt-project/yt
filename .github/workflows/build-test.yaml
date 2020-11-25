@@ -38,13 +38,6 @@ jobs:
       with:
         submodules: recursive
         fetch-depth: 0
-    - uses: s-weigand/setup-conda@v1
-      if: matrix.os == 'windows-latest'
-      with:
-        update-conda: true
-        conda-channels: conda-forge
-        activate-conda: true
-        python-version: ${{matrix.python-version}}
     - name: Install dependencies and yt
       shell: bash
       env:
