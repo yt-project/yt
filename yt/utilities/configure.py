@@ -41,7 +41,7 @@ def migrate_config():
 
     old_config_dir = os.path.dirname(_OLD_CONFIG_FILE)
     try:
-        plugin_file = CONFIG.get("yt", "pluginfilename")
+        plugin_file = CONFIG.get("yt", "pluginFilename")
         if plugin_file and os.path.exists(os.path.join(old_config_dir, plugin_file)):
             print(f"Migrating plugin file {plugin_file} to new location")
             shutil.copyfile(

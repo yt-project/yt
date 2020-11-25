@@ -12,7 +12,7 @@ from yt.config import _OLD_CONFIG_FILE, CONFIG_DIR, CURRENT_CONFIG_FILE, YTConfi
 from yt.fields.tests.test_fields_plugins import TEST_PLUGIN_FILE
 
 _TEST_PLUGIN = "_test_plugin.py"
-_DUMMY_CFG = ["[yt]", "loglevel = 49", "pluginfilename = " + _TEST_PLUGIN]
+_DUMMY_CFG = ["[yt]", "loglevel = 49", "pluginFilename = " + _TEST_PLUGIN]
 
 
 @contextlib.contextmanager

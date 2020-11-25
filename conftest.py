@@ -49,14 +49,14 @@ def pytest_configure(config):
     each answer test's answer file (including the changeset number).
     """
 
-    ytcfg["yt", "__withinpytest"] = "True"
+    ytcfg["yt", "internals", "withinpytest"] = True
     # Make sure that the answers dir exists. If not, try to make it
     if not os.path.isdir(answer_dir):
         os.mkdir(answer_dir)
     # Read the list of answer test classes and their associated answer
     # file
     with open(answer_file_list, "r") as f:
-        answer_files = yaml.safe_load(f)
+        answer_files = yaml.safe_load(f)  # noqa: F841
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
     config.addinivalue_line(

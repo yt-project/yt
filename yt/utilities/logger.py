@@ -60,7 +60,7 @@ def set_log_level(level):
 ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
 cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
 
-if ytcfg.getboolean("yt", "stdoutStreamLogging"):
+if ytcfg.get("yt", "stdoutStreamLogging"):
     stream = sys.stdout
 else:
     stream = sys.stderr
@@ -109,9 +109,9 @@ def uncolorize_logging():
         pass
 
 
-_level = min(max(ytcfg.getint("yt", "loglevel"), 0), 50)
+_level = min(max(ytcfg.get("yt", "loglevel"), 0), 50)
 
-if ytcfg.getboolean("yt", "suppressStreamLogging"):
+if ytcfg.get("yt", "suppressStreamLogging"):
     disable_stream_logging()
 else:
     yt_sh = logging.StreamHandler(stream=stream)
@@ -125,5 +125,5 @@ else:
 
     original_emitter = yt_sh.emit
 
-    if ytcfg.getboolean("yt", "coloredlogs"):
+    if ytcfg.get("yt", "coloredLogs"):
         colorize_logging()

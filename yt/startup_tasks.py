@@ -138,7 +138,7 @@ if not hasattr(sys, "argv") or sys.argv is None:
 unparsed_args = []
 
 parallel_capable = False
-if not ytcfg.getboolean("yt", "__command_line"):
+if not ytcfg.get("yt", "internals", "command_line"):
     opts, unparsed_args = parser.parse_known_args()
     # THIS IS NOT SUCH A GOOD IDEA:
     # sys.argv = [a for a in unparsed_args]

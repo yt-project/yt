@@ -8,11 +8,11 @@ G30 = "IsolatedGalaxy/galaxy0030/galaxy0030"
 
 
 def setup():
-    ytcfg["yt", "serialize"] = "True"
+    ytcfg["yt", "serialize"] = True
 
 
 def teardown():
-    ytcfg["yt", "serialize"] = "False"
+    ytcfg["yt", "serialize"] = False
 
 
 @requires_file(G30)

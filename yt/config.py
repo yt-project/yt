@@ -1,36 +1,32 @@
 import configparser
 import os
 import warnings
+from pathlib import Path
 
-ytcfg_defaults = dict(
-    serialize="False",
-    onlydeserialize="False",
-    timefunctions="False",
-    logfile="False",
-    coloredlogs="False",
-    suppressstreamlogging="False",
-    stdoutStreamLogging="False",
-    loglevel="20",
-    inline="False",
-    numthreads="-1",
-    __withintesting="False",
-    __withinpytest="False",
-    __parallel="False",
-    __strict_requires="False",
-    __global_parallel_rank="0",
-    __global_parallel_size="1",
-    __topcomm_parallel_rank="0",
-    __topcomm_parallel_size="1",
-    __command_line="False",
-    storeparameterfiles="False",
-    parameterfilestore="parameter_files.csv",
-    maximumstoreddatasets="500",
-    skip_dataset_cache="True",
-    loadfieldplugins="False",
-    pluginfilename="my_plugins.py",
-    parallel_traceback="False",
+import toml
+
+ytcfg_defaults = {}
+
+ytcfg_defaults["yt"] = dict(
+    serialize=False,
+    only_deserialize=False,
+    timefunctions=False,
+    logFile=False,
+    coloredLogs=False,
+    suppressStreamLogging=False,
+    stdoutStreamLogging=False,
+    loglevel=20,
+    inline=False,
+    numthreads=-1,
+    storeParameterFiles=False,
+    parameterFileStore="parameter_files.csv",
+    maximumStoredDatasets=500,
+    skip_dataset_cache=True,
+    loadFieldPlugins=False,
+    pluginFilename="my_plugins.py",
+    parallel_traceback=False,
     pasteboard_repo="",
-    reconstruct_index="True",
+    reconstruct_index=True,
     test_storage_dir="/does/not/exist",
     test_data_dir="/does/not/exist",
     enzo_db="",
@@ -38,8 +34,8 @@ ytcfg_defaults = dict(
     hub_api_key="",
     hub_sandbox="/collection/yt_sandbox/data",
     notebook_password="",
-    answer_testing_tolerance="3",
-    answer_testing_bitwise="False",
+    answer_testing_tolerance=3,
+    answer_testing_bitwise=False,
     gold_standard_filename="gold311",
     local_standard_filename="local001",
     answer_tests_url="http://answers.yt-project.org/{1}_{2}",
@@ -48,13 +44,24 @@ ytcfg_defaults = dict(
     imagebin_upload_url="https://api.imgur.com/3/upload",
     imagebin_delete_url="https://api.imgur.com/3/image/{delete_hash}",
     curldrop_upload_url="http://use.yt/upload",
-    thread_field_detection="False",
-    ignore_invalid_unit_operation_errors="False",
-    chunk_size="1000",
+    thread_field_detection=False,
+    ignore_invalid_unit_operation_errors=False,
+    chunk_size=1000,
     xray_data_dir="/does/not/exist",
     supp_data_dir="/does/not/exist",
     default_colormap="arbre",
     ray_tracing_engine="embree",
+    internals=dict(
+        withintesting=False,
+        withinpytest=False,
+        parallel=False,
+        strict_requires=False,
+        global_parallel_rank=0,
+        global_parallel_size=1,
+        topcomm_parallel_rank=0,
+        topcomm_parallel_size=1,
+        command_line=False,
+    ),
 )
 
 CONFIG_DIR = os.environ.get(
@@ -67,40 +74,12 @@ if not os.path.exists(CONFIG_DIR):
         warnings.warn("unable to create yt config directory")
 
 CURRENT_CONFIG_FILE = os.path.join(CONFIG_DIR, "ytrc")
-_OLD_CONFIG_FILE = os.path.join(os.path.expanduser("~"), ".yt", "config")
+NEW_CONFIG_FILE = os.path.join(CONFIG_DIR, "yt.toml")
 
 # Here is the upgrade.  We're actually going to parse the file in its entirety
 # here.  Then, if it has any of the Forbidden Sections, it will be rewritten
 # without them.
 
-if os.path.exists(_OLD_CONFIG_FILE):
-    f = open(_OLD_CONFIG_FILE).read()
-    if any(header in f for header in ["[lagos]", "[raven]", "[fido]", "[enki]"]):
-        print("***********************************************************")
-        print("* Upgrading configuration file to new format; saving old. *")
-        print("***********************************************************")
-        # This is of the old format
-        cp = configparser.ConfigParser()
-        cp.read(_OLD_CONFIG_FILE)
-        # NOTE: To avoid having the 'DEFAULT' section here,
-        # we are not passing in ytcfg_defaults to the constructor.
-        new_cp = configparser.ConfigParser()
-        new_cp.add_section("yt")
-        for section in cp.sections():
-            for option in cp.options(section):
-                # We changed them all to lowercase
-                if option.lower() in ytcfg_defaults:
-                    new_cp.set("yt", option, cp.get(section, option))
-                    print(f"Setting {option} to {cp.get(section, option)}")
-        open(_OLD_CONFIG_FILE + ".old", "w").write(f)
-        new_cp.write(open(_OLD_CONFIG_FILE, "w"))
-
-    msg = (
-        "The configuration file {} is deprecated. "
-        "Please migrate your config to {} by running: "
-        "'yt config migrate'"
-    )
-    warnings.warn(msg.format(_OLD_CONFIG_FILE, CURRENT_CONFIG_FILE))
 
 if not os.path.exists(CURRENT_CONFIG_FILE):
     cp = configparser.ConfigParser()
@@ -124,10 +103,93 @@ class YTConfigParser(configparser.ConfigParser):
         return os.path.expanduser(os.path.expandvars(val))
 
 
-ytcfg = YTConfigParser(ytcfg_defaults)
-ytcfg.read([_OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, "yt.cfg"])
-if not ytcfg.has_section("yt"):
-    ytcfg.add_section("yt")
+class YTConfig:
+    def __init__(self, defaults, *args, **kwargs):
+        self.defaults = defaults
+        self.values = {}
+        self.update(defaults)
+
+    def get(self, section, *path, strict=True, **kwargs):
+        config = self.values[section]
+
+        # This works as follow: if we try to access
+        # field > gas > density > lognorm
+        # we try in this order:
+        #   field > gas > density > lognorm
+        #   field > gas > lognorm
+        #   field > lognorm
+        ok = False
+        node = None
+        use_fallback = "fallback" in kwargs
+        fallback = kwargs.pop("fallback", None)
+        while len(path) > 0:
+            try:
+                node = config
+                for k in path:
+                    node = node[k]
+                ok = True
+                break
+            except KeyError as e:
+                if strict and not use_fallback:
+                    raise e
+                else:
+                    path = path[:-1]
+
+        if not ok and use_fallback:
+            return fallback
+        elif not ok:
+            raise KeyError(f"Could not find {section}, {path} in configuration.")
+
+        return node
+
+    def update(self, new_values):
+        def copy_helper(dict_a, dict_b):
+            # Copies entries form dict_a in dict_b, inplace
+            for k in dict_a.keys():
+                if k not in dict_b:
+                    dict_b[k] = dict_a[k]
+                    continue
+                if isinstance(dict_a[k], dict):
+                    copy_helper(dict_a[k], dict_b[k])
+                else:
+                    dict_b[k] = dict_a[k]
+
+        copy_helper(new_values, self.values)
+
+    def has_section(self, section):
+        return section in self.values
+
+    def __setitem__(self, key, value):
+        section, *path, entry = key
+        if not self.has_section(section):
+            raise KeyError
+
+        node = self.values[section]
+        for p in path:
+            if p not in node:
+                node[p] = {}
+            node = node[p]
+
+        node[entry] = value
+
+
+# Walk the tree up until we find a config file
+ytcfg = YTConfig(ytcfg_defaults)
+ytcfg.update(toml.load(NEW_CONFIG_FILE))
+cwd = Path(".").absolute()
+while cwd.parent != cwd:
+    cfg_file = cwd / "yt.toml"
+    print(f"Trying {cfg_file}")
+    if cfg_file.exists():
+        ytcfg.update(toml.load(cfg_file))
+        break
+    cwd = cwd.parent
+
+
+ytcfg_old = YTConfigParser(ytcfg_defaults)
+ytcfg_old.read([CURRENT_CONFIG_FILE, "yt.cfg"])
+if not ytcfg_old.has_section("yt"):
+    ytcfg_old.add_section("yt")
 
 # Now we have parsed the config file.  Overrides come from the command line.
 

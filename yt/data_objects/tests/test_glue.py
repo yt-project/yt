@@ -5,7 +5,7 @@ from yt.testing import fake_random_ds, requires_module
 
 
 def setup_func():
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "withintesting"] = True
 
 
 @requires_module("glue.core")

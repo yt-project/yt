@@ -43,7 +43,7 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "withintesting"] = True
 
 
 TEST_FLNMS = ["test.png"]

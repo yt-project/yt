@@ -820,7 +820,7 @@ def requires_file(req_file):
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            if ytcfg.getboolean("yt", "__strict_requires"):
+            if ytcfg.get("yt", "internals", "strict_requires"):
                 raise FileNotFoundError(req_file)
             raise SkipTest
 
@@ -846,11 +846,11 @@ def disable_dataset_cache(func):
     @functools.wraps(func)
     def newfunc(*args, **kwargs):
         restore_cfg_state = False
-        if ytcfg.get("yt", "skip_dataset_cache") == "False":
-            ytcfg["yt", "skip_dataset_cache"] = "True"
+        if not ytcfg.get("yt", "skip_dataset_cache"):
+            ytcfg["yt", "skip_dataset_cache"] = True
         rv = func(*args, **kwargs)
         if restore_cfg_state:
-            ytcfg["yt", "skip_dataset_cache"] = "False"
+            ytcfg["yt", "skip_dataset_cache"] = False
         return rv
 
     return newfunc
@@ -1233,7 +1233,7 @@ def requires_backend(backend):
             print(msg)
             pytest.skip(msg)
 
-        if ytcfg.getboolean("yt", "__withinpytest"):
+        if ytcfg.get("yt", "internals", "withinpytest"):
             return skip
         else:
             return lambda: None

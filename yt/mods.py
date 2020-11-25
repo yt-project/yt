@@ -28,5 +28,5 @@ if _level >= int(ytcfg_defaults["loglevel"]):
 # This way, other command-line tools can be used very simply.
 # Unfortunately, for now, I think the easiest and simplest way of doing
 # this is also the most dangerous way.
-if ytcfg.getboolean("yt", "loadfieldplugins"):
+if ytcfg.get("yt", "loadFieldPlugins"):
     enable_plugins()

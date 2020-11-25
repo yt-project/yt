@@ -18,8 +18,8 @@ foobar = 17
 
 
 def setUpModule():
-    my_plugin_name = ytcfg.get("yt", "pluginfilename")
-    # In the following order if pluginfilename is: an absolute path, located in
+    my_plugin_name = ytcfg.get("yt", "pluginFilename")
+    # In the following order if pluginFilename is: an absolute path, located in
     # the CONFIG_DIR, located in an obsolete config dir.
     old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
     for base_prefix in ("", CONFIG_DIR, old_config_dir):
@@ -36,7 +36,7 @@ def tearDownModule():
     from yt.fields.my_plugin_fields import my_plugins_fields
 
     my_plugins_fields.clear()
-    my_plugin_name = ytcfg.get("yt", "pluginfilename")
+    my_plugin_name = ytcfg.get("yt", "pluginFilename")
     plugin_file = os.path.join(CONFIG_DIR, my_plugin_name)
     os.remove(plugin_file)
 
@@ -44,8 +44,8 @@ def tearDownModule():
 class TestPluginFile(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
-        my_plugin_name = ytcfg.get("yt", "pluginfilename")
-        # In the following order if pluginfilename is: an absolute path, located in
+        my_plugin_name = ytcfg.get("yt", "pluginFilename")
+        # In the following order if pluginFilename is: an absolute path, located in
         # the CONFIG_DIR, located in an obsolete config dir.
         old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
         for base_prefix in ("", CONFIG_DIR, old_config_dir):
@@ -59,7 +59,7 @@ class TestPluginFile(unittest.TestCase):
 
     @classmethod
     def tearDownClass(cls):
-        my_plugin_name = ytcfg.get("yt", "pluginfilename")
+        my_plugin_name = ytcfg.get("yt", "pluginFilename")
         plugin_file = os.path.join(CONFIG_DIR, my_plugin_name)
         os.remove(plugin_file)
 
@@ -71,7 +71,7 @@ class TestPluginFile(unittest.TestCase):
         del yt.myfunc
 
     def testCustomField(self):
-        plugin_file = os.path.join(CONFIG_DIR, ytcfg.get("yt", "pluginfilename"))
+        plugin_file = os.path.join(CONFIG_DIR, ytcfg.get("yt", "pluginFilename"))
         msg = f"INFO:yt:Loading plugins from {plugin_file}"
 
         with self.assertLogs("yt", level="INFO") as cm:

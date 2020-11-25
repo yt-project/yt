@@ -6,7 +6,7 @@ from yt.testing import assert_equal, fake_amr_ds, fake_random_ds
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "withintesting"] = True
 
 
 def test_mean_sum_integrate():

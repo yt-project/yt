@@ -183,9 +183,9 @@ def _check_deprecated_parameters():
     from yt.config import ytcfg
     from yt.funcs import issue_deprecation_warning
 
-    if ytcfg.getboolean("yt", "loadfieldplugins"):
+    if ytcfg.get("yt", "loadFieldPlugins"):
         issue_deprecation_warning(
-            "Found deprecated parameter 'loadfieldplugins' parameter in yt rcfile."
+            "Found deprecated parameter 'loadFieldPlugins' parameter in yt rcfile."
         )
 
 

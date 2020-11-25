@@ -11,7 +11,7 @@ from yt.units.unit_object import Unit
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "withintesting"] = True
 
 
 def teardown_func(fns):

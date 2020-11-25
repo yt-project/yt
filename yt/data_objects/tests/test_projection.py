@@ -13,7 +13,7 @@ LENGTH_UNIT = 2.0
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "withintesting"] = True
 
 
 def teardown_func(fns):

@@ -136,7 +136,7 @@ class AnswerTesting(Plugin):
 
         self.store_results = options.store_results
 
-        ytcfg["yt", "__withintesting"] = "True"
+        ytcfg["yt", "internals", "withintesting"] = True
         AnswerTestingTest.result_storage = self.result_storage = defaultdict(dict)
         if self.compare_name == "SKIP":
             self.compare_name = None
@@ -306,7 +306,7 @@ def can_run_ds(ds_fn, file_check=False):
     try:
         load(ds_fn)
     except FileNotFoundError:
-        if ytcfg.getboolean("yt", "__strict_requires"):
+        if ytcfg.get("yt", "internals", "strict_requires"):
             if result_storage is not None:
                 result_storage["tainted"] = True
             raise
@@ -331,7 +331,7 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
     try:
         load_simulation(sim_fn, sim_type)
     except FileNotFoundError:
-        if ytcfg.getboolean("yt", "__strict_requires"):
+        if ytcfg.get("yt", "internals", "strict_requires"):
             if result_storage is not None:
                 result_storage["tainted"] = True
             raise

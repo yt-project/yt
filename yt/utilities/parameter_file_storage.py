@@ -27,7 +27,7 @@ class UnknownDatasetType(Exception):
         return f"{self.name}"
 
 
-class ParameterFileStore:
+class ParameterFilestore:
     """
     This class is designed to be a semi-persistent storage for parameter
     files.  By identifying each dataset with a unique hash, objects
@@ -56,7 +56,7 @@ class ParameterFileStore:
         """
         if not self._register:
             return
-        if ytcfg.getboolean("yt", "StoreParameterFiles"):
+        if ytcfg.get("yt", "storeParameterFiles"):
             self._read_only = False
             self.init_db()
             self._records = self.read_db()
@@ -82,7 +82,7 @@ class ParameterFileStore:
         # these will be broadcast
 
     def _get_db_name(self):
-        base_file_name = ytcfg.get("yt", "ParameterFileStore")
+        base_file_name = ytcfg.get("yt", "parameterFilestore")
         if not os.access(os.path.expanduser("~/"), os.W_OK):
             return os.path.abspath(base_file_name)
         return os.path.expanduser(f"~/.yt/{base_file_name}")
@@ -175,7 +175,7 @@ class ParameterFileStore:
         fn = self._get_db_name()
         f = open(f"{fn}.tmp", "w")
         w = csv.DictWriter(f, _field_names)
-        maxn = ytcfg.getint("yt", "maximumstoreddatasets")  # number written
+        maxn = ytcfg.get("yt", "maximumStoredDatasets")  # number written
         for h, v in islice(
             sorted(self._records.items(), key=lambda a: -a[1]["last_seen"]), 0, maxn
         ):

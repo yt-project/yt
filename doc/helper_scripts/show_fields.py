@@ -23,7 +23,7 @@ base_ds.cosmological_simulation = 1
 base_ds.cosmology = Cosmology()
 
 
-ytcfg["yt", "__withintesting"] = "True"
+ytcfg["yt", "internals", "withintesting"] = True
 np.seterr(all="ignore")
 
 

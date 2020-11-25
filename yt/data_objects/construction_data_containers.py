@@ -496,7 +496,7 @@ class YTQuadTreeProj(YTProj):
         return MinimalProjectionData(self)
 
     def deserialize(self, fields):
-        if not ytcfg.getboolean("yt", "serialize"):
+        if not ytcfg.get("yt", "serialize"):
             return False
         for field in fields:
             self[field] = None
@@ -515,7 +515,7 @@ class YTQuadTreeProj(YTProj):
         return deserialized_successfully
 
     def serialize(self):
-        if not ytcfg.getboolean("yt", "serialize"):
+        if not ytcfg.get("yt", "serialize"):
             return
         self._mrep.store(self.ds.parameter_filename + ".yt")
 
