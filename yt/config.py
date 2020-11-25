@@ -163,18 +163,27 @@ class YTConfig:
     def has_section(self, section):
         return section in self.values
 
+    def add_section(self, section):
+        if not self.has_section(section):
+            self.values[section] = {}
+
     def __setitem__(self, key, value):
-        section, *path, entry = key
+        section, *option_path, option_name = key
         if not self.has_section(section):
             raise KeyError
 
         node = self.values[section]
-        for p in path:
+        for p in option_path:
             if p not in node:
                 node[p] = {}
             node = node[p]
 
-        node[entry] = value
+        node[option_name] = value
+
+    def set(self, section, option, value):
+        if not isinstance(option, (tuple, list)):
+            option = (option,)
+        self[(section, *option)] = value
 
     def read(self, file_names):
         if not isinstance(file_names, (tuple, list)):
@@ -190,7 +199,20 @@ class YTConfig:
         return file_names_read
 
     def write(self, fd):
-        config_as_str = toml.dumps(self.values)
+        def cleaner(d):
+            new_d = {}
+            for k, v in d.items():
+                if isinstance(v, dict):
+                    if len(v) > 0:
+                        new_d[k] = cleaner(v)
+                else:
+                    new_d[k] = v
+            return new_d
+
+        # Clean up the sections
+        cleaned_values = cleaner(self.values)
+        config_as_str = toml.dumps(cleaned_values)
+
         try:
             fd.write(config_as_str)
         except AttributeError:

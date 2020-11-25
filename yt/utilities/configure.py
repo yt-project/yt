@@ -18,7 +18,11 @@ def _cast_bool_helper(value):
         raise ValueError("Cannot safely cast to bool")
 
 
-def _cast_value_helper(value, types=(_cast_bool_helper, int, float, str)):
+def _expand_all(s):
+    return os.path.expandvars(os.path.expanduser(s))
+
+
+def _cast_value_helper(value, types=(_cast_bool_helper, int, float, _expand_all)):
     for t in types:
         try:
             retval = t(value)
@@ -28,16 +32,16 @@ def _cast_value_helper(value, types=(_cast_bool_helper, int, float, str)):
 
 
 def get_config(section, option):
-    return CONFIG.get(section, option)
+    *option_path, option_name = option.split(".")
+    return CONFIG.get(section, *option_path, option_name)
 
 
 def set_config(section, option, value):
     if not CONFIG.has_section(section):
         CONFIG.add_section(section)
 
-    *option_path, option_name = option.split(".")
-    parent = CONFIG.get(section, *option_path)
-    parent[option_name] = _cast_value_helper(value)
+    option_path = option.split(".")
+    CONFIG.set(section, option_path, _cast_value_helper(value))
     write_config()
 
 
@@ -53,7 +57,10 @@ def migrate_config():
         print("Old config not found.")
         sys.exit(1)
 
-    old_config = configparser.ConfigParser()
+    old_config = configparser.RawConfigParser()
+    # Preserve case:
+    # See https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
+    old_config.optionxform = str
     old_config.read(OLD_CONFIG_FILE)
 
     config_as_dict = {}
@@ -76,7 +83,7 @@ def migrate_config():
 
 def rm_config(section, option):
     *option_path, option_name = option.split(".")
-    parent = CONFIG.get(section, option_path)
+    parent = CONFIG.get(section, *option_path)
     parent.pop(option_name)
     write_config()
 
