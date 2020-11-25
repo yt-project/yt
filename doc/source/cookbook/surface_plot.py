@@ -1,8 +1,9 @@
-import yt
-import numpy as np
-from mpl_toolkits.mplot3d import Axes3D
-from mpl_toolkits.mplot3d.art3d import Poly3DCollection
 import matplotlib.pyplot as plt
+import numpy as np
+from mpl_toolkits.mplot3d import Axes3D  # noqa: F401
+from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+import yt
 
 # Load the dataset
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -36,4 +37,4 @@ bounds[:, 1] = centers[:] + max_extent / 2
 ax.auto_scale_xyz(bounds[0, :], bounds[1, :], bounds[2, :])
 
 # Save the figure
-plt.savefig("%s_Surface.png" % ds)
+plt.savefig(f"{ds}_Surface.png")

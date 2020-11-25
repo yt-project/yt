@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 # Load the dataset.  We'll work with a some Gadget data to illustrate all
 # the different ways in which the effective resolution can vary.  Specifically,

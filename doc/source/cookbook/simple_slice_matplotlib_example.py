@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 # Load the dataset.
 ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")

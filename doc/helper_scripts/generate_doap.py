@@ -1,7 +1,8 @@
 import os
+from email.utils import parseaddr
+
 import hglib
 import pkg_resources
-from email.utils import parseaddr
 
 templates = {
     "header": r"""<Project xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#" xmlns:rdfs="http://www.w3.org/2000/01/rdf-schema#" xmlns="http://usefulinc.com/ns/doap#" xmlns:foaf="http://xmlns.com/foaf/0.1/" xmlns:admin="http://webns.net/mvcb/">
@@ -31,12 +32,12 @@ templates = {
 	</release>
    """,
     "footer": r"""
- <repository> 
+ <repository>
    <HgRepository>
      <browse rdf:resource='https://bitbucket.org/yt_analysis/yt/src' />
      <location rdf:resource='https://bitbucket.org/yt_analysis/yt' />
    </HgRepository>
- </repository> 
+ </repository>
 </Project>
 """,
 }
@@ -98,7 +99,7 @@ def developer_names():
             if len(dev.strip()) == 0:
                 continue
             emails.add(dev.rsplit(None, 2)[0])
-        print("Generating real names for {0} emails".format(len(emails)))
+        print(f"Generating real names for {len(emails)} emails")
         names = set([])
         for email in sorted(emails):
             if email in name_ignores:
@@ -106,9 +107,9 @@ def developer_names():
             if email in name_mappings:
                 names.add(name_mappings[email])
                 continue
-            cset = c.log(revrange="last(author('%s'))" % email)
+            cset = c.log(revrange=f"last(author('{email}'))")
             if len(cset) == 0:
-                print("Error finding {0}".format(email))
+                print(f"Error finding {email}")
                 realname = email
             else:
                 realname, addr = parseaddr(cset[0][4])

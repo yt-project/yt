@@ -11,9 +11,10 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
 import glob
+import os
+import sys
+import sphinx_bootstrap_theme
 
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
@@ -46,8 +47,8 @@ if not on_rtd:
     extensions.append("pythonscript_sphinxext")
 
 try:
-    import RunNotebook
-    import nbconvert
+    import nbconvert  # NOQA: F401
+    import RunNotebook  # NOQA: F401
 
     if not on_rtd:
         extensions.append("RunNotebook.notebook_sphinxext")
@@ -119,8 +120,6 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-import sphinx_bootstrap_theme
-
 html_theme = "bootstrap"
 html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 

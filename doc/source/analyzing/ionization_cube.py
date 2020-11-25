@@ -1,9 +1,10 @@
-import yt
-from yt.utilities.parallel_tools.parallel_analysis_interface import communication_system
+import time
 
 import h5py
-import time
 import numpy as np
+
+import yt
+from yt.utilities.parallel_tools.parallel_analysis_interface import communication_system
 
 
 @yt.derived_field(

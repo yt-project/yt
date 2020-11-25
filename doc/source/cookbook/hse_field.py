@@ -1,4 +1,5 @@
 import numpy as np
+
 import yt
 
 # Open a dataset from when there's a lot of sloshing going on.
