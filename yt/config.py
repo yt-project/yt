@@ -143,7 +143,7 @@ class YTConfig:
             return fallback
         else:
             raise KeyError(
-                f"Could not find {section}:{'.'.join(option)} " "in configuration."
+                f"Could not find {section}:{'.'.join(option)} in configuration."
             )
 
     def update(self, new_values):
@@ -231,12 +231,3 @@ while cwd.parent != cwd:
         ytcfg.read(cfg_file)
         break
     cwd = cwd.parent
-
-# Now we have parsed the config file.  Overrides come from the command line.
-
-# This should be implemented at some point.  The idea would be to have a set of
-# command line options, fed through an option parser, that would override
-# the settings in ytcfg.  *However*, because we want to have the command-line
-# scripts work, we'd probably want to have them only be long options, and also
-# along the lines of --yt-something=somethingelse.  The command line scripts
-# would then not get their options from sys.argv, but instead from this module.
