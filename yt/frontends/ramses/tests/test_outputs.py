@@ -4,6 +4,7 @@ import numpy as np
 
 import yt
 from yt.config import ytcfg
+from yt.fields.field_detector import FieldDetector
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 from yt.testing import (
@@ -562,6 +563,36 @@ def test_field_accession():
     ):
         for field in fields:
             reg[field]
+
+
+@requires_file(output_00080)
+def test_ghost_zones():
+    ds = yt.load(output_00080)
+
+    def gen_dummy(ngz):
+        def dummy(field, data):
+            if not isinstance(data, FieldDetector):
+                shape = data["gas", "mach_number"].shape[:3]
+                np.testing.assert_equal(shape, (2 + 2 * ngz, 2 + 2 * ngz, 2 + 2 * ngz))
+            return data["gas", "mach_number"]
+
+        return dummy
+
+    fields = []
+    for ngz in (1, 2, 3):
+        fname = ("gas", f"density_ghost_zone_{ngz}")
+        ds.add_field(
+            fname,
+            gen_dummy(ngz),
+            sampling_type="cell",
+            validators=[yt.ValidateSpatial(ghost_zones=ngz)],
+        )
+        fields.append(fname)
+
+    box = ds.box([0, 0, 0], [0.1, 0.1, 0.1])
+    for f in fields:
+        print("Getting ", f)
+        box[f]
 
 
 @requires_file(output_00080)
