@@ -74,7 +74,7 @@ class RAMSESFileSanitizer:
 
     @staticmethod
     def check_standard_files(folder, iout):
-        """Return true if the folder contains an amr file and the info file."""
+        """Return True if the folder contains an amr file and the info file."""
         # Check that the "amr_" and "info_" files exist
         ok = (folder / f"amr_{iout}.out00001").is_file()
         ok &= (folder / f"info_{iout}.txt").is_file()
@@ -690,7 +690,7 @@ class RAMSESDataset(Dataset):
 
         # This should not happen, but let's check nonetheless.
         if not file_handler.is_valid:
-            raise RuntimeError(
+            raise ValueError(
                 "Invalid filename found when building a RAMSESDataset object: %s",
                 filename,
             )
