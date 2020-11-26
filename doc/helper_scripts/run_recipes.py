@@ -7,10 +7,9 @@ import subprocess
 import sys
 import tempfile
 import traceback
+from multiprocessing import Pool
 
 import matplotlib
-
-from multiprocessing import Pool
 
 from yt.config import ytcfg
 

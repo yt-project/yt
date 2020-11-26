@@ -14,6 +14,7 @@
 import glob
 import os
 import sys
+
 import sphinx_bootstrap_theme
 
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
