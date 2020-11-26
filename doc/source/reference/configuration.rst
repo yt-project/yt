@@ -9,14 +9,16 @@ This customization is done through :ref:`configuration-file` and
 
 .. _configuration-file:
 
-The Configuration File
-----------------------
+The Configuration
+-----------------
 
-The configuration is a simple text file (in the `toml <https://github.com/toml-lang/toml>`_ format)
-setting internal yt variables to custom default values to be used in future sessions.
+The configuration is stored in simple text files (in the `toml <https://github.com/toml-lang/toml>`_ format).
+They allow to set internal yt variables to custom default values to be used in future sessions.
+The configuration can either be stored :ref:`globally<Global Configuration>` or :ref:`locally<Local Configuration>`.
 
-Configuration File Format
-^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Global Configuration
+^^^^^^^^^^^^^^^^^^^^
 
 yt will look for and recognize the file ``$HOME/.config/yt/yt.toml`` as a configuration
 file, containing several options that can be modified and adjusted to control
@@ -41,6 +43,29 @@ options from the configuration file, e.g.:
    $ yt config list
    $ yt config set yt loglevel 1
    $ yt config rm yt maximumstoreddatasets
+
+
+Local Configuration
+^^^^^^^^^^^^^^^^^^^
+
+yt will look for any file name ``yt.toml`` in the current directory or any
+of its parent, up to the root. If present, its options override those in the
+global configuration.
+
+Local configuration files can either be edited manually, or alternatively they
+can be managed using ``yt config --local``. It can list, add, modify and remove
+options, and display the path to the local configuration file, e.g.:
+
+.. code-block:: none
+
+   $ yt config -h
+   $ yt config list --local
+   $ yt config set --local yt loglevel 1
+   $ yt config rm --local yt maximumstoreddatasets
+   $ yt config print-path --local
+
+If no local configuration file is present, these commands will create an (empty) one
+in the current working directy.
 
 
 Configuration Options At Runtime

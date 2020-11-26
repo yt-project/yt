@@ -104,7 +104,10 @@ def main():
     set_parser = subparsers.add_parser("set", help="set a config value")
     rm_parser = subparsers.add_parser("rm", help="remove a config option")
     subparsers.add_parser("migrate", help="migrate old config file")
-    subparsers.add_parser("list", help="show all config values")
+    list_parser = subparsers.add_parser("list", help="show all config values")
+    print_path_parser = subparsers.add_parser(
+        "print-path", help="print the path to the config file"
+    )
 
     get_parser.add_argument("section", help="The section containing the option.")
     get_parser.add_argument("option", help="The option to retrieve.")
@@ -118,9 +121,11 @@ def main():
     )
     rm_parser.add_argument("option", help="The option to remove.")
 
-    for p in (set_parser, get_parser, rm_parser):
+    for p in (set_parser, get_parser, rm_parser, list_parser, print_path_parser):
         p.add_argument(
-            "--local", action="store_true", help="Store in a local configuration file"
+            "--local",
+            action="store_true",
+            help="Use a local configuration file instead of the global one.",
         )
 
     args = parser.parse_args()
@@ -146,6 +151,8 @@ def main():
         migrate_config()
     elif args.cmd == "rm":
         rm_config(args.section, args.option, config_file)
+    elif args.cmd == "print-path":
+        print(config_file)
 
 
 if __name__ == "__main__":
