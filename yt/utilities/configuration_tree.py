@@ -71,12 +71,14 @@ class ConfigNode:
         node = self.get_from_list(node_keys)
         node.children.pop(leaf_key)
 
-    def get_most_common(self, keys, leaf):
-        root_key, *keys = keys
+    def get_deepest_leaf(self, *keys, callback=lambda leaf: leaf.value):
+        root_key, *keys, leaf_key = keys
 
         root_node = self.get_child(root_key)
         node_list = [root_node]
         node = root_node
+
+        # Traverse the tree down following the keys
         for k in keys:
             try:
                 node = node.get_child(k)
@@ -84,12 +86,16 @@ class ConfigNode:
             except KeyError:
                 break
 
+        # For each node, starting from the deepest, try to find the leaf
         for node in reversed(node_list):
             try:
-                return node.get_child(leaf)
+                leaf = node.get_child(leaf_key)
+                if not isinstance(leaf, ConfigLeaf):
+                    raise RuntimeError(f"Expected a ConfigLeaf, got {leaf}!")
+                return callback(leaf)
             except KeyError:
                 continue
-        raise KeyError(f"Cannot any node that contains the leaf {leaf}.")
+        raise KeyError(f"Cannot any node that contains the leaf {leaf_key}.")
 
     def serialize(self):
         retval = {}
