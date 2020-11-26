@@ -240,7 +240,7 @@ project's contiguous integration server.
 This command will create a set of local answers from the tipsy frontend tests
 and store them in ``$HOME/Documents/test`` (this can but does not have to be the
 same directory as the ``test_data_dir`` configuration variable defined in your
-``~/.config/yt/ytrc`` file) in a file named ``local-tipsy``. To run the tipsy
+``~/.config/yt/yt.toml`` file) in a file named ``local-tipsy``. To run the tipsy
 frontend's answer tests using a different yt changeset, update to that
 changeset, recompile if necessary, and run the tests using the following
 command:

@@ -12,15 +12,15 @@ This customization is done through :ref:`configuration-file` and
 The Configuration File
 ----------------------
 
-The configuration is a simple text file setting internal yt variables to
-custom default values to be used in future sessions.
+The configuration is a simple text file (in the `toml <https://github.com/toml-lang/toml>`_ format)
+setting internal yt variables to custom default values to be used in future sessions.
 
 Configuration File Format
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.config/yt/ytrc`` as a configuration
+yt will look for and recognize the file ``$HOME/.config/yt/yt.toml`` as a configuration
 file, containing several options that can be modified and adjusted to control
-runtime behavior.  For example, a sample ``$HOME/.config/yt/ytrc`` file could look
+runtime behavior.  For example, a sample ``$HOME/.config/yt/yt.toml`` file could look
 like:
 
 .. code-block:: none
@@ -134,7 +134,7 @@ Global system plugin file
 
 yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
 plugin file. It is possible to rename this file to ``$HOME/.config/yt/<pluginfilename>.py``
-by defining ``pluginfilename`` in your ytrc file, as mentioned above.
+by defining ``pluginfilename`` in your `yt.toml` file, as mentioned above.
 
 .. note::
 
@@ -142,6 +142,7 @@ by defining ``pluginfilename`` in your ytrc file, as mentioned above.
    message when you import yt.  Note that both the ``yt load`` and ``iyt``
    command line entry points parse the plugin file, so the ``my_plugins.py``
    file will be parsed if you enter yt that way.
+
 
 Local project plugin file
 ^^^^^^^^^^^^^^^^^^^^^^^^^
