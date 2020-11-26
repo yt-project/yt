@@ -37,6 +37,7 @@ class ConfigNode:
         key, *next_keys = keys
         if len(next_keys) == 0:  # reach the end of the upsert
             leaf = self.get_child(key, lambda: ConfigLeaf(self, value, extraData))
+            leaf.value = value
             leaf.extraData = extraData
             if not isinstance(leaf, ConfigLeaf):
                 raise RuntimeError(f"Expected a ConfigLeaf, got {leaf}!")
