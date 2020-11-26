@@ -1683,7 +1683,7 @@ class YTConfigSetCmd(YTCommand, YTConfigLocalConfigMixin):
 
         self.load_config(args)
 
-        set_config(args.section, args.option, args.value)
+        set_config(args.section, args.option, args.value, self.config_file)
 
 
 class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigMixin):
@@ -1705,7 +1705,7 @@ class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigMixin):
 
         self.load_config(args)
 
-        rm_config(args.section, args.option)
+        rm_config(args.section, args.option, self.config_file)
 
 
 class YTConfigListCmd(YTCommand, YTConfigLocalConfigMixin):

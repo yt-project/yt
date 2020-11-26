@@ -43,8 +43,8 @@ def set_config(section, option, value, config_file):
     write_config(config_file)
 
 
-def write_config(fd):
-    CONFIG.write(fd)
+def write_config(config_file):
+    CONFIG.write(config_file)
 
 
 def migrate_config():
@@ -80,12 +80,12 @@ def migrate_config():
     CONFIG.update(config_as_dict)
 
     print(f"Writing a new config file to: {GLOBAL_CONFIG_FILE}")
-    write_config()
+    write_config(GLOBAL_CONFIG_FILE)
     print(f"Backing up the old config file: {OLD_CONFIG_FILE}.bak")
     os.rename(OLD_CONFIG_FILE, OLD_CONFIG_FILE + ".bak")
 
 
-def rm_config(section, option):
+def rm_config(section, option, config_file):
     option_path = option.split(".")
     CONFIG.remove(section, *option_path)
-    write_config()
+    write_config(config_file)
