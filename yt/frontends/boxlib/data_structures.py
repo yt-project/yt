@@ -688,7 +688,7 @@ class BoxlibDataset(Dataset):
         return None
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, cparam_filename=None, *args, **kwargs):
         output_dir = args[0]
         header_filename = os.path.join(output_dir, "Header")
         # boxlib datasets are always directories, and
@@ -701,9 +701,7 @@ class BoxlibDataset(Dataset):
             # Further checks are performed on subclasses.
             return True
 
-        try:
-            cparam_filename = kwargs.get("cparam_filename") or args[1]
-        except IndexError:
+        if cparam_filename is None:
             cparam_filename = (
                 signature(cls.__init__).parameters["cparam_filename"].default
             )
