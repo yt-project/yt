@@ -1,9 +1,7 @@
-import argparse
 import configparser
 import os
 import sys
 
-from yt.config import LOCAL_CONFIG_FILE  # noqa: F401
 from yt.config import GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig, ytcfg_defaults
 
 CONFIG = YTConfig()
@@ -91,69 +89,3 @@ def rm_config(section, option):
     option_path = option.split(".")
     CONFIG.remove(section, *option_path)
     write_config()
-
-
-def main():
-    global LOCAL_CONFIG_FILE, GLOBAL_CONFIG_FILE
-    parser = argparse.ArgumentParser(
-        description="Get and set configuration values for yt"
-    )
-    subparsers = parser.add_subparsers(help="sub-command help", dest="cmd")
-
-    get_parser = subparsers.add_parser("get", help="get a config value")
-    set_parser = subparsers.add_parser("set", help="set a config value")
-    rm_parser = subparsers.add_parser("rm", help="remove a config option")
-    subparsers.add_parser("migrate", help="migrate old config file")
-    list_parser = subparsers.add_parser("list", help="show all config values")
-    print_path_parser = subparsers.add_parser(
-        "print-path", help="print the path to the config file"
-    )
-
-    get_parser.add_argument("section", help="The section containing the option.")
-    get_parser.add_argument("option", help="The option to retrieve.")
-
-    set_parser.add_argument("section", help="The section containing the option.")
-    set_parser.add_argument("option", help="The option to set.")
-    set_parser.add_argument("value", help="The value to set the option to.")
-
-    rm_parser.add_argument(
-        "section", help="The section containing the option to remove."
-    )
-    rm_parser.add_argument("option", help="The option to remove.")
-
-    for p in (set_parser, get_parser, rm_parser, list_parser, print_path_parser):
-        p.add_argument(
-            "--local",
-            action="store_true",
-            help="Use a local configuration file instead of the global one.",
-        )
-
-    args = parser.parse_args()
-
-    if "local" in args and args.local:
-        if LOCAL_CONFIG_FILE is None:
-            LOCAL_CONFIG_FILE = os.path.abspath(os.path.join(".", "yt.toml"))
-            with open(LOCAL_CONFIG_FILE, "w") as f:
-                f.write("[yt]")
-        config_file = LOCAL_CONFIG_FILE
-    else:
-        config_file = GLOBAL_CONFIG_FILE
-
-    CONFIG.read(config_file)
-
-    if args.cmd == "get":
-        print(get_config(args.section, args.option))
-    elif args.cmd == "set":
-        set_config(args.section, args.option, args.value, config_file)
-    elif args.cmd == "list":
-        write_config(sys.stdout)
-    elif args.cmd == "migrate":
-        migrate_config()
-    elif args.cmd == "rm":
-        rm_config(args.section, args.option, config_file)
-    elif args.cmd == "print-path":
-        print(config_file)
-
-
-if __name__ == "__main__":
-    main()  # pragma: no cover

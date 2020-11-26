@@ -1620,22 +1620,50 @@ class YTUploadFileCmd(YTCommand):
         print(r.text)
 
 
-class YTConfigGetCmd(YTCommand):
+class YTConfigLocalConfigMixin:
+    def load_config(self, args):
+        from yt.config import GLOBAL_CONFIG_FILE, LOCAL_CONFIG_FILE
+        from yt.utilities.configure import CONFIG
+
+        if "local" in args and args.local:
+            if LOCAL_CONFIG_FILE is None:
+                LOCAL_CONFIG_FILE = os.path.join(
+                    os.path.abspath(os.path.curdir()), "yt.toml"
+                )
+                with open(LOCAL_CONFIG_FILE, "w") as f:
+                    f.write("[yt]")
+            config_file = LOCAL_CONFIG_FILE
+        else:
+            config_file = GLOBAL_CONFIG_FILE
+
+        CONFIG.read(config_file)
+
+        self.config_file = config_file
+
+
+class YTConfigGetCmd(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "get"
     description = "get a config value"
     args = (
         dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to retrieve."),
+        dict(
+            short="--local",
+            action="store_true",
+            help="Use a local configuration file instead of the global one.",
+        ),
     )
 
     def __call__(self, args):
         from yt.utilities.configure import get_config
 
+        self.load_config(args)
+
         print(get_config(args.section, args.option))
 
 
-class YTConfigSetCmd(YTCommand):
+class YTConfigSetCmd(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "set"
     description = "set a config value"
@@ -1643,42 +1671,64 @@ class YTConfigSetCmd(YTCommand):
         dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to set."),
         dict(short="value", help="The value to set the option to."),
+        dict(
+            short="--local",
+            action="store_true",
+            help="Use a local configuration file instead of the global one.",
+        ),
     )
 
     def __call__(self, args):
         from yt.utilities.configure import set_config
 
+        self.load_config(args)
+
         set_config(args.section, args.option, args.value)
 
 
-class YTConfigRemoveCmd(YTCommand):
+class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "rm"
     description = "remove a config option"
     args = (
         dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to remove."),
+        dict(
+            short="--local",
+            action="store_true",
+            help="Use a local configuration file instead of the global one.",
+        ),
     )
 
     def __call__(self, args):
         from yt.utilities.configure import rm_config
 
+        self.load_config(args)
+
         rm_config(args.section, args.option)
 
 
-class YTConfigListCmd(YTCommand):
+class YTConfigListCmd(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "list"
     description = "show the config content"
-    args = ()
+    args = (
+        dict(
+            short="--local",
+            action="store_true",
+            help="Use a local configuration file instead of the global one.",
+        ),
+    )
 
     def __call__(self, args):
         from yt.utilities.configure import write_config
 
+        self.load_config(args)
+
         write_config(sys.stdout)
 
 
-class YTConfigMigrateCmd(YTCommand):
+class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "migrate"
     description = "migrate old config file"
@@ -1687,7 +1737,27 @@ class YTConfigMigrateCmd(YTCommand):
     def __call__(self, args):
         from yt.utilities.configure import migrate_config
 
+        self.load_config(args)
+
         migrate_config()
+
+
+class YTConfigPrintPath(YTCommand, YTConfigLocalConfigMixin):
+    subparser = "config"
+    name = "print-path"
+    description = "show path to the config file"
+    args = (
+        dict(
+            short="--local",
+            action="store_true",
+            help="Use a local configuration file instead of the global one.",
+        ),
+    )
+
+    def __call__(self, args):
+        self.load_config(args)
+
+        print(self.config_file)
 
 
 class YTSearchCmd(YTCommand):

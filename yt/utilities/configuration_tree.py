@@ -135,7 +135,7 @@ class ConfigLeaf:
         self.key = key  # the name of the config leaf
         self._value = value
         self.parent = parent
-        self.extra = extraData
+        self.extraData = extraData
 
     def serialize(self):
         return self.value
