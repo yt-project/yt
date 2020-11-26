@@ -108,7 +108,7 @@ class YTConfig:
     def __init__(self, defaults=None):
         if defaults is None:
             defaults = {}
-        self.config_root = ConfigNode(defaults)
+        self.config_root = ConfigNode(None)
 
     def get(self, section, *keys):
         return self.config_root.get_leaf(section, *keys)
@@ -134,12 +134,18 @@ class YTConfig:
 
     def set(self, *args, metadata=None):
         section, *keys, value = args
+        if metadata is None:
+            metadata = {"source": "runtime"}
         self.config_root.upsert_from_list(
             [section] + list(keys), value, extraData=metadata
         )
 
     def __setitem__(self, keys, value):
         self.set(*keys, value, metadata=None)
+
+    def __getitem__(self, key):
+        section, *keys = key
+        return self.get(section, *keys)
 
     def remove(self, *args):
         self.config_root.pop_leaf(args)
@@ -152,7 +158,7 @@ class YTConfig:
         for fname in file_names:
             if not os.path.exists(fname):
                 continue
-            metadata = {"file": fname}
+            metadata = {"source": f"file: {fname}"}
             self.update(toml.load(fname), metadata=metadata)
             file_names_read.append(fname)
 

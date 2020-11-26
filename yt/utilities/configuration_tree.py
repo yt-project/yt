@@ -1,5 +1,6 @@
 class ConfigNode:
-    def __init__(self, parent=None):
+    def __init__(self, key, parent=None):
+        self.key = key
         self.children = {}
         self.parent = parent
 
@@ -28,7 +29,7 @@ class ConfigNode:
         return child
 
     def add_child(self, key):
-        self.get_child(key, lambda: ConfigNode(parent=self))
+        self.get_child(key, lambda: ConfigNode(key, parent=self))
 
     def remove_child(self, key):
         self.children.pop(key)
@@ -36,13 +37,16 @@ class ConfigNode:
     def upsert_from_list(self, keys, value, extraData=None):
         key, *next_keys = keys
         if len(next_keys) == 0:  # reach the end of the upsert
-            leaf = self.get_child(key, lambda: ConfigLeaf(self, value, extraData))
+            leaf = self.get_child(
+                key,
+                lambda: ConfigLeaf(key, parent=self, value=value, extraData=extraData),
+            )
             leaf.value = value
             leaf.extraData = extraData
             if not isinstance(leaf, ConfigLeaf):
                 raise RuntimeError(f"Expected a ConfigLeaf, got {leaf}!")
         else:
-            next_node = self.get_child(key, lambda: ConfigNode(parent=self))
+            next_node = self.get_child(key, lambda: ConfigNode(key, parent=self))
             if not isinstance(next_node, ConfigNode):
                 raise RuntimeError(f"Expected a ConfigNode, got {next_node}!")
             next_node.upsert_from_list(next_keys, value, extraData)
@@ -94,16 +98,16 @@ class ConfigNode:
         return retval
 
     def __repr__(self):
-        return f"<Node: {list(self.children.keys())}>"
+        return f"<Node {self.key}>"
 
     @staticmethod
     def from_dict(other, parent=None, **kwa):
-        me = ConfigNode(parent=parent)
+        me = ConfigNode(None, parent=parent)
         for key, val in other.items():
             if isinstance(val, dict):
                 me.add(key, ConfigNode.from_dict(val, parent=me, **kwa))
             else:
-                me.add(key, ConfigLeaf(me, val, **kwa))
+                me.add(key, ConfigLeaf(key, parent=me, value=val, **kwa))
         return me
 
     def _as_dict_with_count(self, callback):
@@ -127,13 +131,44 @@ class ConfigNode:
 
 
 class ConfigLeaf:
-    def __init__(self, parent: ConfigNode, value, extraData=None):
-        self.value = value
-        self.extra = extraData
+    def __init__(self, key, parent: ConfigNode, value, extraData=None):
+        self.key = key  # the name of the config leaf
+        self._value = value
         self.parent = parent
+        self.extra = extraData
 
     def serialize(self):
         return self.value
 
+    def get_tree(self):
+        node = self
+        parents = []
+        while node is not None:
+            parents.append(node)
+            node = node.parent
+
+        return reversed(parents)
+
+    @property
+    def value(self):
+        return self._value
+
+    @value.setter
+    def value(self, new_value):
+        if type(self.value) == type(new_value):
+            self._value = new_value
+        else:
+            tree = self.get_tree()
+            tree_str = ".".join(node.key for node in tree if node.key)
+            msg = f"Error when setting {tree_str}.\n"
+            msg += (
+                "Tried to assign a value of type "
+                f"{type(new_value)}, expected type {type(self.value)}."
+            )
+            source = self.extraData.get("source", None)
+            if source:
+                msg += f"\nThis entry was last modified in {source}."
+            raise TypeError(msg)
+
     def __repr__(self):
-        return f"<Leaf: {self.value}>"
+        return f"<Leaf {self.key}: {self.value}>"
