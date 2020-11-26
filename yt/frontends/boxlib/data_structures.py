@@ -3,7 +3,6 @@ import os
 import re
 import warnings
 from collections import namedtuple
-from inspect import signature
 from stat import ST_CTIME
 
 import numpy as np
@@ -634,13 +633,13 @@ class BoxlibDataset(Dataset):
     _index_class = BoxlibHierarchy
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
-
+    _default_cparam_filename = "job_info"
     periodicity = (False, False, False)
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",  # todo: harmonise this default value with docstring
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -656,6 +655,8 @@ class BoxlibDataset(Dataset):
         """
         self.fluid_types += ("boxlib",)
         self.output_dir = os.path.abspath(os.path.expanduser(output_dir))
+
+        cparam_filename = cparam_filename or self.__class__._default_cparam_filename
         self.cparam_filename = self._lookup_cparam_filepath(
             output_dir, cparam_filename=cparam_filename
         )
@@ -688,7 +689,7 @@ class BoxlibDataset(Dataset):
         return None
 
     @classmethod
-    def _is_valid(cls, cparam_filename=None, *args, **kwargs):
+    def _is_valid(cls, *args, cparam_filename=None, **kwargs):
         output_dir = args[0]
         header_filename = os.path.join(output_dir, "Header")
         # boxlib datasets are always directories, and
@@ -701,10 +702,7 @@ class BoxlibDataset(Dataset):
             # Further checks are performed on subclasses.
             return True
 
-        if cparam_filename is None:
-            cparam_filename = (
-                signature(cls.__init__).parameters["cparam_filename"].default
-            )
+        cparam_filename = cparam_filename or cls._default_cparam_filename
         cparam_filepath = cls._lookup_cparam_filepath(output_dir, cparam_filename)
 
         if cparam_filepath is None:
@@ -1028,11 +1026,12 @@ class OrionDataset(BoxlibDataset):
 
     _index_class = OrionHierarchy
     _subtype_keyword = "hyp."
+    _default_cparam_filename = "inputs"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="inputs",
+        cparam_filename=None,
         fparam_filename="probin",
         dataset_type="orion_native",
         storage_filename=None,
@@ -1079,11 +1078,12 @@ class CastroDataset(BoxlibDataset):
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
     _subtype_keyword = "castro"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1156,11 +1156,12 @@ class MaestroDataset(BoxlibDataset):
 
     _field_info_class = MaestroFieldInfo
     _subtype_keyword = "maestro"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1245,11 +1246,12 @@ class NyxDataset(BoxlibDataset):
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
     _subtype_keyword = "nyx"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1518,11 +1520,12 @@ class WarpXDataset(BoxlibDataset):
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
     _subtype_keyword = "warpx"
+    _default_cparam_filename = "warpx_job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="warpx_job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1600,11 +1603,12 @@ class AMReXDataset(BoxlibDataset):
 
     _index_class = AMReXHierarchy
     _subtype_keyword = "amrex"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
