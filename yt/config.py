@@ -111,8 +111,11 @@ class YTConfig:
             defaults = {}
         self.config_root = ConfigNode(None)
 
-    def get(self, section, *keys):
-        return self.config_root.get_leaf(section, *keys)
+    def get(self, section, *keys, callback=None, **kwargs):
+        if callback is None:
+            callback = lambda leaf: leaf.value  # noqa: E731
+
+        return self.config_root.get_leaf(section, *keys, callback=callback)
 
     def update(self, new_values, metadata=None):
         if metadata is None:

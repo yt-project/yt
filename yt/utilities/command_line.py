@@ -797,9 +797,14 @@ class YTHubRegisterCmd(YTCommand):
             import requests
         except ImportError as e:
             raise YTCommandRequiresModule("requests") from e
-        if ytcfg.get("yt", "hub_api_key") != "":
+        hub_api_key, config_file = ytcfg.get(
+            "yt",
+            "hub_api_key",
+            callback=lambda leaf: (leaf.value, leaf.extraData.get("source", None)),
+        )
+        if hub_api_key != "":
             print("You seem to already have an API key for the hub in ")
-            print(f"{GLOBAL_CONFIG_FILE} . Delete this if you want to force a ")
+            print(f"{config_file} . Delete this if you want to force a ")
             print("new user registration.")
             sys.exit()
         print("Awesome!  Let's start by registering a new user for you.")
@@ -874,7 +879,7 @@ class YTHubRegisterCmd(YTCommand):
         apiKey = req.json()["key"]
 
         print("Storing API key in configuration file")
-        set_config("yt", "hub_api_key", apiKey)
+        set_config("yt", "hub_api_key", apiKey, GLOBAL_CONFIG_FILE)
 
         print()
         print("SUCCESS!")
