@@ -6,7 +6,7 @@ from yt.testing import assert_array_less, fake_random_ds
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "loglevel"] = "50"
+    ytcfg["yt", "loglevel"] = 50
     ytcfg["yt", "internals", "withintesting"] = True
 
 
