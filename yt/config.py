@@ -1,6 +1,7 @@
 import os
 import sys
 import warnings
+from itertools import chain
 from pathlib import Path
 
 import toml
@@ -186,11 +187,10 @@ ytcfg.update(ytcfg_defaults, metadata={"source": "defaults"})
 if os.path.exists(GLOBAL_CONFIG_FILE):
     ytcfg.read(GLOBAL_CONFIG_FILE)
 
-cwd = Path.cwd()
-while cwd.parent != cwd:
-    cfg_file = cwd / "yt.toml"
+cwd = Path.cwd().resolve()
+for folder in chain([cwd], cwd.parents):
+    cfg_file = folder / "yt.toml"
     if cfg_file.exists():
         ytcfg.read(cfg_file)
         LOCAL_CONFIG_FILE = str(cfg_file)
         break
-    cwd = cwd.parent
