@@ -1,5 +1,6 @@
-import yt
 import collections
+
+import yt
 
 yt.enable_parallelism()
 
