@@ -14,7 +14,7 @@ from yt.utilities.cosmology import Cosmology
 
 fields, units = [], []
 
-for fname, (code_units, aliases, dn) in StreamFieldInfo.known_other_fields:
+for fname, (code_units, _aliases, _dn) in StreamFieldInfo.known_other_fields:
     fields.append(("gas", fname))
     units.append(code_units)
 base_ds = fake_random_ds(4, fields=fields, units=units)
