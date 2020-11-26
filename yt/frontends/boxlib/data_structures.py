@@ -689,33 +689,17 @@ class BoxlibDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, *args, **kwargs):
-        # fill our args
         output_dir = args[0]
         header_filename = os.path.join(output_dir, "Header")
         # boxlib datasets are always directories, and
         # We *know* it's not boxlib if Header doesn't exist.
-        return os.path.exists(header_filename)
-
-    @classmethod
-    def _lookup_cparam_filepath(cls, output_dir, cparam_filename):
-        lookup_table = [
-            os.path.abspath(os.path.join(p, cparam_filename))
-            for p in (output_dir, os.path.dirname(output_dir))
-        ]
-        found = [os.path.exists(file) for file in lookup_table]
-
-        if not any(found):
-            return None
-
-        return lookup_table[found.index(True)]
-
-    @classmethod
-    def _is_valid_subtype(cls, *args, **kwargs):
-        # this is used by derived classes
-        output_dir = args[0]
-
-        if not BoxlibDataset._is_valid(output_dir):
+        if not os.path.exists(header_filename):
             return False
+
+        if cls is BoxlibDataset:
+            # Stop checks here for the boxlib base class.
+            # Further checks are performed on subclasses.
+            return True
 
         try:
             cparam_filename = kwargs.get("cparam_filename") or args[1]
@@ -730,6 +714,19 @@ class BoxlibDataset(Dataset):
 
         lines = [line.lower() for line in open(cparam_filepath).readlines()]
         return any(cls._subtype_keyword in line for line in lines)
+
+    @classmethod
+    def _lookup_cparam_filepath(cls, output_dir, cparam_filename):
+        lookup_table = [
+            os.path.abspath(os.path.join(p, cparam_filename))
+            for p in (output_dir, os.path.dirname(output_dir))
+        ]
+        found = [os.path.exists(file) for file in lookup_table]
+
+        if not any(found):
+            return None
+
+        return lookup_table[found.index(True)]
 
     def _parse_parameter_file(self):
         """
@@ -1055,10 +1052,6 @@ class OrionDataset(BoxlibDataset):
             unit_system=unit_system,
         )
 
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
-
 
 class CastroHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type="castro_native"):
@@ -1109,10 +1102,6 @@ class CastroDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(CastroDataset, self)._parse_parameter_file()
@@ -1190,10 +1179,6 @@ class MaestroDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(MaestroDataset, self)._parse_parameter_file()
@@ -1283,10 +1268,6 @@ class NyxDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(NyxDataset, self)._parse_parameter_file()
@@ -1565,10 +1546,6 @@ class WarpXDataset(BoxlibDataset):
             unit_system,
         )
 
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
-
     def _parse_parameter_file(self):
         super(WarpXDataset, self)._parse_parameter_file()
         jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
@@ -1655,7 +1632,3 @@ class AMReXDataset(BoxlibDataset):
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)
             self.particle_types_raw = self.particle_types
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
