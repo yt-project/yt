@@ -76,29 +76,30 @@ if not os.path.exists(CONFIG_DIR):
         warnings.warn("unable to create yt config directory")
 
 OLD_CONFIG_FILE = os.path.join(CONFIG_DIR, "ytrc")
-CURRENT_CONFIG_FILE = os.path.join(CONFIG_DIR, "yt.toml")
+GLOBAL_CONFIG_FILE = os.path.join(CONFIG_DIR, "yt.toml")
+LOCAL_CONFIG_FILE = None
 
 if os.path.exists(OLD_CONFIG_FILE):
-    if os.path.exists(CURRENT_CONFIG_FILE):
+    if os.path.exists(GLOBAL_CONFIG_FILE):
         msg = (
             "The configuration file {} is deprecated. "
             "Please manually remove it to suppress this warning."
         )
-        warnings.warn(msg.format(OLD_CONFIG_FILE, CURRENT_CONFIG_FILE))
+        warnings.warn(msg.format(OLD_CONFIG_FILE, GLOBAL_CONFIG_FILE))
     else:
         msg = (
             "The configuration file {} is deprecated. "
             "Please migrate your config to {} by running: "
             "'yt config migrate'"
         )
-        warnings.warn(msg.format(OLD_CONFIG_FILE, CURRENT_CONFIG_FILE))
+        warnings.warn(msg.format(OLD_CONFIG_FILE, GLOBAL_CONFIG_FILE))
         sys.exit(1)
 
 
-if not os.path.exists(CURRENT_CONFIG_FILE):
+if not os.path.exists(GLOBAL_CONFIG_FILE):
     cfg = {"yt": {}}
     try:
-        with open(CURRENT_CONFIG_FILE, mode="w") as fd:
+        with open(GLOBAL_CONFIG_FILE, mode="w") as fd:
             toml.dump(cfg, fd)
     except IOError:
         warnings.warn("unable to write new config file")
@@ -179,13 +180,14 @@ class YTConfig:
 ytcfg = YTConfig()
 ytcfg.update(ytcfg_defaults, metadata={"source": "defaults"})
 
-if os.path.exists(CURRENT_CONFIG_FILE):
-    ytcfg.read(CURRENT_CONFIG_FILE)
+if os.path.exists(GLOBAL_CONFIG_FILE):
+    ytcfg.read(GLOBAL_CONFIG_FILE)
 
 cwd = Path(".").absolute()
 while cwd.parent != cwd:
     cfg_file = cwd / "yt.toml"
     if cfg_file.exists():
         ytcfg.read(cfg_file)
+        LOCAL_CONFIG_FILE = str(cfg_file)
         break
     cwd = cwd.parent

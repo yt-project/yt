@@ -7,7 +7,7 @@ from io import StringIO
 
 import yt.config
 import yt.utilities.command_line
-from yt.config import CURRENT_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig
+from yt.config import GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig
 
 _TEST_PLUGIN = "_test_plugin.py"
 # NOTE: the normalization of the crazy camel-case will be checked
@@ -42,18 +42,18 @@ class SysExitException(Exception):
 
 
 def setUpModule():
-    for cfgfile in (CURRENT_CONFIG_FILE, OLD_CONFIG_FILE):
+    for cfgfile in (GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE):
         if os.path.exists(cfgfile):
             os.rename(cfgfile, cfgfile + ".bak_test")
 
-            if cfgfile == CURRENT_CONFIG_FILE:
+            if cfgfile == GLOBAL_CONFIG_FILE:
                 yt.utilities.configure.CONFIG = YTConfig()
                 if not yt.utilities.configure.CONFIG.has_section("yt"):
                     yt.utilities.configure.CONFIG.add_section("yt")
 
 
 def tearDownModule():
-    for cfgfile in (CURRENT_CONFIG_FILE, OLD_CONFIG_FILE):
+    for cfgfile in (GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE):
         if os.path.exists(cfgfile + ".bak_test"):
             os.rename(cfgfile + ".bak_test", cfgfile)
 
@@ -103,7 +103,7 @@ class TestYTConfigCommands(TestYTConfig):
         def remove_spaces_and_breaks(s):
             return "".join(s.split())
 
-        self.assertFalse(os.path.exists(CURRENT_CONFIG_FILE))
+        self.assertFalse(os.path.exists(GLOBAL_CONFIG_FILE))
 
         info = self._runYTConfig(["--help"])
         self.assertEqual(info["rc"], 0)
@@ -137,8 +137,8 @@ class TestYTConfigCommands(TestYTConfig):
         self._testKeyTypeError("foo.bar", "foo", "bar", expect_error=False)
 
     def tearDown(self):
-        if os.path.exists(CURRENT_CONFIG_FILE):
-            os.remove(CURRENT_CONFIG_FILE)
+        if os.path.exists(GLOBAL_CONFIG_FILE):
+            os.remove(GLOBAL_CONFIG_FILE)
 
 
 class TestYTConfigMigration(TestYTConfig):
@@ -149,27 +149,27 @@ class TestYTConfigMigration(TestYTConfig):
         with open(OLD_CONFIG_FILE, "w") as fh:
             fh.write(_DUMMY_CFG_INI)
 
-        if os.path.exists(CURRENT_CONFIG_FILE):
-            os.remove(CURRENT_CONFIG_FILE)
+        if os.path.exists(GLOBAL_CONFIG_FILE):
+            os.remove(GLOBAL_CONFIG_FILE)
 
     def tearDown(self):
-        if os.path.exists(CURRENT_CONFIG_FILE):
-            os.remove(CURRENT_CONFIG_FILE)
+        if os.path.exists(GLOBAL_CONFIG_FILE):
+            os.remove(GLOBAL_CONFIG_FILE)
         if os.path.exists(OLD_CONFIG_FILE + ".bak"):
             os.remove(OLD_CONFIG_FILE + ".bak")
 
     def testConfigMigration(self):
-        self.assertFalse(os.path.exists(CURRENT_CONFIG_FILE))
+        self.assertFalse(os.path.exists(GLOBAL_CONFIG_FILE))
         self.assertTrue(os.path.exists(OLD_CONFIG_FILE))
 
         info = self._runYTConfig(["migrate"])
         self.assertEqual(info["rc"], 0)
 
-        self.assertTrue(os.path.exists(CURRENT_CONFIG_FILE))
+        self.assertTrue(os.path.exists(GLOBAL_CONFIG_FILE))
         self.assertFalse(os.path.exists(OLD_CONFIG_FILE))
         self.assertTrue(os.path.exists(OLD_CONFIG_FILE + ".bak"))
 
-        with open(CURRENT_CONFIG_FILE, mode="r") as fh:
+        with open(GLOBAL_CONFIG_FILE, mode="r") as fh:
             new_cfg = fh.read()
 
         self.assertEqual(new_cfg, _DUMMY_CFG_TOML)

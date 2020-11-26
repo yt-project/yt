@@ -17,7 +17,7 @@ import numpy as np
 from more_itertools import always_iterable
 from tqdm import tqdm
 
-from yt.config import CURRENT_CONFIG_FILE, ytcfg
+from yt.config import GLOBAL_CONFIG_FILE, ytcfg
 from yt.funcs import (
     download_file,
     enable_plugins,
@@ -799,7 +799,7 @@ class YTHubRegisterCmd(YTCommand):
             raise YTCommandRequiresModule("requests") from e
         if ytcfg.get("yt", "hub_api_key") != "":
             print("You seem to already have an API key for the hub in ")
-            print(f"{CURRENT_CONFIG_FILE} . Delete this if you want to force a ")
+            print(f"{GLOBAL_CONFIG_FILE} . Delete this if you want to force a ")
             print("new user registration.")
             sys.exit()
         print("Awesome!  Let's start by registering a new user for you.")

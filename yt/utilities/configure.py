@@ -3,10 +3,10 @@ import configparser
 import os
 import sys
 
-from yt.config import CURRENT_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig, ytcfg_defaults
+from yt.config import LOCAL_CONFIG_FILE  # noqa: F401
+from yt.config import GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig, ytcfg_defaults
 
 CONFIG = YTConfig()
-CONFIG.read(CURRENT_CONFIG_FILE)
 
 
 def _cast_bool_helper(value):
@@ -36,20 +36,17 @@ def get_config(section, option):
     return CONFIG.get(section, *option_path, option_name)
 
 
-def set_config(section, option, value):
+def set_config(section, option, value, config_file):
     if not CONFIG.has_section(section):
         CONFIG.add_section(section)
 
     option_path = option.split(".")
     CONFIG.set(section, *option_path, _cast_value_helper(value))
-    write_config()
+    write_config(config_file)
 
 
-def write_config(fd=None):
-    if fd is None:
-        CONFIG.write(CURRENT_CONFIG_FILE)
-    else:
-        CONFIG.write(fd)
+def write_config(fd):
+    CONFIG.write(fd)
 
 
 def migrate_config():
@@ -84,7 +81,7 @@ def migrate_config():
 
     CONFIG.update(config_as_dict)
 
-    print(f"Writing a new config file to: {CURRENT_CONFIG_FILE}")
+    print(f"Writing a new config file to: {GLOBAL_CONFIG_FILE}")
     write_config()
     print(f"Backing up the old config file: {OLD_CONFIG_FILE}.bak")
     os.rename(OLD_CONFIG_FILE, OLD_CONFIG_FILE + ".bak")
@@ -97,6 +94,7 @@ def rm_config(section, option):
 
 
 def main():
+    global LOCAL_CONFIG_FILE, GLOBAL_CONFIG_FILE
     parser = argparse.ArgumentParser(
         description="Get and set configuration values for yt"
     )
@@ -120,18 +118,34 @@ def main():
     )
     rm_parser.add_argument("option", help="The option to remove.")
 
+    for p in (set_parser, get_parser, rm_parser):
+        p.add_argument(
+            "--local", action="store_true", help="Store in a local configuration file"
+        )
+
     args = parser.parse_args()
+
+    if "local" in args and args.local:
+        if LOCAL_CONFIG_FILE is None:
+            LOCAL_CONFIG_FILE = os.path.abspath(os.path.join(".", "yt.toml"))
+            with open(LOCAL_CONFIG_FILE, "w") as f:
+                f.write("[yt]")
+        config_file = LOCAL_CONFIG_FILE
+    else:
+        config_file = GLOBAL_CONFIG_FILE
+
+    CONFIG.read(config_file)
 
     if args.cmd == "get":
         print(get_config(args.section, args.option))
     elif args.cmd == "set":
-        set_config(args.section, args.option, args.value)
+        set_config(args.section, args.option, args.value, config_file)
     elif args.cmd == "list":
         write_config(sys.stdout)
     elif args.cmd == "migrate":
         migrate_config()
     elif args.cmd == "rm":
-        rm_config(args.section, args.option)
+        rm_config(args.section, args.option, config_file)
 
 
 if __name__ == "__main__":
