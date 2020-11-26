@@ -84,6 +84,19 @@ class TestYTConfig(unittest.TestCase):
         info = self._runYTConfig(["rm", "yt", key])
         self.assertEqual(info["rc"], 0)
 
+    def _testKeyTypeError(self, key, val1, val2, expect_error):
+        info = self._runYTConfig(["set", "yt", key, str(val1)])
+        self.assertEqual(info["rc"], 0)
+
+        if expect_error:
+            with self.assertRaises(TypeError):
+                info = self._runYTConfig(["set", "yt", key, str(val2)])
+        else:
+            info = self._runYTConfig(["set", "yt", key, str(val2)])
+
+        info = self._runYTConfig(["rm", "yt", key])
+        self.assertEqual(info["rc"], 0)
+
 
 class TestYTConfigCommands(TestYTConfig):
     def testConfigCommands(self):
@@ -114,6 +127,14 @@ class TestYTConfigCommands(TestYTConfig):
 
         with self.assertRaises(KeyError):
             self._runYTConfig(["get", "yt", "foo"])
+
+        # Check TypeErrors are raised when changing the type of an entry
+        self._testKeyTypeError("foo.bar", "test", 10, expect_error=True)
+        self._testKeyTypeError("foo.bar", "test", False, expect_error=True)
+
+        # Check no type error are raised when *not* changing the type
+        self._testKeyTypeError("foo.bar", 10, 20, expect_error=False)
+        self._testKeyTypeError("foo.bar", "foo", "bar", expect_error=False)
 
     def tearDown(self):
         if os.path.exists(CURRENT_CONFIG_FILE):
