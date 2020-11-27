@@ -802,7 +802,7 @@ class YTHubRegisterCmd(YTCommand):
             "hub_api_key",
             callback=lambda leaf: (leaf.value, leaf.extraData.get("source", None)),
         )
-        if hub_api_key != "":
+        if hub_api_key:
             print("You seem to already have an API key for the hub in ")
             print(f"{config_file} . Delete this if you want to force a ")
             print("new user registration.")
