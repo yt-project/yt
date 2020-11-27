@@ -83,8 +83,9 @@ if os.path.exists(OLD_CONFIG_FILE):
     if os.path.exists(GLOBAL_CONFIG_FILE):
         msg = (
             f"The configuration file {OLD_CONFIG_FILE} is deprecated in "
-            f"favor of {GLOBAL_CONFIG_FILE}. Please manually remove it to "
-            "silence this warning."
+            f"favor of {GLOBAL_CONFIG_FILE}. Currently, both are present. "
+            "Please manually remove the deprecated one to silence "
+            "this warning."
         )
         warnings.warn(msg)
     else:
