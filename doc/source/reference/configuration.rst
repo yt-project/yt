@@ -13,7 +13,7 @@ The Configuration
 -----------------
 
 The configuration is stored in simple text files (in the `toml <https://github.com/toml-lang/toml>`_ format).
-They allow to set internal yt variables to custom default values to be used in future sessions.
+The files allow to set internal yt variables to custom default values to be used in future sessions.
 The configuration can either be stored :ref:`globally<Global Configuration>` or :ref:`locally<Local Configuration>`.
 
 

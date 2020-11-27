@@ -341,18 +341,20 @@ This will print the list of available subcommands:
 
 .. config_help:: yt config
 
+
 Since yt version 4, the configuration file is located in (``$XDG_HOME_CONFIG/yt/yt.toml``) adhering to the
 `XDG Base Directory Specification
 <https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_.
-The previous configuration file (``$XDG_HOME_CONFIG/yt/ytrc``) has been deprecated.. In order to perform an
-automatic migration of the old config, you are encouraged to run:
+The old configuration file (``$XDG_HOME_CONFIG/yt/ytrc``) is deprecated.
+In order to perform an automatic migration of the old config, you are
+encouraged to run:
 
 .. code-block:: bash
 
    yt config migrate
 
-that will convert your old config file to the toml format store a backup
-copy as ``$XDG_HOME_CONFIG/yt/ytrc.bak``.
+that will convert your old config file to the toml format. The original file
+will moved to ``$XDG_HOME_CONFIG/yt/ytrc.bak``.
 
 Examples
 ++++++++
