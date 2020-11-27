@@ -184,15 +184,17 @@ class YTConfig:
 
         return file_names_read
 
-    def write(self, fd):
+    def write(self, file_handler):
         value = self.config_root.as_dict()
         config_as_str = toml.dumps(value)
 
         try:
-            fd.write(config_as_str)
+            # Assuming file_handler has a write attribute
+            file_handler.write(config_as_str)
         except AttributeError:
-            with open(fd, mode="w") as fdd:
-                fdd.write(config_as_str)
+            # Otherwise we expect a path to a file
+            with open(file_handler, mode="w") as fh:
+                fh.write(config_as_str)
 
 
 # Walk the tree up until we find a config file
