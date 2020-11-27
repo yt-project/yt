@@ -8,16 +8,16 @@ class ConfigNode:
         self.children[key] = child
         child.parent = self
 
-    def update(self, other, extraData=None):
-        def _helper(d, keys):
-            for key, val in d.items():
+    def update(self, other, extra_data=None):
+        def _recursive_upsert(other_dict, keys=[]):
+            for key, val in other_dict.items():
                 new_keys = keys + [key]
                 if isinstance(val, dict):
-                    _helper(val, new_keys)
+                    _recursive_upsert(val, new_keys)
                 else:
-                    self.upsert_from_list(new_keys, val, extraData)
+                    self.upsert_from_list(new_keys, val, extra_data)
 
-        _helper(other, [])
+        _recursive_upsert(other)
 
     def get_child(self, key, constructor=None):
         if key in self.children:
