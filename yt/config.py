@@ -155,7 +155,7 @@ class YTConfig:
         if metadata is None:
             metadata = {"source": "runtime"}
         self.config_root.upsert_from_list(
-            [section] + list(keys), value, extraData=metadata
+            [section] + list(keys), value, extra_data=metadata
         )
 
     def __setitem__(self, args, value):
