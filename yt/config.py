@@ -102,7 +102,7 @@ if not os.path.exists(GLOBAL_CONFIG_FILE):
     try:
         with open(GLOBAL_CONFIG_FILE, mode="w") as fd:
             toml.dump(cfg, fd)
-    except IOError:
+    except OSError:
         warnings.warn("unable to write new config file")
 
 
