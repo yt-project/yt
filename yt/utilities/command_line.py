@@ -1630,10 +1630,10 @@ class YTConfigLocalConfigMixin:
         if "local" in args and args.local:
             if LOCAL_CONFIG_FILE is None:
                 LOCAL_CONFIG_FILE = os.path.join(
-                    os.path.abspath(os.path.curdir()), "yt.toml"
+                    os.path.abspath(os.path.curdir), "yt.toml"
                 )
                 with open(LOCAL_CONFIG_FILE, "w") as f:
-                    f.write("[yt]")
+                    f.write("[yt]\n")
             config_file = LOCAL_CONFIG_FILE
         else:
             config_file = GLOBAL_CONFIG_FILE
