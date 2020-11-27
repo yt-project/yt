@@ -159,8 +159,9 @@ class YTConfig:
             [section] + list(keys), value, extraData=metadata
         )
 
-    def __setitem__(self, keys, value):
-        self.set(*keys, value, metadata=None)
+    def __setitem__(self, args, value):
+        section, *keys = args
+        self.set(section, *keys, value, metadata=None)
 
     def __getitem__(self, key):
         section, *keys = key
