@@ -34,22 +34,24 @@ class ConfigNode:
     def remove_child(self, key):
         self.children.pop(key)
 
-    def upsert_from_list(self, keys, value, extraData=None):
+    def upsert_from_list(self, keys, value, extra_data=None):
         key, *next_keys = keys
         if len(next_keys) == 0:  # reach the end of the upsert
             leaf = self.get_child(
                 key,
-                lambda: ConfigLeaf(key, parent=self, value=value, extraData=extraData),
+                lambda: ConfigLeaf(
+                    key, parent=self, value=value, extra_data=extra_data
+                ),
             )
             leaf.value = value
-            leaf.extraData = extraData
+            leaf.extra_data = extra_data
             if not isinstance(leaf, ConfigLeaf):
                 raise RuntimeError(f"Expected a ConfigLeaf, got {leaf}!")
         else:
             next_node = self.get_child(key, lambda: ConfigNode(key, parent=self))
             if not isinstance(next_node, ConfigNode):
                 raise RuntimeError(f"Expected a ConfigNode, got {next_node}!")
-            next_node.upsert_from_list(next_keys, value, extraData)
+            next_node.upsert_from_list(next_keys, value, extra_data)
 
     def get_from_list(self, key_list):
         next, *key_list_remainder = key_list
@@ -137,11 +139,11 @@ class ConfigNode:
 
 
 class ConfigLeaf:
-    def __init__(self, key, parent: ConfigNode, value, extraData=None):
+    def __init__(self, key, parent: ConfigNode, value, extra_data=None):
         self.key = key  # the name of the config leaf
         self._value = value
         self.parent = parent
-        self.extraData = extraData
+        self.extra_data = extra_data
 
     def serialize(self):
         return self.value
@@ -171,7 +173,7 @@ class ConfigLeaf:
                 "Tried to assign a value of type "
                 f"{type(new_value)}, expected type {type(self.value)}."
             )
-            source = self.extraData.get("source", None)
+            source = self.extra_data.get("source", None)
             if source:
                 msg += f"\nThis entry was last modified in {source}."
             raise TypeError(msg)

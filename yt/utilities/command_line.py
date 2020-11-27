@@ -800,7 +800,7 @@ class YTHubRegisterCmd(YTCommand):
         hub_api_key, config_file = ytcfg.get(
             "yt",
             "hub_api_key",
-            callback=lambda leaf: (leaf.value, leaf.extraData.get("source", None)),
+            callback=lambda leaf: (leaf.value, leaf.extra_data.get("source", None)),
         )
         if hub_api_key:
             print(
