@@ -203,7 +203,7 @@ ytcfg.update(ytcfg_defaults, metadata={"source": "defaults"})
 if os.path.exists(GLOBAL_CONFIG_FILE):
     ytcfg.read(GLOBAL_CONFIG_FILE)
 
-cwd = Path.cwd().resolve()
+cwd = Path.cwd()
 for folder in chain([cwd], cwd.parents):
     cfg_file = folder / "yt.toml"
     if cfg_file.exists():
