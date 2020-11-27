@@ -123,11 +123,11 @@ class YTConfig:
         fallback = kwargs.pop("fallback", None)
         try:
             return self.config_root.get_deepest_leaf(section, *keys)
-        except KeyError as e:
+        except KeyError as err:
             if use_fallback:
                 return fallback
             else:
-                raise e
+                raise err
 
     def update(self, new_values, metadata=None):
         if metadata is None:
@@ -147,6 +147,9 @@ class YTConfig:
     def remove_section(self, section):
         if self.has_section(section):
             self.config_root.remove_child(section)
+            return True
+        else:
+            return False
 
     def set(self, *args, metadata=None):
         section, *keys, value = args
