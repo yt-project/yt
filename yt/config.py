@@ -1,5 +1,4 @@
 import os
-import sys
 import warnings
 from itertools import chain
 from pathlib import Path
@@ -83,18 +82,18 @@ LOCAL_CONFIG_FILE = None
 if os.path.exists(OLD_CONFIG_FILE):
     if os.path.exists(GLOBAL_CONFIG_FILE):
         msg = (
-            "The configuration file {} is deprecated. "
-            "Please manually remove it to suppress this warning."
+            f"The configuration file {OLD_CONFIG_FILE} is deprecated in "
+            f"favor of {GLOBAL_CONFIG_FILE}. Please manually remove it to "
+            "silence this warning."
         )
-        warnings.warn(msg.format(OLD_CONFIG_FILE, GLOBAL_CONFIG_FILE))
+        warnings.warn(msg)
     else:
         msg = (
-            "The configuration file {} is deprecated. "
-            "Please migrate your config to {} by running: "
+            f"The configuration file {OLD_CONFIG_FILE} is deprecated. "
+            f"Please migrate your config to {GLOBAL_CONFIG_FILE} by running: "
             "'yt config migrate'"
         )
-        warnings.warn(msg.format(OLD_CONFIG_FILE, GLOBAL_CONFIG_FILE))
-        sys.exit(1)
+        raise SystemExit(msg)
 
 
 if not os.path.exists(GLOBAL_CONFIG_FILE):
