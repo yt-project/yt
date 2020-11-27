@@ -9,7 +9,7 @@ class ConfigNode:
         child.parent = self
 
     def update(self, other, extra_data=None):
-        def _recursive_upsert(other_dict, keys=[]):
+        def _recursive_upsert(other_dict, keys):
             for key, val in other_dict.items():
                 new_keys = keys + [key]
                 if isinstance(val, dict):
@@ -17,7 +17,7 @@ class ConfigNode:
                 else:
                     self.upsert_from_list(new_keys, val, extra_data)
 
-        _recursive_upsert(other)
+        _recursive_upsert(other, keys=[])
 
     def get_child(self, key, constructor=None):
         if key in self.children:
