@@ -1174,6 +1174,7 @@ class YTArbitraryGrid(YTCoveringGrid):
     """
 
     _spatial = True
+    _always_grid_fields = True
     _type_name = "arbitrary_grid"
     _con_args = ("left_edge", "right_edge", "ActiveDimensions")
     _container_fields = (
