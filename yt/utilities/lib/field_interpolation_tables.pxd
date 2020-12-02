@@ -11,8 +11,11 @@ Field Interpolation Tables
 
 cimport cython
 cimport numpy as np
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
 from libc.stdlib cimport malloc
+
+from yt.utilities.lib.fp_utils cimport fabs, fclip, fmax, fmin, iclip, imax, imin
+
+
 cdef extern from "<cmath>" namespace "std":
     bint isnormal(double x) nogil
 
