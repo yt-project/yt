@@ -614,7 +614,9 @@ class YTDataContainer:
         ptypes = []
         ftypes = {}
         for field in data_fields:
-            if field in self._container_fields or getattr(self, "_always_grid_fields", False):
+            if field in self._container_fields or getattr(
+                self, "_always_grid_fields", False
+            ):
                 ftypes[field] = "grid"
                 need_grid_positions = True
             elif self.ds.field_info[field].sampling_type == "particle":
