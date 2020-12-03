@@ -2,7 +2,6 @@
 # distutils: extra_compile_args = OMP_ARGS
 # distutils: extra_link_args = OMP_ARGS
 # distutils: libraries = STD_LIBS
-# distutils: sources = FIXED_INTERP
 # distutils: language = c++
 """
 Image sampler definitions
@@ -609,3 +608,51 @@ cdef class LightSourceRenderSampler(ImageSampler):
         free(self.vra.light_rgba)
         free(self.vra.fits)
         free(self.vra)
+
+@cython.boundscheck(False)
+@cython.wraparound(False)
+@cython.cdivision(True)
+def run_interpolation_routines(str interpolate_kind, int N,
+                               np.ndarray[np.float64_t, ndim=3] sample_array,
+                               np.ndarray[np.uint64_t, ndim=2] index_array,
+                               np.ndarray[np.float64_t, ndim=2] offset_array):
+    # This expects an interpolate_kind string which is "fast", "offset",
+    # "trilinear" and "gradient", corresponding to each of the available
+    # routines.
+    # We also expect that index_array and offset_array are both the same shape,
+    # of (M,3), where M is just some number of values that are randomly
+    # generated.
+    cdef int i, j, k
+    cdef int ds[3]
+    cdef int ci[3]
+    cdef np.float64_t dp[3]
+    cdef np.float64_t *data = <np.float64_t*> sample_array.data
+    cdef np.float64_t v
+    for i in range(3):
+        ds[i] = sample_array.shape[i] - 2
+    if index_array.shape[1] != 3 or offset_array.shape[1] != 3 or \
+            offset_array.shape[0] != index_array.shape[0]:
+        print("Bad offset_array shape", offset_array.shape[0], offset_array.shape[1],
+              index_array.shape[0], index_array.shape[1])
+        raise RuntimeError
+    cdef np.uint64_t nbad = 0
+    cdef np.uint64_t ngood = 0
+    cdef np.ndarray[np.float64_t, ndim=1] output = np.zeros(index_array.shape[0], "float64")
+    if interpolate_kind == "fast":
+        for i in range(N):
+            for j in range(index_array.shape[0]):
+                for k in range(3):
+                    ci[k] = index_array[j, k]
+                    dp[k] = offset_array[j, k]
+                v = fast_interpolate(ds, ci, dp, data)
+                if i == 0:
+                    output[j] = v
+                else:
+                    if output[j] != v:
+                        print(v, output[j], ci[0], ci[1], ci[2], dp[0], dp[1], dp[2])
+                        nbad += 1
+                    else:
+                        ngood += 1
+    else:
+        raise KeyError
+    return ngood, nbad
