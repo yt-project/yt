@@ -59,7 +59,8 @@ def stdchannel_redirected(stdchannel, dest_filename):
 
 
 def check_for_openmp():
-    """Returns True if local setup supports OpenMP, False otherwise
+    """Returns OpenMP compiler and linker flags if local setup supports
+    OpenMP or [], [] otherwise
 
     Code adapted from astropy_helpers, originally written by Tom
     Robitaille and Curtis McCully.
@@ -72,15 +73,17 @@ def check_for_openmp():
     tmp_dir = tempfile.mkdtemp()
     start_dir = os.path.abspath(".")
 
+    # TODO: test more known compilers:
+    # MinGW, AppleClang with libomp, MSVC, ICC, XL, PGI, ...
     if os.name == "nt":
         # TODO: make this work with mingw
         # AFAICS there's no easy way to get the compiler distutils
         # will be using until compilation actually happens
-        compile_flag = "-openmp"
-        link_flag = ""
+        compile_flags = ["-openmp"]
+        link_flags = [""]
     else:
-        compile_flag = "-fopenmp"
-        link_flag = "-fopenmp"
+        compile_flags = ["-fopenmp"]
+        link_flags = ["-fopenmp"]
 
     try:
         os.chdir(tmp_dir)
@@ -93,12 +96,12 @@ def check_for_openmp():
         # Compile, link, and run test program
         with stdchannel_redirected(sys.stderr, os.devnull):
             ccompiler.compile(
-                ["test_openmp.c"], output_dir="objects", extra_postargs=[compile_flag]
+                ["test_openmp.c"], output_dir="objects", extra_postargs=compile_flags
             )
             ccompiler.link_executable(
                 glob.glob(os.path.join("objects", "*")),
                 "test_openmp",
-                extra_postargs=[link_flag],
+                extra_postargs=link_flags,
             )
             output = (
                 subprocess.check_output("./test_openmp")
@@ -136,7 +139,10 @@ def check_for_openmp():
             "extensions will be compiled without parallel support"
         )
 
-    return using_openmp
+    if using_openmp:
+        return compile_flags, link_flags
+    else:
+        return [], []
 
 
 def check_for_pyembree(std_libs):

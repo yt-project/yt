@@ -762,7 +762,7 @@ cdef class OctreeContainer:
 
         return np.asarray(cell_inds)
 
-    def fill_octcellindex_neighbours(self, SelectorObject selector, int num_octs = -1, domain_id = -1):
+    def fill_octcellindex_neighbours(self, SelectorObject selector, int num_octs=-1, int domain_id=-1, int n_ghost_zones=1):
         """Compute the oct and cell indices of all the cells within all selected octs, extended
         by one cell in all directions (for ghost zones computations).
 
@@ -797,7 +797,7 @@ cdef class OctreeContainer:
         cell_inds = np.full(num_octs*4**3, 8, dtype=np.uint8)
         oct_inds = np.full(num_octs*4**3, -1, dtype=np.int64)
 
-        visitor = NeighbourCellIndexVisitor(self, -1)
+        visitor = NeighbourCellIndexVisitor(self, -1, n_ghost_zones)
         visitor.cell_inds = cell_inds
         visitor.domain_inds = oct_inds
 
@@ -850,7 +850,7 @@ cdef class OctreeContainer:
     @cython.cdivision(True)
     def file_index_octs_with_ghost_zones(
             self, SelectorObject selector, int domain_id,
-            int num_cells = -1):
+            int num_cells=1, int n_ghost_zones=1):
         """Similar as file_index_octs, but returns the level, cell index,
         file index and domain of the neighbouring cells as well.
 
@@ -913,7 +913,7 @@ cdef class OctreeContainer:
         cell_inds = np.full(num_cells, 8, dtype="uint8")
         domains = np.full(num_cells, -1, dtype="int32")
 
-        visitor = NeighbourCellVisitor(self, -1)
+        visitor = NeighbourCellVisitor(self, -1, n_ghost_zones)
         # output: level, file_ind and cell_ind of the neighbouring cells
         visitor.levels = levels
         visitor.file_inds = file_inds

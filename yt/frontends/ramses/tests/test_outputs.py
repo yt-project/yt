@@ -5,6 +5,7 @@ import pytest
 
 import yt
 from yt.config import ytcfg
+from yt.fields.field_detector import FieldDetector
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 from yt.testing import (
