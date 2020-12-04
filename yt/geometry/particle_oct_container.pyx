@@ -1,5 +1,6 @@
 # distutils: include_dirs = LIB_DIR_EWAH
 # distutils: language = c++
+# distutils: extra_compile_args = CPP14_FLAG
 # distutils: libraries = STD_LIBS
 """
 Oct container tuned for Particles

@@ -154,17 +154,6 @@ Updating conda-forge and building wheels
 Before we finish the release, we need to generate new binary builds by updating
 yt's conda-forge feedstock and the yt-wheels repository.
 
-``conda-forge``
-+++++++++++++++
-
-Conda-forge packages for yt are managed via the yt feedstock, located at
-https://github.com/conda-forge/yt-feedstock. To update the feedstock, you will
-need to update the ``meta.yaml`` file located in the ``recipe`` folder in the
-root of the feedstock repository. Most likely you will only need to update the
-version number and the SHA256 hash of the tarball. If yt's dependencies change
-you may also need to update the recipe. Once you have updated the recipe,
-propose a pull request on github and merge it once all builds pass.
-
 Wheels and ``multibuild``
 +++++++++++++++++++++++++
 
@@ -187,19 +176,19 @@ yt's dependencies changed or if yt dropped or added support for a Python
 version. To generate new wheels you need to push the changes to GitHub. A good
 process to follow is to first submit a pull request to test the changes and make sure 
 the wheels can be built. Once they pass, you can merge the changes into master 
-and wait for the wheel files to be uploaded to http://wheels.scipy.org 
+and wait for the wheel files to be uploaded to
+https://anaconda.org/multibuild-wheels-staging/yt/files 
 (note that the wheels will not be uploaded until the changes have been 
 merged into master). Once the wheels are uploaded, download the
 wheel files for the release and copy them to the ``dist`` folder in the yt 
 repository so that they are sitting next to the source distribution 
 we created earlier. Here's a
-one-liner to download all of the wheels for the yt 3.5.1 release::
+one-liner to download all of the wheels for the yt 3.6.1 release::
 
-  $ wget -r --no-parent -A 'yt-3.5.1-*.whl' http://wheels.scipy.org/
-
+  $ wget -r -nd -A 'yt-3.6.1-*whl' https://anaconda.org/multibuild-wheels-staging/yt/files 
 
 Uploading to PyPI
-~~~~~~~~~~~~~~~~~
++++++++++++++++++
 
 To actually upload the release to the Python Package Index, you just need to
 issue the following command:
@@ -221,7 +210,31 @@ Britton Smith, Nathan Goldbaum, John ZuHone, Kacper Kowalik, and Madicken Munk.
 The yt package source distribution should be uploaded along with compiled 
 binary wheel packages for various platforms that we support.
 
+``conda-forge``
++++++++++++++++
 
-After the release is uploaded to PyPI, you should send out an announcement
+Conda-forge packages for yt are managed via the yt feedstock, located at
+https://github.com/conda-forge/yt-feedstock. When a release is pushed to PyPI a
+bot should detect a new version and issue a PR to the feedstock with the new
+version automatically. When this feedstock is updated, make sure that the
+SHA256 hash of the tarball matches the one you uploaded to dickenson and that
+the version number matches the one that is being released. 
+
+
+Should you need to update the feedstock manually, you will
+need to update the ``meta.yaml`` file located in the ``recipe`` folder in the
+root of the feedstock repository. Most likely you will only need to update the
+version number and the SHA256 hash of the tarball. If yt's dependencies change
+you may also need to update the recipe. Once you have updated the recipe,
+propose a pull request on github and merge it once all builds pass.
+
+
+Announcing
+~~~~~~~~~~
+
+After the release is uploaded to `PyPI <https://pypi.org/project/yt/#files>`_ and 
+`conda-forge <https://anaconda.org/conda-forge/yt>`_, 
+you should send out an announcement
 e-mail to the yt mailing lists as well as other possibly interested mailing
-lists for all but bugfix releases.
+lists for all but bugfix releases. 
+

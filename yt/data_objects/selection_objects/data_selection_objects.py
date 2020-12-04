@@ -40,6 +40,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _dimensionality = None
     _max_level = None
     _min_level = None
+    _derived_quantity_chunking = "io"
 
     def __init__(self, ds, field_parameters, data_source=None):
         ParallelAnalysisInterface.__init__(self)
