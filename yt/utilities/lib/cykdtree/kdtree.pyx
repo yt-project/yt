@@ -3,7 +3,7 @@
 # distutils: sources = yt/utilities/lib/cykdtree/c_utils.cpp
 # distutils: depends = yt/utilities/lib/cykdtree/c_kdtree.hpp, yt/utilities/lib/cykdtree/c_utils.hpp
 # distutils: language = c++
-# distutils: extra_compile_args = -std=c++03
+# distutils: extra_compile_args = CPP03_FLAG
 import cython
 import numpy as np
 
