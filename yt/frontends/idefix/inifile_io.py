@@ -45,8 +45,10 @@ class IdefixConf(dict):
             if "#" in line:
                 # remove comments
                 line = line[: line.index("#")].strip()
+
+            # normalize whitespace
             line = line.strip()
-            line = re.sub(r"\s", lambda _: " ", line)  # normalize whitespace
+            line = re.sub(r"\s", lambda _: " ", line)
             if line == "":
                 # skip empty lines
                 continue

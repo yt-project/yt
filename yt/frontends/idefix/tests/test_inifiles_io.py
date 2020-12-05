@@ -1,4 +1,6 @@
+import filecmp
 import os
+import tempfile
 from pathlib import Path
 from pprint import pprint
 
@@ -53,3 +55,15 @@ def test_write():
     inifile = IDEFIX_INI_FILES[0]
     data = IdefixConf(inifile)
     write_idefix_inifile(data, "test2.ini.tmp")
+
+
+@pytest.mark.parametrize("inifile", IDEFIX_INI_FILES)
+def test_idempotent_io(inifile):
+    data0 = read_idefix_inifile(inifile)
+    with tempfile.TemporaryDirectory() as tmpdir:
+        save1 = Path(tmpdir) / "save1"
+        save2 = Path(tmpdir) / "save2"
+        write_idefix_inifile(data0, save1)
+        data1 = read_idefix_inifile(save1)
+        write_idefix_inifile(data1, save2)
+        assert filecmp.cmp(save1, save2)
