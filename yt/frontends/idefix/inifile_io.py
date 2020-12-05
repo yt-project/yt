@@ -4,6 +4,46 @@ Static read/write methods for idefix .ini files
 import re
 
 _section_exp = re.compile(r"\[\w+\]\s*")
+_sci_notation_exp = re.compile(r"\d+(\.\d*)?e\d+?")
+
+
+def _smart_int(s):
+    """
+    Cast string `s` to integer if the conversion can be perfomed
+    without loss of data. Raise ValueError otherwise.
+
+    >>> _smart_int("6.28E2")
+    628
+
+    >>> _smart_int("1.4e3")
+    1400
+
+    >>> _smart_int("7.0000E2")
+    700
+
+    >>> _smart_int("7.0001E2")
+    Traceback (most recent call last):
+    ...
+    ValueError
+
+    """
+    s = s.lower()  # assuming Idefix knows how to read "1e3" as well as "1E3"
+
+    if not re.match(_sci_notation_exp, s):
+        raise ValueError
+
+    digits, exponent = s.split("e")
+    if "." not in digits:
+        return int(float(s))
+
+    _, digits = digits.split(".")
+    while digits.endswith("0"):
+        digits = digits[:-1]
+
+    if len(digits) <= int(exponent):
+        return int(float(s))
+
+    raise ValueError
 
 
 class IdefixConf(dict):
@@ -63,7 +103,7 @@ class IdefixConf(dict):
 
         values = []
         for val in raw_values:
-            for caster in [int, float, str]:
+            for caster in [int, _smart_int, float, str]:
                 # casting to types from stricter to most permissive
                 # "str" will always succeed since it is the input type
                 try:
