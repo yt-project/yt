@@ -163,6 +163,7 @@ class IdefixConf(dict):
 
         values = []
         for val in raw_values:
+            val = re.sub(r"\.0+$", "", val)  # remove trailing zeros
             for caster in [int, _decode_sci, float, str]:
                 # casting to types from stricter to most permissive
                 # "str" will always succeed since it is the input type

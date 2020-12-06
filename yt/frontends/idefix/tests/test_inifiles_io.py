@@ -1,4 +1,4 @@
-import filecmp
+import difflib
 import os
 import tempfile
 from pathlib import Path
@@ -67,7 +67,12 @@ def test_idempotent_io(inifile):
         write_idefix_inifile(data0, save1)
         data1 = read_idefix_inifile(save1)
         write_idefix_inifile(data1, save2)
-        assert filecmp.cmp(save1, save2)
+
+        text1 = open(save1, "r").readlines()
+        text2 = open(save2, "r").readlines()
+
+        diff = "".join(difflib.context_diff(text1, text2))
+        assert not diff
 
 
 @pytest.mark.parametrize("func", [read_idefix_inifile, write_idefix_inifile])
