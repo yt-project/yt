@@ -96,6 +96,8 @@ def _encode_preferential_sci(r):
     '1.89e8'
     >>> _encode_preferential_sci(189)
     '189'
+    >>> _encode_preferential_sci(900)
+    '900'
     >>> _encode_preferential_sci(1)
     '1'
     >>> _encode_preferential_sci(0.7)
