@@ -1,5 +1,5 @@
 """
-Static read/write methods for idefix .ini files
+Static read/write methods for idefix .ini files.
 """
 import re
 
@@ -142,11 +142,49 @@ class IdefixConf(dict):
             self.write_to_file(filepath_or_buffer)
 
 
+# User exposed methods
 def read_idefix_inifile(filepath_or_buffer):
+    """
+    Parse a .ini idefix configuration file to dict.
+
+    Parameters
+    ----------
+    filepath_or_buffer: os.Pathlike or str or an open file with read access.
+
+    Returns
+    -------
+    conf: IdefixConf (a dict subclass)
+        This schema is followed {schema}
+    """
     conf = IdefixConf(filepath_or_buffer)
     return conf
 
 
 def write_idefix_inifile(conf_dict, filepath_or_buffer):
+    """
+    Dump a dict to file in idefix's .ini format.
+
+    Parameters
+    ----------
+
+    conf_dict: dict
+        Note that this will fail if this schema is not followed {schema}
+    """
     conf = IdefixConf(conf_dict)
     conf.write(filepath_or_buffer)
+
+
+IDEFIX_INI_SCHEMA = """
+        {
+            section1 str: {
+                entry1 str: list or single value (int, float, str),
+                ...
+            }
+            section2 str: {
+                entry1 str: list or single value (int, float, str),
+                ...
+            }
+        }
+"""
+for func in (read_idefix_inifile, write_idefix_inifile):
+    func.__doc__ = func.__doc__.format(**{"schema": IDEFIX_INI_SCHEMA})

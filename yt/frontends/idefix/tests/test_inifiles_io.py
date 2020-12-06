@@ -8,6 +8,7 @@ import pytest
 
 # local
 from yt.frontends.idefix.inifile_io import (
+    IDEFIX_INI_SCHEMA,
     IdefixConf,
     read_idefix_inifile,
     write_idefix_inifile,
@@ -67,3 +68,8 @@ def test_idempotent_io(inifile):
         data1 = read_idefix_inifile(save1)
         write_idefix_inifile(data1, save2)
         assert filecmp.cmp(save1, save2)
+
+
+@pytest.mark.parametrize("func", [read_idefix_inifile, write_idefix_inifile])
+def test_docstrings(func):
+    assert IDEFIX_INI_SCHEMA in func.__doc__
