@@ -3,6 +3,8 @@ Static read/write methods for idefix .ini files.
 """
 import re
 
+from yt.funcs import ensure_list
+
 _section_exp = re.compile(r"\[\w+\]\s*")
 _sci_notation_exp = re.compile(r"\d+(\.\d*)?e\d+?")
 
@@ -181,8 +183,14 @@ class IdefixConf(dict):
             buffer.write(f"[{section}]\n\n")
             for key, val in data.items():
                 line = f"{key}  "
-                if isinstance(val, list):
-                    val = "  ".join([str(v) for v in val])
+                str_val = []
+                for v in ensure_list(val):
+                    if isinstance(v, (float, int)):
+                        str_v = _encode_preferential_sci(v)
+                    else:
+                        str_v = str(v)
+                    str_val.append(str_v)
+                val = "  ".join([v for v in str_val])
                 line += str(val)
                 lines.append(line)
 
