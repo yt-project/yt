@@ -7,21 +7,21 @@ _section_exp = re.compile(r"\[\w+\]\s*")
 _sci_notation_exp = re.compile(r"\d+(\.\d*)?e\d+?")
 
 
-def _smart_int(s):
+def _decode_sci(s):
     """
     Cast string `s` to integer if the conversion can be perfomed
     without loss of data. Raise ValueError otherwise.
 
-    >>> _smart_int("6.28E2")
+    >>> _decode_sci("6.28E2")
     628
 
-    >>> _smart_int("1.4e3")
+    >>> _decode_sci("1.4e3")
     1400
 
-    >>> _smart_int("7.0000E2")
+    >>> _decode_sci("7.0000E2")
     700
 
-    >>> _smart_int("7.0001E2")
+    >>> _decode_sci("7.0001E2")
     Traceback (most recent call last):
     ...
     ValueError
@@ -44,6 +44,64 @@ def _smart_int(s):
         return int(float(s))
 
     raise ValueError
+
+
+def _encode_sci(r):
+    """
+    Convert a real number `r` to string, using scientific notation.
+
+    Note that this differs from using format specifiers (e.g. `.6e`)
+    in that trailing zeros are removed.
+
+    Parameters
+    ----------
+    r: real number (float or int)
+
+    Returns
+    -------
+    ret: str
+        A string representing
+    >>> _encode_sci(1)
+    '1e0'
+    >>> _encode_sci(0.0000001)
+    '1e-7'
+    >>> _encode_sci(10_000_000)
+    '1e7'
+    >>> _encode_sci(156_000)
+    '1.56e5'
+    >>> _encode_sci(0.0056)
+    '5.6e-3'
+    >>> _encode_sci(3.141592653589793)
+    '3.141592653589793e0'
+    """
+    max_ndigit = len(str(r).replace(".", "")) - 1
+    fmt = f".{max_ndigit}e"
+    s = "{:^{}}".format(r, fmt).replace("+", "")
+    ret = re.sub(r"\.?0*(e-?)0", r"\1", s)
+    if ret.endswith("-"):
+        ret = ret.replace("-", "0")
+    return ret
+
+
+def _encode_preferential_sci(r):
+    """
+    Convert a real number `r` to string, using sci notation if
+    and only if it saves space.
+
+    Examples
+    --------
+    >>> _encode_preferential_sci(189_000_000)
+    '1.89e8'
+    >>> _encode_preferential_sci(189)
+    '189'
+    >>> _encode_preferential_sci(1)
+    '1'
+    >>> _encode_preferential_sci(0.7)
+    '0.7'
+    >>> _encode_preferential_sci(0.00007)
+    '7e-5'
+    """
+    return min(str(r), _encode_sci(r), key=lambda x: len(x))
 
 
 class IdefixConf(dict):
@@ -103,7 +161,7 @@ class IdefixConf(dict):
 
         values = []
         for val in raw_values:
-            for caster in [int, _smart_int, float, str]:
+            for caster in [int, _decode_sci, float, str]:
                 # casting to types from stricter to most permissive
                 # "str" will always succeed since it is the input type
                 try:
