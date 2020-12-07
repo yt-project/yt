@@ -9,6 +9,7 @@ test_file = os.path.join(os.environ["IDEFIX_DIR"], "test", "HD", "KHI", "dump.00
 def test_load():
     ds = load(test_file)
     assert isinstance(ds, IdefixDataset)
+    assert ds.dimensionality == 2
 
 
 def test_region():
