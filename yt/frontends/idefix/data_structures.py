@@ -149,7 +149,7 @@ class IdefixDataset(Dataset):
         fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_arrays=True)
         grid_shape = np.concatenate([fprops[k][-1] for k in ("x1", "x2", "x3")])
         self.dimensionality = np.count_nonzero(grid_shape - 1)
-        self.current_time = -1  # required, change this !
+        self.current_time = fdata["time"]
         self.cosmological_simulation = 0  # required. Change this if need be.
 
     @classmethod
