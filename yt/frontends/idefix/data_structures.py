@@ -6,6 +6,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
+from yt.frontends.idefix.dmpfile_io import read_idefix_dmpfile
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 
@@ -144,9 +145,12 @@ class IdefixDataset(Dataset):
         #   self.geometry  <= a lower case string
         #                     ("cartesian", "polar", "cylindrical"...)
         #                     (defaults to 'cartesian')
+
+        fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_arrays=True)
+        grid_shape = np.concatenate([fprops[k][-1] for k in ("x1", "x2", "x3")])
+        self.dimensionality = np.count_nonzero(grid_shape - 1)
         self.current_time = -1  # required, change this !
         self.cosmological_simulation = 0  # required. Change this if need be.
-        self.dimensionality = 3
 
     @classmethod
     def _is_valid(self, fn, *args, **kwargs):
