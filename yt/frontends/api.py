@@ -29,6 +29,7 @@ _frontends = [
     "gizmo",
     "halo_catalog",
     "http_stream",
+    "idefix",
     "moab",
     "nc4_cm1",
     "open_pmd",
