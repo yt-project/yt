@@ -60,22 +60,33 @@ def read_distributed(fh, dim):
     return data
 
 
-def read_idefix_dmpfile(fh):
+def read_idefix_dmpfile(filepath_or_buffer):
     fprops = {}
     fdata = {}
-    for i in range(3):
+    if "read" in filepath_or_buffer.__dir__():
+        fh = filepath_or_buffer
+        closeme = False
+    else:
+        fh = open(filepath_or_buffer, "rb")
+        closeme = True
+
+    for _ in range(3):
+        # read grid properties
         field_name, dtype, ndim, dim = read_next_field_properties(fh)
-        fprops.update({field_name: (dtype, ndim, dim)})
         data = read_serial(fh, ndim, dim, dtype)
+        fprops.update({field_name: (dtype, ndim, dim)})
         fdata.update({field_name: data})
-    while True:
-        field_name, dtype, ndim, dim = read_next_field_properties(fh)
-        if field_name == "eof":
-            break
+
+    field_name, dtype, ndim, dim = read_next_field_properties(fh)
+    while field_name != "eof":
         fprops.update({field_name: (dtype, ndim, dim)})
         if field_name.startswith("Vc-") or field_name.startswith("Vs-"):
             data = read_distributed(fh, dim)
         else:
             data = read_serial(fh, ndim, dim, dtype)
         fdata.update({field_name: data})
+        field_name, dtype, ndim, dim = read_next_field_properties(fh)
+
+    if closeme:
+        fh.close()
     return fprops, fdata
