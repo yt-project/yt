@@ -114,33 +114,9 @@ class IdefixDataset(Dataset):
             setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
-        # This needs to set up the following items.  Note that these are all
-        # assumed to be in code units; domain_left_edge and domain_right_edge
-        # will be converted to YTArray automatically at a later time.
-        # This includes the cosmological parameters.
-        #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
+        # todo:
         #   self.parameters             <= dict full of code-specific items of use
-        #   self.domain_left_edge       <= three-element array of float64
-        #   self.domain_right_edge      <= three-element array of float64
-        #   self.dimensionality         <= int
-        #   self.domain_dimensions      <= three-element array of int64
         #   self.periodicity            <= three-element tuple of booleans
-        #   self.current_time           <= simulation time in code units (float)
-        #
-        # We also set up cosmological information.  Set these to zero if
-        # non-cosmological.
-        #
-        #   self.cosmological_simulation    <= int, 0 or 1
-        #   self.current_redshift           <= float
-        #   self.omega_lambda               <= float
-        #   self.omega_matter               <= float
-        #   self.hubble_constant            <= float
-
-        # optional (the followin have default implementations)
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME) (int)
         #
         #   self.geometry  <= a lower case string
         #                     ("cartesian", "polar", "cylindrical"...)
@@ -158,7 +134,13 @@ class IdefixDataset(Dataset):
         self.domain_right_edge = +domain_half_width
 
         self.current_time = fdata["time"]
+
+        # idefix is never cosmological
         self.cosmological_simulation = 0
+        self.current_redshift = 0.0
+        self.omega_lambda = 0.0
+        self.omega_matter = 0.0
+        self.hubble_constant = 0.0
 
     @classmethod
     def _is_valid(self, fn, *args, **kwargs):
