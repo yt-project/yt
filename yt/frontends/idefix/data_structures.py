@@ -7,8 +7,10 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.frontends.idefix.dmpfile_io import read_idefix_dmpfile
+from yt.frontends.idefix.inifile_io import read_idefix_inifile
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
+from yt.utilities.logger import ytLogger
 
 from .fields import IdefixFieldInfo
 
@@ -87,14 +89,17 @@ class IdefixDataset(Dataset):
         dataset_type="idefix",
         storage_filename=None,
         units_override=None,
+        inifile=None,
     ):
         self.fluid_types += ("idefix",)
+        self._inifile_name = inifile
         super(IdefixDataset, self).__init__(
             filename, dataset_type, units_override=units_override
         )
         self.storage_filename = storage_filename
-        # refinement factor between a grid and its subgrid
-        # self.refine_by = 2
+
+        # idefix does not support grid refinement
+        self.refine_by = 1
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
@@ -114,14 +119,6 @@ class IdefixDataset(Dataset):
             setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
-        # todo:
-        #   self.parameters             <= dict full of code-specific items of use
-        #   self.periodicity            <= three-element tuple of booleans
-        #
-        #   self.geometry  <= a lower case string
-        #                     ("cartesian", "polar", "cylindrical"...)
-        #                     (defaults to 'cartesian')
-
         # first pass in the dmpfile: read everything except large arrays
         fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_arrays=True)
 
@@ -134,6 +131,17 @@ class IdefixDataset(Dataset):
         self.domain_right_edge = +domain_half_width
 
         self.current_time = fdata["time"]
+
+        # ... this section needs to be improved
+        if self._inifile_name is not None:
+            self.parameters.update(read_idefix_inifile(self._inifile_name))
+            if any(self.parameters["Grid"][f"X{i}-grid"] != "u" for i in "123"):
+                ytLogger.warning(
+                    "Currently, yt does not support non-uniform grid stepping."
+                )
+        self.periodicity = (True, True, True)
+        self.geometry = "cartesian"
+        # ...
 
         # idefix is never cosmological
         self.cosmological_simulation = 0
