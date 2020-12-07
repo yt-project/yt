@@ -146,6 +146,7 @@ class IdefixDataset(Dataset):
         #                     (defaults to 'cartesian')
         self.current_time = -1  # required, change this !
         self.cosmological_simulation = 0  # required. Change this if need be.
+        self.dimensionality = 3
 
     @classmethod
     def _is_valid(self, fn, *args, **kwargs):
