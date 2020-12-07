@@ -146,11 +146,19 @@ class IdefixDataset(Dataset):
         #                     ("cartesian", "polar", "cylindrical"...)
         #                     (defaults to 'cartesian')
 
+        # first pass in the dmpfile: read everything except large arrays
         fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_arrays=True)
-        grid_shape = np.concatenate([fprops[k][-1] for k in ("x1", "x2", "x3")])
-        self.dimensionality = np.count_nonzero(grid_shape - 1)
+
+        # parse the grid
+        axes = ("x1", "x2", "x3")
+        self.domain_dimensions = np.concatenate([fprops[k][-1] for k in axes])
+        self.dimensionality = np.count_nonzero(self.domain_dimensions - 1)
+        domain_half_width = np.array([fdata[k] for k in axes], dtype="float64") / 2
+        self.domain_left_edge = -domain_half_width
+        self.domain_right_edge = +domain_half_width
+
         self.current_time = fdata["time"]
-        self.cosmological_simulation = 0  # required. Change this if need be.
+        self.cosmological_simulation = 0
 
     @classmethod
     def _is_valid(self, fn, *args, **kwargs):
