@@ -46,13 +46,18 @@ def read_serial(fh, ndim: int, dim: List[int], dtype):
     return data
 
 
-def read_distributed(fh, dim):
+def read_distributed(fh, dim, skip_arrays=False):
     # note: OutputDump::ReadDistributed only read doubles
     # because chucks written in integers are small enough
     # that parallelization is counter productive.
     # This a design choice on idefix's size.
 
     fmt = "=" + np.product(dim) * "d"
+    size = struct.calcsize(fmt)
+    if skip_arrays:
+        fh.seek(size, 1)
+        return
+
     data = struct.unpack(fmt, fh.read(struct.calcsize(fmt)))
 
     # note: this reversal may not be desirable in general
@@ -60,7 +65,7 @@ def read_distributed(fh, dim):
     return data
 
 
-def read_idefix_dmpfile(filepath_or_buffer):
+def read_idefix_dmpfile(filepath_or_buffer, skip_arrays=False):
     fprops = {}
     fdata = {}
     if "read" in filepath_or_buffer.__dir__():
@@ -81,7 +86,7 @@ def read_idefix_dmpfile(filepath_or_buffer):
     while field_name != "eof":
         fprops.update({field_name: (dtype, ndim, dim)})
         if field_name.startswith("Vc-") or field_name.startswith("Vs-"):
-            data = read_distributed(fh, dim)
+            data = read_distributed(fh, dim, skip_arrays)
         else:
             data = read_serial(fh, ndim, dim, dtype)
         fdata.update({field_name: data})
