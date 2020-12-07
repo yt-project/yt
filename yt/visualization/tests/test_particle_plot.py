@@ -2,8 +2,8 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
-import mock
 import numpy as np
 
 from yt.data_objects.particle_filters import add_particle_filter
