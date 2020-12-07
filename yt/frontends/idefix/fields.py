@@ -5,7 +5,7 @@ from yt.fields.field_info_container import FieldInfoContainer
 # optionally methods on it that get called which can be subclassed.
 
 
-class SkeletonFieldInfo(FieldInfoContainer):
+class IdefixFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
@@ -17,7 +17,7 @@ class SkeletonFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list):
-        super(SkeletonFieldInfo, self).__init__(ds, field_list)
+        super(IdefixFieldInfo, self).__init__(ds, field_list)
         # If you want, you can check self.field_list
 
     def setup_fluid_fields(self):
@@ -27,5 +27,5 @@ class SkeletonFieldInfo(FieldInfoContainer):
         pass
 
     def setup_particle_fields(self, ptype):
-        super(SkeletonFieldInfo, self).setup_particle_fields(ptype)
+        super(IdefixFieldInfo, self).setup_particle_fields(ptype)
         # This will get called for every particle type.

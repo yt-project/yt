@@ -7,28 +7,26 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
 
-from .fields import SkeletonFieldInfo
+from .fields import IdefixFieldInfo
 
 
-class SkeletonGrid(AMRGridPatch):
+class IdefixGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        super(SkeletonGrid, self).__init__(
-            id, filename=index.index_filename, index=index
-        )
+        super(IdefixGrid, self).__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
 
     def __repr__(self):
-        return "SkeletonGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
+        return "IdefixGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
 
 
-class SkeletonHierarchy(GridIndex):
-    grid = SkeletonGrid
+class IdefixHierarchy(GridIndex):
+    grid = IdefixGrid
 
-    def __init__(self, ds, dataset_type="skeleton"):
+    def __init__(self, ds, dataset_type="idefix"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
@@ -36,7 +34,7 @@ class SkeletonHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        super(SkeletonHierarchy, self).__init__(ds, dataset_type)
+        super(IdefixHierarchy, self).__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
@@ -76,19 +74,19 @@ class SkeletonHierarchy(GridIndex):
         pass
 
 
-class SkeletonDataset(Dataset):
-    _index_class = SkeletonHierarchy
-    _field_info_class = SkeletonFieldInfo
+class IdefixDataset(Dataset):
+    _index_class = IdefixHierarchy
+    _field_info_class = IdefixFieldInfo
 
     def __init__(
         self,
         filename,
-        dataset_type="skeleton",
+        dataset_type="idefix",
         storage_filename=None,
         units_override=None,
     ):
-        self.fluid_types += ("skeleton",)
-        super(SkeletonDataset, self).__init__(
+        self.fluid_types += ("idefix",)
+        super(IdefixDataset, self).__init__(
             filename, dataset_type, units_override=units_override
         )
         self.storage_filename = storage_filename
