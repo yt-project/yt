@@ -49,7 +49,6 @@ class IdefixHierarchy(GridIndex):
         # fluid type or particle type.  Convention suggests that the on-disk
         # fluid type is usually the dataset_type and the on-disk particle type
         # (for a single population of particles) is "io".
-        self.dataset.parameters
         self.field_list = [
             (self.dataset_type, f) for f in self.dataset._detected_field_list
         ]
