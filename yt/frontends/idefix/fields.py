@@ -8,12 +8,13 @@ from yt.fields.field_info_container import FieldInfoContainer
 class IdefixFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
-        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
+        # ( "name", ("units", ["fields", "to", "alias"], "display_name")),
+        ("Vc-RHO", ("code_mass / code_length**3", ["density"], None)),
     )
 
     known_particle_fields = (
         # Identical form to above
-        # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
+        # ( "name", ("units", ["fields", "to", "alias"], "display_name")),
     )
 
     def __init__(self, ds, field_list):
