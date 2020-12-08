@@ -8,7 +8,7 @@ SIZE_CHAR = 1
 SIZE_INT = 4
 # emulating CPP
 # enum DataType {DoubleType, SingleType, IntegerType};
-DTYPES = [np.float64, np.float32, np.int32]
+DTYPES = ["d", "f", "i"]
 
 ## the following methods are translations from c++ to Python
 
@@ -34,38 +34,34 @@ def read_next_field_properties(fh):
     return field_name, dtype, ndim, dim
 
 
-def read_serial(fh, ndim: int, dim: List[int], dtype):
-    assert ndim == 1  # corresponds to an error raised in IDEFIX
-    # this will need revision if this assertion ever becomes obsolete
-    # note that `dim` is in general an array with size `ndim`
-    # for now I'll assume `dim` is a single int
-    fmt = (
-        "=" + np.product(dim) * {np.float64: "d", np.float32: "f", np.int32: "i"}[dtype]
-    )
-    data = struct.unpack(fmt, fh.read(struct.calcsize(fmt)))[0]
-    return data
-
-
-def read_distributed(fh, dim, skip_arrays=False):
-    # note: OutputDump::ReadDistributed only read doubles
-    # because chucks written in integers are small enough
-    # that parallelization is counter productive.
-    # This a design choice on idefix's size.
-
-    fmt = "=" + np.product(dim) * "d"
+def read_chunk(fh, ndim: int, dim: List[int], dtype, skip_data=False):
+    assert ndim == len(dim)
+    fmt = "=" + np.product(dim) * dtype
     size = struct.calcsize(fmt)
-    if skip_arrays:
+    if skip_data:
         fh.seek(size, 1)
         return
-
-    data = struct.unpack(fmt, fh.read(struct.calcsize(fmt)))
+    data = struct.unpack(fmt, fh.read(size))
 
     # note: this reversal may not be desirable in general
     data = np.reshape(data, dim[::-1])
     return data
 
 
-def read_idefix_dmpfile(filepath_or_buffer, skip_arrays=False):
+def read_serial(fh, ndim: int, dim: List[int], dtype, skip_data=False):
+    assert ndim == 1  # corresponds to an error raised in IDEFIX
+    return read_chunk(fh, ndim=ndim, dim=dim, dtype=dtype, skip_data=skip_data)
+
+
+def read_distributed(fh, dim, skip_data=False):
+    # note: OutputDump::ReadDistributed only read doubles
+    # because chucks written in integers are small enough
+    # that parallelization is counter productive.
+    # This a design choice on idefix's size.
+    return read_chunk(fh, ndim=len(dim), dim=dim, dtype="d", skip_data=skip_data)
+
+
+def read_idefix_dmpfile(filepath_or_buffer, skip_data=False):
     fprops = {}
     fdata = {}
     if "read" in filepath_or_buffer.__dir__():
@@ -86,7 +82,7 @@ def read_idefix_dmpfile(filepath_or_buffer, skip_arrays=False):
     while field_name != "eof":
         fprops.update({field_name: (dtype, ndim, dim)})
         if field_name.startswith("Vc-") or field_name.startswith("Vs-"):
-            data = read_distributed(fh, dim, skip_arrays)
+            data = read_distributed(fh, dim, skip_data=skip_data)
         else:
             data = read_serial(fh, ndim, dim, dtype)
         fdata.update({field_name: data})
