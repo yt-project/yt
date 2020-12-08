@@ -17,3 +17,9 @@ def test_load():
 def test_region():
     ds = load(dmpfile, inifile=inifile)
     ds.r[:]
+
+
+def test_fields():
+    ds = load(dmpfile, inifile=inifile)
+    expected = [("idefix", "Vc-RHO"), ("idefix", "Vc-VX1"), ("idefix", "Vc-VX2")]
+    assert ds.field_list == expected
