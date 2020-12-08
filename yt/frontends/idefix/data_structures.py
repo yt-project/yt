@@ -18,11 +18,12 @@ from .fields import IdefixFieldInfo
 class IdefixGrid(AMRGridPatch):
     _id_offset = 0
 
-    def __init__(self, id, index, level):
+    def __init__(self, id, index, level, dims):
         super(IdefixGrid, self).__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
+        self.ActiveDimensions = dims
 
     def __repr__(self):
         return "IdefixGrid_%04i (%s)" % (self.id, self.ActiveDimensions)
@@ -64,7 +65,6 @@ class IdefixHierarchy(GridIndex):
         self.grid_particle_count[0][0] = 0
         self.grid_levels[0][0] = 1
         self.max_level = 1
-        self.grids = np.array(self.grid(id=0, index=self, level=0), dtype="object")
 
     def _populate_grid_objects(self):
         # the minimal form of this method is
@@ -77,7 +77,12 @@ class IdefixHierarchy(GridIndex):
         #   g.Children <= list of child grids
         #   g.Parent   <= parent grid
         # This is handled by the frontend because often the children must be identified.
-        pass
+        self.grids = np.empty(self.num_grids, dtype="object")
+        for i in range(self.num_grids):
+            g = self.grid(i, self, self.grid_levels.flat[i], self.grid_dimensions[i])
+            g._prepare_grid()
+            g._setup_dx()
+            self.grids[i] = g
 
 
 class IdefixDataset(Dataset):
