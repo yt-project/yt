@@ -15,10 +15,7 @@ class IdefixFieldInfo(FieldInfoContainer):
     # note that velocity '_x', '_y' and '_z' aliases are meant to be
     # overwriten according to geometry in self.setup_fluid_aliases
 
-    known_particle_fields = (
-        # Identical form to above
-        # ( "name", ("units", ["fields", "to", "alias"], "display_name")),
-    )
+    known_particle_fields = ()
 
     def setup_fluid_fields(self):
         # Here we do anything that might need info about the dataset.
