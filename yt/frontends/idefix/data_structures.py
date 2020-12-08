@@ -128,13 +128,13 @@ class IdefixDataset(Dataset):
         self.parameters.update(read_idefix_inifile(self._inifile_name))
         grid_ini = self.parameters["Grid"]
 
-        for k, v in grid_ini.items():
-            if v[0] > 1:
+        for ax, vals in grid_ini.items():
+            if vals[0] > 1:
                 # more than one block is only relevant for mixing grid spacings,
                 # but only "u" is supported
-                raise ValueError("Unsupported block structure.")
-            if v[3] != "u":
-                raise ValueError(f"Unsupported grid spacing '{v[3]}'.")
+                raise ValueError(f"Unsupported block structure for {ax}.")
+            if vals[3] != "u":
+                raise ValueError(f"Unsupported grid spacing '{vals[3]}'.")
 
         # parse the grid
         axes = ("x1", "x2", "x3")
