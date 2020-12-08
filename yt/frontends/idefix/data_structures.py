@@ -10,7 +10,6 @@ from yt.frontends.idefix.dmpfile_io import read_idefix_dmpfile
 from yt.frontends.idefix.inifile_io import read_idefix_inifile
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.logger import ytLogger
 
 from .fields import IdefixFieldInfo
 
@@ -122,23 +121,32 @@ class IdefixDataset(Dataset):
         # first pass in the dmpfile: read everything except large arrays
         fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_data=True)
 
+        # ini file is required to reconstruct the grid
+        self.parameters.update(read_idefix_inifile(self._inifile_name))
+        grid_ini = self.parameters["Grid"]
+
+        for k, v in grid_ini.items():
+            if v[0] > 1:
+                # more than one block is only relevant for mixing grid spacings,
+                # but only "u" is supported
+                raise ValueError("Unsupported block structure.")
+            if v[3] != "u":
+                raise ValueError(f"Unsupported grid spacing '{v[3]}'.")
+
         # parse the grid
         axes = ("x1", "x2", "x3")
         self.domain_dimensions = np.concatenate([fprops[k][-1] for k in axes])
         self.dimensionality = np.count_nonzero(self.domain_dimensions - 1)
-        # domain_half_width = np.array([fdata[k] for k in axes], dtype="float64") / 2
-        # self.domain_left_edge = -domain_half_width
-        # self.domain_right_edge = +domain_half_width
+
+        # note that domain edges parsing is already implemented in a mutli-block
+        # supporting  fashion even though we specifically error out in case there's more
+        # than one block.
+        self.domain_left_edge = np.array([grid_ini[f"X{i}-grid"][1] for i in "123"])
+        self.domain_right_edge = np.array([grid_ini[f"X{i}-grid"][-1] for i in "123"])
 
         self.current_time = fdata["time"]
 
-        # ... this section needs to be improved
-        if self._inifile_name is not None:
-            self.parameters.update(read_idefix_inifile(self._inifile_name))
-            if any(self.parameters["Grid"][f"X{i}-grid"] != "u" for i in "123"):
-                ytLogger.warning(
-                    "Currently, yt does not support non-uniform grid stepping."
-                )
+        # ... this section requires changes in idefix itself
         self.periodicity = (True, True, True)
         self.geometry = "cartesian"
         # ...
