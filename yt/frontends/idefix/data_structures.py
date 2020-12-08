@@ -1,4 +1,5 @@
 import os
+import re
 import weakref
 from pathlib import Path
 
@@ -47,11 +48,14 @@ class IdefixHierarchy(GridIndex):
         # fluid type or particle type.  Convention suggests that the on-disk
         # fluid type is usually the dataset_type and the on-disk particle type
         # (for a single population of particles) is "io".
-        pass
+        self.dataset.parameters
+        self.field_list = [
+            (self.dataset_type, f) for f in self.dataset._detected_field_list
+        ]
 
     def _count_grids(self):
         # This needs to set self.num_grids (int)
-        pass
+        self.num_grids = 1
 
     def _parse_index(self):
         # This needs to fill the following arrays, where N is self.num_grids:
@@ -62,7 +66,13 @@ class IdefixHierarchy(GridIndex):
         #   self.grid_levels            (N, 1) <= int
         #   self.grids                  (N, 1) <= grid objects
         #   self.max_level = self.grid_levels.max()
-        pass
+        self.grid_left_edge[0][:] = self.ds.domain_left_edge[:]
+        self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
+        self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
+        self.grid_particle_count[0][0] = 0
+        self.grid_levels[0][0] = 1
+        self.max_level = 1
+        self.grids = np.array(self.grid(id=0, index=self, level=0), dtype="object")
 
     def _populate_grid_objects(self):
         # the minimal form of this method is
@@ -120,6 +130,7 @@ class IdefixDataset(Dataset):
     def _parse_parameter_file(self):
         # first pass in the dmpfile: read everything except large arrays
         fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_data=True)
+        self._detected_field_list = [k for k in fprops if re.match(r"^V[sc]-", k)]
 
         # ini file is required to reconstruct the grid
         self.parameters.update(read_idefix_inifile(self._inifile_name))
