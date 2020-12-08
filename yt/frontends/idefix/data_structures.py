@@ -152,10 +152,9 @@ class IdefixDataset(Dataset):
 
         self.current_time = fdata["time"]
 
-        # ... this section requires changes in idefix itself
-        self.periodicity = (True, True, True)
-        self.geometry = "cartesian"
-        # ...
+        self.periodicity = tuple(bool(p) for p in fdata["periodicity"])
+        enum_geoms = {1: "cartesian", 2: "cylindrial", 3: "polar", 4: "spherical"}
+        self.geometry = enum_geoms[fdata["geometry"]]
 
         # idefix is never cosmological
         self.cosmological_simulation = 0
