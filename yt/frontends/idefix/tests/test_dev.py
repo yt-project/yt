@@ -23,3 +23,5 @@ def test_fields():
     ds = load(dmpfile, inifile=inifile)
     expected = [("idefix", "Vc-RHO"), ("idefix", "Vc-VX1"), ("idefix", "Vc-VX2")]
     assert ds.field_list == expected
+
+    assert ("gas", "density") in ds.derived_field_list
