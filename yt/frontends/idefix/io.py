@@ -5,20 +5,6 @@ class IdefixIOHandler(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "idefix"
 
-    def _read_particle_coords(self, chunks, ptf):
-        # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
-        # chunks is a list of chunks, and ptf is a dict where the keys are
-        # ptypes and the values are lists of fields.
-        pass
-
-    def _read_particle_fields(self, chunks, ptf, selector):
-        # This gets called after the arrays have been allocated.  It needs to
-        # yield ((ptype, field), data) where data is the masked results of
-        # reading ptype, field and applying the selector to the data read in.
-        # Selector objects have a .select_points(x,y,z) that returns a mask, so
-        # you need to do your masking here.
-        pass
-
     def _read_fluid_selection(self, chunks, selector, fields, size):
         # This needs to allocate a set of arrays inside a dictionary, where the
         # keys are the (ftype, fname) tuples and the values are arrays that
@@ -39,9 +25,19 @@ class IdefixIOHandler(BaseIOHandler):
         # io_iter be defined
         pass
 
+    def _read_particle_coords(self, chunks, ptf):
+        # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
+        # chunks is a list of chunks, and ptf is a dict where the keys are
+        # ptypes and the values are lists of fields.
+        raise NotImplementedError
+
+    def _read_particle_fields(self, chunks, ptf, selector):
+        # idefix doesn't have particles (yet)
+        raise NotImplementedError
+
     def _read_chunk_data(self, chunk, fields):
         # This reads the data from a single chunk without doing any selection,
         # and is only used for caching data that might be used by multiple
         # different selectors later. For instance, this can speed up ghost zone
         # computation.
-        pass
+        raise NotImplementedError
