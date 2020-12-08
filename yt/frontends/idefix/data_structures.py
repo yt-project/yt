@@ -159,5 +159,4 @@ class IdefixDataset(Dataset):
     @classmethod
     def _is_valid(self, fn, *args, **kwargs):
         # a stupid heuristic test
-        name = Path(fn).name
-        return name.startswith("dump") and name.endswith(".dmp")
+        return bool(re.match(r"^(dump)\.\d{4}(\.dmp)$", Path(fn).name))
