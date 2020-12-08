@@ -27,3 +27,8 @@ def test_fields():
     assert ("gas", "density") in ds.derived_field_list
     assert ("gas", "velocity_x") in ds.derived_field_list
     assert ("gas", "velocity_y") in ds.derived_field_list
+
+
+def test_get_data():
+    ds = load(dmpfile, inifile=inifile)
+    ds.r[:]["density"]
