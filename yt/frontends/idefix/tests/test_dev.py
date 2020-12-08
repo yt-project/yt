@@ -25,3 +25,5 @@ def test_fields():
     assert ds.field_list == expected
 
     assert ("gas", "density") in ds.derived_field_list
+    assert ("gas", "velocity_x") in ds.derived_field_list
+    assert ("gas", "velocity_y") in ds.derived_field_list
