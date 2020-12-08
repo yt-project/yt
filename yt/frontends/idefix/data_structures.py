@@ -139,8 +139,12 @@ class IdefixDataset(Dataset):
         # note that domain edges parsing is already implemented in a mutli-block
         # supporting  fashion even though we specifically error out in case there's more
         # than one block.
-        self.domain_left_edge = np.array([grid_ini[f"X{i}-grid"][1] for i in "123"])
-        self.domain_right_edge = np.array([grid_ini[f"X{i}-grid"][-1] for i in "123"])
+        self.domain_left_edge = np.array(
+            [grid_ini[f"X{i}-grid"][1] for i in "123"], dtype="float64"
+        )
+        self.domain_right_edge = np.array(
+            [grid_ini[f"X{i}-grid"][-1] for i in "123"], dtype="float64"
+        )
 
         self.current_time = fdata["time"]
 
