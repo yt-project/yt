@@ -85,19 +85,14 @@ class IdefixDataset(Dataset):
     _field_info_class = IdefixFieldInfo
 
     def __init__(
-        self,
-        filename,
-        dataset_type="idefix",
-        storage_filename=None,
-        units_override=None,
-        inifile=None,
+        self, dmpfile, inifile, dataset_type="idefix", units_override=None,
     ):
         self.fluid_types += ("idefix",)
-        self._inifile_name = inifile
+        self.inifile = inifile
         super(IdefixDataset, self).__init__(
-            filename, dataset_type, units_override=units_override
+            dmpfile, dataset_type, units_override=units_override
         )
-        self.storage_filename = storage_filename
+        self.storage_filename = None
 
         # idefix does not support grid refinement
         self.refine_by = 1
@@ -125,7 +120,7 @@ class IdefixDataset(Dataset):
         self._detected_field_list = [k for k in fprops if re.match(r"^V[sc]-", k)]
 
         # ini file is required to reconstruct the grid
-        self.parameters.update(read_idefix_inifile(self._inifile_name))
+        self.parameters.update(read_idefix_inifile(self.inifile))
         grid_ini = self.parameters["Grid"]
 
         for ax, vals in grid_ini.items():
