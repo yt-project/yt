@@ -34,7 +34,7 @@ def read_next_field_properties(fh):
     return field_name, dtype, ndim, dim
 
 
-def read_chunk(fh, ndim: int, dim: List[int], dtype, skip_data=False):
+def read_chunk(fh, ndim: int, dim: List[int], dtype, is_scalar=False, skip_data=False):
     assert ndim == len(dim)
     fmt = "=" + np.product(dim) * dtype
     size = struct.calcsize(fmt)
@@ -44,13 +44,16 @@ def read_chunk(fh, ndim: int, dim: List[int], dtype, skip_data=False):
     data = struct.unpack(fmt, fh.read(size))
 
     # note: this reversal may not be desirable in general
+    if is_scalar:
+        return data[0]
+
     data = np.reshape(data, dim[::-1])
     return data
 
 
-def read_serial(fh, ndim: int, dim: List[int], dtype, skip_data=False):
+def read_serial(fh, ndim: int, dim: List[int], dtype, is_scalar=False):
     assert ndim == 1  # corresponds to an error raised in IDEFIX
-    return read_chunk(fh, ndim=ndim, dim=dim, dtype=dtype, skip_data=skip_data)
+    return read_chunk(fh, ndim=ndim, dim=dim, dtype=dtype, is_scalar=is_scalar)
 
 
 def read_distributed(fh, dim, skip_data=False):
@@ -84,7 +87,9 @@ def read_idefix_dmpfile(filepath_or_buffer, skip_data=False):
         if field_name.startswith("Vc-") or field_name.startswith("Vs-"):
             data = read_distributed(fh, dim, skip_data=skip_data)
         else:
-            data = read_serial(fh, ndim, dim, dtype)
+            is_scalar = ndim == 1 and dim[0] == 1
+            is_scalar &= field_name not in ("x1", "x2", "x3")
+            data = read_serial(fh, ndim, dim, dtype, is_scalar=is_scalar)
         fdata.update({field_name: data})
         field_name, dtype, ndim, dim = read_next_field_properties(fh)
 

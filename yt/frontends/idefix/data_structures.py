@@ -120,15 +120,15 @@ class IdefixDataset(Dataset):
 
     def _parse_parameter_file(self):
         # first pass in the dmpfile: read everything except large arrays
-        fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_arrays=True)
+        fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_data=True)
 
         # parse the grid
         axes = ("x1", "x2", "x3")
         self.domain_dimensions = np.concatenate([fprops[k][-1] for k in axes])
         self.dimensionality = np.count_nonzero(self.domain_dimensions - 1)
-        domain_half_width = np.array([fdata[k] for k in axes], dtype="float64") / 2
-        self.domain_left_edge = -domain_half_width
-        self.domain_right_edge = +domain_half_width
+        # domain_half_width = np.array([fdata[k] for k in axes], dtype="float64") / 2
+        # self.domain_left_edge = -domain_half_width
+        # self.domain_right_edge = +domain_half_width
 
         self.current_time = fdata["time"]
 
