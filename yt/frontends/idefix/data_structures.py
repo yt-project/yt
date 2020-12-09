@@ -164,7 +164,6 @@ class IdefixDataset(Dataset):
 
     @classmethod
     def _is_valid(self, fn, *args, **kwargs):
-        # a stupid heuristic test
         ok = bool(re.match(r"^(dump)\.\d{4}(\.dmp)$", Path(fn).name))
         ok &= "idefix" in read_header(fn).lower()
         return ok
