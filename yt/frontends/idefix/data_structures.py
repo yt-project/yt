@@ -123,6 +123,11 @@ class IdefixDataset(Dataset):
         fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_data=True)
         self._detected_field_list = [k for k in fprops if re.match(r"^V[sc]-", k)]
 
+        # parse the version hash
+        header = read_header(self.parameter_filename)
+        version_exp = r"v\d+\.\d+[-\w]+"  # version number + git hash
+        self.parameters["idefix version"] = re.findall(version_exp, header)[0]
+
         if self.inifile is not None:
             self.parameters.update(read_idefix_inifile(self.inifile))
             grid_ini = self.parameters["Grid"]
