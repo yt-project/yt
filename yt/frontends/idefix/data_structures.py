@@ -89,7 +89,7 @@ class IdefixDataset(Dataset):
     _field_info_class = IdefixFieldInfo
 
     def __init__(
-        self, dmpfile, inifile, dataset_type="idefix", units_override=None,
+        self, dmpfile, inifile=None, dataset_type="idefix", units_override=None,
     ):
         self.fluid_types += ("idefix",)
         self.inifile = inifile
@@ -123,17 +123,16 @@ class IdefixDataset(Dataset):
         fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_data=True)
         self._detected_field_list = [k for k in fprops if re.match(r"^V[sc]-", k)]
 
-        # ini file is required to reconstruct the grid
-        self.parameters.update(read_idefix_inifile(self.inifile))
-        grid_ini = self.parameters["Grid"]
-
-        for ax, vals in grid_ini.items():
-            if vals[0] > 1:
-                # more than one block is only relevant for mixing grid spacings,
-                # but only "u" is supported
-                raise ValueError(f"Unsupported block structure for {ax}.")
-            if vals[3] != "u":
-                raise ValueError(f"Unsupported grid spacing '{vals[3]}'.")
+        if self.inifile is not None:
+            self.parameters.update(read_idefix_inifile(self.inifile))
+            grid_ini = self.parameters["Grid"]
+            for ax, vals in grid_ini.items():
+                if vals[0] > 1:
+                    # more than one block is only relevant for mixing grid spacings,
+                    # but only "u" is supported
+                    raise ValueError(f"Unsupported block structure for {ax}.")
+                if vals[3] != "u":
+                    raise ValueError(f"Unsupported grid spacing '{vals[3]}'.")
 
         # parse the grid
         axes = ("x1", "x2", "x3")
@@ -141,13 +140,13 @@ class IdefixDataset(Dataset):
         self.dimensionality = np.count_nonzero(self.domain_dimensions - 1)
 
         # note that domain edges parsing is already implemented in a mutli-block
-        # supporting  fashion even though we specifically error out in case there's more
+        # supporting fashion even though we specifically error out in case there's more
         # than one block.
         self.domain_left_edge = np.array(
-            [grid_ini[f"X{i}-grid"][1] for i in "123"], dtype="float64"
+            [fdata[f"xl{idir}"][0] for idir in "123"], dtype="float64"
         )
         self.domain_right_edge = np.array(
-            [grid_ini[f"X{i}-grid"][-1] for i in "123"], dtype="float64"
+            [fdata[f"xr{idir}"][-1] for idir in "123"], dtype="float64"
         )
 
         self.current_time = fdata["time"]
