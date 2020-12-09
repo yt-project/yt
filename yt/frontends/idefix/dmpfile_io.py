@@ -56,7 +56,7 @@ def read_chunk(fh, ndim: int, dim: List[int], dtype, is_scalar=False, skip_data=
     if is_scalar:
         return data[0]
 
-    data = np.reshape(data, dim[::-1])
+    data = np.reshape(data, dim)
     return data
 
 
