@@ -16,8 +16,14 @@ def test_read_dmp():
 
     expected_fields = [
         "x1",
+        "xl1",
+        "xr1",
         "x2",
+        "xl2",
+        "xr2",
         "x3",
+        "xl3",
+        "xr3",
         "Vc-RHO",
         "Vc-VX1",
         "Vc-VX2",
@@ -27,6 +33,8 @@ def test_read_dmp():
         "vtktnext",
         "dumpFileNumber",
         "dumptnext",
+        "geometry",
+        "periodicity",
     ]
     detected_fields = list(fprops.keys())
     assert detected_fields == expected_fields

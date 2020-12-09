@@ -7,7 +7,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.frontends.idefix.dmpfile_io import read_idefix_dmpfile
+from yt.frontends.idefix.dmpfile_io import read_header, read_idefix_dmpfile
 from yt.frontends.idefix.inifile_io import read_idefix_inifile
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -167,4 +167,6 @@ class IdefixDataset(Dataset):
     @classmethod
     def _is_valid(self, fn, *args, **kwargs):
         # a stupid heuristic test
-        return bool(re.match(r"^(dump)\.\d{4}(\.dmp)$", Path(fn).name))
+        ok = bool(re.match(r"^(dump)\.\d{4}(\.dmp)$", Path(fn).name))
+        ok &= "idefix" in read_header(fn).lower()
+        return ok

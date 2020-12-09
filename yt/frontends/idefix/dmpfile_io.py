@@ -3,7 +3,10 @@ from typing import List
 
 import numpy as np
 
-NAMESIZE = 16  # maximum size of the name array (hardcoded in idefix)
+# hardcoded in idefix
+HEADERSIZE = 128
+NAMESIZE = 16
+
 SIZE_CHAR = 1
 SIZE_INT = 4
 # emulating CPP
@@ -13,16 +16,22 @@ DTYPES = ["d", "f", "i"]
 ## the following methods are translations from c++ to Python
 
 
-def read_next_field_properties(fh):
-    fmt = "=" + NAMESIZE * "c"
+def read_str(fh, size=NAMESIZE):
+    fmt = "=" + size * "c"
     raw_cstring64 = iter(struct.unpack(fmt, fh.read(struct.calcsize(fmt))))
     c = next(raw_cstring64)
-    field_name = ""
+    s = ""
     while r"\x" not in c.__str__():  # todo: better condition here
         # emulating (poorly) std::strlen
         # read NAMESIZE * SIZE_CHAR bytes, but only parse non-null characters
-        field_name += c.decode()
+        s += c.decode()
         c = next(raw_cstring64)
+    return s
+
+
+def read_next_field_properties(fh):
+
+    field_name = read_str(fh)
 
     fmt = "=i"
     dtype = DTYPES[struct.unpack(fmt, fh.read(struct.calcsize(fmt)))[0]]
@@ -64,6 +73,20 @@ def read_distributed(fh, dim, skip_data=False):
     return read_chunk(fh, ndim=len(dim), dim=dim, dtype="d", skip_data=skip_data)
 
 
+def read_header(filepath_or_buffer):
+    if "read" in filepath_or_buffer.__dir__():
+        fh = filepath_or_buffer
+        closeme = False
+    else:
+        fh = open(filepath_or_buffer, "rb")
+        closeme = True
+    fh.seek(0)
+    header = read_str(fh, size=HEADERSIZE)
+    if closeme:
+        fh.close()
+    return header
+
+
 def read_idefix_dmpfile(filepath_or_buffer, skip_data=False):
     fprops = {}
     fdata = {}
@@ -74,8 +97,14 @@ def read_idefix_dmpfile(filepath_or_buffer, skip_data=False):
         fh = open(filepath_or_buffer, "rb")
         closeme = True
 
-    for _ in range(3):
+    fh.seek(0)
+
+    # skip header
+    read_header(fh)
+
+    for _ in range(9):
         # read grid properties
+        # (cell centers, left and right edges in 3D -> 9 arrays)
         field_name, dtype, ndim, dim = read_next_field_properties(fh)
         data = read_serial(fh, ndim, dim, dtype)
         fprops.update({field_name: (dtype, ndim, dim)})
