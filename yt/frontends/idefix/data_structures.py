@@ -43,18 +43,11 @@ class IdefixHierarchy(GridIndex):
         super(IdefixHierarchy, self).__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
-        # This needs to set a self.field_list that contains all the available,
-        # on-disk fields. No derived fields should be defined here.
-        # NOTE: Each should be a tuple, where the first element is the on-disk
-        # fluid type or particle type.  Convention suggests that the on-disk
-        # fluid type is usually the dataset_type and the on-disk particle type
-        # (for a single population of particles) is "io".
         self.field_list = [
             (self.dataset_type, f) for f in self.dataset._detected_field_list
         ]
 
     def _count_grids(self):
-        # This needs to set self.num_grids (int)
         self.num_grids = 1
 
     def _parse_index(self):
