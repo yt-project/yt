@@ -97,10 +97,8 @@ def read_idefix_dmpfile(filepath_or_buffer, skip_data=False):
         fh = open(filepath_or_buffer, "rb")
         closeme = True
 
-    fh.seek(0)
-
     # skip header
-    read_header(fh)
+    fh.seek(HEADERSIZE)
 
     for _ in range(9):
         # read grid properties
