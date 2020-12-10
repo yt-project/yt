@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.frontends.idefix.dmpfile_io import read_idefix_dmpfile
+from yt.frontends.idefix.dmpfile_io import read_single_field
 from yt.utilities.io_handler import BaseIOHandler
 
 
@@ -14,18 +14,18 @@ class IdefixIOHandler(BaseIOHandler):
         self.dmpfile = ds.parameter_filename
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
-        # THIS IS STRAIGHT FROM netCDF FRONTEND
         data = {}
         offset = 0
 
-        for field in fields:
-            ftype, fname = field
-            data[ftype, fname] = np.empty(size, dtype="float64")
-            for chunk in chunks:
-                for grid in chunk.objs:
-                    _fprops, fdata = read_idefix_dmpfile(self.dmpfile)
-                    values = fdata[fname]
-                    offset += grid.select(selector, values, data[field], offset)
+        with open(self.dmpfile, mode="rb") as fh:
+            for field in fields:
+                ftype, fname = field
+                data[ftype, fname] = np.empty(size, dtype="float64")
+                for chunk in chunks:
+                    for grid in chunk.objs:
+                        foffset = grid._index._field_offsets[fname]
+                        values = read_single_field(fh, foffset)
+                        offset += grid.select(selector, values, data[field], offset)
         return data
 
     def _read_particle_coords(self, chunks, ptf):

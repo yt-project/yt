@@ -7,7 +7,11 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.frontends.idefix.dmpfile_io import read_header, read_idefix_dmpfile
+from yt.frontends.idefix.dmpfile_io import (
+    parse_fields_index,
+    read_header,
+    read_idefix_dmpfile,
+)
 from yt.frontends.idefix.inifile_io import read_idefix_inifile
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
@@ -57,6 +61,9 @@ class IdefixHierarchy(GridIndex):
         self.grid_particle_count[0][0] = 0
         self.grid_levels[0][0] = 1
         self.max_level = 1
+
+        with open(self.ds.parameter_filename, "rb") as fh:
+            self._field_offsets = parse_fields_index(fh)
 
     def _populate_grid_objects(self):
         # the minimal form of this method is

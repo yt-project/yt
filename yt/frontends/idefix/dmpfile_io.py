@@ -1,3 +1,4 @@
+import re
 import struct
 from typing import List
 
@@ -85,6 +86,37 @@ def read_header(filepath_or_buffer):
     if closeme:
         fh.close()
     return header
+
+
+def parse_fields_index(fh):
+    """
+    Go over a dumpfile, parse bytes offsets associated with each field.
+    """
+    field_index = {}
+
+    # skip header
+    fh.seek(HEADERSIZE)
+    # skip grid properties
+    for _ in range(9):
+        _field_name, dtype, ndim, dim = read_next_field_properties(fh)
+        read_serial(fh, ndim, dim, dtype)
+
+    while True:
+        offset = fh.tell()
+        field_name, dtype, ndim, dim = read_next_field_properties(fh)
+        if not re.match("^V[cs]-", field_name):
+            break
+        field_index[field_name] = offset
+        read_distributed(fh, dim, skip_data=True)
+
+    return field_index
+
+
+def read_single_field(fh, field_offset):
+    fh.seek(field_offset)
+    field_name, dtype, ndim, dim = read_next_field_properties(fh)
+    data = read_distributed(fh, dim)
+    return data
 
 
 def read_idefix_dmpfile(filepath_or_buffer, skip_data=False):
