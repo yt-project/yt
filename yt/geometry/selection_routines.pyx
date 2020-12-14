@@ -478,7 +478,7 @@ cdef class SelectorObject:
         _ensure_code(gobj.dds)
         _ensure_code(gobj.LeftEdge)
         _ensure_code(gobj.RightEdge)
-        cdef np.ndarray[np.float64_t, ndim=1] odds = gobj.dds.d
+        cdef np.float64_t[:,:,:,:] odds = gobj.ndds
         cdef np.ndarray[np.float64_t, ndim=1] oleft_edge = gobj.LeftEdge.d
         cdef np.ndarray[np.float64_t, ndim=1] oright_edge = gobj.RightEdge.d
         cdef int i
@@ -486,7 +486,6 @@ cdef class SelectorObject:
         cdef np.float64_t left_edge[3]
         cdef np.float64_t right_edge[3]
         for i in range(3):
-            dds[i] = odds[i]
             dim[i] = gobj.ActiveDimensions[i]
             left_edge[i] = oleft_edge[i]
             right_edge[i] = oright_edge[i]
@@ -495,7 +494,7 @@ cdef class SelectorObject:
         cdef np.int32_t level = gobj.Level
         # We set this to 1 if we ignore child_mask
         cdef int total
-        total = self.fill_mask_selector(left_edge, right_edge, dds, dim,
+        total = self.fill_mask_selector(left_edge, right_edge, odds, dim,
                                         child_mask, mask, level)
         if total == 0: return None
         return mask.astype("bool")
@@ -505,26 +504,29 @@ cdef class SelectorObject:
     @cython.cdivision(True)
     cdef int fill_mask_selector(self, np.float64_t left_edge[3],
                                 np.float64_t right_edge[3],
-                                np.float64_t dds[3], int dim[3],
+                                np.float64_t[:,:,:,:] dds, int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
                                 int level):
         cdef int i, j, k
         cdef int total = 0, this_level = 0
-        cdef np.float64_t pos[3]
+        cdef np.float64_t pos[3], cdds[3]
         if level < self.min_level or level > self.max_level:
             return 0
         if level == self.max_level:
             this_level = 1
         with nogil:
             for i in range(dim[0]):
-                pos[0] = left_edge[0] + (i + 0.5) * dds[0]
                 for j in range(dim[1]):
-                    pos[1] = left_edge[1] + (j + 0.5) * dds[1]
                     for k in range(dim[2]):
-                        pos[2] = left_edge[2] + (k + 0.5) * dds[2]
+                        cdds[0] = dds[i,j,k,0]
+                        cdds[1] = dds[i,j,k,1]
+                        cdds[2] = dds[i,j,k,2]
+                        pos[0] = left_edge[0] + (i + 0.5) * cdds[0]
+                        pos[1] = left_edge[1] + (j + 0.5) * cdds[1]
+                        pos[2] = left_edge[2] + (k + 0.5) * cdds[2]
                         if child_mask[i, j, k] == 1 or this_level == 1:
-                            mask[i, j, k] = self.select_cell(pos, dds)
+                            mask[i, j, k] = self.select_cell(pos, cdds)
                             total += mask[i, j, k]
         return total
 
@@ -1143,7 +1145,7 @@ cdef class RegionSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+    cdef int old_fill_mask_selector(self, np.float64_t left_edge[3],
                                 np.float64_t right_edge[3],
                                 np.float64_t dds[3], int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
@@ -1546,7 +1548,7 @@ cdef class SliceSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_mask(self, gobj):
+    def old_fill_mask(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3] mask
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i, j, k
@@ -1663,7 +1665,7 @@ cdef class OrthoRaySelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_mask(self, gobj):
+    def old_fill_mask(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3] mask
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         cdef int i, j, k

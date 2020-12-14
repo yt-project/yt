@@ -73,6 +73,12 @@ class AMRGridPatch(YTSelectionContainer):
         self.start_index = (start_index * self.ds.refine_by).astype("int64").ravel()
         return self.start_index
 
+    @property
+    def ndds(self):
+        return np.lib.stride_tricks.as_strided(
+            self.dds, shape=tuple(self.ActiveDimensions) + (3,), strides=(0, 0, 0, 8)
+        )
+
     def __getitem__(self, key):
         tr = super(AMRGridPatch, self).__getitem__(key)
         try:
