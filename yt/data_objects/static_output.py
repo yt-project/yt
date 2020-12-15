@@ -459,8 +459,8 @@ class Dataset(abc.ABC):
                 "fs",
             ]
         else:
-            raise SyntaxError(
-                "Specified quantity must be equal to 'distance'" "or 'time'."
+            raise ValueError(
+                "Specified quantity must be equal to 'distance' or 'time'."
             )
         for unit in unit_list:
             uq = self.quan(1.0, unit)
