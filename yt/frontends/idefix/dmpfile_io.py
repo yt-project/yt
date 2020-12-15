@@ -10,29 +10,27 @@ NAMESIZE = 16
 
 SIZE_CHAR = 1
 SIZE_INT = 4
-# emulating CPP
+# emulating C++
 # enum DataType {DoubleType, SingleType, IntegerType};
 DTYPES = ["d", "f", "i"]
 
-## the following methods are translations from c++ to Python
 
-
-def read_str(fh, size=NAMESIZE):
-    fmt = "=" + size * "c"
+def read_null_terminated_string(fh, maxsize=NAMESIZE):
+    """Read maxsize * SIZE_CHAR bytes, but only parse non-null characters."""
+    fmt = "=" + maxsize * "c"
     raw_cstring64 = iter(struct.unpack(fmt, fh.read(struct.calcsize(fmt))))
     c = next(raw_cstring64)
     s = ""
-    while r"\x" not in c.__str__():  # todo: better condition here
-        # emulating (poorly) std::strlen
-        # read NAMESIZE * SIZE_CHAR bytes, but only parse non-null characters
+    while r"\x" not in c.__str__():
+        # emulate (poorly) std::strlen
         s += c.decode()
         c = next(raw_cstring64)
     return s
 
 
 def read_next_field_properties(fh):
-
-    field_name = read_str(fh)
+    """Emulate Idefix's OutputDump::ReadNextFieldProperty"""
+    field_name = read_null_terminated_string(fh)
 
     fmt = "=i"
     dtype = DTYPES[struct.unpack(fmt, fh.read(struct.calcsize(fmt)))[0]]
@@ -62,11 +60,13 @@ def read_chunk(fh, ndim: int, dim: List[int], dtype, is_scalar=False, skip_data=
 
 
 def read_serial(fh, ndim: int, dim: List[int], dtype, is_scalar=False):
+    """Emulate Idefix's OutputDump::ReadSerial"""
     assert ndim == 1  # corresponds to an error raised in IDEFIX
     return read_chunk(fh, ndim=ndim, dim=dim, dtype=dtype, is_scalar=is_scalar)
 
 
 def read_distributed(fh, dim, skip_data=False):
+    """Emulate Idefix's OutputDump::ReadDistributed"""
     # note: OutputDump::ReadDistributed only read doubles
     # because chucks written in integers are small enough
     # that parallelization is counter productive.
@@ -74,9 +74,12 @@ def read_distributed(fh, dim, skip_data=False):
     return read_chunk(fh, ndim=len(dim), dim=dim, dtype="d", skip_data=skip_data)
 
 
+# The following functions are originally designed for yt
+
+
 def read_header(filename):
     with open(filename, "rb") as fh:
-        header = read_str(fh, size=HEADERSIZE)
+        header = read_null_terminated_string(fh, maxsize=HEADERSIZE)
     return header
 
 
