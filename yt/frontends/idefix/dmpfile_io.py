@@ -74,17 +74,9 @@ def read_distributed(fh, dim, skip_data=False):
     return read_chunk(fh, ndim=len(dim), dim=dim, dtype="d", skip_data=skip_data)
 
 
-def read_header(filepath_or_buffer):
-    if "read" in filepath_or_buffer.__dir__():
-        fh = filepath_or_buffer
-        closeme = False
-    else:
-        fh = open(filepath_or_buffer, "rb")
-        closeme = True
-    fh.seek(0)
-    header = read_str(fh, size=HEADERSIZE)
-    if closeme:
-        fh.close()
+def read_header(filename):
+    with open(filename, "rb") as fh:
+        header = read_str(fh, size=HEADERSIZE)
     return header
 
 

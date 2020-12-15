@@ -1,5 +1,6 @@
 import os
 import re
+import struct
 import weakref
 from pathlib import Path
 
@@ -170,5 +171,8 @@ class IdefixDataset(Dataset):
     @classmethod
     def _is_valid(self, fn, *args, **kwargs):
         ok = bool(re.match(r"^(dump)\.\d{4}(\.dmp)$", Path(fn).name))
-        ok &= "idefix" in read_header(fn).lower()
+        try:
+            ok &= "idefix" in read_header(fn).lower()
+        except struct.error:
+            ok = False
         return ok
