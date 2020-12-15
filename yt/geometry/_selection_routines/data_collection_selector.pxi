@@ -33,3 +33,4 @@ cdef class DataCollectionSelector(SelectorObject):
     def _hash_vals(self):
         return (hash(self.obj_ids.tostring()), self.nids)
 
+data_collection_selector = DataCollectionSelector
