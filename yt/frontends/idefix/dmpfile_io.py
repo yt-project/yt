@@ -17,14 +17,9 @@ DTYPES = ["d", "f", "i"]
 
 def read_null_terminated_string(fh, maxsize=NAMESIZE):
     """Read maxsize * SIZE_CHAR bytes, but only parse non-null characters."""
-    fmt = "=" + maxsize * "c"
-    raw_cstring64 = iter(struct.unpack(fmt, fh.read(struct.calcsize(fmt))))
-    c = next(raw_cstring64)
-    s = ""
-    while r"\x" not in c.__str__():
-        # emulate (poorly) std::strlen
-        s += c.decode()
-        c = next(raw_cstring64)
+    b = fh.read(maxsize * SIZE_CHAR)
+    s = b.decode("utf-8", errors="backslashreplace")
+    s = s.split("\x00", maxsplit=1)[0]
     return s
 
 
