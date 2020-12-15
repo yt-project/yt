@@ -46,16 +46,18 @@ def test_read(inifile):
     pprint(data)
 
 
-def test_unit_write():
+def test_oop_write():
     inifile = IDEFIX_INI_FILES[0]
     conf = IdefixConf(inifile)
-    conf.write("test1.ini.tmp")
+    with tempfile.TemporaryFile(mode="wt") as tmpfile:
+        conf.write(tmpfile)
 
 
-def test_write():
+def test_func_write():
     inifile = IDEFIX_INI_FILES[0]
     data = IdefixConf(inifile)
-    write_idefix_inifile(data, "test2.ini.tmp")
+    with tempfile.TemporaryFile(mode="wt") as tmpfile:
+        write_idefix_inifile(data, tmpfile)
 
 
 @pytest.mark.parametrize("inifile", IDEFIX_INI_FILES)
