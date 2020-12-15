@@ -54,6 +54,7 @@ def _encode_sci(r):
 
     Note that this differs from using format specifiers (e.g. `.6e`)
     in that trailing zeros are removed.
+    Precision must be conserved.
 
     Parameters
     ----------
@@ -62,7 +63,7 @@ def _encode_sci(r):
     Returns
     -------
     ret: str
-        A string representing
+        A string representing a number in sci notation.
     >>> _encode_sci(1)
     '1e0'
     >>> _encode_sci(0.0000001)
@@ -161,7 +162,7 @@ class IdefixConf(dict):
     def tokenize_line(line):
         key, *raw_values = line.split()
         if not raw_values:
-            raise ValueError(f"Could not parse nvalid line {line}")
+            raise ValueError(f"Could not parse invalid line\n{line}")
 
         values = []
         for val in raw_values:
