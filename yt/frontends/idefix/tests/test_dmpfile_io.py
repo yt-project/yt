@@ -3,15 +3,17 @@ import os
 import numpy as np
 from numpy.testing import assert_equal
 
+from yt.config import ytcfg
 from yt.frontends.idefix.dmpfile_io import read_idefix_dmpfile
 from yt.testing import requires_file
 
-test_file = os.path.join(os.environ["IDEFIX_DIR"], "test", "HD", "KHI", "dump.0001.dmp")
+idefix_khi = os.path.join("idefix", "KHI", "dump.0001.dmp")
 
 
-@requires_file(test_file)
+@requires_file(idefix_khi)
 def test_read_dmp():
-    with open(test_file, mode="rb") as fh:
+    fn = os.path.join(ytcfg.get("yt", "test_data_dir"), idefix_khi)
+    with open(fn, mode="rb") as fh:
         fprops, fdata = read_idefix_dmpfile(fh)
 
     expected_fields = [

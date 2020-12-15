@@ -1,26 +1,28 @@
 import os
-from pathlib import Path
 
 from yt.frontends.idefix.api import IdefixDataset
 from yt.loaders import load
+from yt.testing import requires_file
 
-dmpfile = Path(os.environ["IDEFIX_DIR"]).joinpath("test", "HD", "KHI", "dump.0001.dmp")
-inifile = dmpfile.parent / "idefix.ini"
+idefix_khi = os.path.join("idefix", "KHI", "dump.0001.dmp")
 
 
+@requires_file(idefix_khi)
 def test_load():
-    ds = load(dmpfile, inifile=inifile)
+    ds = load(idefix_khi)
     assert isinstance(ds, IdefixDataset)
     assert ds.dimensionality == 2
 
 
+@requires_file(idefix_khi)
 def test_region():
-    ds = load(dmpfile, inifile=inifile)
+    ds = load(idefix_khi)
     ds.r[:]
 
 
+@requires_file(idefix_khi)
 def test_fields():
-    ds = load(dmpfile, inifile=inifile)
+    ds = load(idefix_khi)
     expected = [("idefix", "Vc-RHO"), ("idefix", "Vc-VX1"), ("idefix", "Vc-VX2")]
     assert ds.field_list == expected
 
@@ -29,6 +31,7 @@ def test_fields():
     assert ("gas", "velocity_y") in ds.derived_field_list
 
 
+@requires_file(idefix_khi)
 def test_get_data():
-    ds = load(dmpfile, inifile=inifile)
+    ds = load(idefix_khi)
     ds.r[:]["density"]

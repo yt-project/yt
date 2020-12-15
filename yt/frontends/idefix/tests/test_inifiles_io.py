@@ -5,6 +5,7 @@ from pathlib import Path
 from pprint import pprint
 
 import pytest
+from nose import SkipTest
 
 # local
 from yt.frontends.idefix.inifile_io import (
@@ -14,12 +15,11 @@ from yt.frontends.idefix.inifile_io import (
     write_idefix_inifile,
 )
 
+msg = "skipping idefix unit tests (environment variable $IDEFIX_DIR is not set)."
 if "IDEFIX_DIR" not in os.environ:
-    pytest.skip(
-        "skipping idefix inifile unit tests "
-        "(reason: environment variable $IDEFIX_DIR is not set).",
-        allow_module_level=True,
-    )
+    raise SkipTest(msg)
+    # within pytest:
+    # pytest.skip(msg, allow_module_level=True)
 
 IDEFIX_DIR = Path(os.environ["IDEFIX_DIR"])
 TEST_DIR = Path.joinpath(IDEFIX_DIR, "test")
