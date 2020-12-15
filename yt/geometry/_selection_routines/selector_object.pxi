@@ -346,7 +346,7 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_mask(self, gobj):
+    def fill_mask_regular_grid(self, gobj):
         cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
         child_mask = gobj.child_mask
         cdef np.ndarray[np.uint8_t, ndim=3] mask
@@ -371,15 +371,16 @@ cdef class SelectorObject:
         cdef np.int32_t level = gobj.Level
         # We set this to 1 if we ignore child_mask
         cdef int total
-        total = self.fill_mask_selector(left_edge, right_edge, dds, dim,
-                                        child_mask, mask, level)
+        total = self.fill_mask_selector_regular_grid(left_edge, right_edge,
+                                                     dds, dim, child_mask,
+                                                     mask, level)
         if total == 0: return None
         return mask.astype("bool")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+    cdef int fill_mask_selector_regular_grid(self, np.float64_t left_edge[3],
                                 np.float64_t right_edge[3],
                                 np.float64_t dds[3], int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,

@@ -19,7 +19,7 @@ cdef class GridSelector(SelectorObject):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def fill_mask(self, gobj):
+    def fill_mask_regular_grid(self, gobj):
         return np.ones(gobj.ActiveDimensions, dtype='bool')
 
     @cython.boundscheck(False)
