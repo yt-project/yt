@@ -6,7 +6,7 @@ import re
 from yt.funcs import ensure_list
 
 _section_exp = re.compile(r"\[\w+\]\s*")
-_sci_notation_exp = re.compile(r"\d+(\.\d*)?e\d+?")
+_sci_notation_exp = re.compile(r"\d+(\.\d*)?e[+-]?\d+?")
 
 
 def _decode_sci_int(s):
@@ -14,15 +14,22 @@ def _decode_sci_int(s):
     Cast string `s` to integer if the conversion can be perfomed
     without loss of data. Raise ValueError otherwise.
 
+    Examples
+    --------
     >>> _decode_sci_int("6.28E2")
     628
-
     >>> _decode_sci_int("1.4e3")
     1400
-
     >>> _decode_sci_int("7.0000E2")
     700
-
+    >>> _decode_sci_int("700.00E-2")
+    7
+    >>> _decode_sci_int("700e-2")
+    7
+    >>> _decode_sci_int("700e-3")
+    Traceback (most recent call last):
+    ...
+    ValueError
     >>> _decode_sci_int("7.0001E2")
     Traceback (most recent call last):
     ...
@@ -35,16 +42,17 @@ def _decode_sci_int(s):
         raise ValueError
 
     digits, exponent = s.split("e")
-    if "." not in digits:
-        return int(float(s))
+    exponent = int(exponent)
+    if "." in digits:
+        digits, decimals = digits.split(".")
+    else:
+        decimals = ""
+    if exponent > 0 and len(decimals.rstrip("0")) > exponent:
+        raise ValueError
+    if exponent < 0 and len(digits) - 1 < -exponent:
+        raise ValueError
 
-    _, digits = digits.split(".")
-    digits.rstrip("0")
-
-    if len(digits) <= int(exponent):
-        return int(float(s))
-
-    raise ValueError
+    return int(float(s))
 
 
 def _encode_sci(r):
@@ -63,6 +71,9 @@ def _encode_sci(r):
     -------
     ret: str
         A string representing a number in sci notation.
+
+    Examples
+    --------
     >>> _encode_sci(1)
     '1e0'
     >>> _encode_sci(0.0000001)
