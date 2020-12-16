@@ -1096,7 +1096,7 @@ def enable_plugins(plugin_filename=None):
     data objects, colormaps, and other code classes and objects to be used
     in yt scripts without modifying the yt source directly.
 
-    If <plugin_filename> is omited, this function will look for a plugin file at
+    If ``plugin_filename`` is omitted, this function will look for a plugin file at
     ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
     system-level configuration.
 

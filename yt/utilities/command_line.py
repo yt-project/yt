@@ -1632,7 +1632,7 @@ class YTUploadFileCmd(YTCommand):
         print(r.text)
 
 
-class YTConfigLocalConfigMixin:
+class YTConfigLocalConfigHandler:
     def load_config(self, args):
         import os
 
@@ -1645,19 +1645,17 @@ class YTConfigLocalConfigMixin:
         local_exists = os.path.exists(local_config_file)
         global_exists = os.path.exists(global_config_file)
 
-        if args.get("local", False):
+        if getattr(args, "local", False):
             config_file = local_config_file
-        elif args.get("global", False):
+        elif getattr(args, "global", False):
             config_file = global_config_file
         else:
             if local_exists and global_exists:
                 s = (
                     "Yt detected a local and a global configuration file, refusing "
                     "to proceed.\n"
-                )
-                s += f"Local config file: {local_config_file}\n"
-                s += f"Global config file: {global_config_file}\n"
-                s += (
+                    f"Local config file: {local_config_file}\n"
+                    f"Global config file: {global_config_file}\n"
                     "Specify which one you want to use using the `--local` or the "
                     "`--global` flags."
                 )
@@ -1694,16 +1692,14 @@ _global_local_args = [
 ]
 
 
-class YTConfigGetCmd(YTCommand, YTConfigLocalConfigMixin):
+class YTConfigGetCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "get"
     description = "get a config value"
-    args = tuple(
-        [
-            dict(short="section", help="The section containing the option."),
-            dict(short="option", help="The option to retrieve."),
-        ]
-        + _global_local_args
+    args = (
+        dict(short="section", help="The section containing the option."),
+        dict(short="option", help="The option to retrieve."),
+        *_global_local_args,
     )
 
     def __call__(self, args):
@@ -1714,17 +1710,15 @@ class YTConfigGetCmd(YTCommand, YTConfigLocalConfigMixin):
         print(get_config(args.section, args.option))
 
 
-class YTConfigSetCmd(YTCommand, YTConfigLocalConfigMixin):
+class YTConfigSetCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "set"
     description = "set a config value"
-    args = tuple(
-        [
-            dict(short="section", help="The section containing the option."),
-            dict(short="option", help="The option to set."),
-            dict(short="value", help="The value to set the option to."),
-        ]
-        + _global_local_args
+    args = (
+        dict(short="section", help="The section containing the option."),
+        dict(short="option", help="The option to set."),
+        dict(short="value", help="The value to set the option to."),
+        *_global_local_args,
     )
 
     def __call__(self, args):
@@ -1735,16 +1729,14 @@ class YTConfigSetCmd(YTCommand, YTConfigLocalConfigMixin):
         set_config(args.section, args.option, args.value, self.config_file)
 
 
-class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigMixin):
+class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "rm"
     description = "remove a config option"
-    args = tuple(
-        [
-            dict(short="section", help="The section containing the option."),
-            dict(short="option", help="The option to remove."),
-        ]
-        + _global_local_args
+    args = (
+        dict(short="section", help="The section containing the option."),
+        dict(short="option", help="The option to remove."),
+        *_global_local_args,
     )
 
     def __call__(self, args):
@@ -1755,7 +1747,7 @@ class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigMixin):
         rm_config(args.section, args.option, self.config_file)
 
 
-class YTConfigListCmd(YTCommand, YTConfigLocalConfigMixin):
+class YTConfigListCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "list"
     description = "show the config content"
@@ -1769,7 +1761,7 @@ class YTConfigListCmd(YTCommand, YTConfigLocalConfigMixin):
         write_config(sys.stdout)
 
 
-class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigMixin):
+class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "migrate"
     description = "migrate old config file"
@@ -1783,7 +1775,7 @@ class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigMixin):
         migrate_config()
 
 
-class YTConfigPrintPath(YTCommand, YTConfigLocalConfigMixin):
+class YTConfigPrintPath(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "print-path"
     description = "show path to the config file"

@@ -191,7 +191,7 @@ Minor Enhancements and Bugfixes
   fixed by `PR 2200 <https://github.com/yt-project/yt/pull/2200>`__.
 - fix an issue related to creating a ds9 region with 
   FITS `PR 2335 <https://github.com/yt-project/yt/pull/2335>`__.
-- add a check to see if ``plugin_filename`` is specified in
+- add a check to see if ``pluginfilename`` is specified in
   ytrc `PR 2319 <https://github.com/yt-project/yt/pull/2319>`__.
 - sort .so input file list so that the yt package builds in a reproducible
   way `PR 2206 <https://github.com/yt-project/yt/pull/2206>`__.
