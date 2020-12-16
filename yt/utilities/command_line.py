@@ -17,7 +17,7 @@ import numpy as np
 from more_itertools import always_iterable
 from tqdm import tqdm
 
-from yt.config import GLOBAL_CONFIG_FILE, ytcfg
+from yt.config import YTConfig, ytcfg
 from yt.funcs import (
     download_file,
     enable_plugins,
@@ -881,7 +881,7 @@ class YTHubRegisterCmd(YTCommand):
         apiKey = req.json()["key"]
 
         print("Storing API key in configuration file")
-        set_config("yt", "hub_api_key", apiKey, GLOBAL_CONFIG_FILE)
+        set_config("yt", "hub_api_key", apiKey, YTConfig.get_global_config_file())
 
         print()
         print("SUCCESS!")
@@ -1624,19 +1624,19 @@ class YTUploadFileCmd(YTCommand):
 
 class YTConfigLocalConfigMixin:
     def load_config(self, args):
-        from yt.config import GLOBAL_CONFIG_FILE, LOCAL_CONFIG_FILE
+        import os
+
+        from yt.config import YTConfig
         from yt.utilities.configure import CONFIG
 
         if "local" in args and args.local:
-            if LOCAL_CONFIG_FILE is None:
-                LOCAL_CONFIG_FILE = os.path.join(
-                    os.path.abspath(os.path.curdir), "yt.toml"
-                )
-                with open(LOCAL_CONFIG_FILE, "w") as f:
+            local_config_file = YTConfig.get_local_config_file()
+            if not os.path.exists(local_config_file):
+                with open(local_config_file, "w") as f:
                     f.write("[yt]\n")
-            config_file = LOCAL_CONFIG_FILE
+            config_file = local_config_file
         else:
-            config_file = GLOBAL_CONFIG_FILE
+            config_file = YTConfig.get_global_config_file()
 
         CONFIG.read(config_file)
 

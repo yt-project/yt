@@ -1,7 +1,5 @@
 import os
 import warnings
-from itertools import chain
-from pathlib import Path
 
 import toml
 
@@ -66,6 +64,7 @@ ytcfg_defaults["yt"] = dict(
     ),
 )
 
+
 CONFIG_DIR = os.environ.get(
     "XDG_CONFIG_HOME", os.path.join(os.path.expanduser("~"), ".config", "yt")
 )
@@ -74,36 +73,6 @@ if not os.path.exists(CONFIG_DIR):
         os.makedirs(CONFIG_DIR)
     except OSError:
         warnings.warn("unable to create yt config directory")
-
-OLD_CONFIG_FILE = os.path.join(CONFIG_DIR, "ytrc")
-GLOBAL_CONFIG_FILE = os.path.join(CONFIG_DIR, "yt.toml")
-LOCAL_CONFIG_FILE = None
-
-if os.path.exists(OLD_CONFIG_FILE):
-    if os.path.exists(GLOBAL_CONFIG_FILE):
-        msg = (
-            f"The configuration file {OLD_CONFIG_FILE} is deprecated in "
-            f"favor of {GLOBAL_CONFIG_FILE}. Currently, both are present. "
-            "Please manually remove the deprecated one to silence "
-            "this warning."
-        )
-        warnings.warn(msg)
-    else:
-        msg = (
-            f"The configuration file {OLD_CONFIG_FILE} is deprecated. "
-            f"Please migrate your config to {GLOBAL_CONFIG_FILE} by running: "
-            "'yt config migrate'"
-        )
-        raise SystemExit(msg)
-
-
-if not os.path.exists(GLOBAL_CONFIG_FILE):
-    cfg = {"yt": {}}
-    try:
-        with open(GLOBAL_CONFIG_FILE, mode="w") as fd:
-            toml.dump(cfg, fd)
-    except OSError:
-        warnings.warn("unable to write new config file")
 
 
 class YTConfig:
@@ -196,18 +165,54 @@ class YTConfig:
             with open(file_handler, mode="w") as fh:
                 fh.write(config_as_str)
 
+    @staticmethod
+    def get_global_config_file():
+        return os.path.join(CONFIG_DIR, "yt.toml")
 
-# Walk the tree up until we find a config file
+    @staticmethod
+    def get_local_config_file():
+        return os.path.join(os.path.abspath(os.curdir), "yt.toml")
+
+
+OLD_CONFIG_FILE = os.path.join(CONFIG_DIR, "ytrc")
+_global_config_file = YTConfig.get_global_config_file()
+_local_config_file = YTConfig.get_local_config_file()
+
+if os.path.exists(OLD_CONFIG_FILE):
+    if os.path.exists(_global_config_file):
+        msg = (
+            f"The configuration file {OLD_CONFIG_FILE} is deprecated in "
+            f"favor of {_global_config_file}. Currently, both are present. "
+            "Please manually remove the deprecated one to silence "
+            "this warning."
+        )
+        warnings.warn(msg)
+    else:
+        msg = (
+            f"The configuration file {OLD_CONFIG_FILE} is deprecated. "
+            f"Please migrate your config to {_global_config_file} by running: "
+            "'yt config migrate'"
+        )
+        raise SystemExit(msg)
+
+
+if not os.path.exists(_global_config_file):
+    cfg = {"yt": {}}
+    try:
+        with open(_global_config_file, mode="w") as fd:
+            toml.dump(cfg, fd)
+    except OSError:
+        warnings.warn("unable to write new config file")
+
+
+# Load the config
 ytcfg = YTConfig()
 ytcfg.update(ytcfg_defaults, metadata={"source": "defaults"})
 
-if os.path.exists(GLOBAL_CONFIG_FILE):
-    ytcfg.read(GLOBAL_CONFIG_FILE)
-
-cwd = Path.cwd()
-for folder in chain([cwd], cwd.parents):
-    cfg_file = folder / "yt.toml"
-    if cfg_file.exists():
-        ytcfg.read(cfg_file)
-        LOCAL_CONFIG_FILE = str(cfg_file)
-        break
+# Try loading the local config first, otherwise fall back to global config
+if os.path.exists(_local_config_file):
+    print("Reading local file")
+    ytcfg.read(_local_config_file)
+elif os.path.exists(_global_config_file):
+    print("Reading global file")
+    ytcfg.read(_global_config_file)

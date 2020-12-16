@@ -7,7 +7,10 @@ from io import StringIO
 
 import yt.config
 import yt.utilities.command_line
-from yt.config import GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig
+from yt.config import OLD_CONFIG_FILE, YTConfig
+
+GLOBAL_CONFIG_FILE = YTConfig.get_global_config_file()
+LOCAL_CONFIG_FILE = YTConfig.get_local_config_file()
 
 _TEST_PLUGIN = "_test_plugin.py"
 # NOTE: the normalization of the crazy camel-case will be checked

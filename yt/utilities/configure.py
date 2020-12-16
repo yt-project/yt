@@ -2,7 +2,7 @@ import configparser
 import os
 import sys
 
-from yt.config import GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE, YTConfig, ytcfg_defaults
+from yt.config import OLD_CONFIG_FILE, YTConfig, ytcfg_defaults
 
 CONFIG = YTConfig()
 
@@ -79,8 +79,9 @@ def migrate_config():
 
     CONFIG.update(config_as_dict)
 
-    print(f"Writing a new config file to: {GLOBAL_CONFIG_FILE}")
-    write_config(GLOBAL_CONFIG_FILE)
+    global_config_file = YTConfig.get_global_config_file()
+    print(f"Writing a new config file to: {global_config_file}")
+    write_config(global_config_file)
     print(f"Backing up the old config file: {OLD_CONFIG_FILE}.bak")
     os.rename(OLD_CONFIG_FILE, OLD_CONFIG_FILE + ".bak")
 
