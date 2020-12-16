@@ -146,7 +146,6 @@ from yt.visualization.volume_rendering.api import (
     ColorTransferFunction,
     TransferFunction,
     off_axis_projection,
-    interactive_render,
 )
 import yt.visualization.volume_rendering.api as volume_rendering
 
