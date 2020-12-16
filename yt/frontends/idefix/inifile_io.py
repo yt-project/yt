@@ -166,10 +166,11 @@ class IdefixConf(dict):
 
         values = []
         for val in raw_values:
-            val = re.sub(r"\.0+$", "", val)  # remove trailing zeros
+            # remove period and trailing zeros to cast to int when possible
+            val = re.sub(r"\.0+$", "", val)
             for caster in [int, _decode_sci, float, str]:
-                # casting to types from stricter to most permissive
-                # "str" will always succeed since it is the input type
+                # cast to types from stricter to most permissive
+                # `str` will always succeed since it is the input type
                 try:
                     values.append(caster(val))
                     break
