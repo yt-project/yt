@@ -1,8 +1,8 @@
-import yt
 import numpy as np
-from yt.visualization.base_plot_types import get_multi_plot
-import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
+
+import yt
+from yt.visualization.base_plot_types import get_multi_plot
 
 fn = "GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150"  # dataset to load
 orient = "horizontal"
@@ -80,4 +80,4 @@ for p, cax, t in zip(plots[0:6:2], colorbars, titles):
     cbar.set_label(t)
 
 # And now we're done!
-fig.savefig("%s_3x2" % ds)
+fig.savefig(f"{ds}_3x2")

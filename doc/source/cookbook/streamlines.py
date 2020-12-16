@@ -1,10 +1,10 @@
-import yt
-import numpy as np
 import matplotlib.pylab as pl
-
-from yt.visualization.api import Streamlines
-from yt.units import Mpc
+import numpy as np
 from mpl_toolkits.mplot3d import Axes3D
+
+import yt
+from yt.units import Mpc
+from yt.visualization.api import Streamlines
 
 # Load the dataset
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")

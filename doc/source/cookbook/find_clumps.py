@@ -1,7 +1,7 @@
 import numpy as np
 
 import yt
-from yt.data_objects.level_sets.api import *
+from yt.data_objects.level_sets.api import Clump, find_clumps
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 

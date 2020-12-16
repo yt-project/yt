@@ -15,6 +15,9 @@ ef51ad5199692afcf1a8ab491aa115c00c423113
 323ac4ddd4e99d6b951666736d4e9b03b6cfa21e
 f7445f02022293f1b089cd8907000301516354bf
 
+# f-strings, black & isort on doc
+e6276f25fc5a570d886b6bbdaa7e3062da2d35ca
+
 # legacy conversion commits authored by "convert-repo"
 b7112d4ccbcd309ae2c5c2ee0f9352466a0cecf2
 33f3988bbfa97399114e3df9ac491c828ae59a8c

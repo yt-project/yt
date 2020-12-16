@@ -1,8 +1,8 @@
-import yt
 import numpy as np
-from yt.visualization.api import get_multi_plot
-import matplotlib.colorbar as cb
 from matplotlib.colors import LogNorm
+
+import yt
+from yt.visualization.api import get_multi_plot
 
 fn = "Enzo_64/RD0006/RedshiftOutput0006"  # dataset to load
 
@@ -70,4 +70,4 @@ for p, cax, t in zip(plots, colorbars, titles):
     cbar.set_label(t)
 
 # And now we're done!
-fig.savefig("%s_3x2.png" % ds)
+fig.savefig(f"{ds}_3x2.png")
