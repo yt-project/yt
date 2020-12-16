@@ -148,8 +148,14 @@ class SkeletonDataset(Dataset):
         #   self.geometry  <= a lower case string
         #                     ("cartesian", "polar", "cylindrical"...)
         #                     (defaults to 'cartesian')
-        self.current_time = -1  # required, change this !
-        self.cosmological_simulation = 0  # required. Change this if need be.
+
+        # this attribute is required.
+        # Change this value to a constant 0 if time is not relevant to your dataset.
+        # Otherwise, parse its value in any appropriate fashion.
+        self.current_time = -1
+
+        # required. Change this if need be.
+        self.cosmological_simulation = 0
 
     @classmethod
     def _is_valid(self, *args, **kwargs):
