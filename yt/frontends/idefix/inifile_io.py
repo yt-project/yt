@@ -9,21 +9,21 @@ _section_exp = re.compile(r"\[\w+\]\s*")
 _sci_notation_exp = re.compile(r"\d+(\.\d*)?e\d+?")
 
 
-def _decode_sci(s):
+def _decode_sci_int(s):
     """
     Cast string `s` to integer if the conversion can be perfomed
     without loss of data. Raise ValueError otherwise.
 
-    >>> _decode_sci("6.28E2")
+    >>> _decode_sci_int("6.28E2")
     628
 
-    >>> _decode_sci("1.4e3")
+    >>> _decode_sci_int("1.4e3")
     1400
 
-    >>> _decode_sci("7.0000E2")
+    >>> _decode_sci_int("7.0000E2")
     700
 
-    >>> _decode_sci("7.0001E2")
+    >>> _decode_sci_int("7.0001E2")
     Traceback (most recent call last):
     ...
     ValueError
@@ -39,8 +39,7 @@ def _decode_sci(s):
         return int(float(s))
 
     _, digits = digits.split(".")
-    while digits.endswith("0"):
-        digits = digits[:-1]
+    digits.rstrip("0")
 
     if len(digits) <= int(exponent):
         return int(float(s))
@@ -167,7 +166,7 @@ class IdefixConf(dict):
         for val in raw_values:
             # remove period and trailing zeros to cast to int when possible
             val = re.sub(r"\.0+$", "", val)
-            for caster in [int, _decode_sci, float, str]:
+            for caster in [int, _decode_sci_int, float, str]:
                 # cast to types from stricter to most permissive
                 # `str` will always succeed since it is the input type
                 try:
