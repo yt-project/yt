@@ -7,11 +7,12 @@ from functools import wraps
 from io import StringIO
 
 import numpy as np
+from more_itertools import always_iterable
 
 import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import ensure_list, iterable
+from yt.funcs import is_sequence
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
@@ -409,11 +410,10 @@ class ProcessorPool:
 
     @classmethod
     def from_sizes(cls, sizes):
-        sizes = ensure_list(sizes)
         pool = cls()
         rank = pool.comm.rank
-        for i, size in enumerate(sizes):
-            if iterable(size):
+        for i, size in enumerate(always_iterable(sizes)):
+            if is_sequence(size):
                 size, name = size
             else:
                 name = "workgroup_%02i" % i
@@ -1186,7 +1186,9 @@ class ParallelAnalysisInterface:
         for field in fields:
             if any(getattr(v, "ghost_zones", 0) > 0 for v in fi[field].validators):
                 continue
-            deps += ensure_list(fi[field].get_dependencies(ds=self.ds).requested)
+            deps += list(
+                always_iterable(fi[field].get_dependencies(ds=self.ds).requested)
+            )
         return list(set(deps))
 
     def _initialize_parallel(self):

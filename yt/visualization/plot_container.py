@@ -11,10 +11,10 @@ from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import (
     ensure_dir,
-    ensure_list,
     get_image_suffix,
+    is_sequence,
     issue_deprecation_warning,
-    iterable,
+    iter_fields,
     mylog,
 )
 from yt.units import YTQuantity
@@ -91,7 +91,7 @@ def apply_callback(f):
     return newfunc
 
 
-def accepts_all_fields(f):
+def accepts_all_fields(func):
     """
     Decorate a function whose second argument is <field> and deal with the special case
     field == 'all', looping over all fields already present in the PlotContainer object.
@@ -100,14 +100,12 @@ def accepts_all_fields(f):
     # This is to be applied to PlotContainer class methods with the following signature:
     #
     # f(self, field, *args, **kwargs) -> self
-    @wraps(f)
+    @wraps(func)
     def newfunc(self, field, *args, **kwargs):
         if field == "all":
-            fields = list(self.plots.keys())
-        else:
-            fields = ensure_list(field)
-        for field in self.data_source._determine_fields(fields):
-            f(self, field, *args, **kwargs)
+            field = self.plots.keys()
+        for f in self.data_source._determine_fields(field):
+            func(self, f, *args, **kwargs)
         return self
 
     return newfunc
@@ -222,7 +220,7 @@ class PlotContainer:
         self.data_source = data_source
         self.ds = data_source.ds
         self.ts = self._initialize_dataset(self.ds)
-        if iterable(figure_size):
+        if is_sequence(figure_size):
             self.figure_size = float(figure_size[0]), float(figure_size[1])
         else:
             self.figure_size = float(figure_size)
@@ -278,7 +276,7 @@ class PlotContainer:
         if field == "all":
             fields = list(self.plots.keys())
         else:
-            fields = ensure_list(field)
+            fields = field
         for field in self.data_source._determine_fields(fields):
             log[field] = self._field_transform[field] == log_transform
         return log
@@ -323,7 +321,7 @@ class PlotContainer:
 
     def _initialize_dataset(self, ts):
         if not isinstance(ts, DatasetSeries):
-            if not iterable(ts):
+            if not is_sequence(ts):
                 ts = [ts]
             ts = DatasetSeries(ts)
         return ts
@@ -715,9 +713,8 @@ class PlotContainer:
         >>> s.save()
         """
         if field is None or field == "all":
-            field = self.fields
-        field = ensure_list(field)
-        for f in field:
+            field = self.plots.keys()
+        for f in self.data_source._determine_fields(field):
             self.plots[f].hide_colorbar()
         return self
 
@@ -735,8 +732,7 @@ class PlotContainer:
         """
         if field is None:
             field = self.fields
-        field = ensure_list(field)
-        for f in field:
+        for f in iter_fields(field):
             self.plots[f].show_colorbar()
         return self
 
@@ -785,8 +781,7 @@ class PlotContainer:
         """
         if field is None:
             field = self.fields
-        field = ensure_list(field)
-        for f in field:
+        for f in iter_fields(field):
             self.plots[f].hide_axes(draw_frame)
         return self
 
@@ -804,8 +799,7 @@ class PlotContainer:
         """
         if field is None:
             field = self.fields
-        field = ensure_list(field)
-        for f in field:
+        for f in iter_fields(field):
             self.plots[f].show_axes()
         return self
 
@@ -924,7 +918,7 @@ class ImagePlotContainer(PlotContainer):
         if field == "all":
             fields = list(self.plots.keys())
         else:
-            fields = ensure_list(field)
+            fields = field
         for field in self.data_source._determine_fields(fields):
             myzmin = _sanitize_units(zmin, field)
             myzmax = _sanitize_units(zmax, field)

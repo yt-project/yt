@@ -19,7 +19,7 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 from yt.extern.tqdm import tqdm
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import ensure_list, get_memory_usage, iterable, mylog, only_on_root
+from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_root
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
@@ -204,14 +204,11 @@ class YTProj(YTSelectionContainer2D):
         else:
             self.weight_field = self._determine_fields(weight_field)[0]
 
-        field = field or []
-        field = self._determine_fields(ensure_list(field))
-
-        for f in field:
+        for f in self._determine_fields(field):
             nodal_flag = self.ds._get_field_info(f).nodal_flag
             if any(nodal_flag):
                 raise RuntimeError(
-                    "Nodal fields are currently not supported " "for projections."
+                    "Nodal fields are currently not supported for projections."
                 )
 
     @property
@@ -223,8 +220,7 @@ class YTProj(YTSelectionContainer2D):
         return [k for k in self.field_data.keys() if k not in self._container_fields]
 
     def get_data(self, fields=None):
-        fields = fields or []
-        fields = self._determine_fields(ensure_list(fields))
+        fields = self._determine_fields(fields)
         # We need a new tree for every single set of fields we add
         if len(fields) == 0:
             return
@@ -743,7 +739,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             self._data_source.set_field_parameter(name, val)
 
     def _sanitize_dims(self, dims):
-        if not iterable(dims):
+        if not is_sequence(dims):
             dims = [dims] * len(self.ds.domain_left_edge)
         if len(dims) != len(self.ds.domain_left_edge):
             raise RuntimeError(
@@ -752,7 +748,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return np.array(dims, dtype="int32")
 
     def _sanitize_edge(self, edge):
-        if not iterable(edge):
+        if not is_sequence(edge):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
@@ -786,7 +782,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
     def get_data(self, fields=None):
         if fields is None:
             return
-        fields = self._determine_fields(ensure_list(fields))
+        fields = self._determine_fields(fields)
         fields_to_get = [f for f in fields if f not in self.field_data]
         fields_to_get = self._identify_dependencies(fields_to_get)
         if len(fields_to_get) == 0:
@@ -979,7 +975,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             "int64"
         ) * self.ds.relative_refinement(0, self.level)
         refine_by = self.ds.refine_by
-        if not iterable(self.ds.refine_by):
+        if not is_sequence(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
         for chunk in parallel_objects(self._data_source.chunks(fields, "io")):
@@ -1143,7 +1139,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         if length_unit is None:
             length_unit = self.ds.length_unit
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         fid = FITSImageData(self, fields, length_unit=length_unit)
         return fid
 
@@ -1360,7 +1356,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
         # NOTE: This usage of "refine_by" is actually *okay*, because it's
         # being used with respect to iref, which is *already* scaled!
         refine_by = self.ds.refine_by
-        if not iterable(self.ds.refine_by):
+        if not is_sequence(self.ds.refine_by):
             refine_by = [refine_by, refine_by, refine_by]
         refine_by = np.array(refine_by, dtype="i8")
 
@@ -2758,7 +2754,7 @@ class YTOctree(YTSelectionContainer3D):
     def _sanitize_edge(self, edge, default):
         if edge is None:
             return default.copy()
-        if not iterable(edge):
+        if not is_sequence(edge):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(

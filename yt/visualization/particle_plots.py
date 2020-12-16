@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.data_objects.profiles import create_profile
-from yt.funcs import ensure_list, fix_axis
+from yt.funcs import fix_axis, iter_fields
 from yt.units.yt_array import YTArray
 from yt.visualization.fixed_resolution import ParticleImageBuffer
 from yt.visualization.profile_plotter import PhasePlot
@@ -386,7 +386,7 @@ class ParticlePhasePlot(PhasePlot):
         profile = create_profile(
             data_source,
             [x_field, y_field],
-            ensure_list(z_fields),
+            list(iter_fields(z_fields)),
             n_bins=[x_bins, y_bins],
             weight_field=weight_field,
             deposition=deposition,

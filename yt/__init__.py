@@ -21,7 +21,7 @@ import numpy as np  # For modern purposes
 import numpy  # In case anyone wishes to use it by name
 
 from yt.funcs import (
-    iterable,
+    is_sequence,
     get_memory_usage,
     print_tb,
     rootonly,
