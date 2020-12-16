@@ -55,11 +55,9 @@ def _decode_sci_int(s):
     else:
         decimals = ""
 
-    if exponent > 0 and len(decimals) > exponent:
+    if exponent >= 0 and len(decimals) > exponent:
         raise ValueError
     elif exponent < 0 and len(digits) - 1 < -exponent:
-        raise ValueError
-    elif exponent == 0 and decimals:
         raise ValueError
 
     return int(float(s))
