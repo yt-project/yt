@@ -26,11 +26,17 @@ def _decode_sci_int(s):
     7
     >>> _decode_sci_int("700e-2")
     7
+    >>> _decode_sci_int("6.000e0")
+    6
     >>> _decode_sci_int("700e-3")
     Traceback (most recent call last):
     ...
     ValueError
     >>> _decode_sci_int("7.0001E2")
+    Traceback (most recent call last):
+    ...
+    ValueError
+    >>> _decode_sci_int("0.6e0")
     Traceback (most recent call last):
     ...
     ValueError
@@ -45,11 +51,15 @@ def _decode_sci_int(s):
     exponent = int(exponent)
     if "." in digits:
         digits, decimals = digits.split(".")
+        decimals = decimals.rstrip("0")
     else:
         decimals = ""
-    if exponent > 0 and len(decimals.rstrip("0")) > exponent:
+
+    if exponent > 0 and len(decimals) > exponent:
         raise ValueError
-    if exponent < 0 and len(digits) - 1 < -exponent:
+    elif exponent < 0 and len(digits) - 1 < -exponent:
+        raise ValueError
+    elif exponent == 0 and decimals:
         raise ValueError
 
     return int(float(s))
