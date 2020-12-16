@@ -1639,17 +1639,15 @@ class YTConfigLocalConfigMixin:
         from yt.config import YTConfig
         from yt.utilities.configure import CONFIG
 
-        args = vars(args)
-
         local_config_file = YTConfig.get_local_config_file()
         global_config_file = YTConfig.get_global_config_file()
 
         local_exists = os.path.exists(local_config_file)
         global_exists = os.path.exists(global_config_file)
 
-        if "local" in args and args["local"]:
+        if args.get("local", False):
             config_file = local_config_file
-        elif "global" in args and args["global"]:
+        elif args.get("global", False):
             config_file = global_config_file
         else:
             if local_exists and global_exists:

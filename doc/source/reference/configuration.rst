@@ -48,7 +48,7 @@ options from the configuration file, e.g.:
 Local Configuration
 ^^^^^^^^^^^^^^^^^^^
 
-yt will look for a file name ``yt.toml`` in the current directory. If present, its options
+yt will look for a file named ``yt.toml`` in the current directory. If present, its options
 are loaded and the global configuration is not read. Local configuration files
 can contain the same options as the global one.
 
@@ -65,7 +65,7 @@ options, and display the path to the local configuration file, e.g.:
    $ yt config print-path --local
 
 If no local configuration file is present, these commands will create an (empty) one
-in the current working directly.
+in the current working directory.
 
 Configuration Options At Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
