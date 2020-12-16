@@ -13,7 +13,7 @@ from yt.utilities.exceptions import YTIllDefinedParticleData
 
 
 def setup():
-    ytcfg["yt", "internals", "withintesting"] = True
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 data_path = ytcfg.get("yt", "test_data_dir")

@@ -14,7 +14,7 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "internals", "withintesting"] = True
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 class VariousVRTests(TestCase):

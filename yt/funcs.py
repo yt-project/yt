@@ -173,7 +173,7 @@ def get_memory_usage(subtract_share=False):
 def time_execution(func):
     r"""
     Decorator for seeing how long a given function takes, depending on whether
-    or not the global 'yt.timefunctions' config parameter is set.
+    or not the global 'yt.time_functions' config parameter is set.
     """
 
     @wraps(func)
@@ -186,7 +186,7 @@ def time_execution(func):
 
     from yt.config import ytcfg
 
-    if ytcfg.get("yt", "timefunctions"):
+    if ytcfg.get("yt", "time_functions"):
         return wrapper
     else:
         return func
@@ -425,8 +425,8 @@ def get_pbar(title, maxval, parallel=False):
     from yt.config import ytcfg
 
     if (
-        ytcfg.get("yt", "suppressStreamLogging")
-        or ytcfg.get("yt", "internals", "withintesting")
+        ytcfg.get("yt", "suppress_stream_logging")
+        or ytcfg.get("yt", "internals", "within_testing")
         or maxval == 1
     ):
         return DummyProgressBar()
@@ -909,7 +909,7 @@ def parallel_profile(prefix):
 def get_num_threads():
     from .config import ytcfg
 
-    nt = ytcfg.get("yt", "numthreads")
+    nt = ytcfg.get("yt", "num_threads")
     if nt < 0:
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
@@ -1089,14 +1089,14 @@ def deprecated_class(cls):
     return _func
 
 
-def enable_plugins(pluginFilename=None):
+def enable_plugins(plugin_filename=None):
     """Forces a plugin file to be parsed.
 
     A plugin file is a means of creating custom fields, quantities,
     data objects, colormaps, and other code classes and objects to be used
     in yt scripts without modifying the yt source directly.
 
-    If <pluginFilename> is omited, this function will look for a plugin file at
+    If <plugin_filename> is omited, this function will look for a plugin file at
     ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
     system-level configuration.
 
@@ -1107,8 +1107,8 @@ def enable_plugins(pluginFilename=None):
     from yt.config import CONFIG_DIR, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
 
-    if pluginFilename is not None:
-        _fn = pluginFilename
+    if plugin_filename is not None:
+        _fn = plugin_filename
         if not os.path.isfile(_fn):
             raise FileNotFoundError(_fn)
     else:
@@ -1116,7 +1116,7 @@ def enable_plugins(pluginFilename=None):
         # - absolute path
         # - CONFIG_DIR
         # - obsolete config dir.
-        my_plugin_name = ytcfg.get("yt", "pluginFilename")
+        my_plugin_name = ytcfg.get("yt", "plugin_filename")
         old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
         for base_prefix in ("", CONFIG_DIR, old_config_dir):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):

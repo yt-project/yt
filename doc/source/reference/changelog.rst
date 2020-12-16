@@ -191,9 +191,9 @@ Minor Enhancements and Bugfixes
   fixed by `PR 2200 <https://github.com/yt-project/yt/pull/2200>`__.
 - fix an issue related to creating a ds9 region with 
   FITS `PR 2335 <https://github.com/yt-project/yt/pull/2335>`__.
-- add a check to see if pluginfilename is specified in 
+- add a check to see if plugin_filename is specified in
   ytrc `PR 2319 <https://github.com/yt-project/yt/pull/2319>`__.
-- sort .so input file list so that the yt package builds in a reproducible 
+- sort .so input file list so that the yt package builds in a reproducible
   way `PR 2206 <https://github.com/yt-project/yt/pull/2206>`__.
 - update ``stack`` ufunc usage to include ``axis`` kwarg. 
   See `PR 2204 <https://github.com/yt-project/yt/pull/2204>`__.
@@ -220,9 +220,9 @@ Minor Enhancements and Bugfixes
   images to disk `PR 2514 <https://github.com/yt-project/yt/pull/2514>`__.
 - fix issue with fortran utils where empty records were not 
   supported `PR 2259 <https://github.com/yt-project/yt/pull/2259>`__.
-- add support for python 3.7 in iterator used by dynamic parallel 
+- add support for python 3.7 in iterator used by dynamic parallel
   loading `PR 2265 <https://github.com/yt-project/yt/pull/2265>`__.
-- add support to handle boxlib data where ``raw_fields`` contain 
+- add support to handle boxlib data where ``raw_fields`` contain
   ghost zones `PR 2255 <https://github.com/yt-project/yt/pull/2255>`__.
 - update quiver fields to use native units, not assuming 
   cgs `PR 2292 <https://github.com/yt-project/yt/pull/2292>`__.
@@ -328,7 +328,7 @@ Testing and Infrastructure
   tests `PR 2182 <https://github.com/yt-project/yt/pull/2182>`__.
 - add tests for pre-existing ytdata datasets. See 
   `PR 2229 <https://github.com/yt-project/yt/pull/2229>`__.
-- add a test to check if cosmology calculator and cosmology dataset 
+- add a test to check if cosmology calculator and cosmology dataset
   share the same unit registry `PR 2230 <https://github.com/yt-project/yt/pull/2230>`__.
 - fix kh2d test name  `PR 2342 <https://github.com/yt-project/yt/pull/2342>`__.
 - disable OSNI projection answer test to remove cartopy errors `PR 2350 <https://github.com/yt-project/yt/pull/2350>`__.

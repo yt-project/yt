@@ -113,8 +113,8 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):
         ytcfg["yt", "inline"] = True
     if communicator.rank > 0:
-        if ytcfg.get("yt", "logFile"):
-            ytcfg["yt", "logFile"] = False
+        if ytcfg.get("yt", "log_file"):
+            ytcfg["yt", "log_file"] = False
             yt.utilities.logger.disable_file_logging()
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
@@ -130,7 +130,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     else:
         sys.excepthook = default_mpi_excepthook
 
-    if ytcfg.get("yt", "loglevel") < 20:
+    if ytcfg.get("yt", "log_level") < 20:
         yt.utilities.logger.ytLogger.warning(
             "Log Level is set low -- this could affect parallel performance!"
         )

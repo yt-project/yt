@@ -676,7 +676,7 @@ class YTDataContainer:
 
         from yt.config import ytcfg
 
-        if ytcfg.get("yt", "internals", "withintesting"):
+        if ytcfg.get("yt", "internals", "within_testing"):
             from glue.core.application_base import Application as GlueApplication
         else:
             try:

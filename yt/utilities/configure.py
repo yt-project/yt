@@ -58,7 +58,18 @@ def migrate_config():
     old_config.optionxform = str
     old_config.read(OLD_CONFIG_FILE)
 
-    default_keys = {k.lower(): k for k in ytcfg_defaults["yt"].keys()}
+    # In order to migrate, we'll convert everything to lowercase, and map that
+    # to the new snake_case convention
+    def normalize_key(key):
+        return key.replace("_", "").lower()
+
+    def usesCamelCase(key):
+        if key != key.lower():
+            return True
+        else:
+            return False
+
+    old_keys_to_new = {normalize_key(k): k for k in ytcfg_defaults["yt"].keys()}
 
     config_as_dict = {}
     for section in old_config:
@@ -70,12 +81,12 @@ def migrate_config():
             cast_value = _cast_value_helper(value)
 
             # Normalize the key (if present in the defaults)
-            if key.lower() in default_keys and section == "yt":
-                normalized_key = default_keys[key.lower()]
+            if normalize_key(key) in old_keys_to_new and section == "yt":
+                new_key = old_keys_to_new[normalize_key(key)]
             else:
-                normalized_key = key
+                new_key = key
 
-            config_as_dict[section][normalized_key] = cast_value
+            config_as_dict[section][new_key] = cast_value
 
     CONFIG.update(config_as_dict)
 

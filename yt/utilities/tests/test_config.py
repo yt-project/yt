@@ -15,15 +15,17 @@ LOCAL_CONFIG_FILE = YTConfig.get_local_config_file()
 _TEST_PLUGIN = "_test_plugin.py"
 # NOTE: the normalization of the crazy camel-case will be checked
 _DUMMY_CFG_INI = f"""[yt]
-lOgLeVeL = 49
-pluginFilename = {_TEST_PLUGIN}
-booleanStuff = True
+logLevel = 49
+pluginfilename = {_TEST_PLUGIN}
+boolean_stuff = True
+chunk_size = 3
 """
 
 _DUMMY_CFG_TOML = f"""[yt]
-loglevel = 49
-pluginFilename = "{_TEST_PLUGIN}"
-booleanStuff = true
+log_level = 49
+plugin_filename = "{_TEST_PLUGIN}"
+boolean_stuff = true
+chunk_size = 3
 """
 
 

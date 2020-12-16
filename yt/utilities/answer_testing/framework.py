@@ -136,7 +136,7 @@ class AnswerTesting(Plugin):
 
         self.store_results = options.store_results
 
-        ytcfg["yt", "internals", "withintesting"] = True
+        ytcfg["yt", "internals", "within_testing"] = True
         AnswerTestingTest.result_storage = self.result_storage = defaultdict(dict)
         if self.compare_name == "SKIP":
             self.compare_name = None

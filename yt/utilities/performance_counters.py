@@ -22,7 +22,7 @@ class PerformanceCounters:
         self.counting = defaultdict(lambda: False)
         self.starttime = defaultdict(lambda: 0)
         self.endtime = defaultdict(lambda: 0)
-        self._on = ytcfg.get("yt", "timefunctions")
+        self._on = ytcfg.get("yt", "time_functions")
         self.exit()
 
     def __call__(self, name):

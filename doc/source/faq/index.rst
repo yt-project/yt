@@ -432,7 +432,7 @@ either by setting it in the ``$HOME/.config/yt/yt.toml`` file:
 
 .. code-block:: bash
 
-   $ yt config set yt loglevel 10  # This sets the log level to "DEBUG"
+   $ yt config set yt log_level 10  # This sets the log level to "DEBUG"
 
 which would produce debug (as well as info, warning, and error) messages, or at runtime:
 

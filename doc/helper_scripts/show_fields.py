@@ -23,7 +23,7 @@ base_ds.cosmological_simulation = 1
 base_ds.cosmology = Cosmology()
 
 
-ytcfg["yt", "internals", "withintesting"] = True
+ytcfg["yt", "internals", "within_testing"] = True
 np.seterr(all="ignore")
 
 
@@ -202,7 +202,7 @@ class FieldInfo:
             self.dname = f":math:`{field[1][2]}`"
 
         if ftype != "particle_type":
-            ftype = "'" + ftype + "'"
+            ftype = f"'{ftype}'"
         self.name = f"({ftype}, '{name}')"
         self.ptype = ptype
 

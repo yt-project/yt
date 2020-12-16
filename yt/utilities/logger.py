@@ -60,7 +60,7 @@ def set_log_level(level):
 ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
 cfstring = "%(name)-3s: [%(levelname)-18s] %(asctime)s %(message)s"
 
-if ytcfg.get("yt", "stdoutStreamLogging"):
+if ytcfg.get("yt", "stdout_stream_logging"):
     stream = sys.stdout
 else:
     stream = sys.stderr
@@ -104,14 +104,14 @@ def uncolorize_logging():
         yt_sh.emit = original_emitter
     except NameError:
         # yt_sh and original_emitter are not defined because
-        # suppressStreamLogging is True, so we continue since there is nothing
+        # suppress_stream_logging is True, so we continue since there is nothing
         # to uncolorize
         pass
 
 
-_level = min(max(ytcfg.get("yt", "loglevel"), 0), 50)
+_level = min(max(ytcfg.get("yt", "log_level"), 0), 50)
 
-if ytcfg.get("yt", "suppressStreamLogging"):
+if ytcfg.get("yt", "suppress_stream_logging"):
     disable_stream_logging()
 else:
     yt_sh = logging.StreamHandler(stream=stream)
@@ -125,5 +125,5 @@ else:
 
     original_emitter = yt_sh.emit
 
-    if ytcfg.get("yt", "coloredLogs"):
+    if ytcfg.get("yt", "colored_logs"):
         colorize_logging()

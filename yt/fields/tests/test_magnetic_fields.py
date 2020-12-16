@@ -8,7 +8,7 @@ from yt.utilities.physical_constants import mu_0
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "internals", "withintesting"] = True
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def test_magnetic_fields():

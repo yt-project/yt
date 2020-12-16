@@ -80,7 +80,7 @@ class SetConfigOption(argparse.Action):
         param, val = values.split("=")
         mylog.debug("Overriding config: %s = %s", param, val)
         ytcfg["yt", param] = val
-        if param == "loglevel":  # special case
+        if param == "log_level":  # special case
             mylog.setLevel(int(val))
 
 

@@ -365,23 +365,23 @@ Listing current content of the config file:
 
    $ yt config list
    [yt]
-   loglevel = 50
+   log_level = 50
 
 Obtaining a single config value by name:
 
 .. code-block:: bash
 
-   $ yt config get yt loglevel
+   $ yt config get yt log_level
    50
 
 Changing a single config value:
 
 .. code-block:: bash
 
-   $ yt config set yt loglevel 10
+   $ yt config set yt log_level 10
 
 Removing a single config entry:
 
 .. code-block:: bash
 
-   $ yt config rm yt loglevel
+   $ yt config rm yt log_level

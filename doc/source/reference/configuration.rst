@@ -28,8 +28,8 @@ like:
 .. code-block:: none
 
    [yt]
-   loglevel = 1
-   maximumstoreddatasets = 10000
+   log_level = 1
+   maximum_stored_datasets = 10000
 
 This configuration file would set the logging threshold much lower, enabling
 much more voluminous output from yt.  Additionally, it increases the number of
@@ -41,8 +41,8 @@ options from the configuration file, e.g.:
 
    $ yt config -h
    $ yt config list
-   $ yt config set yt loglevel 1
-   $ yt config rm yt maximumstoreddatasets
+   $ yt config set yt log_level 1
+   $ yt config rm yt maximum_stored_datasets
 
 
 Local Configuration
@@ -60,8 +60,8 @@ options, and display the path to the local configuration file, e.g.:
 
    $ yt config -h
    $ yt config list --local
-   $ yt config set --local yt loglevel 1
-   $ yt config rm --local yt maximumstoreddatasets
+   $ yt config set --local yt log_level 1
+   $ yt config rm --local yt maximum_stored_datasets
    $ yt config print-path --local
 
 If no local configuration file is present, these commands will create an (empty) one
@@ -92,7 +92,7 @@ Here is an example script, where we adjust the logging at startup:
    ds = yt.load("my_data0001")
    ds.print_stats()
 
-This has the same effect as setting ``loglevel = 1`` in the configuration
+This has the same effect as setting ``log_level = 1`` in the configuration
 file. Note that a log level of 1 means that all log messages are printed to
 stdout.  To disable logging, set the log level to 50.
 
@@ -103,13 +103,13 @@ Available Configuration Options
 The following external parameters are available.  A number of parameters are
 used internally.
 
-* ``coloredlogs`` (default: ``False``): Should logs be colored?
+* ``colored_logs`` (default: ``False``): Should logs be colored?
 * ``default_colormap`` (default: ``arbre``): What colormap should be used by
   default for yt-produced images?
-* ``pluginfilename``  (default ``my_plugins.py``) The name of our plugin file.
-* ``logfile`` (default: ``False``): Should we output to a log file in the
+* ``plugin_filename``  (default ``my_plugins.py``) The name of our plugin file.
+* ``log_file`` (default: ``False``): Should we output to a log file in the
   filesystem?
-* ``loglevel`` (default: ``20``): What is the threshold (0 to 50) for
+* ``log_level`` (default: ``20``): What is the threshold (0 to 50) for
   outputting log files?
 * ``test_data_dir`` (default: ``/does/not/exist``): The default path the
   ``load()`` function searches for datasets when it cannot find a dataset in the
@@ -132,9 +132,9 @@ used internally.
   :ref:`object serialization <object-serialization>`
 * ``sketchfab_api_key`` (default: empty): API key for https://sketchfab.com/ for
   uploading AMRSurface objects.
-* ``suppressStreamLogging`` (default: ``False``): If true, execution mode will be
+* ``suppress_stream_logging`` (default: ``False``): If true, execution mode will be
   quiet.
-* ``stdoutStreamLogging`` (default: ``False``): If true, logging is directed
+* ``stdout_stream_logging`` (default: ``False``): If true, logging is directed
   to stdout rather than stderr
 * ``skip_dataset_cache`` (default: ``False``): If true, automatic caching of datasets
   is turned off.
@@ -157,8 +157,8 @@ Global system plugin file
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
 yt will look for and recognize the file ``$HOME/.config/yt/my_plugins.py`` as a
-plugin file. It is possible to rename this file to ``$HOME/.config/yt/<pluginfilename>.py``
-by defining ``pluginfilename`` in your `yt.toml` file, as mentioned above.
+plugin file. It is possible to rename this file to ``$HOME/.config/yt/<plugin_filename>.py``
+by defining ``plugin_filename`` in your `yt.toml` file, as mentioned above.
 
 .. note::
 

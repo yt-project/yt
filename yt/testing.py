@@ -1233,7 +1233,7 @@ def requires_backend(backend):
             print(msg)
             pytest.skip(msg)
 
-        if ytcfg.get("yt", "internals", "withinpytest"):
+        if ytcfg.get("yt", "internals", "within_pytest"):
             return skip
         else:
             return lambda: None
