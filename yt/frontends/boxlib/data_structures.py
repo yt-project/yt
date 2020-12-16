@@ -1,5 +1,4 @@
 import glob
-import inspect
 import os
 import re
 import warnings
@@ -634,13 +633,13 @@ class BoxlibDataset(Dataset):
     _index_class = BoxlibHierarchy
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
-
+    _default_cparam_filename = "job_info"
     periodicity = (False, False, False)
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",  # todo: harmonise this default value with docstring
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -656,6 +655,8 @@ class BoxlibDataset(Dataset):
         """
         self.fluid_types += ("boxlib",)
         self.output_dir = os.path.abspath(os.path.expanduser(output_dir))
+
+        cparam_filename = cparam_filename or self.__class__._default_cparam_filename
         self.cparam_filename = self._lookup_cparam_filepath(
             output_dir, cparam_filename=cparam_filename
         )
@@ -688,20 +689,32 @@ class BoxlibDataset(Dataset):
         return None
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        # fill our args
+    def _is_valid(cls, *args, cparam_filename=None, **kwargs):
         output_dir = args[0]
         header_filename = os.path.join(output_dir, "Header")
         # boxlib datasets are always directories, and
         # We *know* it's not boxlib if Header doesn't exist.
-        return os.path.exists(header_filename)
+        if not os.path.exists(header_filename):
+            return False
+
+        if cls is BoxlibDataset:
+            # Stop checks here for the boxlib base class.
+            # Further checks are performed on subclasses.
+            return True
+
+        cparam_filename = cparam_filename or cls._default_cparam_filename
+        cparam_filepath = cls._lookup_cparam_filepath(output_dir, cparam_filename)
+
+        if cparam_filepath is None:
+            return False
+
+        lines = [line.lower() for line in open(cparam_filepath).readlines()]
+        return any(cls._subtype_keyword in line for line in lines)
 
     @classmethod
-    def _lookup_cparam_filepath(cls, *args, **kwargs):
-        output_dir = args[0]
-        iargs = inspect.getcallargs(cls.__init__, args, kwargs)
+    def _lookup_cparam_filepath(cls, output_dir, cparam_filename):
         lookup_table = [
-            os.path.abspath(os.path.join(p, iargs["cparam_filename"]))
+            os.path.abspath(os.path.join(p, cparam_filename))
             for p in (output_dir, os.path.dirname(output_dir))
         ]
         found = [os.path.exists(file) for file in lookup_table]
@@ -710,21 +723,6 @@ class BoxlibDataset(Dataset):
             return None
 
         return lookup_table[found.index(True)]
-
-    @classmethod
-    def _is_valid_subtype(cls, *args, **kwargs):
-        # this is used by derived classes
-        output_dir = args[0]
-
-        if not BoxlibDataset._is_valid(output_dir):
-            return False
-
-        cparam_filepath = cls._lookup_cparam_filepath(*args, **kwargs)
-        if cparam_filepath is None:
-            return False
-
-        lines = [line.lower() for line in open(cparam_filepath).readlines()]
-        return any(cls._subtype_keyword in line for line in lines)
 
     def _parse_parameter_file(self):
         """
@@ -772,8 +770,8 @@ class BoxlibDataset(Dataset):
             else:
                 try:
                     vals = _guess_pcast(vals)
-                except IndexError:
-                    # hitting an empty string
+                except (IndexError, ValueError):
+                    # hitting an empty string or a comment
                     vals = None
             self.parameters[param] = vals
 
@@ -1028,11 +1026,12 @@ class OrionDataset(BoxlibDataset):
 
     _index_class = OrionHierarchy
     _subtype_keyword = "hyp."
+    _default_cparam_filename = "inputs"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="inputs",
+        cparam_filename=None,
         fparam_filename="probin",
         dataset_type="orion_native",
         storage_filename=None,
@@ -1049,10 +1048,6 @@ class OrionDataset(BoxlibDataset):
             units_override=units_override,
             unit_system=unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
 
 
 class CastroHierarchy(BoxlibHierarchy):
@@ -1083,11 +1078,12 @@ class CastroDataset(BoxlibDataset):
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
     _subtype_keyword = "castro"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1104,10 +1100,6 @@ class CastroDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(CastroDataset, self)._parse_parameter_file()
@@ -1164,11 +1156,12 @@ class MaestroDataset(BoxlibDataset):
 
     _field_info_class = MaestroFieldInfo
     _subtype_keyword = "maestro"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1185,10 +1178,6 @@ class MaestroDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(MaestroDataset, self)._parse_parameter_file()
@@ -1257,11 +1246,12 @@ class NyxDataset(BoxlibDataset):
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
     _subtype_keyword = "nyx"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1278,10 +1268,6 @@ class NyxDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(NyxDataset, self)._parse_parameter_file()
@@ -1534,11 +1520,12 @@ class WarpXDataset(BoxlibDataset):
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
     _subtype_keyword = "warpx"
+    _default_cparam_filename = "warpx_job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="warpx_job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1559,10 +1546,6 @@ class WarpXDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
 
     def _parse_parameter_file(self):
         super(WarpXDataset, self)._parse_parameter_file()
@@ -1619,11 +1602,13 @@ class AMReXHierarchy(BoxlibHierarchy):
 class AMReXDataset(BoxlibDataset):
 
     _index_class = AMReXHierarchy
+    _subtype_keyword = "amrex"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1649,7 +1634,3 @@ class AMReXDataset(BoxlibDataset):
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)
             self.particle_types_raw = self.particle_types
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return False

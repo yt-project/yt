@@ -2,6 +2,7 @@ set -x   # Show which command is being run
 
 case ${RUNNER_OS} in
 linux|Linux)
+    sudo apt-get -qqy update
     sudo apt-get -qqy install \
       libhdf5-serial-dev \
       libnetcdf-dev \

@@ -1,7 +1,7 @@
 import os
 import tempfile
+from unittest import mock
 
-import mock
 import numpy as np
 
 from yt.testing import assert_equal, fake_random_ds
