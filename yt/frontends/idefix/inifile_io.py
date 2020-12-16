@@ -11,8 +11,8 @@ _sci_notation_exp = re.compile(r"\d+(\.\d*)?e[+-]?\d+?")
 
 def _decode_sci_int(s):
     """
-    Cast string `s` to integer if the conversion can be perfomed
-    without loss of data. Raise ValueError otherwise.
+    Cast an 'e' formatted string `s` to integer if such a conversion can
+    be perfomed without loss of data. Raise ValueError otherwise.
 
     Examples
     --------
@@ -169,10 +169,8 @@ class IdefixConf(dict):
             # normalize whitespace
             line = line.strip()
             line = re.sub(r"\s", " ", line)
-            if line == "":
-                # skip empty lines
-                continue
-            lines.append(line)
+            if line != "":
+                lines.append(line)
         return lines
 
     @staticmethod
