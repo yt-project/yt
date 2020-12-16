@@ -17,7 +17,7 @@ from yt.frontends.enzo_p.misc import (
     is_parent,
     nested_dict_get,
 )
-from yt.funcs import ensure_tuple, get_pbar, setdefaultattr
+from yt.funcs import get_pbar, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.logger import ytLogger as mylog
@@ -351,7 +351,7 @@ class EnzoPDataset(Dataset):
         root_blocks = get_root_blocks(b0)
         f.close()
         self.dimensionality = left0.size
-        self.periodicity = ensure_tuple(np.ones(self.dimensionality, dtype=bool))
+        self.periodicity = tuple(np.ones(self.dimensionality, dtype=bool))
 
         lcfn = self.parameter_filename[: -len(self._suffix)] + ".libconfig"
         if os.path.exists(lcfn):

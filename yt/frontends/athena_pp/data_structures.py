@@ -7,7 +7,7 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_tuple, get_pbar, mylog
+from yt.funcs import get_pbar, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.chemical_formulas import default_mu
@@ -331,10 +331,9 @@ class AthenaPPDataset(Dataset):
         self.num_ghost_zones = 0
         self.field_ordering = "fortran"
         self.boundary_conditions = [1] * 6
-        if "periodicity" in self.specified_parameters:
-            self.periodicity = ensure_tuple(self.specified_parameters["periodicity"])
-        else:
-            self.periodicity = (True, True, True)
+        self.periodicity = tuple(
+            self.specified_parameters.get("periodicity", (True, True, True))
+        )
         if "gamma" in self.specified_parameters:
             self.gamma = float(self.specified_parameters["gamma"])
         else:

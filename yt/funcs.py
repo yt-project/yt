@@ -96,15 +96,6 @@ def ensure_numpy_array(obj):
         return np.asarray([obj])
 
 
-def ensure_tuple(obj):
-    """
-    This function ensures that *obj* is a tuple. Typically used to convert
-    scalar, list, or array arguments specified by a user in a context where
-    we assume a tuple internally
-    """
-    return tuple(always_iterable(obj))
-
-
 def read_struct(f, fmt):
     """
     This reads a struct, and only that struct, from an open file.
