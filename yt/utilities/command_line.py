@@ -54,6 +54,7 @@ except FileNotFoundError:
     pass
 
 _default_colormap = ytcfg.get("yt", "default_colormap")
+_arg_groups = {}
 
 
 def _fix_ds(arg, *args, **kwargs):
@@ -71,6 +72,15 @@ def _fix_ds(arg, *args, **kwargs):
 def _add_arg(sc, arg):
     if isinstance(arg, str):
         arg = _common_options[arg].copy()
+    elif isinstance(arg, tuple):
+        exclusive, *args = arg
+        if exclusive:
+            grp = sc.add_mutually_exclusive_group()
+        else:
+            grp = sc.add_argument_group()
+        for arg in args:
+            _add_arg(grp, arg)
+        return
     argc = dict(arg.items())
     argnames = []
     if "short" in argc:
@@ -1629,32 +1639,73 @@ class YTConfigLocalConfigMixin:
         from yt.config import YTConfig
         from yt.utilities.configure import CONFIG
 
-        if "local" in args and args.local:
-            local_config_file = YTConfig.get_local_config_file()
-            if not os.path.exists(local_config_file):
-                with open(local_config_file, "w") as f:
-                    f.write("[yt]\n")
+        args = vars(args)
+
+        local_config_file = YTConfig.get_local_config_file()
+        global_config_file = YTConfig.get_global_config_file()
+
+        local_exists = os.path.exists(local_config_file)
+        global_exists = os.path.exists(global_config_file)
+
+        if "local" in args and args["local"]:
             config_file = local_config_file
+        elif "global" in args and args["global"]:
+            config_file = global_config_file
         else:
-            config_file = YTConfig.get_global_config_file()
+            if local_exists and global_exists:
+                s = (
+                    "Yt detected a local and a global configuration file, refusing "
+                    "to proceed.\n"
+                )
+                s += f"Local config file: {local_config_file}\n"
+                s += f"Global config file: {global_config_file}\n"
+                s += (
+                    "Specify which one you want to use using the `--local` or the "
+                    "`--global` flags."
+                )
+                raise RuntimeError(s)
+            elif local_exists:
+                config_file = local_config_file
+            else:
+                config_file = global_config_file
+            print(f"Using configuration file: {config_file}.")
+
+        if not os.path.exists(config_file):
+            with open(config_file, "w") as f:
+                f.write("[yt]\n")
 
         CONFIG.read(config_file)
 
         self.config_file = config_file
 
 
+_global_local_args = [
+    (
+        "exclusive",
+        dict(
+            short="--local",
+            action="store_true",
+            help="Store the configuration in the global configuration file.",
+        ),
+        dict(
+            short="--global",
+            action="store_true",
+            help="Store the configuration in the global configuration file.",
+        ),
+    ),
+]
+
+
 class YTConfigGetCmd(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "get"
     description = "get a config value"
-    args = (
-        dict(short="section", help="The section containing the option."),
-        dict(short="option", help="The option to retrieve."),
-        dict(
-            short="--local",
-            action="store_true",
-            help="Use a local configuration file instead of the global one.",
-        ),
+    args = tuple(
+        [
+            dict(short="section", help="The section containing the option."),
+            dict(short="option", help="The option to retrieve."),
+        ]
+        + _global_local_args
     )
 
     def __call__(self, args):
@@ -1669,15 +1720,13 @@ class YTConfigSetCmd(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "set"
     description = "set a config value"
-    args = (
-        dict(short="section", help="The section containing the option."),
-        dict(short="option", help="The option to set."),
-        dict(short="value", help="The value to set the option to."),
-        dict(
-            short="--local",
-            action="store_true",
-            help="Use a local configuration file instead of the global one.",
-        ),
+    args = tuple(
+        [
+            dict(short="section", help="The section containing the option."),
+            dict(short="option", help="The option to set."),
+            dict(short="value", help="The value to set the option to."),
+        ]
+        + _global_local_args
     )
 
     def __call__(self, args):
@@ -1692,14 +1741,12 @@ class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "rm"
     description = "remove a config option"
-    args = (
-        dict(short="section", help="The section containing the option."),
-        dict(short="option", help="The option to remove."),
-        dict(
-            short="--local",
-            action="store_true",
-            help="Use a local configuration file instead of the global one.",
-        ),
+    args = tuple(
+        [
+            dict(short="section", help="The section containing the option."),
+            dict(short="option", help="The option to remove."),
+        ]
+        + _global_local_args
     )
 
     def __call__(self, args):
@@ -1714,13 +1761,7 @@ class YTConfigListCmd(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "list"
     description = "show the config content"
-    args = (
-        dict(
-            short="--local",
-            action="store_true",
-            help="Use a local configuration file instead of the global one.",
-        ),
-    )
+    args = _global_local_args
 
     def __call__(self, args):
         from yt.utilities.configure import write_config
@@ -1748,13 +1789,7 @@ class YTConfigPrintPath(YTCommand, YTConfigLocalConfigMixin):
     subparser = "config"
     name = "print-path"
     description = "show path to the config file"
-    args = (
-        dict(
-            short="--local",
-            action="store_true",
-            help="Use a local configuration file instead of the global one.",
-        ),
-    )
+    args = _global_local_args
 
     def __call__(self, args):
         self.load_config(args)

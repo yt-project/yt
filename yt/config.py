@@ -211,8 +211,6 @@ ytcfg.update(ytcfg_defaults, metadata={"source": "defaults"})
 
 # Try loading the local config first, otherwise fall back to global config
 if os.path.exists(_local_config_file):
-    print("Reading local file")
     ytcfg.read(_local_config_file)
 elif os.path.exists(_global_config_file):
-    print("Reading global file")
     ytcfg.read(_global_config_file)
