@@ -119,12 +119,12 @@ class IdefixConf(dict):
     def from_file(self, filepath_or_buffer):
         _dict = {}
         try:
-            lines = filepath_or_buffer.readlines()
+            data = filepath_or_buffer.read()
         except AttributeError:
             # this is a path
             with open(filepath_or_buffer, mode="rt") as fh:
-                lines = fh.readlines()
-        lines = IdefixConf.normalize_data(lines)
+                data = fh.read()
+        lines = IdefixConf.normalize_data(data)
 
         for line in lines:
             section = re.match(_section_exp, line)
@@ -140,23 +140,22 @@ class IdefixConf(dict):
         super(IdefixConf, self).__init__(_dict)
 
     @staticmethod
-    def normalize_data(lines):
-        # normalize text lines
-        new_lines = []
-        for line in lines:
-            line = line.replace("\n", "")
+    def normalize_data(data):
+        # normalize text body `data` to parsable text lines
+        lines = []
+        for line in data.split("\n"):
             if "#" in line:
                 # remove comments
-                line = line[: line.index("#")].strip()
+                line = line[: line.index("#")]
 
             # normalize whitespace
             line = line.strip()
-            line = re.sub(r"\s", lambda _: " ", line)
+            line = re.sub(r"\s", " ", line)
             if line == "":
                 # skip empty lines
                 continue
-            new_lines.append(line)
-        return new_lines
+            lines.append(line)
+        return lines
 
     @staticmethod
     def tokenize_line(line):
