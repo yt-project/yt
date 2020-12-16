@@ -16,13 +16,13 @@ The configuration is stored in simple text files (in the `toml <https://github.c
 The files allow to set internal yt variables to custom default values to be used in future sessions.
 The configuration can either be stored :ref:`globally<Global Configuration>` or :ref:`locally<Local Configuration>`.
 
-
 Global Configuration
 ^^^^^^^^^^^^^^^^^^^^
 
-yt will look for and recognize the file ``$HOME/.config/yt/yt.toml`` as a configuration
-file, containing several options that can be modified and adjusted to control
-runtime behavior.  For example, a sample ``$HOME/.config/yt/yt.toml`` file could look
+If no local configuration file exists, yt will look for and recognize the file
+``$HOME/.config/yt/yt.toml`` as a configuration file, containing several options
+that can be modified and adjusted to control runtime behavior.  For example, a sample
+``$HOME/.config/yt/yt.toml`` file could look
 like:
 
 .. code-block:: none
@@ -34,7 +34,7 @@ like:
 This configuration file would set the logging threshold much lower, enabling
 much more voluminous output from yt.  Additionally, it increases the number of
 datasets tracked between instantiations of yt. The configuration file can be
-managed using the ``yt config`` helper. It can list, add, modify and remove
+managed using the ``yt config --global`` helper. It can list, add, modify and remove
 options from the configuration file, e.g.:
 
 .. code-block:: none
@@ -48,9 +48,9 @@ options from the configuration file, e.g.:
 Local Configuration
 ^^^^^^^^^^^^^^^^^^^
 
-yt will look for any file name ``yt.toml`` in the current directory or any
-of its parent, up to the root. If present, its options override those in the
-global configuration.
+yt will look for a file name ``yt.toml`` in the current directory. If present, its options
+are loaded and the global configuration is not read. Local configuration files
+can contain the same options as the global one.
 
 Local configuration files can either be edited manually, or alternatively they
 can be managed using ``yt config --local``. It can list, add, modify and remove
@@ -65,8 +65,7 @@ options, and display the path to the local configuration file, e.g.:
    $ yt config print-path --local
 
 If no local configuration file is present, these commands will create an (empty) one
-in the current working directy.
-
+in the current working directly.
 
 Configuration Options At Runtime
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
