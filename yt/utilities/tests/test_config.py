@@ -45,7 +45,7 @@ class SysExitException(Exception):
 
 
 def setUpModule():
-    for cfgfile in (GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE):
+    for cfgfile in (GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE, LOCAL_CONFIG_FILE):
         if os.path.exists(cfgfile):
             os.rename(cfgfile, cfgfile + ".bak_test")
 
@@ -56,7 +56,7 @@ def setUpModule():
 
 
 def tearDownModule():
-    for cfgfile in (GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE):
+    for cfgfile in (GLOBAL_CONFIG_FILE, OLD_CONFIG_FILE, LOCAL_CONFIG_FILE):
         if os.path.exists(cfgfile + ".bak_test"):
             os.rename(cfgfile + ".bak_test", cfgfile)
 
@@ -142,6 +142,22 @@ class TestYTConfigCommands(TestYTConfig):
     def tearDown(self):
         if os.path.exists(GLOBAL_CONFIG_FILE):
             os.remove(GLOBAL_CONFIG_FILE)
+
+
+class TestYTConfigGlobalLocal(TestYTConfig):
+    def setUp(self):
+        with open(YTConfig.get_local_config_file(), mode="w") as f:
+            f.writelines("[yt]\n")
+        with open(YTConfig.get_global_config_file(), mode="w") as f:
+            f.writelines("[yt]\n")
+
+    def testAmbiguousConfig(self):
+        info = self._runYTConfig(["list"])
+        self.assertFalse(len(info["rc"]) == 0)
+
+        for cmd in (["list", "--local"], ["list", "--global"]):
+            info = self._runYTConfig(cmd)
+            self.assertEqual(info["rc"], 0)
 
 
 class TestYTConfigMigration(TestYTConfig):

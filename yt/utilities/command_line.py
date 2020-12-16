@@ -1663,12 +1663,12 @@ class YTConfigLocalConfigMixin:
                     "Specify which one you want to use using the `--local` or the "
                     "`--global` flags."
                 )
-                raise RuntimeError(s)
+                sys.exit(s)
             elif local_exists:
                 config_file = local_config_file
             else:
                 config_file = global_config_file
-            print(f"Using configuration file: {config_file}.")
+            sys.stderr.write(f"INFO: using configuration file: {config_file}.\n")
 
         if not os.path.exists(config_file):
             with open(config_file, "w") as f:
