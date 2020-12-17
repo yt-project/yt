@@ -11,8 +11,8 @@ from yt.funcs import (
     validate_3d_array,
     validate_center,
     validate_float,
-    validate_iterable,
     validate_object,
+    validate_sequence,
 )
 from yt.utilities.exceptions import YTEllipsoidOrdering, YTException, YTSphereTooSmall
 from yt.utilities.logger import ytLogger as mylog
@@ -175,7 +175,7 @@ class YTEllipsoid(YTSelectionContainer3D):
         validate_float(C)
         validate_3d_array(e0)
         validate_float(tilt)
-        validate_iterable(fields)
+        validate_sequence(fields)
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)

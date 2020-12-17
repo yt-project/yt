@@ -20,9 +20,9 @@ from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
 from yt.funcs import (
-    ensure_list,
+    is_sequence,
     issue_deprecation_warning,
-    iterable,
+    iter_fields,
     mylog,
     set_intersection,
     setdefaultattr,
@@ -459,8 +459,8 @@ class Dataset(abc.ABC):
                 "fs",
             ]
         else:
-            raise SyntaxError(
-                "Specified quantity must be equal to 'distance'" "or 'time'."
+            raise ValueError(
+                "Specified quantity must be equal to 'distance' or 'time'."
             )
         for unit in unit_list:
             uq = self.quan(1.0, unit)
@@ -970,11 +970,8 @@ class Dataset(abc.ABC):
         the input *fields*.
         """
         point = self.point(coords)
-        ret = []
-        field_list = ensure_list(fields)
-        for field in field_list:
-            ret.append(point[field])
-        if len(field_list) == 1:
+        ret = [point[f] for f in iter_fields(fields)]
+        if len(ret) == 1:
             return ret[0]
         else:
             return ret
@@ -992,7 +989,7 @@ class Dataset(abc.ABC):
         except AttributeError:
             pass
 
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         out = []
 
         # This may be slow because it creates a data object for each point
@@ -1883,7 +1880,7 @@ class ParticleDataset(Dataset):
 def validate_index_order(index_order):
     if index_order is None:
         index_order = (7, 5)
-    elif not iterable(index_order):
+    elif not is_sequence(index_order):
         index_order = (int(index_order), 1)
     else:
         if len(index_order) != 2:

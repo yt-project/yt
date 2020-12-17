@@ -25,6 +25,7 @@ from numbers import Number as numeric_type
 
 import matplotlib
 import numpy as np
+from more_itertools import always_iterable, collapse, first
 
 from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
@@ -34,29 +35,49 @@ from yt.utilities.logger import ytLogger as mylog
 # Some functions for handling sequences and other types
 
 
-def iterable(obj):
+def is_sequence(obj):
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
     """
     try:
         len(obj)
+        return True
     except TypeError:
         return False
-    return True
 
 
-def ensure_list(obj):
+def iter_fields(field_or_fields):
     """
-    This function ensures that *obj* is a list.  Typically used to convert a
-    string to a list, for instance ensuring the *fields* as an argument is a
-    list.
+    Create an iterator for field names, specified as single strings or tuples(fname,
+    ftype) alike.
+    This can safely be used in places where we accept a single field or a list as input.
+
+    Parameters
+    ----------
+    obj: str, tuple(str, str), or any iterable of the previous types.
+
+    Examples
+    --------
+
+    >>> fields = "density"
+    >>> for field in iter_fields(fields):
+    ...     print(field)
+    density
+
+    >>> fields = ("gas", "density")
+    >>> for field in iter_fields(fields):
+    ...     print(field)
+    ('gas', 'density')
+
+    >>> fields = ["density", "temperature", ("index", "dx")]
+    >>> for field in iter_fields(fields):
+    ...     print(field)
+    density
+    temperature
+    ('index', 'dx')
     """
-    if obj is None:
-        return [obj]
-    if not isinstance(obj, list):
-        return [obj]
-    return obj
+    return always_iterable(field_or_fields, base_type=(tuple, str, bytes))
 
 
 def ensure_numpy_array(obj):
@@ -77,16 +98,11 @@ def ensure_numpy_array(obj):
 
 def ensure_tuple(obj):
     """
-    This function ensures that *obj* is a tuple.  Typically used to convert
+    This function ensures that *obj* is a tuple. Typically used to convert
     scalar, list, or array arguments specified by a user in a context where
     we assume a tuple internally
     """
-    if isinstance(obj, tuple):
-        return obj
-    elif isinstance(obj, (list, np.ndarray)):
-        return tuple(obj)
-    else:
-        return (obj,)
+    return tuple(always_iterable(obj))
 
 
 def read_struct(f, fmt):
@@ -99,13 +115,7 @@ def read_struct(f, fmt):
 
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item
-    if hasattr(obj, "flat"):
-        if isinstance(obj, YTArray):
-            return YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
-        return obj.flat[0]
-    elif iterable(obj):
-        return obj[0]
-    return obj
+    return first(collapse(obj))
 
 
 def compare_dicts(dict1, dict2):
@@ -999,7 +1009,7 @@ def ensure_dir(path):
 
 
 def validate_width_tuple(width):
-    if not iterable(width) or len(width) != 2:
+    if not is_sequence(width) or len(width) != 2:
         raise YTInvalidWidthError(f"width ({width}) is not a two element tuple")
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
@@ -1332,7 +1342,7 @@ def issue_deprecation_warning(msg, stacklevel=3):
 
 
 def obj_length(v):
-    if iterable(v):
+    if is_sequence(v):
         return len(v)
     else:
         # If something isn't iterable, we return 0
@@ -1361,7 +1371,7 @@ def array_like_field(data, x, field):
 
 
 def validate_3d_array(obj):
-    if not iterable(obj) or len(obj) != 3:
+    if not is_sequence(obj) or len(obj) != 3:
         raise TypeError(
             "Expected an array of size (3,), received '%s' of "
             "length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1413,15 +1423,15 @@ def validate_float(obj):
             )
         else:
             return
-    if iterable(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
+    if is_sequence(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
             "received '%s' of length %s" % (str(type(obj)).split("'")[1], len(obj))
         )
 
 
-def validate_iterable(obj):
-    if obj is not None and not iterable(obj):
+def validate_sequence(obj):
+    if obj is not None and not is_sequence(obj):
         raise TypeError(
             "Expected an iterable object,"
             " received '%s'" % str(type(obj)).split("'")[1]
@@ -1461,7 +1471,7 @@ def validate_center(center):
                 "'m', 'max', 'min'] or the prefix to be "
                 "'max_'/'min_', received '%s'." % center
             )
-    elif not isinstance(center, (numeric_type, YTQuantity)) and not iterable(center):
+    elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sequence(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "

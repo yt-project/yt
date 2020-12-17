@@ -1,5 +1,6 @@
-import yt
 import matplotlib.pyplot as plt
+
+import yt
 
 ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0150")
 

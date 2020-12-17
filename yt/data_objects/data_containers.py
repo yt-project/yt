@@ -8,7 +8,7 @@ from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import ensure_list, get_output_filename, iterable, mylog
+from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
 from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
@@ -515,7 +515,6 @@ class YTDataContainer:
         import pandas as pd
 
         data = {}
-        fields = ensure_list(fields)
         fields = self._determine_fields(fields)
         for field in fields:
             data[field[-1]] = self[field]
@@ -545,7 +544,6 @@ class YTDataContainer:
         from astropy.table import QTable
 
         t = QTable()
-        fields = ensure_list(fields)
         fields = self._determine_fields(fields)
         for field in fields:
             t[field[-1]] = self[field].to_astropy()
@@ -1008,14 +1006,10 @@ class YTDataContainer:
         >>> max_temp_proj = reg.max("temperature", axis="x")
         """
         if axis is None:
-            rv = ()
-            fields = ensure_list(field)
-            for f in fields:
-                rv += (self._compute_extrema(f)[1],)
-            if len(fields) == 1:
+            rv = tuple(self._compute_extrema(f)[1] for f in iter_fields(field))
+            if len(rv) == 1:
                 return rv[0]
-            else:
-                return rv
+            return rv
         elif axis in self.ds.coordinates.axis_name:
             r = self.ds.proj(field, axis, data_source=self, method="mip")
             return r
@@ -1046,14 +1040,9 @@ class YTDataContainer:
         >>> min_temp = reg.min("temperature")
         """
         if axis is None:
-            rv = ()
-            fields = ensure_list(field)
-            for f in ensure_list(fields):
-                rv += (self._compute_extrema(f)[0],)
-            if len(fields) == 1:
+            rv = tuple(self._compute_extrema(f)[0] for f in iter_fields(field))
+            if len(rv) == 1:
                 return rv[0]
-            else:
-                return rv
             return rv
         elif axis in self.ds.coordinates.axis_name:
             raise NotImplementedError(
@@ -1401,7 +1390,7 @@ class YTDataContainer:
         except AttributeError:
             pass
 
-        if iterable(field) and not isinstance(field, str):
+        if is_sequence(field) and not isinstance(field, str):
             try:
                 ftype, fname = field
                 if not all(isinstance(_, str) for _ in field):
@@ -1437,9 +1426,8 @@ class YTDataContainer:
         raise YTFieldNotParseable(field)
 
     def _determine_fields(self, fields):
-        fields = ensure_list(fields)
         explicit_fields = []
-        for field in fields:
+        for field in iter_fields(fields):
             if field in self._container_fields:
                 explicit_fields.append(field)
                 continue

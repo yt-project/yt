@@ -1,7 +1,8 @@
-import yt
 import numpy as np
-from yt.data_objects.particle_filters import add_particle_filter
 from matplotlib import pyplot as plt
+
+import yt
+from yt.data_objects.particle_filters import add_particle_filter
 
 
 def formed_star(pfilter, data):

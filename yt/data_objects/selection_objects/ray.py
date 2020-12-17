@@ -13,8 +13,8 @@ from yt.funcs import (
     validate_3d_array,
     validate_axis,
     validate_float,
-    validate_iterable,
     validate_object,
+    validate_sequence,
 )
 from yt.utilities.lib.pixelization_routines import SPHKernelInterpolationTable
 from yt.utilities.logger import ytLogger as mylog
@@ -74,7 +74,7 @@ class YTOrthoRay(YTSelectionContainer1D):
 
     def __init__(self, axis, coords, ds=None, field_parameters=None, data_source=None):
         validate_axis(ds, axis)
-        validate_iterable(coords)
+        validate_sequence(coords)
         for c in coords:
             validate_float(c)
         validate_object(ds, Dataset)

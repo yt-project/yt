@@ -3,9 +3,11 @@
 #  2. This script is added to the document in a literalinclude
 #  3. Any _static images found will be added
 
-from docutils.parsers.rst import Directive
-from docutils.parsers.rst import directives
-import os, glob, shutil
+import glob
+import os
+import shutil
+
+from docutils.parsers.rst import Directive, directives
 
 # Some of this magic comes from the matplotlib plot_directive.
 
@@ -51,31 +53,31 @@ class CookbookScript(Directive):
         )
 
         im_path = os.path.join(rst_dir, "_static")
-        images = sorted(glob.glob(os.path.join(im_path, "%s__*.png" % script_name)))
+        images = sorted(glob.glob(os.path.join(im_path, f"{script_name}__*.png")))
         lines = []
-        lines.append("(`%s <%s>`__)" % (script_bn, script_fn))
+        lines.append(f"(`{script_bn} <{script_fn}>`__)")
         lines.append("\n")
         lines.append("\n")
-        lines.append(".. literalinclude:: %s" % self.arguments[0])
+        lines.append(f".. literalinclude:: {self.arguments[0]}")
         lines.append("\n")
         lines.append("\n")
         for im in images:
             im_name = os.path.join("_static", os.path.basename(im))
-            lines.append(".. image:: %s" % im_name)
+            lines.append(f".. image:: {im_name}")
             lines.append("   :width: 400")
-            lines.append("   :target: ../_images/%s" % os.path.basename(im))
+            lines.append(f"   :target: ../_images/{os.path.basename(im)}")
             lines.append("\n")
         lines.append("\n")
         for ext in data_patterns:
             data_files = sorted(
-                glob.glob(os.path.join(im_path, "%s__*.%s" % (script_name, ext)))
+                glob.glob(os.path.join(im_path, f"{script_name}__*.{ext}"))
             )
             for df in data_files:
                 df_bn = os.path.basename(df)
                 shutil.copyfile(
                     os.path.join(rst_dir, df), os.path.join(dest_dir, rel_dir, df_bn)
                 )
-                lines.append(" * Data: `%s <%s>`__)" % (df_bn, df))
+                lines.append(f" * Data: `{df_bn} <{df}>`__)")
             lines.append("\n")
         self.state_machine.insert_input(lines, rst_file)
         return []

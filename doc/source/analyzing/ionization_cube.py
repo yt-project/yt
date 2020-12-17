@@ -1,9 +1,10 @@
-import yt
-from yt.utilities.parallel_tools.parallel_analysis_interface import communication_system
+import time
 
 import h5py
-import time
 import numpy as np
+
+import yt
+from yt.utilities.parallel_tools.parallel_analysis_interface import communication_system
 
 
 @yt.derived_field(
@@ -20,7 +21,7 @@ ionized_z = np.zeros(ts[0].domain_dimensions, dtype="float32")
 t1 = time.time()
 for ds in ts.piter():
     z = ds.current_redshift
-    for g in parallel_objects(ds.index.grids, njobs=16):
+    for g in yt.parallel_objects(ds.index.grids, njobs=16):
         i1, j1, k1 = g.get_global_startindex()  # Index into our domain
         i2, j2, k2 = g.get_global_startindex() + g.ActiveDimensions
         # Look for the newly ionized gas

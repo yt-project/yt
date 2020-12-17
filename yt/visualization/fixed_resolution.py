@@ -7,9 +7,9 @@ from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
     deprecate,
-    ensure_list,
     get_output_filename,
     issue_deprecation_warning,
+    iter_fields,
     mylog,
 )
 from yt.loaders import load_uniform_grid
@@ -363,7 +363,7 @@ class FixedResolutionBuffer:
         if fields is None:
             fields = list(self.data.keys())
         else:
-            fields = ensure_list(fields)
+            fields = list(iter_fields(fields))
 
         if len(fields) == 0:
             raise RuntimeError(

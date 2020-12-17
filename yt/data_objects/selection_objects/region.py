@@ -7,8 +7,8 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import (
     validate_3d_array,
     validate_center,
-    validate_iterable,
     validate_object,
+    validate_sequence,
 )
 
 
@@ -48,7 +48,7 @@ class YTRegion(YTSelectionContainer3D):
             validate_center(center)
         validate_3d_array(left_edge)
         validate_3d_array(right_edge)
-        validate_iterable(fields)
+        validate_sequence(fields)
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)

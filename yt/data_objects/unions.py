@@ -1,4 +1,4 @@
-from yt.funcs import ensure_list
+from more_itertools import always_iterable
 
 
 class Union:
@@ -6,7 +6,7 @@ class Union:
 
     def __init__(self, name, sub_types):
         self.name = name
-        self.sub_types = ensure_list(sub_types)
+        self.sub_types = list(always_iterable(sub_types))
 
     def __iter__(self):
         for st in self.sub_types:

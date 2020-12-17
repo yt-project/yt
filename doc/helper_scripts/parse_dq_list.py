@@ -1,8 +1,9 @@
-from yt.mods import *
 import inspect
 from textwrap import TextWrapper
 
-ds = load("RD0005-mine/RedshiftOutput0005")
+import yt
+
+ds = yt.load("RD0005-mine/RedshiftOutput0005")
 
 output = open("source/analyzing/_dq_docstrings.inc", "w")
 
@@ -24,7 +25,7 @@ def write_docstring(f, name, func):
     sig = inspect.formatargspec(*inspect.getargspec(func))
     sig = sig.replace("data, ", "")
     sig = sig.replace("(data)", "()")
-    funcproxy = "yt.data_objects.derived_quantities.%s" % (func.__name__)
+    funcproxy = f"yt.data_objects.derived_quantities.{func.__name__}"
     docstring = "\n".join(["   %s" % line for line in docstring.split("\n")])
     f.write(
         template

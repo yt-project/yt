@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 
 from yt.frontends.boxlib.api import (
+    AMReXDataset,
     CastroDataset,
     MaestroDataset,
     NyxDataset,
