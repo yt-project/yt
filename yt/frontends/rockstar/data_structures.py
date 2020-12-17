@@ -115,7 +115,7 @@ class RockstarDataset(ParticleDataset):
     def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".bin"):
             return False
-        with open(filename, "rb") as f:
+        with open(filename, mode="rb") as f:
             header = fpu.read_cattrs(f, header_dt)
             if header["magic"] == 18077126535843729616:
                 return True
