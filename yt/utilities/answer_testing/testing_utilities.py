@@ -268,11 +268,6 @@ def _save_raw_arrays(arrays, answer_file, func_name):
         # grp = f.create_group(func_name)
         grp = f.create_group(sanitized_func_name)
         for test_name, test_data in arrays.items():
-            # The parentage relationships test is a dictionary whose values
-            # are ragged arrays, which hdf5 cannot handle. As such, it needs
-            # to be cast to a square array using a padding value
-            if test_name == "parentage_relationships":
-                test_data = _pad_parentage_relationships_data(test_data)
             # Some answer tests (e.g., grid_values, projection_values)
             # return a dictionary, which cannot be handled by h5py
             if isinstance(test_data, dict):
@@ -287,26 +282,57 @@ def _save_raw_arrays(arrays, answer_file, func_name):
 
 
 def _pad_parentage_relationships_data(data):
-    # There are two keys in data: parents and children. The values for each
-    # of these is a ragged np array, which needs to be made rectangular in
-    # order for hdf5 to be able to handle it. Using -2 as the padding value
-    # (since -1 is used to represent the root grid, which nose used None for,
-    # but I can't since None can't be handled by hdf5, either). This function
-    # is slow and only used when saving the raw answer data, which should be
-    # very infrequent
-    for key in data.keys():
-        longest = 0
-        padded = []
-        for arr in data[key]:
-            if len(arr) > longest:
-                longest = len(arr)
-        for arr in data[key]:
-            temp = np.array([-2] * longest)
-            for j in range(len(arr)):
-                temp[j] = arr[j]
-            padded.append(temp)
-        data[key] = np.stack(padded)
-    return data
+    """
+    Converts a ragged list to a rectangular ndarray of dtype int.
+
+    There are two keys in the pr test result: parents and children.
+    Each one is passed to this function separately. As such, the data
+    received here is a ragged list. The pad value is -2. None values
+    are replaced by -1 so hdf5 can handle it.
+
+    If the dtype of the resulting array is object, then when we hash
+    it the hexdigest will be different each time because the memory
+    address is used in hashing. This is another reason to convert the
+    None values.
+    """
+    assert isinstance(data, list)
+    nRows = len(data)
+    nCols = 0
+    # Now get the length of the longest sublist, as this will be nCols
+    for i, row in enumerate(data):
+        # Convert None to -1 for hdf5 and so array.dtype isn't object
+        if row is None:
+            row = -1
+        if not isinstance(row, list):
+            row = [row,]
+            data[i] = row
+        assert isinstance(row, list)
+        # Update length so that we end up with the length of the
+        # longest sublist
+        if len(row) > nCols:
+            nCols = len(row)
+    try:
+        assert nCols > 0
+    # Sometimes the children list is [[]]
+    except AssertionError:
+        if nRows == 1:
+            data[0].append(-2)
+        else:
+            raise AssertionError
+    # Construct our rectancular array
+    padded = np.zeros((nRows, nCols), dtype=np.int)
+    # Fill the array
+    for i in range(nRows):
+        for j in range(nCols):
+            # If we're past the length of the current row, then we fill it
+            # with padding values
+            if j >= len(data[i]):
+                padded[i][j] = -2
+            else:
+                padded[i][j] = data[i][j]
+    assert padded.dtype == np.int
+    return padded
+
 
 
 def _parse_raw_answer_dict(d, h5grp):
@@ -350,9 +376,11 @@ def _compare_raw_arrays(new, answer_file, func_name):
         test parameters) that called the test functions
         (e.g, test_toro1d).
     """
+    if "/" in func_name:
+        sanitized_func_name = func_name.replace("/", "_")
     with h5py.File(answer_file, "r") as f:
-        old = f[func_name]
-        _recursive_raw_compare(func_name, old, new)
+        old = f[sanitized_func_name]
+        _recursive_raw_compare(sanitized_func_name, old, new)
 
 
 def _recursive_raw_compare(group_name, old, new):

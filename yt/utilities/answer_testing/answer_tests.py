@@ -10,6 +10,7 @@ import yt.visualization.plot_window as pw
 from yt.testing import assert_equal
 
 from . import testing_utilities
+from .testing_utilities import _pad_parentage_relationships_data
 
 
 def grid_hierarchy(ds):
@@ -23,31 +24,20 @@ def grid_hierarchy(ds):
 
 
 def parentage_relationships(ds):
-    # result = {}
-    # for g in ds.index.grids:
-    #     result[g.id] = {}
-    #     if g.Parent is None:
-    #         result[g.id]["parents"] = np.array([-1,])
-    #     elif hasattr(g.Parent, "id"):
-    #         result[g.id]["parents"] = np.array([g.Parent.id,])
-    #     else:
-    #         result[g.id]["parents"] = np.array([pg.id for pg in g.Parent])
-    #     result[g.id]["children"] = np.array([c.id for c in g.Children])
-    # return result
     result = {}
     result["parents"] = []
     result["children"] = []
     for g in ds.index.grids:
         p = g.Parent
         if p is None:
-            result["parents"].append(np.array([-1,]))
+            result["parents"].append(None)
         elif hasattr(p, "id"):
-            result["parents"].append(np.array([p.id,]))
+            result["parents"].append(p.id)
         else:
-            result["parents"].append(np.array([pg.id for pg in p]))
-        result["children"].append(np.array([c.id for c in g.Children]))
-    result["parents"] = np.array(result["parents"])
-    result["children"] = np.array(result["children"])
+            result["parents"].append([pg.id for pg in p])
+        result["children"].append([c.id for c in g.Children])
+    result["parents"] = _pad_parentage_relationships_data(result["parents"])
+    result["children"] = _pad_parentage_relationships_data(result["children"])
     return result
 
 
