@@ -690,8 +690,8 @@ class BoxlibDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, cparam_filename=None, **kwargs):
-        # fill our args
-        header_filename = os.path.join(filename, "Header")
+        output_dir = filename
+        header_filename = os.path.join(output_dir, "Header")
         # boxlib datasets are always directories, and
         # We *know* it's not boxlib if Header doesn't exist.
         if not os.path.exists(header_filename):

@@ -9,7 +9,6 @@ import numpy as np
 import numpy.core.defchararray as np_char
 from more_itertools import always_iterable
 
-
 from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
