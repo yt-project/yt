@@ -188,12 +188,24 @@ if os.path.exists(OLD_CONFIG_FILE):
         )
         warnings.warn(msg)
     else:
-        msg = (
-            f"The configuration file {OLD_CONFIG_FILE} is deprecated. "
-            f"Please migrate your config to {_global_config_file} by running: "
-            "'yt config migrate'"
-        )
-        raise SystemExit(msg)
+        # We have an issue here: when calling from the command line,
+        # we do not want this to exit, as it would prevent `yt config migrate`
+        # from running. The issue is that yt.config (this file) is imported
+        # from yt.__init__, which is imported *before* yt.utilities.configure
+        # is executed, so the latter cannot set some internal variable before
+        # we arrive here.
+        # The workaround here relies on inspecting the call stack and hopefully
+        # detect we were called from the CLI.
+        import inspect
+
+        stack = inspect.stack()
+        if len(stack) < 2 or stack[-2].function != "importlib_load_entry_point":
+            msg = (
+                f"The configuration file {OLD_CONFIG_FILE} is deprecated. "
+                f"Please migrate your config to {_global_config_file} by running: "
+                "'yt config migrate'"
+            )
+            raise SystemExit(msg)
 
 
 if not os.path.exists(_global_config_file):

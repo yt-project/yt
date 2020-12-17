@@ -1,4 +1,3 @@
-# isort: skip-file
 import argparse
 import base64
 import getpass
@@ -1645,6 +1644,9 @@ class YTConfigLocalConfigHandler:
         local_exists = os.path.exists(local_config_file)
         global_exists = os.path.exists(global_config_file)
 
+        local_arg_exists = hasattr(args, "local")
+        global_arg_exists = hasattr(args, "global")
+
         if getattr(args, "local", False):
             config_file = local_config_file
         elif getattr(args, "global", False):
@@ -1655,10 +1657,15 @@ class YTConfigLocalConfigHandler:
                     "Yt detected a local and a global configuration file, refusing "
                     "to proceed.\n"
                     f"Local config file: {local_config_file}\n"
-                    f"Global config file: {global_config_file}\n"
-                    "Specify which one you want to use using the `--local` or the "
-                    "`--global` flags."
+                    f"Global config file: {global_config_file}"
                 )
+                # Only print the info about "--global" and "--local" if they exist
+                if local_arg_exists and global_arg_exists:
+                    s += (
+                        "\n"  # missing eol from previous string
+                        "Specify which one you want to use using the `--local` or the "
+                        "`--global` flags."
+                    )
                 sys.exit(s)
             elif local_exists:
                 config_file = local_config_file
