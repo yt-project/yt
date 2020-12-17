@@ -465,13 +465,12 @@ class EnzoPDataset(Dataset):
         return self.basename[: -len(self._suffix)]
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        fn = args[0]
-        ddir = os.path.dirname(fn)
-        if not fn.endswith(cls._suffix):
+    def _is_valid(cls, filename, *args, **kwargs):
+        ddir = os.path.dirname(filename)
+        if not filename.endswith(cls._suffix):
             return False
         try:
-            with open(fn, "r") as f:
+            with open(filename, "r") as f:
                 block, block_file = f.readline().strip().split()
                 get_block_info(block)
                 if not os.path.exists(os.path.join(ddir, block_file)):

@@ -356,9 +356,9 @@ class AthenaPPDataset(Dataset):
         self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         try:
-            if args[0].endswith("athdf"):
+            if filename.endswith("athdf"):
                 return True
         except Exception:
             pass

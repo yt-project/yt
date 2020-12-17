@@ -169,10 +169,10 @@ class YTHaloCatalogDataset(SavedDataset):
         super(YTHaloCatalogDataset, self)._parse_parameter_file()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             if (
                 "data_type" in f.attrs
                 and parse_h5_attr(f, "data_type") == "halo_catalog"
