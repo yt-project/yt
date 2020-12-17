@@ -23,16 +23,31 @@ def grid_hierarchy(ds):
 
 
 def parentage_relationships(ds):
+    # result = {}
+    # for g in ds.index.grids:
+    #     result[g.id] = {}
+    #     if g.Parent is None:
+    #         result[g.id]["parents"] = np.array([-1,])
+    #     elif hasattr(g.Parent, "id"):
+    #         result[g.id]["parents"] = np.array([g.Parent.id,])
+    #     else:
+    #         result[g.id]["parents"] = np.array([pg.id for pg in g.Parent])
+    #     result[g.id]["children"] = np.array([c.id for c in g.Children])
+    # return result
     result = {}
+    result["parents"] = []
+    result["children"] = []
     for g in ds.index.grids:
-        result[g.id] = {}
-        if g.Parent is None:
-            result[g.id]["parents"] = np.array([-1,])
-        elif hasattr(g.Parent, "id"):
-            result[g.id]["parents"] = np.array([g.Parent.id,])
+        p = g.Parent
+        if p is None:
+            result["parents"].append(np.array([-1,]))
+        elif hasattr(p, "id"):
+            result["parents"].append(np.array([p.id,]))
         else:
-            result[g.id]["parents"] = np.array([pg.id for pg in g.Parent])
-        result[g.id]["children"] = np.array([c.id for c in g.Children])
+            result["parents"].append(np.array([pg.id for pg in p]))
+        result["children"].append(np.array([c.id for c in g.Children]))
+    result["parents"] = np.array(result["parents"])
+    result["children"] = np.array(result["children"])
     return result
 
 
