@@ -142,6 +142,7 @@ if __name__ == "__main__":
             "numpy>=1.10.4",
             "IPython>=1.0",
             "unyt>=2.7.2",
+            "more_itertools>=8.4",
         ],
         extras_require={"hub": ["girder_client"], "mapserver": ["bottle"]},
         cmdclass={"sdist": sdist, "build_ext": build_ext},
