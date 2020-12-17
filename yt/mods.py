@@ -17,7 +17,7 @@ from yt.utilities.logger import _level
 unparsed_args = __startup_tasks.unparsed_args
 
 
-if _level >= int(ytcfg_defaults["log_level"]):
+if _level >= int(ytcfg_defaults["yt"]["log_level"]):
     # This won't get displayed.
     mylog.debug("Turning off NumPy error reporting")
     np.seterr(all="ignore")
