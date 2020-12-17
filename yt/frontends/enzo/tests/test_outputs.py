@@ -157,7 +157,6 @@ class TestEnzo:
         )
 
     @pytest.mark.big_data
-    @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [g30], indirect=True)
     def test_galaxy0030(self, ds):
         color_conservation_test(ds)

@@ -123,6 +123,7 @@ def _param_list(request):
         "temp_dir",
         "orbit_traj",
         "etc_traj",
+        "big_data",
     ]
     test_params = {}
     for key, val in request.node.funcargs.items():
