@@ -59,11 +59,11 @@ def _streamline_for_io(params):
         # The key can be nested iterables, e.g.,
         # d = [None, ('sphere', (center, (0.1, 'unitary')))] so we need
         # to use recursion
-        if not isinstance(key, str) and hasattr(key, "__iter__"):
-            key = _iterable_to_string(key)
-        # The value can also be nested iterables
-        if not isinstance(value, str) and hasattr(value, "__iter__"):
-            value = _iterable_to_string(value)
+        # if not isinstance(key, str) and hasattr(key, "__iter__"):
+        #     key = _iterable_to_string(key)
+        # # The value can also be nested iterables
+        # if not isinstance(value, str) and hasattr(value, "__iter__"):
+        #     value = _iterable_to_string(value)
         # Scene objects need special treatment to make them more IO friendly
         if isinstance(value, Scene):
             value = "Scene"
@@ -260,8 +260,19 @@ def _save_raw_arrays(arrays, answer_file, func_name):
         (e.g, test_toro1d).
     """
     with h5py.File(answer_file, "a") as f:
-        grp = f.create_group(func_name)
+        # Some datasets have a "/" in them and this whole path gets written
+        # to the function name. This causes erroneous groups to be created
+        # since a / is how hierarchy is specified in an hdf5 file
+        if "/" in func_name:
+            sanitized_func_name = func_name.replace("/", "_")
+        # grp = f.create_group(func_name)
+        grp = f.create_group(sanitized_func_name)
         for test_name, test_data in arrays.items():
+            # The parentage relationships test is a dictionary whose values
+            # are ragged arrays, which hdf5 cannot handle. As such, it needs
+            # to be cast to a square array using a padding value
+            if test_name == "parentage_relationships":
+                test_data = _pad_parentage_relationships_data(test_data)
             # Some answer tests (e.g., grid_values, projection_values)
             # return a dictionary, which cannot be handled by h5py
             if isinstance(test_data, dict):
@@ -273,6 +284,29 @@ def _save_raw_arrays(arrays, answer_file, func_name):
                 if test_data is None:
                     test_data = -1
                 grp.create_dataset(test_name, data=test_data)
+
+
+def _pad_parentage_relationships_data(data):
+    # There are two keys in data: parents and children. The values for each
+    # of these is a ragged np array, which needs to be made rectangular in
+    # order for hdf5 to be able to handle it. Using -2 as the padding value
+    # (since -1 is used to represent the root grid, which nose used None for,
+    # but I can't since None can't be handled by hdf5, either). This function
+    # is slow and only used when saving the raw answer data, which should be
+    # very infrequent
+    for key in data.keys():
+        longest = 0
+        padded = []
+        for arr in data[key]:
+            if len(arr) > longest:
+                longest = len(arr)
+        for arr in data[key]:
+            temp = np.array([-2] * longest)
+            for j in range(len(arr)):
+                temp[j] = arr[j]
+            padded.append(temp)
+        data[key] = np.stack(padded)
+    return data
 
 
 def _parse_raw_answer_dict(d, h5grp):
