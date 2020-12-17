@@ -9,6 +9,7 @@ from collections import defaultdict
 from stat import ST_CTIME
 
 import numpy as np
+from unyt.exceptions import UnitConversionError, UnitParseError
 
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import filter_registry
@@ -19,9 +20,9 @@ from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
 from yt.funcs import (
-    ensure_list,
+    is_sequence,
     issue_deprecation_warning,
-    iterable,
+    iter_fields,
     mylog,
     set_intersection,
     setdefaultattr,
@@ -154,14 +155,14 @@ class Dataset(abc.ABC):
     _ionization_label_format = "roman_numeral"
 
     # these are set in self._parse_parameter_file()
-    domain_left_edge = MutableAttribute()
-    domain_right_edge = MutableAttribute()
-    domain_dimensions = MutableAttribute()
+    domain_left_edge = MutableAttribute(True)
+    domain_right_edge = MutableAttribute(True)
+    domain_dimensions = MutableAttribute(True)
     periodicity = MutableAttribute()
 
     # these are set in self._set_derived_attrs()
-    domain_width = MutableAttribute()
-    domain_center = MutableAttribute()
+    domain_width = MutableAttribute(True)
+    domain_center = MutableAttribute(True)
 
     def __new__(cls, filename=None, *args, **kwargs):
         if not isinstance(filename, str):
@@ -215,9 +216,7 @@ class Dataset(abc.ABC):
         self.known_filters = self.known_filters or {}
         self.particle_unions = self.particle_unions or {}
         self.field_units = self.field_units or {}
-        if units_override is None:
-            units_override = {}
-        self.units_override = units_override
+        self.units_override = self.__class__._sanitize_units_override(units_override)
 
         # path stuff
         self.parameter_filename = str(filename)
@@ -460,8 +459,8 @@ class Dataset(abc.ABC):
                 "fs",
             ]
         else:
-            raise SyntaxError(
-                "Specified quantity must be equal to 'distance'" "or 'time'."
+            raise ValueError(
+                "Specified quantity must be equal to 'distance' or 'time'."
             )
         for unit in unit_list:
             uq = self.quan(1.0, unit)
@@ -939,9 +938,10 @@ class Dataset(abc.ABC):
             alt_coords = []
             for x in coords:
                 alt_coords.append(
-                    self.quan(x.v, "code_length") if x.units.is_dimensionless else x
+                    self.quan(x.v, "code_length")
+                    if x.units.is_dimensionless
+                    else x.to("code_length")
                 )
-
             coords = self.arr(alt_coords, dtype="float64").to("code_length")
         return val, coords
 
@@ -970,11 +970,8 @@ class Dataset(abc.ABC):
         the input *fields*.
         """
         point = self.point(coords)
-        ret = []
-        field_list = ensure_list(fields)
-        for field in field_list:
-            ret.append(point[field])
-        if len(field_list) == 1:
+        ret = [point[f] for f in iter_fields(fields)]
+        if len(ret) == 1:
             return ret[0]
         else:
             return ret
@@ -992,7 +989,7 @@ class Dataset(abc.ABC):
         except AttributeError:
             pass
 
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         out = []
 
         # This may be slow because it creates a data object for each point
@@ -1116,6 +1113,8 @@ class Dataset(abc.ABC):
         self.unit_registry.unit_system = self.unit_system
 
     def _create_unit_registry(self, unit_system):
+        from yt.units import dimensions
+
         # yt assumes a CGS unit system by default (for back compat reasons).
         # Since unyt is MKS by default we specify the MKS values of the base
         # units in the CGS system. So, for length, 1 cm = .01 m. And so on.
@@ -1243,29 +1242,113 @@ class Dataset(abc.ABC):
                 "unitary", float(DW.max() * DW.units.base_value), DW.units.dimensions
             )
 
+    @classmethod
+    def _validate_units_override_keys(cls, units_override):
+        valid_keys = set(cls.default_units.keys())
+        invalid_keys_found = set(units_override.keys()) - valid_keys
+        if invalid_keys_found:
+            raise ValueError(
+                f"units_override contains invalid keys: {invalid_keys_found}"
+            )
+
+    default_units = {
+        "length_unit": "cm",
+        "time_unit": "s",
+        "mass_unit": "g",
+        "velocity_unit": "cm/s",
+        "magnetic_unit": "gauss",
+        "temperature_unit": "K",
+    }
+
+    @classmethod
+    def _sanitize_units_override(cls, units_override):
+        """
+        Convert units_override values to valid input types for unyt.
+        Throw meaningful errors early if units_override is ill-formed.
+
+        Parameters
+        ----------
+        units_override : dict
+
+            keys should be strings with format  "<dim>_unit" (e.g. "mass_unit"), and
+            need to match a key in cls.default_units
+
+            values should be mappable to unyt.unyt_quantity objects, and can be any
+            combinations of:
+                - unyt.unyt_quantity
+                - 2-long sequence (tuples, list, ...) with types (number, str)
+                  e.g. (10, "km"), (0.1, "s")
+                - number (in which case the associated is taken from cls.default_unit)
+
+
+        Raises
+        ------
+        TypeError
+            If unit_override has invalid types
+
+        ValueError
+            If provided units do not match the intended dimensionality,
+            or in case of a zero scaling factor.
+
+        """
+        uo = {}
+        if units_override is None:
+            return uo
+
+        cls._validate_units_override_keys(units_override)
+
+        for key in cls.default_units:
+            try:
+                val = units_override[key]
+            except KeyError:
+                continue
+
+            # Now attempt to instanciate a unyt.unyt_quantity from val ...
+            try:
+                # ... directly (valid if val is a number, or a unyt_quantity)
+                uo[key] = YTQuantity(val)
+                continue
+            except RuntimeError:
+                # note that unyt.unyt_quantity throws RuntimeError in lieu of TypeError
+                pass
+            try:
+                # ... with tuple unpacking (valid if val is a sequence)
+                uo[key] = YTQuantity(*val)
+                continue
+            except (RuntimeError, TypeError, UnitParseError):
+                pass
+            raise TypeError(
+                "units_override values should be 2-sequence (float, str), "
+                "YTQuantity objects or real numbers; "
+                f"received {val} with type {type(val)}."
+            )
+        for key, q in uo.items():
+            if q.units.is_dimensionless:
+                uo[key] = YTQuantity(q, cls.default_units[key])
+            try:
+                uo[key].to(cls.default_units[key])
+            except UnitConversionError as err:
+                raise ValueError(
+                    "Inconsistent dimensionality in units_override. "
+                    f"Received {key} = {uo[key]}"
+                ) from err
+            if 1 / uo[key].value == np.inf:
+                raise ValueError(
+                    f"Invalid 0 normalisation factor in units_override for {key}."
+                )
+        return uo
+
     def _override_code_units(self):
-        if len(self.units_override) == 0:
+        if not self.units_override:
             return
+
         mylog.warning(
             "Overriding code units: Use this option only if you know that the "
             "dataset doesn't define the units correctly or at all."
         )
-        for unit, cgs in [
-            ("length", "cm"),
-            ("time", "s"),
-            ("mass", "g"),
-            ("velocity", "cm/s"),
-            ("magnetic", "gauss"),
-            ("temperature", "K"),
-        ]:
-            val = self.units_override.get(f"{unit}_unit", None)
-            if val is not None:
-                if isinstance(val, YTQuantity):
-                    val = (val.v, str(val.units))
-                elif not isinstance(val, tuple):
-                    val = (val, cgs)
-                mylog.info("Overriding %s_unit: %g %s.", unit, val[0], val[1])
-                setattr(self, f"{unit}_unit", self.quan(val[0], val[1]))
+        for ukey, val in self.units_override.items():
+            mylog.info("Overriding %s: %s.", ukey, val)
+            setattr(self, ukey, self.quan(val))
 
     _units = None
     _unit_system_id = None
@@ -1797,7 +1880,7 @@ class ParticleDataset(Dataset):
 def validate_index_order(index_order):
     if index_order is None:
         index_order = (7, 5)
-    elif not iterable(index_order):
+    elif not is_sequence(index_order):
         index_order = (int(index_order), 1)
     else:
         if len(index_order) != 2:

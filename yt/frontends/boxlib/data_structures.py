@@ -1,5 +1,4 @@
 import glob
-import inspect
 import os
 import re
 import warnings
@@ -10,7 +9,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_tuple, mylog, setdefaultattr
+from yt.funcs import mylog, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -29,23 +28,30 @@ from .fields import (
 _scinot_finder = re.compile(r"[-+]?[0-9]*\.?[0-9]+([eEdD][-+]?[0-9]+)?")
 # This is the dimensions in the Cell_H file for each level
 # It is different for different dimensionalities, so we make a list
+_1dregx = r"-?\d+"
+_2dregx = r"-?\d+,-?\d+"
+_3dregx = r"-?\d+,-?\d+,-?\d+"
 _dim_finder = [
-    re.compile(r"\(\((\d+)\) \((\d+)\) \(\d+\)\)$"),
-    re.compile(r"\(\((\d+,\d+)\) \((\d+,\d+)\) \(\d+,\d+\)\)$"),
-    re.compile(r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \(\d+,\d+,\d+\)\)$"),
+    re.compile(rf"\(\(({ndregx})\) \(({ndregx})\) \({ndregx}\)\)$")
+    for ndregx in (_1dregx, _2dregx, _3dregx)
 ]
 # This is the line that prefixes each set of data for a FAB in the FAB file
 # It is different for different dimensionalities, so we make a list
-_endian_regex = r"^FAB \(\(\d+, \([0-9 ]+\)\),\((\d+), \(([0-9 ]+)\)\)\)"
+_endian_regex = r"^FAB\ \(\(\d+,\ \([\d\ ]+\)\),\((\d+),\ \(([\d\ ]+)\)\)\)"
 _header_pattern = [
-    re.compile(_endian_regex + r"\(\((\d+)\) \((\d+)\) \((\d+)\)\) (\d+)\n"),
     re.compile(
-        _endian_regex + r"\(\((\d+,\d+)\) \((\d+,\d+)\) \((\d+,\d+)\)\) (\d+)\n"
-    ),
-    re.compile(
-        _endian_regex
-        + r"\(\((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\) \((\d+,\d+,\d+)\)\) (\d+)\n"
-    ),
+        rf"""{_endian_regex}            # match `endianness`
+        \(
+              \(( {ndregx} )\)          # match `start`
+            \ \(( {ndregx} )\)          # match `end`
+            \ \(( {ndregx} )\)          # match `centering`
+        \)
+        \ (-?\d+)                       # match `nc`
+        $ # end of line
+        """,
+        re.VERBOSE,
+    )
+    for ndregx in (_1dregx, _2dregx, _3dregx)
 ]
 
 
@@ -627,14 +633,13 @@ class BoxlibDataset(Dataset):
     _index_class = BoxlibHierarchy
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
-
-    # THIS SHOULD BE FIXED:
-    periodicity = (True, True, True)
+    _default_cparam_filename = "job_info"
+    periodicity = (False, False, False)
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",  # todo: harmonise this default value with docstring
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -650,6 +655,8 @@ class BoxlibDataset(Dataset):
         """
         self.fluid_types += ("boxlib",)
         self.output_dir = os.path.abspath(os.path.expanduser(output_dir))
+
+        cparam_filename = cparam_filename or self.__class__._default_cparam_filename
         self.cparam_filename = self._lookup_cparam_filepath(
             output_dir, cparam_filename=cparam_filename
         )
@@ -682,18 +689,32 @@ class BoxlibDataset(Dataset):
         return None
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, cparam_filename=None, **kwargs):
         # fill our args
         header_filename = os.path.join(filename, "Header")
         # boxlib datasets are always directories, and
         # We *know* it's not boxlib if Header doesn't exist.
-        return os.path.exists(header_filename)
+        if not os.path.exists(header_filename):
+            return False
+
+        if cls is BoxlibDataset:
+            # Stop checks here for the boxlib base class.
+            # Further checks are performed on subclasses.
+            return True
+
+        cparam_filename = cparam_filename or cls._default_cparam_filename
+        cparam_filepath = cls._lookup_cparam_filepath(output_dir, cparam_filename)
+
+        if cparam_filepath is None:
+            return False
+
+        lines = [line.lower() for line in open(cparam_filepath).readlines()]
+        return any(cls._subtype_keyword in line for line in lines)
 
     @classmethod
-    def _lookup_cparam_filepath(cls, output_dir, *args, **kwargs):
-        iargs = inspect.getcallargs(cls.__init__, args, kwargs)
+    def _lookup_cparam_filepath(cls, output_dir, cparam_filename):
         lookup_table = [
-            os.path.abspath(os.path.join(p, iargs["cparam_filename"]))
+            os.path.abspath(os.path.join(p, cparam_filename))
             for p in (output_dir, os.path.dirname(output_dir))
         ]
         found = [os.path.exists(file) for file in lookup_table]
@@ -702,20 +723,6 @@ class BoxlibDataset(Dataset):
             return None
 
         return lookup_table[found.index(True)]
-
-    @classmethod
-    def _is_valid_subtype(cls, output_dir, *args, **kwargs):
-        # this is used by derived classes
-
-        if not BoxlibDataset._is_valid(output_dir):
-            return False
-
-        cparam_filepath = cls._lookup_cparam_filepath(output_dir, *args, **kwargs)
-        if cparam_filepath is None:
-            return False
-
-        lines = [line.lower() for line in open(cparam_filepath).readlines()]
-        return any(cls._subtype_keyword in line for line in lines)
 
     def _parse_parameter_file(self):
         """
@@ -753,14 +760,18 @@ class BoxlibDataset(Dataset):
             elif param == "amr.ref_ratio":
                 vals = self.refine_by = int(vals[0])
             elif param == "Prob.lo_bc":
-                vals = self.periodicity = ensure_tuple([i == 0 for i in vals.split()])
+                vals = tuple(p == "1" for p in vals.split())
+                assert len(vals) == self.dimensionality
+                periodicity = [False, False, False]  # default to non periodic
+                periodicity[: self.dimensionality] = vals  # fill in ndim parsed values
+                self.periodicity = tuple(periodicity)
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
             else:
                 try:
                     vals = _guess_pcast(vals)
-                except IndexError:
-                    # hitting an empty string
+                except (IndexError, ValueError):
+                    # hitting an empty string or a comment
                     vals = None
             self.parameters[param] = vals
 
@@ -826,13 +837,13 @@ class BoxlibDataset(Dataset):
         # This is traditionally a index attribute, so we will set it, but
         # in a slightly hidden variable.
         self._max_level = int(header_file.readline())
-        self.domain_left_edge = np.array(
-            header_file.readline().split(), dtype="float64"
-        )
-        self.domain_right_edge = np.array(
-            header_file.readline().split(), dtype="float64"
-        )
-        ref_factors = np.array([int(i) for i in header_file.readline().split()])
+
+        for side, init in zip(["left", "right"], [np.zeros, np.ones]):
+            domain_edge = init(3, dtype="float64")
+            domain_edge[: self.dimensionality] = header_file.readline().split()
+            setattr(self, f"domain_{side}_edge", domain_edge)
+
+        ref_factors = np.array(header_file.readline().split(), dtype="int64")
         if ref_factors.size == 0:
             # We use a default of two, as Nyx doesn't always output this value
             ref_factors = [2] * (self._max_level + 1)
@@ -870,7 +881,10 @@ class BoxlibDataset(Dataset):
         root_space = index_space.replace("(", "").replace(")", "").split()[:2]
         start = np.array(root_space[0].split(","), dtype="int64")
         stop = np.array(root_space[1].split(","), dtype="int64")
-        self.domain_dimensions = stop - start + 1
+        dd = np.ones(3, dtype="int64")
+        dd[: self.dimensionality] = stop - start + 1
+        self.domain_dimensions = dd
+
         # Skip timesteps per level
         header_file.readline()
         self._header_mesh_start = header_file.tell()
@@ -883,53 +897,23 @@ class BoxlibDataset(Dataset):
             coordinate_type = int(next_line)
         else:
             coordinate_type = 0
-        if coordinate_type == 0:
-            self.geometry = "cartesian"
-        elif coordinate_type == 1:
-            self.geometry = "cylindrical"
-        elif coordinate_type == 2:
-            self.geometry = "spherical"
-        else:
-            raise RuntimeError("Unknown BoxLib coord_type")
 
-        # overrides for 1/2-dimensional data
-        if self.dimensionality == 1:
-            self._setup1d()
-        elif self.dimensionality == 2:
-            self._setup2d()
+        known_types = {0: "cartesian", 1: "cylindrical", 2: "spherical"}
+        try:
+            self.geometry = known_types[coordinate_type]
+        except KeyError as err:
+            raise ValueError(f"Unknown BoxLib coord_type `{coordinate_type}`.") from err
+
+        if self.geometry == "cylindrical":
+            dre = self.domain_right_edge
+            dre[2] = 2.0 * np.pi
+            self.domain_right_edge = dre
 
     def _set_code_unit_attributes(self):
         setdefaultattr(self, "length_unit", self.quan(1.0, "cm"))
         setdefaultattr(self, "mass_unit", self.quan(1.0, "g"))
         setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
         setdefaultattr(self, "velocity_unit", self.quan(1.0, "cm/s"))
-
-    def _setup1d(self):
-        # self._index_class = BoxlibHierarchy1D
-        # self._fieldinfo_fallback = Orion1DFieldInfo
-        self.domain_left_edge = np.concatenate([self.domain_left_edge, [0.0, 0.0]])
-        self.domain_right_edge = np.concatenate([self.domain_right_edge, [1.0, 1.0]])
-        tmp = self.domain_dimensions.tolist()
-        tmp.extend((1, 1))
-        self.domain_dimensions = np.array(tmp)
-        tmp = list(self.periodicity)
-        tmp[1] = False
-        tmp[2] = False
-        self.periodicity = ensure_tuple(tmp)
-
-    def _setup2d(self):
-        self.domain_left_edge = np.concatenate([self.domain_left_edge, [0.0]])
-        self.domain_right_edge = np.concatenate([self.domain_right_edge, [1.0]])
-        if self.geometry == "cylindrical":
-            dre = self.domain_right_edge
-            dre[2] = 2.0 * np.pi
-            self.domain_right_edge = dre
-        tmp = self.domain_dimensions.tolist()
-        tmp.append(1)
-        self.domain_dimensions = np.array(tmp)
-        tmp = list(self.periodicity)
-        tmp[2] = False
-        self.periodicity = ensure_tuple(tmp)
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -1042,11 +1026,12 @@ class OrionDataset(BoxlibDataset):
 
     _index_class = OrionHierarchy
     _subtype_keyword = "hyp."
+    _default_cparam_filename = "inputs"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="inputs",
+        cparam_filename=None,
         fparam_filename="probin",
         dataset_type="orion_native",
         storage_filename=None,
@@ -1063,10 +1048,6 @@ class OrionDataset(BoxlibDataset):
             units_override=units_override,
             unit_system=unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        return cls._is_valid_subtype(filename, *args, **kwargs)
 
 
 class CastroHierarchy(BoxlibHierarchy):
@@ -1097,11 +1078,12 @@ class CastroDataset(BoxlibDataset):
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
     _subtype_keyword = "castro"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1118,10 +1100,6 @@ class CastroDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        return cls._is_valid_subtype(filename, *args, **kwargs)
 
     def _parse_parameter_file(self):
         super(CastroDataset, self)._parse_parameter_file()
@@ -1157,17 +1135,16 @@ class CastroDataset(BoxlibDataset):
         self.parameters["HydroMethod"] = "Castro"
 
         # set the periodicity based on the runtime parameters
-        periodicity = [True, True, True]
-        if not self.parameters["-x"] == "interior":
-            periodicity[0] = False
-        if self.dimensionality >= 2:
-            if not self.parameters["-y"] == "interior":
-                periodicity[1] = False
-        if self.dimensionality == 3:
-            if not self.parameters["-z"] == "interior":
-                periodicity[2] = False
+        # https://amrex-astro.github.io/Castro/docs/inputs.html?highlight=periodicity
+        periodicity = [False, False, False]
+        for i, axis in enumerate("xyz"):
+            try:
+                periodicity[i] = self.parameters[f"-{axis}"] == "interior"
+            except KeyError:
+                break
 
-        self.periodicity = ensure_tuple(periodicity)
+        self.periodicity = tuple(periodicity)
+
         if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
             # we have particles
             self.parameters["particles"] = 1
@@ -1179,11 +1156,12 @@ class MaestroDataset(BoxlibDataset):
 
     _field_info_class = MaestroFieldInfo
     _subtype_keyword = "maestro"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1200,10 +1178,6 @@ class MaestroDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        return cls._is_valid_subtype(filename, *args, **kwargs)
 
     def _parse_parameter_file(self):
         super(MaestroDataset, self)._parse_parameter_file()
@@ -1234,14 +1208,14 @@ class MaestroDataset(BoxlibDataset):
             self.parameters["HydroMethod"] = "Maestro"
 
         # set the periodicity based on the integer BC runtime parameters
-        periodicity = [True, True, True]
+        periodicity = [False, False, False]
         for i, ax in enumerate("xyz"):
             try:
                 periodicity[i] = self.parameters[f"bc{ax}_lo"] != -1
             except KeyError:
                 pass
 
-        self.periodicity = ensure_tuple(periodicity)
+        self.periodicity = tuple(periodicity)
 
 
 class NyxHierarchy(BoxlibHierarchy):
@@ -1272,11 +1246,12 @@ class NyxDataset(BoxlibDataset):
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
     _subtype_keyword = "nyx"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1293,10 +1268,6 @@ class NyxDataset(BoxlibDataset):
             units_override,
             unit_system,
         )
-
-    @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        return cls._is_valid_subtype(filename, *args, **kwargs)
 
     def _parse_parameter_file(self):
         super(NyxDataset, self)._parse_parameter_file()
@@ -1549,11 +1520,12 @@ class WarpXDataset(BoxlibDataset):
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
     _subtype_keyword = "warpx"
+    _default_cparam_filename = "warpx_job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="warpx_job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1575,10 +1547,6 @@ class WarpXDataset(BoxlibDataset):
             unit_system,
         )
 
-    @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        return cls._is_valid_subtype(filename, *args, **kwargs)
-
     def _parse_parameter_file(self):
         super(WarpXDataset, self)._parse_parameter_file()
         jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
@@ -1594,11 +1562,14 @@ class WarpXDataset(BoxlibDataset):
                     self.parameters[l[0].strip()] = l[1].strip()
 
         # set the periodicity based on the integer BC runtime parameters
-        is_periodic = self.parameters["geometry.is_periodic"].split()
-        periodicity = [bool(val) for val in is_periodic]
-        for _ in range(self.dimensionality, 3):
-            periodicity += [True]  # pad to 3D
-        self.periodicity = ensure_tuple(periodicity)
+        # https://amrex-codes.github.io/amrex/docs_html/InputsProblemDefinition.html
+        periodicity = [False, False, False]
+        try:
+            is_periodic = self.parameters["geometry.is_periodic"].split()
+            periodicity[: len(is_periodic)] = [p == "1" for p in is_periodic]
+        except KeyError:
+            pass
+        self.periodicity = tuple(periodicity)
 
         particle_types = glob.glob(self.output_dir + "/*/Header")
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
@@ -1631,11 +1602,13 @@ class AMReXHierarchy(BoxlibHierarchy):
 class AMReXDataset(BoxlibDataset):
 
     _index_class = AMReXHierarchy
+    _subtype_keyword = "amrex"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1661,7 +1634,3 @@ class AMReXDataset(BoxlibDataset):
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)
             self.particle_types_raw = self.particle_types
-
-    @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
-        return False

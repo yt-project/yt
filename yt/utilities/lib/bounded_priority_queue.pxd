@@ -8,7 +8,9 @@ been added to it.
 """
 
 import numpy as np
+
 cimport numpy as np
+
 
 cdef class BoundedPriorityQueue:
     cdef public np.float64_t[:] heap

@@ -354,11 +354,12 @@ cdef class StoreIndex(OctVisitor):
         self.index += 1
 
 cdef class BaseNeighbourVisitor(OctVisitor):
-    def __init__(self, OctreeContainer octree, int domain_id = -1):
+    def __init__(self, OctreeContainer octree, int domain_id=-1, int n_ghost_zones=1):
         self.octree = octree
         self.neigh_ind[0] = 0
         self.neigh_ind[1] = 0
         self.neigh_ind[2] = 0
+        self.n_ghost_zones = n_ghost_zones
         super(BaseNeighbourVisitor, self).__init__(octree, domain_id)
 
     @cython.boundscheck(False)
@@ -456,12 +457,15 @@ cdef class NeighbourCellIndexVisitor(BaseNeighbourVisitor):
 
         self.last = o.domain_ind
 
+        cdef int i0, i1
+        i0 = -self.n_ghost_zones
+        i1 = 2 + self.n_ghost_zones
         # Loop over cells in and directly around oct
-        for i in range(-1, 3):
+        for i in range(i0, i1):
             ishift[0] = i
-            for j in range(-1, 3):
+            for j in range(i0, i1):
                 ishift[1] = j
-                for k in range(-1, 3):
+                for k in range(i0, i1):
                     ishift[2] = k
                     self.set_neighbour_info(o, ishift)
 
@@ -499,12 +503,15 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
 
         self.last = o.domain_ind
 
+        cdef int i0, i1
+        i0 = -self.n_ghost_zones
+        i1 = 2 + self.n_ghost_zones
         # Loop over cells in and directly around oct
-        for i in range(-1, 3):
+        for i in range(i0, i1):
             ishift[0] = i
-            for j in range(-1, 3):
+            for j in range(i0, i1):
                 ishift[1] = j
-                for k in range(-1, 3):
+                for k in range(i0, i1):
                     ishift[2] = k
                     self.set_neighbour_info(o, ishift)
 

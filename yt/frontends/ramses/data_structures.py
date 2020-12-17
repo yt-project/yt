@@ -286,7 +286,7 @@ class RAMSESDomainSubset(OctreeSubset):
                 file_inds,
                 domains,
             ) = self.oct_handler.file_index_octs_with_ghost_zones(
-                selector, self.domain_id, cell_count
+                selector, self.domain_id, cell_count, self._num_ghost_zones
             )
             self._ghost_zone_cache = gz_cache
 
@@ -334,10 +334,13 @@ class RAMSESDomainSubset(OctreeSubset):
         oh = self.oct_handler
 
         indices = oh.fill_index(self.selector).reshape(-1, 8)
-        oct_inds, cell_inds = oh.fill_octcellindex_neighbours(self.selector)
+        oct_inds, cell_inds = oh.fill_octcellindex_neighbours(
+            self.selector, self._num_ghost_zones
+        )
 
-        oct_inds = oct_inds.reshape(-1, 64)
-        cell_inds = cell_inds.reshape(-1, 64)
+        N_per_oct = self.nz ** 3
+        oct_inds = oct_inds.reshape(-1, N_per_oct)
+        cell_inds = cell_inds.reshape(-1, N_per_oct)
 
         inds = indices[oct_inds, cell_inds]
 
@@ -362,12 +365,16 @@ class RAMSESDomainSubset(OctreeSubset):
             )
             smoothed = False
 
+        _subset_with_gz = getattr(self, "_subset_with_gz", {})
+
         try:
-            new_subset = self._subset_with_gz
+            new_subset = _subset_with_gz[ngz]
             mylog.debug(
-                "Reusing previous subset with ghost zone for domain %s", self.domain_id
+                "Reusing previous subset with %s ghost zones for domain %s",
+                ngz,
+                self.domain_id,
             )
-        except AttributeError:
+        except KeyError:
             new_subset = RAMSESDomainSubset(
                 self.base_region,
                 self.domain,
@@ -375,10 +382,11 @@ class RAMSESDomainSubset(OctreeSubset):
                 num_ghost_zones=ngz,
                 base_grid=self,
             )
-            self._subset_with_gz = new_subset
+            _subset_with_gz[ngz] = new_subset
 
-            # Cache the fields
-            new_subset.get_data(fields)
+        # Cache the fields
+        new_subset.get_data(fields)
+        self._subset_with_gz = _subset_with_gz
 
         return new_subset
 
@@ -822,17 +830,25 @@ class RAMSESDataset(Dataset):
             iage = 1 + int(10.0 * age / self.dtau)
             iage = np.min([iage, self.n_frw // 2 + (iage - self.n_frw // 2) // 10])
 
-            self.time_simu = self.t_frw[iage] * (age - self.tau_frw[iage - 1]) / (
-                self.tau_frw[iage] - self.tau_frw[iage - 1]
-            ) + self.t_frw[iage - 1] * (age - self.tau_frw[iage]) / (
-                self.tau_frw[iage - 1] - self.tau_frw[iage]
-            )
+            try:
+                self.time_simu = self.t_frw[iage] * (age - self.tau_frw[iage - 1]) / (
+                    self.tau_frw[iage] - self.tau_frw[iage - 1]
+                ) + self.t_frw[iage - 1] * (age - self.tau_frw[iage]) / (
+                    self.tau_frw[iage - 1] - self.tau_frw[iage]
+                )
 
-            self.current_time = (
-                (self.time_tot + self.time_simu)
-                / (self.hubble_constant * 1e7 / 3.08e24)
-                / self.parameters["unit_t"]
-            )
+                self.current_time = (
+                    (self.time_tot + self.time_simu)
+                    / (self.hubble_constant * 1e7 / 3.08e24)
+                    / self.parameters["unit_t"]
+                )
+            except IndexError:
+                mylog.warning(
+                    "Yt could not convert conformal time to physical time. "
+                    "Yt will assume the simulation is *not* cosmological."
+                )
+                self.cosmological_simulation = 0
+                self.current_time = self.parameters["time"]
 
         if self.num_groups > 0:
             self.group_size = rheader["ncpu"] // self.num_groups

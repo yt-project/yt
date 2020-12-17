@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.data_objects.profiles import create_profile
-from yt.funcs import ensure_list, fix_axis
+from yt.funcs import fix_axis, iter_fields
 from yt.units.yt_array import YTArray
 from yt.visualization.fixed_resolution import ParticleImageBuffer
 from yt.visualization.profile_plotter import PhasePlot
@@ -335,6 +335,11 @@ class ParticlePhasePlot(PhasePlot):
     figure_size : int
         Size in inches of the image.
         Default: 8 (8x8)
+    shading : str
+        This argument is directly passed down to matplotlib.axes.Axes.pcolormesh
+        see
+        https://matplotlib.org/3.3.1/gallery/images_contours_and_fields/pcolormesh_grids.html#sphx-glr-gallery-images-contours-and-fields-pcolormesh-grids-py  # noqa
+        Default: 'nearest'
 
     Examples
     --------
@@ -369,6 +374,7 @@ class ParticlePhasePlot(PhasePlot):
         deposition="ngp",
         fontsize=18,
         figure_size=8.0,
+        shading="nearest",
     ):
 
         # if no z_fields are passed in, use a constant color
@@ -380,14 +386,14 @@ class ParticlePhasePlot(PhasePlot):
         profile = create_profile(
             data_source,
             [x_field, y_field],
-            ensure_list(z_fields),
+            list(iter_fields(z_fields)),
             n_bins=[x_bins, y_bins],
             weight_field=weight_field,
             deposition=deposition,
         )
 
         type(self)._initialize_instance(
-            self, data_source, profile, fontsize, figure_size
+            self, data_source, profile, fontsize, figure_size, shading
         )
 
 

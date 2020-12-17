@@ -592,7 +592,11 @@ class GadgetHDF5Dataset(GadgetDataset):
         # Compat reasons.
         hvals["NumFiles"] = hvals["NumFilesPerSnapshot"]
         hvals["Massarr"] = hvals["MassTable"]
-        self.gen_hsmls = "SmoothingLength" not in handle[self._sph_ptypes[0]]
+        sph_ptypes = [ptype for ptype in self._sph_ptypes if ptype in handle]
+        if sph_ptypes:
+            self.gen_hsmls = "SmoothingLength" not in handle[sph_ptypes[0]]
+        else:
+            self.gen_hsmls = False
         handle.close()
         return hvals
 

@@ -1,4 +1,5 @@
 import matplotlib.pyplot as plt
+
 import yt
 
 # Load the dataset.

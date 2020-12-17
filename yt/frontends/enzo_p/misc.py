@@ -1,6 +1,5 @@
 import numpy as np
-
-from yt.funcs import ensure_tuple
+from more_itertools import always_iterable
 
 
 def bdecode(block):
@@ -115,12 +114,10 @@ def nested_dict_get(pdict, keys, default=None):
     then nested_dict_get(a, ('b', 'c')) returns 'd'.
     """
 
-    keys = ensure_tuple(keys)
     val = pdict
-    for key in keys:
-        if val is None:
-            break
-        val = val.get(key)
-    if val is None:
-        val = default
+    for key in always_iterable(keys):
+        try:
+            val = val[key]
+        except KeyError:
+            return default
     return val

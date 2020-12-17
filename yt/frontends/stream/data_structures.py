@@ -6,6 +6,7 @@ from itertools import chain, product, repeat
 from numbers import Number as numeric_type
 
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
@@ -18,7 +19,6 @@ from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.data_objects.unions import MeshUnion
 from yt.frontends.sph.data_structures import SPHParticleIndex
-from yt.funcs import ensure_list
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_container import OctreeContainer
@@ -843,11 +843,12 @@ class StreamUnstructuredIndex(UnstructuredIndex):
         super(StreamUnstructuredIndex, self).__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
-        coords = ensure_list(self.stream_handler.fields.pop("coordinates"))
-        connect = ensure_list(self.stream_handler.fields.pop("connectivity"))
+        coords = self.stream_handler.fields.pop("coordinates")
+        connect = always_iterable(self.stream_handler.fields.pop("connectivity"))
+
         self.meshes = [
             StreamUnstructuredMesh(i, self.index_filename, c1, c2, self)
-            for i, (c1, c2) in enumerate(zip(connect, repeat(coords[0])))
+            for i, (c1, c2) in enumerate(zip(connect, repeat(coords)))
         ]
         self.mesh_union = MeshUnion("mesh_union", self.meshes)
 

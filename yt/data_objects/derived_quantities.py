@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import camelcase_to_underscore, ensure_list
+from yt.funcs import camelcase_to_underscore, iter_fields
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTParticleTypeNotFound
 from yt.utilities.object_registries import derived_quantity_registry
@@ -47,7 +47,9 @@ class DerivedQuantity(ParallelAnalysisInterface):
         # create the index if it doesn't exist yet
         self.data_source.ds.index
         self.count_values(*args, **kwargs)
-        chunks = self.data_source.chunks([], chunking_style="io")
+        chunks = self.data_source.chunks(
+            [], chunking_style=self.data_source._derived_quantity_chunking
+        )
         storage = {}
         for sto, ds in parallel_objects(chunks, -1, storage=storage):
             sto.result = self.process_chunk(ds, *args, **kwargs)
@@ -124,7 +126,7 @@ class WeightedAverageQuantity(DerivedQuantity):
         self.num_vals = len(fields) + 1
 
     def __call__(self, fields, weight):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         rv = super(WeightedAverageQuantity, self).__call__(fields, weight)
         if len(rv) == 1:
             rv = rv[0]
@@ -163,7 +165,7 @@ class TotalQuantity(DerivedQuantity):
         self.num_vals = len(fields)
 
     def __call__(self, fields):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         rv = super(TotalQuantity, self).__call__(fields)
         if len(rv) == 1:
             rv = rv[0]
@@ -406,7 +408,7 @@ class WeightedVariance(DerivedQuantity):
         self.num_vals = 2 * len(fields) + 1
 
     def __call__(self, fields, weight):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         units = [self.data_source.ds._get_field_info(field).units for field in fields]
         rv = super(WeightedVariance, self).__call__(fields, weight)
         rv = [self.data_source.ds.arr(v, u) for v, u in zip(rv, units)]
@@ -586,7 +588,7 @@ class Extrema(DerivedQuantity):
         self.num_vals = len(fields) * 2
 
     def __call__(self, fields, non_zero=False):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         rv = super(Extrema, self).__call__(fields, non_zero)
         if len(rv) == 1:
             rv = rv[0]

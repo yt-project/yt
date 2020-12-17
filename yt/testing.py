@@ -14,7 +14,7 @@ from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
 from yt.config import ytcfg
-from yt.funcs import iterable
+from yt.funcs import is_sequence
 from yt.loaders import load
 from yt.units.yt_array import YTArray, YTQuantity
 
@@ -204,11 +204,11 @@ def fake_random_ds(
     from yt.loaders import load_uniform_grid
 
     prng = RandomState(0x4D3D3D3)
-    if not iterable(ndims):
+    if not is_sequence(ndims):
         ndims = [ndims, ndims, ndims]
     else:
         assert len(ndims) == 3
-    if not iterable(negative):
+    if not is_sequence(negative):
         negative = [negative for f in fields]
     assert len(fields) == len(negative)
     offsets = []
@@ -312,7 +312,7 @@ def fake_particle_ds(
     from yt.loaders import load_particles
 
     prng = RandomState(0x4D3D3D3)
-    if not iterable(negative):
+    if not is_sequence(negative):
         negative = [negative for f in fields]
     assert len(fields) == len(negative)
     offsets = []
@@ -867,7 +867,7 @@ def units_override_check(fn):
         unit_attr = getattr(ds1, f"{u}_unit", None)
         if unit_attr is not None:
             attrs1.append(unit_attr)
-            units_override[f"{u}_unit"] = (unit_attr.v, str(unit_attr.units))
+            units_override[f"{u}_unit"] = (unit_attr.v, unit_attr.units)
     del ds1
     ds2 = load(fn, units_override=units_override)
     assert len(ds2.units_override) > 0

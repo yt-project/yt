@@ -1,8 +1,11 @@
+cimport cython
 cimport numpy as np
 from numpy cimport ndarray
-cimport cython
+
 import numpy as np
+
 from libc.math cimport fabs, fmax
+
 
 cdef class ElementSampler:
 

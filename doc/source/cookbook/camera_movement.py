@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 ds = yt.load("MOOSE_sample_data/out.e-s010")
 sc = yt.create_scene(ds)

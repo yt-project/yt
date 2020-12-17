@@ -173,7 +173,7 @@ class ParameterFileStore:
         if self._read_only:
             return
         fn = self._get_db_name()
-        f = open(f"{fn}.tmp", "wb")
+        f = open(f"{fn}.tmp", "w")
         w = csv.DictWriter(f, _field_names)
         maxn = ytcfg.getint("yt", "maximumstoreddatasets")  # number written
         for h, v in islice(
@@ -187,7 +187,7 @@ class ParameterFileStore:
     @parallel_simple_proxy
     def read_db(self):
         """ This will read the storage device from disk. """
-        f = open(self._get_db_name(), "rb")
+        f = open(self._get_db_name(), "r")
         vals = csv.DictReader(f, _field_names)
         db = {}
         for v in vals:
@@ -196,4 +196,5 @@ class ParameterFileStore:
                 v["last_seen"] = 0.0
             else:
                 v["last_seen"] = float(v["last_seen"])
+        f.close()
         return db

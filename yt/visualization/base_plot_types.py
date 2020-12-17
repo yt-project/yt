@@ -8,7 +8,7 @@ from yt.funcs import (
     get_brewer_cmap,
     get_image_suffix,
     get_interactivity,
-    iterable,
+    is_sequence,
     matplotlib_style_context,
     mylog,
 )
@@ -74,7 +74,7 @@ class PlotMPL:
 
         self._plot_valid = True
         if figure is None:
-            if not iterable(fsize):
+            if not is_sequence(fsize):
                 fsize = (fsize, fsize)
             self.figure = matplotlib.figure.Figure(figsize=fsize, frameon=True)
         else:
@@ -217,22 +217,43 @@ class ImagePlotMPL(PlotMPL):
 
     def _init_image(self, data, cbnorm, cblinthresh, cmap, extent, aspect):
         """Store output of imshow in image variable"""
+        cbnorm_kwargs = dict(
+            vmin=float(self.zmin) if self.zmin is not None else None,
+            vmax=float(self.zmax) if self.zmax is not None else None,
+        )
         if cbnorm == "log10":
-            norm = matplotlib.colors.LogNorm()
+            cbnorm_cls = matplotlib.colors.LogNorm
         elif cbnorm == "linear":
-            norm = matplotlib.colors.Normalize()
+            cbnorm_cls = matplotlib.colors.Normalize
         elif cbnorm == "symlog":
             if cblinthresh is None:
                 cblinthresh = float((np.nanmax(data) - np.nanmin(data)) / 10.0)
-            norm = matplotlib.colors.SymLogNorm(
-                cblinthresh, vmin=float(np.nanmin(data)), vmax=float(np.nanmax(data))
+
+            cbnorm_kwargs.update(
+                dict(
+                    linthresh=cblinthresh,
+                    vmin=float(np.nanmin(data)),
+                    vmax=float(np.nanmax(data)),
+                )
             )
+            MPL_VERSION = LooseVersion(matplotlib.__version__)
+            if MPL_VERSION >= "3.2.0":
+                # note that this creates an inconsistency between mpl versions
+                # since the default value previous to mpl 3.4.0 is np.e
+                # but it is only exposed since 3.2.0
+                cbnorm_kwargs["base"] = 10
+
+            cbnorm_cls = matplotlib.colors.SymLogNorm
+        else:
+            raise ValueError(f"Unknown value `cbnorm` == {cbnorm}")
+
+        norm = cbnorm_cls(**cbnorm_kwargs)
+
         extent = [float(e) for e in extent]
         # tuple colormaps are from palettable (or brewer2mpl)
         if isinstance(cmap, tuple):
             cmap = get_brewer_cmap(cmap)
-        vmin = float(self.zmin) if self.zmax is not None else None
-        vmax = float(self.zmax) if self.zmax is not None else None
+
         if self._transform is None:
             # sets the transform to be an ax.TransData object, where the
             # coordiante system of the data is controlled by the xlim and ylim
@@ -264,8 +285,6 @@ class ImagePlotMPL(PlotMPL):
             origin="lower",
             extent=extent,
             norm=norm,
-            vmin=vmin,
-            vmax=vmax,
             aspect=aspect,
             cmap=cmap,
             interpolation="nearest",
@@ -327,7 +346,7 @@ class ImagePlotMPL(PlotMPL):
     def _get_best_layout(self):
 
         # Ensure the figure size along the long axis is always equal to _figure_size
-        if iterable(self._figure_size):
+        if is_sequence(self._figure_size):
             x_fig_size = self._figure_size[0]
             y_fig_size = self._figure_size[1]
         else:

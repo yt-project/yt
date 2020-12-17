@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 # load data
 fn = "IsolatedGalaxy/galaxy0030/galaxy0030"

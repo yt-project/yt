@@ -8,7 +8,7 @@ from yt.arraytypes import blankRecordArray
 from yt.config import ytcfg
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_detector import FieldDetector
-from yt.funcs import ensure_list, ensure_numpy_array
+from yt.funcs import ensure_numpy_array, iter_fields
 from yt.geometry.geometry_handler import ChunkDataCache, Index, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
 from yt.utilities.logger import ytLogger as mylog
@@ -245,7 +245,7 @@ class GridIndex(Index, abc.ABC):
         """
         coords = self.ds.arr(ensure_numpy_array(coords), "code_length")
         grids = self._find_points(coords[:, 0], coords[:, 1], coords[:, 2])[0]
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         mark = np.zeros(3, dtype=np.int)
         out = []
 

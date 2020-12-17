@@ -1,6 +1,9 @@
 # distutils: include_dirs = LIB_DIR
 # distutils: libraries = STD_LIBS
 # distutils: sources = FIXED_INTERP
+# distutils: language = c++
+# distutils: extra_compile_args = CPP14_FLAG
+# distutils: extra_link_args = CPP14_FLAG
 """
 Simple integrators for the radiative transfer equation
 
@@ -13,12 +16,6 @@ import numpy as np
 
 cimport cython
 cimport numpy as np
-from field_interpolation_tables cimport (
-    FieldInterpolationTable,
-    FIT_eval_transfer,
-    FIT_eval_transfer_with_light,
-    FIT_initialize_table,
-)
 from fixed_interpolator cimport *
 from libc.math cimport (
     M_PI,
@@ -34,6 +31,7 @@ from libc.math cimport (
     sin,
     sqrt,
 )
+
 #cimport healpix_interface
 from libc.stdlib cimport abs, calloc, free, malloc
 

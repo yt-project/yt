@@ -1,8 +1,8 @@
 from nose.tools import assert_raises
 
-from yt import YTQuantity
-from yt.funcs import validate_axis, validate_center
+from yt.funcs import just_one, validate_axis, validate_center
 from yt.testing import assert_equal, fake_amr_ds
+from yt.units import YTArray, YTQuantity
 
 
 def test_validate_axis():
@@ -51,3 +51,13 @@ def test_validate_center():
         "CustomCenter'."
     )
     assert_equal(str(ex.exception)[:50], desired[:50])
+
+
+def test_just_one():
+    # Check that behaviour of this function is consistent before and after refactor
+    # PR 2893
+    for unit in ["mm", "cm", "km", "pc", "g", "kg", "M_sun"]:
+        obj = YTArray([0.0, 1.0], unit)
+        expected = YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
+        jo = just_one(obj)
+        assert jo == expected

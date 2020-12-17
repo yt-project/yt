@@ -29,7 +29,7 @@ def write_block(fp, data, endian, fmt, block_id):
     assert fmt in [1, 2]
     block_id = "%-4s" % block_id
     if fmt == 2:
-        block_id_dtype = np.dtype([("id", "S", 4), ("offset", endian + "i4", 1)])
+        block_id_dtype = np.dtype([("id", "S", 4), ("offset", endian + "i4")])
         block_id_data = np.zeros(1, dtype=block_id_dtype)
         block_id_data["id"] = block_id
         block_id_data["offset"] = data.nbytes + 8
@@ -53,9 +53,17 @@ def fake_gadget_binary(
     with open(filename, "wb") as fp:
         # Generate and write header blocks
         for i_header, header_spec in enumerate(header.spec):
-            header_dtype = np.dtype(
-                [(name, endian + dtype, dim) for name, dim, dtype in header_spec]
-            )
+
+            specs = []
+            for name, dim, dtype in header_spec:
+                # workaround a FutureWarning in numpy where np.dtype(name, type, 1)
+                # will change meaning in a future version so
+                name_dtype = [name, endian + dtype, dim]
+                if dim == 1:
+                    name_dtype.pop()
+                specs.append(tuple(name_dtype))
+
+            header_dtype = np.dtype(specs)
             header = np.zeros(1, dtype=header_dtype)
             if i_header == 0:
                 header["Npart"] = npart

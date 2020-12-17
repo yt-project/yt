@@ -7,8 +7,7 @@ requires = [
   # keep in sync with travis.yml "minimal" specs (Cython and numpy for py36)
   "Cython>=0.26.1",
   "numpy==1.13.3; python_version=='3.6' and platform_system!='AIX'",
-  "numpy==1.18.1; python_version=='3.7' and platform_system!='AIX'",
-  "numpy==1.18.4; python_version=='3.8' and platform_system!='AIX'",
+  "numpy>=1.18.4; python_version>='3.7' and platform_system!='AIX'",
 ]
 
 # To be kept consistent with "Code Style" section in CONTRIBUTING.rst
@@ -33,3 +32,29 @@ exclude = '''
 )/
 | yt/visualization/_colormap_data.py
 '''
+
+
+# To be kept consistent with "Import Formatting" section in CONTRIBUTING.rst
+[tool.isort]
+profile = "black"
+combine_as_imports = true
+# isort can't be applied to yt/__init__.py because it creates circular imports
+skip =  ["venv", "benchmarks", "yt/__init__.py", "yt/extern"]
+known_third_party = [
+  "IPython",
+  "nose",
+  "numpy",
+  "sympy",
+  "matplotlib",
+  "unyt",
+  "git",
+  "yaml",
+  "dateutil",
+  "requests",
+  "coverage",
+  "pytest",
+  "pyx",
+  "glue",
+]
+known_first_party = ["yt"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]

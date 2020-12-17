@@ -78,10 +78,6 @@ class TestYTConfig(unittest.TestCase):
 
 class TestYTConfigCommands(TestYTConfig):
     def testConfigCommands(self):
-        # stub out test if mock isn't installed in Python2
-        if mock is None:
-            return
-
         def remove_spaces_and_breaks(s):
             return "".join(s.split())
 

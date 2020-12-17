@@ -1,11 +1,10 @@
+import yt
+
 # This shows how to save ImageArray objects, such as those returned from
 # volume renderings, to pngs with varying backgrounds.
 
 # First we use the simple_volume_rendering.py recipe from above to generate
 # a standard volume rendering.
-
-import yt
-import numpy as np
 
 ds = yt.load("Enzo_64/DD0043/data0043")
 im, sc = yt.volume_render(ds, "density")

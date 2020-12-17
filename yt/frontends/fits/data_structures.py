@@ -6,12 +6,14 @@ import weakref
 from collections import defaultdict
 
 import numpy as np
-from numpy.core import defchararray as np_char
+import numpy.core.defchararray as np_char
+from more_itertools import always_iterable
+
 
 from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_list, issue_deprecation_warning, mylog, setdefaultattr
+from yt.funcs import issue_deprecation_warning, mylog, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.units import dimensions
@@ -330,8 +332,6 @@ class FITSDataset(Dataset):
         unit_system="cgs",
     ):
 
-        if auxiliary_files is None:
-            auxiliary_files = []
         if parameters is None:
             parameters = {}
         parameters["nprocs"] = nprocs
@@ -339,8 +339,8 @@ class FITSDataset(Dataset):
 
         if suppress_astropy_warnings:
             warnings.filterwarnings("ignore", module="astropy", append=True)
-        auxiliary_files = ensure_list(auxiliary_files)
-        self.filenames = [filename] + auxiliary_files
+
+        self.filenames = [filename] + list(always_iterable(auxiliary_files))
         self.num_files = len(self.filenames)
         self.fluid_types += ("fits",)
         if nan_mask is None:

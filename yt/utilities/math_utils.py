@@ -305,7 +305,7 @@ def rotate_vector_3D(a, dim, angle):
         mod = True
         a = np.array([a])
     if a.shape[1] != 3:
-        raise SyntaxError("The second dimension of the array a must be == 3!")
+        raise ValueError("The second dimension of the array a must be == 3!")
     if dim == 0:
         R = np.array(
             [
@@ -331,7 +331,7 @@ def rotate_vector_3D(a, dim, angle):
             ]
         )
     else:
-        raise SyntaxError("dim must be 0, 1, or 2!")
+        raise ValueError("dim must be 0, 1, or 2!")
     if mod:
         return np.dot(R, a.T).T[0]
     else:

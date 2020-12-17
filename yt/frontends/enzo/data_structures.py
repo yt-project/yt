@@ -12,7 +12,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import NullFunc
 from yt.frontends.enzo.misc import cosmology_get_units
-from yt.funcs import ensure_list, ensure_tuple, get_pbar, setdefaultattr
+from yt.funcs import ensure_tuple, get_pbar, iter_fields, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.logger import ytLogger as mylog
@@ -129,7 +129,7 @@ class EnzoGridGZ(EnzoGrid):
         sl = tuple([slice(start_zone, end_zone) for i in range(3)])
         if fields is None:
             return cube
-        for field in ensure_list(fields):
+        for field in iter_fields(fields):
             if field in self.field_list:
                 conv_factor = 1.0
                 if field in self.ds.field_info:
