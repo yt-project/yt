@@ -852,7 +852,7 @@ class EnzoDataset(Dataset):
             else:
                 self.parameters[param] = vals
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = tuple(self.parameters["LeftFaceBoundaryCondition"] == 3)
+        self.periodicity = 3 * (self.parameters["LeftFaceBoundaryCondition"] == 3,)
         self.dimensionality = self.parameters["TopGridRank"]
         if "MetaDataDatasetUUID" in self.parameters:
             self.unique_identifier = self.parameters["MetaDataDatasetUUID"]
@@ -1028,7 +1028,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = tuple(self.parameters["LeftFaceBoundaryCondition"] == 3)
+        self.periodicity = 3 * (self.parameters["LeftFaceBoundaryCondition"] == 3,)
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.current_time = self.parameters["InitialTime"]
