@@ -77,39 +77,18 @@ the ``master`` branch.
 Incrementing Version Numbers and Tagging a Release
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Before creating the tag for the release, you must increment the version numbers
-that are hard-coded in a few files in the yt source so that version metadata
-for the code is generated correctly. This includes things like ``yt.__version__``
-and the version that gets read by the Python Package Index (PyPI) infrastructure.
+We now use `bump2version<https://pypi.org/project/bump2version/>`_ to update
+our version numbers.  Until the 4.0 branch is ready for a final release, the
+version number will be X.Y.devZ.
 
-The paths relative to the root of the repository for the three files that need
-to be edited are:
+bump2version will update the three locations in the code that contain the
+version as well as create the tag and version bump commit automatically.  To
+update the version in the "patch" location, execute::
 
-* ``doc/source/conf.py``
+   bump2version patch
 
-  The ``version`` and ``release`` variables need to be updated.
-
-* ``setup.py``
-
-  The ``VERSION`` variable needs to be updated
-
-* ``yt/__init__.py``
-
-  The ``__version__`` variable must be updated.
-
-Once these files have been updated, commit these updates. This is the commit we
-will tag for the release.
-
-To actually create the tag, issue the following command from the ``stable``
-branch:
-
-.. code-block:: bash
-
-   git tag <tag-name>
-
-Where ``<tag-name>`` follows the project's naming scheme for tags
-(e.g. ``yt-3.2.1``). Once you are done, you will need to push the
-tag to github::
+Change ``patch`` to ``minor`` or ``major`` if you are trying to update the
+other versions.  You can then push the new tag with::
 
   git push origin --tags
 
