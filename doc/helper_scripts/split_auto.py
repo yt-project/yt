@@ -1,4 +1,4 @@
-import os, collections
+import collections
 
 templates = dict(
     autoclass=r"""
@@ -64,4 +64,4 @@ for key, val in file_names.items():
     dd = dict(header="=" * len(title), title=title, dn=dn)
     f.write(templates["index_file"] % dd)
     for obj in sorted(to_include[key]):
-        f.write("   %s\n" % obj)
+        f.write(f"   {obj}\n")

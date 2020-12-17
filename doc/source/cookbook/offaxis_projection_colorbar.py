@@ -1,5 +1,4 @@
 import yt
-import numpy as np
 
 fn = "IsolatedGalaxy/galaxy0030/galaxy0030"  # dataset to load
 

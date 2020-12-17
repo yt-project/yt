@@ -16,7 +16,7 @@ for ds in sim:
     # Create a 1d profile of density vs. temperature.
     profiles.append(yt.create_profile(ad, ["density"], fields=["temperature"]))
     # Add labels and linestyles.
-    labels.append("z = %.2f" % ds.current_redshift)
+    labels.append(f"z = {ds.current_redshift:.2f}")
     plot_specs.append(dict(linewidth=2, alpha=0.7))
 
 # Create the profile plot from the list of profiles.

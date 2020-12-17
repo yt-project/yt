@@ -6,17 +6,18 @@ from numbers import Number
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from more_itertools import always_iterable, zip_equal
 from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import (
-    ensure_list,
     fix_axis,
     fix_unitary,
+    is_sequence,
     issue_deprecation_warning,
-    iterable,
+    iter_fields,
     mylog,
     obj_length,
 )
@@ -100,10 +101,10 @@ def get_axes_unit(width, ds):
     """
     if ds.no_cgs_equiv_length:
         return ("code_length",) * 2
-    if iterable(width):
+    if is_sequence(width):
         if isinstance(width[1], str):
             axes_unit = (width[1], width[1])
-        elif iterable(width[1]):
+        elif is_sequence(width[1]):
             axes_unit = (width[0][1], width[1][1])
         elif isinstance(width[0], YTArray):
             axes_unit = (str(width[0].units), str(width[1].units))
@@ -204,10 +205,8 @@ class PlotWindow(ImagePlotContainer):
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
-        if fields is None:
-            fields = []
-        else:
-            fields = ensure_list(fields)
+
+        fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
         super(PlotWindow, self).__init__(data_source, window_size, fontsize)
@@ -421,13 +420,7 @@ class PlotWindow(ImagePlotContainer):
         if equivalency_kwargs is None:
             equivalency_kwargs = {}
         field = self.data_source._determine_fields(field)[0]
-        field = ensure_list(field)
-        new_unit = ensure_list(new_unit)
-        if len(field) > 1 and len(new_unit) != len(field):
-            raise RuntimeError(
-                f"Field list {field} and unit list {new_unit} are incompatible"
-            )
-        for f, u in zip(field, new_unit):
+        for f, u in zip_equal(iter_fields(field), always_iterable(new_unit)):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
             self._equivalencies[f] = (equivalency, equivalency_kwargs)
         return self
@@ -682,7 +675,7 @@ class PlotWindow(ImagePlotContainer):
         )
         if new_center is None:
             self.center = None
-        elif iterable(new_center):
+        elif is_sequence(new_center):
             if len(new_center) != 2:
                 raise error
             for el in new_center:
@@ -716,7 +709,7 @@ class PlotWindow(ImagePlotContainer):
             The number of data elements in the buffer on the x and y axes.
             If a scalar is provided,  then the buffer is assumed to be square.
         """
-        if iterable(size):
+        if is_sequence(size):
             self.buff_size = size
         else:
             self.buff_size = (size, size)
@@ -2087,7 +2080,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
         )
-        fields = ensure_list(fields)[:]
+        fields = list(iter_fields(fields))[:]
         oap_width = ds.arr(
             (bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
         )
@@ -2172,7 +2165,7 @@ class WindowPlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        if iterable(figure_size):
+        if is_sequence(figure_size):
             fsize = figure_size[0]
         else:
             fsize = figure_size
@@ -2370,7 +2363,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal, str):
+    if is_sequence(normal) and not isinstance(normal, str):
         if np.count_nonzero(normal) == 1:
             normal = ("x", "y", "z")[np.nonzero(normal)[0][0]]
         else:
@@ -2378,7 +2371,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal, normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal, str):
+    if is_sequence(normal) and not isinstance(normal, str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if "origin" in kwargs:
             mylog.warning(

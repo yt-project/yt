@@ -5,7 +5,7 @@ from contextlib import contextmanager
 import numpy as np
 
 from yt import __version__ as yt_version
-from yt.funcs import ensure_list, issue_deprecation_warning
+from yt.funcs import issue_deprecation_warning, iter_fields
 from yt.utilities.exceptions import YTGDFAlreadyExists
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
@@ -79,7 +79,7 @@ def write_to_gdf(
     if fields is None:
         fields = ds.field_list
 
-    fields = ensure_list(fields)
+    fields = list(iter_fields(fields))
 
     with _create_new_gdf(
         ds,
@@ -110,7 +110,7 @@ def save_field(ds, fields, field_parameters=None):
         A dictionary of field parameters to set.
     """
 
-    fields = ensure_list(fields)
+    fields = list(iter_fields(fields))
     for field_name in fields:
         if isinstance(field_name, tuple):
             field_name = field_name[1]

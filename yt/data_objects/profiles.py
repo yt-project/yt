@@ -4,10 +4,10 @@ from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import (
-    ensure_list,
     get_output_filename,
+    is_sequence,
     issue_deprecation_warning,
-    iterable,
+    iter_fields,
     mylog,
 )
 from yt.units.unit_object import Unit
@@ -566,7 +566,6 @@ class Profile1D(ProfileND):
         if fields is None:
             fields = self.field_data.keys()
         else:
-            fields = ensure_list(fields)
             fields = self.data_source._determine_fields(fields)
         return idxs, masked, fields
 
@@ -1271,7 +1270,7 @@ def create_profile(
 
     """
     bin_fields = data_source._determine_fields(bin_fields)
-    fields = ensure_list(fields)
+    fields = list(iter_fields(fields))
     is_pfield = [
         data_source.ds._get_field_info(f).sampling_type == "particle"
         for f in bin_fields + fields
@@ -1339,9 +1338,9 @@ def create_profile(
         wf = data_source.ds._get_field_info(weight_field)
         if not wf.sampling_type == "particle":
             weight_field = None
-    if not iterable(n_bins):
+    if not is_sequence(n_bins):
         n_bins = [n_bins] * len(bin_fields)
-    if not iterable(accumulation):
+    if not is_sequence(accumulation):
         accumulation = [accumulation] * len(bin_fields)
     if logs is None:
         logs = {}
@@ -1407,10 +1406,10 @@ def create_profile(
                     fe = data_source.ds.arr(field_ex, bf_units)
             fe.convert_to_units(bf_units)
             field_ex = [fe[0].v, fe[1].v]
-            if iterable(field_ex[0]):
+            if is_sequence(field_ex[0]):
                 field_ex[0] = data_source.ds.quan(field_ex[0][0], field_ex[0][1])
                 field_ex[0] = field_ex[0].in_units(bf_units)
-            if iterable(field_ex[1]):
+            if is_sequence(field_ex[1]):
                 field_ex[1] = data_source.ds.quan(field_ex[1][0], field_ex[1][1])
                 field_ex[1] = field_ex[1].in_units(bf_units)
             ex.append(field_ex)

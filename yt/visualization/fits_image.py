@@ -1,14 +1,20 @@
 import re
 import sys
-from itertools import count
 from numbers import Number as numeric_type
 
 import numpy as np
+from more_itertools import first, mark_ends
 
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import ensure_list, fix_axis, issue_deprecation_warning, iterable, mylog
+from yt.funcs import (
+    fix_axis,
+    is_sequence,
+    issue_deprecation_warning,
+    iter_fields,
+    mylog,
+)
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity
@@ -128,7 +134,7 @@ class FITSImageData:
         """
 
         if fields is not None:
-            fields = ensure_list(fields)
+            fields = list(iter_fields(fields))
 
         if "units" in kwargs:
             issue_deprecation_warning(
@@ -244,8 +250,9 @@ class FITSImageData:
                         )
                     self.fields[i] = f"{ftype}_{fname}"
 
-        first = True
-        for i, name, field in zip(count(), self.fields, fields):
+        for is_first, _is_last, (i, (name, field)) in mark_ends(
+            enumerate(zip(self.fields, fields))
+        ):
             if name not in exclude_fields:
                 this_img = img_data[field]
                 if hasattr(img_data[field], "units"):
@@ -269,9 +276,8 @@ class FITSImageData:
                     if i == 0:
                         self.shape = this_img.shape
                     this_img = np.asarray(this_img.T)
-                if first:
+                if is_first:
                     hdu = _astropy.pyfits.PrimaryHDU(this_img)
-                    first = False
                 else:
                     hdu = _astropy.pyfits.ImageHDU(this_img)
                 hdu.name = name
@@ -320,7 +326,7 @@ class FITSImageData:
             else:
                 # If img_data is just an array we use the width and img_ctr
                 # parameters to determine the cell widths
-                if not iterable(width):
+                if not is_sequence(width):
                     width = [width] * self.dimensionality
                 if isinstance(width[0], YTQuantity):
                     cdelt = [
@@ -721,23 +727,23 @@ class FITSImageData:
         image_list : list of FITSImageData instances
             The images to be combined.
         """
-        image_list = ensure_list(image_list)
-        w = image_list[0].wcs
-        img_shape = image_list[0].shape
+        image_list = image_list if isinstance(image_list, list) else [image_list]
+        first_image = first(image_list)
+
+        w = first_image.wcs
+        img_shape = first_image.shape
         data = []
-        first = True
-        for fid in image_list:
+        for is_first, _is_last, fid in mark_ends(image_list):
             assert_same_wcs(w, fid.wcs)
             if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
             for hdu in fid.hdulist:
-                if first:
+                if is_first:
                     data.append(_astropy.pyfits.PrimaryHDU(hdu.data, header=hdu.header))
-                    first = False
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
         data = _astropy.pyfits.HDUList(data)
-        return cls(data, current_time=image_list[0].current_time)
+        return cls(data, current_time=first_image.current_time)
 
     def create_sky_wcs(
         self,
@@ -847,7 +853,7 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     else:
         width = ds.coordinates.sanitize_width(axis, width, None)
         unit = str(width[0].units)
-    if iterable(image_res):
+    if is_sequence(image_res):
         nx, ny = image_res
     else:
         nx, ny = image_res, image_res
@@ -866,12 +872,12 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     cunit = [length_unit] * 2
     ctype = ["LINEAR"] * 2
     cdelt = [dx.in_units(length_unit), dy.in_units(length_unit)]
-    if iterable(axis):
+    if is_sequence(axis):
         crval = center.in_units(length_unit)
     else:
         crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
     if hasattr(data_source, "to_frb"):
-        if iterable(axis):
+        if is_sequence(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
         else:
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
@@ -977,7 +983,7 @@ class FITSSlice(FITSImageData):
         length_unit=None,
         **kwargs,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
@@ -1051,7 +1057,7 @@ class FITSProjection(FITSImageData):
         length_unit=None,
         **kwargs,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
@@ -1128,7 +1134,7 @@ class FITSOffAxisSlice(FITSImageData):
         north_vector=None,
         length_unit=None,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         cut = ds.cutting(normal, center, north_vector=north_vector)
         center = ds.arr([0.0] * 2, "code_length")
@@ -1233,12 +1239,12 @@ class FITSOffAxisProjection(FITSImageData):
         method="integrate",
         length_unit=None,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
         wd = tuple(el.in_units("code_length").v for el in width)
-        if not iterable(image_res):
+        if not is_sequence(image_res):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1])
         if data_source is None:

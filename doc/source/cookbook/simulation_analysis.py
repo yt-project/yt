@@ -1,7 +1,8 @@
+import collections
+
 import yt
 
 yt.enable_parallelism()
-import collections
 
 # Enable parallelism in the script (assuming it was called with
 # `mpirun -np <n_procs>` )

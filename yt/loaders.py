@@ -6,9 +6,10 @@ This module gathers all user-facing functions with a `load_` prefix.
 import os
 
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.config import ytcfg
-from yt.funcs import ensure_list, issue_deprecation_warning, mylog
+from yt.funcs import issue_deprecation_warning, mylog
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
@@ -1151,19 +1152,11 @@ def load_unstructured_mesh(
     if elem_data is None and node_data is None:
         raise RuntimeError("No data supplied in load_unstructured_mesh.")
 
-    if isinstance(connectivity, list):
-        num_meshes = len(connectivity)
-    else:
-        num_meshes = 1
-    connectivity = ensure_list(connectivity)
+    connectivity = list(always_iterable(connectivity, base_type=np.ndarray))
+    num_meshes = max(1, len(connectivity))
 
-    if elem_data is None:
-        elem_data = [{} for i in range(num_meshes)]
-    elem_data = ensure_list(elem_data)
-
-    if node_data is None:
-        node_data = [{} for i in range(num_meshes)]
-    node_data = ensure_list(node_data)
+    elem_data = list(always_iterable(elem_data, base_type=dict)) or [{}] * num_meshes
+    node_data = list(always_iterable(node_data, base_type=dict)) or [{}] * num_meshes
 
     data = [{} for i in range(num_meshes)]
     for elem_dict, data_dict in zip(elem_data, data):
@@ -1172,7 +1165,6 @@ def load_unstructured_mesh(
     for node_dict, data_dict in zip(node_data, data):
         for field, values in node_dict.items():
             data_dict[field] = values
-    data = ensure_list(data)
 
     if bbox is None:
         bbox = [

@@ -11,7 +11,7 @@ from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTClumpContainer
-from yt.funcs import iterable, mylog, validate_width_tuple
+from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
@@ -103,14 +103,12 @@ class PlotCallback:
                 # right-handed coord system
                 coord = (y, x)
             else:
-                raise SyntaxError(
-                    "Object being plot must have a `data.axis` " "defined"
-                )
+                raise ValueError("Object being plot must have a `data.axis` defined")
 
         # if the position is already two-coords, it is expected to be
         # in the proper projected orientation
         else:
-            raise SyntaxError("'data' coordinates must be 3 dimensions")
+            raise ValueError("'data' coordinates must be 3 dimensions")
         return coord
 
     def _convert_to_plot(self, plot, coord, offset=True):
@@ -203,8 +201,8 @@ class PlotCallback:
         # if in data coords, project them to plot coords
         if coord_system == "data":
             if len(coord) < 3:
-                raise SyntaxError(
-                    "Coordinates in 'data' coordinate system " "need to be in 3D"
+                raise ValueError(
+                    "Coordinates in 'data' coordinate system need to be in 3D"
                 )
             coord = self._project_coords(plot, coord)
             coord = self._convert_to_plot(plot, coord)
@@ -216,8 +214,8 @@ class PlotCallback:
         if coord_system == "axis":
             self.transform = plot._axes.transAxes
             if len(coord) > 2:
-                raise SyntaxError(
-                    "Coordinates in 'axis' coordinate system " "need to be in 2D"
+                raise ValueError(
+                    "Coordinates in 'axis' coordinate system need to be in 2D"
                 )
             return coord
         # if in figure coords, define the transform correctly
@@ -225,7 +223,7 @@ class PlotCallback:
             self.transform = plot._figure.transFigure
             return coord
         else:
-            raise SyntaxError(
+            raise ValueError(
                 "Argument coord_system must have a value of "
                 "'data', 'plot', 'axis', or 'figure'."
             )
@@ -1380,7 +1378,7 @@ class ArrowCallback(PlotCallback):
                 "the length keyword in 'axis' units instead. "
                 "Setting code_size overrides length value."
             )
-            if iterable(self.code_size):
+            if is_sequence(self.code_size):
                 self.code_size = plot.data.ds.quan(self.code_size[0], self.code_size[1])
                 self.code_size = np.float64(self.code_size.in_units(plot.xlim[0].units))
             self.code_size = self.code_size * self._pixel_scale(plot)[0]
@@ -1588,7 +1586,7 @@ class SphereCallback(PlotCallback):
     def __call__(self, plot):
         from matplotlib.patches import Circle
 
-        if iterable(self.radius):
+        if is_sequence(self.radius):
             self.radius = plot.data.ds.quan(self.radius[0], self.radius[1])
             self.radius = np.float64(self.radius.in_units(plot.xlim[0].units))
         if isinstance(self.radius, YTQuantity):
@@ -2042,7 +2040,7 @@ class ParticleCallback(PlotCallback):
 
     def __call__(self, plot):
         data = plot.data
-        if iterable(self.width):
+        if is_sequence(self.width):
             validate_width_tuple(self.width)
             self.width = plot.data.ds.quan(self.width[0], self.width[1])
         elif isinstance(self.width, YTQuantity):
@@ -2459,7 +2457,7 @@ class TimestampCallback(PlotCallback):
                 self.text_args["horizontalalignment"] = "center"
                 self.text_args["verticalalignment"] = "center"
             else:
-                raise SyntaxError(
+                raise ValueError(
                     "Argument 'corner' must be set to "
                     "'upper_left', 'upper_right', 'lower_left', "
                     "'lower_right', or None"
@@ -2692,7 +2690,7 @@ class ScaleCallback(PlotCallback):
             elif self.corner is None:
                 self.pos = (0.5, 0.5)
             else:
-                raise SyntaxError(
+                raise ValueError(
                     "Argument 'corner' must be set to "
                     "'upper_left', 'upper_right', 'lower_left', "
                     "'lower_right', or None"
@@ -2876,7 +2874,7 @@ class RayCallback(PlotCallback):
             start_coord, end_coord = self._process_light_ray(plot)
 
         else:
-            raise SyntaxError("ray must be a YTRay, YTOrthoRay, or " "LightRay object.")
+            raise ValueError("ray must be a YTRay, YTOrthoRay, or LightRay object.")
 
         # if start_coord and end_coord are all False, it means no intersecting
         # ray segment with this plot.
@@ -3012,7 +3010,7 @@ class LineIntegralConvolutionCallback(PlotCallback):
         if self.texture is None:
             self.texture = np.random.rand(nx, ny).astype(np.double)
         elif self.texture.shape != (nx, ny):
-            raise SyntaxError(
+            raise ValueError(
                 "'texture' must have the same shape "
                 "with that of output image (%d, %d)" % (nx, ny)
             )
