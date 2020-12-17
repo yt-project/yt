@@ -7,6 +7,7 @@ import weakref
 from collections import defaultdict
 
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
@@ -852,7 +853,9 @@ class EnzoDataset(Dataset):
             else:
                 self.parameters[param] = vals
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = 3 * (self.parameters["LeftFaceBoundaryCondition"] == 3,)
+        self.periodicity = tuple(
+            always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
+        )
         self.dimensionality = self.parameters["TopGridRank"]
         if "MetaDataDatasetUUID" in self.parameters:
             self.unique_identifier = self.parameters["MetaDataDatasetUUID"]
@@ -1028,7 +1031,9 @@ class EnzoDatasetInMemory(EnzoDataset):
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = 3 * (self.parameters["LeftFaceBoundaryCondition"] == 3,)
+        self.periodicity = tuple(
+            always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
+        )
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
         self.current_time = self.parameters["InitialTime"]
