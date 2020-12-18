@@ -141,10 +141,8 @@ class YTConfig:
         self.config_root.pop_leaf(args)
 
     def read(self, file_names):
-        file_names = always_iterable(file_names)
-
         file_names_read = []
-        for fname in file_names:
+        for fname in always_iterable(file_names):
             if not os.path.exists(fname):
                 continue
             metadata = {"source": f"file: {fname}"}
