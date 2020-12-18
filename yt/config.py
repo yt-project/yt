@@ -2,6 +2,7 @@ import os
 import warnings
 
 import toml
+from more_itertools import always_iterable
 
 from yt.utilities.configuration_tree import ConfigNode
 
@@ -140,8 +141,7 @@ class YTConfig:
         self.config_root.pop_leaf(args)
 
     def read(self, file_names):
-        if not isinstance(file_names, (tuple, list)):
-            file_names = (file_names,)
+        file_names = always_iterable(file_names)
 
         file_names_read = []
         for fname in file_names:
