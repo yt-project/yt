@@ -5,126 +5,133 @@ import re
 
 from yt.funcs import ensure_list
 
-_section_exp = re.compile(r"\[\w+\]\s*")
-_sci_notation_exp = re.compile(r"\d+(\.\d*)?e[+-]?\d+?")
+SECTION_REGEXP = re.compile(r"\[\w+\]\s*")
+ENOTATION_REGEXP = re.compile(r"\d+(\.\d*)?e[+-]?\d+?")
 
 
-def _decode_sci_int(s):
-    """
-    Cast an 'e' formatted string `s` to integer if such a conversion can
-    be perfomed without loss of data. Raise ValueError otherwise.
-
-    Examples
-    --------
-    >>> _decode_sci_int("6.28E2")
-    628
-    >>> _decode_sci_int("1.4e3")
-    1400
-    >>> _decode_sci_int("7.0000E2")
-    700
-    >>> _decode_sci_int("700.00E-2")
-    7
-    >>> _decode_sci_int("700e-2")
-    7
-    >>> _decode_sci_int("6.000e0")
-    6
-    >>> _decode_sci_int("700e-3")
-    Traceback (most recent call last):
-    ...
-    ValueError
-    >>> _decode_sci_int("7.0001E2")
-    Traceback (most recent call last):
-    ...
-    ValueError
-    >>> _decode_sci_int("0.6e0")
-    Traceback (most recent call last):
-    ...
-    ValueError
+class ENotationIO:
+    """A small class to encode/decode real numbers to and from
+    e-notation formatted strings.
 
     """
-    s = s.lower()  # assuming Idefix knows how to read "1e3" as well as "1E3"
 
-    if not re.match(_sci_notation_exp, s):
-        raise ValueError
+    @staticmethod
+    def decode(s):
+        """
+        Cast an 'e' formatted string `s` to integer if such a conversion can
+        be perfomed without loss of data. Raise ValueError otherwise.
 
-    digits, exponent = s.split("e")
-    exponent = int(exponent)
-    if "." in digits:
-        digits, decimals = digits.split(".")
-        decimals = decimals.rstrip("0")
-    else:
-        decimals = ""
+        Examples
+        --------
+        >>> ENotationIO.decode("6.28E2")
+        628
+        >>> ENotationIO.decode("1.4e3")
+        1400
+        >>> ENotationIO.decode("7.0000E2")
+        700
+        >>> ENotationIO.decode("700.00E-2")
+        7
+        >>> ENotationIO.decode("700e-2")
+        7
+        >>> ENotationIO.decode("6.000e0")
+        6
+        >>> ENotationIO.decode("700e-3")
+        Traceback (most recent call last):
+        ...
+        ValueError
+        >>> ENotationIO.decode("7.0001E2")
+        Traceback (most recent call last):
+        ...
+        ValueError
+        >>> ENotationIO.decode("0.6e0")
+        Traceback (most recent call last):
+        ...
+        ValueError
 
-    if exponent >= 0 and len(decimals) > exponent:
-        raise ValueError
-    elif exponent < 0 and len(digits) - 1 < -exponent:
-        raise ValueError
+        """
+        s = s.lower()  # assuming Idefix knows how to read "1e3" as well as "1E3"
 
-    return int(float(s))
+        if not re.match(ENOTATION_REGEXP, s):
+            raise ValueError
 
+        digits, exponent = s.split("e")
+        exponent = int(exponent)
+        if "." in digits:
+            digits, decimals = digits.split(".")
+            decimals = decimals.rstrip("0")
+        else:
+            decimals = ""
 
-def _encode_sci(r):
-    """
-    Convert a real number `r` to string, using scientific notation.
+        if exponent >= 0 and len(decimals) > exponent:
+            raise ValueError
+        elif exponent < 0 and len(digits) - 1 < -exponent:
+            raise ValueError
 
-    Note that this differs from using format specifiers (e.g. `.6e`)
-    in that trailing zeros are removed.
-    Precision must be conserved.
+        return int(float(s))
 
-    Parameters
-    ----------
-    r: real number (float or int)
+    @staticmethod
+    def encode(r):
+        """
+        Convert a real number `r` to string, using scientific notation.
 
-    Returns
-    -------
-    ret: str
-        A string representing a number in sci notation.
+        Note that this differs from using format specifiers (e.g. `.6e`)
+        in that trailing zeros are removed.
+        Precision must be conserved.
 
-    Examples
-    --------
-    >>> _encode_sci(1)
-    '1e0'
-    >>> _encode_sci(0.0000001)
-    '1e-7'
-    >>> _encode_sci(10_000_000)
-    '1e7'
-    >>> _encode_sci(156_000)
-    '1.56e5'
-    >>> _encode_sci(0.0056)
-    '5.6e-3'
-    >>> _encode_sci(3.141592653589793)
-    '3.141592653589793e0'
-    """
-    max_ndigit = len(str(r).replace(".", "")) - 1
-    fmt = f".{max_ndigit}e"
-    s = "{:^{}}".format(r, fmt).replace("+", "")
-    ret = re.sub(r"\.?0*(e-?)0", r"\1", s)
-    if ret.endswith("-"):
-        ret = ret.replace("-", "0")
-    return ret
+        Parameters
+        ----------
+        r: real number (float or int)
 
+        Returns
+        -------
+        ret: str
+            A string representing a number in sci notation.
 
-def _encode_preferential_sci(r):
-    """
-    Convert a real number `r` to string, using sci notation if
-    and only if it saves space.
+        Examples
+        --------
+        >>> ENotationIO.encode(1)
+        '1e0'
+        >>> ENotationIO.encode(0.0000001)
+        '1e-7'
+        >>> ENotationIO.encode(10_000_000)
+        '1e7'
+        >>> ENotationIO.encode(156_000)
+        '1.56e5'
+        >>> ENotationIO.encode(0.0056)
+        '5.6e-3'
+        >>> ENotationIO.encode(3.141592653589793)
+        '3.141592653589793e0'
+        """
+        max_ndigit = len(str(r).replace(".", "")) - 1
+        fmt = f".{max_ndigit}e"
+        s = "{:^{}}".format(r, fmt).replace("+", "")
+        ret = re.sub(r"\.?0*(e-?)0", r"\1", s)
+        if ret.endswith("-"):
+            ret = ret.replace("-", "0")
+        return ret
 
-    Examples
-    --------
-    >>> _encode_preferential_sci(189_000_000)
-    '1.89e8'
-    >>> _encode_preferential_sci(189)
-    '189'
-    >>> _encode_preferential_sci(900)
-    '900'
-    >>> _encode_preferential_sci(1)
-    '1'
-    >>> _encode_preferential_sci(0.7)
-    '0.7'
-    >>> _encode_preferential_sci(0.00007)
-    '7e-5'
-    """
-    return min(str(r), _encode_sci(r), key=lambda x: len(x))
+    @staticmethod
+    def encode_preferential(r):
+        """
+        Convert a real number `r` to string, using sci notation if
+        and only if it saves space.
+
+        Examples
+        --------
+        >>> ENotationIO.encode_preferential(189_000_000)
+        '1.89e8'
+        >>> ENotationIO.encode_preferential(189)
+        '189'
+        >>> ENotationIO.encode_preferential(900)
+        '900'
+        >>> ENotationIO.encode_preferential(1)
+        '1'
+        >>> ENotationIO.encode_preferential(0.7)
+        '0.7'
+        >>> ENotationIO.encode_preferential(0.00007)
+        '7e-5'
+        """
+        return min(str(r), ENotationIO.encode(r), key=lambda x: len(x))
 
 
 class IdefixConf(dict):
@@ -152,7 +159,7 @@ class IdefixConf(dict):
         lines = IdefixConf.normalize_data(data)
 
         for line in lines:
-            section = re.match(_section_exp, line)
+            section = re.match(SECTION_REGEXP, line)
             if section is not None:
                 current_section = section.group().strip("[]")
                 _dict[current_section] = {}
@@ -190,7 +197,7 @@ class IdefixConf(dict):
         for val in raw_values:
             # remove period and trailing zeros to cast to int when possible
             val = re.sub(r"\.0+$", "", val)
-            for caster in [int, _decode_sci_int, float, str]:
+            for caster in [int, ENotationIO.decode, float, str]:
                 # cast to types from stricter to most permissive
                 # `str` will always succeed since it is the input type
                 try:
@@ -213,7 +220,7 @@ class IdefixConf(dict):
                 str_val = []
                 for v in ensure_list(val):
                     if isinstance(v, (float, int)):
-                        str_v = _encode_preferential_sci(v)
+                        str_v = ENotationIO.encode_preferential(v)
                     else:
                         str_v = str(v)
                     str_val.append(str_v)
