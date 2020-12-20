@@ -12,7 +12,7 @@ from yt.frontends.idefix.dmpfile_io import (
     read_header,
     read_idefix_dmpfile,
 )
-from yt.frontends.idefix.inifile_io import read_idefix_inifile
+from yt.frontends.idefix.inifile_io import IdefixConf
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 
@@ -129,7 +129,7 @@ class IdefixDataset(Dataset):
         self.parameters["idefix version"] = re.findall(version_exp, header)[0]
 
         if self.inifile is not None:
-            self.parameters.update(read_idefix_inifile(self.inifile))
+            self.parameters.update(IdefixConf(self.inifile))
             grid_ini = self.parameters["Grid"]
             for ax, vals in grid_ini.items():
                 if vals[0] > 1:
