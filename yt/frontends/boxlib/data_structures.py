@@ -1390,7 +1390,8 @@ def _read_header(raw_file, field):
             nghost_lines = f.readline().strip().split()
             try:
                 ng = int(nghost_lines[0])
-                nghost = np.array([ng, ng, ng])
+                # nghost will be set below after the number of dimensions is determined
+                nghost = None
             except ValueError:
                 nghosts = nghost_lines[0][1:-1].split(",")
                 nghost = np.array([int(ng) for ng in nghosts])
@@ -1404,6 +1405,14 @@ def _read_header(raw_file, field):
                     break
                 lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
                 boxes.append((lo_corner, hi_corner, node_type))
+
+            if nghost is None:
+                try:
+                    nghost = np.array(len(lo_corner)*[ng])
+                except NameError:
+                    # If lo_corner is not defined.
+                    # Will this ever happen?
+                    nghost = np.array([ng, ng, ng])
 
             # read the file and offset position for the corresponding box
             file_names = []
