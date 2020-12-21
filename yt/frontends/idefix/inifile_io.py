@@ -3,7 +3,7 @@ Static read/write methods for idefix .ini files.
 """
 import re
 
-from yt.funcs import ensure_list
+from more_itertools import always_iterable
 
 SECTION_REGEXP = re.compile(r"\[\w+\]\s*")
 ENOTATION_REGEXP = re.compile(r"\d+(\.\d*)?e[+-]?\d+?")
@@ -218,7 +218,7 @@ class IdefixConf(dict):
             for key, val in data.items():
                 line = f"{key}  "
                 str_val = []
-                for v in ensure_list(val):
+                for v in always_iterable(val):
                     if isinstance(v, (float, int)):
                         str_v = ENotationIO.encode_preferential(v)
                     else:
