@@ -84,6 +84,14 @@ yt/utilities/lib/partitioned_grid.c
 yt/utilities/lib/volume_container.c
 yt/utilities/lib/lenses.c
 yt/utilities/lib/image_samplers.c
+yt/utilities/lib/_octree_raytracing.cpp
+yt/utilities/lib/bounding_volume_hierarchy.cpp
+yt/utilities/lib/geometry_utils.cpp
+yt/utilities/lib/grid_traversal.cpp
+yt/utilities/lib/image_samplers.cpp
+yt/utilities/lib/marching_cubes.cpp
+yt/utilities/lib/misc_utilities.cpp
+yt/utilities/lib/partitioned_grid.cpp
 *.pyc
 *.pyd
 .*.swp
