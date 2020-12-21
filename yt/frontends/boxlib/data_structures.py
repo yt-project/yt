@@ -1408,7 +1408,7 @@ def _read_header(raw_file, field):
 
             if nghost is None:
                 try:
-                    nghost = np.array(len(lo_corner)*[ng])
+                    nghost = np.array(len(lo_corner) * [ng])
                 except NameError:
                     # If lo_corner is not defined.
                     # Will this ever happen?
