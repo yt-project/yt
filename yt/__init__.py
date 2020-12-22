@@ -14,7 +14,7 @@ if sys.version_info[0] < 3:
         "Python 2 no longer supported.  Please install Python 3 for use with yt."
     )
 
-__version__ = "4.0.dev0"
+__version__ = "4.0.0-dev0"
 
 # First module imports
 import numpy as np  # For modern purposes
