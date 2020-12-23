@@ -487,7 +487,7 @@ class FieldInfoContainer(dict):
         # - a greylist (excpetions that may hide bugs but should be checked)
 
         # in the long run, the greylist should be removed
-        blacklist = (UnitConversionError,)  # solved in GH PR 2897
+        blacklist = (RecursionError,)
         whitelist = (NotImplementedError,)
         greylist = (
             YTFieldNotFound,
@@ -500,7 +500,7 @@ class FieldInfoContainer(dict):
             AttributeError,
             KeyError,
             # code smells -> those are very likely bugs
-            RecursionError,
+            UnitConversionError,  # solved in GH PR 2897 ?
         )
 
         deps = {}
