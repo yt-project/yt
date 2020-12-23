@@ -343,9 +343,9 @@ class AMRVACDataset(Dataset):
             self.geometry = "cartesian"
 
         # parse peridiocity
-        per = self.parameters.get("periodic", np.array([False, False, False]))
-        missing_dim = 3 - len(per)
-        self.periodicity = np.append(per, [False] * missing_dim)
+        periodicity = self.parameters.get("periodic", ())
+        missing_dim = 3 - len(periodicity)
+        self.periodicity = (*periodicity, *(missing_dim * (False,)))
 
         self.gamma = self.parameters.get("gamma", 5.0 / 3.0)
 

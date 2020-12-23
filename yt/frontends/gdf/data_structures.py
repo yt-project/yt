@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_tuple, just_one, setdefaultattr
+from yt.funcs import just_one, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.units.dimensions import dimensionless as sympy_one
 from yt.units.unit_object import Unit
@@ -264,8 +264,7 @@ class GDFDataset(Dataset):
         self.num_ghost_zones = sp["num_ghost_zones"]
         self.field_ordering = sp["field_ordering"]
         self.boundary_conditions = sp["boundary_conditions"][:]
-        p = [bnd == 0 for bnd in self.boundary_conditions[::2]]
-        self.periodicity = ensure_tuple(p)
+        self.periodicity = tuple(bnd == 0 for bnd in self.boundary_conditions[::2])
         if self.cosmological_simulation:
             self.current_redshift = sp["current_redshift"]
             self.omega_lambda = sp["omega_lambda"]

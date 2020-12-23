@@ -7,12 +7,13 @@ import weakref
 from collections import defaultdict
 
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.fields.field_info_container import NullFunc
 from yt.frontends.enzo.misc import cosmology_get_units
-from yt.funcs import ensure_tuple, get_pbar, iter_fields, setdefaultattr
+from yt.funcs import get_pbar, iter_fields, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.logger import ytLogger as mylog
@@ -852,8 +853,8 @@ class EnzoDataset(Dataset):
             else:
                 self.parameters[param] = vals
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = ensure_tuple(
-            self.parameters["LeftFaceBoundaryCondition"] == 3
+        self.periodicity = tuple(
+            always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
         )
         self.dimensionality = self.parameters["TopGridRank"]
         if "MetaDataDatasetUUID" in self.parameters:
@@ -1030,8 +1031,8 @@ class EnzoDatasetInMemory(EnzoDataset):
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = ensure_tuple(
-            self.parameters["LeftFaceBoundaryCondition"] == 3
+        self.periodicity = tuple(
+            always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
         )
         self.dimensionality = self.parameters["TopGridRank"]
         self.domain_dimensions = self.parameters["TopGridDimensions"]
