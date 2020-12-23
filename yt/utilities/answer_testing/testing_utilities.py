@@ -265,6 +265,8 @@ def _save_raw_arrays(arrays, answer_file, func_name):
         # since a / is how hierarchy is specified in an hdf5 file
         if "/" in func_name:
             sanitized_func_name = func_name.replace("/", "_")
+        else:
+            sanitized_func_name = func_name
         # grp = f.create_group(func_name)
         grp = f.create_group(sanitized_func_name)
         for test_name, test_data in arrays.items():
@@ -378,6 +380,8 @@ def _compare_raw_arrays(new, answer_file, func_name):
     """
     if "/" in func_name:
         sanitized_func_name = func_name.replace("/", "_")
+    else:
+        sanitized_func_name = func_name
     with h5py.File(answer_file, "r") as f:
         old = f[sanitized_func_name]
         _recursive_raw_compare(sanitized_func_name, old, new)
