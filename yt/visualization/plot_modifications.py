@@ -2702,17 +2702,22 @@ class ScaleCallback(PlotCallback):
         max_scale = self.max_frac * xsize
         min_scale = self.min_frac * xsize
 
-        # If no units are set, then identify a best fit distance unit
+        # If no units are set, pick something sensible.
         if self.unit is None:
-            min_scale = plot.ds.get_smallest_appropriate_unit(
-                min_scale, return_quantity=True
-            )
-            max_scale = plot.ds.get_smallest_appropriate_unit(
-                max_scale, return_quantity=True
-            )
-            if self.coeff is None:
-                self.coeff = max_scale.v
-            self.unit = max_scale.units
+            # User has set the axes units and supplied a coefficient.
+            if plot._axes_unit_names is not None and self.coeff is not None:
+                self.unit = plot._axes_unit_names[0]
+            # Nothing provided; identify a best fit distance unit.
+            else:
+                min_scale = plot.ds.get_smallest_appropriate_unit(
+                    min_scale, return_quantity=True
+                )
+                max_scale = plot.ds.get_smallest_appropriate_unit(
+                    max_scale, return_quantity=True
+                )
+                if self.coeff is None:
+                    self.coeff = max_scale.v
+                self.unit = max_scale.units
         elif self.coeff is None:
             self.coeff = 1
         self.scale = plot.ds.quan(self.coeff, self.unit)
