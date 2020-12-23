@@ -520,8 +520,9 @@ class FieldInfoContainer(dict):
 
                 # fd: field detector
                 fd = fi.get_dependencies(ds=self.ds)
-            except blacklist:
-                raise
+            except blacklist as err:
+                print(f"{err.__class__} raised for field {field}")
+                raise SystemExit(1) from err
             except (*whitelist, *greylist) as e:
                 if field in self._show_field_errors:
                     raise
