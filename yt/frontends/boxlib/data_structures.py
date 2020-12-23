@@ -1388,7 +1388,8 @@ def _read_header(raw_file, field):
             f.readline()  # how
             f.readline()  # ncomp
 
-            # nghost_line will be parsed below after the number of dimensions is determined
+            # nghost_line will be parsed below after the number of dimensions
+            # is determined when the boxes are read in
             nghost_line = f.readline().strip().split()
 
             f.readline()  # num boxes
