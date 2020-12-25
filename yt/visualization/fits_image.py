@@ -8,13 +8,8 @@ from more_itertools import first, mark_ends
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import (
-    fix_axis,
-    is_sequence,
-    issue_deprecation_warning,
-    iter_fields,
-    mylog,
-)
+from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity

@@ -18,15 +18,7 @@ from yt.data_objects.region_expression import RegionExpression
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
-from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
-from yt.funcs import (
-    is_sequence,
-    issue_deprecation_warning,
-    iter_fields,
-    mylog,
-    set_intersection,
-    setdefaultattr,
-)
+from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
     CoordinateHandler,
@@ -36,6 +28,10 @@ from yt.geometry.coordinates.api import (
     PolarCoordinateHandler,
     SpectralCubeCoordinateHandler,
     SphericalCoordinateHandler,
+)
+from yt.maintenance.deprecation import (
+    issue_demeshening_deprecation_warning,
+    issue_deprecation_warning,
 )
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks
@@ -1707,7 +1703,7 @@ class Dataset(abc.ABC):
 
         The field name tuple for the newly created field.
         """
-        issue_deprecation_warning("This method is deprecated. " + DEP_MSG_SMOOTH_FIELD)
+        issue_demeshening_deprecation_warning("This method is deprecated.")
 
     def add_gradient_fields(self, fields=None, input_field=None):
         """Add gradient fields.

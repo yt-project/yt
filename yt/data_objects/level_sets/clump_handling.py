@@ -4,7 +4,8 @@ import numpy as np
 
 from yt.fields.derived_field import ValidateSpatial
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, issue_deprecation_warning, mylog
+from yt.funcs import get_output_filename, mylog
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.tree_container import TreeContainer
 
 from .clump_info_items import clump_info_registry

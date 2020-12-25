@@ -5,14 +5,9 @@ import numpy as np
 
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import (
-    deprecate,
-    get_output_filename,
-    issue_deprecation_warning,
-    iter_fields,
-    mylog,
-)
+from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -565,12 +560,6 @@ class FixedResolutionBuffer:
             filt = apply_filter(FilterMaker)
             filt.__doc__ = FilterMaker.__doc__
             self.__dict__["apply_" + filtername] = types.MethodType(filt, self)
-
-
-class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
-    @deprecate("FixedResolutionBuffer")
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
 
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):

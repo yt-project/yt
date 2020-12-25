@@ -9,14 +9,8 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import (
-    ensure_dir,
-    get_image_suffix,
-    is_sequence,
-    issue_deprecation_warning,
-    iter_fields,
-    mylog,
-)
+from yt.funcs import ensure_dir, get_image_suffix, is_sequence, iter_fields, mylog
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
@@ -307,8 +301,6 @@ class PlotContainer:
 
         """
         if isinstance(state, str):
-            from yt.funcs import issue_deprecation_warning
-
             issue_deprecation_warning("Deprecated api, use bools for *state*.")
             state = {"on": True, "off": False}[state.lower()]
 

@@ -1,4 +1,4 @@
-from yt.funcs import issue_deprecation_warning
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.visualization.fits_image import (
     FITSImageData,
     FITSOffAxisProjection,

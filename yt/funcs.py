@@ -239,46 +239,6 @@ def rootonly(func):
     return check_parallel_rank
 
 
-class VisibleDeprecationWarning(UserWarning):
-    """Visible deprecation warning, adapted from NumPy
-
-    By default python does not show users deprecation warnings.
-    This ensures that a deprecation warning is visible to users
-    if that is desired.
-    """
-
-    pass
-
-
-def deprecate(replacement):
-    def real_deprecate(func):
-        """
-        This decorator issues a deprecation warning.
-
-        This can be used like so:
-
-        .. code-block:: python
-
-        @deprecate("new_function")
-        def some_really_old_function(...):
-
-        """
-
-        @wraps(func)
-        def run_func(*args, **kwargs):
-            message = "%s has been deprecated and may be removed without notice!"
-            if replacement is not None:
-                message += f" Use {replacement} instead."
-            warnings.warn(
-                message % func.__name__, VisibleDeprecationWarning, stacklevel=2
-            )
-            func(*args, **kwargs)
-
-        return run_func
-
-    return real_deprecate
-
-
 def pdb_run(func):
     """
     This decorator inserts a pdb session on top of the call-stack into a
@@ -1074,21 +1034,6 @@ def memory_checker(interval=15, dest=None):
         e.set()
 
 
-def deprecated_class(cls):
-    @wraps(cls)
-    def _func(*args, **kwargs):
-        # Note we use SyntaxWarning because by default, DeprecationWarning is
-        # not shown.
-        warnings.warn(
-            f"This usage is deprecated.  Please use {cls.__name__} instead.",
-            SyntaxWarning,
-            stacklevel=2,
-        )
-        return cls(*args, **kwargs)
-
-    return _func
-
-
 def enable_plugins(pluginfilename=None):
     """Forces a plugin file to be parsed.
 
@@ -1324,12 +1269,6 @@ def parse_h5_attr(f, attr):
         return val.decode("utf8")
     else:
         return val
-
-
-def issue_deprecation_warning(msg, stacklevel=3):
-    from numpy import VisibleDeprecationWarning
-
-    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
 
 
 def obj_length(v):

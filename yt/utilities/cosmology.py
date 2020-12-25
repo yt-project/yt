@@ -2,7 +2,7 @@ import functools
 
 import numpy as np
 
-from yt.funcs import issue_deprecation_warning
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry

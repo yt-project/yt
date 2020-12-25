@@ -26,7 +26,7 @@ yt_colormaps = {}
 
 def add_cmap(name, cdict):
     """Deprecated alias, kept for backwards compatibility."""
-    from yt.funcs import issue_deprecation_warning
+    from yt.maintenance.deprecation import issue_deprecation_warning
 
     issue_deprecation_warning("Deprecated alias. Use add_colormap instead.")
     add_colormap(name, cdict)

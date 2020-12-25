@@ -12,15 +12,8 @@ from unyt.exceptions import UnitConversionError
 
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import (
-    fix_axis,
-    fix_unitary,
-    is_sequence,
-    issue_deprecation_warning,
-    iter_fields,
-    mylog,
-    obj_length,
-)
+from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitParseError
 from yt.units.yt_array import YTArray, YTQuantity
@@ -1718,9 +1711,10 @@ class ProjectionPlot(PWViewerMPL):
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
-        # proj_style is deprecated, but if someone specifies then it trumps
-        # method.
         if proj_style is not None:
+            issue_deprecation_warning(
+                "`proj_style` parameter is deprecated, use `method` instead."
+            )
             method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":

@@ -4,7 +4,9 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from yt.funcs import issue_deprecation_warning, iter_fields
+from yt import __version__ as yt_version
+from yt.funcs import iter_fields
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.exceptions import YTGDFAlreadyExists
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import (

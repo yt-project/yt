@@ -9,7 +9,7 @@ import numpy as np
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
-from yt.funcs import issue_deprecation_warning, mylog
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
@@ -19,6 +19,7 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
@@ -141,7 +142,7 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
 
 def simulation(fn, simulation_type, find_outputs=False):
-    from yt.funcs import issue_deprecation_warning
+    from yt.maintenance.deprecation import issue_deprecation_warning
 
     issue_deprecation_warning(
         "yt.simulation is a deprecated alias for yt.load_simulation"

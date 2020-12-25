@@ -6,7 +6,7 @@ import warnings
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
-from yt.funcs import VisibleDeprecationWarning, iter_fields
+from yt.funcs import iter_fields
 from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 
@@ -183,16 +183,6 @@ class DerivedField:
         dd["not_in_all"] = self.not_in_all
         dd["display_name"] = self.display_name
         return dd
-
-    @property
-    def particle_type(self):
-        warnings.warn(
-            "particle_type has been deprecated, "
-            "check for field.sampling_type == 'particle' instead.",
-            VisibleDeprecationWarning,
-            stacklevel=2,
-        )
-        return self.sampling_type in ("discrete", "particle")
 
     @property
     def is_sph_field(self):

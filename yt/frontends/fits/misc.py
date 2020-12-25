@@ -5,8 +5,9 @@ from io import BytesIO
 import numpy as np
 
 from yt.fields.derived_field import ValidateSpatial
-from yt.funcs import issue_deprecation_warning, mylog
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _astropy
 
 
@@ -211,6 +212,7 @@ class PlotWindowWCS:
             # Attempt import from the old WCSAxes package first
             from wcsaxes import WCSAxes
 
+            # todo: handle this (see minimal test env for comparison)
             issue_deprecation_warning(
                 "Support for the standalone 'wcsaxes' "
                 "package is deprecated since its"

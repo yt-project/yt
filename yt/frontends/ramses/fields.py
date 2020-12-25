@@ -6,9 +6,10 @@ from yt import units
 from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.ramses.io import convert_ramses_ages
-from yt.funcs import issue_deprecation_warning, mylog
+from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.linear_interpolators import BilinearFieldInterpolator
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_constants import (
     boltzmann_constant_cgs,
     mass_hydrogen_cgs,
