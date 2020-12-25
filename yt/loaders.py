@@ -142,8 +142,6 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
 
 def simulation(fn, simulation_type, find_outputs=False):
-    from yt.maintenance.deprecation import issue_deprecation_warning
-
     issue_deprecation_warning(
         "yt.simulation is a deprecated alias for yt.load_simulation"
         "and will be removed in a future version of yt."

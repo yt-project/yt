@@ -28,7 +28,20 @@ class VisibleDeprecationWarning(UserWarning):
     pass
 
 
-def issue_deprecation_warning(msg, stacklevel=3):
+def issue_deprecation_warning(msg, *, removal, since=None, stacklevel=3):
+    """
+    `since` and `removal`: str version numbers, indicating the anticipated removal date
+
+    `since` is optional only because it was introduced in the 4.0.0 release, and it
+    should become mandatory in the future.
+    Both `since` and `removal` are keyword-only arguments so that their order can be
+    swapped in the future without introducing bugs.
+    """
+    msg += "\n"
+    if since is not None:
+        msg += f"Deprecated since v{since}."
+
+    msg += f"this feature will be removed in v{removal}"
     warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
 
 
