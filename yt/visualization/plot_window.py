@@ -1216,8 +1216,8 @@ class PWViewerMPL(PlotWindow):
         :py:meth:`yt.visualization.plot_window.PWViewerMPL.clear_annotations`
         """
         issue_deprecation_warning(
-            '"annotate_clear" has been deprecated'
-            ' in favor of "clear_annotations". Using "clear_annotations".',
+            "`annotate_clear` has been deprecated "
+            "in favor of `clear_annotations`. Using `clear_annotations`.",
             since="4.0.0",
             removal="4.1.0",
         )
