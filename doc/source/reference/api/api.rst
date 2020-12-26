@@ -725,7 +725,6 @@ Function List
    ~yt.frontends.ytdata.utilities.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
-   ~yt.funcs.deprecate
    ~yt.funcs.enable_plugins
    ~yt.funcs.get_pbar
    ~yt.funcs.humanize_time
