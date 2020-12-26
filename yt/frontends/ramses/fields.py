@@ -3,10 +3,8 @@ import os
 import numpy as np
 
 from yt import units
-from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.ramses.io import convert_ramses_ages
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.linear_interpolators import BilinearFieldInterpolator
 from yt.utilities.logger import ytLogger as mylog
@@ -143,30 +141,6 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
     def setup_particle_fields(self, ptype):
         super().setup_particle_fields(ptype)
-
-        def particle_age(field, data):
-            msg = (
-                "The RAMSES particle_age field has been deprecated since "
-                "it did not actually represent particle ages in all "
-                "cases. To get the time when a particle was formed use "
-                "the particle_birth_time field instead. To get the "
-                "age of a star particle, use the star_age field"
-            )
-            if not isinstance(data, FieldDetector):
-                issue_deprecation_warning(msg, stacklevel=2)
-            if data.ds.cosmological_simulation:
-                conformal_age = data[ptype, "conformal_birth_time"]
-                ret = convert_ramses_ages(data.ds, conformal_age)
-                return data.ds.arr(ret, "code_time")
-            else:
-                return data[ptype, "particle_birth_time"]
-
-        self.add_field(
-            (ptype, "particle_age"),
-            sampling_type="particle",
-            function=particle_age,
-            units=self.ds.unit_system["time"],
-        )
 
         def star_age(field, data):
             if data.ds.cosmological_simulation:

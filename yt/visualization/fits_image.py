@@ -9,7 +9,6 @@ from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
 from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity
@@ -130,15 +129,6 @@ class FITSImageData:
 
         if fields is not None:
             fields = list(iter_fields(fields))
-
-        if "units" in kwargs:
-            issue_deprecation_warning(
-                "The 'units' keyword argument has been replaced "
-                "by the 'length_unit' keyword argument and the "
-                "former has been deprecated. Setting 'length_unit' "
-                "to 'units'."
-            )
-            length_unit = kwargs.pop("units")
 
         if ds is None:
             ds = getattr(data, "ds", None)
@@ -609,14 +599,6 @@ class FITSImageData:
             Additional keyword arguments are passed to
             :meth:`~astropy.io.fits.HDUList.writeto`.
         """
-        if "clobber" in kwargs:
-            issue_deprecation_warning(
-                'The "clobber" keyword argument '
-                'is deprecated. Use the "overwrite" '
-                "argument, which has the same effect, "
-                "instead."
-            )
-            overwrite = kwargs.pop("clobber")
         if fields is None:
             hdus = self.hdulist
         else:

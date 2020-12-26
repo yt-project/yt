@@ -7,7 +7,6 @@ from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, iter_fields, mylog
 from yt.loaders import load_uniform_grid
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -345,16 +344,6 @@ class FixedResolutionBuffer:
         if length_unit is None:
             length_unit = self.ds.length_unit
 
-        if "units" in kwargs:
-            issue_deprecation_warning(
-                "The 'units' keyword argument has been "
-                "replaced by the 'length_unit' keyword "
-                "argument and the former has been "
-                "deprecated. Setting 'length_unit' "
-                "to 'units'."
-            )
-            length_unit = kwargs.pop("units")
-
         if fields is None:
             fields = list(self.data.keys())
         else:
@@ -372,47 +361,6 @@ class FixedResolutionBuffer:
             for k, v in other_keys.items():
                 fid.update_all_headers(k, v)
         return fid
-
-    def export_fits(
-        self,
-        filename,
-        fields=None,
-        overwrite=False,
-        other_keys=None,
-        length_unit=None,
-        **kwargs,
-    ):
-        r"""Export a set of pixelized fields to a FITS file.
-
-        This will export a set of FITS images of either the fields specified
-        or all the fields already in the object.
-
-        Parameters
-        ----------
-        filename : string
-            The name of the FITS file to be written.
-        fields : list of strings
-            These fields will be pixelized and output. If "None", the keys of the
-            FRB will be used.
-        overwrite : boolean
-            If the file exists, this governs whether we will overwrite.
-        other_keys : dictionary, optional
-            A set of header keys and values to write into the FITS header.
-        length_unit : string, optional
-            the length units that the coordinates are written in. The default
-            is to use the default length unit of the dataset.
-        """
-        issue_deprecation_warning(
-            "The 'export_fits' method of "
-            "FixedResolutionBuffer is deprecated. "
-            "Use the 'to_fits_data' method to create "
-            "a FITSImageData instance and then "
-            "use its `writeto` method."
-        )
-        fid = self.to_fits_data(
-            fields=fields, other_keys=other_keys, length_unit=length_unit, **kwargs
-        )
-        fid.writeto(filename, overwrite=overwrite, **kwargs)
 
     def export_dataset(self, fields=None, nprocs=1):
         r"""Export a set of pixelized fields to an in-memory dataset that can be

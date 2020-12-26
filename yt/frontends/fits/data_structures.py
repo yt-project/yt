@@ -15,7 +15,6 @@ from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units import dimensions
 from yt.units.unit_lookup_table import default_unit_symbol_lut, unit_prefixes
 from yt.units.unit_object import UnitParseError
@@ -890,13 +889,6 @@ class EventsFITSDataset(SkyDataFITSDataset):
                         unit = unit.replace("ev", "eV")
                     self.events_info[v.lower()] = unit
         self.axis_names = [self.events_info[ax][2] for ax in ["x", "y"]]
-        if "reblock" in self.specified_parameters:
-            issue_deprecation_warning(
-                "'reblock' is now a keyword argument that "
-                "can be passed to 'yt.load'. This behavior "
-                "is deprecated."
-            )
-            self.reblock = self.specified_parameters["reblock"]
         self.wcs.wcs.cdelt = [
             self.events_info["x"][4] * self.reblock,
             self.events_info["y"][4] * self.reblock,

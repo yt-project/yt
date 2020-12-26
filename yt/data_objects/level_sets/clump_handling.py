@@ -5,7 +5,6 @@ import numpy as np
 from yt.fields.derived_field import ValidateSpatial
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, mylog
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.tree_container import TreeContainer
 
 from .clump_info_items import clump_info_registry
@@ -453,13 +452,3 @@ def find_clumps(clump, min_val, max_val, d_clump):
                 len(clump.children),
             )
             clump.children = []
-
-
-def get_lowest_clumps(clump, clump_list=None):
-    "Return a list of all clumps at the bottom of the index."
-
-    issue_deprecation_warning(
-        "This function has been deprecated in favor of accessing a "
-        + "clump's leaf nodes via 'clump.leaves'."
-    )
-    return clump.leaves

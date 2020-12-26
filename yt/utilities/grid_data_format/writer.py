@@ -6,7 +6,6 @@ import numpy as np
 
 from yt import __version__ as yt_version
 from yt.funcs import iter_fields
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.exceptions import YTGDFAlreadyExists
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
@@ -68,15 +67,6 @@ def write_to_gdf(
     ...              dataset_units=dataset_units,
     ...              data_comment="My Really Cool Dataset", overwrite=True)
     """
-    if "clobber" in kwargs:
-        issue_deprecation_warning(
-            'The "clobber" keyword argument '
-            'is deprecated. Use the "overwrite" '
-            "argument, which has the same effect, "
-            "instead."
-        )
-        overwrite = kwargs.pop("clobber")
-
     if fields is None:
         fields = ds.field_list
 
@@ -260,17 +250,6 @@ def _create_new_gdf(
     overwrite=False,
     **kwargs,
 ):
-    from yt import __version__ as yt_version
-
-    if "clobber" in kwargs:
-        issue_deprecation_warning(
-            'The "clobber" keyword argument '
-            'is deprecated. Use the "overwrite" '
-            "argument, which has the same effect, "
-            "instead."
-        )
-        overwrite = kwargs.pop("clobber")
-
     # Make sure we have the absolute path to the file first
     gdf_path = os.path.abspath(gdf_path)
 
