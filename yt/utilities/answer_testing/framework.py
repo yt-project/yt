@@ -318,8 +318,10 @@ def can_run_ds(ds_fn, file_check=False):
 def can_run_sim(sim_fn, sim_type, file_check=False):
     issue_deprecation_warning(
         "This function is no longer used in the "
-        + "yt project testing framework and is "
-        + "targeted for deprecation."
+        "yt project testing framework and is "
+        "targeted for deprecation.",
+        since="4.0.0",
+        removal="4.1.0",
     )
     result_storage = AnswerTestingTest.result_storage
     if isinstance(sim_fn, SimulationTimeSeries):
@@ -1112,8 +1114,10 @@ class AxialPixelizationTest(AnswerTestingTest):
 def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
     issue_deprecation_warning(
         "This function is no longer used in the "
-        + "yt project testing framework and is "
-        + "targeted for deprecation."
+        "yt project testing framework and is "
+        "targeted for deprecation.",
+        since="4.0.0",
+        removal="4.1.0",
     )
 
     from functools import wraps

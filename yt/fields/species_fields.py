@@ -181,7 +181,9 @@ def add_deprecated_species_alias(registry, ftype, alias_species, species, suffix
         if not isinstance(data, FieldDetector):
             issue_deprecation_warning(
                 ('The "%s_%s" field is deprecated. ' + 'Please use "%s_%s" instead.')
-                % (alias_species, suffix, species, suffix)
+                % (alias_species, suffix, species, suffix),
+                since="4.0.0",
+                removal="4.1.0",
             )
         return data[ftype, f"{species}_{suffix}"]
 

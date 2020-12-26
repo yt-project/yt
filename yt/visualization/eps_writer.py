@@ -1589,7 +1589,9 @@ def single_plot(
 
 # =============================================================================
 def return_cmap(cmap=None, label="", range=(0, 1), log=False):
-    issue_deprecation_warning("Deprecated alias. Use return_colormap instead.")
+    issue_deprecation_warning(
+        "Deprecated alias. Use return_colormap instead.", removal="4.1.0"
+    )
     return return_colormap(cmap=cmap, label=label, crange=range, log=log)
 
 

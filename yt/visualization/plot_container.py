@@ -301,7 +301,9 @@ class PlotContainer:
 
         """
         if isinstance(state, str):
-            issue_deprecation_warning("Deprecated api, use bools for *state*.")
+            issue_deprecation_warning(
+                "Deprecated api, use bools for *state*.", removal="4.1.0"
+            )
             state = {"on": True, "off": False}[state.lower()]
 
         self._minorticks[field] = state

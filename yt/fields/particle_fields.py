@@ -868,7 +868,9 @@ def add_volume_weighted_smoothed_field(
         "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
         "visualization machinery now treats SPH fields properly by smoothing onto "
         "pixel locations. See this page to learn more: "
-        "https://yt-project.org/doc/yt4differences.html"
+        "https://yt-project.org/doc/yt4differences.html",
+        since="4.0.0",
+        removal="4.1.0",
     )
 
 

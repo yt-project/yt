@@ -144,7 +144,9 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 def simulation(fn, simulation_type, find_outputs=False):
     issue_deprecation_warning(
         "yt.simulation is a deprecated alias for yt.load_simulation"
-        "and will be removed in a future version of yt."
+        "and will be removed in a future version of yt.",
+        since="4.0.0",
+        removal="4.1.0",
     )
     return load_simulation(
         fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
@@ -255,7 +257,9 @@ def load_uniform_grid(
             "the number of particles in the data "
             "dict. The number of particles is "
             "determined from the sizes of the "
-            "particle fields."
+            "particle fields.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         data.pop("number_of_particles")
     # First we fix our field names, apply units to data
@@ -481,7 +485,9 @@ def load_amr_grids(
                 "the number of particles in the data "
                 "dict. The number of particles is "
                 "determined from the sizes of the "
-                "particle fields."
+                "particle fields.",
+                since="4.0.0",
+                removal="4.1.0",
             )
             g.pop("number_of_particles")
         field_units, data, n_particles = process_data(

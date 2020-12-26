@@ -295,7 +295,9 @@ class FieldInfoContainer(dict):
         if particle_type:
             issue_deprecation_warning(
                 "'particle_type' keyword argument is deprecated in favour "
-                "of the positional argument 'sampling_type'."
+                "of the positional argument 'sampling_type'.",
+                since="4.0.0",
+                removal="4.1.0",
             )
             if sampling_type != "particle":
                 raise RuntimeError(

@@ -408,7 +408,9 @@ class DatasetSeries:
         """
         issue_deprecation_warning(
             "DatasetSeries.from_filenames() is deprecated and will be removed "
-            "in a future version of yt. Use DatasetSeries() directly."
+            "in a future version of yt. Use DatasetSeries() directly.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
         return obj

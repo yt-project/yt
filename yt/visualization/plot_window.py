@@ -1217,7 +1217,9 @@ class PWViewerMPL(PlotWindow):
         """
         issue_deprecation_warning(
             '"annotate_clear" has been deprecated'
-            ' in favor of "clear_annotations". Using "clear_annotations".'
+            ' in favor of "clear_annotations". Using "clear_annotations".',
+            since="4.0.0",
+            removal="4.1.0",
         )
         self.clear_annotations(index=index)
 
@@ -1717,7 +1719,8 @@ class ProjectionPlot(PWViewerMPL):
             origin = "native"
         if proj_style is not None:
             issue_deprecation_warning(
-                "`proj_style` parameter is deprecated, use `method` instead."
+                "`proj_style` parameter is deprecated, use `method` instead.",
+                removal="4.1.0",
             )
             method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
@@ -2340,7 +2343,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     if axis is not None:
         issue_deprecation_warning(
             "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
-            "will be removed in a future version of yt."
+            "will be removed in a future version of yt.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         if normal is not None:
             raise TypeError(
