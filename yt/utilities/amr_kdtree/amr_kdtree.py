@@ -371,10 +371,14 @@ class AMRKDTree(ParallelAnalysisInterface):
         return brick
 
     def locate_brick(self, position):
-        r"""Given a position, find the node that contains it.
-        Alias of AMRKDTree.locate_node, to preserve backwards
-        compatibility.
-        """
+        """Given a position, find the node that contains it."""
+        from yt._maintenance.deprecation import issue_deprecation_warning
+
+        issue_deprecation_warning(
+            "`AMRKDTree.locate_brick` is a deprecated alias "
+            "for `AMRKDTree.locate_node`.",
+            removal="4.1.0",
+        )
         return self.locate_node(position)
 
     def locate_neighbors(self, grid, ci):

@@ -30,7 +30,6 @@ class YTUnidentifiedDataType(YTException):
 
 
 class YTOutputNotIdentified(YTUnidentifiedDataType):
-    # kept for backwards compatibility
     def __init__(self, filename, args=None, kwargs=None):
         super(YTUnidentifiedDataType, self).__init__(filename, args, kwargs)
         # this cannot be imported at the module level (creates circular imports)

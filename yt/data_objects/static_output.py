@@ -66,25 +66,6 @@ def _unsupported_object(ds, obj_name):
     return _raise_unsupp
 
 
-class IndexProxy:
-    # This is a simple proxy for Index objects.  It enables backwards
-    # compatibility so that operations like .h.sphere, .h.print_stats and
-    # .h.grid_left_edge will correctly pass through to the various dataset or
-    # index objects.
-    def __init__(self, ds):
-        self.ds = weakref.proxy(ds)
-        ds.index
-
-    def __getattr__(self, name):
-        # Check the ds first
-        if hasattr(self.ds, name):
-            return getattr(self.ds, name)
-        # Now for a subset of the available items, check the ds.index.
-        elif name in self.ds.index._index_properties:
-            return getattr(self.ds.index, name)
-        raise AttributeError
-
-
 class MutableAttribute:
     """A descriptor for mutable data"""
 
@@ -546,16 +527,6 @@ class Dataset(abc.ABC):
             self.create_field_info()
             np.seterr(**oldsettings)
         return self._instantiated_index
-
-    _index_proxy = None
-
-    @property
-    def h(self):
-        if self._index_proxy is None:
-            self._index_proxy = IndexProxy(self)
-        return self._index_proxy
-
-    hierarchy = h
 
     @parallel_root_only
     def print_key_parameters(self):

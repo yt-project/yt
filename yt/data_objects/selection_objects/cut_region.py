@@ -59,6 +59,7 @@ class YTCutRegion(YTSelectionContainer3D):
         validate_object(field_parameters, dict)
         validate_object(base_object, YTSelectionContainer)
         if base_object is not None:
+            # todo: handle this (where's the explicit deprecation ?)
             # passing base_object explicitly has been deprecated,
             # but we handle it here for backward compatibility
             if data_source is not None:

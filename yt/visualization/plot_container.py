@@ -929,8 +929,7 @@ class ImagePlotContainer(PlotContainer):
 
     @invalidate_plot
     def set_cbar_minorticks(self, field, state):
-        """Deprecated alias, kept for backward compatibility.
-
+        """
         turn colorbar minor ticks "on" or "off" in the current plot, following *state*
 
         Parameters
@@ -941,7 +940,9 @@ class ImagePlotContainer(PlotContainer):
             the state indicating 'on' or 'off'
         """
         issue_deprecation_warning(
-            "Deprecated alias, use set_colorbar_minorticks instead."
+            "`ImagePlotContainer.set_cbar_minorticks` is a deprecated alias "
+            "for `ImagePlotContainer.set_colorbar_minorticks`.",
+            removal="4.1.0",
         )
 
         boolstate = {"on": True, "off": False}[state.lower()]
