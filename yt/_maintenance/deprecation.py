@@ -45,22 +45,6 @@ def issue_deprecation_warning(msg, *, removal, since=None, stacklevel=3):
     warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
 
 
-def issue_demeshening_deprecation_warning(msg):
-    msg = " ".join(
-        [
-            msg,
-            "Since yt-4.0, it's no longer necessary to add a field specifically for "
-            "smoothing, because the global octree is removed. The old behavior of "
-            "interpolating onto a grid structure can be recovered through data objects "
-            "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
-            "visualization machinery now treats SPH fields properly by smoothing onto "
-            "pixel locations. See this page to learn more: "
-            "https://yt-project.org/doc/yt4differences.html",
-        ]
-    )
-    issue_deprecation_warning(msg)
-
-
 def deprecate(replacement):
     def real_deprecate(func):
         """

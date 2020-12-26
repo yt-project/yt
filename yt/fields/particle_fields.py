@@ -1,6 +1,5 @@
 import numpy as np
 
-from yt._maintenance.deprecation import issue_demeshening_deprecation_warning
 from yt.fields.derived_field import ValidateParameter, ValidateSpatial
 from yt.units.yt_array import uconcatenate, ucross
 from yt.utilities.lib.misc_utilities import (
@@ -859,7 +858,18 @@ def add_volume_weighted_smoothed_field(
     nneighbors=64,
     kernel_name="cubic",
 ):
-    issue_demeshening_deprecation_warning("This function is deprecated. ")
+    from yt._maintenance.deprecation import issue_deprecation_warning
+
+    issue_deprecation_warning(
+        "This function is deprecated. "
+        "Since yt-4.0, it's no longer necessary to add a field specifically for "
+        "smoothing, because the global octree is removed. The old behavior of "
+        "interpolating onto a grid structure can be recovered through data objects "
+        "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
+        "visualization machinery now treats SPH fields properly by smoothing onto "
+        "pixel locations. See this page to learn more: "
+        "https://yt-project.org/doc/yt4differences.html"
+    )
 
 
 def add_nearest_neighbor_field(ptype, coord_name, registry, nneighbors=64):

@@ -11,10 +11,6 @@ from stat import ST_CTIME
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
 
-from yt._maintenance.deprecation import (
-    issue_demeshening_deprecation_warning,
-    issue_deprecation_warning,
-)
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
@@ -1674,7 +1670,18 @@ class Dataset(abc.ABC):
 
         The field name tuple for the newly created field.
         """
-        issue_demeshening_deprecation_warning("This method is deprecated.")
+        from yt._maintenance.deprecation import issue_deprecation_warning
+
+        issue_deprecation_warning(
+            "This method is deprecated."
+            "Since yt-4.0, it's no longer necessary to add a field specifically for "
+            "smoothing, because the global octree is removed. The old behavior of "
+            "interpolating onto a grid structure can be recovered through data objects "
+            "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
+            "visualization machinery now treats SPH fields properly by smoothing onto "
+            "pixel locations. See this page to learn more: "
+            "https://yt-project.org/doc/yt4differences.html"
+        )
 
     def add_gradient_fields(self, fields=None, input_field=None):
         """Add gradient fields.
@@ -1718,6 +1725,8 @@ class Dataset(abc.ABC):
 
         """
         if input_field is not None:
+            from yt._maintenance.deprecation import issue_deprecation_warning
+
             issue_deprecation_warning(
                 "keyword argument 'input_field' is deprecated in favor of 'fields' "
                 "and will be removed in a future version of yt."
