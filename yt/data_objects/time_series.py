@@ -8,11 +8,11 @@ from functools import wraps
 import numpy as np
 from more_itertools import always_iterable
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
 from yt.funcs import is_sequence, mylog
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTException
 from yt.utilities.object_registries import (

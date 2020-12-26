@@ -11,6 +11,10 @@ from stat import ST_CTIME
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
 
+from yt._maintenance.deprecation import (
+    issue_demeshening_deprecation_warning,
+    issue_deprecation_warning,
+)
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
@@ -28,10 +32,6 @@ from yt.geometry.coordinates.api import (
     PolarCoordinateHandler,
     SpectralCubeCoordinateHandler,
     SphericalCoordinateHandler,
-)
-from yt.maintenance.deprecation import (
-    issue_demeshening_deprecation_warning,
-    issue_deprecation_warning,
 )
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks

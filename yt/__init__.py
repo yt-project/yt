@@ -161,7 +161,7 @@ from yt.visualization.volume_rendering.api import (
 
 def _check_deprecated_parameters():
     from yt.config import ytcfg
-    from yt.maintenance.deprecation import issue_deprecation_warning
+    from yt._maintenance.deprecation import issue_deprecation_warning
 
     if ytcfg.getboolean("yt", "loadfieldplugins"):
         issue_deprecation_warning(

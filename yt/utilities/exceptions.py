@@ -34,7 +34,7 @@ class YTOutputNotIdentified(YTUnidentifiedDataType):
     def __init__(self, filename, args=None, kwargs=None):
         super(YTUnidentifiedDataType, self).__init__(filename, args, kwargs)
         # this cannot be imported at the module level (creates circular imports)
-        from yt.maintenance.deprecation import issue_deprecation_warning
+        from yt._maintenance.deprecation import issue_deprecation_warning
 
         issue_deprecation_warning(
             "YTOutputNotIdentified is a deprecated alias for YTUnidentifiedDataType"

@@ -7,10 +7,10 @@ from functools import wraps
 import matplotlib
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import ensure_dir, get_image_suffix, is_sequence, iter_fields, mylog
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names

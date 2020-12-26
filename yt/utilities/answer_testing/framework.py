@@ -21,12 +21,12 @@ from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
 from yt.funcs import get_pbar
 from yt.loaders import load, load_simulation
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.testing import (
     assert_allclose_units,
     assert_almost_equal,

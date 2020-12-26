@@ -2,9 +2,9 @@ import builtins
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units.yt_array import YTQuantity
 from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook

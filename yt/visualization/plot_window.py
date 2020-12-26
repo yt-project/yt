@@ -10,10 +10,10 @@ from more_itertools import always_iterable, zip_equal
 from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitParseError
 from yt.units.yt_array import YTArray, YTQuantity

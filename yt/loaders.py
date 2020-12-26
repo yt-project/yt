@@ -8,8 +8,8 @@ import os
 import numpy as np
 from more_itertools import always_iterable
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,

@@ -1,7 +1,7 @@
 import numpy as np
 
+from yt._maintenance.deprecation import issue_demeshening_deprecation_warning
 from yt.fields.derived_field import ValidateParameter, ValidateSpatial
-from yt.maintenance.deprecation import issue_demeshening_deprecation_warning
 from yt.units.yt_array import uconcatenate, ucross
 from yt.utilities.lib.misc_utilities import (
     obtain_position_vector,
