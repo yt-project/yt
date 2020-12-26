@@ -25,4 +25,8 @@ Here's an example call.
         )
         ...
 
+If a whole function or class is marked as deprecated, it should be removed from
+``doc/source/reference/api/api.rst``.
+
+
 .. [#] ``since`` is not required yet as of yt 4.0.0 because existing warnings predate its introduction. 
