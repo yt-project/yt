@@ -17,7 +17,7 @@ class Suite:
             self.field_name = "density"
         else:
             self.ds = load(self.dsname)
-            self.ad = self.ds.h.all_data()
+            self.ad = self.ds.all_data()
             self.field_name = "Density"
         # Warmup hdd
         self.ad[self.field_name]
@@ -42,7 +42,7 @@ class Suite:
     else:
 
         def time_load_all_data(self):
-            self.ds.h.all_data()
+            dd = self.ds.all_data()
             dd[self.field_name]
 
     def time_extrema_quantities(self):
@@ -56,7 +56,7 @@ class Suite:
     else:
 
         def time_alldata_projection(self):
-            self.ds.h.proj(0, self.field_name)
+            self.ds.proj(0, self.field_name)
 
     if yt.__version__.startswith("3"):
 
@@ -67,15 +67,5 @@ class Suite:
     else:
 
         def time_slice(self):
-            slc = self.ds.h.slice(0, 0.5, self.field_name)
+            slc = self.ds.slice(0, 0.5, self.field_name)
             slc[self.field_name]
-
-
-#    if yt.__version__.startswith('3'):
-#        def command(self):
-#            cam = Camera(self.c, self.L, self.W, self.Npixels, self.tf, ds=self.ds)
-#            cam.snapshot("%s_volume_rendered.png" % self.ds, clip_ratio=8.0)
-#    else:
-#        def command(self):
-#            cam = self.ds.h.camera(self.c, self.L, self.W, self.Npixels, self.tf)
-#            cam.snapshot("%s_volume_rendered.png" % self.ds, clip_ratio=8.0)
