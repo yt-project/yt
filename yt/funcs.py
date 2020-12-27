@@ -26,8 +26,8 @@ from numbers import Number as numeric_type
 import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
+from tqdm import tqdm
 
-from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog

@@ -1312,12 +1312,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
 
     downloader = None
     if pbar:
-        try:
-            import tqdm  # noqa: F401
-
-            downloader = pooch.pooch.HTTPDownloader(progressbar=True)
-        except ImportError:
-            mylog.warning("tqdm is not installed, progress bar can not be displayed.")
+        downloader = pooch.pooch.HTTPDownloader(progressbar=True)
 
     if extension != "h5":
         # we are going to assume most files that exist on the hub are
