@@ -234,7 +234,7 @@ and it will return arrays of shape (1024, 1024).
 Making Rays
 ^^^^^^^^^^^
 
-The slicing syntax can also be used select 1D rays of points, whether along 
+The slicing syntax can also be used select 1D rays of points, whether along
 an axis or off-axis. To create a ray along an axis:
 
 .. code-block:: python
@@ -269,7 +269,7 @@ works for rays directed along an axis:
 .. code-block:: python
 
    ortho_ray = ds.r[(0.1:0.6:500j,0.3,0.2]
-    
+
 or off-axis rays as well:
 
 .. code-block:: python
@@ -521,7 +521,7 @@ all the cells contained in a sphere at the center of our dataset.
    sp = ds.sphere('c', (10, 'kpc'))
    print(sp.quantities.angular_momentum_vector())
 
-Some quantities can be calculated for a specific particle type only. For example, to 
+Some quantities can be calculated for a specific particle type only. For example, to
 get the center of mass of only the stars within the sphere:
 
 .. code-block:: python
@@ -658,7 +658,7 @@ Available Derived Quantities
     | Class :class:`~yt.data_objects.derived_quantities.BulkVelocity`
     | Usage: ``bulk_velocity(use_gas=True, use_particles=True, particle_type='all')``
     | The mass-weighted average velocity of the particles, gas, or both.
-      The quantity can be calculated for all particles or a given 
+      The quantity can be calculated for all particles or a given
       particle_type only.
 
 **Center of Mass**
@@ -700,7 +700,7 @@ Available Derived Quantities
 **Spin Parameter**
     | Class :class:`~yt.data_objects.derived_quantities.SpinParameter`
     | Usage: ``spin_parameter(use_gas=True, use_particles=True, particle_type='all')``
-    | The spin parameter for the baryons using the particles, gas, or both. The 
+    | The spin parameter for the baryons using the particles, gas, or both. The
       quantity can be calculated for all particles or a given particle_type only.
 
 **Total Mass**

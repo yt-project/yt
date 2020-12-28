@@ -588,7 +588,7 @@ cdef class SelectorObject:
         child_atts = self._get_state_attnames()
 
         # assemble the state_tuple (('a1', a1val), ('a2', a2val),...)
-        state_tuple = () 
+        state_tuple = ()
         for fld in base_atts + child_atts:
             state_tuple += ((fld, getattr(self, fld)), )
         return state_tuple

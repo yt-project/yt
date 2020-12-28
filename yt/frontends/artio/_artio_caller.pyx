@@ -250,7 +250,7 @@ cdef class artio_fileset :
             status = artio_fileset_open_particles(self.handle)
             check_artio_status(status)
             self.has_particles = 1
-	    
+
             for v in ["num_particle_species","num_primary_variables","num_secondary_variables"]:
                 if v not in self.parameters:
                     raise RuntimeError("Unable to locate particle header information in artio header: key=", v)
@@ -307,7 +307,7 @@ cdef class artio_fileset :
         self.parameters = {}
 
         while artio_parameter_iterate( self.handle, key, &type, &length ) == ARTIO_SUCCESS :
-	    
+
             if type == ARTIO_TYPE_STRING :
                 char_values = <char **>malloc(length*sizeof(char *))
                 for i in range(length) :
@@ -1594,7 +1594,7 @@ cdef class ARTIORootMeshContainer:
         if fields is None:
             fields = []
         nf = len(fields)
-        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers 
+        cdef np.float64_t[::cython.view.indirect, ::1] field_pointers
         if nf > 0: field_pointers = OnceIndirect(fields)
         cdef np.float64_t[:] field_vals = np.empty(nf, dtype="float64")
         cdef np.ndarray[np.uint8_t, ndim=1, cast=True] mask

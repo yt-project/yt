@@ -96,7 +96,7 @@ cdef int walk_volume(VolumeContainer *vc,
            0.0 <= tl and tl < intersect_t:
             direction = i
             intersect_t = tl
-    if enter_t >= 0.0: intersect_t = enter_t 
+    if enter_t >= 0.0: intersect_t = enter_t
     if not ((0.0 <= intersect_t) and (intersect_t < max_t)): return 0
     for i in range(3):
         # Two things have to be set inside this loop.

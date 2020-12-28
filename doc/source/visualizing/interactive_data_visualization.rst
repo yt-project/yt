@@ -36,7 +36,7 @@ In order to use Interactive Data Visualization (IDV) you need to install
 <https://pypi.org/project/cyglfw3/>`_ along with their respective
 dependencies, e.g. `glfw3 <https://www.glfw.org/>`_ is required to be installed
 before you can ``pip install cyglfw3``. Please carefully read installation
-instructions provided on pypi pages of both packages. 
+instructions provided on pypi pages of both packages.
 
 Using the interactive renderer
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -47,7 +47,7 @@ it will load all data and render gas density:
 .. code-block:: python
 
     import yt
-    
+
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     yt.interactive_render(ds)
 
@@ -66,7 +66,7 @@ Alternatively you can provide a data object as a first argument to
                           window_size=(512, 512))
 
 A successful call to :meth:`~yt.interactive_render` should create a new window
-called *vol_render*. 
+called *vol_render*.
 
 .. image:: _images/idv.jpg
    :width: 1000

@@ -127,7 +127,7 @@ cdef int calculate_extent_perspective(ImageSampler image,
         fma(cam_width[2], normal_vector, cam_pos, sight_center)
 
         sight_vector_norm = L2_norm(sight_vector)
-       
+
         if sight_vector_norm != 0:
             for i in range(3):
                 sight_vector[i] /= sight_vector_norm

@@ -77,7 +77,7 @@ cdef inline np.float64_t FIT_get_value(const FieldInterpolationTable *fit,
     cdef int wfi = fit.weight_field_id
     if wfi != -1:
         dout *= dvs[wfi]
-    return dout 
+    return dout
 
 @cython.boundscheck(False)
 @cython.wraparound(False)

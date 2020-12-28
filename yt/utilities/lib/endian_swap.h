@@ -1,4 +1,4 @@
-/* 
+/*
    These macros are taken from Paul Bourke's page at
    http://local.wasp.uwa.edu.au/~pbourke/dataformats/fortran/
 

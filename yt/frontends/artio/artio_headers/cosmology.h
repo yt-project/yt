@@ -38,7 +38,7 @@ void cosmology_set_fixed(CosmologyParameters *c);
 
 
 /*
-//  Manual initialization. This does not need to be called, 
+//  Manual initialization. This does not need to be called,
 //  the initialization is done automatically on the first call
 //  to a relevant function.
 */

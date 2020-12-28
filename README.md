@@ -161,9 +161,9 @@ We have some community and documentation resources available.
 
 ## Powered by NumFOCUS
 
-yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/). 
+yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/).
 If you're interested in
 supporting the active maintenance and development of this project, consider
-[donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html). 
+[donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html).
 
 
