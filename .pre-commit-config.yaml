@@ -1,4 +1,27 @@
+# pre-commit 1.1.0 is required for `exclude`
+# however `minimum_pre_commit_version` itself requires 1.15.0
+minimum_pre_commit_version: "1.15.0"
+
+# note: isort can't be applied to yt/__init__.py because it creates circular imports
+exclude: "^(\
+yt/extern\
+|yt/frontends/stream/sample_data\
+|yt/units\
+|scripts\
+|benchmark\
+|setupext.py\
+|yt/visualization/_colormap_data.py\
+|yt/__init__.py\
+)"
+
 repos:
+
+# Note that in rare cases, flynt may undo some of the formating from black.
+# A stable configuration is run black last.
+-   repo: https://github.com/ikamensh/flynt
+    rev: '0.52'  # keep in sync with tests/lint_requirements.txt
+    hooks:
+    - id: flynt
 -   repo: https://github.com/ambv/black
     rev: 19.10b0  # keep in sync with tests/lint_requirements.txt
     hooks:
@@ -14,8 +37,3 @@ repos:
     hooks:
     - id: flake8
       additional_dependencies: [mccabe, flake8-bugbear]
--   repo: https://github.com/ikamensh/flynt
-    rev: '0.52'  # keep in sync with tests/lint_requirements.txt
-    hooks:
-    - id: flynt
-
