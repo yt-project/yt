@@ -13,7 +13,7 @@ repos:
     hooks:
     -   id: isort
 -   repo: https://gitlab.com/pycqa/flake8
-    rev: '3.8.1'  # keep in sync with tests/lint_requirements.txt
+    rev: '3.8.4'  # keep in sync with tests/lint_requirements.txt
     hooks:
     -   id: flake8
 -   repo: https://github.com/ikamensh/flynt
