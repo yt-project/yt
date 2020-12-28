@@ -7,12 +7,15 @@ repos:
 -   repo: https://github.com/timothycrosley/isort
     rev: '5.6.4'  # keep in sync with tests/lint_requirements.txt
     hooks:
-    -   id: isort
+    - id: isort
+      additional_dependencies: [toml]
 -   repo: https://gitlab.com/pycqa/flake8
     rev: '3.8.1'  # keep in sync with tests/lint_requirements.txt
     hooks:
-    -   id: flake8
+    - id: flake8
+      additional_dependencies: [mccabe, flake8-bugbear]
 -   repo: https://github.com/ikamensh/flynt
     rev: '0.52'  # keep in sync with tests/lint_requirements.txt
     hooks:
-    -   id: flynt
+    - id: flynt
+
