@@ -4,10 +4,12 @@ import warnings
 class VisibleDeprecationWarning(UserWarning):
     """Visible deprecation warning, adapted from NumPy
 
-    By default python does not show users deprecation warnings.
+    The nose runner does not show users DeprecationWarning.
     This ensures that a deprecation warning is visible to users
     if that is desired.
     """
+
+    # this class becomes useless after the tests are migrated from nose to pytest
 
     pass
 
