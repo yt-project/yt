@@ -237,4 +237,3 @@ After the release is uploaded to `PyPI <https://pypi.org/project/yt/#files>`_ an
 you should send out an announcement
 e-mail to the yt mailing lists as well as other possibly interested mailing
 lists for all but bugfix releases.
-

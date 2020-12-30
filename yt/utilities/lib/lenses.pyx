@@ -205,4 +205,3 @@ cdef void generate_vector_info_null(ImageSampler im,
         # since vp_pos has funny strides.
         v_pos[i] = im.vp_pos[vi, vj, i]
         v_dir[i] = im.vp_dir[vi, vj, i]
-

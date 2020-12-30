@@ -177,5 +177,3 @@ cdef void W1Jacobian3D(double* rcol,
 	rcol[2] = -0.5*(1 - x[2])*vertices[2] + 0.5*(1 - x[2])*vertices[5] - 0.5*(1 + x[2])*vertices[11] + 0.5*(1 + x[2])*vertices[14];
 	scol[2] = -0.5*(1 - x[2])*vertices[2] + 0.5*(1 - x[2])*vertices[8] - 0.5*(1 + x[2])*vertices[11] + 0.5*(1 + x[2])*vertices[17];
 	tcol[2] = -0.5*(1 - x[0] - x[1])*vertices[2] + 0.5*(1 - x[0] - x[1])*vertices[11] - 0.5*x[0]*vertices[5] + 0.5*x[0]*vertices[14] - 0.5*x[1]*vertices[8] + 0.5*x[1]*vertices[17];
-
-

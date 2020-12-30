@@ -175,4 +175,3 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
     cdef np.int64_t[::1] file_inds
     cdef np.uint8_t[::1] cell_inds
     cdef np.int32_t[::1] domains
-

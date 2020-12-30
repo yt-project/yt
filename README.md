@@ -165,5 +165,3 @@ yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/).
 If you're interested in
 supporting the active maintenance and development of this project, consider
 [donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html).
-
-

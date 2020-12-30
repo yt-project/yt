@@ -287,4 +287,3 @@ cdef class RaySelector(SelectorObject):
         return ("p1", "p2", "vec")
 
 ray_selector = RaySelector
-

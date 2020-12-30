@@ -171,4 +171,3 @@ cdef class SphereSelector(SelectorObject):
 
 
 sphere_selector = SphereSelector
-

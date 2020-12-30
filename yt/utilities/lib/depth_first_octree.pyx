@@ -155,4 +155,3 @@ def RecurseOctreeByLevels(int i_i, int j_i, int k_i,
                                               corners, grids)
                 curpos[level] += 1
     return s
-

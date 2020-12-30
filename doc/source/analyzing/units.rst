@@ -332,4 +332,3 @@ second example returns data in low-redshift comoving megaparsecs.
 Wherever possible it's best to do calculations in physical units when working
 with more than one dataset. If you need to use comoving units or code units then
 extra care must be taken in your code to avoid ambiguity.
-

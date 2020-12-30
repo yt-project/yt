@@ -1705,4 +1705,3 @@ cdef class SFCRangeSelector(SelectorObject):
 
 sfc_subset_selector = AlwaysSelector
 #sfc_subset_selector = SFCRangeSelector
-

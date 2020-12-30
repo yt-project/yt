@@ -367,5 +367,3 @@ def arr_fisheye_vectors(int resolution, np.float64_t fov, int nimx=1, int
             vp[i,j,1] = sin(theta) * sin(phi)
             vp[i,j,2] = cos(theta)
     return vp
-
-

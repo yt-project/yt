@@ -604,4 +604,3 @@ cdef class SelectorObject:
         # parse and set attributes from the state_tuple: (('a1',a1val),('a2',a2val),...)
         for attr in state_tuple:
             setattr(self, attr[0], attr[1])
-

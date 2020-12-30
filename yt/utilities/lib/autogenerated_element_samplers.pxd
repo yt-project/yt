@@ -77,5 +77,3 @@ cdef void W1Jacobian3D(double* rcol,
                        double* x,
                        double* vertices,
                        double* phys_x) nogil
-
-

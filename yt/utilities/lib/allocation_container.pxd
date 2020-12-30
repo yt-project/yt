@@ -26,4 +26,3 @@ cdef class ObjectPool:
                          np.uint64_t offset, np.int64_t con_id)
     cdef void teardown_objs(self, void *obj, np.uint64_t n, np.uint64_t offset,
                            np.int64_t con_id)
-

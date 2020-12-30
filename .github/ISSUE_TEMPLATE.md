@@ -54,4 +54,3 @@ using:-->
 <!--Please tell us how you installed yt and python e.g., from source,
 pip, conda. If you installed from conda, please specify which channel you used
 if not the default-->
-

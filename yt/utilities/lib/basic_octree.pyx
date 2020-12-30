@@ -596,4 +596,3 @@ cdef class Octree:
                 free(self.root_nodes[i][j])
             free(self.root_nodes[i])
         free(self.root_nodes)
-

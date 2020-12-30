@@ -352,4 +352,3 @@ cdef class MatchPointsToGrids:
         if y < grid.left_edge[1]: return 0
         if z < grid.left_edge[2]: return 0
         return 1
-

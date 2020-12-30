@@ -252,6 +252,3 @@ uint32_t split(double *all_pts, uint64_t *all_idx,
 
   return dmax;
 }
-
-
-

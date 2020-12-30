@@ -161,4 +161,3 @@ cdef class SparseUnorderedRefinedBitmaskVector:
     cdef to_array(self)
     cdef void _remove_duplicates(self)
     cdef void _prune(self)
-
