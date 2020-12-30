@@ -27,7 +27,6 @@ exclude = '''
   | buck-out
   | build
   | dist
-  | yt/extern
   | yt/frontends/stream/sample_data
 )/
 | yt/visualization/_colormap_data.py
@@ -39,7 +38,7 @@ exclude = '''
 profile = "black"
 combine_as_imports = true
 # isort can't be applied to yt/__init__.py because it creates circular imports
-skip =  ["venv", "benchmarks", "yt/__init__.py", "yt/extern"]
+skip =  ["venv", "benchmarks", "yt/__init__.py"]
 known_third_party = [
   "IPython",
   "nose",
