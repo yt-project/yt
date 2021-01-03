@@ -8,14 +8,13 @@ from more_itertools import always_iterable
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry
-from yt import YTArray
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
 from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
 from yt.geometry.selection_routines import compose_selector
-from yt.units import dimensions as ytdims
+from yt.units import YTArray, dimensions as ytdims
 from yt.utilities.exceptions import (
     GenerationInProgress,
     YTBooleanObjectError,

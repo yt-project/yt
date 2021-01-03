@@ -1,6 +1,5 @@
 import numpy as np
 
-from yt import YTArray
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
     YTSelectionContainer3D,
@@ -14,6 +13,7 @@ from yt.funcs import (
     validate_object,
     validate_sequence,
 )
+from yt.units import YTArray
 from yt.utilities.exceptions import YTEllipsoidOrdering, YTException, YTSphereTooSmall
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.math_utils import get_rotation_matrix
