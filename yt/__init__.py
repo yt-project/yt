@@ -16,10 +16,6 @@ if sys.version_info[0] < 3:
 
 __version__ = "4.0.dev0"
 
-# First module imports
-import numpy  # In case anyone wishes to use it by name
-import numpy as np  # In case anyone wishes to use it by name
-
 import yt.units as units
 import yt.utilities.physical_constants as physical_constants
 from yt.data_objects.api import (
