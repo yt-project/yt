@@ -26,8 +26,8 @@ from numbers import Number as numeric_type
 import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
+from tqdm import tqdm
 
-from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
@@ -94,15 +94,6 @@ def ensure_numpy_array(obj):
         return np.asarray(obj)
     else:
         return np.asarray([obj])
-
-
-def ensure_tuple(obj):
-    """
-    This function ensures that *obj* is a tuple. Typically used to convert
-    scalar, list, or array arguments specified by a user in a context where
-    we assume a tuple internally
-    """
-    return tuple(always_iterable(obj))
 
 
 def read_struct(f, fmt):

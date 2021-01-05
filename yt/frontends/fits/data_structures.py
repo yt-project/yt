@@ -262,11 +262,11 @@ def find_primary_header(fileh):
     return header, first_image
 
 
-def check_fits_valid(args):
-    ext = args[0].rsplit(".", 1)[-1]
+def check_fits_valid(filename):
+    ext = filename.rsplit(".", 1)[-1]
     if ext.upper() in ("GZ", "FZ"):
         # We don't know for sure that there will be > 1
-        ext = args[0].rsplit(".", 1)[0].rsplit(".", 1)[-1]
+        ext = filename.rsplit(".", 1)[0].rsplit(".", 1)[-1]
     if ext.upper() not in ("FITS", "FTS"):
         return None
     elif isinstance(_astropy.pyfits, NotAModule):
@@ -276,7 +276,7 @@ def check_fits_valid(args):
     try:
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", category=UserWarning, append=True)
-            fileh = _astropy.pyfits.open(args[0])
+            fileh = _astropy.pyfits.open(filename)
         header, _ = find_primary_header(fileh)
         if header["naxis"] >= 2:
             return fileh
@@ -287,8 +287,8 @@ def check_fits_valid(args):
     return None
 
 
-def check_sky_coords(args, ndim):
-    fileh = check_fits_valid(args)
+def check_sky_coords(filename, ndim):
+    fileh = check_fits_valid(filename)
     if fileh is not None:
         try:
             if len(fileh) > 1 and fileh[1].name == "EVENTS" and ndim == 2:
@@ -528,8 +528,8 @@ class FITSDataset(Dataset):
         self.lon_name = "X"
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        fileh = check_fits_valid(args)
+    def _is_valid(cls, filename, *args, **kwargs):
+        fileh = check_fits_valid(filename)
         if fileh is None:
             return False
         else:
@@ -626,8 +626,8 @@ class YTFITSDataset(FITSDataset):
         self.domain_right_edge = domain_right_edge
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        fileh = check_fits_valid(args)
+    def _is_valid(cls, filename, *args, **kwargs):
+        fileh = check_fits_valid(filename)
         if fileh is None:
             return False
         else:
@@ -699,8 +699,8 @@ class SkyDataFITSDataset(FITSDataset):
             self.unit_registry.add("beam", beam_size, dimensions=dimensions.solid_angle)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return check_sky_coords(args, 2)
+    def _is_valid(cls, filename, *args, **kwargs):
+        return check_sky_coords(filename, ndim=2)
 
 
 class SpectralCubeFITSHierarchy(FITSHierarchy):
@@ -816,8 +816,8 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         return self.arr((pv.v - self._p0) * self._dz + self._z0, self.spec_unit)
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return check_sky_coords(args, 3)
+    def _is_valid(cls, filename, *args, **kwargs):
+        return check_sky_coords(filename, ndim=3)
 
 
 class EventsFITSHierarchy(FITSHierarchy):
@@ -922,8 +922,8 @@ class EventsFITSDataset(SkyDataFITSDataset):
         self.wcs_2d = self.wcs
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        fileh = check_fits_valid(args)
+    def _is_valid(cls, filename, *args, **kwargs):
+        fileh = check_fits_valid(filename)
         if fileh is not None:
             try:
                 valid = fileh[1].name == "EVENTS"

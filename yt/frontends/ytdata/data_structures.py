@@ -293,10 +293,10 @@ class YTDataContainerDataset(YTDataset):
         return self._data_obj
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
             if data_type is None:
@@ -340,10 +340,10 @@ class YTDataLightRayDataset(YTDataContainerDataset):
                 self.light_ray_solution[i][field_name] = self.parameters[field][i]
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type in ["yt_light_ray"]:
                 return True
@@ -372,10 +372,10 @@ class YTSpatialPlotDataset(YTDataContainerDataset):
                 self.parameters["weight_field"] = tuple(self.parameters["weight_field"])
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_data_container" and cont_type in [
@@ -547,10 +547,10 @@ class YTGridDataset(YTDataset):
                 self.field_info.alias(("gas", field), ("grid", field))
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             cont_type = parse_h5_attr(f, "container_type")
             if data_type == "yt_frb":
@@ -766,10 +766,10 @@ class YTNonspatialDataset(YTGridDataset):
         mylog.warning("Geometric data selection not available for this dataset type.")
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_array_data":
                 return True
@@ -880,10 +880,10 @@ class YTProfileDataset(YTNonspatialDataset):
         super(YTProfileDataset, self).print_key_parameters()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type == "yt_profile":
                 return True
@@ -962,10 +962,10 @@ class YTClumpTreeDataset(YTNonspatialDataset):
         return self._leaves
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".h5"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".h5"):
             return False
-        with h5py.File(args[0], mode="r") as f:
+        with h5py.File(filename, mode="r") as f:
             data_type = parse_h5_attr(f, "data_type")
             if data_type is None:
                 return False

@@ -31,7 +31,7 @@ class OWLSDataset(GadgetHDF5Dataset):
         self._set_owls_eagle_units()
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ["Constants", "Header", "Parameters", "Units"]
         veto_groups = [
             "SUBFIND",
@@ -42,12 +42,12 @@ class OWLSDataset(GadgetHDF5Dataset):
             "HashTable",
         ]
         valid = True
-        valid_fname = args[0]
+        valid_fname = filename
         # If passed arg is a directory, look for the .0 file in that dir
-        if os.path.isdir(args[0]):
+        if os.path.isdir(filename):
             valid_files = []
-            for f in os.listdir(args[0]):
-                fname = os.path.join(args[0], f)
+            for f in os.listdir(filename):
+                fname = os.path.join(filename, f)
                 fext = os.path.splitext(fname)[-1]
                 if (
                     (".0" in f)

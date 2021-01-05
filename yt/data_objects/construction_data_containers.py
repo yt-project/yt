@@ -8,6 +8,7 @@ from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
+from tqdm import tqdm
 
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
@@ -16,7 +17,6 @@ from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer2D,
     YTSelectionContainer3D,
 )
-from yt.extern.tqdm import tqdm
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
 from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_root
