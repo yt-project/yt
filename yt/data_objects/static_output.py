@@ -276,7 +276,7 @@ class Dataset(abc.ABC):
     # abstract methods require implementation in subclasses
     @classmethod
     @abc.abstractmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # A heuristic test to determine if the data format can be interpreted
         # with the present frontend
         return False

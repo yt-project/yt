@@ -15,9 +15,9 @@ from urllib.parse import urlparse
 
 import numpy as np
 from more_itertools import always_iterable
+from tqdm import tqdm
 
 from yt.config import CURRENT_CONFIG_FILE, ytcfg
-from yt.extern.tqdm import tqdm
 from yt.funcs import (
     download_file,
     enable_plugins,

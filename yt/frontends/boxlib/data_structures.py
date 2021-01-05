@@ -689,8 +689,8 @@ class BoxlibDataset(Dataset):
         return None
 
     @classmethod
-    def _is_valid(cls, *args, cparam_filename=None, **kwargs):
-        output_dir = args[0]
+    def _is_valid(cls, filename, *args, cparam_filename=None, **kwargs):
+        output_dir = filename
         header_filename = os.path.join(output_dir, "Header")
         # boxlib datasets are always directories, and
         # We *know* it's not boxlib if Header doesn't exist.
@@ -1387,13 +1387,11 @@ def _read_header(raw_file, field):
             f.readline()  # version
             f.readline()  # how
             f.readline()  # ncomp
-            nghost_lines = f.readline().strip().split()
-            try:
-                ng = int(nghost_lines[0])
-                nghost = np.array([ng, ng, ng])
-            except ValueError:
-                nghosts = nghost_lines[0][1:-1].split(",")
-                nghost = np.array([int(ng) for ng in nghosts])
+
+            # nghost_line will be parsed below after the number of dimensions
+            # is determined when the boxes are read in
+            nghost_line = f.readline().strip().split()
+
             f.readline()  # num boxes
 
             # read boxes
@@ -1404,6 +1402,16 @@ def _read_header(raw_file, field):
                     break
                 lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
                 boxes.append((lo_corner, hi_corner, node_type))
+
+            try:
+                # nghost_line[0] is a single number
+                ng = int(nghost_line[0])
+                ndims = len(lo_corner)
+                nghost = np.array(ndims * [ng])
+            except ValueError:
+                # nghost_line[0] is (#,#,#)
+                nghost_list = nghost_line[0].strip("()").split(",")
+                nghost = np.array(nghost_list, dtype=int)
 
             # read the file and offset position for the corresponding box
             file_names = []

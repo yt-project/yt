@@ -40,26 +40,26 @@ guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-co
 You can install the most recent stable version of yt either with conda from
 [conda-forge](https://conda-forge.org/):
 
-```
+```shell
 conda install -c conda-forge yt
 ```
 
 or with pip:
 
-```
+```shell
 pip install yt
 ```
 
 To get set up with a development version, you want to clone this repository:
 
-```
+```shell
 git clone https://github.com/yt-project/yt yt-git
 cd yt-git
 ```
 
 and work within a conda environment:
 
-```
+```shell
 # Create a conda environment named yt-git
 $ conda create -n yt-git python=3.6
 # Activate it
@@ -80,7 +80,7 @@ $ conda env export
 Alternatively, you can install yt in a
 [virtualenv](https://packaging.python.org/installing/#creating-virtual-environments):
 
-```
+```shell
 # It is conventional to create virtualenvs at ~/.virtualenv/
 $ mkdir -p ~/.virtualenv
 # Assuming your version of Python 3 is 3.4 or higher,

@@ -4,7 +4,6 @@ from collections import defaultdict
 
 import numpy as np
 
-import yt.geometry.particle_deposit as particle_deposit
 from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_unions import ParticleUnion
@@ -17,6 +16,7 @@ from yt.frontends.artio._artio_caller import (
 )
 from yt.frontends.artio.fields import ARTIOFieldInfo
 from yt.funcs import mylog, setdefaultattr
+from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.exceptions import YTParticleDepositionNotImplemented
 
@@ -501,13 +501,13 @@ class ARTIODataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         from sys import version
 
         # a valid artio header file starts with a prefix and ends with .art
-        if not args[0].endswith(".art"):
+        if not filename.endswith(".art"):
             return False
         if version < "3":
-            return artio_is_valid(args[0][:-4])
+            return artio_is_valid(filename[:-4])
         else:
-            return artio_is_valid(bytes(args[0][:-4], "utf-8"))
+            return artio_is_valid(bytes(filename[:-4], "utf-8"))
