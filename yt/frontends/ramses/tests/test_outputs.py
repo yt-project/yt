@@ -195,7 +195,9 @@ def test_ramses_rt():
         ad[field]
 
     # Test the creation of rt fields
-    rt_fields = [("rt", "photon_density_1")] + [("rt", f"photon_flux_{d}_1") for d in "xyz"]
+    rt_fields = [("rt", "photon_density_1")] + [
+        ("rt", f"photon_flux_{d}_1") for d in "xyz"
+    ]
     for field in rt_fields:
         assert field in ds.derived_field_list
         ad[field]
