@@ -462,7 +462,7 @@ class GravFieldFileHandler(FieldFileHandler):
 
         if nvar == ndim + 1:
             fields = ["potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
-            ndetected = ndim
+            ndetected = ndim + 1
         else:
             fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
             ndetected = ndim
