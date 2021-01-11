@@ -65,7 +65,7 @@ class ParticleTrajectories:
         self.num_steps = len(outputs)
         self.times = []
         self.suppress_logging = suppress_logging
-        self.ptype = ptype
+        self.ptype = ptype if ptype else "all"
 
         if fields is None:
             fields = []
@@ -84,7 +84,7 @@ class ParticleTrajectories:
             "particle_position_y",
             "particle_position_z",
         ):
-            fds[field] = self._get_full_field_name(field, ds_first, dd_first)[0]
+            fds[field] = dd_first._determine_fields((self.ptype, field))[0]
 
         # Note: we explicitly pass dynamic=False to prevent any change in piter from
         # breaking the assumption that the same processors load the same datasets
@@ -147,14 +147,6 @@ class ParticleTrajectories:
 
     def keys(self):
         return self.field_data.keys()
-
-    def _get_full_field_name(self, field, ds_first=None, dd_first=None):
-        if ds_first is None:
-            ds_first = self.data_series[0]
-        if dd_first is None:
-            dd_first = ds_first.all_data()
-        ptype = self.ptype if self.ptype else "all"
-        return dd_first._determine_fields((ptype, field))
 
     def __getitem__(self, key):
         """
