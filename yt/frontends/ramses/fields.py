@@ -312,9 +312,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
             return _photon_flux
 
-        flux_unit = str(
+        flux_unit = (
             1 / self.ds.unit_system["time"] / self.ds.unit_system["length"] ** 2
-        )
+        ).units
         for key in "xyz":
             for igroup in range(ngroups):
                 self.add_field(
