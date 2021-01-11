@@ -1,7 +1,6 @@
 import os
 import weakref
 from collections import defaultdict
-from glob import glob
 from pathlib import Path
 
 import numpy as np
@@ -700,11 +699,7 @@ class RAMSESDataset(Dataset):
 
         if file_handler.group_name is not None:
             self.num_groups = len(
-                [
-                    _
-                    for _ in glob(str(file_handler.root_folder / "group_?????"))
-                    if os.path.isdir(_)
-                ]
+                [_ for _ in file_handler.root_folder.glob("group_?????") if _.is_dir()]
             )
         else:
             self.num_groups = 0
