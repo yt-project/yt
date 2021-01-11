@@ -241,8 +241,10 @@ class ParticleTrajectories:
         pbar = get_pbar(
             f"Generating [{fields_str}] fields in trajectories", self.num_steps,
         )
-        my_storage = {}
 
+        # Note: we explicitly pass dynamic=False to prevent any change in piter from
+        # breaking the assumption that the same processors load the same datasets
+        my_storage = {}
         for i, (sto, ds) in enumerate(
             self.data_series.piter(storage=my_storage, dynamic=False)
         ):
