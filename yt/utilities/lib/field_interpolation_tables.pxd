@@ -77,7 +77,7 @@ cdef inline np.float64_t FIT_get_value(const FieldInterpolationTable *fit,
     cdef int wfi = fit.weight_field_id
     if wfi != -1:
         dout *= dvs[wfi]
-    return dout 
+    return dout
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -141,4 +141,3 @@ cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs
         for i in range(3):
             ta = fmax(1.0-dt*trgba[i], 0.0)
             rgba[i] = (1.-ta)*trgba[i]*(1. + dot_prod*l_rgba[i]) + ta * rgba[i]
-

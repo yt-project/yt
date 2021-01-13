@@ -62,4 +62,3 @@ cdef class OctreeSubsetSelector(SelectorObject):
         return (hash(self.base_selector), self.domain_id)
 
 octree_subset_selector = OctreeSubsetSelector
-

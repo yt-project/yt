@@ -19,7 +19,7 @@ cdef class bitarray:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __cinit__(self, np.int64_t size = -1, 
+    def __cinit__(self, np.int64_t size = -1,
                   np.ndarray[np.uint8_t, ndim=1, cast=True] arr = None):
         r"""This is a bitarray, which flips individual bits to on/off inside a
         uint8 container array.

@@ -398,4 +398,3 @@ def march_cubes_grid_flux(
     # Hallo, we are all done.
     WipeTriangles(triangles.first)
     return flux
-

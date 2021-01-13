@@ -47,7 +47,7 @@ cdef class FileBitmasks:
     cdef bint _intersects(self, np.uint32_t ifile, BoolArrayCollection solf)
     cdef void _logicalxor(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
     cdef void _logicaland(self, np.uint32_t ifile, BoolArrayCollection solf, BoolArrayCollection out)
-    cdef void _select_contaminated(self, np.uint32_t ifile, BoolArrayCollection mask, np.uint8_t[:] out, 
+    cdef void _select_contaminated(self, np.uint32_t ifile, BoolArrayCollection mask, np.uint8_t[:] out,
                np.uint8_t[:] secondary_files, BoolArrayCollection mask2=*)
     cdef void _select_uncontaminated(self, np.uint32_t ifile, BoolArrayCollection mask, np.uint8_t[:] out,
                BoolArrayCollection mask2=*)
@@ -161,4 +161,3 @@ cdef class SparseUnorderedRefinedBitmaskVector:
     cdef to_array(self)
     cdef void _remove_duplicates(self)
     cdef void _prune(self)
-

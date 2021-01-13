@@ -265,7 +265,7 @@ public:
 	left_nodes_copy.push_back(NULL);
       out = new Node(ndim, left_edge, right_edge,
 		     periodic_left, periodic_right,
-		     left_idx, children, leafid, 
+		     left_idx, children, leafid,
 		     left_nodes_copy);
     } else {
       Node *lnode = less->copy();

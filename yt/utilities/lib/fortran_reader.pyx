@@ -318,4 +318,3 @@ def fill_child_mask(np.ndarray[np.int64_t, ndim=2] file_locations,
             for y in range(2):
                 for z in range(2):
                     child_mask[lex+x,ley+y,lez+z] = art_child_masks[ioct,x,y,z]
-

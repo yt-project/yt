@@ -11,7 +11,7 @@ answer_tests:
     - yt/frontends/amrvac/tests/test_outputs.py:test_jet_cylindrical_25D
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
-    
+
   local_arepo_007:  # PR 2909
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
@@ -167,7 +167,7 @@ answer_tests:
 
   #local_particle_trajectory_001:
   #  - yt/data_objects/tests/test_particle_trajectories.py
-  
+
   local_nc4_cm1_000: # PR  2176
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 

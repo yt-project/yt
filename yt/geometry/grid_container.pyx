@@ -47,11 +47,11 @@ cdef GridTreeNode Grid_initialize(np.ndarray[np.float64_t, ndim=1] le,
     return node
 
 cdef class GridTree:
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    def __cinit__(self, int num_grids, 
+    def __cinit__(self, int num_grids,
                   np.ndarray[np.float64_t, ndim=2] left_edge,
                   np.ndarray[np.float64_t, ndim=2] right_edge,
                   np.ndarray[np.int32_t, ndim=2] dimensions,
@@ -67,10 +67,10 @@ cdef class GridTree:
         self.num_grids = num_grids
         self.num_root_grids = 0
         self.num_leaf_grids = 0
-        
+
         self.grids = <GridTreeNode *> malloc(
                 sizeof(GridTreeNode) * num_grids)
-                
+
         for i in range(num_grids):
             self.grids[i] = Grid_initialize(left_edge[i,:],
                                             right_edge[i,:],
@@ -93,7 +93,7 @@ cdef class GridTree:
             else:
                 if k >= self.num_root_grids:
                     raise RuntimeError
-                self.root_grids[k] = self.grids[i] 
+                self.root_grids[k] = self.grids[i]
                 k = k + 1
 
     def __init__(self, *args, **kwargs):
@@ -101,7 +101,7 @@ cdef class GridTree:
 
     def __iter__(self):
         yield self
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -111,7 +111,7 @@ cdef class GridTree:
         indices = []
         nchild = []
         children = []
-        for i in range(self.num_grids): 
+        for i in range(self.num_grids):
             childs = []
             levels.append(self.grids[i].level)
             indices.append(self.grids[i].index)
@@ -218,7 +218,7 @@ cdef class GridTree:
             size = 0
             data.array = <void*>(&size)
             self.visit_grids(&data,  grid_visitors.count_cells, selector)
-        cdef np.ndarray[np.int64_t, ndim=2] icoords 
+        cdef np.ndarray[np.int64_t, ndim=2] icoords
         icoords = np.empty((size, 3), dtype="int64")
         data.array = icoords.data
         self.visit_grids(&data, grid_visitors.icoords_cells, selector)
@@ -232,7 +232,7 @@ cdef class GridTree:
             size = 0
             data.array = <void*>(&size)
             self.visit_grids(&data,  grid_visitors.count_cells, selector)
-        cdef np.ndarray[np.int64_t, ndim=1] ires 
+        cdef np.ndarray[np.int64_t, ndim=1] ires
         ires = np.empty(size, dtype="int64")
         data.array = ires.data
         self.visit_grids(&data, grid_visitors.ires_cells, selector)
@@ -246,7 +246,7 @@ cdef class GridTree:
             size = 0
             data.array = <void*>(&size)
             self.visit_grids(&data,  grid_visitors.count_cells, selector)
-        cdef np.ndarray[np.float64_t, ndim=2] fcoords 
+        cdef np.ndarray[np.float64_t, ndim=2] fcoords
         fcoords = np.empty((size, 3), dtype="float64")
         data.array = fcoords.data
         self.visit_grids(&data, grid_visitors.fcoords_cells, selector)
@@ -260,25 +260,25 @@ cdef class GridTree:
             size = 0
             data.array = <void*>(&size)
             self.visit_grids(&data,  grid_visitors.count_cells, selector)
-        cdef np.ndarray[np.float64_t, ndim=2] fwidth 
+        cdef np.ndarray[np.float64_t, ndim=2] fwidth
         fwidth = np.empty((size, 3), dtype="float64")
         data.array = fwidth.data
         self.visit_grids(&data, grid_visitors.fwidth_cells, selector)
         return fwidth
-    
+
 cdef class MatchPointsToGrids:
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
     def __cinit__(self, GridTree tree,
-                  int num_points, 
+                  int num_points,
                   np.ndarray[np.float64_t, ndim=1] x,
                   np.ndarray[np.float64_t, ndim=1] y,
                   np.ndarray[np.float64_t, ndim=1] z):
 
         cdef int i
-        
+
         self.num_points = num_points
         self.xp = <np.float64_t *> malloc(
                 sizeof(np.float64_t) * num_points)
@@ -305,7 +305,7 @@ cdef class MatchPointsToGrids:
         for i in range(self.num_points):
             in_grid = 0
             for j in range(self.tree.num_root_grids):
-                if not in_grid: 
+                if not in_grid:
                     in_grid = self.check_position(i, self.xp[i], self.yp[i], self.zp[i],
                                                   &self.tree.root_grids[j])
         for i in range(self.num_points):
@@ -315,7 +315,7 @@ cdef class MatchPointsToGrids:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     cdef np.uint8_t check_position(self,
-                                   np.int64_t pt_index, 
+                                   np.int64_t pt_index,
                                    np.float64_t x,
                                    np.float64_t y,
                                    np.float64_t z,
@@ -336,7 +336,7 @@ cdef class MatchPointsToGrids:
                 self.point_grids[pt_index] = grid.index
                 in_grid = 1
         return in_grid
-    
+
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
@@ -352,4 +352,3 @@ cdef class MatchPointsToGrids:
         if y < grid.left_edge[1]: return 0
         if z < grid.left_edge[2]: return 0
         return 1
-

@@ -278,7 +278,7 @@ register
 
 This subcommand starts an interactive process of creating an account on the `yt
 hub <https://girder.hub.yt/>`__. Please note that the yt Hub also supports multiple OAuth
-providers such as Google, Bitbucket and GitHub for authentication. 
+providers such as Google, Bitbucket and GitHub for authentication.
 See :ref:`hub-APIkey` for more information.
 
 start
@@ -288,7 +288,7 @@ This subcommand launches the Jupyter Notebook on the `yt Hub <https://girder.hub
 with a chosen Hub folder mounted to the ``/data`` directory inside the notebook.
 If no path is given all the `example yt datasets
 <https://yt-project.org/data>`_ are mounted by default. The appropriate URL
-allowing to access the Notebook will be returned on the commandline. 
+allowing to access the Notebook will be returned on the commandline.
 
 Example:
 
@@ -300,12 +300,12 @@ Example:
 download
 ~~~~~~~~
 
-This subcommand downloads a file from https://yt-project.org/data. Using ``yt download``, 
+This subcommand downloads a file from https://yt-project.org/data. Using ``yt download``,
 one can download a file to:
 
-* ``"test_data_dir"``: Save the file to the location specified in 
+* ``"test_data_dir"``: Save the file to the location specified in
   the ``"test_data_dir"`` configuration entry for test data.
-* ``"supp_data_dir"``: Save the file to the location specified in 
+* ``"supp_data_dir"``: Save the file to the location specified in
   the ``"supp_data_dir"`` configuration entry for supplemental data.
 * Any valid path to a location on disk, e.g. ``/home/jzuhone/data``.
 
@@ -319,12 +319,12 @@ Examples:
 
    $ yt download GasSloshing.tar.gz test_data_dir
 
-.. code-block:: bash 
+.. code-block:: bash
 
    $ yt download ZeldovichPancake.tar.gz /Users/jzuhone/workspace
 
 If the configuration values ``"test_data_dir"`` or ``"supp_data_dir"`` have not
-been set by the user, an error will be thrown. 
+been set by the user, an error will be thrown.
 
 Config helper
 ~~~~~~~~~~~~~

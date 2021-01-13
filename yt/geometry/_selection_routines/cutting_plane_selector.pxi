@@ -115,4 +115,3 @@ cdef class CuttingPlaneSelector(SelectorObject):
         return ("d", "norm_vec")
 
 cutting_selector = CuttingPlaneSelector
-

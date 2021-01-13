@@ -75,5 +75,3 @@ cdef class PointSelector(SelectorObject):
         return ('p', )
 
 point_selector = PointSelector
-
-

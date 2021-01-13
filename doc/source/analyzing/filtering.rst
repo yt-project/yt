@@ -110,14 +110,14 @@ The following exclude and include functions are supported:
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_inside` - Only include values inside closed interval
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_inside` - Exclude values inside closed interval
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_outside` - Only include values outside closed interval
-   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_outside` - Exclude values outside closed interval 
+   - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_outside` - Exclude values outside closed interval
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_nan` - Exclude NaN values
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_above` - Only include values above given value
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_above` - Exclude values above given value
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.include_below` - Only include values below given balue
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_below` - Exclude values below given value
 
-   
+
 Cut regions can also operate on particle fields, but a single cut region object
 cannot operate on both particle fields and mesh fields at the same time.
 
@@ -190,7 +190,7 @@ our dataset ``ds`` and treat them as any other particle field.  In addition,
 it created some ``deposit`` fields, where the particles were deposited on to
 the grid as mesh fields.
 
-We can create additional filters building on top of the filters we have. 
+We can create additional filters building on top of the filters we have.
 For example, we can identify the young stars based on their age, which is
 the difference between current time and their creation_time.
 
@@ -204,11 +204,11 @@ the difference between current time and their creation_time.
     yt.add_particle_filter("young_stars", function=young_stars,
                         filtered_type='stars', requires=["creation_time"])
 
-If we properly define all the filters using the decorator ``yt.particle_filter`` 
+If we properly define all the filters using the decorator ``yt.particle_filter``
 or the function ``yt.add_particle_filter`` in advance. We can add the filter
 we need to the dataset. If the ``filtered_type`` is already defined but not
 added to the dataset, it will automatically add the filter first. For example,
-if we add the ``young_stars`` filter, which is filtered from ``stars``, 
+if we add the ``young_stars`` filter, which is filtered from ``stars``,
 to the dataset, it will also add ``stars`` filter to the dataset.
 
 .. code-block:: python

@@ -38,4 +38,3 @@ cdef class CutRegionSelector(SelectorObject):
         return ("conditionals", t)
 
 cut_region_selector = CutRegionSelector
-

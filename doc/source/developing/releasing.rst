@@ -135,7 +135,7 @@ the yt repository::
 
 This will generate a tarball in a ``dist/`` directory located in the root of the
 repository.
-  
+
 Access to yt-project.org mediated via SSH login. Please contact one of the
 current yt developers for access to the webserver running yt-project.org if you
 do not already have it. You will need a copy of your SSH public key so that your
@@ -146,7 +146,7 @@ https://yt-project.org/sdist, like so::
   $ scp dist/yt-3.5.1.tar.gz yt_analysis@dickenson.dreamhost.com:yt-project.org/sdist
 
 You may find it helpful to set up an ssh config for dickenson to make this
-command a bit easier to execute.  
+command a bit easier to execute.
 
 Updating conda-forge and building wheels
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -174,18 +174,18 @@ Next you will need to update the ``.travis.yml`` and ``appveyor.yaml`` files to
 build the latest tag of yt. You may also need to update elsewhere in the file if
 yt's dependencies changed or if yt dropped or added support for a Python
 version. To generate new wheels you need to push the changes to GitHub. A good
-process to follow is to first submit a pull request to test the changes and make sure 
-the wheels can be built. Once they pass, you can merge the changes into master 
+process to follow is to first submit a pull request to test the changes and make sure
+the wheels can be built. Once they pass, you can merge the changes into master
 and wait for the wheel files to be uploaded to
-https://anaconda.org/multibuild-wheels-staging/yt/files 
-(note that the wheels will not be uploaded until the changes have been 
+https://anaconda.org/multibuild-wheels-staging/yt/files
+(note that the wheels will not be uploaded until the changes have been
 merged into master). Once the wheels are uploaded, download the
-wheel files for the release and copy them to the ``dist`` folder in the yt 
-repository so that they are sitting next to the source distribution 
+wheel files for the release and copy them to the ``dist`` folder in the yt
+repository so that they are sitting next to the source distribution
 we created earlier. Here's a
 one-liner to download all of the wheels for the yt 3.6.1 release::
 
-  $ wget -r -nd -A 'yt-3.6.1-*whl' https://anaconda.org/multibuild-wheels-staging/yt/files 
+  $ wget -r -nd -A 'yt-3.6.1-*whl' https://anaconda.org/multibuild-wheels-staging/yt/files
 
 Uploading to PyPI
 +++++++++++++++++
@@ -198,16 +198,16 @@ issue the following command:
    twine upload dist/*
 
 Please ensure that both the source distribution and binary wheels are present in
-the ``dist`` folder before doing this. Directions on generating binary wheels 
-are described in the section immediately preceding this one. 
+the ``dist`` folder before doing this. Directions on generating binary wheels
+are described in the section immediately preceding this one.
 
 You will be prompted for your PyPI credentials and then the package should
 upload. Note that for this to complete successfully, you will need an account on
-PyPI and that account will need to be registered as an "owner" or "maintainer" 
-of the yt package. 
-Right now the following people have access to upload packages: Matt Turk, 
-Britton Smith, Nathan Goldbaum, John ZuHone, Kacper Kowalik, and Madicken Munk. 
-The yt package source distribution should be uploaded along with compiled 
+PyPI and that account will need to be registered as an "owner" or "maintainer"
+of the yt package.
+Right now the following people have access to upload packages: Matt Turk,
+Britton Smith, Nathan Goldbaum, John ZuHone, Kacper Kowalik, and Madicken Munk.
+The yt package source distribution should be uploaded along with compiled
 binary wheel packages for various platforms that we support.
 
 ``conda-forge``
@@ -218,7 +218,7 @@ https://github.com/conda-forge/yt-feedstock. When a release is pushed to PyPI a
 bot should detect a new version and issue a PR to the feedstock with the new
 version automatically. When this feedstock is updated, make sure that the
 SHA256 hash of the tarball matches the one you uploaded to dickenson and that
-the version number matches the one that is being released. 
+the version number matches the one that is being released.
 
 
 Should you need to update the feedstock manually, you will
@@ -232,9 +232,8 @@ propose a pull request on github and merge it once all builds pass.
 Announcing
 ~~~~~~~~~~
 
-After the release is uploaded to `PyPI <https://pypi.org/project/yt/#files>`_ and 
-`conda-forge <https://anaconda.org/conda-forge/yt>`_, 
+After the release is uploaded to `PyPI <https://pypi.org/project/yt/#files>`_ and
+`conda-forge <https://anaconda.org/conda-forge/yt>`_,
 you should send out an announcement
 e-mail to the yt mailing lists as well as other possibly interested mailing
-lists for all but bugfix releases. 
-
+lists for all but bugfix releases.

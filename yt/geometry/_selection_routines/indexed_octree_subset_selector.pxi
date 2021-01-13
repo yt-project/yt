@@ -71,4 +71,3 @@ cdef class IndexedOctreeSubsetSelector(SelectorObject):
         return (hash(self.base_selector), self.min_ind, self.max_ind)
 
 indexed_octree_subset_selector = IndexedOctreeSubsetSelector
-

@@ -42,7 +42,7 @@
         domain_nx1=16
         domain_nx2=16
         domain_nx3=16
-        iprob=1 
+        iprob=1
         xprobmin1=0.d0
         xprobmax1=2.d0
         xprobmin2=0.d0

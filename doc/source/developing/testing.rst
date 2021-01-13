@@ -128,7 +128,7 @@ To create new unit tests:
 #. Inside that file, create one or more routines prefixed with ``test_`` that
    accept no arguments. The test function should do some work that tests some
    functionality and should also verify that the results are correct using
-   assert statements or functions.  
+   assert statements or functions.
 #. Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
    ``argument_two``, etc.  For example ``yield my_test, 'banana', 2.0`` would be
    captured by nose and the ``my_test`` function will be run with the provided
@@ -468,13 +468,13 @@ change the answer name in *tests/tests.yaml* e.g.:
 
       local_pw_000:
 
-would regenerate answers for OWLS frontend. 
+would regenerate answers for OWLS frontend.
 
-When adding tests to an existing set of answers (like ``local_owls_000`` or ``local_varia_000``), 
-it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing 
+When adding tests to an existing set of answers (like ``local_owls_000`` or ``local_varia_000``),
+it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing
 the version number. Then, allow the tests to run (resulting in "no old answer" errors for the missing
 answers). If no other failures are present, you can then increment the version number to regenerate
-the answers. This way, we can avoid accidentally covering up test breakages. 
+the answers. This way, we can avoid accidentally covering up test breakages.
 
 Adding New Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~
