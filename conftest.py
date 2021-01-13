@@ -1,4 +1,5 @@
 import os
+import re
 import shutil
 import sys
 import tempfile
@@ -134,6 +135,12 @@ def _param_list(request):
             # needed
             if key == "callback":
                 val = val[0]
+            # If the ds has args or kwargs passed to data_dir_load then
+            # it gets passed as a list to the ds fixture, [dsName, opts]
+            # and this causes the whole list to be written as the value
+            # for the ds key in the yaml file
+            elif isinstance(val, list):
+                val = val[0]
             test_params[key] = str(val)
     # Convert python-specific data objects (such as tuples) to a more
     # io-friendly format (in order to not have python-specific anchors
@@ -231,7 +238,12 @@ def hashing(request):
     # Add the other test parameters
     hashes.update(params)
     # Add the function name as the "master" key to the hashes dict
-    hashes = {request.node.name: hashes}
+    # If the ds is passed to the ds fixture with args or kwargs, then
+    # pytest cannot properly populate the test name with the ds name and
+    # uses a placeholder value instead. Here we extract the ds name from
+    # the list
+    newName = sanitize_name(request)
+    hashes = {newName: hashes}
     # Save hashes
     if not no_hash and store_hash:
         _save_result(hashes, request.cls.answer_file)
@@ -241,15 +253,27 @@ def hashing(request):
     # Save raw data
     if raw and raw_store:
         _save_raw_arrays(
-            request.cls.hashes, request.cls.raw_answer_file, request.node.name
+            request.cls.hashes, request.cls.raw_answer_file, newName
         )
     # Compare raw data. This is done one test at a time because the
     # arrays can get quite large and storing everything in memory would
     # be bad
     if raw and not raw_store:
         _compare_raw_arrays(
-            request.cls.hashes, request.cls.raw_answer_file, request.node.name
+            request.cls.hashes, request.cls.raw_answer_file, newName
         )
+
+
+def sanitize_name(request):
+    if "ds" not in request.node.funcargs.keys():
+        newName = request.node.name
+    else:
+        pattern = r"ds[0-9]+"
+        ds = request.node.funcargs["ds"]
+        if isinstance(ds, list):
+            ds = ds[0]
+        newName = re.sub(pattern, str(ds), request.node.name)
+    return newName
 
 
 @pytest.fixture(scope="function")
