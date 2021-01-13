@@ -729,6 +729,10 @@ If you do not want to/are unable to configure ``pre-commit`` on your machine, no
 after opening a pull request, a bot will run the hooks and validate your contribution by
 appending commits to your branch.
 
+.. note:: It is not recommended to run linter tools directly on the command line because
+    versions available in your system may conflict with the ones we run through
+    pre-commit hooks.
+
 Below are a list of additional guidelines for coding in yt, that are not automatically
 enforced.
 
