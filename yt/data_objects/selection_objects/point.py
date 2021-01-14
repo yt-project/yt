@@ -1,10 +1,10 @@
-from yt import YTArray
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
     YTSelectionContainer0D,
 )
 from yt.data_objects.static_output import Dataset
 from yt.funcs import validate_3d_array, validate_object
+from yt.units import YTArray
 
 
 class YTPoint(YTSelectionContainer0D):

@@ -4,7 +4,6 @@ from contextlib import contextmanager
 
 import numpy as np
 
-from yt import __version__ as yt_version
 from yt.funcs import issue_deprecation_warning, iter_fields
 from yt.utilities.exceptions import YTGDFAlreadyExists
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -259,6 +258,7 @@ def _create_new_gdf(
     overwrite=False,
     **kwargs,
 ):
+    from yt import __version__ as yt_version
 
     if "clobber" in kwargs:
         issue_deprecation_warning(
