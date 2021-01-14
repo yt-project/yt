@@ -66,4 +66,3 @@ cdef class ComposeSelector(SelectorObject):
         return (hash(self.selector1), hash(self.selector2))
 
 compose_selector = ComposeSelector
-

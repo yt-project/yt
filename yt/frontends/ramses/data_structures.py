@@ -1,7 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
-from glob import glob
+from pathlib import Path
 
 import numpy as np
 
@@ -18,12 +18,98 @@ from yt.utilities.lib.cosmology_time import friedman
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.utilities.physical_constants import kb, mp
 
-from .definitions import field_aliases, particle_families, ramses_header
+from .definitions import (
+    OUTPUT_DIR_RE,
+    STANDARD_FILE_RE,
+    field_aliases,
+    particle_families,
+    ramses_header,
+)
 from .field_handlers import get_field_handlers
 from .fields import _X, RAMSESFieldInfo
 from .hilbert import get_cpu_list
 from .io_utils import fill_hydro, read_amr
 from .particle_handlers import get_particle_handlers
+
+
+class RAMSESFileSanitizer:
+    """A class to handle the different files that can be passed and associated
+    safely to a RAMSES output."""
+
+    root_folder = None  # Path | None: path to the root folder
+    info_fname = None  # Path | None: path to the info file
+    group_name = None  # str | None: name of the first group folder (if any)
+
+    def __init__(self, filename):
+        # Resolve so that it works with symlinks
+        filename = Path(filename).resolve()
+
+        self.original_filename = filename
+
+        self.output_dir = None
+        self.info_fname = None
+
+        for check_fun in (self.test_with_standard_file, self.test_with_folder_name):
+            ok, output_dir, info_fname = check_fun(filename)
+            if ok:
+                break
+
+        # Early exit if the ok flag is False
+        if not ok:
+            return
+
+        # Special case when organized in groups
+        if output_dir.name == "group_00001":
+            self.root_folder = output_dir.parent
+            self.group_name = output_dir.name
+        else:
+            self.root_folder = output_dir
+            self.group_name = None
+        self.info_fname = info_fname
+
+    @property
+    def is_valid(self):
+        return (self.root_folder is not None) and (self.info_fname is not None)
+
+    @staticmethod
+    def check_standard_files(folder, iout):
+        """Return True if the folder contains an amr file and the info file."""
+        # Check that the "amr_" and "info_" files exist
+        ok = (folder / f"amr_{iout}.out00001").is_file()
+        ok &= (folder / f"info_{iout}.txt").is_file()
+        return ok
+
+    @classmethod
+    def test_with_folder_name(cls, output_dir):
+        iout_match = OUTPUT_DIR_RE.match(output_dir.name)
+        ok = output_dir.is_dir() and iout_match is not None
+        if ok:
+            iout = iout_match.group(2)
+            ok &= cls.check_standard_files(output_dir, iout)
+            info_fname = output_dir / f"info_{iout}.txt"
+        else:
+            output_dir, info_fname = None, None
+
+        return ok, output_dir, info_fname
+
+    @classmethod
+    def test_with_standard_file(cls, filename):
+        iout_match = OUTPUT_DIR_RE.match(filename.parent.name)
+        ok = (
+            filename.is_file()
+            and STANDARD_FILE_RE.match(filename.name) is not None
+            and iout_match is not None
+        )
+
+        if ok:
+            iout = iout_match.group(2)
+            ok &= cls.check_standard_files(filename.parent, iout)
+            output_dir = filename.parent
+            info_fname = output_dir / f"info_{iout}.txt"
+        else:
+            output_dir, info_fname = None, None
+
+        return ok, output_dir, info_fname
 
 
 class RAMSESDomainFile:
@@ -599,28 +685,29 @@ class RAMSESDataset(Dataset):
             max_level, max_level_convention
         )
 
-        # Infer if the output is organized in groups
-        root_folder, group_folder = os.path.split(os.path.split(filename)[0])
+        file_handler = RAMSESFileSanitizer(filename)
 
-        if group_folder == "group_00001":
-            # Count the number of groups
-            # note: we exclude the unlikely event that one of the group is actually a
-            # file instad of a folder
-            self.num_groups = len(
-                [
-                    _
-                    for _ in glob(os.path.join(root_folder, "group_?????"))
-                    if os.path.isdir(_)
-                ]
+        # This should not happen, but let's check nonetheless.
+        if not file_handler.is_valid:
+            raise ValueError(
+                "Invalid filename found when building a RAMSESDataset object: %s",
+                filename,
             )
-            self.root_folder = root_folder
+
+        # Sanitize the filename
+        info_fname = file_handler.info_fname
+
+        if file_handler.group_name is not None:
+            self.num_groups = len(
+                [_ for _ in file_handler.root_folder.glob("group_?????") if _.is_dir()]
+            )
         else:
-            self.root_folder = os.path.split(filename)[0]
             self.num_groups = 0
+        self.root_folder = file_handler.root_folder
 
         Dataset.__init__(
             self,
-            filename,
+            info_fname,
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
@@ -875,7 +962,4 @@ class RAMSESDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        if not os.path.basename(filename).startswith("info_"):
-            return False
-        fn = filename.replace("info_", "amr_").replace(".txt", ".out00001")
-        return os.path.exists(fn)
+        return RAMSESFileSanitizer(filename).is_valid

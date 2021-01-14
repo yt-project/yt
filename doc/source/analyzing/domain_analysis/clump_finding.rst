@@ -131,7 +131,7 @@ the info item you have defined via the ``info`` attribute of a ``Clump`` object:
 
    clump = leaf_clumps[0]
    print(clump.info['mass_weighted_jeans_mass'])
-   
+
 Besides the quantities calculated by default, the following are available:
 ``center_of_mass`` and ``distance_to_main_clump``.
 

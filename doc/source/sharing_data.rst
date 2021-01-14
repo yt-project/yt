@@ -25,7 +25,7 @@ as isocontours as well as interactive binning and rebinning of data from yt
 data objects, to be displayed as phase plots and profiles.
 
 .. note:: Working with the Hub requires additional dependencies to be installed.
-          You can obtain them by running: ``pip install yt[hub]``. 
+          You can obtain them by running: ``pip install yt[hub]``.
 
 .. _hub-APIkey:
 
@@ -37,7 +37,7 @@ available only for authenticated users. You can `log into
 <https://girder.hub.yt/#?dialog=login>`_ the Hub using your Google, GitHub or
 Bitbucket account. After you log in, an API key can be generated under the *My
 account* page, which can be accessed through the dropdown menu in the upper
-right corner. 
+right corner.
 
 .. image:: _static/apiKey01.jpg
    :width: 50 %

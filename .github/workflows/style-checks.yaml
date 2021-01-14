@@ -39,7 +39,7 @@ jobs:
       run: |
         black --version
         black --check --diff yt/ doc/
-        
+
   isort:
     name: isort
     runs-on: ubuntu-latest

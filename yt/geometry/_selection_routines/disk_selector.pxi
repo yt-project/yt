@@ -166,4 +166,3 @@ cdef class DiskSelector(SelectorObject):
 
 
 disk_selector = DiskSelector
-

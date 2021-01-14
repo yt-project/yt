@@ -18,6 +18,12 @@ f7445f02022293f1b089cd8907000301516354bf
 # f-strings, black & isort on doc
 e6276f25fc5a570d886b6bbdaa7e3062da2d35ca
 
+# fix EOF
+5e5ce1487f9b04344d297b7901cf5f82c6fee3cb
+
+# fix trailing whitespace
+12068b7a38ec17cb3d83baca32c1dc8d07613f9a
+
 # legacy conversion commits authored by "convert-repo"
 b7112d4ccbcd309ae2c5c2ee0f9352466a0cecf2
 33f3988bbfa97399114e3df9ac491c828ae59a8c

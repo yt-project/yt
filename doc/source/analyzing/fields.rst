@@ -396,9 +396,9 @@ within the dataset, as well as their abundances and ionization states. Examples 
 The naming scheme for the fields starts with prefixes in the form ``MM[_[mp][NN]]``. ``MM``
 is the molecule, defined as a concatenation of atomic symbols and numbers, with no spaces or
 underscores. The second sequence is only required if ionization states are present in the
-dataset, and is of the form ``p`` and ``m`` to indicate "plus" or "minus" respectively, 
+dataset, and is of the form ``p`` and ``m`` to indicate "plus" or "minus" respectively,
 followed by the number. If a given species has no ionization states given, the prefix is
-simply ``MM``. 
+simply ``MM``.
 
 For the examples above, the prefixes would be:
 
@@ -534,44 +534,44 @@ as detailed below (see :ref:`field_parameters` for more information).
 
 The relative fields which are currently supported for gas fields are:
 
-* ``("gas", "relative_velocity_{xyz}")``, defined by setting the 
+* ``("gas", "relative_velocity_{xyz}")``, defined by setting the
   ``"bulk_velocity"`` field parameter
-* ``("gas", "relative_magnetic_field_{xyz}")``, defined by setting the 
+* ``("gas", "relative_magnetic_field_{xyz}")``, defined by setting the
   ``"bulk_magnetic_field"`` field parameter
 
-For particle fields, for a given particle type ``ptype``, the relative 
+For particle fields, for a given particle type ``ptype``, the relative
 fields which are supported are:
 
-* ``(ptype, "relative_particle_position")``, defined by setting the 
+* ``(ptype, "relative_particle_position")``, defined by setting the
   ``"center"`` field parameter
-* ``(ptype, "relative_particle_velocity")``, defined by setting the 
+* ``(ptype, "relative_particle_velocity")``, defined by setting the
   ``"bulk_velocity"`` field parameter
-* ``(ptype, "relative_particle_position_{xyz}")``, defined by setting the 
+* ``(ptype, "relative_particle_position_{xyz}")``, defined by setting the
   ``"center"`` field parameter
-* ``(ptype, "relative_particle_velocity_{xyz}")``, defined by setting the 
+* ``(ptype, "relative_particle_velocity_{xyz}")``, defined by setting the
   ``"bulk_velocity"`` field parameter
 
 These fields are in use when defining magnitude fields, line-of-sight fields,
 etc.. The ``"bulk_{}"`` field parameters are ``[0.0, 0.0, 0.0]`` by default,
-and the ``"center"`` field parameter depends on the data container in use. 
+and the ``"center"`` field parameter depends on the data container in use.
 
 There is currently no mechanism to create new relative fields, but one may be
-added at a later time. 
+added at a later time.
 
 .. _los_fields:
 
 Line of Sight Fields
 --------------------
 
-In astrophysics applications, one often wants to know the component of a vector 
-field along a given line of sight. If you are doing a projection of a vector 
-field along an axis, or just want to obtain the values of a vector field 
-component along an axis, you can use a line-of-sight field. For projections, 
+In astrophysics applications, one often wants to know the component of a vector
+field along a given line of sight. If you are doing a projection of a vector
+field along an axis, or just want to obtain the values of a vector field
+component along an axis, you can use a line-of-sight field. For projections,
 this will be handled automatically:
 
 .. code-block:: python
 
-    prj = yt.ProjectionPlot(ds, "z", ("gas", "velocity_los"), 
+    prj = yt.ProjectionPlot(ds, "z", ("gas", "velocity_los"),
                             weight_field=("gas", "density"))
 
 Which, because the axis is ``"z"``, will give you the same result if you had
@@ -579,13 +579,13 @@ projected the `"velocity_z"`` field. This also works for off-axis projections:
 
 .. code-block:: python
 
-    prj = yt.OffAxisProjectionPlot(ds, [0.1, -0.2, 0.3], ("gas", "velocity_los"), 
+    prj = yt.OffAxisProjectionPlot(ds, [0.1, -0.2, 0.3], ("gas", "velocity_los"),
                                    weight_field=("gas", "density"))
 
 
-This shows that the projection axis can be along a principle axis of the domain 
-or an arbitrary off-axis 3-vector (which will be automatically normalized). If 
-you want to examine a line-of-sight vector within a 3-D data object, set the 
+This shows that the projection axis can be along a principle axis of the domain
+or an arbitrary off-axis 3-vector (which will be automatically normalized). If
+you want to examine a line-of-sight vector within a 3-D data object, set the
 ``"axis"`` field parameter:
 
 .. code-block:: python
@@ -602,10 +602,10 @@ you want to examine a line-of-sight vector within a 3-D data object, set the
 
     If you need to change the axis of the line of sight on the *same* data container
     (sphere, box, cylinder, or whatever), you will need to delete the field using
-    ``del dd["velocity_los"]`` and re-generate it. 
+    ``del dd["velocity_los"]`` and re-generate it.
 
 At this time, this functionality is enabled for the velocity and magnetic vector
-fields, ``("gas", "velocity_los")`` and ``("gas", "magnetic_field_los")``. The 
+fields, ``("gas", "velocity_los")`` and ``("gas", "magnetic_field_los")``. The
 following fields built into yt make use of these line-of-sight fields:
 
 * ``("gas", "sz_kinetic")`` uses ``("gas", "velocity_los")``

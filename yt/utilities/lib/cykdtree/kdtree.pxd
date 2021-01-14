@@ -14,7 +14,7 @@ cdef extern from "<iostream>" namespace "std":
 
 # the following extern definitions adapted from
 # http://stackoverflow.com/a/31009461/1382869
-    
+
 # obviously std::ios_base isn't a namespace, but this lets
 # Cython generate the correct C++ code
 cdef extern from "<iostream>" namespace "std::ios_base":

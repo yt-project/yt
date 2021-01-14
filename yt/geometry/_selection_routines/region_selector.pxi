@@ -209,4 +209,3 @@ cdef class RegionSelector(SelectorObject):
                 'is_all_data', 'loose_selection')
 
 region_selector = RegionSelector
-

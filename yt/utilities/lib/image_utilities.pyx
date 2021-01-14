@@ -51,8 +51,8 @@ def add_points_to_image(
 
 def add_rgba_points_to_image(
         np.ndarray[np.float64_t, ndim=3] buffer,
-        np.ndarray[np.float64_t, ndim=1] px, 
-        np.ndarray[np.float64_t, ndim=1] py, 
+        np.ndarray[np.float64_t, ndim=1] px,
+        np.ndarray[np.float64_t, ndim=1] py,
         np.ndarray[np.float64_t, ndim=2] rgba,
         ):
     """

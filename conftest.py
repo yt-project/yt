@@ -56,7 +56,7 @@ def pytest_configure(config):
     # Read the list of answer test classes and their associated answer
     # file
     with open(answer_file_list, "r") as f:
-        answer_files = yaml.safe_load(f)  # noqa: F841
+        answer_files = yaml.safe_load(f)  # noqa F841
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
     config.addinivalue_line(
@@ -148,7 +148,7 @@ def answer_file(request):
                     "set the `--force-override-answers` option".format(answer_file)
                 )
     else:
-        assert False
+        raise AssertionError
     request.cls.answer_file = answer_file
 
 
@@ -229,7 +229,7 @@ def hashing(request):
     if request.cls is not None:
         request.cls.hashes = {}
     else:
-        assert False
+        raise AssertionError
     # Yield to the caller in order to actually perform the tests
     yield
     # Get param list

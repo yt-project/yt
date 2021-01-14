@@ -24,16 +24,16 @@ dtMovieDump           = 0
 TracerParticleOn           = 0
 TimeLastTracerParticleDump = 0.81651319185139
 dtTracerParticleDump       = 0
-MovieRegionLeftEdge   = 0 0 0 
-MovieRegionRightEdge  = 1 1 1 
+MovieRegionLeftEdge   = 0 0 0
+MovieRegionRightEdge  = 1 1 1
 
-NewMovieLeftEdge   = 0 0 0 
-NewMovieRightEdge  = 1 1 1 
+NewMovieLeftEdge   = 0 0 0
+NewMovieRightEdge  = 1 1 1
 MovieSkipTimestep = -99999
 Movie2DTextures   = 0
 Movie3DVolumes    = 0
 NewMovieParticleOn = 0
-MovieDataField = -99999 -99999 -99999 -99999 -99999 -99999 
+MovieDataField = -99999 -99999 -99999 -99999 -99999 -99999
 NewMovieDumpNumber = 0
 NewMovieName = MoviePack
 
@@ -61,7 +61,7 @@ RedshiftDumpName       = RedshiftOutput
 
 StaticHierarchy     = 0
 TopGridRank         = 3
-TopGridDimensions   = 16 16 16 
+TopGridDimensions   = 16 16 16
 
 TopGridGravityBoundary = 0
 ParticleBoundaryType   = 3
@@ -82,10 +82,10 @@ RefineBy               = 2
 MaximumRefinementLevel = 9
 MaximumGravityRefinementLevel = 9
 MaximumParticleRefinementLevel = -1
-CellFlaggingMethod     = 2 -99999 -99999 -99999 -99999 
-CellFlaggingSlopeFields     = -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 
-CellFlaggingMagnitudeFields     = -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 
-MinimumMagnitudeForRefinement     = -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 
+CellFlaggingMethod     = 2 -99999 -99999 -99999 -99999
+CellFlaggingSlopeFields     = -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999
+CellFlaggingMagnitudeFields     = -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999
+MinimumMagnitudeForRefinement     = -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999 -99999
 FluxCorrection         = 1
 InterpolationMethod    = 3
 ConservativeInterpolation = 0
@@ -93,11 +93,11 @@ MinimumEfficiency      = 0.3
 MaximumSubgridSize     = 10000
 NumberOfBufferZones    = 1
 
-DomainLeftEdge         = 0 0 0 
-DomainRightEdge        = 1 1 1 
-GridVelocity           = 0 0 0 
-RefineRegionLeftEdge   = 0.2 0.2 0.2 
-RefineRegionRightEdge  = 0.9 0.9 0.9 
+DomainLeftEdge         = 0 0 0
+DomainRightEdge        = 1 1 1
+GridVelocity           = 0 0 0
+RefineRegionLeftEdge   = 0.2 0.2 0.2
+RefineRegionRightEdge  = 0.9 0.9 0.9
 RefineRegionTimeType   = 1
 
 DataLabel[0]              = Density
@@ -116,7 +116,7 @@ UniformGravity             = 0
 UniformGravityDirection    = 0
 UniformGravityConstant     = 1
 PointSourceGravity           = 0
-PointSourceGravityPosition   = 0.5 0.5 0.5 
+PointSourceGravityPosition   = 0.5 0.5 0.5
 PointSourceGravityConstant   = 0.02
 PointSourceGravityCoreRadius = 0
 
@@ -195,8 +195,8 @@ StarEnergyToThermalFeedback           = 1e-05
 StarEnergyToStellarUV                 = 3e-06
 StarEnergyToQuasarUV                  = 5e-06
 
-LeftFaceBoundaryCondition  = 3 3 3 
-RightFaceBoundaryCondition = 3 3 3 
+LeftFaceBoundaryCondition  = 3 3 3
+RightFaceBoundaryCondition = 3 3 3
 BoundaryConditionName      = moving7_0000.boundary
 
 CosmologyHubbleConstantNow = 0.5
@@ -209,4 +209,3 @@ CosmologyFinalRedshift     = 0.3
 CosmologyCurrentRedshift   = 10
 
 VersionNumber              = 1.300000
-

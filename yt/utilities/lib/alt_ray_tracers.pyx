@@ -21,7 +21,7 @@ def _cyl2cart(np.ndarray[np.float64_t, ndim=2] x):
     """Converts points in cylindrical coordinates to cartesian points."""
     # NOTE this should be removed once the coord interface comes online
     cdef int i, I
-    cdef np.ndarray[np.float64_t, ndim=2] xcart 
+    cdef np.ndarray[np.float64_t, ndim=2] xcart
     I = x.shape[0]
     xcart = np.empty((I, x.shape[1]), dtype='float64')
     for i in range(I):
@@ -37,8 +37,8 @@ def _cart_intersect(np.ndarray[np.float64_t, ndim=1] a,
                     np.ndarray[np.float64_t, ndim=1] b,
                     np.ndarray[np.float64_t, ndim=2] c,
                     np.ndarray[np.float64_t, ndim=2] d):
-    """Finds the times and locations of the lines defined by a->b and 
-    c->d in cartesian space.  a and b must be 1d points.  c and d must 
+    """Finds the times and locations of the lines defined by a->b and
+    c->d in cartesian space.  a and b must be 1d points.  c and d must
     be 2d arrays of equal shape whose second dim is the same length as
     a and b.
     """
@@ -61,11 +61,11 @@ def _cart_intersect(np.ndarray[np.float64_t, ndim=1] a,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1, 
-                          np.ndarray[np.float64_t, ndim=1] p2, 
-                          np.ndarray[np.float64_t, ndim=2] left_edges, 
+def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
+                          np.ndarray[np.float64_t, ndim=1] p2,
+                          np.ndarray[np.float64_t, ndim=2] left_edges,
                           np.ndarray[np.float64_t, ndim=2] right_edges):
-    """Computes straight (cartesian) rays being traced through a 
+    """Computes straight (cartesian) rays being traced through a
     cylindrical geometry.
 
     Parameters
@@ -128,7 +128,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     tpright = np.empty(I, dtype='float64')
     for i in range(I):
         tmleft[i] = (-b - math.sqrt(bsqrd - 4*a*cleft[i])) / twoa
-        tpleft[i] = (-b + math.sqrt(bsqrd - 4*a*cleft[i])) / twoa  
+        tpleft[i] = (-b + math.sqrt(bsqrd - 4*a*cleft[i])) / twoa
         tmright[i] = (-b - math.sqrt(bsqrd - 4*a*cright[i])) / twoa
         tpright[i] = (-b + math.sqrt(bsqrd - 4*a*cright[i])) / twoa
 
@@ -138,13 +138,13 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     tmmleft = np.logical_and(~np.isnan(tmleft), rleft <= p1[0])
     tpmleft = np.logical_and(~np.isnan(tpleft), rleft <= p2[0])
 
-    # compute first cut of indexes and thetas, which 
+    # compute first cut of indexes and thetas, which
     # have been filtered by those values for which intersection
     # times are impossible (see above masks). Note that this is
     # still independent of z.
-    inds = np.unique(np.concatenate([np.argwhere(tmmleft).flat, 
-                                     np.argwhere(tpmleft).flat, 
-                                     np.argwhere(tmmright).flat, 
+    inds = np.unique(np.concatenate([np.argwhere(tmmleft).flat,
+                                     np.argwhere(tpmleft).flat,
+                                     np.argwhere(tmmright).flat,
                                      np.argwhere(tpmright).flat,]))
     if 0 == inds.shape[0]:
         inds = np.arange(np.intp(I))
@@ -159,18 +159,18 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
         zleft = zleft[inds]
         zright = zright[inds]
 
-        thetaleft = np.arctan2((p1cart[1] + tmleft[inds]*dpcart[1]), 
+        thetaleft = np.arctan2((p1cart[1] + tmleft[inds]*dpcart[1]),
                                (p1cart[0] + tmleft[inds]*dpcart[0]))
         nans = np.isnan(thetaleft)
-        thetaleft[nans] = np.arctan2((p1cart[1] + tpleft[inds[nans]]*dpcart[1]), 
+        thetaleft[nans] = np.arctan2((p1cart[1] + tpleft[inds[nans]]*dpcart[1]),
                                      (p1cart[0] + tpleft[inds[nans]]*dpcart[0]))
-        thetaright = np.arctan2((p1cart[1] + tmright[inds]*dpcart[1]), 
+        thetaright = np.arctan2((p1cart[1] + tmright[inds]*dpcart[1]),
                                 (p1cart[0] + tmright[inds]*dpcart[0]))
         nans = np.isnan(thetaright)
-        thetaright[nans] = np.arctan2((p1cart[1] + tpright[inds[nans]]*dpcart[1]), 
+        thetaright[nans] = np.arctan2((p1cart[1] + tpright[inds[nans]]*dpcart[1]),
                                       (p1cart[0] + tpright[inds[nans]]*dpcart[0]))
 
-    # Set up the cell boundary arrays    
+    # Set up the cell boundary arrays
     b1 = np.concatenate([[rleft,  zright, thetaleft],
                          [rleft,  zleft,  thetaleft],
                          [rleft,  zleft,  thetaleft],
@@ -182,12 +182,12 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
                          ], axis=1).T
 
     b2 = np.concatenate([[rright, zright, thetaright],
-                         [rright, zleft,  thetaright], 
-                         [rleft,  zright, thetaleft], 
-                         [rright, zright, thetaright], 
-                         [rleft,  zleft,  thetaright], 
-                         [rright, zright, thetaright], 
-                         [rleft,  zright, thetaright], 
+                         [rright, zleft,  thetaright],
+                         [rleft,  zright, thetaleft],
+                         [rright, zright, thetaright],
+                         [rleft,  zleft,  thetaright],
+                         [rright, zright, thetaright],
+                         [rleft,  zright, thetaright],
                          [rright, zleft,  thetaright],
                          ], axis=1).T
 
@@ -211,7 +211,7 @@ def cylindrical_ray_trace(np.ndarray[np.float64_t, ndim=1] p1,
     t = t[sinds]
     inds = inds[sinds]
     xyz = xyz[sinds]
-    rztheta = np.concatenate([np.sqrt(xyz[:,0] * xyz[:,0] + xyz[:,1] * xyz[:,1])[:,np.newaxis], 
+    rztheta = np.concatenate([np.sqrt(xyz[:,0] * xyz[:,0] + xyz[:,1] * xyz[:,1])[:,np.newaxis],
                               xyz[:,2:3],
                               np.arctan2(xyz[:,1], xyz[:,0])[:,np.newaxis]], axis=1)
     return t, s, rztheta, inds
