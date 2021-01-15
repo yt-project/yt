@@ -13,8 +13,6 @@ class IOHandlerASPECT(BaseIOHandler):
 
     def __init__(self, ds):
         self.filename = ds.index_filename
-        # exodus_ii_handler = NetCDF4FileHandler(self.filename)
-        # self.handler = exodus_ii_handler
         super(IOHandlerASPECT, self).__init__(ds)
         self.node_fields = ds._get_nod_names()
         self.elem_fields = ds._get_elem_names()

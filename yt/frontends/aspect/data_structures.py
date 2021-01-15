@@ -302,7 +302,8 @@ class ASPECTDataset(Dataset):
         return [connectivity, coords]
 
     def _read_pieces(self):
-        # reads coordinates and connectivity from pieces
+        # reads coordinates and connectivity from pieces, returns the mesh
+        # concatenated across all pieces.
         with open(self.parameter_filename) as pvtu_fi:
             pXML = xmltodict.parse(pvtu_fi.read())
         pieces = pXML["VTKFile"]["PUnstructuredGrid"]["Piece"]
@@ -312,11 +313,9 @@ class ASPECTDataset(Dataset):
         coordlist = []  # global, concatenated coordinate array
         node_offsets = []
         element_count = []
-        current_offset = 0  # the NODE offset to global coordiante index
+        current_offset = 0  # the NODE offset to global coordinate index
         for src in pieces:
-            srcfi = os.path.join(
-                self.data_dir, src["@Source"]
-            )  # full path to .vtu file
+            srcfi = os.path.join(self.data_dir, src["@Source"])
             [con, coord] = self._read_piece(srcfi)
             node_offsets.append(current_offset)
             element_count.append(con.shape[0])
