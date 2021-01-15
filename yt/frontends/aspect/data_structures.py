@@ -18,16 +18,34 @@ from .fields import ASPECTFieldInfo
 
 class ASPECTUnstructuredMesh(UnstructuredMesh):
     _type_name = "aspect_unstructured_mesh"
-    _con_args = ("mesh_id", "filename", "filenames", "vtu_offsets", "connectivity_indices", "connectivity_coords")
+    _con_args = (
+        "mesh_id",
+        "filename",
+        "filenames",
+        "vtu_offsets",
+        "connectivity_indices",
+        "connectivity_coords",
+    )
 
-    def __init__(self, mesh_id, filename, filenames, node_offsets, element_count, connectivity_indices, connectivity_coords, index):
-        super(ASPECTUnstructuredMesh, self).__init__(mesh_id, filename, connectivity_indices, connectivity_coords, index)
+    def __init__(
+        self,
+        mesh_id,
+        filename,
+        filenames,
+        node_offsets,
+        element_count,
+        connectivity_indices,
+        connectivity_coords,
+        index,
+    ):
+        super(ASPECTUnstructuredMesh, self).__init__(
+            mesh_id, filename, connectivity_indices, connectivity_coords, index
+        )
         self.filenames = filenames
         self.node_offsets = node_offsets
         self.element_count = element_count
 
         # some error checking
-
 
 
 class ASPECTUnstructuredIndex(UnstructuredIndex):
@@ -49,7 +67,14 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
         pvtu_file = self.ds.parameter_filename
         mesh_id = 0
         mesh = ASPECTUnstructuredMesh(
-                mesh_id, pvtu_file, mesh_files, node_offsets, el_count, connectivity, coords, self
+            mesh_id,
+            pvtu_file,
+            mesh_files,
+            node_offsets,
+            el_count,
+            connectivity,
+            coords,
+            self,
         )
         self.meshes.append(mesh)
         self.mesh_union = MeshUnion("mesh_union", self.meshes)
@@ -58,6 +83,12 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
         elem_names = self.dataset.parameters["elem_names"]
         node_names = self.dataset.parameters["nod_names"]
         fnames = elem_names + node_names
+
+        if "velocity" in fnames:
+            fnames.remove("velocity")
+            for dim in ["x", "y", "z"]:
+                fnames.append("velocity_" + dim)
+
         self.field_list = []
         for i in range(1, len(self.meshes) + 1):
             self.field_list += [("connect%d" % i, fname) for fname in fnames]
@@ -282,7 +313,7 @@ class ASPECTDataset(Dataset):
         node_offsets = []
         element_count = []
         current_offset = 0  # the NODE offset to global coordiante index
-        for mesh_id, src in enumerate(pieces):
+        for src in pieces:
             srcfi = os.path.join(
                 self.data_dir, src["@Source"]
             )  # full path to .vtu file
@@ -296,7 +327,7 @@ class ASPECTDataset(Dataset):
 
         # concatenate across into a single mesh.
         coordlist = np.vstack(coordlist)
-        conlist = np.vstack(conlist).astype('i8')
+        conlist = np.vstack(conlist).astype("i8")
         return conlist, coordlist, node_offsets, element_count
 
     def _load_domain_edge(self):
@@ -312,7 +343,7 @@ class ASPECTDataset(Dataset):
         right_edge = self.parameter_info.get("domain_right_edge", None)
 
         if not left_edge:
-            _, coord, _ , _= self._read_pieces()
+            _, coord, _, _ = self._read_pieces()
             # coord = np.vstack(coord)
             left_edge = [coord[:, i].min() for i in range(self.dimensionality)]
             right_edge = [coord[:, i].max() for i in range(self.dimensionality)]

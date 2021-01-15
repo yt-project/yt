@@ -67,7 +67,6 @@ class IOHandlerASPECT(BaseIOHandler):
                         vtu_file = os.path.join(self.ds.data_dir, vtu_filename)
                         meshPiece = meshio.read(vtu_file)
 
-
                         # the connectivty for this piece
                         cell_types = list(meshPiece.cells_dict.keys())
                         vtu_con = np.array(meshPiece.cells_dict[cell_types[0]])
@@ -84,13 +83,19 @@ class IOHandlerASPECT(BaseIOHandler):
                             if ftype == "all" or ftype == mesh_name:
                                 # meshio returns a 1d data array, so we need to:
                                 # 1. select with 1d connectivity to ensure proper order
-                                # 2. reshape to match the expected (element, n_verts) shape
+                                # 2. reshape to expected (element, n_verts) shape
                                 # 3. select the masked data
                                 # field_data = meshPiece.point_data[fname]
-                                data2d = meshPiece.point_data[fname][conn1d].reshape(
-                                    con_shape
-                                )
-                                rv[field].append(data2d[vtu_mask, :])
+                                if "velocity" in fname:
+                                    vdim = fname.split("_")[-1]
+                                    vdim_to_dim = {"x": 0, "y": 1, "z": 2}
+                                    dim = vdim_to_dim[vdim]
+                                    raw_data = meshPiece.point_data["velocity"][:, dim]
+                                else:
+                                    raw_data = meshPiece.point_data[fname]
+
+                                raw_data = raw_data[conn1d].reshape(con_shape)
+                                rv[field].append(raw_data[vtu_mask, :])
 
         for field in fields:
             rv[field] = np.concatenate(rv[field]).astype(np.float64)
