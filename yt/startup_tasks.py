@@ -54,7 +54,7 @@ except (ValueError, RuntimeError, AttributeError):  # Not in main thread
 
 
 class SetExceptionHandling(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, values, _option_string=None):
         # If we recognize one of the arguments on the command line as indicating a
         # different mechanism for handling tracebacks, we attach one of those handlers
         # and remove the argument from sys.argv.
@@ -76,7 +76,7 @@ class SetExceptionHandling(argparse.Action):
 
 
 class SetConfigOption(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, parser, namespace, values, _option_string):
         param, val = values.split("=")
         mylog.debug("Overriding config: %s = %s", param, val)
         ytcfg["yt", param] = val

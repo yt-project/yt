@@ -2636,7 +2636,6 @@ class YTOctree(YTSelectionContainer3D):
         over_refine_factor=1,
         density_factor=1,
         ptypes=None,
-        force_build=False,
         ds=None,
         field_parameters=None,
     ):

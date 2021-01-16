@@ -43,11 +43,6 @@ class IOHandlerFLASH(BaseIOHandler):
         self._particle_handle = ds._particle_handle
         self._particle_fields = determine_particle_fields(self._particle_handle)
 
-    def _read_particles(
-        self, fields_to_read, type, args, grid_list, count_list, conv_factors
-    ):
-        pass
-
     def io_iter(self, chunks, fields):
         f = self._handle
         for chunk in chunks:

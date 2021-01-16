@@ -267,32 +267,6 @@ def _handle_hashes(save_dir_name, fname, hashes, answer_store):
         _compare_result(hashes, answer_file)
 
 
-def _save_arrays(save_dir_name, fbasename, arrays, answer_store):
-    r"""
-    Driver routine for either saving the raw arrays resulting from the
-    tests, or compare them to previously saved results.
-
-    Parameters
-    ----------
-    save_dir_name : str
-        Name of the directory to save results or where results are
-        already saved.
-
-    fbasename : str
-        Base name (no extension) of the file to either save results
-        to or where results are already saved.
-
-    arrays : dict
-        The raw arrays generated from the tests, with the test name
-        as a key.
-
-    answer_store : bool
-        If true, save the just-generated test results, otherwise,
-        compare them to the previously saved results.
-    """
-    pass
-
-
 def can_run_ds(ds_fn, file_check=False):
     r"""
     Validates whether or not a given input can be loaded and used as a

@@ -393,15 +393,15 @@ def is_root():
 #
 
 
-def signal_print_traceback(signo, frame):
+def signal_print_traceback(_signo, frame):
     print(traceback.print_stack(frame))
 
 
-def signal_problem(signo, frame):
+def signal_problem(_signo, _frame):
     raise RuntimeError()
 
 
-def signal_ipython(signo, frame):
+def signal_ipython(_signo, _frame):
     insert_ipython(2)
 
 

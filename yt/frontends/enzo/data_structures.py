@@ -987,7 +987,7 @@ class EnzoDataset(Dataset):
         return os.path.exists(f"{filename}.hierarchy")
 
     @classmethod
-    def _guess_candidates(cls, base, directories, files):
+    def _guess_candidates(cls, base, files):
         candidates = [
             _
             for _ in files

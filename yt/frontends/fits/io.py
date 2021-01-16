@@ -13,11 +13,6 @@ class IOHandlerFITS(BaseIOHandler):
         self.ds = ds
         self._handle = ds._handle
 
-    def _read_particles(
-        self, fields_to_read, type, args, grid_list, count_list, conv_factors
-    ):
-        pass
-
     def _read_particle_coords(self, chunks, ptf):
         pdata = self.ds._handle[self.ds.first_image].data
         assert len(ptf) == 1

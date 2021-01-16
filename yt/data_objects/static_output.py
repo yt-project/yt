@@ -70,7 +70,7 @@ class MutableAttribute:
         self.data = weakref.WeakKeyDictionary()
         self.display_array = display_array
 
-    def __get__(self, instance, owner):
+    def __get__(self, instance, _owner):
         if not instance:
             return None
         ret = self.data.get(instance, None)
@@ -393,7 +393,7 @@ class Dataset(abc.ABC):
         return False
 
     @classmethod
-    def _guess_candidates(cls, base, directories, files):
+    def _guess_candidates(cls, _base, _files):
         """
         This is a class method that accepts a directory (base), a list of files
         in that directory, and a list of subdirectories.  It should return a
@@ -403,10 +403,13 @@ class Dataset(abc.ABC):
         This function doesn't need to catch all possibilities, nor does it need
         to filter possibilities.
         """
+        # arguments named should be prefixed by a '_' if and only if they are not used
+        # in the function's body
         return [], True
 
     def close(self):
-        pass
+        # This is implemented in some subclasses, but is not required.
+        mylog.debug("Calling Dataset.close() has no effect.")
 
     def __getitem__(self, key):
         """ Returns units, parameters, or conversion_factors in that order. """
@@ -1650,7 +1653,11 @@ class Dataset(abc.ABC):
         return ("deposit", field_name)
 
     def add_smoothed_particle_field(
-        self, smooth_field, method="volume_weighted", nneighbors=64, kernel_name="cubic"
+        self,
+        _smooth_field,
+        _method="volume_weighted",
+        _nneighbors=64,
+        _kernel_name="cubic",
     ):
         """Add a new smoothed particle field
 

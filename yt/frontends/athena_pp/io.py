@@ -27,11 +27,6 @@ class IOHandlerAthenaPP(BaseIOHandler):
         super().__init__(ds)
         self._handle = ds._handle
 
-    def _read_particles(
-        self, fields_to_read, type, args, grid_list, count_list, conv_factors
-    ):
-        pass
-
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
         if any((ftype != "athena_pp" for ftype, fname in fields)):

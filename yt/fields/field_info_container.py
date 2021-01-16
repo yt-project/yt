@@ -400,7 +400,7 @@ class FieldInfoContainer(dict):
             only_on_root(mylog.debug, "Loaded %s (%s new fields)", n, len(loaded))
         self.find_dependencies(loaded)
 
-    def load_plugin(self, plugin_name, ftype="gas", skip_check=False):
+    def load_plugin(self, plugin_name, ftype="gas"):
         if callable(plugin_name):
             f = plugin_name
         else:

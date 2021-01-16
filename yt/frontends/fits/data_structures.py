@@ -537,7 +537,7 @@ class FITSDataset(Dataset):
             return True
 
     @classmethod
-    def _guess_candidates(cls, base, directories, files):
+    def _guess_candidates(cls, base, files):
         candidates = []
         for fn, fnl in ((_, _.lower()) for _ in files):
             if (

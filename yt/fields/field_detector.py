@@ -66,7 +66,7 @@ class FieldDetector(defaultdict):
 
         class fake_index:
             class fake_io:
-                def _read_data_set(io_self, data, field):
+                def _read_data_set(_grid, field):
                     return self._read_data(field)
 
                 _read_exception = RuntimeError

@@ -464,7 +464,7 @@ class FLASHDataset(Dataset):
         return False
 
     @classmethod
-    def _guess_candidates(cls, base, directories, files):
+    def _guess_candidates(cls, base, files):
         candidates = [
             _ for _ in files if ("_hdf5_plt_cnt_" in _) or ("_hdf5_chk_" in _)
         ]
@@ -535,7 +535,7 @@ class FLASHParticleDataset(FLASHDataset):
         return False
 
     @classmethod
-    def _guess_candidates(cls, base, directories, files):
+    def _guess_candidates(cls, base, files):
         candidates = [_ for _ in files if "_hdf5_part_" in _]
         # Typically, Flash won't have nested outputs.
         return candidates, (len(candidates) == 0)

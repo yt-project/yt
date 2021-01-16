@@ -138,7 +138,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
                 end = min(ei, d.size) + offsets[fn]
                 d[si:ei] = hsml[begin:end]
 
-    def _get_smoothing_length(self, data_file, position_dtype, position_shape):
+    def _get_smoothing_length(self, data_file, position_dtype, _position_shape):
         ptype = self.ds._sph_ptypes[0]
         si, ei = data_file.start, data_file.end
         if self.ds.gen_hsmls:
@@ -455,7 +455,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 pp.shape = (count, 3)
                 yield ptype, pp
 
-    def _get_smoothing_length(self, data_file, position_dtype, position_shape):
+    def _get_smoothing_length(self, data_file, position_dtype, _position_shape):
         ret = self._get_field(data_file, "SmoothingLength", "Gas")
         if position_dtype is not None and ret.dtype != position_dtype:
             # Sometimes positions are stored in double precision

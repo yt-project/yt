@@ -61,7 +61,6 @@ def call_subprocess(np, func, args, kwargs):
     if exit_code != 0:
         print(err.decode("utf-8"))
         raise Exception("Error on spawned process. See output.")
-        return None
     return output.decode("utf-8")
 
 

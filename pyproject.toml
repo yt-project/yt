@@ -73,3 +73,9 @@ addopts = '''
     --ignore='yt/frontends/owls_subfind/tests/test_outputs.py'
     --ignore='yt/frontends/ramses/tests/test_outputs.py'
 '''
+
+[tool.vulture]
+paths = ["yt"]
+# incrementaly lower this value to 90, 80 ... to report larger
+# amounts of unused code that is harder to qualify as such
+min_confidence = 100

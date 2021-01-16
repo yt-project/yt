@@ -11,7 +11,7 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
         # This is handled below in _get_smoothing_length
         return
 
-    def _get_smoothing_length(self, data_file, position_dtype, position_shape):
+    def _get_smoothing_length(self, data_file, position_dtype, _position_shape):
         ptype = self.ds._sph_ptypes[0]
         ind = int(ptype[-1])
         si, ei = data_file.start, data_file.end

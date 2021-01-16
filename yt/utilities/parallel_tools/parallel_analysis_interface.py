@@ -861,7 +861,7 @@ class Communicator:
             data = self.comm.bcast(data, root=root)
             return data
 
-    def preload(self, grids, fields, io_handler):
+    def preload(self, _grids, _fields, _io_handler):
         # This is non-functional.
         return
 

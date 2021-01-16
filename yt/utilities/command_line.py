@@ -256,7 +256,7 @@ class YTCommand(metaclass=YTCommandSubtype):
 
 
 class GetParameterFiles(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
+    def __call__(self, _parser, namespace, values, _option_string=None):
         if len(values) == 1:
             datasets = values
         elif len(values) == 2 and namespace.basename is not None:
@@ -1830,7 +1830,7 @@ class YTSearchCmd(YTCommand):
             if args.check_all:
                 candidates.extend([os.path.join(base, _) for _ in files])
             for _, otr in sorted(output_type_registry.items()):
-                c, r = otr._guess_candidates(base, dirs, files)
+                c, r = otr._guess_candidates(base, files)
                 candidates.extend([os.path.join(base, _) for _ in c])
                 recurse.append(r)
             if len(recurse) > 0 and not all(recurse):
