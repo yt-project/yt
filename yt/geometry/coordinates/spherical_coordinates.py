@@ -328,7 +328,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         r0 = self.ds.domain_left_edge[self.axis_id["r"]]
         r1 = self.ds.domain_right_edge[self.axis_id["r"]]
         v1 = 4.0 * np.pi / 3.0 * (r1 ** 3 - r0 ** 3)
-        print("Total volume should be 4*pi*r**3 = %0.16e" % (v1))
+        print(f"Total volume should be 4*pi*r**3 = {v1:0.16e}")
         v2 = dd.quantities.total_quantity("cell_volume")
-        print("Actual volume is                   %0.16e" % (v2))
-        print("Relative difference: %0.16e" % (np.abs(v2 - v1) / (v2 + v1)))
+        print(f"Actual volume is                   {v2:0.16e}")
+        print(f"Relative difference: {np.abs(v2 - v1) / (v2 + v1):0.16e}")

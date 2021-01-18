@@ -31,13 +31,13 @@ for ds in ts.piter():
         ionized_z[i1:i2, j1:j2, k1:k2][newly_ion] = z
         g.clear_data()
 
-print("Iteration completed  %0.3e" % (time.time() - t1))
+print(f"Iteration completed  {time.time() - t1:0.3e}")
 comm = communication_system.communicators[-1]
 for i in range(ionized_z.shape[0]):
     ionized_z[i, :, :] = comm.mpi_allreduce(ionized_z[i, :, :], op="max")
     print("Slab % 3i has minimum z of %0.3e" % (i, ionized_z[i, :, :].max()))
 t2 = time.time()
-print("Completed.  %0.3e" % (t2 - t1))
+print(f"Completed.  {t2 - t1:0.3e}")
 
 if comm.rank == 0:
     f = h5py.File("IonizationCube.h5", mode="w")

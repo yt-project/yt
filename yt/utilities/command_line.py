@@ -1467,19 +1467,17 @@ class YTStatsCmd(YTCommand):
             if args.max:
                 vals["min"] = ds.find_max(args.field)
                 print(
-                    "Maximum %s: %0.5e at %s"
-                    % (args.field, vals["min"][0], vals["min"][1])
+                    f"Maximum {args.field}: {vals['min'][0]:0.5e} at {vals['min'][1]}"
                 )
             if args.min:
                 vals["max"] = ds.find_min(args.field)
                 print(
-                    "Minimum %s: %0.5e at %s"
-                    % (args.field, vals["max"][0], vals["max"][1])
+                    f"Minimum {args.field}: {vals['max'][0]:0.5e} at {vals['max'][1]}"
                 )
         if args.output is not None:
             t = ds.current_time * ds["years"]
             with open(args.output, "a") as f:
-                f.write("%s (%0.5e years)\n" % (ds, t))
+                f.write(f"{ds} ({t:0.5e} years)\n")
                 if "min" in vals:
                     f.write(
                         "Minimum %s is %0.5e at %s\n"

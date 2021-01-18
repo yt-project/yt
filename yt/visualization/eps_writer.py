@@ -67,8 +67,7 @@ class DualEPS:
         self.axes_drawn = False
 
     def hello_world(self):
-        r"""A simple test.
-        """
+        r"""A simple test."""
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
         p = pyx.path.line(0, 0, 1, 1)

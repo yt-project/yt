@@ -711,74 +711,74 @@ class YTDataContainer:
         dataset_name="yt",
     ):
         r"""This function links a region of data stored in a yt dataset
-            to the Python frontend API for [Firefly](github.com/ageller/Firefly),
-            a browser-based particle visualization platform.
+        to the Python frontend API for [Firefly](github.com/ageller/Firefly),
+        a browser-based particle visualization platform.
 
-            Parameters
-            ----------
-            path_to_firefly : string
-                The (ideally) absolute path to the direction containing the index.html
-                file of Firefly.
+        Parameters
+        ----------
+        path_to_firefly : string
+            The (ideally) absolute path to the direction containing the index.html
+            file of Firefly.
 
-            fields_to_include : array_like of strings
-                A list of fields that you want to include in your
-                Firefly visualization for on-the-fly filtering and
-                colormapping.
+        fields_to_include : array_like of strings
+            A list of fields that you want to include in your
+            Firefly visualization for on-the-fly filtering and
+            colormapping.
 
-            default_decimation_factor : integer
-                The factor by which you want to decimate each particle group
-                by (e.g. if there are 1e7 total particles in your simulation
-                you might want to set this to 100 at first). Randomly samples
-                your data like `shuffled_data[::decimation_factor]` so as to
-                not overtax a system. This is adjustable on a per particle group
-                basis by changing the returned reader's
-                `reader.particleGroup[i].decimation_factor` before calling
-                `reader.dumpToJSON()`.
+        default_decimation_factor : integer
+            The factor by which you want to decimate each particle group
+            by (e.g. if there are 1e7 total particles in your simulation
+            you might want to set this to 100 at first). Randomly samples
+            your data like `shuffled_data[::decimation_factor]` so as to
+            not overtax a system. This is adjustable on a per particle group
+            basis by changing the returned reader's
+            `reader.particleGroup[i].decimation_factor` before calling
+            `reader.dumpToJSON()`.
 
-            velocity_units : string
-                The units that the velocity should be converted to in order to
-                show streamlines in Firefly. Defaults to km/s.
+        velocity_units : string
+            The units that the velocity should be converted to in order to
+            show streamlines in Firefly. Defaults to km/s.
 
-            coordinate_units: string
-                The units that the coordinates should be converted to. Defaults to
-                kpc.
+        coordinate_units: string
+            The units that the coordinates should be converted to. Defaults to
+            kpc.
 
-            show_unused_fields: boolean
-                A flag to optionally print the fields that are available, in the
-                dataset but were not explicitly requested to be tracked.
+        show_unused_fields: boolean
+            A flag to optionally print the fields that are available, in the
+            dataset but were not explicitly requested to be tracked.
 
-            dataset_name: string
-                The name of the subdirectory the JSON files will be stored in
-                (and the name that will appear in startup.json and in the dropdown
-                menu at startup). e.g. `yt` -> json files will appear in
-                `Firefly/data/yt`.
+        dataset_name: string
+            The name of the subdirectory the JSON files will be stored in
+            (and the name that will appear in startup.json and in the dropdown
+            menu at startup). e.g. `yt` -> json files will appear in
+            `Firefly/data/yt`.
 
-            Returns
-            -------
-            reader : firefly_api.reader.Reader object
-                A reader object from the firefly_api, configured
-                to output
+        Returns
+        -------
+        reader : firefly_api.reader.Reader object
+            A reader object from the firefly_api, configured
+            to output
 
-            Examples
-            --------
+        Examples
+        --------
 
-                >>> ramses_ds = yt.load(
-                ...     "/Users/agurvich/Desktop/yt_workshop/"+
-                ...     "DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt")
+            >>> ramses_ds = yt.load(
+            ...     "/Users/agurvich/Desktop/yt_workshop/"+
+            ...     "DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt")
 
-                >>> region = ramses_ds.sphere(ramses_ds.domain_center,(1000,'kpc'))
+            >>> region = ramses_ds.sphere(ramses_ds.domain_center,(1000,'kpc'))
 
-                >>> reader = region.create_firefly_object(
-                ...     path_to_firefly="/Users/agurvich/research/repos/Firefly",
-                ...     fields_to_include=[
-                ...     'particle_extra_field_1',
-                ...     'particle_extra_field_2'],
-                ...     fields_units = ['dimensionless','dimensionless'],
-                ...     dataset_name = 'IsoGalaxyRamses')
+            >>> reader = region.create_firefly_object(
+            ...     path_to_firefly="/Users/agurvich/research/repos/Firefly",
+            ...     fields_to_include=[
+            ...     'particle_extra_field_1',
+            ...     'particle_extra_field_2'],
+            ...     fields_units = ['dimensionless','dimensionless'],
+            ...     dataset_name = 'IsoGalaxyRamses')
 
-                >>> reader.options['color']['io']=[1,1,0,1]
-                >>> reader.particleGroups[0].decimation_factor=100
-                >>> reader.dumpToJSON()
+            >>> reader.options['color']['io']=[1,1,0,1]
+            >>> reader.particleGroups[0].decimation_factor=100
+            >>> reader.dumpToJSON()
         """
 
         ## attempt to import firefly_api

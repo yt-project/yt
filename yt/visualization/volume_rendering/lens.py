@@ -13,7 +13,9 @@ from yt.utilities.parallel_tools.parallel_analysis_interface import (
 class Lens(ParallelAnalysisInterface):
     """A Lens is used to define the set of rays for rendering."""
 
-    def __init__(self,):
+    def __init__(
+        self,
+    ):
         super(Lens, self).__init__()
         self.viewpoint = None
         self.sub_samples = 5
@@ -78,7 +80,9 @@ class PlaneParallelLens(Lens):
     The initializer takes no parameters.
     """
 
-    def __init__(self,):
+    def __init__(
+        self,
+    ):
         super(PlaneParallelLens, self).__init__()
 
     def _get_sampler_params(self, camera, render_source):

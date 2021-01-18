@@ -1195,14 +1195,17 @@ def assert_fname(fname):
 
     extension = os.path.splitext(fname)[1]
 
-    assert image_type == extension, (
-        "Expected an image of type '%s' but '%s' is an image of type '%s'"
-        % (extension, fname, image_type)
+    assert (
+        image_type == extension
+    ), "Expected an image of type '%s' but '%s' is an image of type '%s'" % (
+        extension,
+        fname,
+        image_type,
     )
 
 
 def requires_backend(backend):
-    """ Decorator to check for a specified matplotlib backend.
+    """Decorator to check for a specified matplotlib backend.
 
     This decorator returns the decorated function if the specified `backend`
     is same as of `matplotlib.get_backend()`, otherwise returns null function.

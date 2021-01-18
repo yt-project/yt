@@ -793,9 +793,7 @@ class PlotWindow(ImagePlotContainer):
 
 
 class PWViewerMPL(PlotWindow):
-    """Viewer using matplotlib as a backend via the WindowPlotMPL.
-
-    """
+    """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
     _frb_generator = None

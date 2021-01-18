@@ -1234,7 +1234,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             else:
                 f = open(filename, "w")
             for v1 in verts:
-                f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
+                f.write(f"v {v1[0]:0.16e} {v1[1]:0.16e} {v1[2]:0.16e}\n")
             for i in range(len(verts) // 3):
                 f.write(f"f {i * 3 + 1} {i * 3 + 2} {i * 3 + 3}\n")
             if not hasattr(filename, "write"):

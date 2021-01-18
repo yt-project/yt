@@ -262,7 +262,7 @@ class SDFRead(dict):
     _data_struct = DataStruct
 
     def __init__(self, filename=None, header=None):
-        r""" Read an SDF file, loading parameters and variables.
+        r"""Read an SDF file, loading parameters and variables.
 
         Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
         ASCII header and construct numpy memmap array
@@ -439,7 +439,7 @@ class SDFRead(dict):
 
 class HTTPSDFRead(SDFRead):
 
-    r""" Read an SDF file hosted on the internet.
+    r"""Read an SDF file hosted on the internet.
 
     Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
     ASCII header and construct numpy memmap array
@@ -501,7 +501,7 @@ class HTTPSDFRead(SDFRead):
 
 
 def load_sdf(filename, header=None):
-    r""" Load an SDF file.
+    r"""Load an SDF file.
 
     Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
     ASCII header and construct numpy memmap array access. The file can

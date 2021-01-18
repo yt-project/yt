@@ -233,10 +233,10 @@ class RAMSESDomainFile:
 
     def _read_amr(self):
         """Open the oct file, read in octs level-by-level.
-           For each oct, only the position, index, level and domain
-           are needed - its position in the octree is found automatically.
-           The most important is finding all the information to feed
-           oct_handler.add
+        For each oct, only the position, index, level and domain
+        are needed - its position in the octree is found automatically.
+        The most important is finding all the information to feed
+        oct_handler.add
         """
         self.oct_handler = RAMSESOctreeContainer(
             self.ds.domain_dimensions / 2,
@@ -622,7 +622,7 @@ class RAMSESIndex(OctreeIndex):
 
         dx = self.get_smallest_dx()
         try:
-            print("z = %0.8f" % (self.dataset.current_redshift))
+            print(f"z = {self.dataset.current_redshift:0.8f}")
         except Exception:
             pass
         print(
@@ -635,7 +635,7 @@ class RAMSESIndex(OctreeIndex):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
+            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
 
 
 class RAMSESDataset(Dataset):

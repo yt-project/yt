@@ -558,9 +558,7 @@ class BoxlibHierarchy(GridIndex):
         self.grid_start_index = np.zeros((self.num_grids, 3), "int64")
 
     def _initialize_state_variables(self):
-        """override to not re-initialize num_grids in AMRHierarchy.__init__
-
-        """
+        """override to not re-initialize num_grids in AMRHierarchy.__init__"""
         self._parallel_locking = False
         self._data_file = None
         self._data_mode = None
@@ -976,9 +974,7 @@ class OrionHierarchy(BoxlibHierarchy):
             self._read_particle_file(self.particle_filename)
 
     def _read_particle_file(self, fn):
-        """actually reads the orion particle data file itself.
-
-        """
+        """actually reads the orion particle data file itself."""
         if not os.path.exists(fn):
             return
         with open(fn, "r") as f:

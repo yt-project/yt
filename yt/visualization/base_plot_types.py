@@ -65,9 +65,7 @@ class CallbackWrapper:
 
 
 class PlotMPL:
-    """A base class for all yt plots made using matplotlib, that is backend independent.
-
-    """
+    """A base class for all yt plots made using matplotlib, that is backend independent."""
 
     def __init__(self, fsize, axrect, figure, axes):
         """Initialize PlotMPL class"""
@@ -201,9 +199,7 @@ class PlotMPL:
 
 
 class ImagePlotMPL(PlotMPL):
-    """A base class for yt plots made using imshow
-
-    """
+    """A base class for yt plots made using imshow"""
 
     def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
         """Initialize ImagePlotMPL class object"""
@@ -307,16 +303,19 @@ class ImagePlotMPL(PlotMPL):
                     )
                 )
             elif np.nanmax(data) <= 0.0:
-                yticks = list(
-                    -(
-                        10
-                        ** np.arange(
-                            np.floor(np.log10(-np.nanmin(data))),
-                            np.rint(np.log10(cblinthresh)) - 1,
-                            -1,
+                yticks = (
+                    list(
+                        -(
+                            10
+                            ** np.arange(
+                                np.floor(np.log10(-np.nanmin(data))),
+                                np.rint(np.log10(cblinthresh)) - 1,
+                                -1,
+                            )
                         )
                     )
-                ) + [np.nanmax(data).v]
+                    + [np.nanmax(data).v]
+                )
             else:
                 yticks = (
                     list(

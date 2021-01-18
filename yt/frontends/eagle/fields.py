@@ -133,8 +133,7 @@ class EagleNetworkFieldInfo(OWLSFieldInfo):
         )
 
     def _create_ion_density_func(self, ftype, ion):
-        """ returns a function that calculates the ion density of a particle.
-        """
+        """returns a function that calculates the ion density of a particle."""
 
         def _ion_density(field, data):
 

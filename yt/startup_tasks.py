@@ -145,11 +145,15 @@ if not ytcfg.getboolean("yt", "__command_line"):
     if opts.parallel:
         parallel_capable = turn_on_parallelism()
     subparsers = parser.add_subparsers(
-        title="subcommands", dest="subcommands", description="Valid subcommands",
+        title="subcommands",
+        dest="subcommands",
+        description="Valid subcommands",
     )
 else:
     subparsers = parser.add_subparsers(
-        title="subcommands", dest="subcommands", description="Valid subcommands",
+        title="subcommands",
+        dest="subcommands",
+        description="Valid subcommands",
     )
 
     def print_help(*args, **kwargs):

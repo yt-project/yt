@@ -10,7 +10,7 @@ ndimage = _scipy.ndimage
 
 
 def test_no_rotation():
-    """ Determines if a projection processed through
+    """Determines if a projection processed through
     off_axis_projection with no rotation will give the same
     image buffer if processed directly through
     pixelize_sph_kernel_projection
@@ -43,18 +43,18 @@ def test_no_rotation():
 
 @requires_module("scipy")
 def test_basic_rotation_1():
-    """ All particles on Z-axis should now be on the negative Y-Axis
-        fake_sph_orientation has three z-axis particles,
-        so there should be three y-axis particles after rotation
-        (0, 0, 1) -> (0, -1)
-        (0, 0, 2) -> (0, -2)
-        (0, 0, 3) -> (0, -3)
-        In addition, we should find a local maxima at (0, 0) due to:
-        (0, 0, 0) -> (0, 0)
-        (0, 1, 0) -> (0, 0)
-        (0, 2, 0) -> (0, 0)
-        and the one particle on the x-axis should not change its position:
-        (1, 0, 0) -> (1, 0)
+    """All particles on Z-axis should now be on the negative Y-Axis
+    fake_sph_orientation has three z-axis particles,
+    so there should be three y-axis particles after rotation
+    (0, 0, 1) -> (0, -1)
+    (0, 0, 2) -> (0, -2)
+    (0, 0, 3) -> (0, -3)
+    In addition, we should find a local maxima at (0, 0) due to:
+    (0, 0, 0) -> (0, 0)
+    (0, 1, 0) -> (0, 0)
+    (0, 2, 0) -> (0, 0)
+    and the one particle on the x-axis should not change its position:
+    (1, 0, 0) -> (1, 0)
     """
     expected_maxima = ([0.0, 0.0, 0.0, 0.0, 1.0], [0.0, -1.0, -2.0, -3.0, 0.0])
     normal_vector = [0.0, 1.0, 0.0]
@@ -79,7 +79,7 @@ def test_basic_rotation_1():
 
 @requires_module("scipy")
 def test_basic_rotation_2():
-    """ Rotation of x-axis onto z-axis.
+    """Rotation of x-axis onto z-axis.
     All particles on z-axis should now be on the negative x-Axis fake_sph_orientation
     has three z-axis particles, so there should be three x-axis particles after rotation
     (0, 0, 1) -> (-1, 0)
@@ -149,7 +149,7 @@ def test_basic_rotation_3():
 
 @requires_module("scipy")
 def test_basic_rotation_4():
-    """ Rotation of x-axis to z-axis and original z-axis to y-axis with the use
+    """Rotation of x-axis to z-axis and original z-axis to y-axis with the use
     of the north_vector. All fake particles on z-axis should now be on the
     y-Axis.  All fake particles on the x-axis should now be on the z-axis, and
     all fake particles on the y-axis should now be on the x-axis.
@@ -188,7 +188,7 @@ def test_basic_rotation_4():
 
 @requires_module("scipy")
 def test_center_1():
-    """ Change the center to [0, 3, 0]
+    """Change the center to [0, 3, 0]
     Every point will be shifted by 3 in the y-domain
     With this, we should not be able to see any of the y-axis particles
     (0, 1, 0) -> (0, -2)
@@ -218,7 +218,7 @@ def test_center_1():
 
 @requires_module("scipy")
 def test_center_2():
-    """ Change the center to [0, -1, 0]
+    """Change the center to [0, -1, 0]
     Every point will be shifted by 1 in the y-domain
     With this, we should not be able to see any of the y-axis particles
     (0, 1, 0) -> (0, 2)
@@ -245,7 +245,7 @@ def test_center_2():
 
 @requires_module("scipy")
 def test_center_3():
-    """ Change the center to the left edge, or [0, -8, 0]
+    """Change the center to the left edge, or [0, -8, 0]
     Every point will be shifted by 8 in the y-domain
     With this, we should not be able to see anything !
     """
