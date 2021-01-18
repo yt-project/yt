@@ -44,7 +44,6 @@ from yt.fields.api import (
     field_plugins,
 )
 from yt.funcs import (
-    deprecated_class,
     enable_plugins,
     get_memory_usage,
     get_pbar,
@@ -87,10 +86,6 @@ frontends = _frontend_container()
 from yt.frontends.stream.api import hexahedral_connectivity
 from yt.frontends.ytdata.api import save_as_dataset
 
-# For backwards compatibility
-GadgetDataset = frontends.gadget.GadgetDataset
-TipsyDataset = frontends.tipsy.TipsyDataset
-
 import yt.visualization.volume_rendering.api as volume_rendering
 from yt.loaders import simulation  # deprecated alias for load_simulation
 from yt.loaders import (
@@ -126,7 +121,6 @@ from yt.visualization.api import (
     FixedResolutionBuffer,
     LineBuffer,
     LinePlot,
-    ObliqueFixedResolutionBuffer,
     OffAxisProjectionPlot,
     OffAxisSlicePlot,
     ParticleImageBuffer,
