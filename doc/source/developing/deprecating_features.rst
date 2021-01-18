@@ -2,7 +2,7 @@ How to deprecate a feature
 --------------------------
 
 Since the 4.0.0 release, deprecation happens on a per-release basis.
-A functionality can be marked as deprecated using 
+A functionality can be marked as deprecated using
 ``~yt._maintenance.deprecation.issue_deprecation_warning``, which takes a warning
 message and two version numbers, indicating the earliest release deprecating the feature
 and the one in which it will be removed completely.
@@ -29,4 +29,4 @@ If a whole function or class is marked as deprecated, it should be removed from
 ``doc/source/reference/api/api.rst``.
 
 
-.. [#] ``since`` is not required yet as of yt 4.0.0 because existing warnings predate its introduction. 
+.. [#] ``since`` is not required yet as of yt 4.0.0 because existing warnings predate its introduction.

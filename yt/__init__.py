@@ -43,6 +43,7 @@ from yt.fields.api import (
     derived_field,
     field_plugins,
 )
+from yt.frontends.api import _frontend_container
 from yt.funcs import (
     enable_plugins,
     get_memory_usage,
@@ -79,14 +80,11 @@ from yt.units import (
 from yt.units.unit_object import define_unit
 from yt.utilities.logger import set_log_level, ytLogger as mylog
 
-from yt.frontends.api import _frontend_container
-
 frontends = _frontend_container()
 
+import yt.visualization.volume_rendering.api as volume_rendering
 from yt.frontends.stream.api import hexahedral_connectivity
 from yt.frontends.ytdata.api import save_as_dataset
-
-import yt.visualization.volume_rendering.api as volume_rendering
 from yt.loaders import simulation  # deprecated alias for load_simulation
 from yt.loaders import (
     load,
@@ -154,8 +152,8 @@ from yt.visualization.volume_rendering.api import (
 
 
 def _check_deprecated_parameters():
-    from yt.config import ytcfg
     from yt._maintenance.deprecation import issue_deprecation_warning
+    from yt.config import ytcfg
 
     if ytcfg.getboolean("yt", "loadfieldplugins"):
         issue_deprecation_warning(
