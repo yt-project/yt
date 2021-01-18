@@ -805,9 +805,7 @@ class PlotContainer:
 
 
 class ImagePlotContainer(PlotContainer):
-    """A container for plots with colorbars.
-
-    """
+    """A container for plots with colorbars."""
 
     _colorbar_valid = False
 

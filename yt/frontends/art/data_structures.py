@@ -882,10 +882,10 @@ class ARTDomainFile:
 
     def _read_amr_level(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
-           For each oct, only the position, index, level and domain
-           are needed - its position in the octree is found automatically.
-           The most important is finding all the information to feed
-           oct_handler.add
+        For each oct, only the position, index, level and domain
+        are needed - its position in the octree is found automatically.
+        The most important is finding all the information to feed
+        oct_handler.add
         """
         self.level_offsets
         f = open(self.ds._file_amr, "rb")

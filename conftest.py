@@ -30,16 +30,23 @@ def pytest_addoption(parser):
     Lets options be passed to test functions.
     """
     parser.addoption(
-        "--with-answer-testing", action="store_true", default=False,
+        "--with-answer-testing",
+        action="store_true",
+        default=False,
     )
     parser.addoption(
-        "--answer-store", action="store_true", default=False,
+        "--answer-store",
+        action="store_true",
+        default=False,
     )
     parser.addoption(
-        "--answer-big-data", action="store_true", default=False,
+        "--answer-big-data",
+        action="store_true",
+        default=False,
     )
     parser.addoption(
-        "--save-answer-arrays", action="store_true",
+        "--save-answer-arrays",
+        action="store_true",
     )
 
 

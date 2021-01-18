@@ -1063,7 +1063,7 @@ def memory_checker(interval=15, dest=None):
 
         def run(self):
             while not self.event.wait(self.interval):
-                print("MEMORY: %0.3e gb" % (get_memory_usage() / 1024.0), file=dest)
+                print(f"MEMORY: {get_memory_usage() / 1024.0:0.3e} gb", file=dest)
 
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)

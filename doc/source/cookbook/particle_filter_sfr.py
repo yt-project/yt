@@ -24,7 +24,11 @@ formation_time = ad["formed_star", "creation_time"].in_units("yr")
 
 time_range = [0, 5e8]  # years
 n_bins = 1000
-hist, bins = np.histogram(formation_time, bins=n_bins, range=time_range,)
+hist, bins = np.histogram(
+    formation_time,
+    bins=n_bins,
+    range=time_range,
+)
 inds = np.digitize(formation_time, bins=bins)
 time = (bins[:-1] + bins[1:]) / 2
 

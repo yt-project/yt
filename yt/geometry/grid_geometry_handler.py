@@ -222,7 +222,7 @@ class GridIndex(Index, abc.ABC):
         )
         print("\n")
         try:
-            print("z = %0.8f" % (self["CosmologyCurrentRedshift"]))
+            print(f"z = {self['CosmologyCurrentRedshift']:0.8f}")
         except Exception:
             pass
         print(
@@ -235,7 +235,7 @@ class GridIndex(Index, abc.ABC):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
+            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
 
     def _find_field_values_at_points(self, fields, coords):
         r"""Find the value of fields at a set of coordinates.

@@ -128,7 +128,9 @@ if __name__ == "__main__":
         ],
         keywords="astronomy astrophysics visualization " + "amr adaptivemeshrefinement",
         entry_points={
-            "console_scripts": ["yt = yt.utilities.command_line:run_main",],
+            "console_scripts": [
+                "yt = yt.utilities.command_line:run_main",
+            ],
             "nose.plugins.0.10": [
                 "answer-testing = yt.utilities.answer_testing.framework:AnswerTesting"
             ],

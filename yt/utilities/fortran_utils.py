@@ -261,7 +261,7 @@ def skip(f, n=1, endian="="):
 
 
 def peek_record_size(f, endian="="):
-    r""" This function accept the file handle and returns
+    r"""This function accept the file handle and returns
     the size of the next record and then rewinds the file
     to the previous position.
 

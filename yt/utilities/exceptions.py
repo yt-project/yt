@@ -63,7 +63,7 @@ class YTSphereTooSmall(YTException):
         self.smallest_cell = smallest_cell
 
     def __str__(self):
-        return "%0.5e < %0.5e" % (self.radius, self.smallest_cell)
+        return f"{self.radius:0.5e} < {self.smallest_cell:0.5e}"
 
 
 class YTAxesNotOrthogonalError(YTException):
@@ -444,7 +444,7 @@ class YTIllDefinedBounds(YTException):
         self.ub = ub
 
     def __str__(self):
-        v = "The bounds %0.3e and %0.3e are ill-defined. " % (self.lb, self.ub)
+        v = f"The bounds {self.lb:0.3e} and {self.ub:0.3e} are ill-defined. "
         v += "Typically this happens when a log binning is specified "
         v += "and zero or negative values are given for the bounds."
         return v
@@ -483,13 +483,8 @@ class YTRockstarMultiMassNotSupported(YTException):
         self.ptype = ptype
 
     def __str__(self):
-        v = "Particle type '%s' has minimum mass %0.3e and maximum " % (
-            self.ptype,
-            self.mi,
-        )
-        v += "mass %0.3e.  Multi-mass particles are not currently supported." % (
-            self.ma
-        )
+        v = f"Particle type '{self.ptype}' has minimum mass {self.mi:0.3e} and maximum "
+        v += f"mass {self.ma:0.3e}.  Multi-mass particles are not currently supported."
         return v
 
 

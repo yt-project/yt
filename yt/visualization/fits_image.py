@@ -59,7 +59,7 @@ class FITSImageData:
         unit_header=None,
         **kwargs,
     ):
-        r""" Initialize a FITSImageData object.
+        r"""Initialize a FITSImageData object.
 
         FITSImageData contains a collection of FITS ImageHDU instances and
         WCS information, along with units for each of the images. FITSImageData
