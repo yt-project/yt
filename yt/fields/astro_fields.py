@@ -137,6 +137,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
 
     def _relativistic_gamma(field, data):
         b2 = data[ftype, "relativistic_beta"]
+        b2 *= b2
         return 1.0/np.sqrt(1.0-b2)
 
     registry.add_field(
