@@ -103,7 +103,12 @@ class SavedDataset(Dataset):
             del self.parameters[par]
 
         for attr in self._con_attrs:
-            setattr(self, attr, self.parameters.get(attr))
+            try:
+                setattr(self, attr, self.parameters.get(attr))
+            except TypeError:
+                # some Dataset attributes are properties with setters
+                # which may not accept None as an input
+                pass
 
         if self.geometry is None:
             self.geometry = "cartesian"
@@ -519,7 +524,7 @@ class YTGridDataset(YTDataset):
                     self.domain_right_edge - self.domain_left_edge
                 ) / self.domain_dimensions
 
-            self.periodicity = (
+            self._periodicity = (
                 np.abs(self.domain_left_edge - self.base_domain_left_edge) < 0.5 * dx
             )
             self.periodicity &= (

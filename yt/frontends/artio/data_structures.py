@@ -483,7 +483,7 @@ class ARTIODataset(Dataset):
             self.parameters["unit_m"] = self.artio_parameters["mass_unit"][0]
 
         # hard coded assumption of 3D periodicity
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
     def create_field_info(self):
         super(ARTIODataset, self).create_field_info()

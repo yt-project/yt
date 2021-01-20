@@ -168,7 +168,7 @@ class TipsyDataset(SPHDataset):
         self.domain_dimensions = np.ones(3, "int32")
         periodic = self.parameters.get("bPeriodic", True)
         period = self.parameters.get("dPeriod", None)
-        self.periodicity = (periodic, periodic, periodic)
+        self._periodicity = (periodic, periodic, periodic)
         self.cosmological_simulation = float(
             self.parameters.get("bComove", self._cosmology_parameters is not None)
         )

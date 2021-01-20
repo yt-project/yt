@@ -158,7 +158,8 @@ class Dataset(abc.ABC):
     domain_left_edge = MutableAttribute(True)
     domain_right_edge = MutableAttribute(True)
     domain_dimensions = MutableAttribute(True)
-    periodicity = MutableAttribute()
+    _periodicity = MutableAttribute()
+    _force_periodicity = False
 
     # these are set in self._set_derived_attrs()
     domain_width = MutableAttribute(True)
@@ -272,6 +273,40 @@ class Dataset(abc.ABC):
     @unique_identifier.setter
     def unique_identifier(self, value):
         self._unique_identifier = value
+
+    @property
+    def periodicity(self):
+        if self._force_periodicity:
+            return (True, True, True)
+        return self._periodicity
+
+    @periodicity.setter
+    def periodicity(self, val):
+        # remove this setter to break backward compatibility
+        issue_deprecation_warning(
+            "Dataset.periodicity should not be overriden manually. "
+            "In the future, this will become an error. "
+            "Use `Dataset.force_periodicity` instead."
+        )
+        err_msg = f"Expected a 3-element boolean tuple, received `{val}`."
+        if not is_sequence(val):
+            raise TypeError(err_msg)
+        if len(val) != 3:
+            raise ValueError(err_msg)
+        if any(not isinstance(p, (bool, np.bool_)) for p in val):
+            raise TypeError(err_msg)
+        self._periodicity = tuple(bool(p) for p in val)
+
+    def force_periodicity(self, val=True):
+        """
+        Override box periodicity to (True, True, True).
+        Use ds.force_periodicty(False) to use the actual box periodicity.
+        """
+        # This is a user-facing method that embrace a long-standing
+        # workaround in yt user codes.
+        if not isinstance(val, bool):
+            raise TypeError("force_periodicity expected a boolean.")
+        self._force_periodicity = val
 
     # abstract methods require implementation in subclasses
     @classmethod

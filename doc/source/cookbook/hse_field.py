@@ -37,9 +37,8 @@ ds.add_field(
 )
 
 # The gradient operator requires periodic boundaries.  This dataset has
-# open boundary conditions.  We need to hack it for now (this will be fixed
-# in future version of yt)
-ds.periodicity = (True, True, True)
+# open boundary conditions.
+ds.force_periodicity()
 
 # Take a slice through the center of the domain
 slc = yt.SlicePlot(ds, 2, ["density", "HSE"], width=(1, "Mpc"))

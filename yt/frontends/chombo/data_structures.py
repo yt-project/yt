@@ -334,7 +334,7 @@ class ChomboDataset(Dataset):
                 ]
             except KeyError:
                 is_periodic[dir] = True
-        self.periodicity = tuple(is_periodic)
+        self._periodicity = tuple(is_periodic)
 
     def _calc_left_edge(self):
         fileh = self._handle
@@ -516,7 +516,7 @@ class PlutoDataset(ChomboDataset):
             ):
                 domain_left_edge[il] = float(ll.split()[2])
                 domain_right_edge[il] = float(ll.split()[-1])
-            self.periodicity = [0] * 3
+            self._periodicity = [0] * 3
             for il, ll in enumerate(
                 lines[
                     lines.index("[Boundary]")
@@ -526,7 +526,7 @@ class PlutoDataset(ChomboDataset):
                 ]
             ):
                 self.periodicity[il] = ll.split()[1] == "periodic"
-            self.periodicity = tuple(self.periodicity)
+            self._periodicity = tuple(self.periodicity)
             for ll in lines[lines.index("[Parameters]") + 2 :]:
                 if ll.split()[0] == "GAMMA":
                     self.gamma = float(ll.split()[1])
@@ -535,7 +535,7 @@ class PlutoDataset(ChomboDataset):
         else:
             self.domain_left_edge = self._calc_left_edge()
             self.domain_right_edge = self._calc_right_edge()
-            self.periodicity = (True, True, True)
+            self._periodicity = (True, True, True)
 
         # if a lower-dimensional dataset, set up pseudo-3D stuff here.
         if self.dimensionality == 1:

@@ -774,7 +774,7 @@ class EnzoDataset(Dataset):
         internal = p["Internal"]
         phys = p["Physics"]
         self.refine_by = sim["AMR"]["RefineBy"]
-        self.periodicity = tuple(
+        self._periodicity = tuple(
             a == 3 for a in sim["Domain"]["LeftFaceBoundaryCondition"]
         )
         self.dimensionality = sim["Domain"]["TopGridRank"]
@@ -853,7 +853,7 @@ class EnzoDataset(Dataset):
             else:
                 self.parameters[param] = vals
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = tuple(
+        self._periodicity = tuple(
             always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
         )
         self.dimensionality = self.parameters["TopGridRank"]
@@ -1031,7 +1031,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         for p, v in self._conversion_override.items():
             self.conversion_factors[p] = v
         self.refine_by = self.parameters["RefineBy"]
-        self.periodicity = tuple(
+        self._periodicity = tuple(
             always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
         )
         self.dimensionality = self.parameters["TopGridRank"]

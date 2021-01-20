@@ -291,7 +291,7 @@ class StreamDataset(Dataset):
         self.domain_right_edge = self.stream_handler.domain_right_edge.copy()
         self.refine_by = self.stream_handler.refine_by
         self.dimensionality = self.stream_handler.dimensionality
-        self.periodicity = self.stream_handler.periodicity
+        self._periodicity = self.stream_handler.periodicity
         self.domain_dimensions = self.stream_handler.domain_dimensions
         self.current_time = self.stream_handler.simulation_time
         self.gamma = 5.0 / 3.0

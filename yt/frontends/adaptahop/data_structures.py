@@ -107,7 +107,7 @@ class AdaptaHOPDataset(Dataset):
         self.current_time = self.quan(params["age"], "Gyr")
         self.omega_lambda = 0.724  # hard coded if not inferred from parent ds
         self.hubble_constant = 0.7  # hard coded if not inferred from parent ds
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.particle_types = "halos"
         self.particle_types_raw = "halos"
 

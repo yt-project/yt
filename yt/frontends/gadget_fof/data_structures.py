@@ -217,7 +217,7 @@ class GadgetFOFDataset(ParticleDataset):
         self.domain_right_edge = np.ones(3, "float64") * self.parameters["BoxSize"]
         self.domain_dimensions = np.ones(3, "int32")
         self.cosmological_simulation = 1
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.current_redshift = self.parameters["Redshift"]
         self.omega_lambda = self.parameters["OmegaLambda"]
         self.omega_matter = self.parameters["Omega0"]
