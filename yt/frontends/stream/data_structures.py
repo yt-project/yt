@@ -106,7 +106,7 @@ class StreamHandler:
         self.code_units = code_units
         self.io = io
         self.particle_types = particle_types
-        self._periodicity = periodicity
+        self.periodicity = periodicity
 
     def get_fields(self):
         return self.fields.all_fields
