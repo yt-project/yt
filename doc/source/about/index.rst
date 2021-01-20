@@ -31,7 +31,7 @@ contributions to the code, see
 `our members website. <https://yt-project.org/members.html>`_
 
 For an up-to-date list of everyone who has contributed to the yt codebase,
-see the current `CREDITS <https://github.com/yt-project/yt/blob/master/CREDITS>`_ file.
+see the current `CREDITS <https://github.com/yt-project/yt/blob/main/CREDITS>`_ file.
 For a more detailed breakup of contributions made by individual users, see out
 `Open HUB page <https://www.openhub.net/p/yt_amr/contributors?query=&sort=commits>`_.
 
