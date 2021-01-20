@@ -501,9 +501,9 @@ class FieldInfoContainer(dict):
         dfl = list(sorted(dfl, key=tupleize))
 
         if not hasattr(self.ds.index, "meshes"):
-            # the meshes attribute characterizes a unstructured-mesh data structure
+            # the meshes attribute characterizes an unstructured-mesh data structure
 
-            # ideally this fitlering should not be required
+            # ideally this filtering should not be required
             # and this could maybe be handled in fi.get_dependencies
             # but it's a lot easier to do here
 
