@@ -15,15 +15,18 @@ import time
 import urllib
 import zlib
 from collections import defaultdict
+from typing import Any, Optional
 
 import numpy as np
 from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
+from mypy_extensions import NoReturn
 from nose.plugins import Plugin
 
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
+from yt.frontends.ramses.data_structures import RAMSESDataset
 from yt.funcs import get_pbar, issue_deprecation_warning
 from yt.loaders import load, load_simulation
 from yt.testing import (
@@ -339,7 +342,12 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
     return result_storage is not None
 
 
-def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
+def data_dir_load(
+    ds_fn: str,
+    cls: Optional[Any] = None,
+    args: Optional[Any] = None,
+    kwargs: Optional[Any] = None,
+) -> RAMSESDataset:
     args = args or ()
     kwargs = kwargs or {}
     path = ytcfg.get("yt", "test_data_dir")
@@ -1165,7 +1173,7 @@ def requires_ds(ds_fn, big_data=False, file_check=False):
 
     def ffalse(func):
         @wraps(func)
-        def fskip(*args, **kwargs):
+        def fskip(*args: Any, **kwargs: Any) -> NoReturn:
             raise SkipTest
 
         return fskip

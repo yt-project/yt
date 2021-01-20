@@ -1,12 +1,20 @@
 import os
 import weakref
 from contextlib import contextmanager
+from typing import Any, Iterator, List, Optional, Tuple, Union
+from weakref import proxy as weakproxy
 
 import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array
 
 from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.particle_filters import DummyFieldInfo
 from yt.data_objects.profiles import create_profile
+from yt.data_objects.selection_objects.region import YTRegion
+from yt.fields.derived_field import DerivedField
 from yt.fields.field_exceptions import NeedsGridType
+from yt.frontends.ramses.data_structures import RAMSESIndex
 from yt.frontends.ytdata.utilities import save_as_dataset
 from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
 from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
@@ -66,7 +74,7 @@ class YTDataContainer:
     _field_cache = None
     _index = None
 
-    def __init__(self, ds, field_parameters):
+    def __init__(self, ds: weakproxy, field_parameters: Optional[Any]) -> None:
         """
         Typically this is never called directly, but only due to inheritance.
         It associates a :class:`~yt.data_objects.static_output.Dataset` with the class,
@@ -118,7 +126,7 @@ class YTDataContainer:
         return getattr(self, "ds", None)
 
     @property
-    def index(self):
+    def index(self) -> RAMSESIndex:
         if self._index is not None:
             return self._index
         self._index = self.ds.index
@@ -134,7 +142,7 @@ class YTDataContainer:
 
         pdb.set_trace()
 
-    def _set_default_field_parameters(self):
+    def _set_default_field_parameters(self) -> None:
         self.field_parameters = {}
         for k, v in self._default_field_parameters.items():
             self.set_field_parameter(k, v)
@@ -154,7 +162,7 @@ class YTDataContainer:
         except AttributeError:
             return self.ds.arr(arr, units=units)
 
-    def _set_center(self, center):
+    def _set_center(self, center: Union[List[float], ndarray, unyt_array]) -> None:
         if center is None:
             self.center = None
             return
@@ -194,7 +202,9 @@ class YTDataContainer:
 
         self.set_field_parameter("center", self.center)
 
-    def get_field_parameter(self, name, default=None):
+    def get_field_parameter(
+        self, name: str, default: Optional[Any] = None
+    ) -> unyt_array:
         """
         This is typically only used by derived field functions, but
         it returns parameters used to generate fields.
@@ -204,14 +214,14 @@ class YTDataContainer:
         else:
             return default
 
-    def set_field_parameter(self, name, val):
+    def set_field_parameter(self, name: str, val: unyt_array) -> None:
         """
         Here we set up dictionaries that get passed up and down and ultimately
         to derived fields.
         """
         self.field_parameters[name] = val
 
-    def has_field_parameter(self, name):
+    def has_field_parameter(self, name: str) -> bool:
         """
         Checks if a field parameter is set.
         """
@@ -229,13 +239,13 @@ class YTDataContainer:
         """
         return key in self.field_data
 
-    def keys(self):
-        return self.field_data.keys()
+    def keys(self) -> List:
+        return list(self.field_data.keys())
 
-    def _reshape_vals(self, arr):
+    def _reshape_vals(self, arr: unyt_array) -> unyt_array:
         return arr
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[Tuple[str, str], str]) -> unyt_array:
         """
         Returns a single field.  Will add if necessary.
         """
@@ -277,7 +287,7 @@ class YTDataContainer:
             key = self._determine_fields(key)[0]
         del self.field_data[key]
 
-    def _generate_field(self, field):
+    def _generate_field(self, field: Tuple[str, str]) -> Any:
         ftype, fname = field
         finfo = self.ds._get_field_info(*field)
         with self._field_type_state(ftype, finfo):
@@ -291,7 +301,9 @@ class YTDataContainer:
                 raise YTCouldNotGenerateField(field, self.ds)
             return tr
 
-    def _generate_fluid_field(self, field):
+    def _generate_fluid_field(
+        self, field: Tuple[str, str]
+    ) -> Union[ndarray, unyt_array]:
         # First we check the validator
         ftype, fname = field
         finfo = self.ds._get_field_info(ftype, fname)
@@ -308,7 +320,7 @@ class YTDataContainer:
             rv = finfo(gen_obj)
         return rv
 
-    def _generate_spatial_fluid(self, field, ngz):
+    def _generate_spatial_fluid(self, field: Tuple[str, str], ngz: int) -> unyt_array:
         finfo = self.ds._get_field_info(*field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
@@ -1341,7 +1353,7 @@ class YTDataContainer:
         args = self.__reduce__()
         return args[0](self.ds, *args[1][1:])[1]
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         # We'll do this the slow way to be clear what's going on
         s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
@@ -1368,7 +1380,12 @@ class YTDataContainer:
         self.field_parameters = old_field_parameters
 
     @contextmanager
-    def _field_type_state(self, ftype, finfo, obj=None):
+    def _field_type_state(
+        self,
+        ftype: str,
+        finfo: Union[DummyFieldInfo, DerivedField],
+        obj: Optional[YTRegion] = None,
+    ) -> Iterator:
         if obj is None:
             obj = self
         old_particle_type = obj._current_particle_type
@@ -1382,7 +1399,7 @@ class YTDataContainer:
         obj._current_particle_type = old_particle_type
         obj._current_fluid_type = old_fluid_type
 
-    def _tupleize_field(self, field):
+    def _tupleize_field(self, field: Tuple[str, str]) -> Tuple[str, str]:
 
         try:
             ftype, fname = field.name
@@ -1425,7 +1442,9 @@ class YTDataContainer:
 
         raise YTFieldNotParseable(field)
 
-    def _determine_fields(self, fields):
+    def _determine_fields(
+        self, fields: Union[List[Tuple[str, str]], List[str], Tuple[str, str]]
+    ) -> List[Tuple[str, str]]:
         explicit_fields = []
         for field in iter_fields(fields):
             if field in self._container_fields:

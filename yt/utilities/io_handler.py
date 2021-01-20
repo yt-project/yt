@@ -2,10 +2,14 @@ import os
 from collections import defaultdict
 from contextlib import contextmanager
 from functools import _make_key, lru_cache
+from typing import Dict, Iterator, List, Tuple
+from weakref import proxy as weakproxy
 
 import numpy as np
+from numpy import ndarray
 
-from yt.geometry.selection_routines import GridSelector
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.selection_routines import GridSelector, RegionSelector
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 io_registry = {}
@@ -36,7 +40,7 @@ class BaseIOHandler:
                 maxsize=use_caching, typed=True, make_key=_make_io_key
             )(cls._read_obj_field)
 
-    def __init__(self, ds):
+    def __init__(self, ds: weakproxy) -> None:
         self.queue = defaultdict(dict)
         self.ds = ds
         self._last_selector_id = None
@@ -149,14 +153,22 @@ class BaseIOHandler:
     def _read_chunk_data(self, chunk, fields):
         return {}
 
-    def _count_particles_chunks(self, psize, chunks, ptf, selector):
+    def _count_particles_chunks(
+        self,
+        psize: Dict,
+        chunks: List[YTDataChunk],
+        ptf: Dict,
+        selector: RegionSelector,
+    ) -> Dict:
         for ptype, (x, y, z) in self._read_particle_coords(chunks, ptf):
             # assume particles have zero radius, we break this assumption
             # in the SPH frontend and override this function there
             psize[ptype] += selector.count_points(x, y, z, 0.0)
         return psize
 
-    def _read_particle_selection(self, chunks, selector, fields):
+    def _read_particle_selection(
+        self, chunks: Iterator, selector: RegionSelector, fields: List[Tuple[str, str]]
+    ) -> Dict[Tuple[str, str], ndarray]:
         rv = {}
         ind = {}
         # We first need a set of masks for each particle type

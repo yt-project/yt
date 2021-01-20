@@ -5,6 +5,7 @@ import string
 import time
 import weakref
 from collections import defaultdict
+from typing import Any
 
 import numpy as np
 from more_itertools import always_iterable
@@ -972,7 +973,7 @@ class EnzoDataset(Dataset):
         setdefaultattr(self, "magnetic_unit", self.quan(magnetic_unit, "gauss"))
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         if str(filename).endswith(".hierarchy"):
             return True
         return os.path.exists(f"{filename}.hierarchy")
@@ -1058,7 +1059,7 @@ class EnzoDatasetInMemory(EnzoDataset):
         return enzo
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         return False
 
 

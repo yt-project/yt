@@ -7,6 +7,7 @@ import textwrap
 import weakref
 
 from yt.fields.derived_field import DerivedField
+from yt.frontends.ramses.data_structures import RAMSESDataset
 
 
 def _fill_values(values):
@@ -28,7 +29,7 @@ def _fill_values(values):
 
 
 class FieldTypeContainer(object):
-    def __init__(self, ds):
+    def __init__(self, ds: RAMSESDataset) -> None:
         self.ds = weakref.proxy(ds)
 
     def __getattr__(self, attr):

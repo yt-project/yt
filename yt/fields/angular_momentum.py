@@ -1,5 +1,11 @@
-import numpy as np
+from typing import Any, Optional
 
+import numpy as np
+from unyt.array import unyt_array
+
+from yt.fields.derived_field import DerivedField
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.utilities.lib.misc_utilities import (
     obtain_position_vector,
     obtain_relative_velocity_vector,
@@ -11,12 +17,16 @@ from .vector_operations import create_magnitude_field
 
 
 @register_field_plugin
-def setup_angular_momentum(registry, ftype="gas", slice_info=None):
+def setup_angular_momentum(
+    registry: RAMSESFieldInfo, ftype: str = "gas", slice_info: Optional[Any] = None
+) -> None:
     # Angular momentum defined here needs to be consistent with
     # _particle_specific_angular_momentum in particle_fields.py
     unit_system = registry.ds.unit_system
 
-    def _specific_angular_momentum_x(field, data):
+    def _specific_angular_momentum_x(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
         units = rv.units
@@ -24,7 +34,9 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         rv = data.ds.arr(rv, units=units)
         return rv[..., 1] * zv - rv[..., 2] * yv
 
-    def _specific_angular_momentum_y(field, data):
+    def _specific_angular_momentum_y(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
         units = rv.units
@@ -32,7 +44,9 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         rv = data.ds.arr(rv, units=units)
         return rv[..., 2] * xv - rv[..., 0] * zv
 
-    def _specific_angular_momentum_z(field, data):
+    def _specific_angular_momentum_z(
+        field: DerivedField, data: FieldDetector
+    ) -> unyt_array:
         xv, yv, zv = obtain_relative_velocity_vector(data)
         rv = obtain_position_vector(data)
         units = rv.units
@@ -71,7 +85,7 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         ftype=ftype,
     )
 
-    def _angular_momentum_x(field, data):
+    def _angular_momentum_x(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "mass"] * data[ftype, "specific_angular_momentum_x"]
 
     registry.add_field(
@@ -82,7 +96,7 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         validators=[ValidateParameter("center"), ValidateParameter("bulk_velocity")],
     )
 
-    def _angular_momentum_y(field, data):
+    def _angular_momentum_y(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "mass"] * data[ftype, "specific_angular_momentum_y"]
 
     registry.add_field(
@@ -93,7 +107,7 @@ def setup_angular_momentum(registry, ftype="gas", slice_info=None):
         validators=[ValidateParameter("center"), ValidateParameter("bulk_velocity")],
     )
 
-    def _angular_momentum_z(field, data):
+    def _angular_momentum_z(field: DerivedField, data: FieldDetector) -> unyt_array:
         return data[ftype, "mass"] * data[ftype, "specific_angular_momentum_z"]
 
     registry.add_field(

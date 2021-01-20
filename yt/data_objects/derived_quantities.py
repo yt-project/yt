@@ -1,5 +1,9 @@
+from typing import Any, List, Union
+
 import numpy as np
 
+from yt.data_objects.selection_objects.region import YTRegion
+from yt.frontends.ramses.data_structures import RAMSESDomainSubset
 from yt.funcs import camelcase_to_underscore, iter_fields
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTParticleTypeNotFound
@@ -31,7 +35,7 @@ def get_position_fields(field, data):
 class DerivedQuantity(ParallelAnalysisInterface):
     num_vals = -1
 
-    def __init__(self, data_source):
+    def __init__(self, data_source: Union[YTRegion, RAMSESDomainSubset]) -> None:
         self.data_source = data_source
 
     def __init_subclass__(cls, *args, **kwargs):
@@ -80,15 +84,15 @@ class DerivedQuantityCollection:
             setattr(inst, camelcase_to_underscore(f), inst[f])
         return inst
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> Any:
         dq = derived_quantity_registry[key]
         # Instantiate here, so we can pass it the data object
         # Note that this means we instantiate every time we run help, etc
         # I have made my peace with this.
         return dq(self.data_source)
 
-    def keys(self):
-        return derived_quantity_registry.keys()
+    def keys(self) -> List:
+        return list(derived_quantity_registry.keys())
 
 
 class WeightedAverageQuantity(DerivedQuantity):

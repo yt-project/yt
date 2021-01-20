@@ -5,7 +5,7 @@ from yt.frontends.ramses.hilbert import get_cpu_list, hilbert3d
 from yt.testing import assert_equal, requires_file
 
 
-def test_hilbert3d():
+def test_hilbert3d() -> None:
     # 8 different cases, checked against RAMSES' own implementation
     inputs = [
         [0, 0, 0],
@@ -27,7 +27,7 @@ output_00080 = "output_00080/info_00080.txt"
 
 
 @requires_file(output_00080)
-def test_get_cpu_list():
+def test_get_cpu_list() -> None:
     ds = yt.load(output_00080)
 
     np.random.seed(16091992)

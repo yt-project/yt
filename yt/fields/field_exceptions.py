@@ -1,13 +1,18 @@
+from typing import List, Optional, Tuple
+
+
 class ValidationException(Exception):
     pass
 
 
 class NeedsGridType(ValidationException):
-    def __init__(self, ghost_zones=0, fields=None):
+    def __init__(
+        self, ghost_zones: int = 0, fields: Optional[List[Tuple[str, str]]] = None
+    ) -> None:
         self.ghost_zones = ghost_zones
         self.fields = fields
 
-    def __str__(self):
+    def __str__(self) -> str:
         s = "s" if self.ghost_zones != 1 else ""
         return f"fields {self.fields} require {self.ghost_zones} ghost zone{s}."
 
@@ -42,7 +47,7 @@ class NeedsParameter(ValidationException):
 
 
 class NeedsConfiguration(ValidationException):
-    def __init__(self, parameter, value):
+    def __init__(self, parameter: str, value: int) -> None:
         self.parameter = parameter
         self.value = value
 

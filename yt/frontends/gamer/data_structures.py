@@ -1,5 +1,6 @@
 import os
 import weakref
+from typing import Any
 
 import numpy as np
 
@@ -357,7 +358,7 @@ class GAMERDataset(Dataset):
         self.geometry = geometry_parameters[parameters.get("Coordinate", 1)]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         try:
             # define a unique way to identify GAMER datasets
             f = HDF5FileHandler(filename)

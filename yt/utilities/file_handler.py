@@ -1,9 +1,12 @@
 from contextlib import contextmanager
+from typing import Any, Iterator
+
+from mypy_extensions import NoReturn
 
 from yt.utilities.on_demand_imports import NotAModule, _h5py as h5py
 
 
-def valid_hdf5_signature(fn):
+def valid_hdf5_signature(fn: str) -> bool:
     signature = b"\x89HDF\r\n\x1a\n"
     try:
         with open(fn, "rb") as f:
@@ -13,7 +16,7 @@ def valid_hdf5_signature(fn):
         return False
 
 
-def warn_h5py(fn):
+def warn_h5py(fn: str) -> None:
     needs_h5py = valid_hdf5_signature(fn)
     if needs_h5py and isinstance(h5py.File, NotAModule):
         raise RuntimeError(
@@ -24,7 +27,7 @@ def warn_h5py(fn):
 class HDF5FileHandler:
     handle = None
 
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> NoReturn:
         self.handle = h5py.File(filename, mode="r")
 
     def __getitem__(self, key):
@@ -76,7 +79,7 @@ class FITSFileHandler(HDF5FileHandler):
         self.handle.close()
 
 
-def valid_netcdf_classic_signature(filename):
+def valid_netcdf_classic_signature(filename: str) -> bool:
     signature_v1 = b"CDF\x01"
     signature_v2 = b"CDF\x02"
     try:
@@ -87,7 +90,7 @@ def valid_netcdf_classic_signature(filename):
         return False
 
 
-def warn_netcdf(fn):
+def warn_netcdf(fn: str) -> None:
     # There are a few variants of the netCDF format.
     classic = valid_netcdf_classic_signature(fn)
     # NetCDF-4 Classic files are HDF5 files constrained to the Classic
@@ -104,11 +107,11 @@ def warn_netcdf(fn):
 
 
 class NetCDF4FileHandler:
-    def __init__(self, filename):
+    def __init__(self, filename: str) -> None:
         self.filename = filename
 
     @contextmanager
-    def open_ds(self, **kwargs):
+    def open_ds(self, **kwargs: Any) -> Iterator[NoReturn]:
         from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
 
         ds = netCDF4.Dataset(self.filename, mode="r", **kwargs)

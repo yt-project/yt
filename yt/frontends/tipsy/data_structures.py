@@ -1,6 +1,7 @@
 import glob
 import os
 import struct
+from typing import Any, Tuple
 
 import numpy as np
 
@@ -292,7 +293,7 @@ class TipsyDataset(SPHDataset):
             self.time_unit = 1.0 / np.sqrt(density_unit * G)
 
     @staticmethod
-    def _validate_header(filename):
+    def _validate_header(filename: str) -> Tuple[bool, int]:
         """
         This method automatically detects whether the tipsy file is big/little endian
         and is not corrupt/invalid.  It returns a tuple of (Valid, endianswap) where
@@ -334,7 +335,7 @@ class TipsyDataset(SPHDataset):
         return True, endianswap
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         return TipsyDataset._validate_header(filename)[0]
 
     @property

@@ -4,11 +4,13 @@ This module gathers all user-facing functions with a `load_` prefix.
 """
 
 import os
+from typing import Any
 
 import numpy as np
 from more_itertools import always_iterable
 
 from yt.config import ytcfg
+from yt.frontends.ramses.data_structures import RAMSESDataset
 from yt.funcs import issue_deprecation_warning, mylog
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
@@ -29,7 +31,7 @@ from yt.utilities.sample_data import PoochHandle, _extensions_to_strip
 # --- Loaders for known data formats ---
 
 
-def load(fn, *args, **kwargs):
+def load(fn: str, *args: Any, **kwargs: Any) -> RAMSESDataset:
     """
     Load a Dataset or DatasetSeries object.
     The data format is automatically discovered, and the exact return type is the

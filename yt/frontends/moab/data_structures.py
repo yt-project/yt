@@ -1,5 +1,6 @@
 import os
 import weakref
+from typing import Any
 
 import numpy as np
 
@@ -97,7 +98,7 @@ class MoabHex8Dataset(Dataset):
         ) = self.hubble_constant = self.cosmological_simulation = 0.0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         return filename.endswith(".h5m")
 
     def __repr__(self):
@@ -197,7 +198,7 @@ class PyneMoabHex8Dataset(Dataset):
         ) = self.hubble_constant = self.cosmological_simulation = 0.0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         return False
 
     def __repr__(self):

@@ -2,18 +2,28 @@ import itertools
 import uuid
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import Any, Iterator, List, Optional, Tuple, Union
+from weakref import proxy as weakproxy
 
 import numpy as np
 from more_itertools import always_iterable
+from numpy import ndarray
+from unyt.array import unyt_array
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
+from yt.data_objects.selection_objects.region import YTRegion
 from yt.fields.field_exceptions import NeedsGridType
 from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
-from yt.geometry.selection_routines import compose_selector
+from yt.geometry.geometry_handler import YTDataChunk
+from yt.geometry.selection_routines import (
+    OctreeSubsetSelector,
+    RegionSelector,
+    compose_selector,
+)
 from yt.units import YTArray, dimensions as ytdims
 from yt.utilities.exceptions import (
     GenerationInProgress,
@@ -42,7 +52,12 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _min_level = None
     _derived_quantity_chunking = "io"
 
-    def __init__(self, ds, field_parameters, data_source=None):
+    def __init__(
+        self,
+        ds: weakproxy,
+        field_parameters: Optional[Any],
+        data_source: Optional[Any] = None,
+    ) -> None:
         ParallelAnalysisInterface.__init__(self)
         super(YTSelectionContainer, self).__init__(ds, field_parameters)
         self._data_source = data_source
@@ -64,7 +79,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.quantities = DerivedQuantityCollection(self)
 
     @property
-    def selector(self):
+    def selector(self) -> Union[OctreeSubsetSelector, RegionSelector]:
         if self._selector is not None:
             return self._selector
         s_module = getattr(self, "_selector_module", yt.geometry.selection_routines)
@@ -80,7 +95,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             self._selector = sclass(self)
         return self._selector
 
-    def chunks(self, fields, chunking_style, **kwargs):
+    def chunks(
+        self, fields: List, chunking_style: str, **kwargs: Any
+    ) -> Iterator[Union[Iterator, Iterator[YTRegion]]]:
         # This is an iterator that will yield the necessary chunks.
         self.get_data()  # Ensure we have built ourselves
         if fields is None:
@@ -99,7 +116,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 # NOTE: we yield before releasing the context
                 yield self
 
-    def _identify_dependencies(self, fields_to_get, spatial=False):
+    def _identify_dependencies(
+        self, fields_to_get: List[Tuple[str, str]], spatial: bool = False
+    ) -> List[Tuple[str, str]]:
         inspected = 0
         fields_to_get = fields_to_get[:]
         for field in itertools.cycle(fields_to_get):
@@ -125,7 +144,9 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             fields_to_get += deps
         return sorted(fields_to_get)
 
-    def get_data(self, fields=None):
+    def get_data(
+        self, fields: Union[List[Tuple[str, str]], None, Tuple[str, str]] = None
+    ) -> None:
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         if fields is None:
@@ -213,7 +234,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
             if field not in ofields:
                 self.field_data.pop(field)
 
-    def _generate_fields(self, fields_to_generate):
+    def _generate_fields(self, fields_to_generate: List[Tuple[str, str]]) -> None:
         index = 0
         with self._field_lock():
             # At this point, we assume that any fields that are necessary to
@@ -334,7 +355,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         return YTBooleanContainer("NEG", self, other, ds=self.ds)
 
     @contextmanager
-    def _field_lock(self):
+    def _field_lock(self) -> Iterator:
         self._locked = True
         yield
         self._locked = False
@@ -367,7 +388,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self.size = old_size
 
     @contextmanager
-    def _chunked_read(self, chunk):
+    def _chunked_read(self, chunk: YTDataChunk) -> Iterator:
         # There are several items that need to be swapped out
         # field_data, size, shape
         obj_field_data = []
@@ -387,7 +408,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                 obj.field_data = obj_field_data.pop(0)
 
     @contextmanager
-    def _activate_cache(self):
+    def _activate_cache(self) -> Iterator:
         cache = self._field_cache or {}
         old_fields = {}
         for field in (f for f in cache if f in self.field_data):
@@ -418,13 +439,13 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         return self._current_chunk.fcoords
 
     @property
-    def ires(self):
+    def ires(self) -> ndarray:
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         return self._current_chunk.ires
 
     @property
-    def fwidth(self):
+    def fwidth(self) -> unyt_array:
         if self._current_chunk is None:
             self.index._identify_base_chunk(self)
         return self._current_chunk.fwidth
@@ -436,7 +457,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         return self._current_chunk.fcoords_vertex
 
     @property
-    def max_level(self):
+    def max_level(self) -> int:
         if self._max_level is None:
             try:
                 return self.ds.max_level
@@ -456,7 +477,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         self._max_level = value
 
     @property
-    def min_level(self):
+    def min_level(self) -> int:
         if self._min_level is None:
             try:
                 return 0
@@ -648,7 +669,13 @@ class YTSelectionContainer3D(YTSelectionContainer):
     _num_ghost_zones = 0
     _dimensionality = 3
 
-    def __init__(self, center, ds, field_parameters=None, data_source=None):
+    def __init__(
+        self,
+        center: Union[List[float], ndarray, unyt_array],
+        ds: weakproxy,
+        field_parameters: Optional[Any] = None,
+        data_source: Optional[Any] = None,
+    ) -> None:
         super(YTSelectionContainer3D, self).__init__(ds, field_parameters, data_source)
         self._set_center(center)
         self.coords = None

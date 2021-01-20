@@ -1,3 +1,6 @@
+from typing import Any, List, Optional
+from weakref import proxy as weakproxy
+
 import numpy as np
 
 from yt.data_objects.selection_objects.data_selection_objects import (
@@ -47,8 +50,13 @@ class YTSphere(YTSelectionContainer3D):
     _con_args = ("center", "radius")
 
     def __init__(
-        self, center, radius, ds=None, field_parameters=None, data_source=None
-    ):
+        self,
+        center: List[float],
+        radius: float,
+        ds: weakproxy = None,
+        field_parameters: Optional[Any] = None,
+        data_source: Optional[Any] = None,
+    ) -> None:
         validate_center(center)
         validate_float(radius)
         validate_object(ds, Dataset)

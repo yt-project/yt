@@ -1,5 +1,6 @@
 import os
 import weakref
+from typing import Any
 
 import numpy as np
 
@@ -452,7 +453,7 @@ class FLASHDataset(Dataset):
             ) = self.hubble_constant = self.cosmological_simulation = 0.0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         try:
             fileh = HDF5FileHandler(filename)
             if "bounding box" in fileh["/"].keys():
@@ -519,7 +520,7 @@ class FLASHParticleDataset(FLASHDataset):
         self.file_count = 1
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         warn_h5py(filename)
         try:
             fileh = HDF5FileHandler(filename)

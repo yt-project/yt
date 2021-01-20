@@ -1,10 +1,12 @@
 # -*- coding: utf-8 -*-
 import inspect
+from abc import ABCMeta
 from collections import Counter
 from functools import reduce
+from typing import List
 
 
-def find_lowest_subclasses(candidates):
+def find_lowest_subclasses(candidates: List[ABCMeta]) -> List[ABCMeta]:
     """
     This function takes a list of classes, and returns only the ones that are
     are not super classes of any others in the list. i.e. the ones that are at

@@ -1,4 +1,5 @@
 from unyt.unit_object import Unit
+from unyt.unit_registry import UnitRegistry
 from unyt.unit_systems import add_symbols
 
 from yt.units.unit_registry import default_unit_registry
@@ -28,7 +29,7 @@ class _SymbolContainer:
     True
     """
 
-    def __init__(self, registry):
+    def __init__(self, registry: UnitRegistry) -> None:
         self._registry = registry
         self._cache = {}
 

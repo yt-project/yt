@@ -1,5 +1,7 @@
 import logging
 import sys
+from logging import LogRecord
+from typing import Any, Optional
 
 from yt.config import ytcfg
 
@@ -9,7 +11,7 @@ from yt.config import ytcfg
 
 def add_coloring_to_emit_ansi(fn):
     # add methods we need to the class
-    def new(*args):
+    def new(*args: LogRecord) -> Optional[Any]:
         levelno = args[0].levelno
         if levelno >= 50:
             color = "\x1b[31m"  # red
@@ -73,7 +75,7 @@ class DuplicateFilter(logging.Filter):
 
     # source
     # https://stackoverflow.com/questions/44691558/suppress-multiple-messages-with-same-content-in-python-logging-module-aka-log-co  # noqa
-    def filter(self, record):
+    def filter(self, record: LogRecord) -> bool:
         current_log = (record.module, record.levelno, record.msg, record.args)
         if current_log != getattr(self, "last_log", None):
             self.last_log = current_log

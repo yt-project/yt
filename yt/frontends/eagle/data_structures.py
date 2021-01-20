@@ -1,3 +1,5 @@
+from typing import Any
+
 import numpy as np
 
 import yt.units
@@ -36,7 +38,7 @@ class EagleDataset(GadgetHDF5Dataset):
         self._set_owls_eagle_units()
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         need_groups = [
             "Config",
             "Constants",
@@ -73,7 +75,7 @@ class EagleNetworkDataset(EagleDataset):
     _time_readin = "Time"
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         try:
             fileh = h5py.File(filename, mode="r")
             if (

@@ -1,15 +1,23 @@
 from contextlib import contextmanager
 from itertools import product, repeat
+from typing import Any, Tuple, Union
+from weakref import proxy as weakproxy
 
 import numpy as np
+from mypy_extensions import NoReturn
+from numpy import ndarray
+from unyt.array import unyt_array
 
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
+from yt.data_objects.selection_objects.region import YTRegion
+from yt.frontends.ramses.data_structures import RAMSESDomainFile
 from yt.funcs import issue_deprecation_warning, mylog
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
+from yt.geometry.selection_routines import RegionSelector
 from yt.units.dimensions import length
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import (
@@ -21,7 +29,7 @@ from yt.utilities.lib.geometry_utils import compute_morton
 
 
 def cell_count_cache(func):
-    def cc_cache_func(self, dobj):
+    def cc_cache_func(self: Any, dobj: YTRegion) -> Union[ndarray, unyt_array]:
         if hash(dobj.selector) != self._last_selector_id:
             self._cell_count = -1
         rv = func(self, dobj)
@@ -43,8 +51,13 @@ class OctreeSubset(YTSelectionContainer):
     _block_order = "C"
 
     def __init__(
-        self, base_region, domain, ds, over_refine_factor=1, num_ghost_zones=0
-    ):
+        self,
+        base_region: YTRegion,
+        domain: RAMSESDomainFile,
+        ds: weakproxy,
+        over_refine_factor: int = 1,
+        num_ghost_zones: int = 0,
+    ) -> None:
         super(OctreeSubset, self).__init__(ds, None)
         self._num_zones = 1 << (over_refine_factor)
         self._num_ghost_zones = num_ghost_zones
@@ -59,7 +72,7 @@ class OctreeSubset(YTSelectionContainer):
         self.base_region = base_region
         self.base_selector = base_region.selector
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Tuple[str, str]) -> NoReturn:
         tr = super(OctreeSubset, self).__getitem__(key)
         try:
             fields = self._determine_fields(key)
@@ -75,10 +88,10 @@ class OctreeSubset(YTSelectionContainer):
         return tr
 
     @property
-    def nz(self):
+    def nz(self) -> int:
         return self._num_zones + 2 * self._num_ghost_zones
 
-    def _reshape_vals(self, arr):
+    def _reshape_vals(self, arr: ndarray) -> ndarray:
         nz = self.nz
         if len(arr.shape) <= 2:
             n_oct = arr.shape[0] // (nz ** 3)
@@ -494,19 +507,25 @@ class OctreeSubset(YTSelectionContainer):
         return self.ds.arr(fcoords, "code_length")
 
     @cell_count_cache
-    def select_fwidth(self, dobj):
+    def select_fwidth(self, dobj: YTRegion) -> unyt_array:
         fwidth = self.oct_handler.fwidth(
             dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count
         )
         return self.ds.arr(fwidth, "code_length")
 
     @cell_count_cache
-    def select_ires(self, dobj):
+    def select_ires(self, dobj: YTRegion) -> ndarray:
         return self.oct_handler.ires(
             dobj.selector, domain_id=self.domain_id, num_cells=self._cell_count
         )
 
-    def select(self, selector, source, dest, offset):
+    def select(
+        self,
+        selector: RegionSelector,
+        source: unyt_array,
+        dest: unyt_array,
+        offset: int,
+    ) -> int:
         n = self.oct_handler.selector_fill(
             selector, source, dest, offset, domain_id=self.domain_id
         )

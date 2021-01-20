@@ -5,6 +5,7 @@ import sys
 import traceback
 from functools import wraps
 from io import StringIO
+from typing import Any, Optional
 
 import numpy as np
 from more_itertools import always_iterable
@@ -12,6 +13,7 @@ from more_itertools import always_iterable
 import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
+from yt.frontends.ramses.data_structures import RAMSESDataset
 from yt.funcs import is_sequence
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
@@ -327,7 +329,7 @@ def parallel_root_only(func):
     """
 
     @wraps(func)
-    def root_only(*args, **kwargs):
+    def root_only(*args: RAMSESDataset, **kwargs: Any) -> Optional[Any]:
         if not parallel_capable:
             return func(*args, **kwargs)
         comm = _get_comm(args)
@@ -1154,7 +1156,7 @@ class ParallelAnalysisInterface:
     _grids = None
     _distributed = None
 
-    def __init__(self, comm=None):
+    def __init__(self, comm: Optional[Any] = None) -> None:
         if comm is None:
             self.comm = communication_system.communicators[-1]
         else:

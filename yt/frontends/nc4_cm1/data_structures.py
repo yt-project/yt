@@ -2,6 +2,7 @@ import os
 import stat
 import weakref
 from collections import OrderedDict
+from typing import Any
 
 import numpy as np
 
@@ -170,7 +171,7 @@ class CM1Dataset(Dataset):
         self.hubble_constant = 0.0
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
 

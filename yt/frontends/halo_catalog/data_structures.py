@@ -2,6 +2,7 @@ import glob
 import weakref
 from collections import defaultdict
 from functools import partial
+from typing import Any
 
 import numpy as np
 
@@ -169,7 +170,7 @@ class YTHaloCatalogDataset(SavedDataset):
         super(YTHaloCatalogDataset, self)._parse_parameter_file()
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         if not filename.endswith(".h5"):
             return False
         with h5py.File(filename, mode="r") as f:
@@ -385,7 +386,7 @@ class YTHaloDataset(HaloDataset):
         pass
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, *args: str, **kwargs: Any) -> bool:
         # We don't ever want this to be loaded by yt.load.
         return False
 

@@ -1,10 +1,21 @@
+from typing import Any, Optional
+
+from mypy_extensions import NoReturn
+from unyt.array import unyt_array
+
+from yt.fields.derived_field import DerivedField
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.fields import RAMSESFieldInfo
+
 from .derived_field import ValidateParameter
 from .field_exceptions import NeedsConfiguration, NeedsParameter
 from .field_plugin_registry import register_field_plugin
 
 
 @register_field_plugin
-def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
+def setup_cosmology_fields(
+    registry: RAMSESFieldInfo, ftype: str = "gas", slice_info: Optional[Any] = None
+) -> None:
     unit_system = registry.ds.unit_system
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
@@ -19,7 +30,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     else:
         sl_left, sl_right, div_fac = slice_info
 
-    def _matter_density(field, data):
+    def _matter_density(field: DerivedField, data: FieldDetector) -> NoReturn:
         return data[ftype, "density"] + data[ftype, "dark_matter_density"]
 
     registry.add_field(
@@ -29,7 +40,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["density"],
     )
 
-    def _matter_mass(field, data):
+    def _matter_mass(field: DerivedField, data: FieldDetector) -> NoReturn:
         return data[ftype, "matter_density"] * data["index", "cell_volume"]
 
     registry.add_field(
@@ -40,7 +51,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     )
 
     # rho_total / rho_cr(z).
-    def _overdensity(field, data):
+    def _overdensity(field: DerivedField, data: FieldDetector) -> NoReturn:
         if (
             not hasattr(data.ds, "cosmological_simulation")
             or not data.ds.cosmological_simulation
@@ -56,7 +67,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     )
 
     # rho_baryon / <rho_baryon>
-    def _baryon_overdensity(field, data):
+    def _baryon_overdensity(field: DerivedField, data: FieldDetector) -> unyt_array:
         if (
             not hasattr(data.ds, "cosmological_simulation")
             or not data.ds.cosmological_simulation
@@ -84,7 +95,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     )
 
     # rho_matter / <rho_matter>
-    def _matter_overdensity(field, data):
+    def _matter_overdensity(field: DerivedField, data: FieldDetector) -> NoReturn:
         if (
             not hasattr(data.ds, "cosmological_simulation")
             or not data.ds.cosmological_simulation
@@ -108,7 +119,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     )
 
     # r / r_vir
-    def _virial_radius_fraction(field, data):
+    def _virial_radius_fraction(field: DerivedField, data: FieldDetector) -> float:
         virial_radius = data.get_field_parameter("virial_radius")
         if virial_radius == 0.0:
             ret = 0.0
@@ -127,7 +138,7 @@ def setup_cosmology_fields(registry, ftype="gas", slice_info=None):
     # Weak lensing convergence.
     # Eqn 4 of Metzler, White, & Loken (2001, ApJ, 547, 560).
     # This needs to be checked for accuracy.
-    def _weak_lensing_convergence(field, data):
+    def _weak_lensing_convergence(field: DerivedField, data: FieldDetector) -> NoReturn:
         if (
             not hasattr(data.ds, "cosmological_simulation")
             or not data.ds.cosmological_simulation

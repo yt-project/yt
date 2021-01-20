@@ -1,8 +1,14 @@
 import abc
 import glob
 import os
+from abc import ABCMeta
+from typing import Dict, List, Optional, Set, Union
+from weakref import proxy as weakproxy
+
+from numpy import ndarray
 
 from yt.config import ytcfg
+from yt.frontends.ramses.data_structures import RAMSESDataset, RAMSESDomainFile
 from yt.funcs import mylog
 from yt.utilities.cython_fortran_utils import FortranFile
 
@@ -12,7 +18,7 @@ from .io_utils import read_offset
 FIELD_HANDLERS = set()
 
 
-def get_field_handlers():
+def get_field_handlers() -> Set[ABCMeta]:
     return FIELD_HANDLERS
 
 
@@ -29,7 +35,7 @@ class HandlerMixin:
     This is not supposed to be user-facing.
     """
 
-    def setup_handler(self, domain):
+    def setup_handler(self, domain: RAMSESDomainFile) -> None:
         """
         Initalize an instance of the class. This automatically sets
         the full path to the file. This is not intended to be
@@ -74,7 +80,7 @@ class HandlerMixin:
                 self.file_descriptor = os.path.join(basename, self.file_descriptor)
 
     @property
-    def exists(self):
+    def exists(self) -> bool:
         """
         This function should return True if the *file* the instance
         exists. It is called for each file of the type found on the
@@ -86,7 +92,7 @@ class HandlerMixin:
         return os.path.exists(self.fname)
 
     @property
-    def has_descriptor(self):
+    def has_descriptor(self) -> bool:
         """
         This function should return True if a *file descriptor*
         exists.
@@ -97,7 +103,7 @@ class HandlerMixin:
         return os.path.exists(self.file_descriptor)
 
     @classmethod
-    def any_exist(cls, ds):
+    def any_exist(cls, ds: Union[weakproxy, RAMSESDataset]) -> bool:
         """
         This function should return True if the kind of particle
         represented by the class exists in the dataset. It takes as
@@ -166,7 +172,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         cls._unique_registry = {}
         return cls
 
-    def __init__(self, domain):
+    def __init__(self, domain: RAMSESDomainFile) -> None:
         self.setup_handler(domain)
 
     @classmethod
@@ -186,7 +192,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         pass
 
     @classmethod
-    def get_detected_fields(cls, ds):
+    def get_detected_fields(cls, ds: weakproxy) -> Optional[List[str]]:
         """
         Get the detected fields from the registry.
         """
@@ -198,7 +204,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         return None
 
     @classmethod
-    def set_detected_fields(cls, ds, fields):
+    def set_detected_fields(cls, ds: weakproxy, fields: List[str]) -> None:
         """
         Store the detected fields into the registry.
         """
@@ -208,7 +214,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         DETECTED_FIELDS[ds.unique_identifier].update({cls.ftype: fields})
 
     @classmethod
-    def purge_detected_fields(cls, ds):
+    def purge_detected_fields(cls, ds: RAMSESDataset) -> None:
         """
         Purge the registry.
 
@@ -219,7 +225,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
             DETECTED_FIELDS.pop(ds.unique_identifier)
 
     @property
-    def level_count(self):
+    def level_count(self) -> ndarray:
         """
         Return the number of cells per level.
         """
@@ -230,7 +236,7 @@ class FieldFileHandler(abc.ABC, HandlerMixin):
         return self._level_count
 
     @property
-    def offset(self):
+    def offset(self) -> ndarray:
         """
         Compute the offsets of the fields.
 
@@ -280,7 +286,7 @@ class HydroFieldFileHandler(FieldFileHandler):
     )
 
     @classmethod
-    def detect_fields(cls, ds):
+    def detect_fields(cls, ds: weakproxy) -> List[str]:
         # Try to get the detected fields
         detected_fields = cls.get_detected_fields(ds)
         if detected_fields:
@@ -449,7 +455,7 @@ class GravFieldFileHandler(FieldFileHandler):
     )
 
     @classmethod
-    def detect_fields(cls, ds):
+    def detect_fields(cls, ds: weakproxy) -> List[str]:
         ndim = ds.dimensionality
         iout = int(str(ds).split("_")[1])
         basedir = os.path.split(ds.parameter_filename)[0]
@@ -493,7 +499,7 @@ class RTFieldFileHandler(FieldFileHandler):
     )
 
     @classmethod
-    def detect_fields(cls, ds):
+    def detect_fields(cls, ds: weakproxy) -> List[str]:
         # Try to get the detected fields
         detected_fields = cls.get_detected_fields(ds)
         if detected_fields:
@@ -503,7 +509,7 @@ class RTFieldFileHandler(FieldFileHandler):
 
         rheader = {}
 
-        def read_rhs(cast):
+        def read_rhs(cast: type) -> None:
             line = f.readline()
             p, v = line.split("=")
             rheader[p.strip()] = cast(v)
@@ -562,7 +568,7 @@ class RTFieldFileHandler(FieldFileHandler):
         return fields
 
     @classmethod
-    def get_rt_parameters(cls, ds):
+    def get_rt_parameters(cls, ds: RAMSESDataset) -> Dict[str, float]:
         if cls.rt_parameters:
             return cls.rt_parameters
 

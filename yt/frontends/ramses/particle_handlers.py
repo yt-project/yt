@@ -1,7 +1,10 @@
 import abc
 import os
+from abc import ABCMeta
+from typing import Set
 
 from yt.config import ytcfg
+from yt.frontends.ramses.data_structures import RAMSESDomainFile
 from yt.funcs import mylog
 from yt.utilities.cython_fortran_utils import FortranFile
 
@@ -11,7 +14,7 @@ from .io import _read_part_file_descriptor
 PARTICLE_HANDLERS = set()
 
 
-def get_particle_handlers():
+def get_particle_handlers() -> Set[ABCMeta]:
     return PARTICLE_HANDLERS
 
 
@@ -59,7 +62,7 @@ class ParticleFileHandler(abc.ABC, HandlerMixin):
         cls._unique_registry = {}
         return cls
 
-    def __init__(self, domain):
+    def __init__(self, domain: RAMSESDomainFile) -> None:
         self.setup_handler(domain)
 
         # Attempt to read the list of fields from the config file
@@ -121,7 +124,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         ("particle_refinement_level", "i"),
     ]
 
-    def read_header(self):
+    def read_header(self) -> None:
         if not self.exists:
             self.field_offsets = {}
             self.field_types = {}
@@ -225,7 +228,7 @@ class SinkParticleFileHandler(ParticleFileHandler):
         ("BH_efficiency", "d"),
     ]
 
-    def read_header(self):
+    def read_header(self) -> None:
         if not self.exists:
             self.field_offsets = {}
             self.field_types = {}

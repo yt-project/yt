@@ -3,6 +3,7 @@ from functools import reduce
 from operator import mul
 from os import listdir, path
 from re import match
+from typing import Any
 
 import numpy as np
 
@@ -606,7 +607,7 @@ class OpenPMDDataset(Dataset):
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         """Checks whether the supplied file can be read by this frontend."""
         warn_h5py(filename)
         try:
@@ -673,7 +674,7 @@ class OpenPMDGroupBasedDataset(Dataset):
         return ret
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         warn_h5py(filename)
         try:
             with h5py.File(filename, mode="r") as f:

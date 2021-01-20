@@ -1,10 +1,16 @@
 import abc
 import os
 import weakref
+from typing import Any, Dict, Iterator, List, Optional, Tuple, Union
 
 import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array
 
 from yt.config import ytcfg
+from yt.data_objects.selection_objects.region import YTRegion
+from yt.frontends.ramses.data_structures import RAMSESDataset, RAMSESDomainSubset
+from yt.geometry.geometry_handler import YTDataChunk
 from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
@@ -22,7 +28,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
     _unsupported_objects = ()
     _index_properties = ()
 
-    def __init__(self, ds, dataset_type):
+    def __init__(self, ds: RAMSESDataset, dataset_type: str) -> None:
         ParallelAnalysisInterface.__init__(self)
         self.dataset = weakref.proxy(ds)
         self.ds = self.dataset
@@ -47,13 +53,13 @@ class Index(ParallelAnalysisInterface, abc.ABC):
     def _detect_output_fields(self):
         pass
 
-    def _initialize_state_variables(self):
+    def _initialize_state_variables(self) -> None:
         self._parallel_locking = False
         self._data_file = None
         self._data_mode = None
         self.num_grids = None
 
-    def _initialize_data_storage(self):
+    def _initialize_data_storage(self) -> None:
         if not ytcfg.getboolean("yt", "serialize"):
             return
         fn = self.ds.storage_filename
@@ -102,7 +108,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         f = h5py.File(fn, mode="a")
         f.close()
 
-    def _setup_data_io(self):
+    def _setup_data_io(self) -> None:
         if getattr(self, "io", None) is not None:
             return
         self.io = io_registry[self.dataset_type](self.dataset)
@@ -180,7 +186,9 @@ class Index(ParallelAnalysisInterface, abc.ABC):
             del self._data_file
             self._data_file = None
 
-    def _split_fields(self, fields):
+    def _split_fields(
+        self, fields: List[Tuple[str, str]]
+    ) -> Tuple[List[Tuple[str, str]], List[Tuple[str, str]]]:
         # This will split fields into either generated or read fields
         fields_to_read, fields_to_generate = [], []
         for ftype, fname in fields:
@@ -195,7 +203,9 @@ class Index(ParallelAnalysisInterface, abc.ABC):
                 raise YTFieldNotFound((ftype, fname), self.ds)
         return fields_to_read, fields_to_generate
 
-    def _read_particle_fields(self, fields, dobj, chunk=None):
+    def _read_particle_fields(
+        self, fields: List[Tuple[str, str]], dobj: YTRegion, chunk: YTDataChunk = None
+    ) -> Tuple[Dict[Tuple[str, str], ndarray], List]:
         if len(fields) == 0:
             return {}, []
         fields_to_read, fields_to_generate = self._split_fields(fields)
@@ -210,7 +220,12 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         )
         return fields_to_return, fields_to_generate
 
-    def _read_fluid_fields(self, fields, dobj, chunk=None):
+    def _read_fluid_fields(
+        self,
+        fields: List[Tuple[str, str]],
+        dobj: Union[YTRegion, RAMSESDomainSubset],
+        chunk: YTDataChunk = None,
+    ) -> Tuple[Dict[Tuple[str, str], ndarray], List[Tuple[str, str]]]:
         if len(fields) == 0:
             return {}, []
         fields_to_read, fields_to_generate = self._split_fields(fields)
@@ -227,7 +242,9 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         )
         return fields_to_return, fields_to_generate
 
-    def _chunk(self, dobj, chunking_style, ngz=0, **kwargs):
+    def _chunk(
+        self, dobj: YTRegion, chunking_style: str, ngz: int = 0, **kwargs: Any
+    ) -> Iterator:
         # A chunk is either None or (grids, size)
         if dobj._current_chunk is None:
             self._identify_base_chunk(dobj)
@@ -246,7 +263,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
 def cached_property(func):
     n = f"_{func.__name__}"
 
-    def cached_func(self):
+    def cached_func(self: Any) -> Union[ndarray, unyt_array]:
         if self._cache and getattr(self, n, None) is not None:
             return getattr(self, n)
         if self.data_size is None:
@@ -264,14 +281,14 @@ def cached_property(func):
 class YTDataChunk:
     def __init__(
         self,
-        dobj,
-        chunk_type,
-        objs,
-        data_size=None,
-        field_type=None,
-        cache=False,
-        fast_index=None,
-    ):
+        dobj: Union[YTRegion, RAMSESDomainSubset],
+        chunk_type: str,
+        objs: List[RAMSESDomainSubset],
+        data_size: Optional[Any] = None,
+        field_type: Optional[Any] = None,
+        cache: bool = False,
+        fast_index: Optional[Any] = None,
+    ) -> None:
         self.dobj = dobj
         self.chunk_type = chunk_type
         self.objs = objs
@@ -280,7 +297,7 @@ class YTDataChunk:
         self._cache = cache
         self._fast_index = fast_index
 
-    def _accumulate_values(self, method):
+    def _accumulate_values(self, method: str) -> Union[ndarray, unyt_array]:
         # We call this generically.  It's somewhat slower, since we're doing
         # costly getattr functions, but this allows us to generalize.
         mname = f"select_{method}"
@@ -333,7 +350,7 @@ class YTDataChunk:
         return ci
 
     @cached_property
-    def fwidth(self):
+    def fwidth(self) -> unyt_array:
         if self._fast_index is not None:
             ci = self._fast_index.select_fwidth(self.dobj.selector, self.data_size)
             ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
@@ -352,7 +369,7 @@ class YTDataChunk:
         return ci
 
     @cached_property
-    def ires(self):
+    def ires(self) -> ndarray:
         if self._fast_index is not None:
             ci = self._fast_index.select_ires(self.dobj.selector, self.data_size)
             return ci
@@ -444,7 +461,7 @@ class ChunkDataCache:
         return g
 
 
-def is_curvilinear(geo):
+def is_curvilinear(geo: str) -> bool:
     # tell geometry is curvilinear or not
     if geo in ["polar", "cylindrical", "spherical"]:
         return True

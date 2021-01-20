@@ -1,5 +1,6 @@
 import os
 import weakref
+from typing import Any
 
 import numpy as np
 
@@ -283,7 +284,7 @@ class GDFDataset(Dataset):
         del self._handle
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         try:
             fileh = h5py.File(filename, mode="r")
             if "gridded_data_format" in fileh:

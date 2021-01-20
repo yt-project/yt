@@ -10,6 +10,7 @@ Data structures for AdaptaHOP frontend.
 import os
 import re
 import stat
+from typing import Any
 
 import numpy as np
 
@@ -125,7 +126,7 @@ class AdaptaHOPDataset(Dataset):
         self.parameters.update(params)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         fname = os.path.split(filename)[1]
         if not fname.startswith("tree_bricks") or not re.match(
             "^tree_bricks\d{3}$", fname

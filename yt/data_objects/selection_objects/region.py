@@ -1,3 +1,9 @@
+from typing import Any, Optional, Union
+from weakref import proxy as weakproxy
+
+from numpy import ndarray
+from unyt.array import unyt_array
+
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
     YTSelectionContainer3D,
@@ -36,14 +42,14 @@ class YTRegion(YTSelectionContainer3D):
 
     def __init__(
         self,
-        center,
-        left_edge,
-        right_edge,
-        fields=None,
-        ds=None,
-        field_parameters=None,
-        data_source=None,
-    ):
+        center: Union[ndarray, unyt_array],
+        left_edge: Union[ndarray, unyt_array],
+        right_edge: Union[ndarray, unyt_array],
+        fields: Optional[Any] = None,
+        ds: weakproxy = None,
+        field_parameters: Optional[Any] = None,
+        data_source: Optional[Any] = None,
+    ) -> None:
         if center is not None:
             validate_center(center)
         validate_3d_array(left_edge)

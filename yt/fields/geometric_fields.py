@@ -1,5 +1,13 @@
-import numpy as np
+from typing import Any, Optional, Union
 
+import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array
+
+from yt.fields.derived_field import DerivedField
+from yt.fields.field_detector import FieldDetector
+from yt.frontends.ramses.data_structures import RAMSESDomainSubset
+from yt.frontends.ramses.fields import RAMSESFieldInfo
 from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.math_utils import (
     get_cyl_r,
@@ -16,10 +24,12 @@ from .field_plugin_registry import register_field_plugin
 
 
 @register_field_plugin
-def setup_geometric_fields(registry, ftype="gas", slice_info=None):
+def setup_geometric_fields(
+    registry: RAMSESFieldInfo, ftype: str = "gas", slice_info: Optional[Any] = None
+) -> None:
     unit_system = registry.ds.unit_system
 
-    def _radius(field, data):
+    def _radius(field: DerivedField, data: FieldDetector) -> unyt_array:
         """The spherical radius component of the mesh cells.
 
         Relative to the coordinate system defined by the *center* field
@@ -35,7 +45,9 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _grid_level(field, data):
+    def _grid_level(
+        field: DerivedField, data: Union[FieldDetector, RAMSESDomainSubset]
+    ) -> ndarray:
         """The AMR refinement level"""
         arr = np.ones(data.ires.shape, dtype="float64")
         arr *= data.ires
@@ -51,7 +63,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         validators=[ValidateSpatial(0)],
     )
 
-    def _grid_indices(field, data):
+    def _grid_indices(field: DerivedField, data: FieldDetector) -> ndarray:
         """The index of the leaf grid the mesh cells exist on"""
         if hasattr(data, "domain_id"):
             this_id = data.domain_id
@@ -72,7 +84,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         take_log=False,
     )
 
-    def _ones_over_dx(field, data):
+    def _ones_over_dx(field: DerivedField, data: FieldDetector) -> unyt_array:
         """The inverse of the local cell spacing"""
         return (
             np.ones(data["index", "ones"].shape, dtype="float64") / data["index", "dx"]
@@ -86,7 +98,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         display_field=False,
     )
 
-    def _zeros(field, data):
+    def _zeros(field: DerivedField, data: FieldDetector) -> unyt_array:
         """Returns zero for all cells"""
         arr = np.zeros(data["index", "ones"].shape, dtype="float64")
         return data.apply_units(arr, field.units)
@@ -99,7 +111,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         display_field=False,
     )
 
-    def _ones(field, data):
+    def _ones(field: DerivedField, data: FieldDetector) -> unyt_array:
         """Returns one for all cells"""
         tmp = np.ones(data.ires.shape, dtype="float64")
         arr = data.apply_units(tmp, field.units)
@@ -115,7 +127,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         display_field=False,
     )
 
-    def _morton_index(field, data):
+    def _morton_index(field: DerivedField, data: FieldDetector) -> ndarray:
         """This is the morton index, which is properly a uint64 field.  Because
         we make some assumptions that the fields returned by derived fields are
         float64, this returns a "view" on the data that is float64.  To get
@@ -145,7 +157,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _spherical_radius(field, data):
+    def _spherical_radius(field: DerivedField, data: FieldDetector) -> unyt_array:
         """The spherical radius component of the positions of the mesh cells.
 
         Relative to the coordinate system defined by the *center* field
@@ -162,7 +174,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _spherical_r(field, data):
+    def _spherical_r(field: DerivedField, data: FieldDetector) -> unyt_array:
         """This field is deprecated and will be removed in a future release"""
         return data["index", "spherical_radius"]
 
@@ -174,7 +186,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _spherical_theta(field, data):
+    def _spherical_theta(field: DerivedField, data: FieldDetector) -> ndarray:
         """The spherical theta component of the positions of the mesh cells.
 
         theta is the poloidal position angle in the plane parallel to the
@@ -195,7 +207,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _spherical_phi(field, data):
+    def _spherical_phi(field: DerivedField, data: FieldDetector) -> ndarray:
         """The spherical phi component of the positions of the mesh cells.
 
         phi is the azimuthal position angle in the plane perpendicular to the
@@ -216,7 +228,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _cylindrical_radius(field, data):
+    def _cylindrical_radius(field: DerivedField, data: FieldDetector) -> unyt_array:
         """The cylindrical radius component of the positions of the mesh cells.
 
         Relative to the coordinate system defined by the *normal* vector and
@@ -236,7 +248,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _cylindrical_r(field, data):
+    def _cylindrical_r(field: DerivedField, data: FieldDetector) -> unyt_array:
         """This field is deprecated and will be removed in a future release"""
         return data["index", "cylindrical_radius"]
 
@@ -248,7 +260,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _cylindrical_z(field, data):
+    def _cylindrical_z(field: DerivedField, data: FieldDetector) -> unyt_array:
         """The cylindrical z component of the positions of the mesh cells.
 
         Relative to the coordinate system defined by the *normal* vector and
@@ -268,7 +280,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _cylindrical_theta(field, data):
+    def _cylindrical_theta(field: DerivedField, data: FieldDetector) -> ndarray:
         """The cylindrical z component of the positions of the mesh cells.
 
         theta is the azimuthal position angle in the plane perpendicular to the
@@ -289,7 +301,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _disk_angle(field, data):
+    def _disk_angle(field: DerivedField, data: FieldDetector) -> ndarray:
         """This field is dprecated and will be removed in a future release"""
         return data["index", "spherical_theta"]
 
@@ -303,7 +315,7 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _height(field, data):
+    def _height(field: DerivedField, data: FieldDetector) -> unyt_array:
         """This field is deprecated and will be removed in a future release"""
         return data["index", "cylindrical_z"]
 

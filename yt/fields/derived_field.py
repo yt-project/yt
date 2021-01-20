@@ -2,16 +2,16 @@ import contextlib
 import inspect
 import re
 import warnings
+from typing import Any, Callable, Dict, Iterator, List, Optional, Tuple, Union
 
 from more_itertools import always_iterable
+from unyt.array import unyt_array
+from unyt.unit_object import Unit
 
 import yt.units.dimensions as ytdims
-from yt.funcs import VisibleDeprecationWarning, iter_fields
-from yt.units.unit_object import Unit
-from yt.utilities.exceptions import YTFieldNotFound
-
-from .field_detector import FieldDetector
-from .field_exceptions import (
+from yt.data_objects.selection_objects.region import YTRegion
+from yt.fields.field_detector import FieldDetector
+from yt.fields.field_exceptions import (
     FieldUnitsError,
     NeedsDataField,
     NeedsGridType,
@@ -19,10 +19,15 @@ from .field_exceptions import (
     NeedsParameter,
     NeedsProperty,
 )
+from yt.frontends.ramses.data_structures import RAMSESDataset, RAMSESDomainSubset
+from yt.funcs import VisibleDeprecationWarning, iter_fields
+from yt.utilities.exceptions import YTFieldNotFound
 
 
-def TranslationFunc(field_name):
-    def _TranslationFunc(field, data):
+def TranslationFunc(field_name: Tuple[str, str]) -> Callable:
+    def _TranslationFunc(
+        field: DerivedField, data: Union[YTRegion, FieldDetector]
+    ) -> unyt_array:
         # We do a bunch of in-place modifications, so we will copy this.
         return data[field_name].copy()
 
@@ -94,22 +99,22 @@ class DerivedField:
 
     def __init__(
         self,
-        name,
-        sampling_type,
-        function,
-        units=None,
-        take_log=True,
-        validators=None,
-        particle_type=None,
-        vector_field=False,
-        display_field=True,
-        not_in_all=False,
-        display_name=None,
-        output_units=None,
-        dimensions=None,
-        ds=None,
-        nodal_flag=None,
-    ):
+        name: Tuple[str, str],
+        sampling_type: str,
+        function: Callable,
+        units: Union[str, Unit] = None,
+        take_log: bool = True,
+        validators: Any = None,
+        particle_type: Optional[Any] = None,
+        vector_field: bool = False,
+        display_field: bool = True,
+        not_in_all: bool = False,
+        display_name: Optional[str] = None,
+        output_units: Optional[Any] = None,
+        dimensions: Optional[Any] = None,
+        ds: RAMSESDataset = None,
+        nodal_flag: Optional[Any] = None,
+    ) -> None:
         self.name = name
         self.take_log = take_log
         self.display_name = display_name
@@ -208,7 +213,7 @@ class DerivedField:
         return is_sph_field
 
     @property
-    def local_sampling(self):
+    def local_sampling(self) -> bool:
         return self.sampling_type in ("discrete", "particle", "local")
 
     def get_units(self):
@@ -225,7 +230,9 @@ class DerivedField:
             u = Unit(self.units)
         return (u * Unit("cm")).latex_representation()
 
-    def check_available(self, data):
+    def check_available(
+        self, data: Union[YTRegion, FieldDetector, RAMSESDomainSubset]
+    ) -> bool:
         """
         This raises an exception of the appropriate type if the set of
         validation mechanisms are not met, and otherwise returns True.
@@ -235,7 +242,7 @@ class DerivedField:
         # If we don't get an exception, we're good to go
         return True
 
-    def get_dependencies(self, *args, **kwargs):
+    def get_dependencies(self, *args: Any, **kwargs: Any) -> FieldDetector:
         """
         This returns a list of names of fields that this field depends on.
         """
@@ -246,7 +253,9 @@ class DerivedField:
             e[self.name]
         return e
 
-    def _get_needed_parameters(self, fd):
+    def _get_needed_parameters(
+        self, fd: FieldDetector
+    ) -> Tuple[Dict[str, unyt_array], Dict[str, List[int]]]:
         params = []
         values = []
         permute_params = {}
@@ -262,7 +271,9 @@ class DerivedField:
     _unit_registry = None
 
     @contextlib.contextmanager
-    def unit_registry(self, data):
+    def unit_registry(
+        self, data: Union[YTRegion, FieldDetector, RAMSESDomainSubset]
+    ) -> Iterator:
         old_registry = self._unit_registry
         if hasattr(data, "unit_registry"):
             ur = data.unit_registry
@@ -274,7 +285,7 @@ class DerivedField:
         yield
         self._unit_registry = old_registry
 
-    def __call__(self, data):
+    def __call__(self, data: Union[YTRegion, FieldDetector, RAMSESDomainSubset]) -> Any:
         """ Return the value of the field in a given *data* object. """
         self.check_available(data)
         original_fields = data.keys()  # Copy
@@ -473,7 +484,7 @@ class FieldValidator:
 
 
 class ValidateParameter(FieldValidator):
-    def __init__(self, parameters, parameter_values=None):
+    def __init__(self, parameters: str, parameter_values: Optional[Any] = None) -> None:
         """
         This validator ensures that the dataset has a given parameter.
 
@@ -484,7 +495,7 @@ class ValidateParameter(FieldValidator):
         self.parameters = list(always_iterable(parameters))
         self.parameter_values = parameter_values
 
-    def __call__(self, data):
+    def __call__(self, data: Union[YTRegion, FieldDetector]) -> bool:
         doesnt_have = []
         for p in self.parameters:
             if not data.has_field_parameter(p):
@@ -534,7 +545,9 @@ class ValidateProperty(FieldValidator):
 
 
 class ValidateSpatial(FieldValidator):
-    def __init__(self, ghost_zones=0, fields=None):
+    def __init__(
+        self, ghost_zones: int = 0, fields: Optional[List[Tuple[str, str]]] = None
+    ) -> None:
         """
         This validator ensures that the data handed to the field is of spatial
         nature -- that is to say, 3-D.
@@ -543,7 +556,9 @@ class ValidateSpatial(FieldValidator):
         self.ghost_zones = ghost_zones
         self.fields = fields
 
-    def __call__(self, data):
+    def __call__(
+        self, data: Union[YTRegion, FieldDetector, RAMSESDomainSubset]
+    ) -> bool:
         # When we say spatial information, we really mean
         # that it has a three-dimensional data structure
         # if isinstance(data, FieldDetector): return True

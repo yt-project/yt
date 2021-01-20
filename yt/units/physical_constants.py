@@ -1,4 +1,5 @@
 from unyt.array import unyt_quantity
+from unyt.unit_registry import UnitRegistry
 from unyt.unit_systems import add_constants
 
 from yt.units.unit_registry import default_unit_registry
@@ -26,7 +27,7 @@ class _ConstantContainer:
     unyt_quantity(6.67384e-08, 'cm**3/(g*s**2)')
     """
 
-    def __init__(self, registry):
+    def __init__(self, registry: UnitRegistry) -> None:
         self._registry = registry
         self._cache = {}
 
@@ -34,7 +35,7 @@ class _ConstantContainer:
         ret = [p for p in globals() if not p.startswith("_")] + object.__dir__(self)
         return list(set(ret))
 
-    def __getattr__(self, item):
+    def __getattr__(self, item: str) -> unyt_quantity:
         if item in self._cache:
             return self._cache[item]
         if item in globals():

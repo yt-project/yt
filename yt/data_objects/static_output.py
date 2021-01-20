@@ -5,20 +5,28 @@ import os
 import pickle
 import time
 import weakref
+from abc import ABCMeta
 from collections import defaultdict
+from pathlib import PosixPath
 from stat import ST_CTIME
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
+from numpy import ndarray
+from unyt.array import unyt_array, unyt_quantity
 from unyt.exceptions import UnitConversionError, UnitParseError
+from unyt.unit_object import Unit
 
 from yt.config import ytcfg
-from yt.data_objects.particle_filters import filter_registry
+from yt.data_objects.particle_filters import ParticleFilter, filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.region_expression import RegionExpression
-from yt.fields.derived_field import ValidateSpatial
+from yt.data_objects.selection_objects.region import YTRegion
+from yt.fields.derived_field import DerivedField, ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
 from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
+from yt.frontends.ramses.data_structures import RAMSESDataset, RAMSESIndex
 from yt.funcs import (
     is_sequence,
     issue_deprecation_warning,
@@ -39,7 +47,7 @@ from yt.geometry.coordinates.api import (
 )
 from yt.units import UnitContainer, _wrap_display_ytarray, dimensions
 from yt.units.dimensions import current_mks
-from yt.units.unit_object import Unit, define_unit
+from yt.units.unit_object import define_unit
 from yt.units.unit_registry import UnitRegistry
 from yt.units.unit_systems import create_code_unit_system, unit_system_registry
 from yt.units.yt_array import YTArray, YTQuantity
@@ -96,7 +104,9 @@ class MutableAttribute:
         self.data = weakref.WeakKeyDictionary()
         self.display_array = display_array
 
-    def __get__(self, instance, owner):
+    def __get__(
+        self, instance: RAMSESDataset, owner: ABCMeta
+    ) -> Union[Tuple[bool, bool, bool], ndarray, unyt_array]:
         if not instance:
             return None
         ret = self.data.get(instance, None)
@@ -113,20 +123,22 @@ class MutableAttribute:
                 pass
         return ret
 
-    def __set__(self, instance, value):
+    def __set__(
+        self, instance: RAMSESDataset, value: Union[Tuple[bool, bool, bool], ndarray]
+    ) -> None:
         self.data[instance] = value
 
 
 def requires_index(attr_name):
     @property
-    def ireq(self):
+    def ireq(self: Any) -> List[Tuple[str, str]]:
         self.index
         # By now it should have been set
         attr = self.__dict__[attr_name]
         return attr
 
     @ireq.setter
-    def ireq(self, value):
+    def ireq(self: Any, value: List[Tuple[str, str]]) -> None:
         self.__dict__[attr_name] = value
 
     return ireq
@@ -195,12 +207,12 @@ class Dataset(abc.ABC):
 
     def __init__(
         self,
-        filename,
-        dataset_type=None,
-        file_style=None,
-        units_override=None,
-        unit_system="cgs",
-    ):
+        filename: PosixPath,
+        dataset_type: str = None,
+        file_style: Optional[Any] = None,
+        units_override: Optional[Dict[str, Tuple[ndarray, Unit]]] = None,
+        unit_system: str = "cgs",
+    ) -> None:
         """
         Base class for generating new output types.  Principally consists of
         a *filename* and a *dataset_type* which will be passed on to children.
@@ -265,7 +277,7 @@ class Dataset(abc.ABC):
         self._setup_classes()
 
     @property
-    def unique_identifier(self):
+    def unique_identifier(self) -> int:
         if self._unique_identifier is None:
             self._unique_identifier = int(os.stat(self.parameter_filename)[ST_CTIME])
         return self._unique_identifier
@@ -275,7 +287,7 @@ class Dataset(abc.ABC):
         self._unique_identifier = value
 
     @property
-    def periodicity(self):
+    def periodicity(self) -> Tuple[bool, bool, bool]:
         if self._force_periodicity:
             return (True, True, True)
         return self._periodicity
@@ -311,7 +323,7 @@ class Dataset(abc.ABC):
     # abstract methods require implementation in subclasses
     @classmethod
     @abc.abstractmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         # A heuristic test to determine if the data format can be interpreted
         # with the present frontend
         return False
@@ -330,7 +342,7 @@ class Dataset(abc.ABC):
         # yt.frontends._skeleton.SkeletonDataset
         pass
 
-    def _set_derived_attrs(self):
+    def _set_derived_attrs(self) -> None:
         if self.domain_left_edge is None or self.domain_right_edge is None:
             self.domain_center = np.zeros(3)
             self.domain_width = np.zeros(3)
@@ -355,7 +367,7 @@ class Dataset(abc.ABC):
     def __repr__(self):
         return self.basename
 
-    def _hash(self):
+    def _hash(self) -> str:
         s = f"{self.basename};{self.current_time};{self.unique_identifier}"
         try:
             import hashlib
@@ -432,7 +444,7 @@ class Dataset(abc.ABC):
     def close(self):
         pass
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: str) -> float:
         """ Returns units, parameters, or conversion_factors in that order. """
         return self.parameters[key]
 
@@ -537,7 +549,7 @@ class Dataset(abc.ABC):
     _instantiated_index = None
 
     @property
-    def index(self):
+    def index(self) -> RAMSESIndex:
         if self._instantiated_index is None:
             if self._index_class is None:
                 raise RuntimeError("You should not instantiate Dataset.")
@@ -563,7 +575,7 @@ class Dataset(abc.ABC):
     hierarchy = h
 
     @parallel_root_only
-    def print_key_parameters(self):
+    def print_key_parameters(self) -> None:
         for a in [
             "current_time",
             "domain_dimensions",
@@ -595,10 +607,10 @@ class Dataset(abc.ABC):
         self.index.print_stats()
 
     @property
-    def field_list(self):
+    def field_list(self) -> List[Tuple[str, str]]:
         return self.index.field_list
 
-    def create_field_info(self):
+    def create_field_info(self) -> None:
         self.field_dependencies = {}
         self.derived_field_list = []
         self.filtered_particle_types = []
@@ -679,7 +691,7 @@ class Dataset(abc.ABC):
             added.append(("gas", old_name))
         self.field_info.find_dependencies(added)
 
-    def _setup_coordinate_handler(self):
+    def _setup_coordinate_handler(self) -> None:
         kwargs = {}
         if isinstance(self.geometry, tuple):
             self.geometry, ordering = self.geometry
@@ -713,7 +725,7 @@ class Dataset(abc.ABC):
             raise YTGeometryNotSupported(self.geometry)
         self.coordinates = cls(self, **kwargs)
 
-    def add_particle_union(self, union):
+    def add_particle_union(self, union: ParticleUnion) -> int:
         # No string lookups here, we need an actual union.
         f = self.particle_fields_by_type
 
@@ -751,7 +763,7 @@ class Dataset(abc.ABC):
         self.field_info.find_dependencies(new_fields)
         return len(new_fields)
 
-    def add_particle_filter(self, filter):
+    def add_particle_filter(self, filter: str) -> bool:
         """Add particle filter to the dataset.
 
         Add ``filter`` to the dataset and set up relavent derived_field.
@@ -780,7 +792,7 @@ class Dataset(abc.ABC):
         self.known_filters[filter.name] = filter
         return True
 
-    def _setup_filtered_type(self, filter):
+    def _setup_filtered_type(self, filter: ParticleFilter) -> bool:
         # Check if the filtered_type of this filter is known,
         # otherwise add it first if it is in the filter_registry
         if filter.filtered_type not in self.known_filters.keys():
@@ -827,7 +839,7 @@ class Dataset(abc.ABC):
             self.field_dependencies.update(deps)
         return available
 
-    def _setup_particle_types(self, ptypes=None):
+    def _setup_particle_types(self, ptypes: List[str] = None) -> List[Tuple[str, str]]:
         df = []
         if ptypes is None:
             ptypes = self.ds.particle_types_raw
@@ -838,7 +850,7 @@ class Dataset(abc.ABC):
     _last_freq = (None, None)
     _last_finfo = None
 
-    def _get_field_info(self, ftype, fname=None):
+    def _get_field_info(self, ftype: str, fname: Optional[str] = None) -> DerivedField:
         self.index
 
         # store the original inputs in case we need to raise an error
@@ -900,7 +912,7 @@ class Dataset(abc.ABC):
                     return self._last_finfo
         raise YTFieldNotFound(field=INPUT, ds=self)
 
-    def _setup_classes(self):
+    def _setup_classes(self) -> None:
         # Called by subclass
         self.object_types = []
         self.objects = []
@@ -912,7 +924,7 @@ class Dataset(abc.ABC):
             self._add_object_class(name, cls)
         self.object_types.sort()
 
-    def _add_object_class(self, name, base):
+    def _add_object_class(self, name: str, base: type) -> None:
         # skip projection data objects that don't make sense
         # for this type of data
         if "proj" in name and name != self._proj_type:
@@ -1039,7 +1051,7 @@ class Dataset(abc.ABC):
             return out
 
     # Now all the object related stuff
-    def all_data(self, find_max=False, **kwargs):
+    def all_data(self, find_max: bool = False, **kwargs: Any) -> YTRegion:
         """
         all_data is a wrapper to the Region object for creating a region
         which covers the entire simulation domain.
@@ -1051,7 +1063,12 @@ class Dataset(abc.ABC):
             c = (self.domain_right_edge + self.domain_left_edge) / 2.0
         return self.region(c, self.domain_left_edge, self.domain_right_edge, **kwargs)
 
-    def box(self, left_edge, right_edge, **kwargs):
+    def box(
+        self,
+        left_edge: Union[List[float], List[int]],
+        right_edge: List[float],
+        **kwargs: Any,
+    ) -> YTRegion:
         """
         box is a wrapper to the Region object for creating a region
         without having to specify a *center* value.  It assumes the center
@@ -1073,13 +1090,13 @@ class Dataset(abc.ABC):
         c = (left_edge + right_edge) / 2.0
         return self.region(c, left_edge, right_edge, **kwargs)
 
-    def _setup_particle_type(self, ptype):
+    def _setup_particle_type(self, ptype: str) -> List[Tuple[str, str]]:
         orig = set(self.field_info.items())
         self.field_info.setup_particle_fields(ptype)
         return [n for n, v in set(self.field_info.items()).difference(orig)]
 
     @property
-    def particle_fields_by_type(self):
+    def particle_fields_by_type(self) -> Dict:
         fields = defaultdict(list)
         for field in self.field_list:
             if field[0] in self.particle_types_raw:
@@ -1087,14 +1104,14 @@ class Dataset(abc.ABC):
         return fields
 
     @property
-    def particles_exist(self):
+    def particles_exist(self) -> bool:
         for pt, f in itertools.product(self.particle_types_raw, self.field_list):
             if pt == f[0]:
                 return True
         return False
 
     @property
-    def particle_type_counts(self):
+    def particle_type_counts(self) -> Dict[str, Any]:
         self.index
         if not self.particles_exist:
             return {}
@@ -1117,7 +1134,7 @@ class Dataset(abc.ABC):
     def relative_refinement(self, l0, l1):
         return self.refine_by ** (l1 - l0)
 
-    def _assign_unit_system(self, unit_system):
+    def _assign_unit_system(self, unit_system: str) -> None:
         if unit_system == "cgs":
             current_mks_unit = None
         else:
@@ -1147,7 +1164,7 @@ class Dataset(abc.ABC):
         self.unit_system = us
         self.unit_registry.unit_system = self.unit_system
 
-    def _create_unit_registry(self, unit_system):
+    def _create_unit_registry(self, unit_system: str) -> None:
         from yt.units import dimensions
 
         # yt assumes a CGS unit system by default (for back compat reasons).
@@ -1174,7 +1191,7 @@ class Dataset(abc.ABC):
         self.unit_registry.add("h", 1.0, dimensions.dimensionless, r"h")
         self.unit_registry.add("a", 1.0, dimensions.dimensionless)
 
-    def set_units(self):
+    def set_units(self) -> None:
         """
         Creates the unit registry for this dataset.
 
@@ -1199,7 +1216,7 @@ class Dataset(abc.ABC):
 
         self.set_code_units()
 
-    def setup_cosmology(self):
+    def setup_cosmology(self) -> None:
         """
         If this dataset is cosmological, add a cosmology object.
         """
@@ -1244,7 +1261,7 @@ class Dataset(abc.ABC):
         new_unit = Unit(unit_str, registry=self.unit_registry)
         return new_unit
 
-    def set_code_units(self):
+    def set_code_units(self) -> None:
         # here we override units, if overrides have been provided.
         self._override_code_units()
 
@@ -1278,7 +1295,9 @@ class Dataset(abc.ABC):
             )
 
     @classmethod
-    def _validate_units_override_keys(cls, units_override):
+    def _validate_units_override_keys(
+        cls, units_override: Dict[str, Tuple[ndarray, Unit]]
+    ) -> None:
         valid_keys = set(cls.default_units.keys())
         invalid_keys_found = set(units_override.keys()) - valid_keys
         if invalid_keys_found:
@@ -1296,7 +1315,9 @@ class Dataset(abc.ABC):
     }
 
     @classmethod
-    def _sanitize_units_override(cls, units_override):
+    def _sanitize_units_override(
+        cls, units_override: Optional[Dict[str, Tuple[ndarray, Unit]]]
+    ) -> Dict[str, unyt_quantity]:
         """
         Convert units_override values to valid input types for unyt.
         Throw meaningful errors early if units_override is ill-formed.
@@ -1373,7 +1394,7 @@ class Dataset(abc.ABC):
                 )
         return uo
 
-    def _override_code_units(self):
+    def _override_code_units(self) -> None:
         if not self.units_override:
             return
 
@@ -1389,7 +1410,7 @@ class Dataset(abc.ABC):
     _unit_system_id = None
 
     @property
-    def units(self):
+    def units(self) -> UnitContainer:
         current_uid = self.unit_registry.unit_system_id
         if self._units is not None and self._unit_system_id == current_uid:
             return self._units
@@ -1400,7 +1421,7 @@ class Dataset(abc.ABC):
     _arr = None
 
     @property
-    def arr(self):
+    def arr(self) -> Callable:
         """Converts an array into a :class:`yt.units.yt_array.YTArray`
 
         The returned YTArray will be dimensionless by default, but can be
@@ -1448,7 +1469,7 @@ class Dataset(abc.ABC):
     _quan = None
 
     @property
-    def quan(self):
+    def quan(self) -> Callable:
         """Converts an scalar into a :class:`yt.units.yt_array.YTQuantity`
 
         The returned YTQuantity will be dimensionless by default, but can be
@@ -1493,7 +1514,13 @@ class Dataset(abc.ABC):
         self._quan = functools.partial(YTQuantity, registry=self.unit_registry)
         return self._quan
 
-    def add_field(self, name, function, sampling_type, **kwargs):
+    def add_field(
+        self,
+        name: Tuple[str, str],
+        function: Callable,
+        sampling_type: str,
+        **kwargs: Any,
+    ) -> None:
         """
         Dataset-specific call to add_field
 
@@ -1785,25 +1812,25 @@ class Dataset(abc.ABC):
     _max_level = None
 
     @property
-    def max_level(self):
+    def max_level(self) -> int:
         if self._max_level is None:
             self._max_level = self.index.max_level
         return self._max_level
 
     @max_level.setter
-    def max_level(self, value):
+    def max_level(self, value: int) -> None:
         self._max_level = value
 
     _min_level = None
 
     @property
-    def min_level(self):
+    def min_level(self) -> int:
         if self._min_level is None:
             self._min_level = self.index.min_level
         return self._min_level
 
     @min_level.setter
-    def min_level(self, value):
+    def min_level(self, value: int) -> None:
         self._min_level = value
 
     def define_unit(self, symbol, value, tex_repr=None, offset=None, prefixable=False):

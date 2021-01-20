@@ -4,6 +4,7 @@ import uuid
 import weakref
 from itertools import chain, product, repeat
 from numbers import Number as numeric_type
+from typing import Any
 
 import numpy as np
 from more_itertools import always_iterable
@@ -339,7 +340,7 @@ class StreamDataset(Dataset):
             setattr(self, attr, uq)
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         return False
 
     @property

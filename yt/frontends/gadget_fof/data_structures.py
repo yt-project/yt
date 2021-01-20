@@ -2,6 +2,7 @@ import os
 import weakref
 from collections import defaultdict
 from functools import partial
+from typing import Any
 
 import numpy as np
 
@@ -304,7 +305,7 @@ class GadgetFOFDataset(ParticleDataset):
         return self.basename.split(".", 1)[0]
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> bool:
         need_groups = ["Group", "Header", "Subhalo"]
         veto_groups = ["FOF"]
         valid = True
@@ -494,7 +495,7 @@ class GadgetFOFHaloDataset(ParticleDataset):
         self.objects = []
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, *args: str, **kwargs: Any) -> bool:
         # This class is not meant to be instanciated by yt.load()
         return False
 

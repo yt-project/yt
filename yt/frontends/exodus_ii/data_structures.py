@@ -1,3 +1,5 @@
+from typing import Any, Optional
+
 import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import UnstructuredMesh
@@ -394,7 +396,7 @@ class ExodusIIDataset(Dataset):
         return mi, ma
 
     @classmethod
-    def _is_valid(cls, filename, *args, **kwargs):
+    def _is_valid(cls, filename: str, *args: Any, **kwargs: Any) -> Optional[Any]:
         warn_netcdf(filename)
         try:
             from netCDF4 import Dataset
