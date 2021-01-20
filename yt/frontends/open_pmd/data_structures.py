@@ -638,7 +638,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
     mixed_dataset_types = False
 
     def __init__(self, filename):
-        super(OpenPMDDatasetSeries, self).__init__([])
+        super().__init__([])
         self.handle = h5py.File(filename, mode="r")
         self.filename = filename
         self._pre_outputs = sorted(

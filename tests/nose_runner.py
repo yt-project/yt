@@ -36,7 +36,7 @@ class NoseWorker(multiprocessing.Process):
         return
 
 
-class NoseTask(object):
+class NoseTask:
     def __init__(self, job):
         argv, exclusive = job
         self.argv = argv
@@ -67,7 +67,7 @@ def generate_tasks_input():
     pyver = f"py{sys.version_info.major}{sys.version_info.minor}"
     test_dir = ytcfg.get("yt", "test_data_dir")
     answers_dir = os.path.join(test_dir, "answers")
-    tests = yaml.load(open("tests/tests.yaml", "r"), Loader=yaml.FullLoader)
+    tests = yaml.load(open("tests/tests.yaml"), Loader=yaml.FullLoader)
 
     base_argv = ["-s", "--nologcapture", "--with-xunit"]
 

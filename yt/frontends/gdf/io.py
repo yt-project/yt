@@ -40,9 +40,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             h5f.close()
             return rv
         if size is None:
-            size = sum(
-                (grid.count(selector) for chunk in chunks for grid in chunk.objs)
-            )
+            size = sum(grid.count(selector) for chunk in chunks for grid in chunk.objs)
 
         if any((ftype != "gdf" for ftype, fname in fields)):
             raise NotImplementedError

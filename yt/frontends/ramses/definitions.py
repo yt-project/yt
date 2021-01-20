@@ -53,8 +53,8 @@ VERSION_RE = re.compile(r"# version: *(\d+)")
 # on the left hand side
 VAR_DESC_RE = re.compile(r"\s*([^\s]+),\s*([^\s]+),\s*([^\s]+)")
 
-OUTPUT_DIR_RE = re.compile("(output|group)_(\d{5})")
-STANDARD_FILE_RE = re.compile("((amr|hydro|part|grav)_\d{5}\.out\d{5}|info_\d{5}.txt)")
+OUTPUT_DIR_RE = re.compile(r"(output|group)_(\d{5})")
+STANDARD_FILE_RE = re.compile(r"((amr|hydro|part|grav)_\d{5}\.out\d{5}|info_\d{5}.txt)")
 
 
 ## Configure family mapping

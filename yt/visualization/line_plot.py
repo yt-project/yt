@@ -76,7 +76,7 @@ class LineBuffer:
 
 class LinePlotDictionary(PlotDictionary):
     def __init__(self, data_source):
-        super(LinePlotDictionary, self).__init__(data_source)
+        super().__init__(data_source)
         self.known_dimensions = {}
 
     def _sanitize_dimensions(self, item):
@@ -94,15 +94,15 @@ class LinePlotDictionary(PlotDictionary):
 
     def __getitem__(self, item):
         ret_item = self._sanitize_dimensions(item)
-        return super(LinePlotDictionary, self).__getitem__(ret_item)
+        return super().__getitem__(ret_item)
 
     def __setitem__(self, item, value):
         ret_item = self._sanitize_dimensions(item)
-        super(LinePlotDictionary, self).__setitem__(ret_item, value)
+        super().__setitem__(ret_item, value)
 
     def __contains__(self, item):
         ret_item = self._sanitize_dimensions(item)
-        return super(LinePlotDictionary, self).__contains__(ret_item)
+        return super().__contains__(ret_item)
 
 
 class LinePlot(PlotContainer):

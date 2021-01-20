@@ -190,8 +190,7 @@ class ObjectIterator:
         self.just_list = just_list
 
     def __iter__(self):
-        for obj in self._objs:
-            yield obj
+        yield from self._objs
 
 
 class ParallelObjectIterator(ObjectIterator):
@@ -265,7 +264,7 @@ class ParallelDummy(type):
     """
 
     def __init__(cls, name, bases, d):
-        super(ParallelDummy, cls).__init__(name, bases, d)
+        super().__init__(name, bases, d)
         skip = d.pop("dont_wrap", [])
         extra = d.pop("extra_wrap", [])
         for attrname in d:
@@ -501,8 +500,7 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     if dynamic:
         from .task_queue import dynamic_parallel_objects
 
-        for my_obj in dynamic_parallel_objects(objects, njobs=njobs, storage=storage):
-            yield my_obj
+        yield from dynamic_parallel_objects(objects, njobs=njobs, storage=storage)
         return
 
     if not parallel_capable:

@@ -35,7 +35,7 @@ def convert_ramses_ages(ds, conformal_ages):
     # tables.
     t = tf[iage] * (conformal_ages - tauf[iage - 1]) / (tauf[iage] - tauf[iage - 1])
     t = t + (
-        (tf[iage - 1] * (conformal_ages - tauf[iage]) / (tauf[iage - 1] - tauf[iage]))
+        tf[iage - 1] * (conformal_ages - tauf[iage]) / (tauf[iage - 1] - tauf[iage])
     )
     return (tsim - t) * t_scale
 
@@ -89,7 +89,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         tr = defaultdict(list)
 
         # Set of field types
-        ftypes = set(f[0] for f in fields)
+        ftypes = {f[0] for f in fields}
         for chunk in chunks:
             # Gather fields by type to minimize i/o operations
             for ft in ftypes:
@@ -174,7 +174,7 @@ class IOHandlerRAMSES(BaseIOHandler):
         tr = {}
 
         # Sequential read depending on particle type
-        for ptype in set(f[0] for f in fields):
+        for ptype in {f[0] for f in fields}:
 
             # Select relevant fiels
             subs_fields = filter(lambda f: f[0] == ptype, fields)
@@ -231,7 +231,7 @@ def _read_part_file_descriptor(fname):
     # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
-    with open(fname, "r") as f:
+    with open(fname) as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
         mylog.debug("Reading part file descriptor %s.", fname)
@@ -291,7 +291,7 @@ def _read_fluid_file_descriptor(fname):
     # Convert to dictionary
     mapping = {k: v for k, v in mapping}
 
-    with open(fname, "r") as f:
+    with open(fname) as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
         mylog.debug("Reading fluid file descriptor %s.", fname)

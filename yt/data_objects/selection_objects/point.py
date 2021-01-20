@@ -44,7 +44,7 @@ class YTPoint(YTSelectionContainer0D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        super(YTPoint, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         if isinstance(p, YTArray):
             # we pass p through ds.arr to ensure code units are attached
             self.p = self.ds.arr(p)

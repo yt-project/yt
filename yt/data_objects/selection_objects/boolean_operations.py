@@ -11,7 +11,7 @@ from yt.funcs import validate_object, validate_sequence
 
 
 class YTBooleanContainer(YTSelectionContainer3D):
-    """
+    r"""
     This is a boolean operation, accepting AND, OR, XOR, and NOT for combining
     multiple data objects.
 

@@ -23,7 +23,7 @@ class ParticleIndex(Index):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         self.float_type = np.float64
-        super(ParticleIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
         self._initialize_index()
 
     def _setup_geometry(self):
@@ -273,7 +273,7 @@ class ParticleIndex(Index):
                     dsl.append(f)
         self.field_list = dsl
         ds = self.dataset
-        ds.particle_types = tuple(set(pt for pt, ds in dsl))
+        ds.particle_types = tuple({pt for pt, ds in dsl})
         # This is an attribute that means these particle types *actually*
         # exist.  As in, they are real, in the dataset.
         ds.field_units.update(units)

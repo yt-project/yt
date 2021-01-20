@@ -19,7 +19,7 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
     contours = {}
     node_ids = []
     DLE = data_source.ds.domain_left_edge
-    masks = dict((g.id, m) for g, m in data_source.blocks)
+    masks = {g.id: m for g, m in data_source.blocks}
     for (g, node, (sl, dims, gi)) in data_source.tiles.slice_traverse():
         g.field_parameters.update(data_source.field_parameters)
         node.node_ind = len(node_ids)

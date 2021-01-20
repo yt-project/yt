@@ -1816,12 +1816,12 @@ class YTDownloadData(YTCommand):
             ensure_dir(data_dir)
         data_file = os.path.join(data_dir, args.filename)
         if os.path.exists(data_file) and not args.overwrite:
-            raise IOError(f"File '{data_file}' exists and overwrite=False!")
+            raise OSError(f"File '{data_file}' exists and overwrite=False!")
         print(f"Attempting to download file: {args.filename}")
         fn = download_file(data_url, data_file)
 
         if not os.path.exists(fn):
-            raise IOError(f"The file '{args.filename}' did not download!!")
+            raise OSError(f"The file '{args.filename}' did not download!!")
         print(f"File: {args.filename} downloaded successfully to {data_file}")
 
     def get_list(self):

@@ -152,7 +152,7 @@ class DatasetSeries:
             outputs = cls._get_filenames_from_glob_pattern(outputs)
         except TypeError:
             pass
-        ret = super(DatasetSeries, cls).__new__(cls)
+        ret = super().__new__(cls)
         ret._pre_outputs = outputs[:]
         return ret
 
@@ -511,12 +511,10 @@ class DatasetSeriesObject:
         self.data_object_name = data_object_name
         self._args = args
         self._kwargs = kwargs
-        qs = dict(
-            [
-                (qn, create_quantity_proxy(qv))
-                for qn, qv in derived_quantity_registry.items()
-            ]
-        )
+        qs = {
+            qn: create_quantity_proxy(qv)
+            for qn, qv in derived_quantity_registry.items()
+        }
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
     def eval(self, tasks):

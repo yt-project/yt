@@ -31,7 +31,7 @@ class SPHDataset(ParticleDataset):
         else:
             self.kernel_name = kernel_name
         self.kdtree_filename = kdtree_filename
-        super(SPHDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type=dataset_type,
             file_style=file_style,
@@ -86,7 +86,7 @@ class SPHParticleIndex(ParticleIndex):
         if hasattr(self.io, "_generate_smoothing_length"):
             self.io._generate_smoothing_length(self)
 
-        super(SPHParticleIndex, self)._initialize_index()
+        super()._initialize_index()
 
     def _generate_kdtree(self, fname):
         from yt.utilities.lib.cykdtree import PyKDTree

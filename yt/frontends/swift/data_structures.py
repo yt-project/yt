@@ -127,11 +127,9 @@ class SwiftDataset(SPHDataset):
                 self.hubble_constant = float(parameters["Cosmology:h"])
             except KeyError:
                 mylog.warning(
-                    (
-                        "Could not find cosmology information in Parameters, "
-                        "despite having ran with -c signifying a cosmological "
-                        "run."
-                    )
+                    "Could not find cosmology information in Parameters, "
+                    "despite having ran with -c signifying a cosmological "
+                    "run."
                 )
                 mylog.info("Setting up as a non-cosmological run. Check this!")
                 self.cosmological_simulation = 0
@@ -174,7 +172,7 @@ class SwiftDataset(SPHDataset):
             handle = h5py.File(filename, mode="r")
             valid = handle["Header"].attrs["Code"].decode("utf-8") == "SWIFT"
             handle.close()
-        except (IOError, KeyError, ImportError):
+        except (OSError, KeyError, ImportError):
             valid = False
 
         return valid

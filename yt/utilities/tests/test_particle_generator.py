@@ -52,7 +52,7 @@ def test_particle_generator():
 
     def new_indices():
         # We just add new indices onto the existing ones
-        return np.arange((np.product(pdims))) + num_particles
+        return np.arange(np.product(pdims)) + num_particles
 
     le = np.array([0.25, 0.25, 0.25])
     re = np.array([0.75, 0.75, 0.75])
@@ -93,7 +93,7 @@ def test_particle_generator():
     # Test the uniqueness of tags
     tags = np.concatenate([grid["particle_index"] for grid in ds.index.grids])
     tags.sort()
-    assert_equal(tags, np.arange((np.product(pdims) + num_particles)))
+    assert_equal(tags, np.arange(np.product(pdims) + num_particles))
 
     del tags
 

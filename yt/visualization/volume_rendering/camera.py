@@ -145,7 +145,7 @@ class Camera(Orientation):
         if auto:
             self.set_defaults_from_data_source(data_source)
 
-        super(Camera, self).__init__(
+        super().__init__(
             self.focus - self.position, self.north_vector, steady_north=False
         )
 
@@ -354,7 +354,7 @@ class Camera(Orientation):
         self._domain_center = data_source.ds.domain_center
         self._domain_width = data_source.ds.domain_width
 
-        super(Camera, self).__init__(
+        super().__init__(
             self.focus - self.position, self.north_vector, steady_north=False
         )
         self._moved = True

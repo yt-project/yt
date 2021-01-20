@@ -21,9 +21,9 @@ class ParticleGenerator:
             (ptype, fd) if isinstance(fd, str) else fd for fd in field_list
         ]
         self.field_list.append((ptype, "particle_index"))
-        self.field_units = dict(
-            ((ptype, f"particle_position_{ax}"), "code_length") for ax in "xyz"
-        )
+        self.field_units = {
+            (ptype, f"particle_position_{ax}"): "code_length" for ax in "xyz"
+        }
         self.field_units[ptype, "particle_index"] = ""
         self.ptype = ptype
 
@@ -268,9 +268,7 @@ class FromListParticleGenerator(ParticleGenerator):
         if np.any(cond):
             raise ValueError("Some particles are outside of the domain!!!")
 
-        super(FromListParticleGenerator, self).__init__(
-            ds, num_particles, field_list, ptype=ptype
-        )
+        super().__init__(ds, num_particles, field_list, ptype=ptype)
         self._setup_particles(x, y, z, setup_fields=data)
 
 
@@ -333,9 +331,7 @@ class LatticeParticleGenerator(ParticleGenerator):
         if cond:
             raise ValueError("Proposed bounds for particles are outside domain!!!")
 
-        super(LatticeParticleGenerator, self).__init__(
-            ds, num_x * num_y * num_z, field_list, ptype=ptype
-        )
+        super().__init__(ds, num_x * num_y * num_z, field_list, ptype=ptype)
 
         dx = (xmax - xmin) / (num_x - 1)
         dy = (ymax - ymin) / (num_y - 1)
@@ -394,9 +390,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
         ...             )
         """
 
-        super(WithDensityParticleGenerator, self).__init__(
-            ds, num_particles, field_list, ptype=ptype
-        )
+        super().__init__(ds, num_particles, field_list, ptype=ptype)
 
         num_cells = len(data_source["x"].flat)
         max_mass = (data_source[density_field] * data_source["cell_volume"]).max()

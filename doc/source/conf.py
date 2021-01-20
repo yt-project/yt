@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # yt documentation build configuration file, created by
 # sphinx-quickstart on Tue Jan 11 09:46:53 2011.

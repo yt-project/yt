@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 import inspect
 from collections import Counter
 from functools import reduce

@@ -45,7 +45,7 @@ class AthenaPPLogarithmicMesh(SemiStructuredMesh):
         blocks,
         dims,
     ):
-        super(AthenaPPLogarithmicMesh, self).__init__(
+        super().__init__(
             mesh_id, filename, connectivity_indices, connectivity_coords, index
         )
         self.mesh_blocks = blocks
@@ -55,7 +55,7 @@ class AthenaPPLogarithmicMesh(SemiStructuredMesh):
 class AthenaPPLogarithmicIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type="athena_pp"):
         self._handle = ds._handle
-        super(AthenaPPLogarithmicIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
         self.index_filename = self.dataset.filename
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type

@@ -44,7 +44,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
 
     def __init__(self, ds, field_parameters, data_source=None):
         ParallelAnalysisInterface.__init__(self)
-        super(YTSelectionContainer, self).__init__(ds, field_parameters)
+        super().__init__(ds, field_parameters)
         self._data_source = data_source
         if data_source is not None:
             if data_source.ds != self.ds:
@@ -481,7 +481,7 @@ class YTSelectionContainer0D(YTSelectionContainer):
     _dimensionality = 0
 
     def __init__(self, ds, field_parameters=None, data_source=None):
-        super(YTSelectionContainer0D, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
 
 
 class YTSelectionContainer1D(YTSelectionContainer):
@@ -489,7 +489,7 @@ class YTSelectionContainer1D(YTSelectionContainer):
     _dimensionality = 1
 
     def __init__(self, ds, field_parameters=None, data_source=None):
-        super(YTSelectionContainer1D, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         self._grids = None
         self._sortkey = None
         self._sorted = {}
@@ -505,7 +505,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
     _spatial = False
 
     def __init__(self, axis, ds, field_parameters=None, data_source=None):
-        super(YTSelectionContainer2D, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         # We need the ds, which will exist by now, for fix_axis.
         self.axis = fix_axis(axis, self.ds)
         self.set_field_parameter("axis", axis)
@@ -649,7 +649,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
     _dimensionality = 3
 
     def __init__(self, center, ds, field_parameters=None, data_source=None):
-        super(YTSelectionContainer3D, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         self._set_center(center)
         self.coords = None
         self._grids = None
@@ -1384,7 +1384,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             from yt.data_objects.level_sets.clump_handling import add_contour_field
 
             nj, cids = identify_contours(self, field, cons[level], mv)
-            unique_contours = set([])
+            unique_contours = set()
             for sl_list in cids.values():
                 for _sl, ff in sl_list:
                     unique_contours.update(np.unique(ff))

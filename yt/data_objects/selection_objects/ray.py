@@ -80,7 +80,7 @@ class YTOrthoRay(YTSelectionContainer1D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        super(YTOrthoRay, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         self.axis = fix_axis(axis, self.ds)
         xax = self.ds.coordinates.x_axis[self.axis]
         yax = self.ds.coordinates.y_axis[self.axis]
@@ -164,7 +164,7 @@ class YTRay(YTSelectionContainer1D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        super(YTRay, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         if isinstance(start_point, YTArray):
             self.start_point = self.ds.arr(start_point).to("code_length")
         else:

@@ -65,7 +65,7 @@ class TestDataContainers(unittest.TestCase):
         sp = ds.sphere(ds.domain_center, 0.25)
         sp.write_out(filename, fields=["cell_volume"])
 
-        with open(filename, "r") as file:
+        with open(filename) as file:
             file_row_1 = file.readline()
             file_row_2 = file.readline()
             file_row_2 = np.array(file_row_2.split("\t"), dtype=np.float64)

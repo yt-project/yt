@@ -150,7 +150,7 @@ class AMRVACIOHandler(BaseIOHandler):
                 data_dict[ftype, fname] = self._read_data(grid, fname)
         else:
             if size is None:
-                size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
+                size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
 
             for field in fields:
                 data_dict[field] = np.empty(size, dtype="float64")

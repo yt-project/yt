@@ -43,7 +43,7 @@ class ARTIndex(OctreeIndex):
         self.directory = os.path.dirname(self.index_filename)
         self.max_level = ds.max_level
         self.float_type = np.float64
-        super(ARTIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def get_smallest_dx(self):
         """
@@ -359,7 +359,7 @@ class ARTDataset(Dataset):
         mylog.info("Max level is %02i", self.max_level)
 
     def create_field_info(self):
-        super(ARTDataset, self).create_field_info()
+        super().create_field_info()
         if "wspecies" in self.parameters:
             # We create dark_matter and stars unions.
             ptr = self.particle_types_raw
@@ -391,7 +391,7 @@ class ARTDataset(Dataset):
 
 class ARTParticleFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
-        super(ARTParticleFile, self).__init__(ds, io, filename, file_id, range=None)
+        super().__init__(ds, io, filename, file_id, range=None)
         self.total_particles = {}
         for ptype, count in zip(
             ds.particle_types_raw, ds.parameters["total_particles"]

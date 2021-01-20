@@ -28,7 +28,7 @@ class IOHandlerART(BaseIOHandler):
     def __init__(self, *args, **kwargs):
         self.cache = {}
         self.masks = {}
-        super(IOHandlerART, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.ws = self.ds.parameters["wspecies"]
         self.ls = self.ds.parameters["lspecies"]
         self.file_particle = self.ds._file_particle_data
@@ -168,7 +168,7 @@ class IOHandlerART(BaseIOHandler):
             # dark_matter -- stars are regular matter.
             tr[field] /= self.ds.domain_dimensions.prod()
         if tr == {}:
-            tr = dict((f, np.array([])) for f in [field])
+            tr = {f: np.array([]) for f in [field]}
         if self.caching:
             self.cache[field] = tr[field]
             return self.cache[field]
@@ -460,7 +460,7 @@ def read_particles(file, Nrow, idxa, idxb, fields):
     real_size = 4  # for file_particle_data; not always true?
     np_per_page = Nrow ** 2  # defined in ART a_setup.h, # of particles/page
     num_pages = os.path.getsize(file) // (real_size * words * np_per_page)
-    fh = open(file, "r")
+    fh = open(file)
     skip, count = idxa, idxb - idxa
     kwargs = dict(
         words=words, real_size=real_size, np_per_page=np_per_page, num_pages=num_pages

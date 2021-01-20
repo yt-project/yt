@@ -13,7 +13,7 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
     _dataset_type = "moab_hex8"
 
     def __init__(self, ds):
-        super(IOHandlerMoabH5MHex8, self).__init__(ds)
+        super().__init__(ds)
         self._handle = ds._handle
 
     def _read_fluid_selection(self, chunks, selector, fields, size):

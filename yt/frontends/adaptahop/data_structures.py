@@ -76,7 +76,7 @@ class AdaptaHOPDataset(Dataset):
             )
         self.parent_ds = parent_ds
 
-        super(AdaptaHOPDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -128,7 +128,7 @@ class AdaptaHOPDataset(Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         fname = os.path.split(filename)[1]
         if not fname.startswith("tree_bricks") or not re.match(
-            "^tree_bricks\d{3}$", fname
+            r"^tree_bricks\d{3}$", fname
         ):
             return False
         return True
@@ -248,7 +248,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         self._set_halo_member_data()
 
         # Call constructor
-        super(AdaptaHOPHaloContainer, self).__init__(parent_ds, {})
+        super().__init__(parent_ds, {})
 
     def __repr__(self):
         return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)

@@ -38,7 +38,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
@@ -58,7 +58,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
@@ -69,8 +69,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         def iterate_over_attributes(attr_list):
             for attr, *_ in attr_list:
                 if isinstance(attr, tuple):
-                    for a in attr:
-                        yield a
+                    yield from attr
                 else:
                     yield attr
 

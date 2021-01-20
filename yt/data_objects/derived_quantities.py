@@ -127,7 +127,7 @@ class WeightedAverageQuantity(DerivedQuantity):
 
     def __call__(self, fields, weight):
         fields = list(iter_fields(fields))
-        rv = super(WeightedAverageQuantity, self).__call__(fields, weight)
+        rv = super().__call__(fields, weight)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -166,7 +166,7 @@ class TotalQuantity(DerivedQuantity):
 
     def __call__(self, fields):
         fields = list(iter_fields(fields))
-        rv = super(TotalQuantity, self).__call__(fields)
+        rv = super().__call__(fields)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -198,11 +198,11 @@ class TotalMass(TotalQuantity):
         self.data_source.ds.index
         fi = self.data_source.ds.field_info
         if ("gas", "mass") in fi:
-            gas = super(TotalMass, self).__call__([("gas", "mass")])
+            gas = super().__call__([("gas", "mass")])
         else:
             gas = self.data_source.ds.arr([0], "g")
         if ("nbody", "particle_mass") in fi:
-            part = super(TotalMass, self).__call__([("nbody", "particle_mass")])
+            part = super().__call__([("nbody", "particle_mass")])
         else:
             part = self.data_source.ds.arr([0], "g")
         return self.data_source.ds.arr([gas, part])
@@ -410,7 +410,7 @@ class WeightedVariance(DerivedQuantity):
     def __call__(self, fields, weight):
         fields = list(iter_fields(fields))
         units = [self.data_source.ds._get_field_info(field).units for field in fields]
-        rv = super(WeightedVariance, self).__call__(fields, weight)
+        rv = super().__call__(fields, weight)
         rv = [self.data_source.ds.arr(v, u) for v, u in zip(rv, units)]
         if len(rv) == 1:
             rv = rv[0]
@@ -589,7 +589,7 @@ class Extrema(DerivedQuantity):
 
     def __call__(self, fields, non_zero=False):
         fields = list(iter_fields(fields))
-        rv = super(Extrema, self).__call__(fields, non_zero)
+        rv = super().__call__(fields, non_zero)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -646,7 +646,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
         self.num_vals = 1 + len(sample_fields)
 
     def __call__(self, field, sample_fields):
-        rv = super(SampleAtMaxFieldValues, self).__call__(field, sample_fields)
+        rv = super().__call__(field, sample_fields)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -693,7 +693,7 @@ class MaxLocation(SampleAtMaxFieldValues):
         # Make sure we have an index
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
-        rv = super(MaxLocation, self).__call__(field, sample_fields)
+        rv = super().__call__(field, sample_fields)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -749,7 +749,7 @@ class MinLocation(SampleAtMinFieldValues):
         # Make sure we have an index
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
-        rv = super(MinLocation, self).__call__(field, sample_fields)
+        rv = super().__call__(field, sample_fields)
         if len(rv) == 1:
             rv = rv[0]
         return rv

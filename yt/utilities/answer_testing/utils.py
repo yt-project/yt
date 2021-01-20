@@ -220,7 +220,7 @@ def _compare_result(data, outputFile):
         Name of file where answers are already saved.
     """
     # Load the saved data
-    with open(outputFile, "r") as f:
+    with open(outputFile) as f:
         savedData = yaml.safe_load(f)
     # Define the comparison function
     def _check_vals(newVals, oldVals):
@@ -427,7 +427,7 @@ def compare_unit_attributes(ds1, ds2):
 
 def fake_halo_catalog(data):
     filename = "catalog.0.h5"
-    ftypes = dict((field, ".") for field in data)
+    ftypes = {field: "." for field in data}
     extra_attrs = {"data_type": "halo_catalog", "num_halos": data["particle_mass"].size}
     ds = {
         "cosmological_simulation": 1,

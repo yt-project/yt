@@ -88,7 +88,7 @@ class FieldDetector(defaultdict):
             defaultdict.__init__(
                 self,
                 lambda: np.ones((nd * nd * nd), dtype="float64")
-                + 1e-4 * np.random.random((nd * nd * nd)),
+                + 1e-4 * np.random.random(nd * nd * nd),
             )
 
     def _reshape_vals(self, arr):

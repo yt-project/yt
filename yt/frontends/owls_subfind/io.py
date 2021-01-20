@@ -11,8 +11,8 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     _dataset_type = "subfind_hdf5"
 
     def __init__(self, ds):
-        super(IOHandlerOWLSSubfindHDF5, self).__init__(ds)
-        self.offset_fields = set([])
+        super().__init__(ds)
+        self.offset_fields = set()
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -20,7 +20,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -58,7 +58,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)

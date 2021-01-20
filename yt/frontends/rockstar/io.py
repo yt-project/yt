@@ -14,7 +14,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
     _dataset_type = "rockstar_binary"
 
     def __init__(self, *args, **kwargs):
-        super(IOHandlerRockstarBinary, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._halo_dt = halo_dts[self.ds.parameters["format_revision"]]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -23,7 +23,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
@@ -42,7 +42,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"

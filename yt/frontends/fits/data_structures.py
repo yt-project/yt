@@ -115,7 +115,7 @@ class FITSHierarchy(GridIndex):
         dup_field_index = {}
         # Since FITS header keywords are case-insensitive, we only pick a subset of
         # prefixes, ones that we expect to end up in headers.
-        known_units = dict([(unit.lower(), unit) for unit in self.ds.unit_registry.lut])
+        known_units = {unit.lower(): unit for unit in self.ds.unit_registry.lut}
         for unit in list(known_units.values()):
             if unit in self.ds.unit_registry.prefixable_units:
                 for p in ["n", "u", "m", "c", "k"]:
@@ -223,7 +223,7 @@ class FITSHierarchy(GridIndex):
         self.max_level = 0
 
     def _setup_derived_fields(self):
-        super(FITSHierarchy, self)._setup_derived_fields()
+        super()._setup_derived_fields()
         [self.dataset.conversion_factors[field] for field in self.field_list]
         for field in self.field_list:
             if field not in self.derived_field_list:
@@ -565,7 +565,7 @@ class YTFITSDataset(FITSDataset):
     _field_info_class = YTFITSFieldInfo
 
     def _parse_parameter_file(self):
-        super(YTFITSDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         # Get the current time
         if "time" in self.primary_header:
             self.current_time = self.primary_header["time"]
@@ -643,7 +643,7 @@ class SkyDataFITSDataset(FITSDataset):
     _field_info_class = WCSFITSFieldInfo
 
     def _determine_wcs(self):
-        super(SkyDataFITSDataset, self)._determine_wcs()
+        super()._determine_wcs()
         end = min(self.dimensionality + 1, 4)
         self.ctypes = np.array(
             [self.primary_header["CTYPE%d" % (i)] for i in range(1, end)]
@@ -651,7 +651,7 @@ class SkyDataFITSDataset(FITSDataset):
         self.wcs_2d = self.wcs
 
     def _parse_parameter_file(self):
-        super(SkyDataFITSDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
 
         end = min(self.dimensionality + 1, 4)
 
@@ -683,7 +683,7 @@ class SkyDataFITSDataset(FITSDataset):
         self.spec_unit = ""
 
     def _set_code_unit_attributes(self):
-        super(SkyDataFITSDataset, self)._set_code_unit_attributes()
+        super()._set_code_unit_attributes()
         units = self.wcs_2d.wcs.cunit[0]
         if units == "deg":
             units = "degree"
@@ -748,7 +748,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
                 "as this decomposition is now performed for "
                 "spectral-cube FITS datasets automatically."
             )
-        super(SpectralCubeFITSDataset, self).__init__(
+        super().__init__(
             filename,
             nprocs=nprocs,
             auxiliary_files=auxiliary_files,
@@ -761,7 +761,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         )
 
     def _parse_parameter_file(self):
-        super(SpectralCubeFITSDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
 
         self.geometry = "spectral_cube"
 
@@ -836,7 +836,7 @@ class EventsFITSHierarchy(FITSHierarchy):
         return
 
     def _parse_index(self):
-        super(EventsFITSHierarchy, self)._parse_index()
+        super()._parse_index()
         try:
             self.grid_particle_count[:] = self.dataset.primary_header["naxis2"]
         except KeyError:
@@ -859,7 +859,7 @@ class EventsFITSDataset(SkyDataFITSDataset):
         unit_system="cgs",
     ):
         self.reblock = reblock
-        super(EventsFITSDataset, self).__init__(
+        super().__init__(
             filename,
             nprocs=1,
             storage_filename=storage_filename,

@@ -199,7 +199,9 @@ class GridIndex(Index, abc.ABC):
         """
         Prints out (stdout) relevant information about the simulation
         """
-        header = "%3s\t%6s\t%14s\t%14s" % ("level", "# grids", "# cells", "# cells^3")
+        header = "{:>3}\t{:>6}\t{:>14}\t{:>14}".format(
+            "level", "# grids", "# cells", "# cells^3"
+        )
         print(header)
         print(f"{len(header.expandtabs()) * '-'}")
         for level in range(MAXLEVEL):
@@ -259,7 +261,7 @@ class GridIndex(Index, abc.ABC):
         out = []
         for field in fields:
             funit = self.ds._get_field_info(field).units
-            out.append(self.ds.arr(np.empty((len(coords))), funit))
+            out.append(self.ds.arr(np.empty(len(coords)), funit))
 
         for grid in grid_index:
             cellwidth = (grid.RightEdge - grid.LeftEdge) / grid.ActiveDimensions
@@ -357,7 +359,7 @@ class GridIndex(Index, abc.ABC):
             return fast_index.count(dobj.selector)
         if grids is None:
             grids = dobj._chunk_info
-        count = sum((g.count(dobj.selector) for g in grids))
+        count = sum(g.count(dobj.selector) for g in grids)
         return count
 
     def _chunk_all(self, dobj, cache=True, fast_index=None):

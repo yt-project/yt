@@ -45,7 +45,7 @@ class OctreeSubset(YTSelectionContainer):
     def __init__(
         self, base_region, domain, ds, over_refine_factor=1, num_ghost_zones=0
     ):
-        super(OctreeSubset, self).__init__(ds, None)
+        super().__init__(ds, None)
         self._num_zones = 1 << (over_refine_factor)
         self._num_ghost_zones = num_ghost_zones
         self._oref = over_refine_factor
@@ -60,7 +60,7 @@ class OctreeSubset(YTSelectionContainer):
         self.base_selector = base_region.selector
 
     def __getitem__(self, key):
-        tr = super(OctreeSubset, self).__getitem__(key)
+        tr = super().__getitem__(key)
         try:
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
