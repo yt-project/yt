@@ -12,7 +12,7 @@ from more_itertools import always_iterable
 from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import issue_deprecation_warning, mylog, setdefaultattr
+from yt.funcs import mylog, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.units import dimensions
@@ -737,17 +737,10 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
         parameters=None,
         units_override=None,
         unit_system="cgs",
-        z_axis_decomp=None,
     ):
         if auxiliary_files is None:
             auxiliary_files = []
         self.spectral_factor = spectral_factor
-        if z_axis_decomp is not None:
-            issue_deprecation_warning(
-                "The 'z_axis_decomp' argument is deprecated, "
-                "as this decomposition is now performed for "
-                "spectral-cube FITS datasets automatically."
-            )
         super().__init__(
             filename,
             nprocs=nprocs,
@@ -896,13 +889,6 @@ class EventsFITSDataset(SkyDataFITSDataset):
                         unit = unit.replace("ev", "eV")
                     self.events_info[v.lower()] = unit
         self.axis_names = [self.events_info[ax][2] for ax in ["x", "y"]]
-        if "reblock" in self.specified_parameters:
-            issue_deprecation_warning(
-                "'reblock' is now a keyword argument that "
-                "can be passed to 'yt.load'. This behavior "
-                "is deprecated."
-            )
-            self.reblock = self.specified_parameters["reblock"]
         self.wcs.wcs.cdelt = [
             self.events_info["x"][4] * self.reblock,
             self.events_info["y"][4] * self.reblock,

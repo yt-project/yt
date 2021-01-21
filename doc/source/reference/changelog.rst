@@ -8,7 +8,7 @@ This is a non-comprehensive log of changes to yt over its many releases.
 Contributors
 ------------
 
-The `CREDITS file <https://github.com/yt-project/yt/blob/master/CREDITS>`_
+The `CREDITS file <https://github.com/yt-project/yt/blob/main/CREDITS>`_
 contains the most up-to-date list of everyone who has contributed to the yt
 source code.
 

@@ -6,7 +6,7 @@ http://yt-project.org/docs/dev/developing/index.html-->
 example "Raises ValueError on Non-Numeric Input to set_xlim".  Please avoid
 non-descriptive titles such as "Addresses issue #8576".-->
 
-<!--If you are able to do so, please do not create the PR out of master, but out
+<!--If you are able to do so, please do not create the PR out of main, but out
 of a separate branch. -->
 
 ## PR Summary

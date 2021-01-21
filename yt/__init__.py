@@ -43,8 +43,8 @@ from yt.fields.api import (
     derived_field,
     field_plugins,
 )
+from yt.frontends.api import _frontend_container
 from yt.funcs import (
-    deprecated_class,
     enable_plugins,
     get_memory_usage,
     get_pbar,
@@ -80,23 +80,11 @@ from yt.units import (
 from yt.units.unit_object import define_unit
 from yt.utilities.logger import set_log_level, ytLogger as mylog
 
-# For backwards compatibility
-TimeSeriesData = deprecated_class(DatasetSeries)
-
-from yt.frontends.api import _frontend_container
-
 frontends = _frontend_container()
 
+import yt.visualization.volume_rendering.api as volume_rendering
 from yt.frontends.stream.api import hexahedral_connectivity
 from yt.frontends.ytdata.api import save_as_dataset
-
-# For backwards compatibility
-GadgetDataset = frontends.gadget.GadgetDataset
-GadgetStaticOutput = deprecated_class(GadgetDataset)
-TipsyDataset = frontends.tipsy.TipsyDataset
-TipsyStaticOutput = deprecated_class(TipsyDataset)
-
-import yt.visualization.volume_rendering.api as volume_rendering
 from yt.loaders import simulation  # deprecated alias for load_simulation
 from yt.loaders import (
     load,
@@ -131,7 +119,6 @@ from yt.visualization.api import (
     FixedResolutionBuffer,
     LineBuffer,
     LinePlot,
-    ObliqueFixedResolutionBuffer,
     OffAxisProjectionPlot,
     OffAxisSlicePlot,
     ParticleImageBuffer,
@@ -165,12 +152,13 @@ from yt.visualization.volume_rendering.api import (
 
 
 def _check_deprecated_parameters():
+    from yt._maintenance.deprecation import issue_deprecation_warning
     from yt.config import ytcfg
-    from yt.funcs import issue_deprecation_warning
 
     if ytcfg.get("yt", "load_field_plugins"):
         issue_deprecation_warning(
-            "Found deprecated parameter 'load_field_plugins' in yt's configuration file."
+            "Found deprecated parameter 'load_field_plugins' in yt's configuration file.",
+            removal="4.1.0",
         )
 
 

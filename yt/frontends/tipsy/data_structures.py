@@ -6,7 +6,6 @@ import numpy as np
 
 from yt.data_objects.static_output import ParticleFile
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
-from yt.funcs import deprecate
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.physical_constants import G
 from yt.utilities.physical_ratios import cm_per_kpc
@@ -334,13 +333,3 @@ class TipsyDataset(SPHDataset):
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
         return TipsyDataset._validate_header(filename)[0]
-
-    @property
-    @deprecate(replacement="cosmological_simulation")
-    def comoving(self):
-        return self.cosmological_simulation == 1.0
-
-    # _instantiated_index = None
-    # @property
-    # def index(self):
-    #     index_nosoft = super(TipsyDataset, self).index

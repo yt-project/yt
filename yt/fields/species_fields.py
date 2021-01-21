@@ -2,9 +2,9 @@ import re
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.fields.field_detector import FieldDetector
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import issue_deprecation_warning
 from yt.utilities.chemical_formulas import ChemicalFormula
 from yt.utilities.physical_ratios import _primordial_mass_fraction
 
@@ -181,7 +181,9 @@ def add_deprecated_species_alias(registry, ftype, alias_species, species, suffix
         if not isinstance(data, FieldDetector):
             issue_deprecation_warning(
                 ('The "%s_%s" field is deprecated. ' + 'Please use "%s_%s" instead.')
-                % (alias_species, suffix, species, suffix)
+                % (alias_species, suffix, species, suffix),
+                since="4.0.0",
+                removal="4.1.0",
             )
         return data[ftype, f"{species}_{suffix}"]
 

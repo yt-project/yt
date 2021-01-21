@@ -2,7 +2,8 @@ from numbers import Number as numeric_type
 
 import numpy as np
 
-from yt.funcs import issue_deprecation_warning, mylog, only_on_root
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
 from yt.units.unit_object import Unit
@@ -294,7 +295,9 @@ class FieldInfoContainer(dict):
         if particle_type:
             issue_deprecation_warning(
                 "'particle_type' keyword argument is deprecated in favour "
-                "of the positional argument 'sampling_type'."
+                "of the positional argument 'sampling_type'.",
+                since="4.0.0",
+                removal="4.1.0",
             )
             if sampling_type != "particle":
                 raise RuntimeError(

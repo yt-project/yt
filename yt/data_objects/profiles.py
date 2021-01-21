@@ -3,13 +3,7 @@ import numpy as np
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import (
-    get_output_filename,
-    is_sequence,
-    issue_deprecation_warning,
-    iter_fields,
-    mylog,
-)
+from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTQuantity, array_like_field
 from yt.utilities.exceptions import (
@@ -91,15 +85,6 @@ class ProfileND(ParallelAnalysisInterface):
         self.weight_field = weight_field
         self.field_units = {}
         ParallelAnalysisInterface.__init__(self, comm=data_source.comm)
-
-    @property
-    def variance(self):
-        issue_deprecation_warning(
-            """
-profile.variance incorrectly returns the profile standard deviation and has
-been deprecated, use profile.standard_deviation instead."""
-        )
-        return self.standard_deviation
 
     def add_fields(self, fields):
         """Add fields to profile

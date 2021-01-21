@@ -15,7 +15,7 @@ jobs:
     strategy:
       matrix:
         os: [macos-latest, windows-latest, ubuntu-18.04]
-        python-version: [3.8]
+        python-version: [3.9]
         dependencies: [full]
         tests-type: [unit]
         include:
@@ -54,3 +54,7 @@ jobs:
       env:
         testsuite: ${{ matrix.tests-type }}
       run: python -m nose -c nose_${testsuite}.cfg --traverse-namespace
+    - name: Report Failed Answers
+      if: ${{ matrix.tests-type == 'answer' && failure() }}
+      shell: bash
+      run: python tests/report_failed_answers.py -f -m --xunit-file answer_nosetests.xml
