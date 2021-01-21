@@ -5,8 +5,8 @@ from io import BytesIO
 import numpy as np
 
 from yt.fields.derived_field import ValidateSpatial
-from yt.funcs import issue_deprecation_warning, mylog
 from yt.units.yt_array import YTArray, YTQuantity
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.on_demand_imports import _astropy
 
 
@@ -207,22 +207,7 @@ class PlotWindowWCS:
     """
 
     def __init__(self, pw):
-        try:
-            # Attempt import from the old WCSAxes package first
-            from wcsaxes import WCSAxes
-
-            issue_deprecation_warning(
-                "Support for the standalone 'wcsaxes' "
-                "package is deprecated since its"
-                "functionality has been merged into"
-                "AstroPy, and will be removed in a "
-                "future release. It is recommended to "
-                "use the version bundled with AstroPy "
-                ">= 1.3."
-            )
-        except ImportError:
-            # Try to use the AstroPy version
-            WCSAxes = _astropy.wcsaxes.WCSAxes
+        WCSAxes = _astropy.wcsaxes.WCSAxes
 
         if pw.oblique:
             raise NotImplementedError("WCS axes are not implemented for oblique plots.")

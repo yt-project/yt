@@ -2,7 +2,6 @@ import functools
 
 import numpy as np
 
-from yt.funcs import issue_deprecation_warning
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitRegistry
@@ -358,44 +357,6 @@ class Cosmology:
 
         """
         return (trapzint(self.age_integrand, z_i, z_f) / self.hubble_constant).in_base(
-            self.unit_system
-        )
-
-    def hubble_time(self, z, z_inf=1e6):
-        r"""
-        The inverse of the Hubble parameter.
-
-        WARNING: this function is incorrect and has been deprecated!
-
-        This function currently returns the age of the Universe at a
-        given redshift instead of the inverse of the Hubble parameter.
-        To get the correct behavior, do the following:
-
-        >>> (1 / co.hubble_parameter(z)).in_units('Gyr')
-
-        Parameters
-        ----------
-        z : float
-            Redshift.
-        z_inf : float
-            The upper bound of the integral of the age integrand.
-            Default: 1e6.
-
-        Examples
-        --------
-
-        >>> from yt.utilities.cosmology import Cosmology
-        >>> co = Cosmology()
-        >>> print(co.hubble_time(0.).in_units("Gyr"))
-
-        """
-        issue_deprecation_warning(
-            "The hubble_time function is incorrect and has been deprecated! "
-            + "Instead, do the following:\n"
-            + ">>> print (1 / co.hubble_parameter(z)).to('Gyr')\n"
-            + "If you want the age of the Universe, use the t_from_z function."
-        )
-        return (trapzint(self.age_integrand, z, z_inf) / self.hubble_constant).in_base(
             self.unit_system
         )
 

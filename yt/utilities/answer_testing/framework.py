@@ -21,10 +21,11 @@ from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
-from yt.funcs import get_pbar, issue_deprecation_warning
+from yt.funcs import get_pbar
 from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
@@ -317,8 +318,10 @@ def can_run_ds(ds_fn, file_check=False):
 def can_run_sim(sim_fn, sim_type, file_check=False):
     issue_deprecation_warning(
         "This function is no longer used in the "
-        + "yt project testing framework and is "
-        + "targeted for deprecation."
+        "yt project testing framework and is "
+        "targeted for deprecation.",
+        since="4.0.0",
+        removal="4.1.0",
     )
     result_storage = AnswerTestingTest.result_storage
     if isinstance(sim_fn, SimulationTimeSeries):
@@ -1111,8 +1114,10 @@ class AxialPixelizationTest(AnswerTestingTest):
 def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
     issue_deprecation_warning(
         "This function is no longer used in the "
-        + "yt project testing framework and is "
-        + "targeted for deprecation."
+        "yt project testing framework and is "
+        "targeted for deprecation.",
+        since="4.0.0",
+        removal="4.1.0",
     )
 
     from functools import wraps

@@ -11,6 +11,7 @@ from stat import ST_CTIME
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
@@ -18,15 +19,7 @@ from yt.data_objects.region_expression import RegionExpression
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
-from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
-from yt.funcs import (
-    is_sequence,
-    issue_deprecation_warning,
-    iter_fields,
-    mylog,
-    set_intersection,
-    setdefaultattr,
-)
+from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
     CoordinateHandler,
@@ -68,25 +61,6 @@ def _unsupported_object(ds, obj_name):
         raise YTObjectNotImplemented(ds, obj_name)
 
     return _raise_unsupp
-
-
-class IndexProxy:
-    # This is a simple proxy for Index objects.  It enables backwards
-    # compatibility so that operations like .h.sphere, .h.print_stats and
-    # .h.grid_left_edge will correctly pass through to the various dataset or
-    # index objects.
-    def __init__(self, ds):
-        self.ds = weakref.proxy(ds)
-        ds.index
-
-    def __getattr__(self, name):
-        # Check the ds first
-        if hasattr(self.ds, name):
-            return getattr(self.ds, name)
-        # Now for a subset of the available items, check the ds.index.
-        elif name in self.ds.index._index_properties:
-            return getattr(self.ds.index, name)
-        raise AttributeError
 
 
 class MutableAttribute:
@@ -286,7 +260,9 @@ class Dataset(abc.ABC):
         issue_deprecation_warning(
             "Dataset.periodicity should not be overriden manually. "
             "In the future, this will become an error. "
-            "Use `Dataset.force_periodicity` instead."
+            "Use `Dataset.force_periodicity` instead.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         err_msg = f"Expected a 3-element boolean tuple, received `{val}`."
         if not is_sequence(val):
@@ -550,16 +526,6 @@ class Dataset(abc.ABC):
             self.create_field_info()
             np.seterr(**oldsettings)
         return self._instantiated_index
-
-    _index_proxy = None
-
-    @property
-    def h(self):
-        if self._index_proxy is None:
-            self._index_proxy = IndexProxy(self)
-        return self._index_proxy
-
-    hierarchy = h
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -1707,7 +1673,18 @@ class Dataset(abc.ABC):
 
         The field name tuple for the newly created field.
         """
-        issue_deprecation_warning("This method is deprecated. " + DEP_MSG_SMOOTH_FIELD)
+        issue_deprecation_warning(
+            "This method is deprecated."
+            "Since yt-4.0, it's no longer necessary to add a field specifically for "
+            "smoothing, because the global octree is removed. The old behavior of "
+            "interpolating onto a grid structure can be recovered through data objects "
+            "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
+            "visualization machinery now treats SPH fields properly by smoothing onto "
+            "pixel locations. See this page to learn more: "
+            "https://yt-project.org/doc/yt4differences.html",
+            since="4.0.0",
+            removal="4.1.0",
+        )
 
     def add_gradient_fields(self, fields=None, input_field=None):
         """Add gradient fields.
@@ -1753,7 +1730,9 @@ class Dataset(abc.ABC):
         if input_field is not None:
             issue_deprecation_warning(
                 "keyword argument 'input_field' is deprecated in favor of 'fields' "
-                "and will be removed in a future version of yt."
+                "and will be removed in a future version of yt.",
+                since="4.0.0",
+                removal="4.1.0",
             )
             if fields is not None:
                 raise TypeError(

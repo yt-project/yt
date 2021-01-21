@@ -316,7 +316,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
         r"""This function returns a FixedResolutionBuffer generated from this
         object.
 
-        An ObliqueFixedResolutionBuffer is an object that accepts a
+        An FixedResolutionBuffer is an object that accepts a
         variable-resolution 2D object and transforms it into an NxM bitmap that
         can be plotted, examined or processed.  This is a convenience function
         to return an FRB directly from an existing 2D data object.  Unlike the
@@ -340,7 +340,7 @@ class YTCuttingPlane(YTSelectionContainer2D):
 
         Returns
         -------
-        frb : :class:`~yt.visualization.fixed_resolution.ObliqueFixedResolutionBuffer`
+        frb : :class:`~yt.visualization.fixed_resolution.FixedResolutionBuffer`
             A fixed resolution buffer, which can be queried for fields.
 
         Examples

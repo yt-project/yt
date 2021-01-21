@@ -1,4 +1,4 @@
-from .clump_handling import Clump, find_clumps, get_lowest_clumps
+from .clump_handling import Clump, find_clumps
 from .clump_info_items import add_clump_info
 from .clump_tools import (
     clump_list_sort,

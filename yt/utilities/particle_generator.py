@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import get_pbar, issue_deprecation_warning
+from yt.funcs import get_pbar
 from yt.units.yt_array import uconcatenate
 from yt.utilities.lib.particle_mesh_operations import CICSample_3
 
@@ -185,14 +185,6 @@ class ParticleGenerator:
         already exist, and overwrite=False, do not overwrite them, but add
         the new ones to them.
         """
-        if "clobber" in kwargs:
-            issue_deprecation_warning(
-                'The "clobber" keyword argument '
-                'is deprecated. Use the "overwrite" '
-                "argument, which has the same effect, "
-                "instead."
-            )
-            overwrite = kwargs.pop("clobber")
         grid_data = []
         for i, g in enumerate(self.ds.index.grids):
             data = {}

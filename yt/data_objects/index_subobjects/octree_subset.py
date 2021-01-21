@@ -5,10 +5,10 @@ import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
-from yt.funcs import issue_deprecation_warning, mylog
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.units.dimensions import length
 from yt.units.yt_array import YTArray
@@ -18,6 +18,7 @@ from yt.utilities.exceptions import (
     YTParticleDepositionNotImplemented,
 )
 from yt.utilities.lib.geometry_utils import compute_morton
+from yt.utilities.logger import ytLogger as mylog
 
 
 def cell_count_cache(func):
@@ -531,7 +532,7 @@ class OctreeSubset(YTSelectionContainer):
                 "get_vertex_centered_data() requires list of fields, rather than "
                 "a single field as an argument."
             )
-            issue_deprecation_warning(message)
+            issue_deprecation_warning(message, since="4.0.0", removal="4.1.0")
             fields = [fields]
 
         # Make sure the field list has only unique entries

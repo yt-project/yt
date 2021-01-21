@@ -362,13 +362,6 @@ using a ``parameters`` dict, accepting the following keys:
 * Domains may be visualized assuming periodicity.
 * Particle list data is currently unsupported.
 
-.. note::
-
-   The old behavior of supplying unit conversions using a ``parameters``
-   dict supplied to ``load`` for Athena datasets is still supported, but is
-   being deprecated in favor of ``units_override``, which provides the same
-   functionality.
-
 .. _loading-athena-pp-data:
 
 Athena++ Data

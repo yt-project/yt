@@ -484,18 +484,6 @@ class AthenaDataset(Dataset):
         self.specified_parameters = parameters.copy()
         if units_override is None:
             units_override = {}
-        # This is for backwards-compatibility
-        already_warned = False
-        for k in list(self.specified_parameters.keys()):
-            if k.endswith("_unit") and k not in units_override:
-                if not already_warned:
-                    mylog.warning(
-                        "Supplying unit conversions from the parameters dict "
-                        "is deprecated, and will be removed in a future release. "
-                        "Use units_override instead."
-                    )
-                    already_warned = True
-                units_override[k] = self.specified_parameters.pop(k)
         Dataset.__init__(
             self,
             filename,

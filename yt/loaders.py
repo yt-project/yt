@@ -8,8 +8,8 @@ import os
 import numpy as np
 from more_itertools import always_iterable
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.funcs import issue_deprecation_warning, mylog
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
@@ -19,6 +19,7 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
@@ -141,11 +142,11 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
 
 def simulation(fn, simulation_type, find_outputs=False):
-    from yt.funcs import issue_deprecation_warning
-
     issue_deprecation_warning(
         "yt.simulation is a deprecated alias for yt.load_simulation"
-        "and will be removed in a future version of yt."
+        "and will be removed in a future version of yt.",
+        since="4.0.0",
+        removal="4.1.0",
     )
     return load_simulation(
         fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
@@ -256,7 +257,9 @@ def load_uniform_grid(
             "the number of particles in the data "
             "dict. The number of particles is "
             "determined from the sizes of the "
-            "particle fields."
+            "particle fields.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         data.pop("number_of_particles")
     # First we fix our field names, apply units to data
@@ -482,7 +485,9 @@ def load_amr_grids(
                 "the number of particles in the data "
                 "dict. The number of particles is "
                 "determined from the sizes of the "
-                "particle fields."
+                "particle fields.",
+                since="4.0.0",
+                removal="4.1.0",
             )
             g.pop("number_of_particles")
         field_units, data, n_particles = process_data(

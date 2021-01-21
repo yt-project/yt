@@ -10,17 +10,10 @@ from more_itertools import always_iterable, zip_equal
 from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import (
-    fix_axis,
-    fix_unitary,
-    is_sequence,
-    issue_deprecation_warning,
-    iter_fields,
-    mylog,
-    obj_length,
-)
+from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitParseError
 from yt.units.yt_array import YTArray, YTQuantity
@@ -716,11 +709,14 @@ class PlotWindow(ImagePlotContainer):
         return self
 
     def set_window_size(self, size):
-        """This calls set_figure_size to adjust the size of the plot window.
+        """This calls set_figure_size to adjust the size of the plot window."""
+        from yt._maintenance.deprecation import issue_deprecation_warning
 
-        This is equivalent to set_figure_size but it still available to maintain
-        backwards compatibility.
-        """
+        issue_deprecation_warning(
+            "`PlotWindow.set_window_size` is a deprecated alias "
+            "for `PlotWindow.set_figure_size`.",
+            removal="4.1.0",
+        )
         self.set_figure_size(size)
         return self
 
@@ -1219,8 +1215,10 @@ class PWViewerMPL(PlotWindow):
         :py:meth:`yt.visualization.plot_window.PWViewerMPL.clear_annotations`
         """
         issue_deprecation_warning(
-            '"annotate_clear" has been deprecated'
-            ' in favor of "clear_annotations". Using "clear_annotations".'
+            "`annotate_clear` has been deprecated "
+            "in favor of `clear_annotations`. Using `clear_annotations`.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         self.clear_annotations(index=index)
 
@@ -1718,9 +1716,11 @@ class ProjectionPlot(PWViewerMPL):
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
-        # proj_style is deprecated, but if someone specifies then it trumps
-        # method.
         if proj_style is not None:
+            issue_deprecation_warning(
+                "`proj_style` parameter is deprecated, use `method` instead.",
+                removal="4.1.0",
+            )
             method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":
@@ -2342,7 +2342,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     if axis is not None:
         issue_deprecation_warning(
             "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
-            "will be removed in a future version of yt."
+            "will be removed in a future version of yt.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         if normal is not None:
             raise TypeError(
