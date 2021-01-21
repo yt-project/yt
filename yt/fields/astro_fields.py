@@ -137,3 +137,27 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         function=_lorentz_factor,
     )
 
+    # 4-velocity spatial components
+    def four_velocity_xyz(u):
+        def _four_velocity(field, data):
+            return data["gas", f"velocity_{u}"]*data["gas", "lorentz_factor"]
+        return _four_velocity
+
+    for u in "xyz":
+        registry.add_field(
+            ("gas", f"four_velocity_{u}"),
+            sampling_type="local",
+            function=four_velocity_xyz(u),
+            units=unit_system["velocity"],
+        )
+
+    # 4-velocity t-component
+    def _four_velocity_t(field, data):
+        return data["gas", "lorentz_factor"]*pc.clight
+
+    registry.add_field(
+        ("gas", "four_velocity_t"),
+        sampling_type="local",
+        function=_four_velocity_t,
+        units=unit_system["velocity"]
+    )
