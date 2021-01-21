@@ -84,7 +84,9 @@ class YTConfig:
 
     def get(self, section, *keys, callback=None, **kwargs):
         if callback is None:
-            callback = lambda leaf: leaf.value  # noqa: E731
+
+            def callback(leaf):
+                return leaf.value
 
         return self.config_root.get_leaf(section, *keys, callback=callback)
 
