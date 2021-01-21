@@ -11,6 +11,7 @@ from stat import ST_CTIME
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
@@ -1670,8 +1671,6 @@ class Dataset(abc.ABC):
 
         The field name tuple for the newly created field.
         """
-        from yt._maintenance.deprecation import issue_deprecation_warning
-
         issue_deprecation_warning(
             "This method is deprecated."
             "Since yt-4.0, it's no longer necessary to add a field specifically for "
@@ -1727,8 +1726,6 @@ class Dataset(abc.ABC):
 
         """
         if input_field is not None:
-            from yt._maintenance.deprecation import issue_deprecation_warning
-
             issue_deprecation_warning(
                 "keyword argument 'input_field' is deprecated in favor of 'fields' "
                 "and will be removed in a future version of yt.",
