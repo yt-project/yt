@@ -71,7 +71,7 @@ particle_families = {
 
 if ytcfg.has_section("ramses-families"):
     for key in particle_families.keys():
-        val = ytcfg.getint("ramses-families", key, fallback=None)
+        val = ytcfg.get("ramses-families", key, fallback=None)
         if val is not None:
             mylog.info(
                 "Changing family %s from %s to %s", key, particle_families[key], val

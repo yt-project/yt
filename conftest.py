@@ -56,7 +56,7 @@ def pytest_configure(config):
     each answer test's answer file (including the changeset number).
     """
 
-    ytcfg["yt", "__withinpytest"] = "True"
+    ytcfg["yt", "internals", "within_pytest"] = True
     # Make sure that the answers dir exists. If not, try to make it
     if not os.path.isdir(answer_dir):
         os.mkdir(answer_dir)

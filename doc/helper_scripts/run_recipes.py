@@ -24,7 +24,7 @@ BADF = [
     "AMRGridData_Slice_x_density.png",
 ]
 CWD = os.getcwd()
-ytcfg["yt", "serialize"] = "False"
+ytcfg["yt", "serialize"] = False
 PARALLEL_TEST = {"rockstar_nest": "3"}
 BLACKLIST = ["opengl_ipython", "opengl_vr"]
 

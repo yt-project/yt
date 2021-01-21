@@ -107,14 +107,14 @@ def enable_parallelism(suppress_logging=False, communicator=None):
         communicator.size,
     )
     communication_system.push(communicator)
-    ytcfg["yt", "__global_parallel_rank"] = str(communicator.rank)
-    ytcfg["yt", "__global_parallel_size"] = str(communicator.size)
-    ytcfg["yt", "__parallel"] = "True"
+    ytcfg["yt", "internals", "global_parallel_rank"] = communicator.rank
+    ytcfg["yt", "internals", "global_parallel_size"] = communicator.size
+    ytcfg["yt", "internals", "parallel"] = True
     if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):
-        ytcfg["yt", "inline"] = "True"
+        ytcfg["yt", "inline"] = True
     if communicator.rank > 0:
-        if ytcfg.getboolean("yt", "LogFile"):
-            ytcfg["yt", "LogFile"] = "False"
+        if ytcfg.get("yt", "log_file"):
+            ytcfg["yt", "log_file"] = False
             yt.utilities.logger.disable_file_logging()
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
@@ -125,12 +125,12 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     if len(yt.utilities.logger.ytLogger.handlers) > 0:
         yt.utilities.logger.ytLogger.handlers[0].setFormatter(f)
 
-    if ytcfg.getboolean("yt", "parallel_traceback"):
+    if ytcfg.get("yt", "parallel_traceback"):
         sys.excepthook = traceback_writer_hook("_%03i" % communicator.rank)
     else:
         sys.excepthook = default_mpi_excepthook
 
-    if ytcfg.getint("yt", "LogLevel") < 20:
+    if ytcfg.get("yt", "log_level") < 20:
         yt.utilities.logger.ytLogger.warning(
             "Log Level is set low -- this could affect parallel performance!"
         )
@@ -178,7 +178,7 @@ class ObjectIterator:
             self._objs = [
                 g
                 for g in gs
-                if g.proc_num == ytcfg.getint("yt", "__topcomm_parallel_rank")
+                if g.proc_num == ytcfg.get("yt", "internals", "topcomm_parallel_rank")
             ]
             self._use_all = True
         else:
@@ -682,10 +682,10 @@ class CommunicationSystem:
     def _update_parallel_state(self, new_comm):
         from yt.config import ytcfg
 
-        ytcfg["yt", "__topcomm_parallel_size"] = str(new_comm.size)
-        ytcfg["yt", "__topcomm_parallel_rank"] = str(new_comm.rank)
-        if new_comm.rank > 0 and ytcfg.getboolean("yt", "serialize"):
-            ytcfg["yt", "onlydeserialize"] = "True"
+        ytcfg["yt", "internals", "topcomm_parallel_size"] = new_comm.size
+        ytcfg["yt", "internals", "topcomm_parallel_rank"] = new_comm.rank
+        if new_comm.rank > 0 and ytcfg.get("yt", "serialize"):
+            ytcfg["yt", "only_deserialize"] = True
 
     def pop(self):
         self.communicators.pop()
@@ -1233,7 +1233,7 @@ class ParallelAnalysisInterface:
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, self.ds.region(self.center, LE - padding, RE + padding)
-        elif ytcfg.getboolean("yt", "inline"):
+        elif ytcfg.get("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
             # The only way I really know how to do this is to get the level-0

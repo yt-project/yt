@@ -152,7 +152,7 @@ class Dataset(abc.ABC):
             return obj
         apath = os.path.abspath(filename)
         cache_key = (apath, pickle.dumps(args), pickle.dumps(kwargs))
-        if ytcfg.getboolean("yt", "skip_dataset_cache"):
+        if ytcfg.get("yt", "skip_dataset_cache"):
             obj = object.__new__(cls)
         elif cache_key not in _cached_datasets:
             obj = object.__new__(cls)

@@ -147,6 +147,7 @@ if __name__ == "__main__":
             "unyt>=2.7.2",
             "more_itertools>=8.4",
             "tqdm>=3.4.0",
+            "toml>=0.10.2",
         ],
         extras_require={"hub": ["girder_client"], "mapserver": ["bottle"]},
         cmdclass={"sdist": sdist, "build_ext": build_ext},

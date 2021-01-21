@@ -11,7 +11,7 @@ import sys
 
 if sys.version_info[0] < 3:
     raise Exception(
-        "Python 2 no longer supported.  Please install Python 3 for use with yt."
+        "Python 2 is no longer supported.  Please install Python 3 for use with yt."
     )
 
 __version__ = "4.0.dev0"
@@ -155,9 +155,9 @@ def _check_deprecated_parameters():
     from yt._maintenance.deprecation import issue_deprecation_warning
     from yt.config import ytcfg
 
-    if ytcfg.getboolean("yt", "loadfieldplugins"):
+    if ytcfg.get("yt", "load_field_plugins"):
         issue_deprecation_warning(
-            "Found deprecated parameter 'loadfieldplugins' parameter in yt rcfile.",
+            "Found deprecated parameter 'load_field_plugins' in yt's configuration file.",
             removal="4.1.0",
         )
 

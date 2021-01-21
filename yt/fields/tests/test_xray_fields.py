@@ -11,7 +11,7 @@ from yt.utilities.answer_testing.framework import (
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def check_xray_fields(ds_fn, fields):

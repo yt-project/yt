@@ -17,7 +17,7 @@ from yt.utilities.logger import _level
 unparsed_args = __startup_tasks.unparsed_args
 
 
-if _level >= int(ytcfg_defaults["loglevel"]):
+if _level >= int(ytcfg_defaults["yt"]["log_level"]):
     # This won't get displayed.
     mylog.debug("Turning off NumPy error reporting")
     np.seterr(all="ignore")
@@ -28,5 +28,5 @@ if _level >= int(ytcfg_defaults["loglevel"]):
 # This way, other command-line tools can be used very simply.
 # Unfortunately, for now, I think the easiest and simplest way of doing
 # this is also the most dangerous way.
-if ytcfg.getboolean("yt", "loadfieldplugins"):
+if ytcfg.get("yt", "load_field_plugins"):
     enable_plugins()

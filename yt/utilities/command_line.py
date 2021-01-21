@@ -1,4 +1,3 @@
-# isort: skip-file
 import argparse
 import base64
 import getpass
@@ -17,7 +16,7 @@ import numpy as np
 from more_itertools import always_iterable
 from tqdm import tqdm
 
-from yt.config import CURRENT_CONFIG_FILE, ytcfg
+from yt.config import YTConfig, ytcfg
 from yt.funcs import (
     download_file,
     enable_plugins,
@@ -40,7 +39,7 @@ from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
 # isort: off
 # This needs to be set before importing startup_tasks
-ytcfg["yt", "__command_line"] = "True"  # isort: skip
+ytcfg["yt", "internals", "command_line"] = True  # isort: skip
 from yt.startup_tasks import parser, subparsers  # isort: skip # noqa: E402
 
 # isort: on
@@ -54,6 +53,7 @@ except FileNotFoundError:
     pass
 
 _default_colormap = ytcfg.get("yt", "default_colormap")
+_arg_groups = {}
 
 
 def _fix_ds(arg, *args, **kwargs):
@@ -71,6 +71,15 @@ def _fix_ds(arg, *args, **kwargs):
 def _add_arg(sc, arg):
     if isinstance(arg, str):
         arg = _common_options[arg].copy()
+    elif isinstance(arg, tuple):
+        exclusive, *args = arg
+        if exclusive:
+            grp = sc.add_mutually_exclusive_group()
+        else:
+            grp = sc.add_argument_group()
+        for arg in args:
+            _add_arg(grp, arg)
+        return
     argc = dict(arg.items())
     argnames = []
     if "short" in argc:
@@ -797,10 +806,17 @@ class YTHubRegisterCmd(YTCommand):
             import requests
         except ImportError as e:
             raise YTCommandRequiresModule("requests") from e
-        if ytcfg.get("yt", "hub_api_key") != "":
-            print("You seem to already have an API key for the hub in")
-            print(f"{CURRENT_CONFIG_FILE} . Delete this if you want to force a")
-            print("new user registration.")
+        hub_api_key, config_file = ytcfg.get(
+            "yt",
+            "hub_api_key",
+            callback=lambda leaf: (leaf.value, leaf.extra_data.get("source", None)),
+        )
+        if hub_api_key:
+            print(
+                "You seem to already have an API key for the hub in "
+                f"{config_file} . Delete this if you want to force a "
+                "new user registration."
+            )
             sys.exit()
         print("Awesome!  Let's start by registering a new user for you.")
         print("Here's the URL, for reference: http://hub.yt/ ")
@@ -874,7 +890,7 @@ class YTHubRegisterCmd(YTCommand):
         apiKey = req.json()["key"]
 
         print("Storing API key in configuration file")
-        set_config("yt", "hub_api_key", apiKey)
+        set_config("yt", "hub_api_key", apiKey, YTConfig.get_global_config_file())
 
         print()
         print("SUCCESS!")
@@ -1393,7 +1409,7 @@ class YTNotebookCmd(YTCommand):
             pw = IPython.lib.passwd()
             print("If you would like to use this password in the future,")
             print("place a line like this inside the [yt] section in your")
-            print("yt configuration file at ~/.config/yt/ytrc")
+            print("yt configuration file at ~/.config/yt/yt.toml")
             print()
             print(f"notebook_password = {pw}")
             print()
@@ -1613,22 +1629,93 @@ class YTUploadFileCmd(YTCommand):
         print(r.text)
 
 
-class YTConfigGetCmd(YTCommand):
+class YTConfigLocalConfigHandler:
+    def load_config(self, args):
+        import os
+
+        from yt.config import YTConfig
+        from yt.utilities.configure import CONFIG
+
+        local_config_file = YTConfig.get_local_config_file()
+        global_config_file = YTConfig.get_global_config_file()
+
+        local_exists = os.path.exists(local_config_file)
+        global_exists = os.path.exists(global_config_file)
+
+        local_arg_exists = hasattr(args, "local")
+        global_arg_exists = hasattr(args, "global")
+
+        if getattr(args, "local", False):
+            config_file = local_config_file
+        elif getattr(args, "global", False):
+            config_file = global_config_file
+        else:
+            if local_exists and global_exists:
+                s = (
+                    "Yt detected a local and a global configuration file, refusing "
+                    "to proceed.\n"
+                    f"Local config file: {local_config_file}\n"
+                    f"Global config file: {global_config_file}"
+                )
+                # Only print the info about "--global" and "--local" if they exist
+                if local_arg_exists and global_arg_exists:
+                    s += (
+                        "\n"  # missing eol from previous string
+                        "Specify which one you want to use using the `--local` or the "
+                        "`--global` flags."
+                    )
+                sys.exit(s)
+            elif local_exists:
+                config_file = local_config_file
+            else:
+                config_file = global_config_file
+            sys.stderr.write(f"INFO: using configuration file: {config_file}.\n")
+
+        if not os.path.exists(config_file):
+            with open(config_file, "w") as f:
+                f.write("[yt]\n")
+
+        CONFIG.read(config_file)
+
+        self.config_file = config_file
+
+
+_global_local_args = [
+    (
+        "exclusive",
+        dict(
+            short="--local",
+            action="store_true",
+            help="Store the configuration in the global configuration file.",
+        ),
+        dict(
+            short="--global",
+            action="store_true",
+            help="Store the configuration in the global configuration file.",
+        ),
+    ),
+]
+
+
+class YTConfigGetCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "get"
     description = "get a config value"
     args = (
         dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to retrieve."),
+        *_global_local_args,
     )
 
     def __call__(self, args):
         from yt.utilities.configure import get_config
 
+        self.load_config(args)
+
         print(get_config(args.section, args.option))
 
 
-class YTConfigSetCmd(YTCommand):
+class YTConfigSetCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "set"
     description = "set a config value"
@@ -1636,42 +1723,50 @@ class YTConfigSetCmd(YTCommand):
         dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to set."),
         dict(short="value", help="The value to set the option to."),
+        *_global_local_args,
     )
 
     def __call__(self, args):
         from yt.utilities.configure import set_config
 
-        set_config(args.section, args.option, args.value)
+        self.load_config(args)
+
+        set_config(args.section, args.option, args.value, self.config_file)
 
 
-class YTConfigRemoveCmd(YTCommand):
+class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "rm"
     description = "remove a config option"
     args = (
         dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to remove."),
+        *_global_local_args,
     )
 
     def __call__(self, args):
         from yt.utilities.configure import rm_config
 
-        rm_config(args.section, args.option)
+        self.load_config(args)
+
+        rm_config(args.section, args.option, self.config_file)
 
 
-class YTConfigListCmd(YTCommand):
+class YTConfigListCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "list"
     description = "show the config content"
-    args = ()
+    args = _global_local_args
 
     def __call__(self, args):
         from yt.utilities.configure import write_config
 
+        self.load_config(args)
+
         write_config(sys.stdout)
 
 
-class YTConfigMigrateCmd(YTCommand):
+class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "migrate"
     description = "migrate old config file"
@@ -1680,7 +1775,21 @@ class YTConfigMigrateCmd(YTCommand):
     def __call__(self, args):
         from yt.utilities.configure import migrate_config
 
+        self.load_config(args)
+
         migrate_config()
+
+
+class YTConfigPrintPath(YTCommand, YTConfigLocalConfigHandler):
+    subparser = "config"
+    name = "print-path"
+    description = "show path to the config file"
+    args = _global_local_args
+
+    def __call__(self, args):
+        self.load_config(args)
+
+        print(self.config_file)
 
 
 class YTSearchCmd(YTCommand):

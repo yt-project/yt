@@ -341,19 +341,21 @@ This will print the list of available subcommands:
 
 .. config_help:: yt config
 
-Since the yt version 3.3.2, the previous location of the configuration file
-(``$HOME/.yt/config``) has been deprecated in favor of a location adhering to the
+
+Since yt version 4, the configuration file is located in ``$XDG_CONFIG_HOME/yt/yt.toml`` adhering to the
 `XDG Base Directory Specification
 <https://specifications.freedesktop.org/basedir-spec/basedir-spec-latest.html>`_.
-(``$XDG_HOME_CONFIG/yt/ytrc``). In order to perform an automatic migration of
-the old config, you are encouraged to run:
+Unless customized, this defaults to ``$HOME/.config/`` on Unix-like systems (macOS, Linux, ...).
+The old configuration file (``$XDG_CONFIG_HOME/yt/ytrc``) is deprecated.
+In order to perform an automatic migration of the old config, you are
+encouraged to run:
 
 .. code-block:: bash
 
    yt config migrate
 
-that will copy your current config file to the new location and store a backup
-copy as ``$HOME/.yt/config.bak``.
+This will convert your old config file to the toml format. The original file
+will be moved to ``$XDG_CONFIG_HOME/yt/ytrc.bak``.
 
 Examples
 ++++++++
@@ -364,23 +366,23 @@ Listing current content of the config file:
 
    $ yt config list
    [yt]
-   loglevel = 50
+   log_level = 50
 
 Obtaining a single config value by name:
 
 .. code-block:: bash
 
-   $ yt config get yt loglevel
+   $ yt config get yt log_level
    50
 
 Changing a single config value:
 
 .. code-block:: bash
 
-   $ yt config set yt loglevel 10
+   $ yt config set yt log_level 10
 
 Removing a single config entry:
 
 .. code-block:: bash
 
-   $ yt config rm yt loglevel
+   $ yt config rm yt log_level

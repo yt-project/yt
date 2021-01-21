@@ -37,8 +37,8 @@ class PdbXMLRPCServer(SimpleXMLRPCServer):
 
 def rpdb_excepthook(exc_type, exc, tb):
     traceback.print_exception(exc_type, exc, tb)
-    task = ytcfg.getint("yt", "__global_parallel_rank")
-    size = ytcfg.getint("yt", "__global_parallel_size")
+    task = ytcfg.get("yt", "internals", "global_parallel_rank")
+    size = ytcfg.get("yt", "internals", "global_parallel_size")
     print(f"Starting RPDB server on task {task} ; connect with 'yt rpdb -t {task}'")
     handler = pdb_handler(tb)
     server = PdbXMLRPCServer(("localhost", 8010 + task))
