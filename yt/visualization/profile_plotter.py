@@ -12,11 +12,7 @@ from more_itertools.more import always_iterable, unzip
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
-from yt.funcs import (
-    is_sequence,
-    iter_fields,
-    matplotlib_style_context,
-)
+from yt.funcs import is_sequence, iter_fields, matplotlib_style_context
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
