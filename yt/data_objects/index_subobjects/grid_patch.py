@@ -43,7 +43,7 @@ class AMRGridPatch(YTSelectionContainer):
     OverlappingSiblings = None
 
     def __init__(self, id, filename=None, index=None):
-        super(AMRGridPatch, self).__init__(index.dataset, None)
+        super().__init__(index.dataset, None)
         self.id = id
         self._child_mask = self._child_indices = self._child_index_mask = None
         self.ds = index.dataset
@@ -74,7 +74,7 @@ class AMRGridPatch(YTSelectionContainer):
         return self.start_index
 
     def __getitem__(self, key):
-        tr = super(AMRGridPatch, self).__getitem__(key)
+        tr = super().__getitem__(key)
         try:
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
@@ -154,7 +154,7 @@ class AMRGridPatch(YTSelectionContainer):
         all field parameters.
 
         """
-        super(AMRGridPatch, self).clear_data()
+        super().clear_data()
         self._setup_dx()
 
     def _prepare_grid(self):

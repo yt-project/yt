@@ -45,7 +45,7 @@ def _get_ipython_key_completion(ds):
     # with earlier versions, completion works with fname only
     # this implementation should work transparently with all IPython versions
     tuple_keys = ds.field_list + ds.derived_field_list
-    fnames = list(set(k[1] for k in tuple_keys))
+    fnames = list({k[1] for k in tuple_keys})
     return tuple_keys + fnames
 
 
@@ -648,12 +648,9 @@ class YTDataContainer:
                     ftypes[g_field] = "grid"
                     data[g_field] = self[g_field]
 
-        extra_attrs = dict(
-            [
-                (arg, getattr(self, arg, None))
-                for arg in self._con_args + self._tds_attrs
-            ]
-        )
+        extra_attrs = {
+            arg: getattr(self, arg, None) for arg in self._con_args + self._tds_attrs
+        }
         extra_attrs["con_args"] = repr(self._con_args)
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
@@ -1346,7 +1343,7 @@ class YTDataContainer:
         s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
             try:
-                s += ", %s=%s" % (
+                s += ", {}={}".format(
                     i,
                     getattr(self, i).in_base(unit_system=self.ds.unit_system),
                 )

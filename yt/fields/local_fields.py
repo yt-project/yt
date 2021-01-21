@@ -27,9 +27,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
                 name,
             )
 
-        return super(LocalFieldInfoContainer, self).add_field(
-            name, function, sampling_type, **kwargs
-        )
+        return super().add_field(name, function, sampling_type, **kwargs)
 
 
 # Empty FieldInfoContainer

@@ -175,7 +175,7 @@ class GadgetBinaryFile(ParticleFile):
         with header.open() as f:
             self._file_size = f.seek(0, os.SEEK_END)
 
-        super(GadgetBinaryFile, self).__init__(ds, io, filename, file_id, range)
+        super().__init__(ds, io, filename, file_id, range)
 
     def _calculate_offsets(self, field_list, pcounts):
         # Note that we ignore pcounts here because it's the global count.  We
@@ -191,7 +191,7 @@ class GadgetBinaryFile(ParticleFile):
 
 class GadgetBinaryIndex(SPHParticleIndex):
     def __init__(self, ds, dataset_type):
-        super(GadgetBinaryIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
         self._initialize_index()
 
     def _initialize_index(self):
@@ -200,10 +200,10 @@ class GadgetBinaryIndex(SPHParticleIndex):
         # read in the smoothing lengths for SPH data before we construct the
         # Morton bitmaps.
         self._detect_output_fields()
-        super(GadgetBinaryIndex, self)._initialize_index()
+        super()._initialize_index()
 
     def _initialize_frontend_specific(self):
-        super(GadgetBinaryIndex, self)._initialize_frontend_specific()
+        super()._initialize_frontend_specific()
         self.io._float_type = self.ds._header.float_type
 
 
@@ -305,7 +305,7 @@ class GadgetDataset(SPHDataset):
         self.w_0 = w_0
         self.w_a = w_a
 
-        super(GadgetDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type=dataset_type,
             unit_system=unit_system,
@@ -574,7 +574,7 @@ class GadgetHDF5Dataset(GadgetDataset):
                 "units_override is not supported for GadgetHDF5Dataset. "
                 "Use unit_base instead."
             )
-        super(GadgetHDF5Dataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             unit_base=unit_base,
@@ -683,7 +683,7 @@ class GadgetHDF5Dataset(GadgetDataset):
             fh = h5py.File(filename, mode="r")
             valid = fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
             fh.close()
-        except (IOError, KeyError, ImportError):
+        except (OSError, KeyError, ImportError):
             pass
 
         return valid

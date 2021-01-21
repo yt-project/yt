@@ -43,7 +43,7 @@ ds.parameters["HydroMethod"] = "streaming"
 ds.parameters["EOSType"] = 1.0
 ds.parameters["EOSSoundSpeed"] = 1.0
 ds.conversion_factors["Time"] = 1.0
-ds.conversion_factors.update(dict((f, 1.0) for f in fields))
+ds.conversion_factors.update({f: 1.0 for f in fields})
 ds.gamma = 5.0 / 3.0
 ds.current_redshift = 0.0001
 ds.cosmological_simulation = 1
@@ -134,7 +134,7 @@ def fix_units(units, in_cgs=False):
     if in_cgs:
         unit_object = unit_object.get_cgs_equivalent()
     latex = unit_object.latex_representation()
-    return latex.replace("\ ", "~")
+    return latex.replace(r"\ ", "~")
 
 
 def print_all_fields(fl):
@@ -194,7 +194,7 @@ class FieldInfo:
         self.units = ""
         u = field[1][0]
         if len(u) > 0:
-            self.units = ":math:`\mathrm{%s}`" % fix_units(u)
+            self.units = r":math:`\mathrm{%s}`" % fix_units(u)
         a = [f"``{f}``" for f in field[1][1] if f]
         self.aliases = " ".join(a)
         self.dname = ""

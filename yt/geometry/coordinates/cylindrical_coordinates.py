@@ -19,7 +19,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
     name = "cylindrical"
 
     def __init__(self, ds, ordering=("r", "z", "theta")):
-        super(CylindricalCoordinateHandler, self).__init__(ds, ordering)
+        super().__init__(ds, ordering)
         self.image_units = {}
         self.image_units[self.axis_id["r"]] = ("rad", None)
         self.image_units[self.axis_id["theta"]] = (None, None)
@@ -248,9 +248,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
         return np.array([0.0, 0.0, 2.0 * np.pi])
 
     def sanitize_center(self, center, axis):
-        center, display_center = super(
-            CylindricalCoordinateHandler, self
-        ).sanitize_center(center, axis)
+        center, display_center = super().sanitize_center(center, axis)
         display_center = [
             0.0 * display_center[0],
             0.0 * display_center[1],
@@ -275,9 +273,7 @@ class CylindricalCoordinateHandler(CoordinateHandler):
             self.ds.coordinates.axis_id[ax] for ax in ("r", "theta", "z")
         )
         if width is not None:
-            width = super(CylindricalCoordinateHandler, self).sanitize_width(
-                axis, width, depth
-            )
+            width = super().sanitize_width(axis, width, depth)
         # Note: regardless of axes, these are set up to give consistent plots
         # when plotted, which is not strictly a "right hand rule" for axes.
         elif name == "r":  # soup can label

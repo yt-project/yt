@@ -882,7 +882,7 @@ class DualEPS:
             else:
                 _, _, z_title = plot._get_field_title(self.field, plot.profile)
                 _zlabel = pyxize_label(z_title)
-            _zlabel = _zlabel.replace("_", "\;")
+            _zlabel = _zlabel.replace("_", r"\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin is None:
                 zmin = plot.plots[self.field].image._A.min()
@@ -894,7 +894,7 @@ class DualEPS:
                 zmax = plot.plots[self.field].zmax
             _zrange = (zmin, zmax)
         else:
-            _zlabel = plot._z_label.replace("_", "\;")
+            _zlabel = plot._z_label.replace("_", r"\;")
             _zlog = plot._log_z
             _zrange = (plot.norm.vmin, plot.norm.vmax)
         if cb_labels is not None:  # Overrides deduced labels
@@ -1520,15 +1520,15 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
             fields = plots.fields
         if len(fields) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({0}) is less "
-                "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
+                "Number of plots ({}) is less "
+                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
             )
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({0}) is less "
-                "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
+                "Number of plots ({}) is less "
+                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
             )
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:

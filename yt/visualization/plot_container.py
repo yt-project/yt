@@ -329,7 +329,7 @@ class PlotContainer:
     def _switch_ds(self, new_ds, data_source=None):
         old_object = self.data_source
         name = old_object._type_name
-        kwargs = dict((n, getattr(old_object, n)) for n in old_object._con_args)
+        kwargs = {n: getattr(old_object, n) for n in old_object._con_args}
         kwargs["center"] = getattr(old_object, "center", None)
         if data_source is not None:
             if name != "proj":
@@ -583,7 +583,7 @@ class PlotContainer:
             img = base64.b64encode(self.plots[field]._repr_png_()).decode()
             ret += (
                 r'<img style="max-width:100%;max-height:100%;" '
-                r'src="data:image/png;base64,{0}"><br>'.format(img)
+                r'src="data:image/png;base64,{}"><br>'.format(img)
             )
         return ret
 
@@ -810,7 +810,7 @@ class ImagePlotContainer(PlotContainer):
     _colorbar_valid = False
 
     def __init__(self, data_source, figure_size, fontsize):
-        super(ImagePlotContainer, self).__init__(data_source, figure_size, fontsize)
+        super().__init__(data_source, figure_size, fontsize)
         self.plots = PlotDictionary(data_source)
         self._callbacks = []
         self._colormaps = defaultdict(lambda: ytcfg.get("yt", "default_colormap"))

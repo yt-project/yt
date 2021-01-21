@@ -10,7 +10,7 @@ vals = [
 ]
 
 
-class CodeSupport(object):
+class CodeSupport:
     def __init__(self, **kwargs):
         self.support = {}
         for v in vals:

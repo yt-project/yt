@@ -9,7 +9,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
     name = "spherical"
 
     def __init__(self, ds, ordering=("r", "theta", "phi")):
-        super(SphericalCoordinateHandler, self).__init__(ds, ordering)
+        super().__init__(ds, ordering)
         # Generate
         self.image_units = {}
         self.image_units[self.axis_id["r"]] = ("rad", "rad")
@@ -275,9 +275,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
         return self.ds.domain_width
 
     def sanitize_center(self, center, axis):
-        center, display_center = super(
-            SphericalCoordinateHandler, self
-        ).sanitize_center(center, axis)
+        center, display_center = super().sanitize_center(center, axis)
         name = self.axis_name[axis]
         if name == "r":
             display_center = center
@@ -302,9 +300,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def sanitize_width(self, axis, width, depth):
         name = self.axis_name[axis]
         if width is not None:
-            width = super(SphericalCoordinateHandler, self).sanitize_width(
-                axis, width, depth
-            )
+            width = super().sanitize_width(axis, width, depth)
         elif name == "r":
             width = [
                 self.ds.domain_width[self.x_axis["r"]],

@@ -1,7 +1,6 @@
 import cmd
 import pdb
 import signal
-import socket
 import sys
 import traceback
 from io import StringIO
@@ -120,7 +119,7 @@ def run_rpdb(task=None):
     sp = ServerProxy(f"http://localhost:{port}/")
     try:
         pp = rpdb_cmd(sp)
-    except socket.error:
+    except OSError:
         print("Connection refused.  Is the server running?")
         sys.exit(1)
     pp.cmdloop(__header % dict(task=port - 8010))

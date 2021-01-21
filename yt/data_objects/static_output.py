@@ -437,8 +437,7 @@ class Dataset(abc.ABC):
         return self.parameters[key]
 
     def __iter__(self):
-        for i in self.parameters:
-            yield i
+        yield from self.parameters
 
     def get_smallest_appropriate_unit(
         self, v, quantity="distance", return_quantity=False
@@ -653,15 +652,15 @@ class Dataset(abc.ABC):
                 setattr(self, f"_{format_property}_format", value)
             else:
                 raise ValueError(
-                    "{0} not an acceptable value for format_property "
-                    "{1}. Choices are {2}.".format(
+                    "{} not an acceptable value for format_property "
+                    "{}. Choices are {}.".format(
                         value, format_property, available_formats[format_property]
                     )
                 )
         else:
             raise ValueError(
-                "{0} not a recognized format_property. Available"
-                "properties are: {1}".format(
+                "{} not a recognized format_property. Available"
+                "properties are: {}".format(
                     format_property, list(available_formats.keys())
                 )
             )
@@ -726,7 +725,7 @@ class Dataset(abc.ABC):
             return len(fields)
 
         for field in fields:
-            units = set([])
+            units = set()
             for s in union:
                 # First we check our existing fields for units
                 funits = self._get_field_info(s, field).units
@@ -1904,7 +1903,7 @@ class ParticleDataset(Dataset):
     ):
         self.index_order = validate_index_order(index_order)
         self.index_filename = index_filename
-        super(ParticleDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type=dataset_type,
             file_style=file_style,

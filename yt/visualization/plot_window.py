@@ -209,7 +209,7 @@ class PlotWindow(ImagePlotContainer):
         fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
-        super(PlotWindow, self).__init__(data_source, window_size, fontsize)
+        super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
         self.origin = origin
@@ -818,10 +818,10 @@ class PWViewerMPL(PlotWindow):
             origin = tuple(origin.split("-"))[:3]
         if 1 == len(origin):
             origin = ("lower", "left") + origin
-        elif 2 == len(origin) and origin[0] in set(["left", "right", "center"]):
+        elif 2 == len(origin) and origin[0] in {"left", "right", "center"}:
             o0map = {"left": "lower", "right": "upper", "center": "center"}
             origin = (o0map[origin[0]],) + origin
-        elif 2 == len(origin) and origin[0] in set(["lower", "upper", "center"]):
+        elif 2 == len(origin) and origin[0] in {"lower", "upper", "center"}:
             origin = (origin[0], "center", origin[-1])
         elif 3 == len(origin) and isinstance(origin[0], (int, float)):
             xc = self.ds.quan(origin[0], "code_length")
@@ -847,7 +847,7 @@ class PWViewerMPL(PlotWindow):
         else:
             mylog.warning("origin = %s", origin)
             msg = (
-                'origin keyword "{0}" not recognized, must declare "domain" '
+                'origin keyword "{}" not recognized, must declare "domain" '
                 'or "center" as the last term in origin.'
             ).format(self.origin)
             raise RuntimeError(msg)
@@ -2175,9 +2175,7 @@ class WindowPlotMPL(ImagePlotMPL):
 
         size, axrect, caxrect = self._get_best_layout()
 
-        super(WindowPlotMPL, self).__init__(
-            size, axrect, caxrect, zlim, figure, axes, cax
-        )
+        super().__init__(size, axrect, caxrect, zlim, figure, axes, cax)
 
         self._init_image(data, cbname, cblinthresh, cmap, extent, aspect)
 

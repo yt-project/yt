@@ -62,7 +62,7 @@ def pytest_configure(config):
         os.mkdir(answer_dir)
     # Read the list of answer test classes and their associated answer
     # file
-    with open(answer_file_list, "r") as f:
+    with open(answer_file_list) as f:
         # devnote: this is never used, likely a bug
         answer_files = yaml.safe_load(f)  # noqa F841
     # Register custom marks for answer tests and big data

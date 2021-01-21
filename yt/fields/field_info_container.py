@@ -66,7 +66,7 @@ class FieldInfoContainer(dict):
         # Now we get all our index types and set up aliases to them
         if self.ds is None:
             return
-        index_fields = set([f for _, f in self if _ == "index"])
+        index_fields = {f for _, f in self if _ == "index"}
         for ftype in self.ds.fluid_types:
             if ftype in ("index", "deposit"):
                 continue
@@ -460,11 +460,9 @@ class FieldInfoContainer(dict):
         return key in self.fallback
 
     def __iter__(self):
-        for f in dict.__iter__(self):
-            yield f
+        yield from dict.__iter__(self)
         if self.fallback is not None:
-            for f in self.fallback:
-                yield f
+            yield from self.fallback
 
     def keys(self):
         keys = dict.keys(self)

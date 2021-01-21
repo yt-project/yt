@@ -125,7 +125,7 @@ def amrspace(extent, levels=7, cells=8):
         levels = np.asarray(levels, dtype="int32")
         minlvl = levels.min()
         maxlvl = levels.max()
-        if minlvl != maxlvl and (minlvl != 0 or set([minlvl, maxlvl]) != set(levels)):
+        if minlvl != maxlvl and (minlvl != 0 or {minlvl, maxlvl} != set(levels)):
             raise ValueError("all levels must have the same value or zero.")
     dims_zero = levels == 0
     dims_nonzero = ~dims_zero
@@ -1197,7 +1197,7 @@ def assert_fname(fname):
 
     assert (
         image_type == extension
-    ), "Expected an image of type '%s' but '%s' is an image of type '%s'" % (
+    ), "Expected an image of type '{}' but '{}' is an image of type '{}'".format(
         extension,
         fname,
         image_type,

@@ -336,7 +336,7 @@ class YTNoAPIKey(YTException):
         self.config_name = config_name
 
     def __str__(self):
-        return "You need to set an API key for %s in ~/.config/yt/ytrc as %s" % (
+        return "You need to set an API key for {} in ~/.config/yt/ytrc as {}".format(
             self.service,
             self.config_name,
         )
@@ -393,7 +393,7 @@ class YTDomainOverflow(YTException):
         self.dre = dre
 
     def __str__(self):
-        return "Particle bounds %s and %s exceed domain bounds %s and %s" % (
+        return "Particle bounds {} and {} exceed domain bounds {} and {}".format(
             self.mi,
             self.ma,
             self.dle,
@@ -417,7 +417,7 @@ class YTIllDefinedFilter(YTException):
         self.s2 = s2
 
     def __str__(self):
-        return "Filter '%s' ill-defined.  Applied to shape %s but is shape %s." % (
+        return "Filter '{}' ill-defined.  Applied to shape {} but is shape {}.".format(
             self.filter,
             self.s1,
             self.s2,
@@ -499,7 +499,7 @@ class YTElementTypeNotRecognized(YTException):
         self.num_nodes = num_nodes
 
     def __str__(self):
-        return "Element type not recognized - dim = %s, num_nodes = %s" % (
+        return "Element type not recognized - dim = {}, num_nodes = {}".format(
             self.dim,
             self.num_nodes,
         )
@@ -866,4 +866,4 @@ class YTArrayTooLargeToDisplay(YTException):
 class GenerationInProgress(Exception):
     def __init__(self, fields):
         self.fields = fields
-        super(GenerationInProgress, self).__init__()
+        super().__init__()

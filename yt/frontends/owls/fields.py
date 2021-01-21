@@ -104,7 +104,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
         self.known_particle_fields += new_particle_fields
 
-        super(OWLSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
 
         # This enables the machinery in yt.fields.species_fields
         self.species_names += list(self._elements)
@@ -140,7 +140,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         else:
             ftype = ptype
 
-        super(OWLSFieldInfo, self).setup_particle_fields(
+        super().setup_particle_fields(
             ptype, num_neighbors=self._num_neighbors, ftype=ftype
         )
 

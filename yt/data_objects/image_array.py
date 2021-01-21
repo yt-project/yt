@@ -76,7 +76,7 @@ class ImageArray(YTArray):
         if input_units is not None:
             warnings.warn("'input_units' is deprecated. Please use 'units'.")
             units = input_units
-        obj = super(ImageArray, cls).__new__(
+        obj = super().__new__(
             cls, input_array, units, registry, bypass_validation=bypass_validation
         )
         if info is None:
@@ -86,7 +86,7 @@ class ImageArray(YTArray):
 
     def __array_finalize__(self, obj):
         # see InfoArray.__array_finalize__ for comments
-        super(ImageArray, self).__array_finalize__(obj)
+        super().__array_finalize__(obj)
         self.info = getattr(obj, "info", None)
 
     def write_hdf5(self, filename, dataset_name=None):
@@ -123,9 +123,7 @@ class ImageArray(YTArray):
         """
         if dataset_name is None:
             dataset_name = self.info.get("name", "image")
-        super(ImageArray, self).write_hdf5(
-            filename, dataset_name=dataset_name, info=self.info
-        )
+        super().write_hdf5(filename, dataset_name=dataset_name, info=self.info)
 
     def add_background_color(self, background="black", inline=True):
         r"""Adds a background color to a 4-channel ImageArray

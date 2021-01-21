@@ -74,7 +74,7 @@ class PlotContainerDict(OrderedDict):
 class FigureContainer(OrderedDict):
     def __init__(self, plots):
         self.plots = plots
-        super(FigureContainer, self).__init__()
+        super().__init__()
 
     def __missing__(self, key):
         self[key] = self.plots[key].figure
@@ -89,14 +89,14 @@ class AxesContainer(OrderedDict):
         self.plots = plots
         self.ylim = {}
         self.xlim = (None, None)
-        super(AxesContainer, self).__init__()
+        super().__init__()
 
     def __missing__(self, key):
         self[key] = self.plots[key].axes
         return self[key]
 
     def __setitem__(self, key, value):
-        super(AxesContainer, self).__setitem__(key, value)
+        super().__setitem__(key, value)
         self.ylim[key] = (None, None)
 
 
@@ -380,7 +380,7 @@ class ProfilePlot:
             img = base64.b64encode(img).decode()
             ret += (
                 r'<img style="max-width:100%;max-height:100%;" '
-                r'src="data:image/png;base64,{0}"><br>'.format(img)
+                r'src="data:image/png;base64,{}"><br>'.format(img)
             )
         return ret
 
@@ -743,9 +743,9 @@ class ProfilePlot:
             field = field[1]
         if field_name is None:
             field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", "\ ").title() + r"}$"
+            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
         elif field_name.find("$") == -1:
-            field_name = field_name.replace(" ", "\ ")
+            field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
         if fractional:
             label = field_name + r"$\rm{\ Probability\ Density}$"
@@ -1018,9 +1018,9 @@ class PhasePlot(ImagePlotContainer):
             field = field[1]
         if field_name is None:
             field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", "\ ").title() + r"}$"
+            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
         elif field_name.find("$") == -1:
-            field_name = field_name.replace(" ", "\ ")
+            field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
         if fractional:
             label = field_name + r"$\rm{\ Probability\ Density}$"
@@ -1579,7 +1579,7 @@ class PhasePlot(ImagePlotContainer):
     def _recreate_profile(self):
         p = self._profile
         units = {p.x_field: str(p.x.units), p.y_field: str(p.y.units)}
-        zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
+        zunits = {field: str(p.field_units[field]) for field in p.field_units}
         extrema = {p.x_field: self._xlim, p.y_field: self._ylim}
         if self.x_log is not None or self.y_log is not None:
             logs = {}
@@ -1651,9 +1651,7 @@ class PhasePlotMPL(ImagePlotMPL):
 
         size, axrect, caxrect = self._get_best_layout()
 
-        super(PhasePlotMPL, self).__init__(
-            size, axrect, caxrect, zlim, figure, axes, cax
-        )
+        super().__init__(size, axrect, caxrect, zlim, figure, axes, cax)
 
         self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale, zlim, cmap)
 

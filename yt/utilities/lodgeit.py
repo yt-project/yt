@@ -1,5 +1,4 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
 """
     LodgeIt!
     ~~~~~~~~
@@ -78,7 +77,7 @@ def load_default_settings():
                         else:
                             settings[key] = p[1].strip()
             f.close()
-        except IOError:
+        except OSError:
             pass
     settings["tags"] = []
     settings["title"] = None
@@ -194,7 +193,7 @@ def print_languages():
     languages.sort(lambda a, b: cmp(a[1].lower(), b[1].lower()))
     print("Supported Languages:")
     for alias, name in languages:
-        print("    %-30s%s" % (alias, name))
+        print(f"    {alias:<30}{name}")
 
 
 def download_paste(uid):

@@ -11,7 +11,7 @@ class CM1IOHandler(BaseIOHandler):
     def __init__(self, ds):
         self.filename = ds.filename
         self._handle = NetCDF4FileHandler(self.filename)
-        super(CM1IOHandler, self).__init__(ds)
+        super().__init__(ds)
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).

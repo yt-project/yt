@@ -121,7 +121,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             sl_right = slice(2, None, None)
             div_fac = 2.0
         slice_info = (sl_left, sl_right, div_fac)
-        super(EnzoFieldInfo, self).__init__(ds, field_list, slice_info)
+        super().__init__(ds, field_list, slice_info)
 
         # setup nodal flag information
         for field in NODAL_FLAGS:
@@ -320,4 +320,4 @@ class EnzoFieldInfo(FieldInfoContainer):
             (ptype, "age"), sampling_type="particle", function=_age, units="yr"
         )
 
-        super(EnzoFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)

@@ -108,7 +108,7 @@ if not os.path.exists(CURRENT_CONFIG_FILE):
     try:
         with open(CURRENT_CONFIG_FILE, "w") as new_cfg:
             cp.write(new_cfg)
-    except IOError:
+    except OSError:
         warnings.warn("unable to write new config file")
 
 
@@ -120,7 +120,7 @@ class YTConfigParser(configparser.ConfigParser):
         self.get(key[0], key[1])
 
     def get(self, section, option, *args, **kwargs):
-        val = super(YTConfigParser, self).get(section, option, *args, **kwargs)
+        val = super().get(section, option, *args, **kwargs)
         return os.path.expanduser(os.path.expandvars(val))
 
 

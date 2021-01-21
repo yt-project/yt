@@ -508,7 +508,7 @@ class RTFieldFileHandler(FieldFileHandler):
             p, v = line.split("=")
             rheader[p.strip()] = cast(v)
 
-        with open(fname, "r") as f:
+        with open(fname) as f:
             # Read nRTvar, nions, ngroups, iions
             for _ in range(4):
                 read_rhs(int)

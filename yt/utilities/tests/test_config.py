@@ -170,6 +170,6 @@ class TestYTConfigMigration(TestYTConfig):
             os.path.exists(os.path.join(old_config_dir, _TEST_PLUGIN + ".bak"))
         )
 
-        with open(CURRENT_CONFIG_FILE, "r") as fh:
+        with open(CURRENT_CONFIG_FILE) as fh:
             new_cfg = "".join(fh.readlines())
         self.assertEqual(new_cfg.strip().split("\n"), _DUMMY_CFG)

@@ -5,7 +5,7 @@ class FITSFieldInfo(FieldInfoContainer):
     known_other_fields = ()
 
     def __init__(self, ds, field_list, slice_info=None):
-        super(FITSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
         for field in ds.field_list:
             if field[0] == "fits":
                 self[field].take_log = False
@@ -45,7 +45,7 @@ class YTFITSFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list, slice_info=None):
-        super(YTFITSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
 
 
 class WCSFITSFieldInfo(FITSFieldInfo):

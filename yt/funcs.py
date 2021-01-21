@@ -1023,7 +1023,7 @@ def camelcase_to_underscore(name):
 
 def set_intersection(some_list):
     if len(some_list) == 0:
-        return set([])
+        return set()
     # This accepts a list of iterables, which we get the intersection of.
     s = set(some_list[0])
     for l in some_list[1:]:

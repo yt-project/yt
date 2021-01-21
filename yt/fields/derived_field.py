@@ -429,10 +429,10 @@ class DerivedField:
                 roman = pnum2rom[pstr[1:]]
                 label = (
                     species_label
-                    + "\ "
+                    + r"\ "
                     + roman
-                    + "\ "
-                    + "\ ".join(segments[ipstr + 1 :])
+                    + r"\ "
+                    + r"\ ".join(segments[ipstr + 1 :])
                 )
 
             # use +/- for ionization
@@ -445,8 +445,8 @@ class DerivedField:
                     + "^{"
                     + sign
                     + "}"
-                    + "\ "
-                    + "\ ".join(segments[ipstr + 1 :])
+                    + r"\ "
+                    + r"\ ".join(segments[ipstr + 1 :])
                 )
 
         else:
@@ -458,12 +458,12 @@ class DerivedField:
         if label is None:
             if self._is_ion():
                 fname = self._ion_to_label()
-                label = r"$\rm{" + fname.replace("_", "\ ") + r"}$"
+                label = r"$\rm{" + fname.replace("_", r"\ ") + r"}$"
                 label = label.replace("latexsub", "_")
             else:
-                label = r"$\rm{" + self.name[1].replace("_", "\ ").title() + r"}$"
+                label = r"$\rm{" + self.name[1].replace("_", r"\ ").title() + r"}$"
         elif label.find("$") == -1:
-            label = label.replace(" ", "\ ")
+            label = label.replace(" ", r"\ ")
             label = r"$\rm{" + label + r"}$"
         return label
 

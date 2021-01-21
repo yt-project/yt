@@ -465,26 +465,22 @@ _turbo_colormap_data = np.array(
 )
 
 _tvals = np.linspace(0, 1, 256)
-_turbo_data = dict(
-    (
-        color,
-        np.transpose([_tvals, _turbo_colormap_data[:, i], _turbo_colormap_data[:, i]]),
+_turbo_data = {
+    color: np.transpose(
+        [_tvals, _turbo_colormap_data[:, i], _turbo_colormap_data[:, i]]
     )
     for i, color in enumerate(["red", "green", "blue"])
-)
+}
 
 add_colormap("turbo", _turbo_data)
 
 _turbo_r_colormap_data = np.flip(_turbo_colormap_data, axis=0)
-_turbo_r_data = dict(
-    (
-        color,
-        np.transpose(
-            [_tvals, _turbo_r_colormap_data[:, i], _turbo_r_colormap_data[:, i]]
-        ),
+_turbo_r_data = {
+    color: np.transpose(
+        [_tvals, _turbo_r_colormap_data[:, i], _turbo_r_colormap_data[:, i]]
     )
     for i, color in enumerate(["red", "green", "blue"])
-)
+}
 add_colormap("turbo_r", _turbo_r_data)
 
 # Add colormaps from cmocean, if it's installed

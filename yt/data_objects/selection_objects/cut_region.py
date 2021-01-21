@@ -73,7 +73,7 @@ class YTCutRegion(YTSelectionContainer3D):
             self.conditionals = data_source.conditionals + self.conditionals
             data_source = data_source.base_object
 
-        super(YTCutRegion, self).__init__(
+        super().__init__(
             data_source.center, ds, field_parameters, data_source=data_source
         )
         self.base_object = data_source

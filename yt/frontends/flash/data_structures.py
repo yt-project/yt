@@ -263,10 +263,12 @@ class FLASHDataset(Dataset):
         setdefaultattr(self, "temperature_unit", self.quan(temperature_factor, "K"))
 
     def set_code_units(self):
-        super(FLASHDataset, self).set_code_units()
+        super().set_code_units()
 
     def _find_parameter(self, ptype, pname, scalar=False):
-        nn = "/%s %s" % (ptype, {False: "runtime parameters", True: "scalars"}[scalar])
+        nn = "/{} {}".format(
+            ptype, {False: "runtime parameters", True: "scalars"}[scalar]
+        )
         if nn not in self._handle:
             raise KeyError(nn)
         for tpname, pval in zip(
@@ -511,7 +513,7 @@ class FLASHParticleDataset(FLASHDataset):
     def _parse_parameter_file(self):
         # Let the superclass do all the work but then
         # fix the domain dimensions
-        super(FLASHParticleDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         domain_dimensions = np.zeros(3, "int32")
         domain_dimensions[: self.dimensionality] = 1
         self.domain_dimensions = domain_dimensions

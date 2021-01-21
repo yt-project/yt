@@ -27,7 +27,7 @@ def is_chombo_hdf5(fn):
     try:
         with h5py.File(fn, mode="r") as fileh:
             valid = "Chombo_global" in fileh["/"]
-    except (KeyError, IOError, ImportError):
+    except (KeyError, OSError, ImportError):
         return False
     return valid
 
@@ -160,7 +160,7 @@ class ChomboHierarchy(GridIndex):
         i = 0
         D = self.dataset.dimensionality
         for lev_index, lev in enumerate(self._levels):
-            level_number = int(re.match("level_(\d+)", lev).groups()[0])
+            level_number = int(re.match(r"level_(\d+)", lev).groups()[0])
             try:
                 boxes = f[lev]["boxes"][()]
             except KeyError:
@@ -414,7 +414,7 @@ class PlutoHierarchy(ChomboHierarchy):
         i = 0
         D = self.dataset.dimensionality
         for lev_index, lev in enumerate(self._levels):
-            level_number = int(re.match("level_(\d+)", lev).groups()[0])
+            level_number = int(re.match(r"level_(\d+)", lev).groups()[0])
             try:
                 boxes = f[lev]["boxes"][()]
             except KeyError:
@@ -594,7 +594,7 @@ class Orion2Hierarchy(ChomboHierarchy):
     def _read_particles(self):
         if not os.path.exists(self.particle_filename):
             return
-        with open(self.particle_filename, "r") as f:
+        with open(self.particle_filename) as f:
             lines = f.readlines()
             self.num_stars = int(lines[0].strip().split(" ")[0])
             for num, line in enumerate(lines[1:]):

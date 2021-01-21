@@ -1073,9 +1073,7 @@ class ImageLineCallback(LinePlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube", "cylindrical")
 
     def __init__(self, p1, p2, data_coords=False, coord_system="axis", plot_args=None):
-        super(ImageLineCallback, self).__init__(
-            p1, p2, data_coords, coord_system, plot_args
-        )
+        super().__init__(p1, p2, data_coords, coord_system, plot_args)
         warnings.warn(
             "The ImageLineCallback (annotate_image_line()) is "
             "deprecated.  Please use the LinePlotCallback "
@@ -1083,7 +1081,7 @@ class ImageLineCallback(LinePlotCallback):
         )
 
     def __call__(self, plot):
-        super(ImageLineCallback, self).__call__(plot)
+        super().__call__(plot)
 
 
 class CuttingQuiverCallback(PlotCallback):
@@ -1749,7 +1747,7 @@ class PointAnnotateCallback(TextLabelCallback):
         text_args=None,
         inset_box_args=None,
     ):
-        super(PointAnnotateCallback, self).__init__(
+        super().__init__(
             pos, text, data_coords, coord_system, text_args, inset_box_args
         )
         warnings.warn(
@@ -1759,7 +1757,7 @@ class PointAnnotateCallback(TextLabelCallback):
         )
 
     def __call__(self, plot):
-        super(PointAnnotateCallback, self).__call__(plot)
+        super().__call__(plot)
 
 
 class HaloCatalogCallback(PlotCallback):
@@ -2194,7 +2192,7 @@ class MeshLinesCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, plot_args=None):
-        super(MeshLinesCallback, self).__init__()
+        super().__init__()
         self.plot_args = plot_args
 
     def promote_2d_to_3d(self, coords, indices, plot):
@@ -2261,7 +2259,7 @@ class TriangleFacetsCallback(PlotCallback):
     _supported_geometries = ("cartesian", "spectral_cube")
 
     def __init__(self, triangle_vertices, plot_args=None):
-        super(TriangleFacetsCallback, self).__init__()
+        super().__init__()
         self.plot_args = {} if plot_args is None else plot_args
         self.vertices = triangle_vertices
 
@@ -2516,7 +2514,7 @@ class TimestampCallback(PlotCallback):
             # Replace instances of -0.0* with 0.0* to avoid
             # negative null redshifts (e.g., "-0.00").
             self.text += self.redshift_format.format(redshift=float(z))
-            self.text = re.sub("-(0.0*)$", "\g<1>", self.text)
+            self.text = re.sub("-(0.0*)$", r"\g<1>", self.text)
 
         # This is just a fancy wrapper around the TextLabelCallback
         tcb = TextLabelCallback(

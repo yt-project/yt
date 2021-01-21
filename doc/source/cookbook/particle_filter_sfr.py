@@ -39,5 +39,5 @@ sfr[sfr == 0] = np.nan
 
 plt.plot(time / 1e6, sfr)
 plt.xlabel("Time  [Myr]")
-plt.ylabel("SFR  [M$_\odot$ yr$^{-1}$]")
+plt.ylabel(r"SFR  [M$_\odot$ yr$^{-1}$]")
 plt.savefig("filter_sfr.png")

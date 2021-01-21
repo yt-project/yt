@@ -203,7 +203,7 @@ class ImagePlotMPL(PlotMPL):
 
     def __init__(self, fsize, axrect, caxrect, zlim, figure, axes, cax):
         """Initialize ImagePlotMPL class object"""
-        super(ImagePlotMPL, self).__init__(fsize, axrect, figure, axes)
+        super().__init__(fsize, axrect, figure, axes)
         self.zmin, self.zmax = zlim
         if cax is None:
             self.cax = self.figure.add_axes(caxrect)
@@ -456,7 +456,7 @@ class ImagePlotMPL(PlotMPL):
         self.figure.set_size_inches(*size)
 
     def _get_labels(self):
-        labels = super(ImagePlotMPL, self)._get_labels()
+        labels = super()._get_labels()
         cbax = self.cb.ax
         labels += cbax.yaxis.get_ticklabels()
         labels += [cbax.yaxis.label, cbax.yaxis.get_offset_text()]

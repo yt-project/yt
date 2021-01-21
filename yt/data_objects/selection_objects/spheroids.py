@@ -54,7 +54,7 @@ class YTSphere(YTSelectionContainer3D):
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)
-        super(YTSphere, self).__init__(center, ds, field_parameters, data_source)
+        super().__init__(center, ds, field_parameters, data_source)
         # Unpack the radius, if necessary
         radius = fix_length(radius, self.ds)
         if radius < self.index.get_smallest_dx():
@@ -114,7 +114,7 @@ class YTMinimalSphere(YTSelectionContainer3D):
 
         center = ds.arr(mb.center(), points.units)
         radius = ds.quan(np.sqrt(mb.squared_radius()), points.units)
-        super(YTMinimalSphere, self).__init__(center, ds, field_parameters, data_source)
+        super().__init__(center, ds, field_parameters, data_source)
         self.set_field_parameter("radius", radius)
         self.set_field_parameter("center", self.center)
         self.radius = radius

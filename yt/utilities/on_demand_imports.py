@@ -369,7 +369,7 @@ class h5py_imports:
                 )
         except ImportError:
             pass
-        super(h5py_imports, self).__init__()
+        super().__init__()
 
     _File = None
 
@@ -582,7 +582,7 @@ _yaml = yaml_imports()
 
 class NotMiniball(NotAModule):
     def __init__(self, pkg_name):
-        super(NotMiniball, self).__init__(pkg_name)
+        super().__init__(pkg_name)
         str = (
             "This functionality requires the %s package to be installed. "
             "Installation instructions can be found at "
@@ -610,7 +610,7 @@ class miniball_imports:
 _miniball = miniball_imports()
 
 
-class f90nml_imports(object):
+class f90nml_imports:
     _name = "f90nml"
     _module = None
 

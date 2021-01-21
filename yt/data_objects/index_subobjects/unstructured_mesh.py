@@ -19,7 +19,7 @@ class UnstructuredMesh(YTSelectionContainer):
     def __init__(
         self, mesh_id, filename, connectivity_indices, connectivity_coords, index
     ):
-        super(UnstructuredMesh, self).__init__(index.dataset, None)
+        super().__init__(index.dataset, None)
         self.filename = filename
         self.mesh_id = mesh_id
         # This is where we set up the connectivity information

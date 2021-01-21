@@ -75,7 +75,7 @@ class WarpXFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list):
-        super(WarpXFieldInfo, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
         # setup nodal flag information
         for field in ds.index.raw_fields:
@@ -88,7 +88,7 @@ class WarpXFieldInfo(FieldInfoContainer):
             self.alias(("mesh", fname), ("boxlib", fname))
 
     def setup_fluid_aliases(self):
-        super(WarpXFieldInfo, self).setup_fluid_aliases("mesh")
+        super().setup_fluid_aliases("mesh")
 
     def setup_particle_fields(self, ptype):
         def get_mass(field, data):
@@ -170,7 +170,7 @@ class WarpXFieldInfo(FieldInfoContainer):
             units="m/s",
         )
 
-        super(WarpXFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
 
 
 class NyxFieldInfo(FieldInfoContainer):
@@ -236,7 +236,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
                 units="code_length/code_time",
             )
 
-        super(BoxlibFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
 
     def setup_fluid_fields(self):
         unit_system = self.ds.unit_system
@@ -397,13 +397,13 @@ class MaestroFieldInfo(FieldInfoContainer):
         ("S", ("1/s", [], None)),
         ("ad_excess", ("", [], r"\nabla - \nabla_\mathrm{ad}")),
         ("deltaT", ("", [], "[T(\\rho,h,X) - T(\\rho,p,X)]/T(\\rho,h,X)")),
-        ("deltagamma", ("", [], "\Gamma_1 - \overline{\Gamma_1}")),
+        ("deltagamma", ("", [], r"\Gamma_1 - \overline{\Gamma_1}")),
         ("deltap", ("", [], "[p(\\rho,h,X) - p_0] / p_0")),
         ("divw0", ("1/s", [], r"\nabla \cdot \mathbf{w}_0")),
         # Specific entropy
         ("entropy", ("erg/(g*K)", ["entropy"], "s")),
-        ("entropypert", ("", [], "[s - \overline{s}] / \overline{s}")),
-        ("enucdot", ("erg/(g*s)", [], "\dot{\epsilon}_{nuc}")),
+        ("entropypert", ("", [], r"[s - \overline{s}] / \overline{s}")),
+        ("enucdot", ("erg/(g*s)", [], r"\dot{\epsilon}_{nuc}")),
         ("Hext", ("erg/(g*s)", [], "H_{ext}")),
         # Perturbational pressure grad
         ("gpi_x", ("dyne/cm**3", [], r"\left(\nabla\pi\right)_x")),
@@ -415,19 +415,19 @@ class MaestroFieldInfo(FieldInfoContainer):
         # full state.
         ("momentum", ("g*cm/s", ["momentum_magnitude"], r"\rho |\mathbf{U}|")),
         ("p0", ("erg/cm**3", [], "p_0")),
-        ("p0pluspi", ("erg/cm**3", [], "p_0 + \pi")),
-        ("pi", ("erg/cm**3", [], "\pi")),
-        ("pioverp0", ("", [], "\pi/p_0")),
+        ("p0pluspi", ("erg/cm**3", [], r"p_0 + \pi")),
+        ("pi", ("erg/cm**3", [], r"\pi")),
+        ("pioverp0", ("", [], r"\pi/p_0")),
         # Base state density
         ("rho0", ("g/cm**3", [], "\\rho_0")),
         ("rhoh", ("erg/cm**3", ["enthalpy_density"], "(\\rho h)")),
         # Base state enthalpy density
         ("rhoh0", ("erg/cm**3", [], "(\\rho h)_0")),
-        ("rhohpert", ("erg/cm**3", [], "(\\rho h)^\prime")),
-        ("rhopert", ("g/cm**3", [], "\\rho^\prime")),
+        ("rhohpert", ("erg/cm**3", [], "(\\rho h)^\\prime")),
+        ("rhopert", ("g/cm**3", [], "\\rho^\\prime")),
         ("soundspeed", ("cm/s", ["sound_speed"], None)),
         ("sponge", ("", [], None)),
-        ("tpert", ("K", [], "T - \overline{T}")),
+        ("tpert", ("K", [], r"T - \overline{T}")),
         # Again, base state -- so we can't compute ourselves.
         ("vort", ("1/s", ["vorticity_magnitude"], r"|\nabla\times\tilde{U}|")),
         # Base state

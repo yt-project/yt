@@ -72,9 +72,7 @@ class ExodusIISimulation(DatasetSeries):
             fn = output["filename"]
             for step in range(num_steps):
                 ds_list.append((fn, step))
-        super(ExodusIISimulation, self).__init__(
-            ds_list, parallel=parallel, setup_function=setup_function
-        )
+        super().__init__(ds_list, parallel=parallel, setup_function=setup_function)
 
     def _check_for_outputs(self, potential_outputs):
         r"""

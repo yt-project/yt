@@ -120,7 +120,7 @@ class ParameterFileStore:
         if os.path.exists(fn):
             ds = output_type_registry[class_name](os.path.join(fp, bn))
         else:
-            raise IOError
+            raise OSError
         # This next one is to ensure that we manually update the last_seen
         # record *now*, for during write_out.
         self._records[ds._hash()]["last_seen"] = ds._instantiated
@@ -187,7 +187,7 @@ class ParameterFileStore:
     @parallel_simple_proxy
     def read_db(self):
         """ This will read the storage device from disk. """
-        f = open(self._get_db_name(), "r")
+        f = open(self._get_db_name())
         vals = csv.DictReader(f, _field_names)
         db = {}
         for v in vals:

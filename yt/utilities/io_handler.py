@@ -46,7 +46,7 @@ class BaseIOHandler:
         # Make sure _vector_fields is a dict of fields and their dimension
         # and assume all non-specified vector fields are 3D
         if not isinstance(self._vector_fields, dict):
-            self._vector_fields = dict((field, 3) for field in self._vector_fields)
+            self._vector_fields = {field: 3 for field in self._vector_fields}
 
     # We need a function for reading a list of sets
     # and a function for *popping* from a queue all the appropriate sets

@@ -76,7 +76,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
             f.close()
             return rv
         if size is None:
-            size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
+            size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
         for field in fields:
             ftype, fname = field
             fsize = size
@@ -194,7 +194,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -214,7 +214,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -293,15 +293,10 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
             for ptype in f:
                 fields.extend([(ptype, str(field)) for field in f[ptype]])
                 units.update(
-                    dict(
-                        [
-                            (
-                                (ptype, str(field)),
-                                parse_h5_attr(f[ptype][field], "units"),
-                            )
-                            for field in f[ptype]
-                        ]
-                    )
+                    {
+                        (ptype, str(field)): parse_h5_attr(f[ptype][field], "units")
+                        for field in f[ptype]
+                    }
                 )
         return fields, units
 
@@ -312,7 +307,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -333,7 +328,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)

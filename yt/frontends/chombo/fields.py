@@ -79,7 +79,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
                 units="code_length/code_time",
             )
 
-        super(Orion2FieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
 
     def setup_fluid_fields(self):
         from yt.fields.magnetic_field import setup_magnetic_field_aliases
@@ -291,7 +291,7 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
     )
 
     def __init__(self, ds, field_list):
-        super(ChomboPICFieldInfo2D, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
         for ftype in fluid_field_types:
             self.add_field(
@@ -333,7 +333,7 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
     )
 
     def __init__(self, ds, field_list):
-        super(ChomboPICFieldInfo1D, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
         for ftype in fluid_field_types:
             self.add_field(
