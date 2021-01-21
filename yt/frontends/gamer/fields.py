@@ -1,3 +1,5 @@
+import numpy as np
+
 from yt.fields.field_info_container import FieldInfoContainer
 import numpy as np
 
@@ -54,36 +56,43 @@ class GAMERFieldInfo(FieldInfoContainer):
 
         unit_system = self.ds.unit_system
 
-        if self.ds.special_relativity:
+        if self.ds.srhd:
 
-            c2 = pc.clight*pc.clight
+            c2 = pc.clight * pc.clight
 
-            if self.ds.tm_eos:
+            if self.ds.eos == 4:
 
                 # specific enthalpy
                 def _specific_enthalpy(field, data):
                     kT = data["gamer", "Temp"]
-                    h = 2.5*kT+np.sqrt(2.25*kT**2+1.0)
-                    return h*c2
+                    h = 2.5 * kT + np.sqrt(2.25 * kT ** 2 + 1.0)
+                    return h * c2
 
                 # adiabatic (effective) gamma
                 def _gamma(field, data):
-                    y = data["gas", "specific_enthalpy"]/c2-1.0
+                    y = data["gas", "specific_enthalpy"] / c2 - 1.0
                     x = data["gamer", "Temp"]
-                    return y/(y-x)
+                    return y / (y - x)
 
             else:
 
                 # adiabatic gamma
                 def _gamma(field, data):
-                    return self.ds.gamma*data["gas", "ones"]
+                    return self.ds.gamma * data["gas", "ones"]
 
                 # specific enthalpy
                 def _specific_enthalpy(field, data):
                     kT = data["gamer", "Temp"]
                     g = data["gas", "gamma"]
-                    h = 1.0+g*kT/(g-1.0)
-                    return h*c2
+                    h = 1.0 + g * kT / (g - 1.0)
+                    return h * c2
+
+            # coordinate frame density
+            self.alias(
+                ("gas", "frame_density"),
+                ("gamer", "Dens"),
+                units=unit_system["density"],
+            )
 
             self.add_field(
                 ("gas", "specific_enthalpy"),
@@ -93,18 +102,18 @@ class GAMERFieldInfo(FieldInfoContainer):
             )
 
             self.add_field(
-                ("gas", "gamma"),
-                sampling_type="cell",
-                function=_gamma,
-                units=""
+                ("gas", "gamma"), sampling_type="cell", function=_gamma, units=""
             )
 
             # 4-velocity spatial components
             def four_velocity_xyz(u):
                 def _four_velocity(field, data):
-                    ui = data["gas", f"momentum_{u}"]*2
-                    ui /= data["gamer", "Dens"]*(c2+data["gas", "specific_enthalpy"])
+                    ui = data["gas", f"momentum_{u}"] * c2
+                    ui /= (
+                        data["gas", "frame_density"] * data["gas", "specific_enthalpy"]
+                    )
                     return ui
+
                 return _four_velocity
 
             for u in "xyz":
@@ -117,22 +126,28 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # lorentz factor
             def _lorentz_factor(field, data):
-                u2 = (data["gas", "four_velocity_x"]**2 +
-                      data["gas", "four_velocity_y"]**2 +
-                      data["gas", "four_velocity_z"]**2)/c2
-                return np.sqrt(1.0+u2)
+                u2 = (
+                    data["gas", "four_velocity_x"] ** 2
+                    + data["gas", "four_velocity_y"] ** 2
+                    + data["gas", "four_velocity_z"] ** 2
+                ) / c2
+                return np.sqrt(1.0 + u2)
 
             self.add_field(
                 ("gas", "lorentz_factor"),
                 sampling_type="cell",
                 function=_lorentz_factor,
-                units=""
+                units="",
             )
 
             # velocity
             def velocity_xyz(v):
                 def _velocity(field, data):
-                    return data["gas", f"four_velocity_{v}"] / data["gas", "lorentz_factor"]
+                    return (
+                        data["gas", f"four_velocity_{v}"]
+                        / data["gas", "lorentz_factor"]
+                    )
+
                 return _velocity
 
             for v in "xyz":
@@ -145,18 +160,18 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # density
             def _density(field, data):
-                return data["gamer", "Dens"] / data["gas", "lorentz_factor"]
+                return data["gas", "frame_density"] / data["gas", "lorentz_factor"]
 
             self.add_field(
                 ("gas", "density"),
                 sampling_type="cell",
                 function=_density,
-                units=unit_system["density"]
+                units=unit_system["density"],
             )
 
             # pressure
             def _pressure(field, data):
-                return data["gas", "density"]*c2*data["gamer", "Temp"]
+                return data["gas", "density"] * c2 * data["gamer", "Temp"]
 
         else:
 
@@ -181,15 +196,15 @@ class GAMERFieldInfo(FieldInfoContainer):
                     units=unit_system["velocity"],
                 )
 
-            # ============================================================================
+            # ====================================================
             # note that yt internal fields assume
-            #    [specific_thermal_energy]          = [energy per mass]
-            #    [kinetic_energy_density]          = [energy per volume]
-            #    [magnetic_energy_density]         = [energy per volume]
+            #    [specific_thermal_energy]   = [energy per mass]
+            #    [kinetic_energy_density]    = [energy per volume]
+            #    [magnetic_energy_density]   = [energy per volume]
             # and we further adopt
-            #    [specific_total_energy]            = [energy per mass]
-            #    [total_energy_density] = [energy per volume]
-            # ============================================================================
+            #    [specific_total_energy]     = [energy per mass]
+            #    [total_energy_density]      = [energy per volume]
+            # ====================================================
 
             # kinetic energy per volume
             def ek(data):

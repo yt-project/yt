@@ -128,7 +128,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
     def _lorentz_factor(field, data):
         b2 = data[ftype, "velocity_magnitude"].to_value("c")
         b2 *= b2
-        return 1.0/np.sqrt(1.0-b2)
+        return 1.0 / np.sqrt(1.0 - b2)
 
     registry.add_field(
         (ftype, "lorentz_factor"),
@@ -140,7 +140,8 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
     # 4-velocity spatial components
     def four_velocity_xyz(u):
         def _four_velocity(field, data):
-            return data["gas", f"velocity_{u}"]*data["gas", "lorentz_factor"]
+            return data["gas", f"velocity_{u}"] * data["gas", "lorentz_factor"]
+
         return _four_velocity
 
     for u in "xyz":
@@ -153,11 +154,11 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
 
     # 4-velocity t-component
     def _four_velocity_t(field, data):
-        return data["gas", "lorentz_factor"]*pc.clight
+        return data["gas", "lorentz_factor"] * pc.clight
 
     registry.add_field(
         ("gas", "four_velocity_t"),
         sampling_type="local",
         function=_four_velocity_t,
-        units=unit_system["velocity"]
+        units=unit_system["velocity"],
     )
