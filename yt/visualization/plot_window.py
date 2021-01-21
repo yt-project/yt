@@ -709,8 +709,7 @@ class PlotWindow(ImagePlotContainer):
         return self
 
     def set_window_size(self, size):
-        """This calls set_figure_size to adjust the size of the plot window.
-        """
+        """This calls set_figure_size to adjust the size of the plot window."""
         from yt._maintenance.deprecation import issue_deprecation_warning
 
         issue_deprecation_warning(
