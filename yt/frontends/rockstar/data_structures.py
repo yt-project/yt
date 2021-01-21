@@ -22,7 +22,7 @@ class RockstarBinaryFile(HaloCatalogFile):
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-        super(RockstarBinaryFile, self).__init__(ds, io, filename, file_id, range)
+        super().__init__(ds, io, filename, file_id, range)
 
     def _read_particle_positions(self, ptype, f=None):
         """
@@ -63,7 +63,7 @@ class RockstarDataset(ParticleDataset):
         index_order=None,
         index_filename=None,
     ):
-        super(RockstarDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -94,7 +94,7 @@ class RockstarDataset(ParticleDataset):
         self.current_time = cosmo.lookback_time(self.current_redshift, 1e6).in_units(
             "s"
         )
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.particle_types = "halos"
         self.particle_types_raw = "halos"
 

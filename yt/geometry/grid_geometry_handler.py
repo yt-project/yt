@@ -199,7 +199,9 @@ class GridIndex(Index, abc.ABC):
         """
         Prints out (stdout) relevant information about the simulation
         """
-        header = "%3s\t%6s\t%14s\t%14s" % ("level", "# grids", "# cells", "# cells^3")
+        header = "{:>3}\t{:>6}\t{:>14}\t{:>14}".format(
+            "level", "# grids", "# cells", "# cells^3"
+        )
         print(header)
         print(f"{len(header.expandtabs()) * '-'}")
         for level in range(MAXLEVEL):
@@ -222,7 +224,7 @@ class GridIndex(Index, abc.ABC):
         )
         print("\n")
         try:
-            print("z = %0.8f" % (self["CosmologyCurrentRedshift"]))
+            print(f"z = {self['CosmologyCurrentRedshift']:0.8f}")
         except Exception:
             pass
         print(
@@ -235,7 +237,7 @@ class GridIndex(Index, abc.ABC):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
+            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
 
     def _find_field_values_at_points(self, fields, coords):
         r"""Find the value of fields at a set of coordinates.
@@ -259,7 +261,7 @@ class GridIndex(Index, abc.ABC):
         out = []
         for field in fields:
             funit = self.ds._get_field_info(field).units
-            out.append(self.ds.arr(np.empty((len(coords))), funit))
+            out.append(self.ds.arr(np.empty(len(coords)), funit))
 
         for grid in grid_index:
             cellwidth = (grid.RightEdge - grid.LeftEdge) / grid.ActiveDimensions
@@ -357,7 +359,7 @@ class GridIndex(Index, abc.ABC):
             return fast_index.count(dobj.selector)
         if grids is None:
             grids = dobj._chunk_info
-        count = sum((g.count(dobj.selector) for g in grids))
+        count = sum(g.count(dobj.selector) for g in grids)
         return count
 
     def _chunk_all(self, dobj, cache=True, fast_index=None):

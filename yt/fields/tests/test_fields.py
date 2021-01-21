@@ -142,7 +142,7 @@ def get_base_ds(nprocs):
     ds.parameters["EOSType"] = 1.0
     ds.parameters["EOSSoundSpeed"] = 1.0
     ds.conversion_factors["Time"] = 1.0
-    ds.conversion_factors.update(dict((f, 1.0) for f in fields))
+    ds.conversion_factors.update({f: 1.0 for f in fields})
     ds.gamma = 5.0 / 3.0
     ds.current_redshift = 0.0001
     ds.cosmological_simulation = 1
@@ -484,21 +484,21 @@ def test_ion_field_labels():
 
     # by default labels should use roman numerals
     default_labels = {
-        "O_p1_number_density": "$\\rm{O\ II\ Number\ Density}$",
-        "O2_p1_number_density": "$\\rm{O_{2}\ II\ Number\ Density}$",
-        "CO2_p1_number_density": "$\\rm{CO_{2}\ II\ Number\ Density}$",
-        "Co_p1_number_density": "$\\rm{Co\ II\ Number\ Density}$",
-        "O2_p2_number_density": "$\\rm{O_{2}\ III\ Number\ Density}$",
-        "H2O_p1_number_density": "$\\rm{H_{2}O\ II\ Number\ Density}$",
+        "O_p1_number_density": "$\\rm{O\\ II\\ Number\\ Density}$",
+        "O2_p1_number_density": "$\\rm{O_{2}\\ II\\ Number\\ Density}$",
+        "CO2_p1_number_density": "$\\rm{CO_{2}\\ II\\ Number\\ Density}$",
+        "Co_p1_number_density": "$\\rm{Co\\ II\\ Number\\ Density}$",
+        "O2_p2_number_density": "$\\rm{O_{2}\\ III\\ Number\\ Density}$",
+        "H2O_p1_number_density": "$\\rm{H_{2}O\\ II\\ Number\\ Density}$",
     }
 
     pm_labels = {
-        "O_p1_number_density": "$\\rm{{O}^{+}\ Number\ Density}$",
-        "O2_p1_number_density": "$\\rm{{O_{2}}^{+}\ Number\ Density}$",
-        "CO2_p1_number_density": "$\\rm{{CO_{2}}^{+}\ Number\ Density}$",
-        "Co_p1_number_density": "$\\rm{{Co}^{+}\ Number\ Density}$",
-        "O2_p2_number_density": "$\\rm{{O_{2}}^{++}\ Number\ Density}$",
-        "H2O_p1_number_density": "$\\rm{{H_{2}O}^{+}\ Number\ Density}$",
+        "O_p1_number_density": "$\\rm{{O}^{+}\\ Number\\ Density}$",
+        "O2_p1_number_density": "$\\rm{{O_{2}}^{+}\\ Number\\ Density}$",
+        "CO2_p1_number_density": "$\\rm{{CO_{2}}^{+}\\ Number\\ Density}$",
+        "Co_p1_number_density": "$\\rm{{Co}^{+}\\ Number\\ Density}$",
+        "O2_p2_number_density": "$\\rm{{O_{2}}^{++}\\ Number\\ Density}$",
+        "H2O_p1_number_density": "$\\rm{{H_{2}O}^{+}\\ Number\\ Density}$",
     }
 
     fobj = ds.fields.stream

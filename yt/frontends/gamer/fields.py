@@ -45,7 +45,7 @@ class GAMERFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list):
-        super(GAMERFieldInfo, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
     # add primitive and other derived variables
     def setup_fluid_fields(self):
@@ -165,4 +165,4 @@ class GAMERFieldInfo(FieldInfoContainer):
             setup_magnetic_field_aliases(self, "gamer", [f"CCMag{v}" for v in "XYZ"])
 
     def setup_particle_fields(self, ptype):
-        super(GAMERFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)

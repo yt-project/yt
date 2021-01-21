@@ -30,8 +30,8 @@ cooling_function_prime_units = " erg * cm**3 /s/K"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
 
-known_species_masses = dict(
-    (sp, mh * v)
+known_species_masses = {
+    sp: mh * v
     for sp, v in [
         ("HI", 1.0),
         ("HII", 1.0),
@@ -46,7 +46,7 @@ known_species_masses = dict(
         ("DII", 2.0),
         ("HDI", 3.0),
     ]
-)
+}
 
 _cool_axes = ("lognH", "logT")  # , "logTeq")
 _cool_arrs = (
@@ -141,7 +141,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
     )
 
     def setup_particle_fields(self, ptype):
-        super(RAMSESFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
 
         def particle_age(field, data):
             msg = (

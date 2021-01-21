@@ -144,9 +144,12 @@ class GAMERHierarchy(GridIndex):
         for grid in self.grids:
             # parent->children == itself
             if grid.Parent is not None:
-                assert grid in grid.Parent.Children, (
-                    "Grid %d, Parent %d, Parent->Children[0] %d"
-                    % (grid.id, grid.Parent.id, grid.Parent.Children[0].id)
+                assert (
+                    grid in grid.Parent.Children
+                ), "Grid %d, Parent %d, Parent->Children[0] %d" % (
+                    grid.id,
+                    grid.Parent.id,
+                    grid.Parent.Children[0].id,
                 )
 
             # children->parent == itself
@@ -159,21 +162,24 @@ class GAMERHierarchy(GridIndex):
 
             # all refinement grids should have parent
             if grid.Level > 0:
-                assert grid.Parent is not None and grid.Parent.id >= 0, (
-                    "Grid %d, Level %d, Parent %d"
-                    % (
-                        grid.id,
-                        grid.Level,
-                        grid.Parent.id if grid.Parent is not None else -999,
-                    )
+                assert (
+                    grid.Parent is not None and grid.Parent.id >= 0
+                ), "Grid %d, Level %d, Parent %d" % (
+                    grid.id,
+                    grid.Level,
+                    grid.Parent.id if grid.Parent is not None else -999,
                 )
 
             # parent index is consistent with the loaded dataset
             if grid.Level > 0:
                 father_gid = father_list[grid.id * self.pgroup] // self.pgroup
-                assert father_gid == grid.Parent.id, (
-                    "Grid %d, Level %d, Parent_Found %d, Parent_Expect %d"
-                    % (grid.id, grid.Level, grid.Parent.id, father_gid)
+                assert (
+                    father_gid == grid.Parent.id
+                ), "Grid %d, Level %d, Parent_Found %d, Parent_Expect %d" % (
+                    grid.id,
+                    grid.Level,
+                    grid.Parent.id,
+                    father_gid,
                 )
 
             # edges between children and parent
@@ -315,7 +321,7 @@ class GAMERDataset(Dataset):
             periodic_bc = 1
         else:
             periodic_bc = 0
-        self.periodicity = (
+        self._periodicity = (
             bool(parameters["Opt__BC_Flu"][0] == periodic_bc),
             bool(parameters["Opt__BC_Flu"][2] == periodic_bc),
             bool(parameters["Opt__BC_Flu"][4] == periodic_bc),

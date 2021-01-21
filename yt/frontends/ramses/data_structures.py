@@ -233,10 +233,10 @@ class RAMSESDomainFile:
 
     def _read_amr(self):
         """Open the oct file, read in octs level-by-level.
-           For each oct, only the position, index, level and domain
-           are needed - its position in the octree is found automatically.
-           The most important is finding all the information to feed
-           oct_handler.add
+        For each oct, only the position, index, level and domain
+        are needed - its position in the octree is found automatically.
+        The most important is finding all the information to feed
+        oct_handler.add
         """
         self.oct_handler = RAMSESOctreeContainer(
             self.ds.domain_dimensions / 2,
@@ -289,9 +289,7 @@ class RAMSESDomainSubset(OctreeSubset):
         num_ghost_zones=0,
         base_grid=None,
     ):
-        super(RAMSESDomainSubset, self).__init__(
-            base_region, domain, ds, over_refine_factor, num_ghost_zones
-        )
+        super().__init__(base_region, domain, ds, over_refine_factor, num_ghost_zones)
 
         self._base_grid = base_grid
 
@@ -399,7 +397,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
     @property
     def fwidth(self):
-        fwidth = super(RAMSESDomainSubset, self).fwidth
+        fwidth = super().fwidth
         if self._num_ghost_zones > 0:
             fwidth = fwidth.reshape(-1, 8, 3)
             n_oct = fwidth.shape[0]
@@ -415,7 +413,7 @@ class RAMSESDomainSubset(OctreeSubset):
     def fcoords(self):
         num_ghost_zones = self._num_ghost_zones
         if num_ghost_zones == 0:
-            return super(RAMSESDomainSubset, self).fcoords
+            return super().fcoords
 
         oh = self.oct_handler
 
@@ -487,7 +485,7 @@ class RAMSESIndex(OctreeIndex):
         self.max_level = None
 
         self.float_type = np.float64
-        super(RAMSESIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_oct_handler(self):
         if self.ds._bbox is not None:
@@ -508,7 +506,7 @@ class RAMSESIndex(OctreeIndex):
         self.num_grids = total_octs
 
     def _detect_output_fields(self):
-        dsl = set([])
+        dsl = set()
 
         # Get the detected particle fields
         for domain in self.domains:
@@ -522,7 +520,7 @@ class RAMSESIndex(OctreeIndex):
                 self.particle_field_list.append((f[0], "conformal_birth_time"))
 
         # Get the detected fields
-        dsl = set([])
+        dsl = set()
         for fh in self.domains[0].field_handlers:
             dsl.update(set(fh.field_list))
         self.fluid_field_list = list(dsl)
@@ -604,7 +602,7 @@ class RAMSESIndex(OctreeIndex):
 
         self._initialize_level_stats()
 
-        header = "%3s\t%14s\t%14s" % ("level", "# cells", "# cells^3")
+        header = "{:>3}\t{:>14}\t{:>14}".format("level", "# cells", "# cells^3")
         print(header)
         print(f"{len(header.expandtabs()) * '-'}")
         for level in range(self.dataset.min_level + self.dataset.max_level + 2):
@@ -622,7 +620,7 @@ class RAMSESIndex(OctreeIndex):
 
         dx = self.get_smallest_dx()
         try:
-            print("z = %0.8f" % (self.dataset.current_redshift))
+            print(f"z = {self.dataset.current_redshift:0.8f}")
         except Exception:
             pass
         print(
@@ -635,7 +633,7 @@ class RAMSESIndex(OctreeIndex):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
+            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
 
 
 class RAMSESDataset(Dataset):
@@ -766,7 +764,7 @@ class RAMSESDataset(Dataset):
 
     def create_field_info(self, *args, **kwa):
         """Extend create_field_info to add the particles types."""
-        super(RAMSESDataset, self).create_field_info(*args, **kwa)
+        super().create_field_info(*args, **kwa)
         # Register particle filters
         if ("io", "particle_family") in self.field_list:
             for fname, value in particle_families.items():
@@ -876,7 +874,7 @@ class RAMSESDataset(Dataset):
         self.domain_right_edge = np.ones(3, dtype="float64")
         # This is likely not true, but it's not clear
         # how to determine the boundary conditions
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
         if self.force_cosmological is not None:
             is_cosmological = self.force_cosmological
@@ -948,7 +946,7 @@ class RAMSESDataset(Dataset):
         namelist_file = os.path.join(self.root_folder, "namelist.txt")
         if os.path.exists(namelist_file):
             try:
-                with open(namelist_file, "r") as f:
+                with open(namelist_file) as f:
                     nml = f90nml.read(f)
             except ImportError as e:
                 nml = f"An error occurred when reading the namelist: {str(e)}"

@@ -27,7 +27,7 @@ class SPHFieldInfo(FieldInfoContainer):
     )
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
-        super(SPHFieldInfo, self).setup_particle_fields(ptype, *args, **kwargs)
+        super().setup_particle_fields(ptype, *args, **kwargs)
         setup_species_fields(self, ptype)
 
     def setup_fluid_index_fields(self):

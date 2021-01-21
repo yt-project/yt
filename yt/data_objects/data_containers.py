@@ -45,7 +45,7 @@ def _get_ipython_key_completion(ds):
     # with earlier versions, completion works with fname only
     # this implementation should work transparently with all IPython versions
     tuple_keys = ds.field_list + ds.derived_field_list
-    fnames = list(set(k[1] for k in tuple_keys))
+    fnames = list({k[1] for k in tuple_keys})
     return tuple_keys + fnames
 
 
@@ -648,12 +648,9 @@ class YTDataContainer:
                     ftypes[g_field] = "grid"
                     data[g_field] = self[g_field]
 
-        extra_attrs = dict(
-            [
-                (arg, getattr(self, arg, None))
-                for arg in self._con_args + self._tds_attrs
-            ]
-        )
+        extra_attrs = {
+            arg: getattr(self, arg, None) for arg in self._con_args + self._tds_attrs
+        }
         extra_attrs["con_args"] = repr(self._con_args)
         extra_attrs["data_type"] = "yt_data_container"
         extra_attrs["container_type"] = self._type_name
@@ -711,74 +708,74 @@ class YTDataContainer:
         dataset_name="yt",
     ):
         r"""This function links a region of data stored in a yt dataset
-            to the Python frontend API for [Firefly](github.com/ageller/Firefly),
-            a browser-based particle visualization platform.
+        to the Python frontend API for [Firefly](github.com/ageller/Firefly),
+        a browser-based particle visualization platform.
 
-            Parameters
-            ----------
-            path_to_firefly : string
-                The (ideally) absolute path to the direction containing the index.html
-                file of Firefly.
+        Parameters
+        ----------
+        path_to_firefly : string
+            The (ideally) absolute path to the direction containing the index.html
+            file of Firefly.
 
-            fields_to_include : array_like of strings
-                A list of fields that you want to include in your
-                Firefly visualization for on-the-fly filtering and
-                colormapping.
+        fields_to_include : array_like of strings
+            A list of fields that you want to include in your
+            Firefly visualization for on-the-fly filtering and
+            colormapping.
 
-            default_decimation_factor : integer
-                The factor by which you want to decimate each particle group
-                by (e.g. if there are 1e7 total particles in your simulation
-                you might want to set this to 100 at first). Randomly samples
-                your data like `shuffled_data[::decimation_factor]` so as to
-                not overtax a system. This is adjustable on a per particle group
-                basis by changing the returned reader's
-                `reader.particleGroup[i].decimation_factor` before calling
-                `reader.dumpToJSON()`.
+        default_decimation_factor : integer
+            The factor by which you want to decimate each particle group
+            by (e.g. if there are 1e7 total particles in your simulation
+            you might want to set this to 100 at first). Randomly samples
+            your data like `shuffled_data[::decimation_factor]` so as to
+            not overtax a system. This is adjustable on a per particle group
+            basis by changing the returned reader's
+            `reader.particleGroup[i].decimation_factor` before calling
+            `reader.dumpToJSON()`.
 
-            velocity_units : string
-                The units that the velocity should be converted to in order to
-                show streamlines in Firefly. Defaults to km/s.
+        velocity_units : string
+            The units that the velocity should be converted to in order to
+            show streamlines in Firefly. Defaults to km/s.
 
-            coordinate_units: string
-                The units that the coordinates should be converted to. Defaults to
-                kpc.
+        coordinate_units: string
+            The units that the coordinates should be converted to. Defaults to
+            kpc.
 
-            show_unused_fields: boolean
-                A flag to optionally print the fields that are available, in the
-                dataset but were not explicitly requested to be tracked.
+        show_unused_fields: boolean
+            A flag to optionally print the fields that are available, in the
+            dataset but were not explicitly requested to be tracked.
 
-            dataset_name: string
-                The name of the subdirectory the JSON files will be stored in
-                (and the name that will appear in startup.json and in the dropdown
-                menu at startup). e.g. `yt` -> json files will appear in
-                `Firefly/data/yt`.
+        dataset_name: string
+            The name of the subdirectory the JSON files will be stored in
+            (and the name that will appear in startup.json and in the dropdown
+            menu at startup). e.g. `yt` -> json files will appear in
+            `Firefly/data/yt`.
 
-            Returns
-            -------
-            reader : firefly_api.reader.Reader object
-                A reader object from the firefly_api, configured
-                to output
+        Returns
+        -------
+        reader : firefly_api.reader.Reader object
+            A reader object from the firefly_api, configured
+            to output
 
-            Examples
-            --------
+        Examples
+        --------
 
-                >>> ramses_ds = yt.load(
-                ...     "/Users/agurvich/Desktop/yt_workshop/"+
-                ...     "DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt")
+            >>> ramses_ds = yt.load(
+            ...     "/Users/agurvich/Desktop/yt_workshop/"+
+            ...     "DICEGalaxyDisk_nonCosmological/output_00002/info_00002.txt")
 
-                >>> region = ramses_ds.sphere(ramses_ds.domain_center,(1000,'kpc'))
+            >>> region = ramses_ds.sphere(ramses_ds.domain_center,(1000,'kpc'))
 
-                >>> reader = region.create_firefly_object(
-                ...     path_to_firefly="/Users/agurvich/research/repos/Firefly",
-                ...     fields_to_include=[
-                ...     'particle_extra_field_1',
-                ...     'particle_extra_field_2'],
-                ...     fields_units = ['dimensionless','dimensionless'],
-                ...     dataset_name = 'IsoGalaxyRamses')
+            >>> reader = region.create_firefly_object(
+            ...     path_to_firefly="/Users/agurvich/research/repos/Firefly",
+            ...     fields_to_include=[
+            ...     'particle_extra_field_1',
+            ...     'particle_extra_field_2'],
+            ...     fields_units = ['dimensionless','dimensionless'],
+            ...     dataset_name = 'IsoGalaxyRamses')
 
-                >>> reader.options['color']['io']=[1,1,0,1]
-                >>> reader.particleGroups[0].decimation_factor=100
-                >>> reader.dumpToJSON()
+            >>> reader.options['color']['io']=[1,1,0,1]
+            >>> reader.particleGroups[0].decimation_factor=100
+            >>> reader.dumpToJSON()
         """
 
         ## attempt to import firefly_api
@@ -1346,7 +1343,7 @@ class YTDataContainer:
         s = f"{self.__class__.__name__} ({self.ds}): "
         for i in self._con_args:
             try:
-                s += ", %s=%s" % (
+                s += ", {}={}".format(
                     i,
                     getattr(self, i).in_base(unit_system=self.ds.unit_system),
                 )

@@ -1023,7 +1023,7 @@ def camelcase_to_underscore(name):
 
 def set_intersection(some_list):
     if len(some_list) == 0:
-        return set([])
+        return set()
     # This accepts a list of iterables, which we get the intersection of.
     s = set(some_list[0])
     for l in some_list[1:]:
@@ -1063,7 +1063,7 @@ def memory_checker(interval=15, dest=None):
 
         def run(self):
             while not self.event.wait(self.interval):
-                print("MEMORY: %0.3e gb" % (get_memory_usage() / 1024.0), file=dest)
+                print(f"MEMORY: {get_memory_usage() / 1024.0:0.3e} gb", file=dest)
 
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)

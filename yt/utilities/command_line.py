@@ -1483,19 +1483,17 @@ class YTStatsCmd(YTCommand):
             if args.max:
                 vals["min"] = ds.find_max(args.field)
                 print(
-                    "Maximum %s: %0.5e at %s"
-                    % (args.field, vals["min"][0], vals["min"][1])
+                    f"Maximum {args.field}: {vals['min'][0]:0.5e} at {vals['min'][1]}"
                 )
             if args.min:
                 vals["max"] = ds.find_min(args.field)
                 print(
-                    "Minimum %s: %0.5e at %s"
-                    % (args.field, vals["max"][0], vals["max"][1])
+                    f"Minimum {args.field}: {vals['max'][0]:0.5e} at {vals['max'][1]}"
                 )
         if args.output is not None:
             t = ds.current_time * ds["years"]
             with open(args.output, "a") as f:
-                f.write("%s (%0.5e years)\n" % (ds, t))
+                f.write(f"{ds} ({t:0.5e} years)\n")
                 if "min" in vals:
                     f.write(
                         "Minimum %s is %0.5e at %s\n"
@@ -1927,12 +1925,12 @@ class YTDownloadData(YTCommand):
             ensure_dir(data_dir)
         data_file = os.path.join(data_dir, args.filename)
         if os.path.exists(data_file) and not args.overwrite:
-            raise IOError(f"File '{data_file}' exists and overwrite=False!")
+            raise OSError(f"File '{data_file}' exists and overwrite=False!")
         print(f"Attempting to download file: {args.filename}")
         fn = download_file(data_url, data_file)
 
         if not os.path.exists(fn):
-            raise IOError(f"The file '{args.filename}' did not download!!")
+            raise OSError(f"The file '{args.filename}' did not download!!")
         print(f"File: {args.filename} downloaded successfully to {data_file}")
 
     def get_list(self):

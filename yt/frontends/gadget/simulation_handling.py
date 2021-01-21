@@ -427,7 +427,6 @@ class GadgetSimulation(SimulationTimeSeries):
                         os.path.join(
                             self.data_dir, self.parameters["OutputListFilename"]
                         ),
-                        "r",
                     ).readlines()
                 ]
             else:

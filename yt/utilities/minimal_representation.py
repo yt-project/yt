@@ -99,7 +99,7 @@ class MinimalRepresentation(metaclass=abc.ABCMeta):
 
     @property
     def _attrs(self):
-        return dict(((attr, getattr(self, attr)) for attr in self._attr_list))
+        return {attr: getattr(self, attr) for attr in self._attr_list}
 
     @classmethod
     def _from_metadata(cls, metadata):
@@ -168,7 +168,7 @@ class MinimalDataset(MinimalRepresentation):
     type = "simulation_output"
 
     def __init__(self, obj):
-        super(MinimalDataset, self).__init__(obj)
+        super().__init__(obj)
         self.output_hash = obj._hash()
         self.name = str(obj)
 
@@ -288,7 +288,7 @@ class MinimalNotebook(MinimalRepresentation):
     def __init__(self, filename, title=None):
         # First we read in the data
         if not os.path.isfile(filename):
-            raise IOError(filename)
+            raise OSError(filename)
         self.data = open(filename).read()
         if title is None:
             title = json.loads(self.data)["metadata"]["name"]

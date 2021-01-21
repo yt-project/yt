@@ -291,7 +291,7 @@ class StreamDataset(Dataset):
         self.domain_right_edge = self.stream_handler.domain_right_edge.copy()
         self.refine_by = self.stream_handler.refine_by
         self.dimensionality = self.stream_handler.dimensionality
-        self.periodicity = self.stream_handler.periodicity
+        self._periodicity = self.stream_handler.periodicity
         self.domain_dimensions = self.stream_handler.domain_dimensions
         self.current_time = self.stream_handler.simulation_time
         self.gamma = 5.0 / 3.0
@@ -347,7 +347,7 @@ class StreamDataset(Dataset):
         return True
 
     def _find_particle_types(self):
-        particle_types = set([])
+        particle_types = set()
         for k, v in self.stream_handler.particle_types.items():
             if v:
                 particle_types.add(k[0])
@@ -370,7 +370,7 @@ class StreamDictFieldHandler(dict):
 class StreamParticleIndex(SPHParticleIndex):
     def __init__(self, ds, dataset_type=None):
         self.stream_handler = ds.stream_handler
-        super(StreamParticleIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -442,7 +442,7 @@ class StreamParticlesDataset(StreamDataset):
         geometry="cartesian",
         unit_system="cgs",
     ):
-        super(StreamParticlesDataset, self).__init__(
+        super().__init__(
             stream_handler,
             storage_filename=storage_filename,
             geometry=geometry,
@@ -617,7 +617,7 @@ class StreamHexahedralMesh(SemiStructuredMesh):
 class StreamHexahedralHierarchy(UnstructuredIndex):
     def __init__(self, ds, dataset_type=None):
         self.stream_handler = ds.stream_handler
-        super(StreamHexahedralHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
         coords = self.stream_handler.fields.pop("coordinates")
@@ -740,7 +740,7 @@ class StreamOctreeHandler(OctreeIndex):
     def __init__(self, ds, dataset_type=None):
         self.stream_handler = ds.stream_handler
         self.dataset_type = dataset_type
-        super(StreamOctreeHandler, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _setup_data_io(self):
         if self.stream_handler.io is not None:
@@ -796,7 +796,7 @@ class StreamOctreeHandler(OctreeIndex):
 
     def _setup_classes(self):
         dd = self._get_data_reader_dict()
-        super(StreamOctreeHandler, self)._setup_classes(dd)
+        super()._setup_classes(dd)
 
     def _detect_output_fields(self):
         # NOTE: Because particle unions add to the actual field list, without
@@ -821,9 +821,7 @@ class StreamOctreeDataset(StreamDataset):
         geometry="cartesian",
         unit_system="cgs",
     ):
-        super(StreamOctreeDataset, self).__init__(
-            stream_handler, storage_filename, geometry, unit_system
-        )
+        super().__init__(stream_handler, storage_filename, geometry, unit_system)
         # Set up levelmax
         self.max_level = stream_handler.levels.max()
         self.min_level = stream_handler.levels.min()
@@ -833,14 +831,14 @@ class StreamUnstructuredMesh(UnstructuredMesh):
     _index_offset = 0
 
     def __init__(self, *args, **kwargs):
-        super(StreamUnstructuredMesh, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._connectivity_length = self.connectivity_indices.shape[1]
 
 
 class StreamUnstructuredIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type=None):
         self.stream_handler = ds.stream_handler
-        super(StreamUnstructuredIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
         coords = self.stream_handler.fields.pop("coordinates")
@@ -860,7 +858,7 @@ class StreamUnstructuredIndex(UnstructuredIndex):
 
     def _detect_output_fields(self):
         self.field_list = list(set(self.stream_handler.get_fields()))
-        fnames = list(set([fn for ft, fn in self.field_list]))
+        fnames = list({fn for ft, fn in self.field_list})
         self.field_list += [("all", fname) for fname in fnames]
 
 

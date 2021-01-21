@@ -77,7 +77,7 @@ def run_install_script(install_script_path, inst_py3, binary_yt=False):
     msg = "Testing installation with inst_py3={} and binary_yt={}"
     print(msg.format(inst_py3, binary_yt))
     shutil.copy(install_script_path, os.curdir)
-    with open("install_script.sh", "r") as source:
+    with open("install_script.sh") as source:
         with open("install_script_edited.sh", "w") as target:
             data = source.read()
             for dep in OPTIONAL_DEPS:

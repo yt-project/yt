@@ -75,7 +75,6 @@ if not os.path.exists(CONFIG_DIR):
     except OSError:
         warnings.warn("unable to create yt config directory")
 
-
 class YTConfig:
     def __init__(self, defaults=None):
         if defaults is None:

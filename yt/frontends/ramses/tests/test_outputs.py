@@ -524,7 +524,7 @@ def test_ramses_empty_record():
 def test_namelist_reading():
     ds = data_dir_load(ramses_new_format)
     namelist_fname = os.path.join(ds.directory, "namelist.txt")
-    with open(namelist_fname, "r") as f:
+    with open(namelist_fname) as f:
         ref = f90nml.read(f)
 
     nml = ds.parameters["namelist"]

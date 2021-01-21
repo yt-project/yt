@@ -524,13 +524,11 @@ class FixedResolutionBuffer:
         else:
             data.update(self.data)
 
-        ftypes = dict([(field, "grid") for field in data])
-        extra_attrs = dict(
-            [
-                (arg, getattr(self.data_source, arg, None))
-                for arg in self.data_source._con_args + self.data_source._tds_attrs
-            ]
-        )
+        ftypes = {field: "grid" for field in data}
+        extra_attrs = {
+            arg: getattr(self.data_source, arg, None)
+            for arg in self.data_source._con_args + self.data_source._tds_attrs
+        }
         extra_attrs["con_args"] = self.data_source._con_args
         extra_attrs["left_edge"] = self.ds.arr([self.bounds[0], self.bounds[2]])
         extra_attrs["right_edge"] = self.ds.arr([self.bounds[1], self.bounds[3]])
@@ -572,7 +570,7 @@ class FixedResolutionBuffer:
 class ObliqueFixedResolutionBuffer(FixedResolutionBuffer):
     @deprecate("FixedResolutionBuffer")
     def __init__(self, *args, **kwargs):
-        super(ObliqueFixedResolutionBuffer, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class CylindricalFixedResolutionBuffer(FixedResolutionBuffer):

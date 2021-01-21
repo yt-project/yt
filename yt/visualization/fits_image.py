@@ -59,7 +59,7 @@ class FITSImageData:
         unit_header=None,
         **kwargs,
     ):
-        r""" Initialize a FITSImageData object.
+        r"""Initialize a FITSImageData object.
 
         FITSImageData contains a collection of FITS ImageHDU instances and
         WCS information, along with units for each of the images. FITSImageData
@@ -236,7 +236,7 @@ class FITSImageData:
 
         # Sanity checking names
         s = set()
-        duplicates = set(f for f in self.fields if f in s or s.add(f))
+        duplicates = {f for f in self.fields if f in s or s.add(f)}
         if len(duplicates) > 0:
             for i, fd in enumerate(self.fields):
                 if fd in duplicates:
@@ -990,7 +990,7 @@ class FITSSlice(FITSImageData):
         w, frb, lunit = construct_image(
             ds, axis, slc, dcenter, image_res, width, length_unit
         )
-        super(FITSSlice, self).__init__(frb, fields=fields, length_unit=lunit, wcs=w)
+        super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
 
 class FITSProjection(FITSImageData):
@@ -1064,9 +1064,7 @@ class FITSProjection(FITSImageData):
         w, frb, lunit = construct_image(
             ds, axis, prj, dcenter, image_res, width, length_unit
         )
-        super(FITSProjection, self).__init__(
-            frb, fields=fields, length_unit=lunit, wcs=w
-        )
+        super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
 
 class FITSOffAxisSlice(FITSImageData):
@@ -1141,9 +1139,7 @@ class FITSOffAxisSlice(FITSImageData):
         w, frb, lunit = construct_image(
             ds, normal, cut, center, image_res, width, length_unit
         )
-        super(FITSOffAxisSlice, self).__init__(
-            frb, fields=fields, length_unit=lunit, wcs=w
-        )
+        super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
 
 class FITSOffAxisProjection(FITSImageData):
@@ -1267,6 +1263,4 @@ class FITSOffAxisProjection(FITSImageData):
         w, not_an_frb, lunit = construct_image(
             ds, normal, buf, center, image_res, width, length_unit
         )
-        super(FITSOffAxisProjection, self).__init__(
-            buf, fields=fields, wcs=w, length_unit=lunit, ds=ds
-        )
+        super().__init__(buf, fields=fields, wcs=w, length_unit=lunit, ds=ds)

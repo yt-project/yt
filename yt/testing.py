@@ -125,7 +125,7 @@ def amrspace(extent, levels=7, cells=8):
         levels = np.asarray(levels, dtype="int32")
         minlvl = levels.min()
         maxlvl = levels.max()
-        if minlvl != maxlvl and (minlvl != 0 or set([minlvl, maxlvl]) != set(levels)):
+        if minlvl != maxlvl and (minlvl != 0 or {minlvl, maxlvl} != set(levels)):
             raise ValueError("all levels must have the same value or zero.")
     dims_zero = levels == 0
     dims_nonzero = ~dims_zero
@@ -1195,14 +1195,17 @@ def assert_fname(fname):
 
     extension = os.path.splitext(fname)[1]
 
-    assert image_type == extension, (
-        "Expected an image of type '%s' but '%s' is an image of type '%s'"
-        % (extension, fname, image_type)
+    assert (
+        image_type == extension
+    ), "Expected an image of type '{}' but '{}' is an image of type '{}'".format(
+        extension,
+        fname,
+        image_type,
     )
 
 
 def requires_backend(backend):
-    """ Decorator to check for a specified matplotlib backend.
+    """Decorator to check for a specified matplotlib backend.
 
     This decorator returns the decorated function if the specified `backend`
     is same as of `matplotlib.get_backend()`, otherwise returns null function.

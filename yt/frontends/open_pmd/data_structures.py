@@ -549,15 +549,14 @@ class OpenPMDDataset(Dataset):
         setdefaultattr(self, "magnetic_unit", self.quan(1.0, "T"))
 
     def _parse_parameter_file(self):
-        """Read in metadata describing the overall data on-disk.
-        """
+        """Read in metadata describing the overall data on-disk."""
         f = self._handle
         bp = self.base_path
         mp = self.meshes_path
 
         self.unique_identifier = 0
         self.parameters = 0
-        self.periodicity = np.zeros(3, dtype=np.bool)
+        self._periodicity = np.zeros(3, dtype=np.bool)
         self.refine_by = 1
         self.cosmological_simulation = 0
 
@@ -608,8 +607,7 @@ class OpenPMDDataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        """Checks whether the supplied file can be read by this frontend.
-        """
+        """Checks whether the supplied file can be read by this frontend."""
         warn_h5py(filename)
         try:
             with h5py.File(filename, mode="r") as f:
@@ -640,7 +638,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
     mixed_dataset_types = False
 
     def __init__(self, filename):
-        super(OpenPMDDatasetSeries, self).__init__([])
+        super().__init__([])
         self.handle = h5py.File(filename, mode="r")
         self.filename = filename
         self._pre_outputs = sorted(

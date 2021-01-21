@@ -8,7 +8,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         if ds.gen_hsmls:
             hsml = (("smoothing_length", ("code_length", [], None)),)
             self.known_particle_fields += hsml
-        super(GadgetFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
 
@@ -17,7 +17,7 @@ class GadgetFieldInfo(SPHFieldInfo):
         if (ptype, "FourMetalFractions") in self.ds.field_list:
             self._setup_four_metal_fractions(ptype)
 
-        super(GadgetFieldInfo, self).setup_particle_fields(ptype, *args, **kwargs)
+        super().setup_particle_fields(ptype, *args, **kwargs)
 
         if ptype in ("PartType0", "Gas"):
             self.setup_gas_particle_fields(ptype)

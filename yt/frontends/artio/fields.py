@@ -168,4 +168,4 @@ class ARTIOFieldInfo(FieldInfoContainer):
                     function=_creation_redshift,
                 )
 
-        super(ARTIOFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)

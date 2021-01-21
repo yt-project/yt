@@ -381,9 +381,7 @@ been deprecated, use profile.standard_deviation instead."""
         std = "standard_deviation"
         if self.weight_field is not None:
             std_data = getattr(self, std)
-            data.update(
-                dict(((std, field[1]), std_data[field]) for field in self.field_data)
-            )
+            data.update({(std, field[1]): std_data[field] for field in self.field_data})
 
         dimensionality = 0
         bin_data = []
@@ -406,9 +404,9 @@ been deprecated, use profile.standard_deviation instead."""
             data[getattr(self, f"{ax}_field")] = bin_fields[i]
 
         extra_attrs["dimensionality"] = dimensionality
-        ftypes = dict([(field, "data") for field in data if field[0] != std])
+        ftypes = {field: "data" for field in data if field[0] != std}
         if self.weight_field is not None:
-            ftypes.update(dict(((std, field[1]), std) for field in self.field_data))
+            ftypes.update({(std, field[1]): std for field in self.field_data})
         save_as_dataset(
             self.ds, filename, data, field_types=ftypes, extra_attrs=extra_attrs
         )
@@ -492,7 +490,7 @@ class Profile1D(ProfileND):
         weight_field=None,
         override_bins_x=None,
     ):
-        super(Profile1D, self).__init__(data_source, weight_field)
+        super().__init__(data_source, weight_field)
         self.x_field = data_source._determine_fields(x_field)[0]
         self.field_info[self.x_field] = self.data_source.ds.field_info[self.x_field]
         self.x_log = x_log
@@ -730,7 +728,7 @@ class Profile2D(ProfileND):
         override_bins_x=None,
         override_bins_y=None,
     ):
-        super(Profile2D, self).__init__(data_source, weight_field)
+        super().__init__(data_source, weight_field)
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
@@ -907,7 +905,7 @@ class ParticleProfile(Profile2D):
 
         # set the log parameters to False (since that doesn't make much sense
         # for deposited data) and also turn off the weight field.
-        super(ParticleProfile, self).__init__(
+        super().__init__(
             data_source,
             x_field,
             x_n,
@@ -1055,7 +1053,7 @@ class Profile3D(ProfileND):
         override_bins_y=None,
         override_bins_z=None,
     ):
-        super(Profile3D, self).__init__(data_source, weight_field)
+        super().__init__(data_source, weight_field)
         # X
         self.x_field = data_source._determine_fields(x_field)[0]
         self.x_log = x_log
@@ -1372,7 +1370,7 @@ def create_profile(
                     field_ex = list(extrema[bin_field])
                 except KeyError:
                     raise RuntimeError(
-                        "Could not find field {0} or {1} in extrema".format(
+                        "Could not find field {} or {} in extrema".format(
                             bin_field[-1], bin_field
                         )
                     ) from e

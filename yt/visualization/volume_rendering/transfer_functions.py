@@ -73,9 +73,9 @@ class TransferFunction:
         self.features.append(
             (
                 "gaussian",
-                "location(x):%3.2g" % location,
-                "width(x):%3.2g" % width,
-                "height(y):%3.2g" % height,
+                f"location(x):{location:3.2g}",
+                f"width(x):{width:3.2g}",
+                f"height(y):{height:3.2g}",
             )
         )
 
@@ -114,8 +114,8 @@ class TransferFunction:
         self.features.append(
             (
                 "line",
-                "start(x,y):(%3.2g, %3.2g)" % (start[0], start[1]),
-                "stop(x,y):(%3.2g, %3.2g)" % (stop[0], stop[1]),
+                f"start(x,y):({start[0]:3.2g}, {start[1]:3.2g})",
+                f"stop(x,y):({stop[0]:3.2g}, {stop[1]:3.2g})",
             )
         )
 
@@ -155,9 +155,9 @@ class TransferFunction:
         self.features.append(
             (
                 "step",
-                "start(x):%3.2g" % start,
-                "stop(x):%3.2g" % stop,
-                "value(y):%3.2g" % value,
+                f"start(x):{start:3.2g}",
+                f"stop(x):{stop:3.2g}",
+                f"value(y):{value:3.2g}",
             )
         )
 
@@ -437,8 +437,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.features.append(
             (
                 "gaussian",
-                "location(x):%3.2g" % location,
-                "width(x):%3.2g" % width,
+                f"location(x):{location:3.2g}",
+                f"width(x):{width:3.2g}",
                 "height(y):(%3.2g, %3.2g, %3.2g, %3.2g)"
                 % (height[0], height[1], height[2], height[3]),
             )
@@ -479,8 +479,8 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.features.append(
             (
                 "step",
-                "start(x):%3.2g" % start,
-                "stop(x):%3.2g" % stop,
+                f"start(x):{start:3.2g}",
+                f"stop(x):{stop:3.2g}",
                 "value(y):(%3.2g, %3.2g, %3.2g, %3.2g)"
                 % (value[0], value[1], value[2], value[3]),
             )
@@ -598,7 +598,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.yaxis.set_ticks(yticks)
 
         def y_format(y, pos):
-            s = "%0.2f" % (y)
+            s = f"{y:0.2f}"
             return s
 
         ax.yaxis.set_major_formatter(FuncFormatter(y_format))
@@ -680,7 +680,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.xaxis.set_ticks(yticks)
 
         def y_format(y, pos):
-            s = "%0.2f" % (y)
+            s = f"{y:0.2f}"
             return s
 
         ax.xaxis.set_major_formatter(FuncFormatter(y_format))
@@ -801,9 +801,9 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         self.features.append(
             (
                 "map_to_colormap",
-                "start(x):%3.2g" % mi,
-                "stop(x):%3.2g" % ma,
-                "value(y):%3.2g" % scale,
+                f"start(x):{mi:3.2g}",
+                f"stop(x):{ma:3.2g}",
+                f"value(y):{scale:3.2g}",
             )
         )
 

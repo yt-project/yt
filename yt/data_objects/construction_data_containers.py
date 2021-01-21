@@ -171,7 +171,7 @@ class YTProj(YTSelectionContainer2D):
         field_parameters=None,
         max_level=None,
     ):
-        super(YTProj, self).__init__(axis, ds, field_parameters)
+        super().__init__(axis, ds, field_parameters)
         # Style is deprecated, but if it is set, then it trumps method
         # keyword.  TODO: Remove this keyword and this check at some point in
         # the future.
@@ -381,7 +381,7 @@ class YTParticleProj(YTProj):
         field_parameters=None,
         max_level=None,
     ):
-        super(YTParticleProj, self).__init__(
+        super().__init__(
             field,
             axis,
             weight_field,
@@ -474,7 +474,7 @@ class YTQuadTreeProj(YTProj):
         field_parameters=None,
         max_level=None,
     ):
-        super(YTQuadTreeProj, self).__init__(
+        super().__init__(
             field,
             axis,
             weight_field,
@@ -685,7 +685,11 @@ class YTCoveringGrid(YTSelectionContainer3D):
         coords = {}
         for f in fields or self.field_data.keys():
             data[f] = {
-                "dims": ("x", "y", "z",),
+                "dims": (
+                    "x",
+                    "y",
+                    "z",
+                ),
                 "data": self[f],
                 "attrs": {"units": str(self[f].uq)},
             }
@@ -734,7 +738,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         return tr
 
     def set_field_parameter(self, name, val):
-        super(YTCoveringGrid, self).set_field_parameter(name, val)
+        super().set_field_parameter(name, val)
         if self._data_source is not None:
             self._data_source.set_field_parameter(name, val)
 
@@ -1295,7 +1299,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
 
     def _setup_data_source(self, level_state=None):
         if level_state is None:
-            super(YTSmoothedCoveringGrid, self)._setup_data_source()
+            super()._setup_data_source()
             return
         # We need a buffer region to allow for zones that contribute to the
         # interpolation but are not directly inside our bounds
@@ -1546,7 +1550,7 @@ class YTSurface(YTSelectionContainer3D):
                 self.field_value = data_source.ds.quan(field_value, finfo.units)
         self.vertex_samples = YTFieldData()
         center = data_source.get_field_parameter("center")
-        super(YTSurface, self).__init__(center=center, ds=ds)
+        super().__init__(center=center, ds=ds)
 
     def _generate_container_field(self, field):
         self.get_data(field)

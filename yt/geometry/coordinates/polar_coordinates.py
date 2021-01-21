@@ -5,5 +5,5 @@ class PolarCoordinateHandler(CylindricalCoordinateHandler):
     name = "polar"
 
     def __init__(self, ds, ordering=("r", "theta", "z")):
-        super(PolarCoordinateHandler, self).__init__(ds, ordering)
+        super().__init__(ds, ordering)
         # No need to set labels here

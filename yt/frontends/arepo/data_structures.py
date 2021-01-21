@@ -23,7 +23,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         units_override=None,
         unit_system="cgs",
     ):
-        super(ArepoHDF5Dataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type=dataset_type,
             unit_base=unit_base,
@@ -77,7 +77,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
 
     def _set_code_unit_attributes(self):
         self._unit_base = self._get_uvals()
-        super(ArepoHDF5Dataset, self)._set_code_unit_attributes()
+        super()._set_code_unit_attributes()
         munit = np.sqrt(self.mass_unit / (self.time_unit ** 2 * self.length_unit)).to(
             "gauss"
         )

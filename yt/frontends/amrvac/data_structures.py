@@ -30,7 +30,7 @@ class AMRVACGrid(AMRGridPatch):
 
     def __init__(self, id, index, level):
         # <level> should use yt's convention (start from 0)
-        super(AMRVACGrid, self).__init__(id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -57,7 +57,7 @@ class AMRVACGrid(AMRGridPatch):
                 category=RuntimeWarning,
             )
             smoothed = False
-        return super(AMRVACGrid, self).retrieve_ghost_zones(
+        return super().retrieve_ghost_zones(
             n_zones, fields, all_levels=all_levels, smoothed=smoothed
         )
 
@@ -73,7 +73,7 @@ class AMRVACHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         self.float_type = np.float64
 
-        super(AMRVACHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         """Parse field names from the header, as stored in self.dataset.parameters"""
@@ -175,7 +175,7 @@ class AMRVACDataset(Dataset):
         # note: geometry_override and parfiles are specific to this frontend
 
         self._geometry_override = geometry_override
-        super(AMRVACDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -345,7 +345,7 @@ class AMRVACDataset(Dataset):
         # parse peridiocity
         periodicity = self.parameters.get("periodic", ())
         missing_dim = 3 - len(periodicity)
-        self.periodicity = (*periodicity, *(missing_dim * (False,)))
+        self._periodicity = (*periodicity, *(missing_dim * (False,)))
 
         self.gamma = self.parameters.get("gamma", 5.0 / 3.0)
 

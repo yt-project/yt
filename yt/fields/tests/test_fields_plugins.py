@@ -6,6 +6,8 @@ from yt.config import CONFIG_DIR, ytcfg
 from yt.testing import assert_raises, fake_random_ds
 
 TEST_PLUGIN_FILE = """
+import numpy as np
+
 def _myfunc(field, data):
     return np.random.random(data['density'].shape)
 add_field('random', dimensions='dimensionless',

@@ -67,7 +67,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.oct_handler.fill_sfc(
             levels, cell_inds, file_inds, domain_counts, field_indices, tr
         )
-        tr = dict((field, v) for field, v in zip(fields, tr))
+        tr = {field: v for field, v in zip(fields, tr)}
         return tr
 
     def fill_particles(self, fields):
@@ -113,7 +113,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         ]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
         self.data_size = tr[0].size
-        tr = dict((field, v) for field, v in zip(fields, tr))
+        tr = {field: v for field, v in zip(fields, tr)}
         return tr
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
@@ -154,7 +154,7 @@ class ARTIOIndex(Index):
         self.max_level = ds.max_level
         self.range_handlers = {}
         self.float_type = np.float64
-        super(ARTIOIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     @property
     def max_range(self):
@@ -483,10 +483,10 @@ class ARTIODataset(Dataset):
             self.parameters["unit_m"] = self.artio_parameters["mass_unit"][0]
 
         # hard coded assumption of 3D periodicity
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
     def create_field_info(self):
-        super(ARTIODataset, self).create_field_info()
+        super().create_field_info()
         # only make the particle union if there are multiple DM species.
         # If there are multiple, "N-BODY_0" will be the first species. If there
         # are not multiple, they will be all under "N-BODY"

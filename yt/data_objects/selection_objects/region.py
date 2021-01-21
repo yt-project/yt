@@ -1,4 +1,3 @@
-from yt import YTArray
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
     YTSelectionContainer3D,
@@ -10,6 +9,7 @@ from yt.funcs import (
     validate_object,
     validate_sequence,
 )
+from yt.units import YTArray
 
 
 class YTRegion(YTSelectionContainer3D):

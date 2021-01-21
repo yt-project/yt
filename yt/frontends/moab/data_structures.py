@@ -117,7 +117,7 @@ class PyneMeshHex8Hierarchy(UnstructuredIndex):
         self.directory = os.getcwd()
         self.pyne_mesh = ds.pyne_mesh
 
-        super(PyneMeshHex8Hierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
         from pymoab import types

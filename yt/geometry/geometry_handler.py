@@ -87,7 +87,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
                 if not exists:
                     self.__create_data_file(fn)
                 self._data_mode = "a"
-            except IOError:
+            except OSError:
                 self._data_mode = None
                 return
         else:

@@ -48,5 +48,5 @@ class GizmoDataset(GadgetHDF5Dataset):
         return valid
 
     def _set_code_unit_attributes(self):
-        super(GizmoDataset, self)._set_code_unit_attributes()
+        super()._set_code_unit_attributes()
         self.magnetic_unit = self.quan(1.0, "gauss")

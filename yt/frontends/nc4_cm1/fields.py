@@ -59,5 +59,5 @@ class CM1FieldInfo(FieldInfoContainer):
         pass
 
     def setup_particle_fields(self, ptype):
-        super(CM1FieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
         # This will get called for every particle type.
