@@ -4,6 +4,7 @@ import warnings
 import toml
 from more_itertools import always_iterable
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.configuration_tree import ConfigNode
 
 ytcfg_defaults = {}
@@ -180,13 +181,14 @@ _local_config_file = YTConfig.get_local_config_file()
 
 if os.path.exists(OLD_CONFIG_FILE):
     if os.path.exists(_global_config_file):
-        msg = (
+        issue_deprecation_warning(
             f"The configuration file {OLD_CONFIG_FILE} is deprecated in "
             f"favor of {_global_config_file}. Currently, both are present. "
             "Please manually remove the deprecated one to silence "
-            "this warning."
+            "this warning.",
+            since="4.0.0",
+            removal="4.1.0",
         )
-        warnings.warn(msg)
     else:
         # We have an issue here: when calling from the command line,
         # we do not want this to exit, as it would prevent `yt config migrate`
@@ -200,12 +202,14 @@ if os.path.exists(OLD_CONFIG_FILE):
 
         stack = inspect.stack()
         if len(stack) < 2 or stack[-2].function != "importlib_load_entry_point":
-            msg = (
+            issue_deprecation_warning(
                 f"The configuration file {OLD_CONFIG_FILE} is deprecated. "
                 f"Please migrate your config to {_global_config_file} by running: "
-                "'yt config migrate'"
+                "'yt config migrate'",
+                since="4.0.0",
+                removal="4.1.0",
             )
-            raise SystemExit(msg)
+            raise SystemExit
 
 
 if not os.path.exists(_global_config_file):
