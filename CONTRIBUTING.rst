@@ -308,7 +308,7 @@ directory.
 
    $ cd yt-git
 
-Verify that you are on the master branch of yt by running:
+Verify that you are on the ``main`` branch of yt by running:
 
 .. code-block:: bash
 
@@ -334,14 +334,14 @@ You can always return to the most recent version of the code by executing the
 same command as above with the most recent revision specifier in the
 repository. However, using ``git log`` when you're checked out to an older
 revision specifier will not show more recent changes to the repository. An
-alternative option is to use ``checkout`` on a branch. In yt the ``master``
-branch is our primary development branch, so checking out ``master`` should
-return you to the tip (or most up-to-date revision specifier) on the ``master``
+alternative option is to use ``checkout`` on a branch. In yt the ``main``
+branch is our primary development branch, so checking out ``main`` should
+return you to the tip (or most up-to-date revision specifier) on the ``main``
 branch.
 
 .. code-block:: bash
 
-   $ git checkout master
+   $ git checkout main
 
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
@@ -546,12 +546,12 @@ chat or on the mailing list to walk you through any troubles you might have.
 Here are some general suggestions for using git with yt:
 
 * Although not necessary, a common development work flow is to create a local
-  named branch other than ``master`` to address a feature request or bugfix. If
+  named branch other than ``main`` to address a feature request or bugfix. If
   the dev work addresses a specific yt GitHub issue, you may include that issue
   number in the branch name. For example, if you want to work on issue number X
   regarding a cool new slice plot feature, you might name the branch:
   ``cool_new_plot_feature_X``. When you're ready to share your work, push your
-  feature branch to your remote and create a pull request to the ``master``
+  feature branch to your remote and create a pull request to the ``main``
   branch of the yt-project's repository.
 * When contributing changes, you might be asked to make a handful of
   modifications to your source code.  We'll work through how to do this with
@@ -655,7 +655,7 @@ Here's a more detailed flowchart of how to submit changes.
      protocol.
 
      .. _SSH key: https://help.github.com/en/articles/connecting-to-github-with-ssh/
-#. Issue a pull request at https://github.com/yt-project/yt/pull/new/master A
+#. Issue a pull request at https://github.com/yt-project/yt/pull/new/main A
    pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.
 
@@ -676,13 +676,13 @@ straightforward.
 Once your pull request is merged, sync up with the main yt repository by pulling
 from the ``upstream`` remote::
 
-     git checkout master
-     git pull upstream master
+     git checkout main
+     git pull upstream main
 
 You might also want to sync your fork of yt on GitHub::
 
      # sync my fork of yt with upstream
-     git push origin master
+     git push origin main
 
 And delete the branch for the merged pull request::
 

@@ -584,19 +584,19 @@ def update_git(path):
             print("")
             print(f"    $ cd {path}")
             print("    $ git stash")
-            print("    $ git checkout master")
+            print("    $ git checkout main")
             print("    $ git pull")
             print("    $ git stash pop")
             print(f"    $ {sys.executable} setup.py develop")
             print("")
             return 1
-        if repo.active_branch.name != "master":
-            print("yt repository is not tracking the master branch so I won't ")
+        if repo.active_branch.name != "main":
+            print("yt repository is not tracking the main branch so I won't ")
             print("update the code. You will have to do this yourself.")
             print("Here's a set of sample commands:")
             print("")
             print(f"    $ cd {path}")
-            print("    $ git checkout master")
+            print("    $ git checkout main")
             print("    $ git pull")
             print(f"    $ {sys.executable} setup.py develop")
             print("")
@@ -611,9 +611,9 @@ def update_git(path):
                 "yt_upstream", url="https://github.com/yt-project/yt"
             )
             remote.fetch()
-        master = repo.heads.master
-        master.set_tracking_branch(remote.refs.master)
-        master.checkout()
+        main = repo.heads.main
+        main.set_tracking_branch(remote.refs.main)
+        main.checkout()
         remote.pull()
         new_version = repo.git.rev_parse("HEAD", short=12)
         f.write(f"Updated from {old_version} to {new_version}\n\n")
@@ -646,8 +646,8 @@ def update_hg(path):
         f.write("Updating the repository\n\n")
         books = repo.bookmarks()[0]
         books = [b[0].decode("utf8") for b in books]
-        if "master" in books:
-            repo.update("master", check=True)
+        if "main" in books:
+            repo.update("main", check=True)
         else:
             repo.update("yt", check=True)
         f.write(f"Updated from {ident} to {repo.identify()}\n\n")

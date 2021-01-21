@@ -22,7 +22,7 @@ To install yt with Embree support, you can install yt from source using the
 
 .. code-block:: bash
 
-  wget https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
+  wget https://raw.githubusercontent.com/yt-project/yt/main/doc/install_script.sh
 
 and then run like so:
 
