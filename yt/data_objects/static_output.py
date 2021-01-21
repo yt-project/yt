@@ -260,7 +260,9 @@ class Dataset(abc.ABC):
         issue_deprecation_warning(
             "Dataset.periodicity should not be overriden manually. "
             "In the future, this will become an error. "
-            "Use `Dataset.force_periodicity` instead."
+            "Use `Dataset.force_periodicity` instead.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         err_msg = f"Expected a 3-element boolean tuple, received `{val}`."
         if not is_sequence(val):
