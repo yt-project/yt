@@ -347,11 +347,14 @@ class GAMERDataset(Dataset):
         # make aliases to some frequently used variables
         if parameters["Model"] == "Hydro":
             self.gamma = parameters["Gamma"]
+            self.eos = parameters["EoS"]
             # default to 0.6 for old data format
             self.mu = parameters.get("MolecularWeight", 0.6)
             self.mhd = parameters.get("Magnetohydrodynamics", 0)
+            self.srhd = parameters.get("SRHydrodynamics", 0)
         else:
             self.mhd = 0
+            self.srhd = 0
 
         # old data format (version < 2210) did not contain any information of code units
         self.parameters.setdefault("Opt__Unit", 0)
