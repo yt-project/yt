@@ -1,5 +1,5 @@
 from yt.fields.field_info_container import FieldInfoContainer
-from yt.utilities.physical_constants import kb, mh, clight
+import numpy as np
 
 b_units = "code_magnetic"
 pre_units = "code_mass / (code_length*code_time**2)"
@@ -49,20 +49,14 @@ class GAMERFieldInfo(FieldInfoContainer):
 
     # add primitive and other derived variables
     def setup_fluid_fields(self):
+        pc = self.ds.units.physical_constants
         from yt.fields.magnetic_field import setup_magnetic_field_aliases
 
         unit_system = self.ds.unit_system
 
-<<<<<<< HEAD
-        # velocity
-        def velocity_xyz(v):
-            def _velocity(field, data):
-                return data["gas", f"momentum_density_{v}"] / data["gas", "density"]
-=======
         if self.ds.special_relativity:
->>>>>>> First stab at some relativistic fields
 
-            c2 = clight*clight
+            c2 = pc.clight*pc.clight
 
             if self.ds.tm_eos:
 
@@ -74,15 +68,15 @@ class GAMERFieldInfo(FieldInfoContainer):
 
                 # adiabatic (effective) gamma
                 def _gamma(field, data):
-                    y = data["gas","specific_enthalpy"]/(clight*clight)-1.0
-                    x = data["gamer","Temp"]
+                    y = data["gas", "specific_enthalpy"]/c2-1.0
+                    x = data["gamer", "Temp"]
                     return y/(y-x)
 
             else:
 
                 # adiabatic gamma
                 def _gamma(field, data):
-                    return self.ds.gamma.data["gas","ones"]
+                    return self.ds.gamma*data["gas", "ones"]
 
                 # specific enthalpy
                 def _specific_enthalpy(field, data):
@@ -98,26 +92,6 @@ class GAMERFieldInfo(FieldInfoContainer):
                 units=unit_system["specific_energy"],
             )
 
-<<<<<<< HEAD
-        # ============================================================================
-        # note that yt internal fields assume
-        #    [specific_thermal_energy]          = [energy per mass]
-        #    [kinetic_energy_density]           = [energy per volume]
-        #    [magnetic_energy_density]          = [energy per volume]
-        # and we further adopt
-        #    [specific_total_energy]            = [energy per mass]
-        #    [total_energy_density]             = [energy per volume]
-        # ============================================================================
-
-        # kinetic energy per volume
-        def ek(data):
-            return (
-                0.5
-                * (
-                    data["gamer", "MomX"] ** 2
-                    + data["gamer", "MomY"] ** 2
-                    + data["gamer", "MomZ"] ** 2
-=======
             self.add_field(
                 ("gas", "gamma"),
                 sampling_type="cell",
@@ -125,21 +99,20 @@ class GAMERFieldInfo(FieldInfoContainer):
                 units=""
             )
 
-            def four_velocity_xyz(v):
+            # 4-velocity spatial components
+            def four_velocity_xyz(u):
                 def _four_velocity(field, data):
-                    u = data["gas", f"momentum_{v}"]*2
-                    u /= data["gamer", "Dens"]*(c2+data["gas", "specific_enthalpy"])
-                    return u
+                    ui = data["gas", f"momentum_{u}"]*2
+                    ui /= data["gamer", "Dens"]*(c2+data["gas", "specific_enthalpy"])
+                    return ui
                 return _four_velocity
 
-            # 4-velocity spatial components
             for u in "xyz":
                 self.add_field(
                     ("gas", f"four_velocity_{u}"),
                     sampling_type="cell",
                     function=four_velocity_xyz(u),
                     units=unit_system["velocity"],
->>>>>>> First stab at some relativistic fields
                 )
 
             # lorentz factor
@@ -153,49 +126,6 @@ class GAMERFieldInfo(FieldInfoContainer):
                 ("gas", "lorentz_factor"),
                 sampling_type="cell",
                 function=_lorentz_factor,
-                units=""
-            )
-
-<<<<<<< HEAD
-        # thermal energy per volume
-        def et(data):
-            Et = data["gamer", "Engy"] - ek(data)
-            if self.ds.mhd:
-                # magnetic_energy is a yt internal field
-                Et -= data["gas", "magnetic_energy_density"]
-            return Et
-
-        # thermal energy per mass (i.e., specific)
-        def _specific_thermal_energy(field, data):
-            return et(data) / data["gamer", "Dens"]
-
-        self.add_field(
-            ("gas", "specific_thermal_energy"),
-            sampling_type="cell",
-            function=_specific_thermal_energy,
-            units=unit_system["specific_energy"],
-        )
-
-        # total energy per mass
-        def _specific_total_energy(field, data):
-            return data["gamer", "Engy"] / data["gamer", "Dens"]
-
-        self.add_field(
-            ("gas", "specific_total_energy"),
-            sampling_type="cell",
-            function=_specific_total_energy,
-            units=unit_system["specific_energy"],
-        )
-=======
-            # 4-velocity t-component
-
-            def _four_velocity_t(field, data):
-                return data["gas", "lorentz_factor"]*clight
-
-            self.add_field(
-                ("gas", "four_velocity_t"),
-                sampling_type="cell",
-                function=_four_velocity_t,
                 units=""
             )
 
@@ -240,7 +170,7 @@ class GAMERFieldInfo(FieldInfoContainer):
             # velocity
             def velocity_xyz(v):
                 def _velocity(field, data):
-                    return data["gas", f"momentum_{v}"] / data["gas", "density"]
+                    return data["gas", f"momentum_density_{v}"] / data["gas", "density"]
                 return _velocity
 
             for v in "xyz":
@@ -253,12 +183,12 @@ class GAMERFieldInfo(FieldInfoContainer):
 
             # ============================================================================
             # note that yt internal fields assume
-            #    [thermal_energy]          = [energy per mass]
-            #    [kinetic_energy]          = [energy per volume]
-            #    [magnetic_energy]         = [energy per volume]
+            #    [specific_thermal_energy]          = [energy per mass]
+            #    [kinetic_energy_density]          = [energy per volume]
+            #    [magnetic_energy_density]         = [energy per volume]
             # and we further adopt
-            #    [total_energy]            = [energy per mass]
-            #    [total_energy_per_volume] = [energy per volume]
+            #    [specific_total_energy]            = [energy per mass]
+            #    [total_energy_density] = [energy per volume]
             # ============================================================================
 
             # kinetic energy per volume
@@ -278,31 +208,30 @@ class GAMERFieldInfo(FieldInfoContainer):
                 Et = data["gamer", "Engy"] - ek(data)
                 if self.ds.mhd:
                     # magnetic_energy is a yt internal field
-                    Et -= data["gas", "magnetic_energy"]
+                    Et -= data["gas", "magnetic_energy_density"]
                 return Et
 
             # thermal energy per mass (i.e., specific)
-            def _thermal_energy(field, data):
+            def _specific_thermal_energy(field, data):
                 return et(data) / data["gamer", "Dens"]
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
-                function=_thermal_energy,
+                function=_specific_thermal_energy,
                 units=unit_system["specific_energy"],
             )
 
             # total energy per mass
-            def _total_energy(field, data):
+            def _specific_total_energy(field, data):
                 return data["gamer", "Engy"] / data["gamer", "Dens"]
 
             self.add_field(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 sampling_type="cell",
-                function=_total_energy,
+                function=_specific_total_energy,
                 units=unit_system["specific_energy"],
             )
->>>>>>> First stab at some relativistic fields
 
             # pressure
             def _pressure(field, data):
@@ -333,8 +262,8 @@ class GAMERFieldInfo(FieldInfoContainer):
             return (
                 data.ds.mu
                 * data["gas", "pressure"]
-                * mh
-                / (data["gas", "density"] * kb)
+                * pc.mh
+                / (data["gas", "density"] * pc.kb)
             )
 
         self.add_field(
