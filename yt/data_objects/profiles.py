@@ -582,12 +582,10 @@ class Profile1D(ProfileND):
         >>> df1 = p.to_dataframe()
         >>> df2 = p.to_dataframe(fields="density", only_used=True)
         """
-        from collections import OrderedDict
-
         import pandas as pd
 
         idxs, masked, fields = self._export_prep(fields, only_used)
-        pdata = OrderedDict([(self.x_field[-1], self.x[idxs])])
+        pdata = {self.x_field[-1]: self.x[idxs]}
         for field in fields:
             pdata[field[-1]] = self[field][idxs]
         df = pd.DataFrame(pdata)

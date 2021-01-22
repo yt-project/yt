@@ -1,5 +1,3 @@
-from collections import OrderedDict
-
 import numpy as np
 
 from yt.config import ytcfg
@@ -69,7 +67,6 @@ class ParticleTrajectories:
 
         if fields is None:
             fields = []
-        fields = list(OrderedDict.fromkeys(fields))
 
         if self.suppress_logging:
             old_level = int(ytcfg.get("yt", "log_level"))
