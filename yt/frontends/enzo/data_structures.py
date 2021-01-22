@@ -15,7 +15,7 @@ from yt.frontends.enzo.misc import cosmology_get_units
 from yt.funcs import get_pbar, iter_fields, setdefaultattr
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
 
 from .fields import EnzoFieldInfo
@@ -196,22 +196,22 @@ class EnzoHierarchy(GridIndex):
             test_grid = os.path.join(self.directory, test_grid)
         if not os.path.exists(test_grid):
             test_grid = os.path.join(self.directory, os.path.basename(test_grid))
-            mylog.debug("Your data uses the annoying hardcoded path.")
+            ytLogger.debug("Your data uses the annoying hardcoded path.")
             self._strip_path = True
         if self.dataset_type is not None:
             return
         if rank == 3:
-            mylog.debug("Detected packed HDF5")
+            ytLogger.debug("Detected packed HDF5")
             if self.parameters.get("WriteGhostZones", 0) == 1:
                 self.dataset_type = "enzo_packed_3d_gz"
                 self.grid = EnzoGridGZ
             else:
                 self.dataset_type = "enzo_packed_3d"
         elif rank == 2:
-            mylog.debug("Detect packed 2D")
+            ytLogger.debug("Detect packed 2D")
             self.dataset_type = "enzo_packed_2d"
         elif rank == 1:
-            mylog.debug("Detect packed 1D")
+            ytLogger.debug("Detect packed 1D")
             self.dataset_type = "enzo_packed_1d"
         else:
             raise NotImplementedError
@@ -332,7 +332,7 @@ class EnzoHierarchy(GridIndex):
         self.grid_levels[sgi] = second_grid.Level
 
     def _rebuild_top_grids(self, level=0):
-        mylog.info("Rebuilding grids on level %s", level)
+        ytLogger.info("Rebuilding grids on level %s", level)
         cmask = self.grid_levels.flat == (level + 1)
         cmsum = cmask.sum()
         mask = np.zeros(self.num_grids, dtype="bool")
@@ -344,11 +344,11 @@ class EnzoHierarchy(GridIndex):
             mask[grid_i] = 1
             grid._children_ids = []
             cgrids = self.grids[(mask * cmask).astype("bool")]
-            mylog.info("%s: %s / %s", grid, len(cgrids), cmsum)
+            ytLogger.info("%s: %s / %s", grid, len(cgrids), cmsum)
             for cgrid in cgrids:
                 grid._children_ids.append(cgrid.id)
                 cgrid._parent_id = grid.id
-        mylog.info("Finished rebuilding")
+        ytLogger.info("Finished rebuilding")
 
     def _populate_grid_objects(self):
         for g, f in zip(self.grids, self.filenames):
@@ -405,7 +405,7 @@ class EnzoHierarchy(GridIndex):
         self.field_list = []
         # Do this only on the root processor to save disk work.
         if self.comm.rank in (0, None):
-            mylog.info("Gathering a field list (this may take a moment.)")
+            ytLogger.info("Gathering a field list (this may take a moment.)")
             field_list = set()
             random_sample = self._generate_random_grids()
             for grid in random_sample:
@@ -415,7 +415,7 @@ class EnzoHierarchy(GridIndex):
                     gf = self.io._read_field_names(grid)
                 except self.io._read_exception as e:
                     raise OSError("Grid %s is a bit funky?", grid.id) from e
-                mylog.debug("Grid %s has: %s", grid.id, gf)
+                ytLogger.debug("Grid %s has: %s", grid.id, gf)
                 field_list = field_list.union(gf)
             if "AppendActiveParticleType" in self.dataset.parameters:
                 ap_fields = self._detect_active_particle_fields()
@@ -454,8 +454,8 @@ class EnzoHierarchy(GridIndex):
                 first_grid = np.where(gwp)[0][0]
                 random_sample.resize((21,))
                 random_sample[-1] = first_grid
-                mylog.debug("Added additional grid %s", first_grid)
-            mylog.debug("Checking grids: %s", random_sample.tolist())
+                ytLogger.debug("Added additional grid %s", first_grid)
+            ytLogger.debug("Checking grids: %s", random_sample.tolist())
         else:
             random_sample = np.mgrid[0 : max(len(self.grids), 1)].astype("int32")
         return self.grids[(random_sample,)]
@@ -479,7 +479,7 @@ class EnzoHierarchy(GridIndex):
         """
         # Not sure whether this routine should be in the general HierarchyType.
         if self.grid_particle_count.sum() == 0:
-            mylog.info("Data contains no particles.")
+            ytLogger.info("Data contains no particles.")
             return None
         if additional_fields is None:
             additional_fields = [
@@ -560,10 +560,10 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
 
     def _parse_index(self):
         self._copy_index_structure()
-        mylog.debug("Copying reverse tree")
+        ytLogger.debug("Copying reverse tree")
         reverse_tree = self.enzo.hierarchy_information["GridParentIDs"].ravel().tolist()
         # Initial setup:
-        mylog.debug("Reconstructing parent-child relationships")
+        ytLogger.debug("Reconstructing parent-child relationships")
         grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
         self.filenames = ["-1"] * self.num_grids
@@ -574,17 +574,17 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
                 grids[-1]._parent_id = pid
                 grids[pid - 1]._children_ids.append(grids[-1].id)
         self.max_level = self.grid_levels.max()
-        mylog.debug("Preparing grids")
+        ytLogger.debug("Preparing grids")
         self.grids = np.empty(len(grids), dtype="object")
         for i, grid in enumerate(grids):
             if (i % 1e4) == 0:
-                mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
+                ytLogger.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = "Inline_processor_%07i" % (self.grid_procs[i, 0])
             grid._prepare_grid()
             grid._setup_dx()
             grid.proc_num = self.grid_procs[i, 0]
             self.grids[i] = grid
-        mylog.debug("Prepared")
+        ytLogger.debug("Prepared")
 
     def _initialize_grid_arrays(self):
         EnzoHierarchy._initialize_grid_arrays(self)
@@ -615,7 +615,7 @@ class EnzoHierarchyInMemory(EnzoHierarchy):
         if len(my_grids) > 40:
             starter = np.random.randint(0, 20)
             random_sample = np.mgrid[starter : len(my_grids) - 1 : 20j].astype("int32")
-            mylog.debug("Checking grids: %s", random_sample.tolist())
+            ytLogger.debug("Checking grids: %s", random_sample.tolist())
         else:
             random_sample = np.mgrid[0 : max(len(my_grids) - 1, 1)].astype("int32")
         return my_grids[(random_sample,)]
@@ -736,7 +736,7 @@ class EnzoDataset(Dataset):
             try:
                 param, vals = map(string.strip, map(string.rstrip, line.split("=")))
             except ValueError:
-                mylog.error("ValueError: '%s'", line)
+                ytLogger.error("ValueError: '%s'", line)
             if parameter == param:
                 if type is None:
                     t = vals.split()
@@ -956,8 +956,8 @@ class EnzoDataset(Dataset):
                 mass_unit = units["Density"] * length_unit ** 3
                 time_unit = units["Time"]
             else:
-                mylog.warning("Setting 1.0 in code units to be 1.0 cm")
-                mylog.warning("Setting 1.0 in code units to be 1.0 s")
+                ytLogger.warning("Setting 1.0 in code units to be 1.0 cm")
+                ytLogger.warning("Setting 1.0 in code units to be 1.0 s")
                 length_unit = mass_unit = time_unit = 1.0
 
             setdefaultattr(self, "length_unit", self.quan(length_unit, "cm"))

@@ -2,7 +2,7 @@ import operator
 
 import numpy as np
 
-from yt.funcs import is_sequence, mylog
+from yt.funcs import is_sequence, ytLogger
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.amr_kdtree.amr_kdtools import (
     receive_and_reduce,
@@ -137,7 +137,7 @@ class Tree:
 
         # Calculate the Volume
         vol = self.trunk.kd_sum_volume()
-        mylog.debug("AMRKDTree volume = %e", vol)
+        ytLogger.debug("AMRKDTree volume = %e", vol)
         self.trunk.kd_node_check()
 
     def sum_cells(self, all_cells=False):
@@ -196,7 +196,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             data_source = self.ds.all_data()
         self.data_source = data_source
 
-        mylog.debug("Building AMRKDTree")
+        ytLogger.debug("Building AMRKDTree")
         self.tree = Tree(
             ds,
             self.comm.rank,
@@ -632,7 +632,7 @@ class AMRKDTree(ParallelAnalysisInterface):
             if splitdims[i] != -1:
                 n.create_split(splitdims[i], splitposs[i])
 
-        mylog.info(
+        ytLogger.info(
             "AMRKDTree rebuilt, Final Volume: %e", self.tree.trunk.kd_sum_volume()
         )
         return self.tree.trunk

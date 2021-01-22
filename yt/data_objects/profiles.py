@@ -3,7 +3,7 @@ import numpy as np
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.derived_field import DerivedField
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
+from yt.funcs import get_output_filename, is_sequence, iter_fields, ytLogger
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTQuantity, array_like_field
 from yt.utilities.exceptions import (
@@ -880,7 +880,7 @@ class ParticleProfile(Profile2D):
         if deposition not in ["ngp", "cic"]:
             raise NotImplementedError(deposition)
         elif (x_log or y_log) and deposition != "ngp":
-            mylog.warning(
+            ytLogger.warning(
                 "cic deposition is only supported for linear axis "
                 "scales, falling back to ngp deposition"
             )

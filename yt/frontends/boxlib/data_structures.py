@@ -9,7 +9,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import mylog, setdefaultattr
+from yt.funcs import setdefaultattr, ytLogger
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.io_handler import io_registry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -499,25 +499,25 @@ class BoxlibHierarchy(GridIndex):
                 "Perhaps the file is corrupt?"
             )
 
-        mylog.debug("FAB header suggests dtype of %s", dtype)
+        ytLogger.debug("FAB header suggests dtype of %s", dtype)
         self._dtype = np.dtype(dtype)
 
     def _populate_grid_objects(self):
-        mylog.debug("Creating grid objects")
+        ytLogger.debug("Creating grid objects")
         self.grids = np.array(self.grids, dtype="object")
         self._reconstruct_parent_child()
         for i, grid in enumerate(self.grids):
             if (i % 1e4) == 0:
-                mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
+                ytLogger.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid._prepare_grid()
             grid._setup_dx()
-        mylog.debug("Done creating grid objects")
+        ytLogger.debug("Done creating grid objects")
 
     def _reconstruct_parent_child(self):
         if self.max_level == 0:
             return
         mask = np.empty(len(self.grids), dtype="int32")
-        mylog.debug("First pass; identifying child grids")
+        ytLogger.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
             get_box_grids_level(
                 self.grid_left_edge[i, :],
@@ -530,7 +530,7 @@ class BoxlibHierarchy(GridIndex):
             )
             ids = np.where(mask.astype("bool"))  # where is a tuple
             grid._children_ids = ids[0] + grid._id_offset
-        mylog.debug("Second pass; identifying parents")
+        ytLogger.debug("Second pass; identifying parents")
         for i, grid in enumerate(self.grids):  # Second pass
             for child in grid.Children:
                 child._parent_id.append(i + grid._id_offset)
@@ -922,10 +922,10 @@ class BoxlibDataset(Dataset):
             "domain_right_edge",
         ]:
             if not hasattr(self, a):
-                mylog.error("Missing %s in parameter file definition!", a)
+                ytLogger.error("Missing %s in parameter file definition!", a)
                 continue
             v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
+            ytLogger.info("Parameters: %-25s = %s", a, v)
 
     def relative_refinement(self, l0, l1):
         offset = self.level_offsets[l1] - self.level_offsets[l0]

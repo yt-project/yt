@@ -6,7 +6,7 @@ from datetime import datetime as dt
 from functools import wraps
 
 from yt.config import ytcfg
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 
 
 class PerformanceCounters:
@@ -50,7 +50,7 @@ class PerformanceCounters:
         return func_wrapper
 
     def print_stats(self):
-        mylog.info("Current counter status:\n")
+        ytLogger.info("Current counter status:\n")
         times = []
         for i in self.counters:
             insort(times, [self.starttime[i], i, 1])  # 1 for 'on'
@@ -87,7 +87,7 @@ class PerformanceCounters:
                     i,
                     self.counters[i],
                 )
-        mylog.info("\n%s", line)
+        ytLogger.info("\n%s", line)
 
     def exit(self):
         if self._on:
@@ -132,5 +132,5 @@ class ProfilingController:
             pfn = f"{filename_prefix}"
         for n, p in sorted(self.profilers.items()):
             fn = f"{pfn}_{n}.cprof"
-            mylog.info("Dumping %s into %s", n, fn)
+            ytLogger.info("Dumping %s into %s", n, fn)
             p.dump_stats(fn)

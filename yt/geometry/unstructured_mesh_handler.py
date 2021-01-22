@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.lib.mesh_utilities import smallest_fwidth
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 class UnstructuredIndex(Index):
@@ -22,7 +22,7 @@ class UnstructuredIndex(Index):
         super().__init__(ds, dataset_type)
 
     def _setup_geometry(self):
-        mylog.debug("Initializing Unstructured Mesh Geometry Handler.")
+        ytLogger.debug("Initializing Unstructured Mesh Geometry Handler.")
         self._initialize_mesh()
 
     def get_smallest_dx(self):

@@ -6,7 +6,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTQuantity
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 from .plot_window import PlotWindow
 from .profile_plotter import PhasePlot, ProfilePlot
@@ -605,7 +605,7 @@ class DualEPS:
         if isinstance(plot, (PlotWindow, PhasePlot)):
             if field is None:
                 self.field = list(plot.plots.keys())[0]
-                mylog.warning(
+                ytLogger.warning(
                     "No field specified.  Choosing first field (%s)", self.field
                 )
             else:
@@ -1272,7 +1272,7 @@ def multiplot(
     if yt_plots is None and images is None:
         raise RuntimeError("Must supply either yt_plots or image filenames.")
     if yt_plots is not None and images is not None:
-        mylog.warning("Given both images and yt plots.  Ignoring images.")
+        ytLogger.warning("Given both images and yt plots.  Ignoring images.")
     if yt_plots is not None:
         _yt = True
     else:
@@ -1441,7 +1441,7 @@ def multiplot(
                     ypos = bbox[3]
                     xpos = xpos0
                 else:
-                    mylog.warning(
+                    ytLogger.warning(
                         "Unknown colorbar location %s. No colorbar displayed.",
                         orientation,
                     )

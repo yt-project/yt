@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.frontends.gadget.api import GadgetHDF5Dataset
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import ArepoFieldInfo
@@ -68,7 +68,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
             if unit in handle["/Header"].attrs:
                 uvals[unit] = handle["/Header"].attrs[unit]
             else:
-                mylog.warning("Arepo header is missing %s!", unit)
+                ytLogger.warning("Arepo header is missing %s!", unit)
                 missing = True
         handle.close()
         if missing:

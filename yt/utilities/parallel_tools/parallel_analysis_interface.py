@@ -17,7 +17,7 @@ from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
 from yt.utilities.lib.quad_tree import QuadTree, merge_quadtrees
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 # We default to *no* parallelism unless it gets turned on, in which case this
 # will be changed.
@@ -61,10 +61,10 @@ def traceback_writer_hook(file_suffix=""):
 
 def default_mpi_excepthook(exception_type, exception_value, tb):
     traceback.print_tb(tb)
-    mylog.error("%s: %s", exception_type.__name__, exception_value)
+    ytLogger.error("%s: %s", exception_type.__name__, exception_value)
     comm = yt.communication_system.communicators[-1]
     if comm.size > 1:
-        mylog.error("Error occured on rank %d.", comm.rank)
+        ytLogger.error("Error occured on rank %d.", comm.rank)
     MPI.COMM_WORLD.Abort(1)
 
 
@@ -88,7 +88,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     try:
         from mpi4py import MPI as _MPI
     except ImportError:
-        mylog.info("mpi4py was not found. Disabling parallel computation")
+        ytLogger.info("mpi4py was not found. Disabling parallel computation")
         parallel_capable = False
         return
     MPI = _MPI
@@ -101,7 +101,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     parallel_capable = communicator.size > 1
     if not parallel_capable:
         return False
-    mylog.info(
+    ytLogger.info(
         "Global parallel computation enabled: %s / %s",
         communicator.rank,
         communicator.size,
@@ -147,7 +147,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     # Turn off logging on all but the root rank, if specified.
     if suppress_logging:
         if communicator.rank > 0:
-            mylog.addFilter(FilterAllMessages())
+            ytLogger.addFilter(FilterAllMessages())
     return True
 
 
@@ -308,11 +308,11 @@ def parallel_blocking_call(func):
     def barrierize(*args, **kwargs):
         if not parallel_capable:
             return func(*args, **kwargs)
-        mylog.debug("Entering barrier before %s", func.__name__)
+        ytLogger.debug("Entering barrier before %s", func.__name__)
         comm = _get_comm(args)
         comm.barrier()
         retval = func(*args, **kwargs)
-        mylog.debug("Entering barrier after %s", func.__name__)
+        ytLogger.debug("Entering barrier after %s", func.__name__)
         comm.barrier()
         return retval
 
@@ -374,7 +374,7 @@ class ProcessorPool:
         if size is None:
             size = len(self.available_ranks)
         if len(self.available_ranks) < size:
-            mylog.error(
+            ytLogger.error(
                 "Not enough resources available, asked for %d have %d",
                 size,
                 self.available_ranks,
@@ -510,7 +510,7 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     if njobs <= 0:
         njobs = my_size
     if njobs > my_size:
-        mylog.error(
+        ytLogger.error(
             "You have asked for %s jobs, but you only have %s processors.",
             njobs,
             my_size,
@@ -723,7 +723,7 @@ class Communicator:
     def barrier(self):
         if not self._distributed:
             return
-        mylog.debug("Opening MPI Barrier on %s", self.comm.rank)
+        ytLogger.debug("Opening MPI Barrier on %s", self.comm.rank)
         self.comm.Barrier()
 
     def mpi_exit_test(self, data=False):
@@ -780,7 +780,7 @@ class Communicator:
                 ncols = -1
                 size = 0
                 dtype = "float64"
-                mylog.warning(
+                ytLogger.warning(
                     "Array passed to par_combine_object was None. "
                     "Setting dtype to float64. This may break things!"
                 )
@@ -956,7 +956,7 @@ class Communicator:
                 data[i] = self.comm.recv(source=i, tag=0)
         else:
             self.comm.send(info, dest=0, tag=0)
-        mylog.debug("Opening MPI Broadcast on %s", self.comm.rank)
+        ytLogger.debug("Opening MPI Broadcast on %s", self.comm.rank)
         data = self.comm.bcast(data, root=0)
         return self.comm.rank, data
 
@@ -1140,7 +1140,7 @@ class Communicator:
             try:
                 callback(st)
             except StopIteration:
-                mylog.debug("Probe loop ending.")
+                ytLogger.debug("Probe loop ending.")
                 break
 
 
@@ -1214,7 +1214,7 @@ class ParallelAnalysisInterface:
         RE[xax] = x[1] * (DRE[xax] - DLE[xax]) + DLE[xax]
         LE[yax] = y[0] * (DRE[yax] - DLE[yax]) + DLE[yax]
         RE[yax] = y[1] * (DRE[yax] - DLE[yax]) + DLE[yax]
-        mylog.debug("Dimensions: %s %s", LE, RE)
+        ytLogger.debug("Dimensions: %s %s", LE, RE)
 
         reg = self.ds.region(self.center, LE, RE)
         return True, reg

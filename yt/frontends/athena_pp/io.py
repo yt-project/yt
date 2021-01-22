@@ -3,7 +3,7 @@ from itertools import groupby
 import numpy as np
 
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
@@ -42,7 +42,7 @@ class IOHandlerAthenaPP(BaseIOHandler):
             # Always use *native* 64-bit float.
             rv[field] = np.empty(size, dtype="=f8")
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s blocks",
             size,
             [f2 for f1, f2 in fields],

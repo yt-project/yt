@@ -6,7 +6,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import mylog, setdefaultattr
+from yt.funcs import setdefaultattr, ytLogger
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
 from yt.utilities.lib.misc_utilities import get_box_grids_level
@@ -215,7 +215,7 @@ class ChomboHierarchy(GridIndex):
 
     def _reconstruct_parent_child(self):
         mask = np.empty(len(self.grids), dtype="int32")
-        mylog.debug("First pass; identifying child grids")
+        ytLogger.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
             get_box_grids_level(
                 self.grid_left_edge[i, :],
@@ -228,7 +228,7 @@ class ChomboHierarchy(GridIndex):
             )
             ids = np.where(mask.astype("bool"))  # where is a tuple
             grid._children_ids = ids[0] + grid._id_offset
-        mylog.debug("Second pass; identifying parents")
+        ytLogger.debug("Second pass; identifying parents")
         for i, grid in enumerate(self.grids):  # Second pass
             for child in grid.Children:
                 child._parent_id.append(i + grid._id_offset)
@@ -271,11 +271,11 @@ class ChomboDataset(Dataset):
 
     def _set_code_unit_attributes(self):
         if not hasattr(self, "length_unit"):
-            mylog.warning("Setting code length unit to be 1.0 cm")
+            ytLogger.warning("Setting code length unit to be 1.0 cm")
         if not hasattr(self, "mass_unit"):
-            mylog.warning("Setting code mass unit to be 1.0 g")
+            ytLogger.warning("Setting code mass unit to be 1.0 g")
         if not hasattr(self, "time_unit"):
-            mylog.warning("Setting code time unit to be 1.0 s")
+            ytLogger.warning("Setting code time unit to be 1.0 s")
         setdefaultattr(self, "length_unit", self.quan(1.0, "cm"))
         setdefaultattr(self, "mass_unit", self.quan(1.0, "g"))
         setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
@@ -395,10 +395,10 @@ class ChomboDataset(Dataset):
             "domain_right_edge",
         ]:
             if not hasattr(self, a):
-                mylog.error("Missing %s in parameter file definition!", a)
+                ytLogger.error("Missing %s in parameter file definition!", a)
                 continue
             v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
+            ytLogger.info("Parameters: %-25s = %s", a, v)
 
 
 class PlutoHierarchy(ChomboHierarchy):
@@ -707,7 +707,7 @@ class Orion2Dataset(ChomboDataset):
                     except ValueError:
                         self.parameters[param] = vals
             except ValueError:
-                mylog.error("ValueError: '%s'", line)
+                ytLogger.error("ValueError: '%s'", line)
             if param == "GAMMA":
                 self.gamma = np.float64(vals)
 

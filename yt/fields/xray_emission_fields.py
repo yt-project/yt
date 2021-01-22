@@ -4,7 +4,7 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.fields.derived_field import DerivedField
-from yt.funcs import mylog, only_on_root, parse_h5_attr
+from yt.funcs import only_on_root, parse_h5_attr, ytLogger
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.exceptions import YTException, YTFieldNotFound
@@ -30,7 +30,7 @@ def _get_data_file(table_type, data_dir=None):
             data_file,
             data_url,
         )
-        mylog.error(msg)
+        ytLogger.error(msg)
         raise OSError(msg)
     return data_path
 
@@ -83,15 +83,15 @@ class XrayEmissivityIntegrator:
     def __init__(self, table_type, redshift=0.0, data_dir=None, use_metals=True):
 
         filename = _get_data_file(table_type, data_dir=data_dir)
-        only_on_root(mylog.info, "Loading emissivity data from %s", filename)
+        only_on_root(ytLogger.info, "Loading emissivity data from %s", filename)
         in_file = h5py.File(filename, mode="r")
         if "info" in in_file.attrs:
-            only_on_root(mylog.info, parse_h5_attr(in_file, "info"))
+            only_on_root(ytLogger.info, parse_h5_attr(in_file, "info"))
         if parse_h5_attr(in_file, "version") != data_version[table_type]:
             raise ObsoleteDataException(table_type)
         else:
             only_on_root(
-                mylog.info,
+                ytLogger.info,
                 "X-ray '%s' emissivity data version: %s."
                 % (table_type, parse_h5_attr(in_file, "version")),
             )
@@ -375,6 +375,6 @@ def add_xray_emissivity_field(
         fields += [ei_name, i_name]
 
     for field in fields:
-        mylog.info("Adding ('%s','%s') field.", field[0], field[1])
+        ytLogger.info("Adding ('%s','%s') field.", field[0], field[1])
 
     return fields

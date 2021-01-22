@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset, ParticleFile, validate_index_order
-from yt.funcs import mylog, setdefaultattr
+from yt.funcs import setdefaultattr, ytLogger
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
@@ -190,7 +190,7 @@ class FLASHDataset(Dataset):
                     filename.replace("plt_cnt", "part")
                 )
                 self.particle_filename = filename.replace("plt_cnt", "part")
-                mylog.info(
+                ytLogger.info(
                     "Particle file found: %s", self.particle_filename.split("/")[-1]
                 )
             except OSError:
@@ -205,7 +205,7 @@ class FLASHDataset(Dataset):
             plot_time = self._handle.handle.get("real scalars")[0][1]
             if not np.isclose(part_time, plot_time):
                 self._particle_handle = self._handle
-                mylog.warning(
+                ytLogger.warning(
                     "%s and %s are not at the same time. "
                     "This particle file will not be used.",
                     self.particle_filename,
@@ -312,7 +312,7 @@ class FLASHDataset(Dataset):
                     else:
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
-                        mylog.info(
+                        ytLogger.info(
                             "%s %s overwrites a simulation scalar of the same name",
                             hn[:-1],
                             vn,
@@ -342,7 +342,7 @@ class FLASHDataset(Dataset):
                     else:
                         pval = val
                     if vn in self.parameters and self.parameters[vn] != pval:
-                        mylog.info(
+                        ytLogger.info(
                             "%s %s overwrites a simulation scalar of the same name",
                             hn[:-1],
                             vn,
@@ -371,7 +371,7 @@ class FLASHDataset(Dataset):
             if nyb == 1:
                 dimensionality = 1
             if dimensionality < 3:
-                mylog.warning("Guessing dimensionality as %s", dimensionality)
+                ytLogger.warning("Guessing dimensionality as %s", dimensionality)
 
         self.dimensionality = dimensionality
 
@@ -398,23 +398,23 @@ class FLASHDataset(Dataset):
         if self.dimensionality < 3:
             for d in [dimensionality] + list(range(3 - dimensionality)):
                 if dle[d] == dre[d]:
-                    mylog.warning(
+                    ytLogger.warning(
                         "Identical domain left edge and right edges "
                         "along dummy dimension (%i), attempting to read anyway",
                         d,
                     )
                     dre[d] = dle[d] + 1.0
         if self.dimensionality < 3 and self.geometry == "cylindrical":
-            mylog.warning("Extending theta dimension to 2PI + left edge.")
+            ytLogger.warning("Extending theta dimension to 2PI + left edge.")
             dre[2] = dle[2] + 2 * np.pi
         elif self.dimensionality < 3 and self.geometry == "polar":
-            mylog.warning("Extending theta dimension to 2PI + left edge.")
+            ytLogger.warning("Extending theta dimension to 2PI + left edge.")
             dre[1] = dle[1] + 2 * np.pi
         elif self.dimensionality < 3 and self.geometry == "spherical":
-            mylog.warning("Extending phi dimension to 2PI + left edge.")
+            ytLogger.warning("Extending phi dimension to 2PI + left edge.")
             dre[2] = dle[2] + 2 * np.pi
         if self.dimensionality == 1 and self.geometry == "spherical":
-            mylog.warning("Extending theta dimension to PI + left edge.")
+            ytLogger.warning("Extending theta dimension to PI + left edge.")
             dre[1] = dle[1] + np.pi
         self.domain_left_edge = dle
         self.domain_right_edge = dre
@@ -424,7 +424,7 @@ class FLASHDataset(Dataset):
         try:
             self.gamma = self.parameters["gamma"]
         except Exception:
-            mylog.info("Cannot find Gamma")
+            ytLogger.info("Cannot find Gamma")
             pass
 
         # Get the simulation time

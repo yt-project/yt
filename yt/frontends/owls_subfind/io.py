@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
@@ -108,7 +108,7 @@ class IOHandlerOWLSSubfindHDF5(BaseIOHandler):
         morton = np.empty(pcount, dtype="uint64")
         if pcount == 0:
             return morton
-        mylog.debug(
+        ytLogger.debug(
             "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
         )
         ind = 0
@@ -220,7 +220,7 @@ def subfind_field_list(fh, ptype, pcount):
                     fields.append(("FOF", fname))
                 offset_fields.append(fname)
             else:
-                mylog.warning(
+                ytLogger.warning(
                     "Cannot add field (%s, %s) with size %d.",
                     ptype,
                     fh[field].name,

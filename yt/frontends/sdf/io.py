@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
@@ -89,7 +89,7 @@ class IOHandlerSDF(BaseIOHandler):
     def _count_particles(self, data_file):
         pcount = self._handle["x"].size
         if pcount > 1e9:
-            mylog.warning(
+            ytLogger.warning(
                 "About to load %i particles into memory. "
                 "You may want to consider a midx-enabled load",
                 pcount,
@@ -234,7 +234,7 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
         dre = self.ds.domain_right_edge.in_units("code_length").d
         pcount_estimate = self.ds.midx.get_nparticles_bbox(dle, dre)
         if pcount_estimate > 1e9:
-            mylog.warning(
+            ytLogger.warning(
                 "Filtering %i particles to find total. "
                 "You may want to reconsider your bounding box.",
                 pcount_estimate,

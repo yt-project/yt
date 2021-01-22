@@ -8,7 +8,7 @@ from yt.data_objects.field_data import YTFieldData
 from yt.data_objects.profiles import create_profile
 from yt.fields.field_exceptions import NeedsGridType
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, is_sequence, iter_fields, mylog
+from yt.funcs import get_output_filename, is_sequence, iter_fields, ytLogger
 from yt.units.yt_array import YTArray, YTQuantity, uconcatenate
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import (
@@ -89,7 +89,7 @@ class YTDataContainer:
         self._current_particle_type = "all"
         self._current_fluid_type = self.ds.default_fluid_type
         self.ds.objects.append(weakref.proxy(self))
-        mylog.debug("Appending object to %s (type: %s)", self.ds, type(self))
+        ytLogger.debug("Appending object to %s (type: %s)", self.ds, type(self))
         self.field_data = YTFieldData()
         if self.ds.unit_system.has_current_mks:
             mag_unit = "T"
@@ -183,7 +183,7 @@ class YTDataContainer:
             self.center = self.ds.arr(center, "code_length", dtype="float64")
 
         if self.center.ndim > 1:
-            mylog.debug("Removing singleton dimensions from 'center'.")
+            ytLogger.debug("Removing singleton dimensions from 'center'.")
             self.center = np.squeeze(self.center)
             if self.center.ndim > 1:
                 msg = (
@@ -822,7 +822,7 @@ class YTDataContainer:
                 ## load the extra fields and print them
                 for field in this_ptype_fields:
                     if field not in fields_to_include:
-                        mylog.warning(
+                        ytLogger.warning(
                             "detected (but did not request) %s %s", ptype, field
                         )
 

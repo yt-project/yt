@@ -4,7 +4,7 @@ import numpy as np
 
 from yt.geometry.selection_routines import AlwaysSelector
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 # -----------------------------------------------------------------------------
 # GAMER shares a similar HDF5 format, and thus io.py as well, with FLASH
@@ -102,7 +102,7 @@ class IOHandlerGAMER(BaseIOHandler):
             rv[field] = np.empty(size, dtype=self._field_dtype)
 
         ng = sum(len(c.objs) for c in chunks)  # c.objs is a list of grids
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s grids",
             size,
             [f2 for f1, f2 in fields],

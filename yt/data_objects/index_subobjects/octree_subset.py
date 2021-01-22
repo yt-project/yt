@@ -18,7 +18,7 @@ from yt.utilities.exceptions import (
     YTParticleDepositionNotImplemented,
 )
 from yt.utilities.lib.geometry_utils import compute_morton
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 def cell_count_cache(func):
@@ -182,7 +182,7 @@ class OctreeSubset(YTSelectionContainer):
         # We allocate number of zones, not number of octs
         op = cls(nvals, kernel_name)
         op.initialize()
-        mylog.debug(
+        ytLogger.debug(
             "Depositing %s (%s^3) particles into %s Octs",
             positions.shape[0],
             positions.shape[0] ** 0.3333333,
@@ -235,7 +235,7 @@ class OctreeSubset(YTSelectionContainer):
         # We allocate number of zones, not number of octs
         op = particle_deposit.CellIdentifier(npart, "none")
         op.initialize(npart)
-        mylog.debug(
+        ytLogger.debug(
             "Depositing %s Octs onto %s (%s^3) particles",
             nocts,
             positions.shape[0],
@@ -358,7 +358,7 @@ class OctreeSubset(YTSelectionContainer):
         nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
         op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
-        mylog.debug(
+        ytLogger.debug(
             "Smoothing %s particles into %s Octs", positions.shape[0], nvals[-1]
         )
         # Pointer operations within 'process_octree' require arrays to be
@@ -459,7 +459,7 @@ class OctreeSubset(YTSelectionContainer):
         nvals = (nz, nz, nz, (mdom_ind >= 0).sum())
         op = cls(nvals, len(fields), nneighbors, kernel_name)
         op.initialize()
-        mylog.debug(
+        ytLogger.debug(
             "Smoothing %s particles into %s Octs", positions.shape[0], nvals[-1]
         )
         op.process_particles(

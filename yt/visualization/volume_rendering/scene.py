@@ -5,7 +5,7 @@ from collections import OrderedDict
 import numpy as np
 
 from yt.config import ytcfg
-from yt.funcs import get_image_suffix, mylog
+from yt.funcs import get_image_suffix, ytLogger
 from yt.units.dimensions import length
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray, YTQuantity
@@ -219,7 +219,7 @@ class Scene:
         >>> sc.save(sigma_clip=4.0)
 
         """
-        mylog.info("Rendering scene (Can take a while).")
+        ytLogger.info("Rendering scene (Can take a while).")
         if camera is None:
             camera = self.camera
         assert camera is not None
@@ -234,15 +234,15 @@ class Scene:
         # desirable (e.g., if only changing sigma_clip or
         # saving after a call to sc.show()).
         if self._last_render is None:
-            mylog.warning("No previously rendered image found, rendering now.")
+            ytLogger.warning("No previously rendered image found, rendering now.")
             render = True
         elif render:
-            mylog.warning(
+            ytLogger.warning(
                 "Previously rendered image exists, but rendering anyway. "
                 "Supply 'render=False' to save previously rendered image directly."
             )
         else:
-            mylog.info("Found previously rendered image to save.")
+            ytLogger.info("Found previously rendered image to save.")
 
         return render
 
@@ -325,7 +325,7 @@ class Scene:
         render = self._sanitize_render(render)
         if render:
             self.render()
-        mylog.info("Saving rendered image to %s", fname)
+        ytLogger.info("Saving rendered image to %s", fname)
 
         # We can render pngs natively but for other formats we defer to
         # matplotlib.
@@ -456,7 +456,7 @@ class Scene:
         render = self._sanitize_render(render)
         if render:
             self.render()
-        mylog.info("Saving rendered image to %s", fname)
+        ytLogger.info("Saving rendered image to %s", fname)
 
         # which transfer function?
         rs = rensources[0]
@@ -494,7 +494,7 @@ class Scene:
         elif suffix in (".eps", ".ps"):
             canvas = FigureCanvasPS(self._render_figure)
         else:
-            mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+            ytLogger.warning("Unknown suffix %s, defaulting to Agg", suffix)
             canvas = self.canvas
 
         self._render_figure.canvas = canvas

@@ -10,7 +10,7 @@ from yt.funcs import only_on_root
 from yt.utilities.chemical_formulas import default_mu
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.fortran_utils import read_record
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .definitions import (
@@ -260,7 +260,7 @@ class GadgetDataset(SPHDataset):
         header_size = self._header.size
         if header_size != [256]:
             only_on_root(
-                mylog.warn,
+                ytLogger.warn,
                 "Non-standard header size is detected! "
                 "Gadget-2 standard header is 256 bytes, but yours is %s. "
                 "Make sure a non-standard header is actually expected. "
@@ -368,7 +368,7 @@ class GadgetDataset(SPHDataset):
             # Probably not a cosmological dataset, we should just set
             # z = 0 and let the user know
             self.current_redshift = 0.0
-            only_on_root(mylog.info, "Redshift is not set in Header. Assuming z=0.")
+            only_on_root(ytLogger.info, "Redshift is not set in Header. Assuming z=0.")
 
         try:
             self.omega_lambda = hvals["OmegaLambda"]
@@ -388,7 +388,7 @@ class GadgetDataset(SPHDataset):
         # somehow, but opinions on this vary.
         if self.omega_lambda == 0.0:
             only_on_root(
-                mylog.info, "Omega Lambda is 0.0, so we are turning off Cosmology."
+                ytLogger.info, "Omega Lambda is 0.0, so we are turning off Cosmology."
             )
             self.hubble_constant = 1.0  # So that scaling comes out correct
             self.cosmological_simulation = 0
@@ -407,7 +407,7 @@ class GadgetDataset(SPHDataset):
             )
             self.current_time = cosmo.lookback_time(self.current_redshift, 1e6)
             only_on_root(
-                mylog.info,
+                ytLogger.info,
                 "Calculating time from %0.3e to be %0.3e seconds",
                 hvals["Time"],
                 self.current_time,
@@ -434,11 +434,13 @@ class GadgetDataset(SPHDataset):
         if self._unit_base is None:
             if self.cosmological_simulation == 1:
                 only_on_root(
-                    mylog.info, "Assuming length units are in kpc/h (comoving)"
+                    ytLogger.info, "Assuming length units are in kpc/h (comoving)"
                 )
                 self._unit_base = dict(length=(1.0, "kpccm/h"))
             else:
-                only_on_root(mylog.info, "Assuming length units are in kpc (physical)")
+                only_on_root(
+                    ytLogger.info, "Assuming length units are in kpc (physical)"
+                )
                 self._unit_base = dict(length=(1.0, "kpc"))
 
         # If units passed in by user, decide what to do about

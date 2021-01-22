@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _h5py as h5py
@@ -51,7 +51,7 @@ class IOHandlerGDFHDF5(BaseIOHandler):
             # check the dtype instead
             rv[field] = np.empty(fsize, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s blocks",
             size,
             [fn for ft, fn in fields],

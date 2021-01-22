@@ -205,7 +205,7 @@ class BaseIOHandler:
             # Note that we now need to check the mappings
             for field_f in field_maps[field_r]:
                 my_ind = ind[field_f]
-                # mylog.debug("Filling %s from %s to %s with %s",
+                # ytLogger.debug("Filling %s from %s to %s with %s",
                 #    field_f, my_ind, my_ind+vals.shape[0], field_r)
                 rv[field_f][my_ind : my_ind + vals.shape[0], ...] = vals
                 ind[field_f] += vals.shape[0]

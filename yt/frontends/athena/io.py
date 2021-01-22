@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.io_handler import BaseIOHandler
 
 from .data_structures import chk23
@@ -92,7 +92,7 @@ class IOHandlerAthena(BaseIOHandler):
         for field in fields:
             rv[field] = np.empty(size, dtype="float64")
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s grids",
             size,
             [f2 for f1, f2 in fields],

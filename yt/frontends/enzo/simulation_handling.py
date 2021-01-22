@@ -15,7 +15,7 @@ from yt.utilities.exceptions import (
     NoStoppingCondition,
     YTUnidentifiedDataType,
 )
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 
 
@@ -237,7 +237,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
         if not my_all_outputs:
             DatasetSeries.__init__(self, outputs=[], parallel=parallel)
-            mylog.info("0 outputs loaded into time series.")
+            ytLogger.info("0 outputs loaded into time series.")
             return
 
         # Apply selection criteria to the set.
@@ -315,7 +315,7 @@ class EnzoSimulation(SimulationTimeSeries):
         DatasetSeries.__init__(
             self, outputs=init_outputs, parallel=parallel, setup_function=setup_function
         )
-        mylog.info("%d outputs loaded into time series.", len(init_outputs))
+        ytLogger.info("%d outputs loaded into time series.", len(init_outputs))
 
     def _parse_parameter_file(self):
         """
@@ -470,7 +470,9 @@ class EnzoSimulation(SimulationTimeSeries):
         Calculate cycle outputs.
         """
 
-        mylog.warning("Calculating cycle outputs.  Dataset times will be unavailable.")
+        ytLogger.warning(
+            "Calculating cycle outputs.  Dataset times will be unavailable."
+        )
 
         if (
             self.stop_cycle is None
@@ -507,11 +509,11 @@ class EnzoSimulation(SimulationTimeSeries):
             self.parameters["dtDataDump"] > 0
             and self.parameters["CycleSkipDataDump"] > 0
         ):
-            mylog.info(
+            ytLogger.info(
                 "Simulation %s has both dtDataDump and CycleSkipDataDump set.",
                 self.parameter_filename,
             )
-            mylog.info(
+            ytLogger.info(
                 "    Unable to calculate datasets.  "
                 "Attempting to search in the current directory"
             )
@@ -565,7 +567,7 @@ class EnzoSimulation(SimulationTimeSeries):
             if not ("StopTime" in self.parameters or "StopCycle" in self.parameters):
                 raise NoStoppingCondition(self.parameter_filename)
             if self.final_time is None:
-                mylog.warning(
+                ytLogger.warning(
                     "Simulation %s has no stop time set, stopping condition "
                     "will be based only on cycles.",
                     self.parameter_filename,
@@ -620,7 +622,7 @@ class EnzoSimulation(SimulationTimeSeries):
 
         self.all_outputs = self.all_time_outputs + self.all_redshift_outputs
         self.all_outputs.sort(key=lambda obj: obj["time"])
-        only_on_root(mylog.info, "Located %d total outputs.", len(self.all_outputs))
+        only_on_root(ytLogger.info, "Located %d total outputs.", len(self.all_outputs))
 
         # manually set final time and redshift with last output
         if self.all_outputs:
@@ -634,14 +636,14 @@ class EnzoSimulation(SimulationTimeSeries):
         """
 
         only_on_root(
-            mylog.info, "Checking %d potential outputs.", len(potential_outputs)
+            ytLogger.info, "Checking %d potential outputs.", len(potential_outputs)
         )
 
         my_outputs = {}
-        llevel = mylog.level
+        llevel = ytLogger.level
         # suppress logging as we load every dataset, unless set to debug
         if llevel > 10 and llevel < 40:
-            mylog.setLevel(40)
+            ytLogger.setLevel(40)
         for my_storage, output in parallel_objects(
             potential_outputs, storage=my_outputs
         ):
@@ -660,7 +662,7 @@ class EnzoSimulation(SimulationTimeSeries):
             try:
                 ds = load(filename)
             except (FileNotFoundError, YTUnidentifiedDataType):
-                mylog.error("Failed to load %s", filename)
+                ytLogger.error("Failed to load %s", filename)
                 continue
             my_storage.result = {
                 "filename": filename,
@@ -668,7 +670,7 @@ class EnzoSimulation(SimulationTimeSeries):
             }
             if ds.cosmological_simulation:
                 my_storage.result["redshift"] = ds.current_redshift
-        mylog.setLevel(llevel)
+        ytLogger.setLevel(llevel)
         my_outputs = [
             my_output for my_output in my_outputs.values() if my_output is not None
         ]
@@ -680,7 +682,7 @@ class EnzoSimulation(SimulationTimeSeries):
         Write cosmology output parameters for a cosmology splice.
         """
 
-        mylog.info("Writing redshift output list to %s.", filename)
+        ytLogger.info("Writing redshift output list to %s.", filename)
         f = open(filename, "w")
         for q, output in enumerate(outputs):
             f.write(

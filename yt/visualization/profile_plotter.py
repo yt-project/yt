@@ -19,7 +19,7 @@ from yt.funcs import (
     matplotlib_style_context,
 )
 from yt.utilities.exceptions import YTNotInsideNotebook
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 from ..data_objects.selection_objects.data_selection_objects import YTSelectionContainer
 from .base_plot_types import ImagePlotMPL, PlotMPL
@@ -49,7 +49,7 @@ def get_canvas(name):
     elif suffix in (".eps", ".ps"):
         canvas_cls = mpl.FigureCanvasPS
     else:
-        mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+        ytLogger.warning("Unknown suffix %s, defaulting to Agg", suffix)
         canvas_cls = mpl.FigureCanvasAgg
     return canvas_cls
 
@@ -332,7 +332,7 @@ class ProfilePlot:
                 fns.append(f"{prefix}{suffix}")
             else:
                 fns.append(f"{prefix}_1d-Profile_{xfn}_{uid}{suffix}")
-            mylog.info("Saving %s", fns[-1])
+            ytLogger.info("Saving %s", fns[-1])
             with matplotlib_style_context():
                 plot.save(fns[-1], mpl_kwargs=mpl_kwargs)
         return fns
@@ -1089,12 +1089,12 @@ class PhasePlot(ImagePlotContainer):
                 if z_scale == "log":
                     positive_values = data[data > 0.0]
                     if len(positive_values) == 0:
-                        mylog.warning(
+                        ytLogger.warning(
                             "Profiled field %s has no positive " "values.  Max = %f.",
                             f,
                             np.nanmax(data),
                         )
-                        mylog.warning("Switching to linear colorbar scaling.")
+                        ytLogger.warning("Switching to linear colorbar scaling.")
                         zmin = np.nanmin(data)
                         z_scale = "linear"
                         self._field_transform[f] = linear_transform

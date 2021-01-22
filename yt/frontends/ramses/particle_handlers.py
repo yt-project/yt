@@ -2,7 +2,7 @@ import abc
 import os
 
 from yt.config import ytcfg
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.cython_fortran_utils import FortranFile
 
 from .field_handlers import HandlerMixin
@@ -179,7 +179,7 @@ class DefaultParticleFileHandler(ParticleFileHandler):
         fd.close()
 
         if iextra > 0 and not self.ds._warned_extra_fields["io"]:
-            mylog.warning(
+            ytLogger.warning(
                 "Detected %s extra particle fields assuming kind "
                 "`double`. Consider using the `extra_particle_fields` "
                 "keyword argument if you have unexpected behavior.",

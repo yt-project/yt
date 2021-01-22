@@ -1064,11 +1064,11 @@ def run_nose(
 ):
     import sys
 
-    from yt.utilities.logger import ytLogger as mylog
+    from yt.utilities.logger import ytLogger
     from yt.utilities.on_demand_imports import _nose
 
-    orig_level = mylog.getEffectiveLevel()
-    mylog.setLevel(50)
+    orig_level = ytLogger.getEffectiveLevel()
+    ytLogger.setLevel(50)
     nose_argv = sys.argv
     nose_argv += ["--exclude=answer_testing", "--detailed-errors", "--exe"]
     if call_pdb:
@@ -1103,7 +1103,7 @@ def run_nose(
         _nose.run(argv=nose_argv)
     finally:
         os.chdir(initial_dir)
-        mylog.setLevel(orig_level)
+        ytLogger.setLevel(orig_level)
 
 
 def assert_allclose_units(actual, desired, rtol=1e-7, atol=0, **kwargs):

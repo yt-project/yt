@@ -25,7 +25,7 @@ from yt.utilities.exceptions import (
     YTFieldUnitParseError,
 )
 from yt.utilities.lib.marching_cubes import march_cubes_grid, march_cubes_grid_flux
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
 )
@@ -251,7 +251,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
                             raise YTDimensionalityError(fi.dimensions, dimensions)
                         fi.units = units
                         self.field_data[field] = self.ds.arr(fd, units)
-                        mylog.warning(
+                        ytLogger.warning(
                             "Field %s was added without specifying units, "
                             "assuming units are %s",
                             fi.name,

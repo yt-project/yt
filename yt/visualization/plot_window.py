@@ -13,7 +13,14 @@ from unyt.exceptions import UnitConversionError
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
+from yt.funcs import (
+    fix_axis,
+    fix_unitary,
+    is_sequence,
+    iter_fields,
+    obj_length,
+    ytLogger,
+)
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitParseError
 from yt.units.yt_array import YTArray, YTQuantity
@@ -233,7 +240,7 @@ class PlotWindow(ImagePlotContainer):
 
     def __iter__(self):
         for ds in self.ts:
-            mylog.warning("Switching to %s", ds)
+            ytLogger.warning("Switching to %s", ds)
             self._switch_ds(ds)
             yield self
 
@@ -580,10 +587,10 @@ class PlotWindow(ImagePlotContainer):
             self.ylim = tuple(bounds[2:4])
             if len(bounds) == 6:
                 self.zlim = tuple(bounds[4:6])
-        mylog.info("xlim = %f %f", self.xlim[0], self.xlim[1])
-        mylog.info("ylim = %f %f", self.ylim[0], self.ylim[1])
+        ytLogger.info("xlim = %f %f", self.xlim[0], self.xlim[1])
+        ytLogger.info("ylim = %f %f", self.ylim[0], self.ylim[1])
         if hasattr(self, "zlim"):
-            mylog.info("zlim = %f %f", self.zlim[0], self.zlim[1])
+            ytLogger.info("zlim = %f %f", self.zlim[0], self.zlim[1])
 
     @invalidate_data
     def set_width(self, width, unit=None):
@@ -841,7 +848,7 @@ class PWViewerMPL(PlotWindow):
         elif origin[2] == "native":
             return (self.ds.quan(0.0, "code_length"), self.ds.quan(0.0, "code_length"))
         else:
-            mylog.warning("origin = %s", origin)
+            ytLogger.warning("origin = %s", origin)
             msg = (
                 'origin keyword "{}" not recognized, must declare "domain" '
                 'or "center" as the last term in origin.'
@@ -855,7 +862,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[0] == "center":
                 yc = (yllim + yrlim) / 2.0
             else:
-                mylog.warning("origin = %s", origin)
+                ytLogger.warning("origin = %s", origin)
                 msg = (
                     'origin keyword "{0}" not recognized, must declare "lower" '
                     '"upper" or "center" as the first term in origin.'
@@ -870,7 +877,7 @@ class PWViewerMPL(PlotWindow):
             elif origin[1] == "center":
                 xc = (xllim + xrlim) / 2.0
             else:
-                mylog.warning("origin = %s", origin)
+                ytLogger.warning("origin = %s", origin)
                 msg = (
                     'origin keyword "{0}" not recognized, must declare "left" '
                     '"right" or "center" as the second term in origin.'
@@ -961,16 +968,16 @@ class PWViewerMPL(PlotWindow):
                     )
                     use_symlog = True
                 if msg is not None:
-                    mylog.warning(msg)
+                    ytLogger.warning(msg)
                     if use_symlog:
-                        mylog.warning(
+                        ytLogger.warning(
                             "Switching to symlog colorbar scaling "
                             "unless linear scaling is specified later"
                         )
                         self._field_transform[f] = symlog_transform
                         self._field_transform[f].func = None
                     else:
-                        mylog.warning("Switching to linear colorbar scaling.")
+                        ytLogger.warning("Switching to linear colorbar scaling.")
                         self._field_transform[f] = linear_transform
 
             font_size = self._font_properties.get_size()
@@ -1141,7 +1148,7 @@ class PWViewerMPL(PlotWindow):
                         self.plots[f].cax.yaxis.set_ticks(mticks, minor=True)
 
                 else:
-                    mylog.error(
+                    ytLogger.error(
                         "Unable to draw cbar minorticks for field "
                         "%s with transform %s ",
                         f,
@@ -1501,7 +1508,7 @@ class AxisAlignedSlicePlot(PWViewerMPL):
             "geographic",
             "internal_geographic",
         ):
-            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
+            ytLogger.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
 
         if isinstance(ds, YTSpatialPlotDataset):
@@ -1714,7 +1721,7 @@ class ProjectionPlot(PWViewerMPL):
             "geographic",
             "internal_geographic",
         ):
-            mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
+            ytLogger.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
         if proj_style is not None:
             issue_deprecation_warning(
@@ -2372,7 +2379,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     if is_sequence(normal) and not isinstance(normal, str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if "origin" in kwargs:
-            mylog.warning(
+            ytLogger.warning(
                 "Ignoring 'origin' keyword as it is ill-defined for "
                 "an OffAxisSlicePlot object."
             )
@@ -2382,7 +2389,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     else:
         # north_vector not used in AxisAlignedSlicePlots; remove it if in kwargs
         if "north_vector" in kwargs:
-            mylog.warning(
+            ytLogger.warning(
                 "Ignoring 'north_vector' keyword as it is ill-defined for "
                 "an AxisAlignedSlicePlot object."
             )

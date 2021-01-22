@@ -2,7 +2,7 @@ import copy
 from contextlib import contextmanager
 
 from yt.fields.field_info_container import NullFunc, TranslationFunc
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.exceptions import YTIllDefinedFilter
 
 # One to one mapping
@@ -120,7 +120,7 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
         requires = []
     filter = ParticleFilter(name, function, requires, filtered_type)
     if filter_registry.get(name, None) is not None:
-        mylog.warning("The %s particle filter already exists. Overriding.", name)
+        ytLogger.warning("The %s particle filter already exists. Overriding.", name)
     filter_registry[name] = filter
 
 

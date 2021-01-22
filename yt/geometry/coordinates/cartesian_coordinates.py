@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.units.yt_array import YTArray, uconcatenate, uvstack
 from yt.utilities.lib.pixelization_routines import (
     interpolate_sph_grid_gather,
@@ -200,7 +200,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             # here, for now.
             elif field_data.shape[1] == 27:
                 # hexahedral
-                mylog.warning(
+                ytLogger.warning(
                     "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
@@ -262,7 +262,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
             # here, for now.
             elif field_data.shape[1] == 27:
                 # hexahedral
-                mylog.warning(
+                ytLogger.warning(
                     "High order elements not yet supported, dropping to 1st order."
                 )
                 field_data = field_data[:, 0:8]
@@ -405,7 +405,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             period=period,
                             weight_field=chunk[weight].in_units(wounits),
                         )
-                    mylog.info(
+                    ytLogger.info(
                         "Making a fixed resolution buffer of (%s) %d by %d",
                         weight,
                         size[0],

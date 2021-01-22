@@ -7,7 +7,7 @@ import numpy as np
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.data_objects.static_output import Dataset
-from yt.funcs import get_pbar, mylog
+from yt.funcs import get_pbar, ytLogger
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.chemical_formulas import default_mu
@@ -61,7 +61,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         self.dataset_type = dataset_type
 
     def _initialize_mesh(self):
-        mylog.debug("Setting up meshes.")
+        ytLogger.debug("Setting up meshes.")
         num_blocks = self._handle.attrs["NumMeshBlocks"]
         log_loc = self._handle["LogicalLocations"]
         levels = self._handle["Levels"]
@@ -132,7 +132,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
             self.meshes.append(mesh)
             pbar.update(i)
         pbar.finish()
-        mylog.debug("Done setting up meshes.")
+        ytLogger.debug("Done setting up meshes.")
 
     def _detect_output_fields(self):
         self.field_list = [("athena_pp", k) for k in self.ds._field_map]
@@ -286,7 +286,7 @@ class AthenaPPDataset(Dataset):
             # We set these to cgs for now, but they may have been overridden
             if getattr(self, unit + "_unit", None) is not None:
                 continue
-            mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
+            ytLogger.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
 
         self.magnetic_unit = np.sqrt(

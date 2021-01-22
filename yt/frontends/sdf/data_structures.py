@@ -6,7 +6,7 @@ import numpy as np
 from yt.data_objects.static_output import ParticleDataset, ParticleFile
 from yt.funcs import get_requests, setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.sdf import HTTPSDFRead, SDFIndex, SDFRead
 
 from .fields import SDFFieldInfo
@@ -138,7 +138,7 @@ class SDFDataset(ParticleDataset):
             self.omega_matter += self.parameters["Omega0_r"]
         self.hubble_constant = self.parameters["h_100"]
         self.current_time = units_2HOT_v2_time * self.parameters.get("tpos", 0.0)
-        mylog.info("Calculating time to be %0.3e seconds", self.current_time)
+        ytLogger.info("Calculating time to be %0.3e seconds", self.current_time)
         self.filename_template = self.parameter_filename
         self.file_count = 1
 

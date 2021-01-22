@@ -3,7 +3,7 @@ import glob
 import os
 
 from yt.config import ytcfg
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.cython_fortran_utils import FortranFile
 
 from .io import _read_fluid_file_descriptor
@@ -310,7 +310,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             ok = True
         elif os.path.exists(fname_desc):
             # Or there is an hydro file descriptor
-            mylog.debug("Reading hydro file descriptor.")
+            ytLogger.debug("Reading hydro file descriptor.")
             # For now, we can only read double precision fields
             fields = [e[0] for e in _read_fluid_file_descriptor(fname_desc)]
 
@@ -333,7 +333,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             rt_flag = any(glob.glob(os.sep.join([foldername, "info_rt_*.txt"])))
             if rt_flag:  # rt run
                 if nvar < 10:
-                    mylog.info("Detected RAMSES-RT file WITHOUT IR trapping.")
+                    ytLogger.info("Detected RAMSES-RT file WITHOUT IR trapping.")
 
                     fields = [
                         "Density",
@@ -347,7 +347,7 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "HeIII",
                     ]
                 else:
-                    mylog.info("Detected RAMSES-RT file WITH IR trapping.")
+                    ytLogger.info("Detected RAMSES-RT file WITH IR trapping.")
 
                     fields = [
                         "Density",
@@ -363,7 +363,7 @@ class HydroFieldFileHandler(FieldFileHandler):
                     ]
             else:
                 if nvar < 5:
-                    mylog.debug(
+                    ytLogger.debug(
                         "nvar=%s is too small! YT doesn't currently "
                         "support 1D/2D runs in RAMSES %s"
                     )
@@ -417,7 +417,7 @@ class HydroFieldFileHandler(FieldFileHandler):
                         "Pressure",
                         "Metallicity",
                     ]
-            mylog.debug(
+            ytLogger.debug(
                 "No fields specified by user; automatically setting fields array to %s",
                 fields,
             )
@@ -428,7 +428,7 @@ class HydroFieldFileHandler(FieldFileHandler):
             fields.append("var" + str(len(fields)))
             count_extra += 1
         if count_extra > 0:
-            mylog.debug("Detected %s extra fluid fields.", count_extra)
+            ytLogger.debug("Detected %s extra fluid fields.", count_extra)
         cls.field_list = [(cls.ftype, e) for e in fields]
 
         cls.set_detected_fields(ds, fields)
@@ -467,7 +467,7 @@ class GravFieldFileHandler(FieldFileHandler):
         ndetected = len(fields)
 
         if ndetected != nvar and not ds._warned_extra_fields["gravity"]:
-            mylog.warning("Detected %s extra gravity fields.", nvar - ndetected)
+            ytLogger.warning("Detected %s extra gravity fields.", nvar - ndetected)
             ds._warned_extra_fields["gravity"] = True
 
             for i in range(nvar - ndetected):
@@ -534,7 +534,7 @@ class RTFieldFileHandler(FieldFileHandler):
                 read_rhs(float)
 
             # Touchy part, we have to read the photon group properties
-            mylog.debug("Not reading photon group properties")
+            ytLogger.debug("Not reading photon group properties")
 
             cls.rt_parameters = rheader
 

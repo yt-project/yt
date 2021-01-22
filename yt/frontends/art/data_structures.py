@@ -27,7 +27,7 @@ from yt.frontends.art.io import (
     a2b,
     b2t,
 )
-from yt.funcs import mylog, setdefaultattr
+from yt.funcs import setdefaultattr, ytLogger
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.oct_container import ARTOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
@@ -70,7 +70,7 @@ class ARTIndex(OctreeIndex):
         self.octs_per_domain = [dom.level_count.sum() for dom in self.domains]
 
         self.total_octs = sum(self.octs_per_domain)
-        mylog.debug("Allocating %s octs", self.total_octs)
+        ytLogger.debug("Allocating %s octs", self.total_octs)
         self.oct_handler.allocate_domains(self.octs_per_domain)
         domain = self.domains[0]
         domain._read_amr_root(self.oct_handler)
@@ -97,7 +97,7 @@ class ARTIndex(OctreeIndex):
             domains = [dom for dom in self.domains if dom.included(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
             if len(domains) > 1:
-                mylog.debug("Identified %s intersecting domains", len(domains))
+                ytLogger.debug("Identified %s intersecting domains", len(domains))
             subsets = [
                 ARTDomainSubset(base_region, domain, self.dataset) for domain in domains
             ]
@@ -196,7 +196,7 @@ class ARTDataset(Dataset):
                     if os.path.basename(possible).startswith(prefix):
                         match = possible
             if match is not None:
-                mylog.info("discovered %s:%s", filetype, match)
+                ytLogger.info("discovered %s:%s", filetype, match)
                 setattr(self, "_file_" + filetype, match)
             else:
                 setattr(self, "_file_" + filetype, None)
@@ -266,7 +266,7 @@ class ARTDataset(Dataset):
             self.root_grid_mask_offset = f.tell()
             self.root_nocts = self.domain_dimensions.prod() // 8
             self.root_ncells = self.root_nocts * 8
-            mylog.debug(
+            ytLogger.debug(
                 "Estimating %i cells on a root grid side, %i root octs",
                 est,
                 self.root_nocts,
@@ -299,7 +299,7 @@ class ARTDataset(Dataset):
             )
             del float_center, fl, iocts, nocts
             self.root_level = root_level
-            mylog.info("Using root level of %02i", self.root_level)
+            ytLogger.info("Using root level of %02i", self.root_level)
         # read the particle header
         self.particle_types = []
         self.particle_types_raw = ()
@@ -322,14 +322,14 @@ class ARTDataset(Dataset):
             ls_nonzero = np.diff(lspecies)[: n - 1]
             ls_nonzero = np.append(lspecies[0], ls_nonzero)
             self.star_type = len(ls_nonzero)
-            mylog.info("Discovered %i species of particles", len(ls_nonzero))
+            ytLogger.info("Discovered %i species of particles", len(ls_nonzero))
             info_str = "Particle populations: " + "%9i " * len(ls_nonzero)
-            mylog.info(info_str, *ls_nonzero)
+            ytLogger.info(info_str, *ls_nonzero)
             self._particle_type_counts = dict(zip(self.particle_types_raw, ls_nonzero))
             for k, v in particle_header_vals.items():
                 if k in self.parameters.keys():
                     if not self.parameters[k] == v:
-                        mylog.info(
+                        ytLogger.info(
                             "Inconsistent parameter %s %1.1e  %1.1e",
                             k,
                             v,
@@ -356,7 +356,7 @@ class ARTDataset(Dataset):
         self.hubble_time = 1.0 / (self.hubble_constant * 100 / 3.08568025e19)
         self.current_time = self.quan(b2t(self.parameters["t"]), "Gyr")
         self.gamma = self.parameters["gamma"]
-        mylog.info("Max level is %02i", self.max_level)
+        ytLogger.info("Max level is %02i", self.max_level)
 
     def create_field_info(self):
         super().create_field_info()
@@ -477,7 +477,7 @@ class DarkMatterARTDataset(ARTDataset):
                     if os.path.basename(possible).startswith(prefix):
                         match = possible
             if match is not None:
-                mylog.info("discovered %s:%s", filetype, match)
+                ytLogger.info("discovered %s:%s", filetype, match)
                 setattr(self, "_file_" + filetype, match)
             else:
                 setattr(self, "_file_" + filetype, None)
@@ -611,13 +611,13 @@ class DarkMatterARTDataset(ARTDataset):
         ls_nonzero = np.diff(lspecies)[: n - 1]
         ls_nonzero = np.append(lspecies[0], ls_nonzero)
         self.star_type = len(ls_nonzero)
-        mylog.info("Discovered %i species of particles", len(ls_nonzero))
+        ytLogger.info("Discovered %i species of particles", len(ls_nonzero))
         info_str = "Particle populations: " + "%9i " * len(ls_nonzero)
-        mylog.info(info_str, *ls_nonzero)
+        ytLogger.info(info_str, *ls_nonzero)
         for k, v in particle_header_vals.items():
             if k in self.parameters.keys():
                 if not self.parameters[k] == v:
-                    mylog.info(
+                    ytLogger.info(
                         "Inconsistent parameter %s %1.1e  %1.1e",
                         k,
                         v,
@@ -654,7 +654,7 @@ class DarkMatterARTDataset(ARTDataset):
         self.parameters["t"] = a2b(self.parameters["aexpn"])
         self.current_time = self.quan(b2t(self.parameters["t"]), "Gyr")
         self.gamma = self.parameters["gamma"]
-        mylog.info("Max level is %02i", self.max_level)
+        ytLogger.info("Max level is %02i", self.max_level)
 
     def create_field_info(self):
         super(ARTDataset, self).create_field_info()
@@ -899,7 +899,7 @@ class ARTDomainFile:
             )
             nocts_check = oct_handler.add(self.domain_id, level, unitary_center)
             assert nocts_check == nocts
-            mylog.debug(
+            ytLogger.debug(
                 "Added %07i octs on level %02i, cumulative is %07i",
                 nocts,
                 level,
@@ -925,7 +925,7 @@ class ARTDomainFile:
         root_fc = np.vstack([p.ravel() for p in root_fc]).T
         oct_handler.add(self.domain_id, 0, root_fc)
         assert oct_handler.nocts == root_fc.shape[0]
-        mylog.debug(
+        ytLogger.debug(
             "Added %07i octs on level %02i, cumulative is %07i",
             root_octs_side ** 3,
             0,

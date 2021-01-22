@@ -78,7 +78,7 @@ from yt.units import (
     uvstack,
 )
 from yt.units.unit_object import define_unit
-from yt.utilities.logger import set_log_level, ytLogger as mylog
+from yt.utilities.logger import set_log_level, ytLogger
 
 frontends = _frontend_container()
 

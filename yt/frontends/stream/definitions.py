@@ -9,7 +9,7 @@ from yt.utilities.exceptions import (
     YTInconsistentGridFieldShapeGridDims,
     YTInconsistentParticleFieldShape,
 )
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 from .fields import StreamFieldInfo
 
@@ -30,7 +30,7 @@ def assign_particle_data(ds, pdata, bbox):
                     continue
                 if f == "number_of_particles":
                     continue
-                mylog.debug("Reassigning '%s' to ('%s','%s')", f, ptype, f)
+                ytLogger.debug("Reassigning '%s' to ('%s','%s')", f, ptype, f)
                 pdata_ftype[ptype, f] = pdata.pop(f)
             pdata_ftype.update(pdata)
             pdata = pdata_ftype
@@ -95,7 +95,7 @@ def assign_particle_data(ds, pdata, bbox):
                     [min(bbox[1, 0], s[1, 0]), max(bbox[1, 1], s[1, 1])],
                     [min(bbox[2, 0], s[2, 0]), max(bbox[2, 1], s[2, 1])],
                 ]
-                mylog.warning(
+                ytLogger.warning(
                     "Discarding %s particles (out of %s) that are outside "
                     "bounding box. Set bbox=%s to avoid this in the future.",
                     num_unassigned,

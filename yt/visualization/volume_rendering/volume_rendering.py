@@ -1,4 +1,4 @@
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.exceptions import YTSceneFieldNotFound
 
 from .api import MeshSource, Scene, create_volume_source
@@ -57,7 +57,7 @@ def create_scene(data_source, field=None, lens_type="plane-parallel"):
                 f"""Could not find field '{field}' in {data_source.ds}.
                   Please specify a field in create_scene()"""
             )
-        mylog.info("Setting default field to %s", field.__repr__())
+        ytLogger.info("Setting default field to %s", field.__repr__())
 
     if hasattr(data_source.ds.index, "meshes"):
         source = MeshSource(data_source, field=field)

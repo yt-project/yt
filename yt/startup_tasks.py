@@ -7,11 +7,11 @@ import sys
 
 from yt.config import ytcfg
 from yt.funcs import (
-    mylog,
     paste_traceback,
     paste_traceback_detailed,
     signal_ipython,
     signal_print_traceback,
+    ytLogger,
 )
 from yt.utilities import rpdb
 
@@ -23,7 +23,7 @@ def turn_on_parallelism():
         # we import this to check if mpi4py is installed
         from mpi4py import MPI  # NOQA
     except ImportError as e:
-        mylog.error(
+        ytLogger.error(
             "Warning: Attempting to turn on parallelism, "
             "but mpi4py import failed. Try pip install mpi4py."
         )
@@ -46,9 +46,9 @@ def turn_on_parallelism():
 # and then examine the current stack.
 try:
     signal.signal(signal.SIGUSR1, signal_print_traceback)
-    mylog.debug("SIGUSR1 registered for traceback printing")
+    ytLogger.debug("SIGUSR1 registered for traceback printing")
     signal.signal(signal.SIGUSR2, signal_ipython)
-    mylog.debug("SIGUSR2 registered for IPython Insertion")
+    ytLogger.debug("SIGUSR2 registered for IPython Insertion")
 except (ValueError, RuntimeError, AttributeError):  # Not in main thread
     pass
 
@@ -61,27 +61,27 @@ class SetExceptionHandling(argparse.Action):
         #
         if self.dest == "paste":
             sys.excepthook = paste_traceback
-            mylog.debug("Enabling traceback pasting")
+            ytLogger.debug("Enabling traceback pasting")
         elif self.dest == "paste-detailed":
             sys.excepthook = paste_traceback_detailed
-            mylog.debug("Enabling detailed traceback pasting")
+            ytLogger.debug("Enabling detailed traceback pasting")
         elif self.dest == "detailed":
             import cgitb
 
             cgitb.enable(format="text")
-            mylog.debug("Enabling detailed traceback reporting")
+            ytLogger.debug("Enabling detailed traceback reporting")
         elif self.dest == "rpdb":
             sys.excepthook = rpdb.rpdb_excepthook
-            mylog.debug("Enabling remote debugging")
+            ytLogger.debug("Enabling remote debugging")
 
 
 class SetConfigOption(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         param, val = values.split("=")
-        mylog.debug("Overriding config: %s = %s", param, val)
+        ytLogger.debug("Overriding config: %s = %s", param, val)
         ytcfg["yt", param] = val
         if param == "log_level":  # special case
-            mylog.setLevel(int(val))
+            ytLogger.setLevel(int(val))
 
 
 class YTParser(argparse.ArgumentParser):

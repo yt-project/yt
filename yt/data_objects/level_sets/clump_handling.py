@@ -4,7 +4,7 @@ import numpy as np
 
 from yt.fields.derived_field import ValidateSpatial
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, mylog
+from yt.funcs import get_output_filename, ytLogger
 from yt.utilities.tree_container import TreeContainer
 
 from .clump_info_items import clump_info_registry
@@ -145,7 +145,9 @@ class Clump(TreeContainer):
 
     def find_children(self, min_val, max_val=None):
         if self.children:
-            mylog.info("Wiping out existing children clumps: %d.", len(self.children))
+            ytLogger.info(
+                "Wiping out existing children clumps: %d.", len(self.children)
+            )
         self.children = []
         if max_val is None:
             max_val = self.max_val
@@ -408,7 +410,9 @@ class Clump(TreeContainer):
 
 
 def find_clumps(clump, min_val, max_val, d_clump):
-    mylog.info("Finding clumps: min: %e, max: %e, step: %f", min_val, max_val, d_clump)
+    ytLogger.info(
+        "Finding clumps: min: %e, max: %e, step: %f", min_val, max_val, d_clump
+    )
     if min_val >= max_val:
         return
     clump.find_children(min_val, max_val=max_val)
@@ -418,7 +422,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
 
     elif len(clump.children) > 0:
         these_children = []
-        mylog.info("Investigating %d children.", len(clump.children))
+        ytLogger.info("Investigating %d children.", len(clump.children))
         for child in clump.children:
             find_clumps(child, min_val * d_clump, max_val, d_clump)
             if len(child.children) > 0:
@@ -426,17 +430,17 @@ def find_clumps(clump, min_val, max_val, d_clump):
             elif child._validate():
                 these_children.append(child)
             else:
-                mylog.info(
+                ytLogger.info(
                     "Eliminating invalid, childless clump with %d cells.",
                     len(child.data["ones"]),
                 )
         if len(these_children) > 1:
-            mylog.info(
+            ytLogger.info(
                 "%d of %d children survived.", len(these_children), len(clump.children)
             )
             clump.children = these_children
         elif len(these_children) == 1:
-            mylog.info(
+            ytLogger.info(
                 "%d of %d children survived, linking its children to parent.",
                 len(these_children),
                 len(clump.children),
@@ -446,7 +450,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
                 child.parent = clump
                 child.data.parent = clump.data
         else:
-            mylog.info(
+            ytLogger.info(
                 "%d of %d children survived, erasing children.",
                 len(these_children),
                 len(clump.children),

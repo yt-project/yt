@@ -5,7 +5,7 @@ import matplotlib
 import numpy as np
 
 from yt.data_objects.profiles import create_profile
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.visualization.volume_rendering.transfer_functions import ColorTransferFunction
 
 
@@ -103,7 +103,7 @@ class TransferFunctionHelper:
 
         """
         if self.bounds is None:
-            mylog.info(
+            ytLogger.info(
                 "Calculating data bounds. This may take a while. "
                 "Set the TransferFunctionHelper.bounds to avoid this."
             )

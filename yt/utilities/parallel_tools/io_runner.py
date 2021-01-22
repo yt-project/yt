@@ -4,7 +4,7 @@ from contextlib import contextmanager
 import numpy as np
 
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 from .parallel_analysis_interface import ProcessorPool, parallel_objects
 
@@ -18,7 +18,7 @@ YT_TAG_MESSAGE = 317  # Cell 317 knows where to go
 
 class IOCommunicator(BaseIOHandler):
     def __init__(self, ds, wg, pool):
-        mylog.info("Initializing IOCommunicator")
+        ytLogger.info("Initializing IOCommunicator")
         self.ds = ds
         self.wg = wg  # We don't need to use this!
         self.pool = pool
@@ -33,11 +33,11 @@ class IOCommunicator(BaseIOHandler):
             sto.result_id = g.id
             self.grids.append(g)
         self._id_offset = ds.index.grids[0]._id_offset
-        mylog.info("Reading from disk ...")
+        ytLogger.info("Reading from disk ...")
         self.initialize_data()
-        mylog.info("Broadcasting ...")
+        ytLogger.info("Broadcasting ...")
         self.comm.comm.bcast(storage, root=wg.ranks[0])
-        mylog.info("Done.")
+        ytLogger.info("Done.")
         self.hooks = []
 
     def initialize_data(self):
@@ -85,7 +85,7 @@ class IOCommunicator(BaseIOHandler):
             if self.comm.comm.Iprobe(MPI.ANY_SOURCE, YT_TAG_MESSAGE, status=status):
                 msg = self.comm.comm.recv(source=status.source, tag=YT_TAG_MESSAGE)
                 if msg["op"] == "end":
-                    mylog.debug("Shutting down IO.")
+                    ytLogger.debug("Shutting down IO.")
                     break
                 self._send_data(msg, status.source)
                 status = MPI.Status()
@@ -96,7 +96,7 @@ class IOCommunicator(BaseIOHandler):
         grid_id = msg["grid_id"]
         field = msg["field"]
         ts = self.queue[grid_id][field].astype("float64")
-        mylog.debug("Opening send to %s (%s)", dest, ts.shape)
+        ytLogger.debug("Opening send to %s (%s)", dest, ts.shape)
         self.hooks.append(self.comm.comm.Isend([ts, MPI.DOUBLE], dest=dest))
 
 
@@ -114,14 +114,14 @@ class IOHandlerRemote(BaseIOHandler):
     def _read_data_set(self, grid, field):
         dest = self.proc_map[grid.id]
         msg = dict(grid_id=grid.id, field=field, op="read")
-        mylog.debug("Requesting %s for %s from %s", field, grid, dest)
+        ytLogger.debug("Requesting %s for %s from %s", field, grid, dest)
         if self.ds.field_info[field].sampling_type == "particle":
             data = np.empty(grid.NumberOfParticles, "float64")
         else:
             data = np.empty(grid.ActiveDimensions, "float64")
         hook = self.comm.comm.Irecv([data, MPI.DOUBLE], source=dest)
         self.comm.comm.send(msg, dest=dest, tag=YT_TAG_MESSAGE)
-        mylog.debug("Waiting for data.")
+        ytLogger.debug("Waiting for data.")
         MPI.Request.Wait(hook)
         return data
 
@@ -135,7 +135,7 @@ class IOHandlerRemote(BaseIOHandler):
         msg = dict(op="end")
         if self.wg.comm.rank == 0:
             for rank in self.pool["io"].ranks:
-                mylog.debug("Sending termination message to %s", rank)
+                ytLogger.debug("Sending termination message to %s", rank)
                 self.comm.comm.send(msg, dest=rank, tag=YT_TAG_MESSAGE)
 
 
@@ -164,7 +164,7 @@ def io_nodes(fn, n_io, n_work, func, *args, **kwargs):
     # We should broadcast the result
     rv = pool.comm.mpi_bcast(rv, root=pool["work"].ranks[0])
     pool.free_all()
-    mylog.debug("Return value: %s", rv)
+    ytLogger.debug("Return value: %s", rv)
     return rv
 
 
@@ -176,4 +176,4 @@ if __name__ == "__main__":
         return dd.quantities["TotalQuantity"]("CellMassMsun")
 
     q = io_nodes("DD0087/DD0087", 8, 24, gq)
-    mylog.info(q)
+    ytLogger.info(q)

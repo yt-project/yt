@@ -9,7 +9,7 @@ from yt.arraytypes import blankRecordArray
 from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_filters import add_particle_filter
 from yt.data_objects.static_output import Dataset
-from yt.funcs import mylog, setdefaultattr
+from yt.funcs import setdefaultattr, ytLogger
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.oct_container import RAMSESOctreeContainer
 from yt.geometry.oct_geometry_handler import OctreeIndex
@@ -144,7 +144,9 @@ class RAMSESDomainFile:
         field_handlers = [FH(self) for FH in get_field_handlers() if FH.any_exist(ds)]
         self.field_handlers = field_handlers
         for fh in field_handlers:
-            mylog.debug("Detected fluid type %s in domain_id=%s", fh.ftype, domain_id)
+            ytLogger.debug(
+                "Detected fluid type %s in domain_id=%s", fh.ftype, domain_id
+            )
             fh.detect_fields(ds)
             # self._add_ftype(fh.ftype)
 
@@ -154,7 +156,7 @@ class RAMSESDomainFile:
         ]
         self.particle_handlers = particle_handlers
         for ph in particle_handlers:
-            mylog.debug(
+            ytLogger.debug(
                 "Detected particle type %s in domain_id=%s", ph.ptype, domain_id
             )
             ph.read_header()
@@ -245,7 +247,7 @@ class RAMSESDomainFile:
         )
         root_nodes = self.amr_header["numbl"][self.ds.min_level, :].sum()
         self.oct_handler.allocate_domains(self.total_oct_count, root_nodes)
-        mylog.debug(
+        ytLogger.debug(
             "Reading domain AMR % 4i (%0.3e, %0.3e)",
             self.domain_id,
             self.total_oct_count.sum(),
@@ -295,7 +297,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
         if num_ghost_zones > 0:
             if not all(ds.periodicity):
-                mylog.warning(
+                ytLogger.warning(
                     "Ghost zones will wrongly assume the domain to be periodic."
                 )
             # Create a base domain *with no self._base_domain.fwidth
@@ -442,7 +444,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         if smoothed:
-            mylog.warning(
+            ytLogger.warning(
                 f"{self}.retrieve_ghost_zones was called with the "
                 f"`smoothed` argument set to True. This is not supported, "
                 "ignoring it."
@@ -453,7 +455,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
         try:
             new_subset = _subset_with_gz[ngz]
-            mylog.debug(
+            ytLogger.debug(
                 "Reusing previous subset with %s ghost zones for domain %s",
                 ngz,
                 self.domain_id,
@@ -532,7 +534,7 @@ class RAMSESIndex(OctreeIndex):
             domains = [dom for dom in self.domains if dom.included(dobj.selector)]
             base_region = getattr(dobj, "base_region", dobj)
             if len(domains) > 1:
-                mylog.debug("Identified %s intersecting domains", len(domains))
+                ytLogger.debug("Identified %s intersecting domains", len(domains))
             subsets = [
                 RAMSESDomainSubset(
                     base_region,
@@ -781,7 +783,7 @@ class RAMSESDataset(Dataset):
                 )
 
             for k in particle_families.keys():
-                mylog.info("Adding particle_type: %s", k)
+                ytLogger.info("Adding particle_type: %s", k)
                 self.add_particle_filter(f"{k}")
 
     def __repr__(self):
@@ -928,7 +930,7 @@ class RAMSESDataset(Dataset):
                     / self.parameters["unit_t"]
                 )
             except IndexError:
-                mylog.warning(
+                ytLogger.warning(
                     "Yt could not convert conformal time to physical time. "
                     "Yt will assume the simulation is *not* cosmological."
                 )
@@ -951,7 +953,7 @@ class RAMSESDataset(Dataset):
             except ImportError as e:
                 nml = f"An error occurred when reading the namelist: {str(e)}"
             except (ValueError, StopIteration) as e:
-                mylog.warning(
+                ytLogger.warning(
                     "Could not parse `namelist.txt` file as it was malformed: %s", e
                 )
                 return

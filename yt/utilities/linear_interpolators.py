@@ -1,7 +1,7 @@
 import numpy as np
 
 import yt.utilities.lib.interpolators as lib
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 
 
 class UnilinearFieldInterpolator:
@@ -37,7 +37,7 @@ class UnilinearFieldInterpolator:
         self.x_name = field_names
         if isinstance(boundaries, np.ndarray):
             if boundaries.size != table.shape[0]:
-                mylog.error("Bins array not the same length as the data.")
+                ytLogger.error("Bins array not the same length as the data.")
                 raise ValueError
             self.x_bins = boundaries
         else:
@@ -51,11 +51,11 @@ class UnilinearFieldInterpolator:
         x_i = (np.digitize(x_vals, self.x_bins) - 1).astype("int32")
         if np.any((x_i == -1) | (x_i == len(self.x_bins) - 1)):
             if not self.truncate:
-                mylog.error(
+                ytLogger.error(
                     "Sorry, but your values are outside "
                     "the table!  Dunno what to do, so dying."
                 )
-                mylog.error("Error was in: %s", data_object)
+                ytLogger.error("Error was in: %s", data_object)
                 raise ValueError
             else:
                 x_i = np.minimum(np.maximum(x_i, 0), len(self.x_bins) - 2)
@@ -103,15 +103,15 @@ class BilinearFieldInterpolator:
             self.y_bins = np.linspace(y0, y1, table.shape[1]).astype("float64")
         elif len(boundaries) == 2:
             if boundaries[0].size != table.shape[0]:
-                mylog.error("X bins array not the same length as the data.")
+                ytLogger.error("X bins array not the same length as the data.")
                 raise ValueError
             if boundaries[1].size != table.shape[1]:
-                mylog.error("Y bins array not the same length as the data.")
+                ytLogger.error("Y bins array not the same length as the data.")
                 raise ValueError
             self.x_bins = boundaries[0]
             self.y_bins = boundaries[1]
         else:
-            mylog.error(
+            ytLogger.error(
                 "Boundaries must be given as (x0, x1, y0, y1) or as (x_bins, y_bins)"
             )
             raise ValueError
@@ -127,11 +127,11 @@ class BilinearFieldInterpolator:
             (y_i == -1) | (y_i == len(self.y_bins) - 1)
         ):
             if not self.truncate:
-                mylog.error(
+                ytLogger.error(
                     "Sorry, but your values are outside "
                     "the table!  Dunno what to do, so dying."
                 )
-                mylog.error("Error was in: %s", data_object)
+                ytLogger.error("Error was in: %s", data_object)
                 raise ValueError
             else:
                 x_i = np.minimum(np.maximum(x_i, 0), len(self.x_bins) - 2)
@@ -184,19 +184,19 @@ class TrilinearFieldInterpolator:
             self.z_bins = np.linspace(z0, z1, table.shape[2]).astype("float64")
         elif len(boundaries) == 3:
             if boundaries[0].size != table.shape[0]:
-                mylog.error("X bins array not the same length as the data.")
+                ytLogger.error("X bins array not the same length as the data.")
                 raise ValueError
             if boundaries[1].size != table.shape[1]:
-                mylog.error("Y bins array not the same length as the data.")
+                ytLogger.error("Y bins array not the same length as the data.")
                 raise ValueError
             if boundaries[2].size != table.shape[2]:
-                mylog.error("Z bins array not the same length as the data.")
+                ytLogger.error("Z bins array not the same length as the data.")
                 raise ValueError
             self.x_bins = boundaries[0]
             self.y_bins = boundaries[1]
             self.z_bins = boundaries[2]
         else:
-            mylog.error(
+            ytLogger.error(
                 "Boundaries must be given as (x0, x1, y0, y1, z0, z1) "
                 "or as (x_bins, y_bins, z_bins)"
             )
@@ -217,11 +217,11 @@ class TrilinearFieldInterpolator:
             or np.any((z_i == -1) | (z_i == len(self.z_bins) - 1))
         ):
             if not self.truncate:
-                mylog.error(
+                ytLogger.error(
                     "Sorry, but your values are outside "
                     "the table!  Dunno what to do, so dying."
                 )
-                mylog.error("Error was in: %s", data_object)
+                ytLogger.error("Error was in: %s", data_object)
                 raise ValueError
             else:
                 x_i = np.minimum(np.maximum(x_i, 0), len(self.x_bins) - 2)

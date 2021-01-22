@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 _convert_mass = ("particle_mass", "mass")
@@ -221,7 +221,7 @@ class IOHandlerInMemory(BaseIOHandler):
             fsize = size
             rv[field] = np.empty(fsize, dtype="float64")
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s grids",
             size,
             [f2 for f1, f2 in fields],
@@ -317,7 +317,7 @@ class IOHandlerPacked2D(IOHandlerPackedHDF5):
             fsize = size
             rv[field] = np.empty(fsize, dtype="float64")
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s grids",
             size,
             [f2 for f1, f2 in fields],

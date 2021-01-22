@@ -2,7 +2,7 @@ from itertools import product
 
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.lib._octree_raytracing import _OctreeRayTracing
 
 
@@ -33,7 +33,7 @@ class OctreeRayTracing:
         lvl = data_source["grid_level"].astype(int).value + lvl_min
 
         ipos = np.floor(xyz * (1 << depth)).astype(int)
-        mylog.debug("Adding cells to volume")
+        ytLogger.debug("Adding cells to volume")
         self.octree.add_nodes(
             ipos.astype(np.int32),
             lvl.astype(np.int32),

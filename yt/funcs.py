@@ -195,7 +195,7 @@ def time_execution(func):
         t1 = time.time()
         res = func(*arg, **kw)
         t2 = time.time()
-        mylog.debug("%s took %0.3f s", func.__name__, (t2 - t1))
+        ytLogger.debug("%s took %0.3f s", func.__name__, (t2 - t1))
         return res
 
     from yt.config import ytcfg
@@ -355,13 +355,13 @@ class ParallelProgressBar:
     # that prints on start/stop
     def __init__(self, title, maxval):
         self.title = title
-        mylog.info("Starting '%s'", title)
+        ytLogger.info("Starting '%s'", title)
 
     def update(self, *args, **kwargs):
         return
 
     def finish(self):
-        mylog.info("Finishing '%s'", self.title)
+        ytLogger.info("Finishing '%s'", self.title)
 
 
 class GUIProgressBar:
@@ -899,7 +899,7 @@ def get_image_suffix(name):
     if suffix in supported_suffixes or suffix == "":
         return suffix
     else:
-        mylog.warning("Unsupported image suffix requested (%s)", suffix)
+        ytLogger.warning("Unsupported image suffix requested (%s)", suffix)
         return ""
 
 
@@ -1085,14 +1085,14 @@ def enable_plugins(plugin_filename=None):
             raise FileNotFoundError("Could not find a global system plugin file.")
 
         if _fn.startswith(old_config_dir):
-            mylog.warning(
+            ytLogger.warning(
                 "Your plugin file is located in a deprecated directory. "
                 "Please move it from %s to %s",
                 os.path.join(old_config_dir, my_plugin_name),
                 os.path.join(CONFIG_DIR, my_plugin_name),
             )
 
-    mylog.info("Loading plugins from %s", _fn)
+    ytLogger.info("Loading plugins from %s", _fn)
     ytdict = yt.__dict__
     execdict = ytdict.copy()
     execdict["add_field"] = my_plugins_fields.add_field

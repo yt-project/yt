@@ -2,7 +2,7 @@ from operator import attrgetter
 
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
@@ -60,7 +60,7 @@ class IOHandlerAHFHalos(BaseIOHandler):
         halos = data_file.read_data(usecols=["ID"])
         pcount = len(halos["ID"])
         morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
+        ytLogger.debug(
             "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
         )
         if pcount == 0:

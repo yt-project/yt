@@ -9,7 +9,7 @@ from yt.utilities.exceptions import (
     YTParticleOutputFormatNotImplemented,
 )
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.physical_ratios import cm_per_km, cm_per_mpc
 
 from .definitions import VAR_DESC_RE, VERSION_RE
@@ -115,7 +115,7 @@ class IOHandlerRAMSES(BaseIOHandler):
                         rv = subset.fill(fd, field_subs, selector, file_handler)
                     for ft, f in field_subs:
                         d = rv.pop(f)
-                        mylog.debug(
+                        ytLogger.debug(
                             "Filling %s with %s (%0.3e %0.3e) (%s zones)",
                             f,
                             d.size,
@@ -234,7 +234,7 @@ def _read_part_file_descriptor(fname):
     with open(fname) as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.debug("Reading part file descriptor %s.", fname)
+        ytLogger.debug("Reading part file descriptor %s.", fname)
         if not tmp:
             raise YTParticleOutputFormatNotImplemented()
 
@@ -294,7 +294,7 @@ def _read_fluid_file_descriptor(fname):
     with open(fname) as f:
         line = f.readline()
         tmp = VERSION_RE.match(line)
-        mylog.debug("Reading fluid file descriptor %s.", fname)
+        ytLogger.debug("Reading fluid file descriptor %s.", fname)
         if not tmp:
             return []
 
@@ -320,7 +320,7 @@ def _read_fluid_file_descriptor(fname):
 
                 fields.append((varname, dtype))
         else:
-            mylog.error("Version %s", version)
+            ytLogger.error("Version %s", version)
             raise YTParticleOutputFormatNotImplemented()
 
     return fields

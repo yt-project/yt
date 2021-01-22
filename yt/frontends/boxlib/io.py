@@ -4,7 +4,7 @@ from collections import defaultdict
 import numpy as np
 
 from yt.frontends.chombo.io import parse_orion_sinks
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 
@@ -39,7 +39,7 @@ class IOHandlerBoxlib(BaseIOHandler):
                 rv[field] = np.empty(size, dtype="float64")
         centered_fields = _remove_raw(fields, raw_fields)
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s grids",
             size,
             [f2 for f1, f2 in fields],

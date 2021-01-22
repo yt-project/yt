@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.units.yt_array import uhstack, unorm, uvstack
 from yt.utilities.lib.grid_traversal import arr_fisheye_vectors
 from yt.utilities.math_utils import get_rotation_matrix
@@ -233,8 +233,8 @@ class PerspectiveLens(Lens):
             lens_type="perspective",
         )
 
-        mylog.debug(positions)
-        mylog.debug(vectors)
+        ytLogger.debug(positions)
+        ytLogger.debug(vectors)
 
         return sampler_params
 
@@ -427,8 +427,8 @@ class StereoPerspectiveLens(Lens):
         # Here the east_vecs is non-rotated one
         positions = positions + east_vecs * disparity
 
-        mylog.debug(positions)
-        mylog.debug(vectors)
+        ytLogger.debug(positions)
+        ytLogger.debug(vectors)
 
         return vectors, positions
 

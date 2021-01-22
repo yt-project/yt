@@ -19,7 +19,7 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 )
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_root
+from yt.funcs import get_memory_usage, is_sequence, iter_fields, only_on_root, ytLogger
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
@@ -288,12 +288,12 @@ class YTProj(YTSelectionContainer2D):
         # Now we run the finalizer, which is ignored if we don't need it
         field_data = np.hsplit(data.pop("fields"), len(fields))
         for fi, field in enumerate(fields):
-            mylog.debug("Setting field %s", field)
+            ytLogger.debug("Setting field %s", field)
             input_units = self._projected_units[field]
             self[field] = self.ds.arr(field_data[fi].ravel(), input_units)
         for i in list(data.keys()):
             self[i] = data.pop(i)
-        mylog.info("Projection completed")
+        ytLogger.info("Projection completed")
         self.tree = tree
 
     def to_pw(self, fields=None, center="c", width=None, origin="center-window"):
@@ -506,7 +506,7 @@ class YTQuadTreeProj(YTProj):
             deserialized_successfully = self._mrep.restore(store_file, self.ds)
 
             if deserialized_successfully:
-                mylog.info("Using previous projection data from %s", store_file)
+                ytLogger.info("Using previous projection data from %s", store_file)
                 for field, field_data in self._mrep.field_data.items():
                     self[field] = field_data
         if not deserialized_successfully:
@@ -544,7 +544,7 @@ class YTQuadTreeProj(YTProj):
         tree.initialize_chunk(i1, i2, ilevel)
 
     def _handle_chunk(self, chunk, fields, tree):
-        mylog.debug(
+        ytLogger.debug(
             "Adding chunk (%s) to tree (%0.3e GB RAM)",
             chunk.ires.size,
             get_memory_usage() / 1024.0,
@@ -1400,7 +1400,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 self.ds.__class__,
                 category=RuntimeWarning,
             )
-            mylog.debug(f"Caught {runtime_errors_count} runtime errors.")
+            ytLogger.debug(f"Caught {runtime_errors_count} runtime errors.")
         for name, v in zip(fields, ls.fields):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]
@@ -1565,7 +1565,7 @@ class YTSurface(YTSelectionContainer3D):
             fields = fields[0]
         # Now we have a "fields" value that is either a string or None
         if fields is not None:
-            mylog.info("Extracting (sampling: %s)", fields)
+            ytLogger.info("Extracting (sampling: %s)", fields)
         verts = []
         samples = []
         for _io_chunk in parallel_objects(self.data_source.chunks([], "io")):
@@ -1677,7 +1677,7 @@ class YTSurface(YTSelectionContainer3D):
         ...     "velocity_x", "velocity_y", "velocity_z", "metal_density")
         """
         flux = 0.0
-        mylog.info("Fluxing %s", fluxing_field)
+        ytLogger.info("Fluxing %s", fluxing_field)
         for _io_chunk in parallel_objects(self.data_source.chunks([], "io")):
             for block, mask in self.data_source.blocks:
                 flux += self._calculate_flux_in_grid(
@@ -2568,21 +2568,21 @@ class YTSurface(YTSelectionContainer3D):
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
         except requests.exceptions.RequestException as e:
-            mylog.error("An error occured: %s", e)
+            ytLogger.error("An error occured: %s", e)
             return
 
         result = r.json()
 
         if r.status_code != requests.codes.created:
-            mylog.error("Upload to SketchFab failed with error: %s", result)
+            ytLogger.error("Upload to SketchFab failed with error: %s", result)
             return
 
         model_uid = result["uid"]
         model_url = SKETCHFAB_MODEL_URL + model_uid
         if model_uid:
-            mylog.info("Model uploaded to: %s", model_url)
+            ytLogger.info("Model uploaded to: %s", model_url)
         else:
-            mylog.error("Problem uploading.")
+            ytLogger.error("Problem uploading.")
 
         return model_uid
 
@@ -2681,7 +2681,7 @@ class YTOctree(YTSelectionContainer3D):
             self._octree = None
             return
 
-        mylog.info("Allocating Octree for %s particles", positions.shape[0])
+        ytLogger.info("Allocating Octree for %s particles", positions.shape[0])
         self.loaded = False
         self._octree = CyOctree(
             positions.astype("float64", copy=False),
@@ -2694,7 +2694,7 @@ class YTOctree(YTSelectionContainer3D):
         )
 
         if fname is not None:
-            mylog.info("Saving octree to file %s", os.path.basename(fname))
+            ytLogger.info("Saving octree to file %s", os.path.basename(fname))
             self._octree.save(fname)
 
     @property
@@ -2721,11 +2721,11 @@ class YTOctree(YTSelectionContainer3D):
             self._generate_tree(fname)
         else:
             self.loaded = True
-            mylog.info("Loading octree from %s", os.path.basename(fname))
+            ytLogger.info("Loading octree from %s", os.path.basename(fname))
             self._octree = CyOctree()
             self._octree.load(fname)
             if self._octree.data_version != self.ds._file_hash:
-                mylog.info("Detected hash mismatch, regenerating Octree")
+                ytLogger.info("Detected hash mismatch, regenerating Octree")
                 self._generate_tree(fname)
 
         pos = ds.arr(self._octree.cell_positions, "code_length")

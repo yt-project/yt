@@ -3,7 +3,7 @@ import numpy as np
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.lib.mesh_utilities import fill_fcoords, fill_fwidths
 
 
@@ -45,7 +45,7 @@ class UnstructuredMesh(YTSelectionContainer):
             coords = self.connectivity_coords[ind, :]
             for i in range(3):
                 assert np.unique(coords[:, i]).size == 2
-        mylog.debug("Connectivity is consistent.")
+        ytLogger.debug("Connectivity is consistent.")
 
     def __repr__(self):
         return "UnstructuredMesh_%04i" % (self.mesh_id)

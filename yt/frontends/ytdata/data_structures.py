@@ -21,7 +21,7 @@ from yt.units import dimensions
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTQuantity, uconcatenate
 from yt.utilities.exceptions import GenerationInProgress, YTFieldTypeNotFound
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_root_only
 from yt.utilities.tree_container import TreeContainer
@@ -198,11 +198,11 @@ class YTDataset(SavedDataset):
         self.field_info.setup_fluid_index_fields()
 
         if "all" not in self.particle_types:
-            mylog.debug("Creating Particle Union 'all'")
+            ytLogger.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             self.add_particle_union(pu)
         self.field_info.setup_extra_union_fields()
-        mylog.debug("Loading field plugins.")
+        ytLogger.debug("Loading field plugins.")
         self.field_info.load_all_plugins()
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
@@ -283,7 +283,7 @@ class YTDataContainerDataset(YTDataset):
             container_type = self.parameters.get("container_type")
             ex_container_type = ["cutting", "quad_proj", "ray", "slice", "cut_region"]
             if data_type == "yt_light_ray" or container_type in ex_container_type:
-                mylog.info("Returning an all_data data container.")
+                ytLogger.info("Returning an all_data data container.")
                 return self.all_data()
 
             my_obj = getattr(self, self.parameters["container_type"])
@@ -749,7 +749,7 @@ class YTNonspatialDataset(YTGridDataset):
         ]:
             v = getattr(self, a)
             if v is not None:
-                mylog.info("Parameters: %-25s = %s", a, v)
+                ytLogger.info("Parameters: %-25s = %s", a, v)
         if hasattr(self, "cosmological_simulation") and self.cosmological_simulation:
             for a in [
                 "current_redshift",
@@ -759,8 +759,10 @@ class YTNonspatialDataset(YTGridDataset):
             ]:
                 v = getattr(self, a)
                 if v is not None:
-                    mylog.info("Parameters: %-25s = %s", a, v)
-        mylog.warning("Geometric data selection not available for this dataset type.")
+                    ytLogger.info("Parameters: %-25s = %s", a, v)
+        ytLogger.warning(
+            "Geometric data selection not available for this dataset type."
+        )
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
@@ -866,14 +868,14 @@ class YTProfileDataset(YTNonspatialDataset):
 
     def print_key_parameters(self):
         if is_root():
-            mylog.info("YTProfileDataset")
+            ytLogger.info("YTProfileDataset")
             for a in ["dimensionality", "profile_dimensions"] + [
                 f"{ax}_{attr}"
                 for ax in "xyz"[: self.dimensionality]
                 for attr in ["field", "range", "log"]
             ]:
                 v = getattr(self, a)
-                mylog.info("Parameters: %-25s = %s", a, v)
+                ytLogger.info("Parameters: %-25s = %s", a, v)
         super().print_key_parameters()
 
     @classmethod

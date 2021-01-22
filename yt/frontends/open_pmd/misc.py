@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 def parse_unit_dimension(unit_dimension):
@@ -41,7 +41,7 @@ def parse_unit_dimension(unit_dimension):
     'kg**1*s**-2*A**-1'
     """
     if len(unit_dimension) != 7:
-        mylog.error("SI must have 7 base dimensions!")
+        ytLogger.error("SI must have 7 base dimensions!")
     unit_dimension = np.asarray(unit_dimension, dtype=np.int)
     dim = []
     si = ["m", "kg", "s", "A", "C", "mol", "cd"]

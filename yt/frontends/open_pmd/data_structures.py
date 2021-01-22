@@ -14,7 +14,7 @@ from yt.frontends.open_pmd.misc import get_component, is_const_component
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 ompd_known_versions = [
@@ -469,7 +469,7 @@ class OpenPMDDataset(Dataset):
             if len(particles) > 1:
                 # Only use on-disk particle names if there is more than one species
                 self.particle_types = particles
-            mylog.debug("self.particle_types: %s", self.particle_types)
+            ytLogger.debug("self.particle_types: %s", self.particle_types)
             self.particle_types_raw = self.particle_types
             self.particle_types = tuple(self.particle_types)
         except (KeyError, TypeError, AttributeError):
@@ -490,24 +490,24 @@ class OpenPMDDataset(Dataset):
         encoding = handle.attrs["iterationEncoding"].decode()
         if "groupBased" in encoding:
             iterations = list(handle["/data"].keys())
-            mylog.info("Found %s iterations in file", len(iterations))
+            ytLogger.info("Found %s iterations in file", len(iterations))
         elif "fileBased" in encoding:
             itformat = handle.attrs["iterationFormat"].decode().split("/")[-1]
             regex = "^" + itformat.replace("%T", "[0-9]+") + "$"
             if path == "":
-                mylog.warning(
+                ytLogger.warning(
                     "For file based iterations, please use absolute file paths!"
                 )
                 pass
             for filename in listdir(path):
                 if match(regex, filename):
                     iterations.append(filename)
-            mylog.info("Found %s iterations in directory", len(iterations))
+            ytLogger.info("Found %s iterations in directory", len(iterations))
 
         if len(iterations) == 0:
-            mylog.warning("No iterations found!")
+            ytLogger.warning("No iterations found!")
         if "groupBased" in encoding and len(iterations) > 1:
-            mylog.warning("Only chose to load one iteration (%s)", iteration)
+            ytLogger.warning("Only chose to load one iteration (%s)", iteration)
 
         self.base_path = f"/data/{iteration}/"
         try:
@@ -515,7 +515,7 @@ class OpenPMDDataset(Dataset):
             handle[self.base_path + self.meshes_path]
         except (KeyError):
             if self.standard_version <= StrictVersion("1.1.0"):
-                mylog.info(
+                ytLogger.info(
                     "meshesPath not present in file. "
                     "Assuming file contains no meshes and has a domain extent of 1m^3!"
                 )
@@ -527,7 +527,7 @@ class OpenPMDDataset(Dataset):
             handle[self.base_path + self.particles_path]
         except (KeyError):
             if self.standard_version <= StrictVersion("1.1.0"):
-                mylog.info(
+                ytLogger.info(
                     "particlesPath not present in file."
                     " Assuming file contains no particles!"
                 )

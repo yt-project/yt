@@ -6,7 +6,7 @@ import numpy as np
 from yt.frontends.sph.io import IOHandlerSPH
 from yt.units.yt_array import uconcatenate
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .definitions import SNAP_FORMAT_2_OFFSET, gadget_hdf5_ptypes
@@ -96,7 +96,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             with h5py.File(hsml_fn, mode="r") as f:
                 file_hash = f.attrs["q"]
             if file_hash != self.ds._file_hash:
-                mylog.warning("Replacing hsml files.")
+                ytLogger.warning("Replacing hsml files.")
                 for data_file in data_files:
                     hfn = data_file.filename.replace(".hdf5", ".hsml.hdf5")
                     os.remove(hfn)
@@ -122,7 +122,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype
         hsml = hsml[np.argsort(kdtree.idx)].astype(dtype)
-        mylog.warning("Writing smoothing lengths to hsml files.")
+        ytLogger.warning("Writing smoothing lengths to hsml files.")
         for i, data_file in enumerate(data_files):
             si, ei = data_file.start, data_file.end
             fn = data_file.filename
@@ -538,7 +538,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                         continue
                     if float(diff) / psize == int(float(diff) / psize):
                         possible.append(ptype)
-                mylog.warning(
+                ytLogger.warning(
                     "Your Gadget-2 file may have extra "
                     "columns or different precision! "
                     "(%s diff => %s?)",

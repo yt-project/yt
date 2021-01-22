@@ -14,7 +14,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import mylog, setdefaultattr
+from yt.funcs import setdefaultattr, ytLogger
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.physical_constants import boltzmann_constant_cgs as kb_cgs
 
@@ -198,7 +198,7 @@ class AMRVACDataset(Dataset):
                 namelist_gamma = namelist["mhd_list"].get("mhd_gamma")
 
             if namelist_gamma is not None and self.gamma != namelist_gamma:
-                mylog.error(
+                ytLogger.error(
                     "Inconsistent values in gamma: datfile %s, parfiles %s",
                     self.gamma,
                     namelist_gamma,
@@ -299,7 +299,7 @@ class AMRVACDataset(Dataset):
         self.domain_dimensions = dd
 
         if self.parameters.get("staggered", False):
-            mylog.warning(
+            ytLogger.warning(
                 "'staggered' flag was found, but is currently ignored (unsupported)"
             )
 
@@ -314,7 +314,7 @@ class AMRVACDataset(Dataset):
             self.geometry = self._parse_geometry(amrvac_geom)
         elif self.parameters["datfile_version"] > 4:
             # py38: walrus here
-            mylog.error(
+            ytLogger.error(
                 "No 'geometry' flag found in datfile with version %d >4.",
                 self.parameters["datfile_version"],
             )
@@ -324,20 +324,22 @@ class AMRVACDataset(Dataset):
             try:
                 new_geometry = self._parse_geometry(self._geometry_override)
                 if new_geometry == self.geometry:
-                    mylog.info("geometry_override is identical to datfile parameter.")
+                    ytLogger.info(
+                        "geometry_override is identical to datfile parameter."
+                    )
                 else:
                     self.geometry = new_geometry
-                    mylog.warning(
+                    ytLogger.warning(
                         "Overriding geometry, this may lead to surprising results."
                     )
             except ValueError:
-                mylog.error(
+                ytLogger.error(
                     "Unable to parse geometry_override '%s' (will be ignored).",
                     self._geometry_override,
                 )
 
         if self.geometry is None:
-            mylog.warning(
+            ytLogger.warning(
                 "No geometry parameter supplied or found, defaulting to cartesian."
             )
             self.geometry = "cartesian"

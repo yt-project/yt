@@ -9,7 +9,7 @@ from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 from .fields import CM1FieldInfo
 
@@ -193,7 +193,7 @@ class CM1Dataset(Dataset):
                         failed_vars.append(var)
 
                 if failed_vars:
-                    mylog.warning(
+                    ytLogger.warning(
                         "Trying to load a cm1_lofs netcdf file but the "
                         "coordinates of the following fields do not match the "
                         f"coordinates of the dataset: {failed_vars}"
@@ -202,7 +202,7 @@ class CM1Dataset(Dataset):
 
             if not is_cm1_lofs:
                 if is_cm1:
-                    mylog.warning(
+                    ytLogger.warning(
                         "It looks like you are trying to load a cm1 netcdf file, "
                         "but at present yt only supports cm1_lofs output. Until"
                         " support is added, you can likely use"

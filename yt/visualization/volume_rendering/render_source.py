@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import ensure_numpy_array, is_sequence, mylog
+from yt.funcs import ensure_numpy_array, is_sequence, ytLogger
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.oct_geometry_handler import OctreeIndex
 from yt.utilities.amr_kdtree.api import AMRKDTree
@@ -218,7 +218,7 @@ class VolumeSource(RenderSource, abc.ABC):
             self._transfer_function = self.tfh.tf
             return self._transfer_function
 
-        mylog.info("Creating transfer function")
+        ytLogger.info("Creating transfer function")
         self.tfh.set_field(self.field)
         self.tfh.set_log(self.log_field)
         self.tfh.build_transfer_function()
@@ -502,7 +502,7 @@ class KDTreeVolumeSource(VolumeSource):
         """
 
         if self._volume is None:
-            mylog.info("Creating volume")
+            ytLogger.info("Creating volume")
             volume = AMRKDTree(self.data_source.ds, data_source=self.data_source)
             self._volume = volume
 
@@ -532,7 +532,7 @@ class KDTreeVolumeSource(VolumeSource):
         self.set_sampler(camera)
         assert self.sampler is not None
 
-        mylog.debug("Casting rays")
+        ytLogger.debug("Casting rays")
         total_cells = 0
         if self.check_nans:
             for brick in self.volume.bricks:
@@ -541,10 +541,10 @@ class KDTreeVolumeSource(VolumeSource):
                         raise RuntimeError
 
         for brick in self.volume.traverse(camera.lens.viewpoint):
-            mylog.debug("Using sampler %s", self.sampler)
+            ytLogger.debug("Using sampler %s", self.sampler)
             self.sampler(brick, num_threads=self.num_threads)
             total_cells += np.prod(brick.my_data[0].shape)
-        mylog.debug("Done casting rays")
+        ytLogger.debug("Done casting rays")
         self.current_image = self.finalize_image(camera, self.sampler.aimage)
 
         if zbuffer is None:
@@ -576,7 +576,7 @@ class OctreeVolumeSource(VolumeSource):
         """
 
         if self._volume is None:
-            mylog.info("Creating volume")
+            ytLogger.info("Creating volume")
             volume = OctreeRayTracing(self.data_source)
             self._volume = volume
 
@@ -616,7 +616,7 @@ class OctreeVolumeSource(VolumeSource):
         LE = xyz - dx / 2
         RE = xyz + dx / 2
 
-        mylog.debug("Gathering data")
+        ytLogger.debug("Gathering data")
         dt = np.stack(list(self.volume.data) + [*LE.T, *RE.T], axis=-1).reshape(
             1, len(dx), 14, 1
         )
@@ -624,9 +624,9 @@ class OctreeVolumeSource(VolumeSource):
         dims = np.array([1, 1, 1], dtype=int)
         pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims, n_fields=1)
 
-        mylog.debug("Casting rays")
+        ytLogger.debug("Casting rays")
         self.sampler(pg, oct=self.volume.octree)
-        mylog.debug("Done casting rays")
+        ytLogger.debug("Done casting rays")
 
         self.current_image = self.finalize_image(camera, self.sampler.aimage)
 
@@ -780,7 +780,9 @@ class MeshSource(OpaqueSource):
             # to 1st order here, for now.
             if indices.shape[1] == 27:
                 # hexahedral
-                mylog.warning("27-node hexes not yet supported, dropping to 1st order.")
+                ytLogger.warning(
+                    "27-node hexes not yet supported, dropping to 1st order."
+                )
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
 
@@ -811,7 +813,7 @@ class MeshSource(OpaqueSource):
         # low-order geometry.
         if indices.shape[1] == 27:
             # hexahedral
-            mylog.warning("27-node hexes not yet supported, dropping to 1st order.")
+            ytLogger.warning("27-node hexes not yet supported, dropping to 1st order.")
             field_data = field_data[:, 0:8]
             indices = indices[:, 0:8]
 
@@ -850,9 +852,9 @@ class MeshSource(OpaqueSource):
 
         self.sampler = new_mesh_sampler(camera, self, engine=self.engine)
 
-        mylog.debug("Casting rays")
+        ytLogger.debug("Casting rays")
         self.sampler(self.volume)
-        mylog.debug("Done casting rays")
+        ytLogger.debug("Done casting rays")
 
         self.finalize_image(camera)
         self.current_image = self.apply_colormap()

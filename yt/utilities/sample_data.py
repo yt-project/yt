@@ -9,7 +9,7 @@ import os
 import pkg_resources
 
 from yt.config import ytcfg
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.on_demand_imports import _pooch as pooch
 
 ## The format of the data registry json:
@@ -79,7 +79,7 @@ class PoochHandle:
         """
 
         if not isinstance(name, str):
-            mylog.error(
+            ytLogger.error(
                 "The argument %s passed to load_sample() is not a string.", name
             )
 
@@ -101,7 +101,7 @@ class PoochHandle:
             basename = base
             extension = "h5"
         else:
-            mylog.info(
+            ytLogger.info(
                 """extension of %s for dataset %s is unexpected. the `load_data`
                 function  may not work as expected""",
                 ext,

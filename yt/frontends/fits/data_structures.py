@@ -12,7 +12,7 @@ from more_itertools import always_iterable
 from yt.config import ytcfg
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import mylog, setdefaultattr
+from yt.funcs import setdefaultattr, ytLogger
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.units import dimensions
@@ -73,7 +73,7 @@ class FITSHierarchy(GridIndex):
         field_from_unit = {"Jy": "intensity", "K": "temperature"}
         for k, v in field_from_unit.items():
             if k in units:
-                mylog.warning(
+                ytLogger.warning(
                     "Guessing this is a %s field based on its units of %s.", v, k
                 )
                 return v
@@ -150,7 +150,7 @@ class FITSHierarchy(GridIndex):
                             dup_field_index[fname] += 1
                         else:
                             dup_field_index[fname] = 1
-                        mylog.warning(
+                        ytLogger.warning(
                             "This field has the same name as a previously loaded "
                             "field. Changing the name from %s to %s_%d. To avoid "
                             "this, change one of the BTYPE header keywords.",
@@ -172,15 +172,15 @@ class FITSHierarchy(GridIndex):
                             self._scale_map[fname][1] = hdu.header["bscale"]
                         self.field_list.append(("fits", fname))
                         self.dataset.field_units[fname] = units
-                        mylog.info("Adding field %s to the list of fields.", fname)
+                        ytLogger.info("Adding field %s to the list of fields.", fname)
                         if units == "dimensionless":
-                            mylog.warning(
+                            ytLogger.warning(
                                 "Could not determine dimensions for field %s, "
                                 "setting to dimensionless.",
                                 fname,
                             )
                 else:
-                    mylog.warning(
+                    ytLogger.warning(
                         "Image block %s does not have the same dimensions "
                         "as the primary and will not be available as a field.",
                         hdu.name.lower(),
@@ -405,10 +405,10 @@ class FITSDataset(Dataset):
             if len(set(file_units)) == 1:
                 length_factor = self.wcs.wcs.cdelt[0]
                 length_unit = str(file_units[0])
-                mylog.info("Found length units of %s.", length_unit)
+                ytLogger.info("Found length units of %s.", length_unit)
             else:
                 self.no_cgs_equiv_length = True
-                mylog.warning("No length conversion provided. Assuming 1 = 1 cm.")
+                ytLogger.warning("No length conversion provided. Assuming 1 = 1 cm.")
                 length_factor = 1.0
                 length_unit = "cm"
             setdefaultattr(self, "length_unit", self.quan(length_factor, length_unit))
@@ -416,7 +416,7 @@ class FITSDataset(Dataset):
             # We set these to cgs for now, but they may have been overridden
             if getattr(self, unit + "_unit", None) is not None:
                 continue
-            mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
+            ytLogger.warning("Assuming 1.0 = 1.0 %s", cgs)
             setdefaultattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
             4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
@@ -455,7 +455,7 @@ class FITSDataset(Dataset):
         try:
             self.current_time = self.parameters["time"]
         except Exception:
-            mylog.warning("Cannot find time")
+            ytLogger.warning("Cannot find time")
             self.current_time = 0.0
             pass
 
@@ -591,17 +591,17 @@ class YTFITSDataset(FITSDataset):
                     self.primary_header[short_unit],
                     self.primary_header.comments[short_unit].strip("[]"),
                 )
-                mylog.info("Found %s units of %s.", unit, u)
+                ytLogger.info("Found %s units of %s.", unit, u)
             else:
                 if unit == "length":
                     # Falling back to old way of getting units for length
                     # in old files
                     u = self.quan(1.0, str(self.wcs.wcs.cunit[0]))
-                    mylog.info("Found %s units of %s.", unit, u)
+                    ytLogger.info("Found %s units of %s.", unit, u)
                 else:
                     # Give up otherwise
                     u = self.quan(1.0, cgs)
-                    mylog.warning(
+                    ytLogger.warning(
                         "No unit for %s found. Assuming 1.0 code_%s = 1.0 %s",
                         unit,
                         unit,
@@ -658,7 +658,7 @@ class SkyDataFITSDataset(FITSDataset):
         self.geometry = "spectral_cube"
 
         log_str = "Detected these axes: " + "%s " * len(self.ctypes)
-        mylog.info(log_str, *self.ctypes)
+        ytLogger.info(log_str, *self.ctypes)
 
         self.lat_axis = np.zeros((end - 1), dtype="bool")
         for p in lat_prefixes:
@@ -779,7 +779,7 @@ class SpectralCubeFITSDataset(SkyDataFITSDataset):
                 max(self.domain_dimensions[[self.lon_axis, self.lat_axis]])
             )
             self.spectral_factor /= self.domain_dimensions[self.spec_axis]
-            mylog.info("Setting the spectral factor to %f", self.spectral_factor)
+            ytLogger.info("Setting the spectral factor to %f", self.spectral_factor)
         Dz = (
             self.domain_right_edge[self.spec_axis]
             - self.domain_left_edge[self.spec_axis]
@@ -819,7 +819,7 @@ class EventsFITSHierarchy(FITSHierarchy):
         self.field_list = []
         for k, v in ds.events_info.items():
             fname = "event_" + k
-            mylog.info("Adding field %s to the list of fields.", fname)
+            ytLogger.info("Adding field %s to the list of fields.", fname)
             self.field_list.append(("io", fname))
             if k in ["x", "y"]:
                 field_unit = "code_length"

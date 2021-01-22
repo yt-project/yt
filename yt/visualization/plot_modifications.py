@@ -11,7 +11,7 @@ from yt.data_objects.level_sets.clump_handling import Clump
 from yt.data_objects.selection_objects.cut_region import YTCutRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTClumpContainer
-from yt.funcs import is_sequence, mylog, validate_width_tuple
+from yt.funcs import is_sequence, validate_width_tuple, ytLogger
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
@@ -744,7 +744,7 @@ class GridBoundaryCallback(PlotCallback):
         else:
             self.id_loc = id_loc.lower()  # Make case-insensitive
             if not self.draw_ids:
-                mylog.warning(
+                ytLogger.warning(
                     "Supplied id_loc but draw_ids is False. Not drawing grid ids"
                 )
         self.periodic = periodic
@@ -1216,7 +1216,7 @@ class ClumpContourCallback(PlotCallback):
         ny, nx = plot.image._A.shape
         buff = np.zeros((nx, ny), dtype="float64")
         for i, clump in enumerate(reversed(self.clumps)):
-            mylog.info("Pixelizing contour %s", i)
+            ytLogger.info("Pixelizing contour %s", i)
 
             if isinstance(clump, Clump):
                 ftype = "index"
@@ -2049,7 +2049,7 @@ class ParticleCallback(PlotCallback):
         x0, x1, y0, y1 = self._physical_bounds(plot)
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         if isinstance(self.data_source, YTCutRegion):
-            mylog.warning(
+            ytLogger.warning(
                 "Parameter 'width' is ignored in annotate_particles if the "
                 "data_source is a cut_region. "
                 "See https://github.com/yt-project/yt/issues/1933 for further details."

@@ -19,7 +19,13 @@ from yt.data_objects.region_expression import RegionExpression
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
-from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
+from yt.funcs import (
+    is_sequence,
+    iter_fields,
+    set_intersection,
+    setdefaultattr,
+    ytLogger,
+)
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
     CoordinateHandler,
@@ -165,7 +171,7 @@ class Dataset(abc.ABC):
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
         output_type_registry[cls.__name__] = cls
-        mylog.debug("Registering: %s as %s", cls.__name__, cls)
+        ytLogger.debug("Registering: %s as %s", cls.__name__, cls)
 
     def __init__(
         self,
@@ -537,10 +543,10 @@ class Dataset(abc.ABC):
             "cosmological_simulation",
         ]:
             if not hasattr(self, a):
-                mylog.error("Missing %s in parameter file definition!", a)
+                ytLogger.error("Missing %s in parameter file definition!", a)
                 continue
             v = getattr(self, a)
-            mylog.info("Parameters: %-25s = %s", a, v)
+            ytLogger.info("Parameters: %-25s = %s", a, v)
         if hasattr(self, "cosmological_simulation") and self.cosmological_simulation:
             for a in [
                 "current_redshift",
@@ -550,10 +556,10 @@ class Dataset(abc.ABC):
                 "hubble_constant",
             ]:
                 if not hasattr(self, a):
-                    mylog.error("Missing %s in parameter file definition!", a)
+                    ytLogger.error("Missing %s in parameter file definition!", a)
                     continue
                 v = getattr(self, a)
-                mylog.info("Parameters: %-25s = %s", a, v)
+                ytLogger.info("Parameters: %-25s = %s", a, v)
 
     @parallel_root_only
     def print_stats(self):
@@ -574,13 +580,13 @@ class Dataset(abc.ABC):
             self.field_info.setup_particle_fields(ptype)
         self.field_info.setup_fluid_index_fields()
         if "all" not in self.particle_types:
-            mylog.debug("Creating Particle Union 'all'")
+            ytLogger.debug("Creating Particle Union 'all'")
             pu = ParticleUnion("all", list(self.particle_types_raw))
             nfields = self.add_particle_union(pu)
             if nfields == 0:
-                mylog.debug("zero common fields: skipping particle union 'all'")
+                ytLogger.debug("zero common fields: skipping particle union 'all'")
         if "nbody" not in self.particle_types:
-            mylog.debug("Creating Particle Union 'nbody'")
+            ytLogger.debug("Creating Particle Union 'nbody'")
             ptypes = list(self.particle_types_raw)
             if hasattr(self, "_sph_ptypes"):
                 for sph_ptype in self._sph_ptypes:
@@ -594,9 +600,11 @@ class Dataset(abc.ABC):
                 pu = ParticleUnion("nbody", nbody_ptypes)
                 nfields = self.add_particle_union(pu)
                 if nfields == 0:
-                    mylog.debug("zero common fields, skipping particle union 'nbody'")
+                    ytLogger.debug(
+                        "zero common fields, skipping particle union 'nbody'"
+                    )
         self.field_info.setup_extra_union_fields()
-        mylog.debug("Loading field plugins.")
+        ytLogger.debug("Loading field plugins.")
         self.field_info.load_all_plugins(self.default_fluid_type)
         deps, unloaded = self.field_info.check_derived_fields()
         self.field_dependencies.update(deps)
@@ -752,7 +760,7 @@ class Dataset(abc.ABC):
             if filter.filtered_type in filter_registry:
                 add_success = self.add_particle_filter(filter.filtered_type)
                 if add_success:
-                    mylog.info(
+                    ytLogger.info(
                         "Added filter dependency '%s' for '%s'",
                         filter.filtered_type,
                         filter.name,
@@ -780,7 +788,7 @@ class Dataset(abc.ABC):
                 self.filtered_particle_types.append(filter.name)
             if hasattr(self, "_sph_ptypes"):
                 if filter.filtered_type == self._sph_ptypes[0]:
-                    mylog.warning(
+                    ytLogger.warning(
                         "It appears that you are filtering on an SPH field "
                         "type. It is recommended to use 'gas' as the "
                         "filtered particle type in this case instead."
@@ -925,10 +933,10 @@ class Dataset(abc.ABC):
         }[ext]
         val, x1, x2, x3 = method(field)
         coords = [x1, x2, x3]
-        mylog.info("%s value is %0.5e at %0.16f %0.16f %0.16f", ext, val, *coords)
+        ytLogger.info("%s value is %0.5e at %0.16f %0.16f %0.16f", ext, val, *coords)
         if to_array:
             if any(x.units.is_dimensionless for x in coords):
-                mylog.warning(
+                ytLogger.warning(
                     f"dataset {self} has angular coordinates. "
                     "Use 'to_array=False' to preserve "
                     "dimensionality in each coordinate."
@@ -951,7 +959,7 @@ class Dataset(abc.ABC):
 
         This is a wrapper around _find_extremum
         """
-        mylog.debug("Searching for maximum value of %s", field)
+        ytLogger.debug("Searching for maximum value of %s", field)
         return self._find_extremum(field, "max", source=source, to_array=to_array)
 
     def find_min(self, field, source=None, to_array=True):
@@ -960,7 +968,7 @@ class Dataset(abc.ABC):
 
         This is a wrapper around _find_extremum
         """
-        mylog.debug("Searching for minimum value of %s", field)
+        ytLogger.debug("Searching for minimum value of %s", field)
         return self._find_extremum(field, "min", source=source, to_array=to_array)
 
     def find_field_values_at_point(self, fields, coords):
@@ -1342,12 +1350,12 @@ class Dataset(abc.ABC):
         if not self.units_override:
             return
 
-        mylog.warning(
+        ytLogger.warning(
             "Overriding code units: Use this option only if you know that the "
             "dataset doesn't define the units correctly or at all."
         )
         for ukey, val in self.units_override.items():
-            mylog.info("Overriding %s: %s.", ukey, val)
+            ytLogger.info("Overriding %s: %s.", ukey, val)
             setattr(self, ukey, self.quan(val))
 
     _units = None
@@ -1502,7 +1510,7 @@ class Dataset(abc.ABC):
             )
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
-            mylog.warning(
+            ytLogger.warning(
                 "Field %s already exists. To override use `force_override=True`.",
                 name,
             )
@@ -1611,7 +1619,7 @@ class Dataset(abc.ABC):
         if method == "count":
             field_name = f"{ptype}_count"
             if ("deposit", field_name) in self.field_info:
-                mylog.warning("The deposited field %s already exists", field_name)
+                ytLogger.warning("The deposited field %s already exists", field_name)
                 return ("deposit", field_name)
             else:
                 units = "dimensionless"

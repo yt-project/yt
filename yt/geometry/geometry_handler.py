@@ -8,7 +8,7 @@ from yt.config import ytcfg
 from yt.units.yt_array import YTArray, uconcatenate
 from yt.utilities.exceptions import YTFieldNotFound
 from yt.utilities.io_handler import io_registry
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     ParallelAnalysisInterface,
@@ -29,18 +29,18 @@ class Index(ParallelAnalysisInterface, abc.ABC):
 
         self._initialize_state_variables()
 
-        mylog.debug("Initializing data storage.")
+        ytLogger.debug("Initializing data storage.")
         self._initialize_data_storage()
 
-        mylog.debug("Setting up domain geometry.")
+        ytLogger.debug("Setting up domain geometry.")
         self._setup_geometry()
 
-        mylog.debug("Initializing data grid data IO")
+        ytLogger.debug("Initializing data grid data IO")
         self._setup_data_io()
 
         # Note that this falls under the "geometry" object since it's
         # potentially quite expensive, and should be done with the indexing.
-        mylog.debug("Detecting fields.")
+        ytLogger.debug("Detecting fields.")
         self._detect_output_fields()
 
     @abc.abstractmethod
@@ -122,7 +122,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         try:
             node_loc = self._data_file[node]
             if name in node_loc and force:
-                mylog.info("Overwriting node %s/%s", node, name)
+                ytLogger.info("Overwriting node %s/%s", node, name)
                 del self._data_file[node][name]
             elif name in node_loc and passthrough:
                 return

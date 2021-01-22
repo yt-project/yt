@@ -32,7 +32,7 @@ from yt.utilities.lib.particle_kdtree_tools import (
     estimate_density,
     generate_smoothing_length,
 )
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 from .definitions import process_data, set_particle_types
 from .fields import StreamFieldInfo
@@ -143,7 +143,7 @@ class StreamHierarchy(GridIndex):
         self.min_level = self.grid_levels.min()
         self.grid_procs = self.stream_handler.processor_ids
         self.grid_particle_count[:] = self.stream_handler.particle_count
-        mylog.debug("Copying reverse tree")
+        ytLogger.debug("Copying reverse tree")
         self.grids = []
         # We enumerate, so it's 0-indexed id and 1-indexed pid
         for id in range(self.num_grids):
@@ -158,25 +158,25 @@ class StreamHierarchy(GridIndex):
                     self.grids[gid]._parent_id = pid
                     self.grids[pid]._children_ids.append(self.grids[gid].id)
         else:
-            mylog.debug("Reconstructing parent-child relationships")
+            ytLogger.debug("Reconstructing parent-child relationships")
             self._reconstruct_parent_child()
         self.max_level = self.grid_levels.max()
-        mylog.debug("Preparing grids")
+        ytLogger.debug("Preparing grids")
         temp_grids = np.empty(self.num_grids, dtype="object")
         for i, grid in enumerate(self.grids):
             if (i % 1e4) == 0:
-                mylog.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
+                ytLogger.debug("Prepared % 7i / % 7i grids", i, self.num_grids)
             grid.filename = None
             grid._prepare_grid()
             grid._setup_dx()
             grid.proc_num = self.grid_procs[i]
             temp_grids[i] = grid
         self.grids = temp_grids
-        mylog.debug("Prepared")
+        ytLogger.debug("Prepared")
 
     def _reconstruct_parent_child(self):
         mask = np.empty(len(self.grids), dtype="int32")
-        mylog.debug("First pass; identifying child grids")
+        ytLogger.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
             get_box_grids_level(
                 self.grid_left_edge[i, :],
@@ -189,7 +189,7 @@ class StreamHierarchy(GridIndex):
             )
             ids = np.where(mask.astype("bool"))
             grid._children_ids = ids[0]  # where is a tuple
-        mylog.debug("Second pass; identifying parents")
+        ytLogger.debug("Second pass; identifying parents")
         self.stream_handler.parent_ids = (
             np.zeros(self.stream_handler.num_grids, "int64") - 1
         )
@@ -255,7 +255,7 @@ class StreamHierarchy(GridIndex):
                 self.ds.field_list.remove(field)
         self._detect_output_fields()
         self.ds.create_field_info()
-        mylog.debug("Creating Particle Union 'all'")
+        ytLogger.debug("Creating Particle Union 'all'")
         pu = ParticleUnion("all", list(self.ds.particle_types_raw))
         self.ds.add_particle_union(pu)
         self.ds.particle_types = tuple(set(self.ds.particle_types))
@@ -395,7 +395,7 @@ class StreamParticleIndex(SPHParticleIndex):
         for key in data.keys():
             if not isinstance(key, tuple):
                 field = ("io", key)
-                mylog.debug("Reassigning '%s' to '%s'", key, field)
+                ytLogger.debug("Reassigning '%s' to '%s'", key, field)
             else:
                 field = key
             pdata[field] = data[key]
@@ -474,7 +474,7 @@ class StreamParticlesDataset(StreamDataset):
             method will overwrite existing sph_ptype of the dataset.
 
         """
-        mylog.info("Generating SPH fields")
+        ytLogger.info("Generating SPH fields")
 
         # Unify units
         l_unit = "code_length"
@@ -498,12 +498,12 @@ class StreamParticlesDataset(StreamDataset):
 
         def exists(fname):
             if (sph_ptype, fname) in self.derived_field_list:
-                mylog.info(
+                ytLogger.info(
                     "Field ('%s','%s') already exists. Skipping", sph_ptype, fname
                 )
                 return True
             else:
-                mylog.info("Generating field ('%s','%s')", sph_ptype, fname)
+                ytLogger.info("Generating field ('%s','%s')", sph_ptype, fname)
                 return False
 
         data = {}
@@ -666,7 +666,9 @@ class StreamOctreeSubset(OctreeSubset):
 
         if num_ghost_zones > 0:
             if not all(ds.periodicity):
-                mylog.warn("Ghost zones will wrongly assume the domain to be periodic.")
+                ytLogger.warn(
+                    "Ghost zones will wrongly assume the domain to be periodic."
+                )
             base_grid = StreamOctreeSubset(
                 base_region, ds, oct_handler, over_refine_factor
             )
@@ -675,7 +677,7 @@ class StreamOctreeSubset(OctreeSubset):
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         try:
             new_subset = self._subset_with_gz
-            mylog.debug("Reusing previous subset with ghost zone.")
+            ytLogger.debug("Reusing previous subset with ghost zone.")
         except AttributeError:
             new_subset = StreamOctreeSubset(
                 self.base_region,

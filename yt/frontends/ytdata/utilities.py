@@ -1,5 +1,5 @@
 from yt.units.yt_array import YTArray
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
@@ -65,7 +65,7 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
 
     """
 
-    mylog.info("Saving field data to yt dataset: %s.", filename)
+    ytLogger.info("Saving field data to yt dataset: %s.", filename)
 
     if extra_attrs is None:
         extra_attrs = {}

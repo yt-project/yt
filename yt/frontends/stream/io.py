@@ -2,7 +2,7 @@ import numpy as np
 
 from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 class IOHandlerStream(BaseIOHandler):
@@ -33,7 +33,7 @@ class IOHandlerStream(BaseIOHandler):
             rv[field] = self.ds.arr(np.empty(size, dtype="float64"))
 
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s blocks",
             size,
             [f2 for f1, f2 in fields],
@@ -223,7 +223,7 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
             ftype, fname = field
             rv[field] = np.empty(size, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s blocks",
             size,
             [fn for ft, fn in fields],

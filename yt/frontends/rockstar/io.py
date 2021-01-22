@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
@@ -83,7 +83,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
     def _initialize_index(self, data_file, regions):
         pcount = data_file.header["num_halos"]
         morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
+        ytLogger.debug(
             "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
         )
         if pcount == 0:

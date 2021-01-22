@@ -15,7 +15,7 @@ from yt.utilities.exceptions import (
     NoStoppingCondition,
     YTUnidentifiedDataType,
 )
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
 
 
@@ -223,7 +223,7 @@ class GadgetSimulation(SimulationTimeSeries):
             DatasetSeries.__init__(
                 self, outputs=[], parallel=parallel, unit_base=self.unit_base
             )
-            mylog.info("0 outputs loaded into time series.")
+            ytLogger.info("0 outputs loaded into time series.")
             return
 
         # Apply selection criteria to the set.
@@ -282,7 +282,7 @@ class GadgetSimulation(SimulationTimeSeries):
             if os.path.exists(output["filename"]):
                 init_outputs.append(output["filename"])
         if len(init_outputs) == 0 and len(my_outputs) > 0:
-            mylog.warning(
+            ytLogger.warning(
                 "Could not find any datasets.  "
                 "Check the value of OutputDir in your parameter file."
             )
@@ -294,7 +294,7 @@ class GadgetSimulation(SimulationTimeSeries):
             setup_function=setup_function,
             unit_base=self.unit_base,
         )
-        mylog.info("%d outputs loaded into time series.", len(init_outputs))
+        ytLogger.info("%d outputs loaded into time series.", len(init_outputs))
 
     def _parse_parameter_file(self):
         """
@@ -383,7 +383,7 @@ class GadgetSimulation(SimulationTimeSeries):
         else:
             data_dir = os.path.join(self.directory, self.parameters["OutputDir"])
         if not os.path.exists(data_dir):
-            mylog.info(
+            ytLogger.info(
                 "OutputDir not found at %s, instead using %s.", data_dir, self.directory
             )
             data_dir = self.directory
@@ -498,7 +498,7 @@ class GadgetSimulation(SimulationTimeSeries):
         potential_outputs = glob.glob(self._snapshot_format())
         self.all_outputs = self._check_for_outputs(potential_outputs)
         self.all_outputs.sort(key=lambda obj: obj["time"])
-        only_on_root(mylog.info, "Located %d total outputs.", len(self.all_outputs))
+        only_on_root(ytLogger.info, "Located %d total outputs.", len(self.all_outputs))
 
         # manually set final time and redshift with last output
         if self.all_outputs:
@@ -512,7 +512,7 @@ class GadgetSimulation(SimulationTimeSeries):
         """
 
         only_on_root(
-            mylog.info, "Checking %d potential outputs.", len(potential_outputs)
+            ytLogger.info, "Checking %d potential outputs.", len(potential_outputs)
         )
 
         my_outputs = {}
@@ -522,7 +522,7 @@ class GadgetSimulation(SimulationTimeSeries):
             try:
                 ds = load(output)
             except (FileNotFoundError, YTUnidentifiedDataType):
-                mylog.error("Failed to load %s", output)
+                ytLogger.error("Failed to load %s", output)
                 continue
             my_storage.result = {
                 "filename": output,
@@ -541,7 +541,7 @@ class GadgetSimulation(SimulationTimeSeries):
         Write cosmology output parameters for a cosmology splice.
         """
 
-        mylog.info("Writing redshift output list to %s.", filename)
+        ytLogger.info("Writing redshift output list to %s.", filename)
         f = open(filename, "w")
         for output in outputs:
             f.write(f"{1.0 / (1.0 + output['redshift']):f}\n")

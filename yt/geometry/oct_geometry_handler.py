@@ -2,14 +2,14 @@ import numpy as np
 
 from yt.fields.field_detector import FieldDetector
 from yt.geometry.geometry_handler import Index
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 class OctreeIndex(Index):
     """The Index subclass for oct AMR datasets"""
 
     def _setup_geometry(self):
-        mylog.debug("Initializing Octree Geometry Handler.")
+        ytLogger.debug("Initializing Octree Geometry Handler.")
         self._initialize_oct_handler()
 
     def get_smallest_dx(self):

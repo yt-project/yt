@@ -6,7 +6,7 @@ from yt.data_objects.unions import MeshUnion
 from yt.funcs import setdefaultattr
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.file_handler import NetCDF4FileHandler, warn_netcdf
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 from .fields import ExodusIIFieldInfo
 from .util import get_num_pseudo_dims, load_info_records, sanitize_string
@@ -215,7 +215,7 @@ class ExodusIIDataset(Dataset):
             try:
                 return load_info_records(ds.variables["info_records"])
             except (KeyError, TypeError):
-                mylog.warning("No info_records found")
+                ytLogger.warning("No info_records found")
                 return []
 
     def _get_unique_identifier(self):
@@ -241,7 +241,7 @@ class ExodusIIDataset(Dataset):
 
         with self._handle.open_ds() as ds:
             if "name_glo_var" not in ds.variables:
-                mylog.warning("name_glo_var not found")
+                ytLogger.warning("name_glo_var not found")
                 return []
             else:
                 return [
@@ -257,7 +257,7 @@ class ExodusIIDataset(Dataset):
 
         with self._handle.open_ds() as ds:
             if "name_elem_var" not in ds.variables:
-                mylog.warning("name_elem_var not found")
+                ytLogger.warning("name_elem_var not found")
                 return []
             else:
                 return [
@@ -273,7 +273,7 @@ class ExodusIIDataset(Dataset):
 
         with self._handle.open_ds() as ds:
             if "name_nod_var" not in ds.variables:
-                mylog.warning("name_nod_var not found")
+                ytLogger.warning("name_nod_var not found")
                 return []
             else:
                 return [
@@ -289,7 +289,7 @@ class ExodusIIDataset(Dataset):
 
         coord_axes = "xyz"[: self.dimensionality]
 
-        mylog.info("Loading coordinates")
+        ytLogger.info("Loading coordinates")
         with self._handle.open_ds() as ds:
             if "coord" not in ds.variables:
                 coords = (
@@ -330,7 +330,7 @@ class ExodusIIDataset(Dataset):
         """
         Loads the connectivity data for the mesh
         """
-        mylog.info("Loading connectivity")
+        ytLogger.info("Loading connectivity")
         connectivity = []
         with self._handle.open_ds() as ds:
             for i in range(self.parameters["num_meshes"]):

@@ -12,7 +12,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
-from yt.funcs import is_sequence, mylog
+from yt.funcs import is_sequence, ytLogger
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTException
 from yt.utilities.object_registries import (
@@ -146,7 +146,7 @@ class DatasetSeries:
         code_name = cls.__name__[: cls.__name__.find("Simulation")]
         if code_name:
             simulation_time_series_registry[code_name] = cls
-            mylog.debug("Registering simulation: %s as %s", code_name, cls)
+            ytLogger.debug("Registering simulation: %s as %s", code_name, cls)
 
     def __new__(cls, outputs, *args, **kwargs):
         try:
@@ -617,17 +617,17 @@ class SimulationTimeSeries(DatasetSeries):
                 self._print_attr(a)
         for a in self.key_parameters:
             self._print_attr(a)
-        mylog.info("Total datasets: %d.", len(self.all_outputs))
+        ytLogger.info("Total datasets: %d.", len(self.all_outputs))
 
     def _print_attr(self, a):
         """
         Print the attribute or warn about it missing.
         """
         if not hasattr(self, a):
-            mylog.error("Missing %s in dataset definition!", a)
+            ytLogger.error("Missing %s in dataset definition!", a)
             return
         v = getattr(self, a)
-        mylog.info("Parameters: %-25s = %s", a, v)
+        ytLogger.info("Parameters: %-25s = %s", a, v)
 
     def _get_outputs_by_key(self, key, values, tolerance=None, outputs=None):
         r"""
@@ -675,7 +675,7 @@ class SimulationTimeSeries(DatasetSeries):
             ) and outputs[0] not in my_outputs:
                 my_outputs.append(outputs[0])
             else:
-                mylog.error("No dataset added for %s = %f.", key, value)
+                ytLogger.error("No dataset added for %s = %f.", key, value)
 
         outputs.sort(key=lambda obj: obj["time"])
         return my_outputs

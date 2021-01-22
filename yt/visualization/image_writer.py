@@ -4,7 +4,7 @@ import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
+from yt.funcs import get_brewer_cmap, get_image_suffix, ytLogger
 from yt.units.yt_array import YTQuantity
 from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -202,7 +202,7 @@ def write_image(image, filename, color_bounds=None, cmap_name=None, func=lambda 
     if cmap_name is None:
         cmap_name = ytcfg.get("yt", "default_colormap")
     if len(image.shape) == 3:
-        mylog.info("Using only channel 1 of supplied image")
+        ytLogger.info("Using only channel 1 of supplied image")
         image = image[:, :, 0]
     to_plot = apply_colormap(image, color_bounds=color_bounds, cmap_name=cmap_name)
     pw.write_png(to_plot, filename)
@@ -460,7 +460,7 @@ def write_projection(
     if suffix == "":
         suffix = ".png"
         filename = f"{filename}{suffix}"
-    mylog.info("Saving plot %s", filename)
+    ytLogger.info("Saving plot %s", filename)
     if suffix == ".pdf":
         canvas = FigureCanvasPdf(fig)
     elif suffix in (".eps", ".ps"):

@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 
 from .parallel_analysis_interface import (
     ResultsStorage,
@@ -38,7 +38,7 @@ class TaskQueueNonRoot:
             msg = self.comm.comm.recv(source=0, tag=2)
         msg = self.subcomm.bcast(msg, root=0)
         if msg["msg"] == messages["end"]["msg"]:
-            mylog.debug("Notified to end")
+            ytLogger.debug("Notified to end")
             raise StopIteration
         return msg["value"]
 
@@ -82,7 +82,7 @@ class TaskQueueRoot(TaskQueueNonRoot):
 
     def assign_task(self, source_id):
         if self._remaining == 0:
-            mylog.debug("Notifying %s to end", source_id)
+            ytLogger.debug("Notifying %s to end", source_id)
             msg = messages["end"].copy()
             self._notified += 1
         else:
@@ -102,7 +102,7 @@ class TaskQueueRoot(TaskQueueNonRoot):
         elif msg["msg"] == messages["task_req"]["msg"]:
             self.assign_task(status.source)
         else:
-            mylog.error("GOT AN UNKNOWN MESSAGE: %s", msg)
+            ytLogger.error("GOT AN UNKNOWN MESSAGE: %s", msg)
             raise RuntimeError
         if self._notified >= self.njobs:
             raise StopIteration
@@ -111,13 +111,13 @@ class TaskQueueRoot(TaskQueueNonRoot):
 def task_queue(func, tasks, njobs=0):
     comm = _get_comm(())
     if not parallel_capable:
-        mylog.error("Cannot create task queue for serial process.")
+        ytLogger.error("Cannot create task queue for serial process.")
         raise RuntimeError
     my_size = comm.comm.size
     if njobs <= 0:
         njobs = my_size - 1
     if njobs >= my_size:
-        mylog.error(
+        ytLogger.error(
             "You have asked for %s jobs, but only %s processors are available.",
             njobs,
             (my_size - 1),
@@ -143,13 +143,13 @@ def task_queue(func, tasks, njobs=0):
 def dynamic_parallel_objects(tasks, njobs=0, storage=None, broadcast=True):
     comm = _get_comm(())
     if not parallel_capable:
-        mylog.error("Cannot create task queue for serial process.")
+        ytLogger.error("Cannot create task queue for serial process.")
         raise RuntimeError
     my_size = comm.comm.size
     if njobs <= 0:
         njobs = my_size - 1
     if njobs >= my_size:
-        mylog.error(
+        ytLogger.error(
             "You have asked for %s jobs, but only %s processors are available.",
             njobs,
             (my_size - 1),

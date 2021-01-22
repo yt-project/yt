@@ -11,7 +11,7 @@ from yt.fields.field_detector import FieldDetector
 from yt.funcs import ensure_numpy_array, iter_fields
 from yt.geometry.geometry_handler import ChunkDataCache, Index, YTDataChunk
 from yt.utilities.definitions import MAXLEVEL
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 from .grid_container import GridTree, MatchPointsToGrids
 
@@ -30,19 +30,19 @@ class GridIndex(Index, abc.ABC):
     )
 
     def _setup_geometry(self):
-        mylog.debug("Counting grids.")
+        ytLogger.debug("Counting grids.")
         self._count_grids()
 
-        mylog.debug("Initializing grid arrays.")
+        ytLogger.debug("Initializing grid arrays.")
         self._initialize_grid_arrays()
 
-        mylog.debug("Parsing index.")
+        ytLogger.debug("Parsing index.")
         self._parse_index()
 
-        mylog.debug("Constructing grid objects.")
+        ytLogger.debug("Constructing grid objects.")
         self._populate_grid_objects()
 
-        mylog.debug("Re-examining index")
+        ytLogger.debug("Re-examining index")
         self._initialize_level_stats()
 
     @abc.abstractmethod
@@ -84,7 +84,7 @@ class GridIndex(Index, abc.ABC):
             yield self.select_grids(level)
 
     def _initialize_grid_arrays(self):
-        mylog.debug("Allocating arrays for %s grids", self.num_grids)
+        ytLogger.debug("Allocating arrays for %s grids", self.num_grids)
         self.grid_dimensions = np.ones((self.num_grids, 3), "int32")
         self.grid_left_edge = self.ds.arr(
             np.zeros((self.num_grids, 3), self.float_type), "code_length"
@@ -187,7 +187,7 @@ class GridIndex(Index, abc.ABC):
         may be set slightly incorrectly, resulting in discontinuities in images
         and the like.
         """
-        mylog.info("Locking grids to parents.")
+        ytLogger.info("Locking grids to parents.")
         for i, g in enumerate(self.grids):
             si = g.get_global_startindex()
             g.LeftEdge = self.ds.domain_left_edge + g.dds * si

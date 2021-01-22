@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import mylog, sglob
+from yt.funcs import sglob, ytLogger
 from yt.geometry.geometry_handler import YTDataChunk
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.chemical_formulas import default_mu
@@ -157,7 +157,7 @@ class AthenaHierarchy(GridIndex):
                     grid_dims -= 1
                     grid_dims[grid_dims == 0] = 1
                 if np.prod(grid_dims) != grid_ncells:
-                    mylog.error(
+                    ytLogger.error(
                         "product of dimensions %i not equal to number of cells %i",
                         np.prod(grid_dims),
                         grid_ncells,
@@ -222,7 +222,7 @@ class AthenaHierarchy(GridIndex):
             grid["dimensions"] -= 1
             grid["dimensions"][grid["dimensions"] == 0] = 1
         if np.prod(grid["dimensions"]) != grid["ncells"]:
-            mylog.error(
+            ytLogger.error(
                 "product of dimensions %i not equal to number of cells %i",
                 np.prod(grid["dimensions"]),
                 grid["ncells"],
@@ -297,7 +297,7 @@ class AthenaHierarchy(GridIndex):
                 gridread["dimensions"] -= 1
                 gridread["dimensions"][gridread["dimensions"] == 0] = 1
             if np.prod(gridread["dimensions"]) != gridread["ncells"]:
-                mylog.error(
+                ytLogger.error(
                     "product of dimensions %i not equal to number of cells %i",
                     np.prod(gridread["dimensions"]),
                     gridread["ncells"],
@@ -429,7 +429,7 @@ class AthenaHierarchy(GridIndex):
 
     def _reconstruct_parent_child(self):
         mask = np.empty(len(self.grids), dtype="int32")
-        mylog.debug("First pass; identifying child grids")
+        ytLogger.debug("First pass; identifying child grids")
         for i, grid in enumerate(self.grids):
             get_box_grids_level(
                 self.grid_left_edge[i, :],
@@ -443,7 +443,7 @@ class AthenaHierarchy(GridIndex):
             grid.Children = [
                 g for g in self.grids[mask.astype("bool")] if g.Level == grid.Level + 1
             ]
-        mylog.debug("Second pass; identifying parents")
+        ytLogger.debug("Second pass; identifying parents")
         for grid in self.grids:  # Second pass
             for child in grid.Children:
                 child.Parent.append(grid)
@@ -512,7 +512,7 @@ class AthenaDataset(Dataset):
             # We set these to cgs for now, but they may have been overridden
             if getattr(self, unit + "_unit", None) is not None:
                 continue
-            mylog.warning("Assuming 1.0 = 1.0 %s", cgs)
+            ytLogger.warning("Assuming 1.0 = 1.0 %s", cgs)
             setattr(self, f"{unit}_unit", self.quan(1.0, cgs))
         self.magnetic_unit = np.sqrt(
             4 * np.pi * self.mass_unit / (self.time_unit ** 2 * self.length_unit)
@@ -548,7 +548,7 @@ class AthenaDataset(Dataset):
             line = self._handle.readline()
 
         self.domain_left_edge = grid["left_edge"]
-        mylog.info(
+        ytLogger.info(
             "Temporarily setting domain_right_edge = -domain_left_edge. "
             "This will be corrected automatically if it is not the case."
         )

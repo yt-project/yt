@@ -5,7 +5,13 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
-from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
+from yt.funcs import (
+    ensure_numpy_array,
+    get_num_threads,
+    get_pbar,
+    is_sequence,
+    ytLogger,
+)
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -213,7 +219,7 @@ class Camera(ParallelAnalysisInterface):
         self.light_dir = None
         self.light_rgba = None
         if self.no_ghost:
-            mylog.warning(
+            ytLogger.warning(
                 "no_ghost is currently True (default). "
                 "This may lead to artifacts at grid boundaries."
             )
@@ -1505,7 +1511,7 @@ class HEALpixCamera(Camera):
         use_light=False,
         inner_radius=10,
     ):
-        mylog.error("I am sorry, HEALpix Camera does not work yet in 3.0")
+        ytLogger.error("I am sorry, HEALpix Camera does not work yet in 3.0")
         raise NotImplementedError
 
     def new_image(self):
@@ -1865,7 +1871,7 @@ class MosaicCamera(Camera):
         # self._setup_box_properties(width, center, self.orienter.unit_vectors)
 
         if self.no_ghost:
-            mylog.warning(
+            ytLogger.warning(
                 "no_ghost is currently True (default). "
                 "This may lead to artifacts at grid boundaries."
             )
@@ -1913,7 +1919,7 @@ class MosaicCamera(Camera):
         dy = self.width[1]
         offi = self.imi + 0.5
         offj = self.imj + 0.5
-        mylog.info("Mosaic offset: %f %f", offi, offj)
+        ytLogger.info("Mosaic offset: %f %f", offi, offj)
         global_center = self.center
         self.center = self.origin
         self.center += offi * dx * self.orienter.unit_vectors[0]
@@ -1957,7 +1963,7 @@ class MosaicCamera(Camera):
             self.initialize_source()
 
             self.imi, self.imj = xy
-            mylog.debug("Working on: %i %i", self.imi, self.imj)
+            ytLogger.debug("Working on: %i %i", self.imi, self.imj)
             self._setup_box_properties(
                 self.width, self.center, self.orienter.unit_vectors
             )
@@ -2259,7 +2265,7 @@ class SphericalCamera(Camera):
     def __init__(self, *args, **kwargs):
         Camera.__init__(self, *args, **kwargs)
         if self.resolution[0] / self.resolution[1] != 2:
-            mylog.info("Warning: It's recommended to set the aspect ratio to 2:1")
+            ytLogger.info("Warning: It's recommended to set the aspect ratio to 2:1")
         self.resolution = np.asarray(self.resolution) + 2
 
     def get_sampler_args(self, image):
@@ -2342,11 +2348,11 @@ class StereoSphericalCamera(Camera):
         self.disparity = self.ds.arr(self.disparity, units="code_length")
         self.disparity_s = self.ds.arr(0.0, units="code_length")
         if self.resolution[0] / self.resolution[1] != 2:
-            mylog.info("Warning: It's recommended to set the aspect ratio to be 2:1")
+            ytLogger.info("Warning: It's recommended to set the aspect ratio to be 2:1")
         self.resolution = np.asarray(self.resolution) + 2
         if self.disparity <= 0.0:
             self.disparity = self.width[0] / 1000.0
-            mylog.info(
+            ytLogger.info(
                 "Warning: Invalid value of disparity; now reset it to %f",
                 self.disparity,
             )

@@ -3,7 +3,7 @@ from numbers import Number as numeric_type
 import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.funcs import mylog, only_on_root
+from yt.funcs import only_on_root, ytLogger
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
 from yt.units.unit_object import Unit
@@ -223,7 +223,7 @@ class FieldInfoContainer(dict):
                 and args[0] == ""
                 and units != 1.0
             ):
-                mylog.warning(
+                ytLogger.warning(
                     "Cannot interpret units: %s * %s, setting to dimensionless.",
                     units,
                     args[0],
@@ -390,7 +390,7 @@ class FieldInfoContainer(dict):
         loaded = []
         for n in sorted(field_plugins):
             loaded += self.load_plugin(n, ftype)
-            only_on_root(mylog.debug, "Loaded %s (%s new fields)", n, len(loaded))
+            only_on_root(ytLogger.debug, "Loaded %s (%s new fields)", n, len(loaded))
         self.find_dependencies(loaded)
 
     def load_plugin(self, plugin_name, ftype="gas", skip_check=False):
@@ -490,7 +490,7 @@ class FieldInfoContainer(dict):
                     # see yt.fields.tests.test_fields
                     if hasattr(self.ds, "_field_test_dataset"):
                         raise
-                    mylog.debug(
+                    ytLogger.debug(
                         "Raises %s during field %s detection.", str(type(e)), field
                     )
                 self.pop(field)
@@ -504,7 +504,7 @@ class FieldInfoContainer(dict):
                 continue
             fd.requested = set(fd.requested)
             deps[field] = fd
-            mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
+            ytLogger.debug("Succeeded with %s (needs %s)", field, fd.requested)
 
         # now populate the derived field list with results
         # this violates isolation principles and should be refactored

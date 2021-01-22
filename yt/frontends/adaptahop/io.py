@@ -11,7 +11,7 @@ from operator import attrgetter
 
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
@@ -121,7 +121,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     def _initialize_index(self, data_file, regions):
         pcount = data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
         morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
+        ytLogger.debug(
             "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
         )
         if pcount == 0:

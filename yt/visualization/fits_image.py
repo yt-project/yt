@@ -8,7 +8,7 @@ from more_itertools import first, mark_ends
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
+from yt.funcs import fix_axis, is_sequence, iter_fields, ytLogger
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity
@@ -202,7 +202,7 @@ class FITSImageData:
                 fields = list(img_data.keys())
         elif isinstance(data, np.ndarray):
             if fields is None:
-                mylog.warning(
+                ytLogger.warning(
                     "No field name given for this array. " "Calling it 'image_data'."
                 )
                 fn = "image_data"
@@ -242,7 +242,7 @@ class FITSImageData:
                 this_img = img_data[field]
                 if hasattr(img_data[field], "units"):
                     if this_img.units.is_code_unit:
-                        mylog.warning(
+                        ytLogger.warning(
                             "Cannot generate an image with code "
                             "units. Converting to units in CGS."
                         )
@@ -252,7 +252,7 @@ class FITSImageData:
                     self.field_units[name] = str(funits)
                 else:
                     self.field_units[name] = "dimensionless"
-                mylog.info("Making a FITS image of field %s", name)
+                ytLogger.info("Making a FITS image of field %s", name)
                 if isinstance(this_img, ImageArray):
                     if i == 0:
                         self.shape = this_img.shape[::-1]
@@ -386,7 +386,7 @@ class FITSImageData:
                 uq = None
 
             if uq is not None and uq.units.is_code_unit:
-                mylog.warning(
+                ytLogger.warning(
                     "Cannot use code units of '%s' "
                     "when creating a FITSImageData instance! "
                     "Converting to a cgs equivalent.",
@@ -395,7 +395,9 @@ class FITSImageData:
                 uq.convert_to_cgs()
 
             if attr == "length_unit" and uq.value != 1.0:
-                mylog.warning("Converting length units " "from %s to %s.", uq, uq.units)
+                ytLogger.warning(
+                    "Converting length units " "from %s to %s.", uq, uq.units
+                )
                 uq = YTQuantity(1.0, uq.units)
 
             setattr(self, attr, uq)
@@ -509,7 +511,7 @@ class FITSImageData:
             self.hdulist[idx].header[key] = value
 
     def update_all_headers(self, key, value):
-        mylog.warning(
+        ytLogger.warning(
             "update_all_headers is deprecated. "
             "Use update_header('all', key, value) instead."
         )
@@ -809,7 +811,7 @@ class FITSImageBuffer(FITSImageData):
 
 def sanitize_fits_unit(unit):
     if unit == "Mpc":
-        mylog.info("Changing FITS file length unit to kpc.")
+        ytLogger.info("Changing FITS file length unit to kpc.")
         unit = "kpc"
     elif unit == "au":
         unit = "AU"
@@ -823,7 +825,7 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     if width is None:
         width = ds.domain_width[axis_wcs[axis]]
         unit = ds.get_smallest_appropriate_unit(width[0])
-        mylog.info(
+        ytLogger.info(
             "Making an image of the entire domain, "
             "so setting the center to the domain center."
         )

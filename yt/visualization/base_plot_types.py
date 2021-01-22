@@ -10,7 +10,7 @@ from yt.funcs import (
     get_interactivity,
     is_sequence,
     matplotlib_style_context,
-    mylog,
+    ytLogger,
 )
 
 backend_dict = {
@@ -143,7 +143,7 @@ class PlotMPL:
             suffix = ".png"
             name = f"{name}{suffix}"
 
-        mylog.info("Saving plot %s", name)
+        ytLogger.info("Saving plot %s", name)
 
         if suffix in _AGG_FORMATS:
             canvas = FigureCanvasAgg(self.figure)
@@ -154,7 +154,7 @@ class PlotMPL:
         elif suffix in (".eps", ".ps"):
             canvas = FigureCanvasPS(self.figure)
         else:
-            mylog.warning("Unknown suffix %s, defaulting to Agg", suffix)
+            ytLogger.warning("Unknown suffix %s, defaulting to Agg", suffix)
             canvas = self.canvas
 
         with matplotlib_style_context():

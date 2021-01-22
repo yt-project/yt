@@ -3,7 +3,7 @@ import os.path
 from itertools import islice
 
 from yt.config import ytcfg
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.object_registries import output_type_registry
 from yt.utilities.parallel_tools.parallel_analysis_interface import (
     parallel_simple_proxy,
@@ -116,7 +116,7 @@ class ParameterFileStore:
         class_name = ds_dict["class_name"]
         if class_name not in output_type_registry:
             raise UnknownDatasetType(class_name)
-        mylog.info("Checking %s", fn)
+        ytLogger.info("Checking %s", fn)
         if os.path.exists(fn):
             ds = output_type_registry[class_name](os.path.join(fp, bn))
         else:

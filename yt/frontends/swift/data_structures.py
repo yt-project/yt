@@ -6,7 +6,7 @@ from yt.data_objects.static_output import ParticleFile
 from yt.frontends.sph.data_structures import SPHDataset, SPHParticleIndex
 from yt.frontends.sph.fields import SPHFieldInfo
 from yt.funcs import only_on_root
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
@@ -42,13 +42,13 @@ class SwiftDataset(SPHDataset):
 
         if self.cosmological_simulation == 1:
             msg = "Assuming length units are in comoving centimetres"
-            only_on_root(mylog.info, msg)
+            only_on_root(ytLogger.info, msg)
             self.length_unit = self.quan(
                 float(units["Unit length in cgs (U_L)"]), "cmcm"
             )
         else:
             msg = "Assuming length units are in physical centimetres"
-            only_on_root(mylog.info, msg)
+            only_on_root(ytLogger.info, msg)
             self.length_unit = self.quan(float(units["Unit length in cgs (U_L)"]), "cm")
 
         self.mass_unit = self.quan(float(units["Unit mass in cgs (U_M)"]), "g")
@@ -126,12 +126,12 @@ class SwiftDataset(SPHDataset):
                 # This is "little h"
                 self.hubble_constant = float(parameters["Cosmology:h"])
             except KeyError:
-                mylog.warning(
+                ytLogger.warning(
                     "Could not find cosmology information in Parameters, "
                     "despite having ran with -c signifying a cosmological "
                     "run."
                 )
-                mylog.info("Setting up as a non-cosmological run. Check this!")
+                ytLogger.info("Setting up as a non-cosmological run. Check this!")
                 self.cosmological_simulation = 0
                 self.current_redshift = 0.0
                 self.omega_lambda = 0.0

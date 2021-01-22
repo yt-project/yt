@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 
@@ -50,7 +50,7 @@ def import_rgba(name, h5=True):
         a = f["A"].value
         f.close()
     else:
-        mylog.error("No support for fits import.")
+        ytLogger.error("No support for fits import.")
     return np.array([r, g, b, a]).swapaxes(0, 2).swapaxes(0, 1)
 
 

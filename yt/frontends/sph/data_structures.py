@@ -3,7 +3,7 @@ import os
 import numpy as np
 
 from yt.data_objects.static_output import ParticleDataset
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.geometry.particle_geometry_handler import ParticleIndex
 
 
@@ -93,10 +93,10 @@ class SPHParticleIndex(ParticleIndex):
 
         if fname is not None:
             if os.path.exists(fname):
-                mylog.info("Loading KDTree from %s", os.path.basename(fname))
+                ytLogger.info("Loading KDTree from %s", os.path.basename(fname))
                 kdtree = PyKDTree.from_file(fname)
                 if kdtree.data_version != self.ds._file_hash:
-                    mylog.info("Detected hash mismatch, regenerating KDTree")
+                    ytLogger.info("Detected hash mismatch, regenerating KDTree")
                 else:
                     self._kdtree = kdtree
                     return
@@ -110,7 +110,7 @@ class SPHParticleIndex(ParticleIndex):
             self._kdtree = None
             return
         positions = np.concatenate(positions)
-        mylog.info("Allocating KDTree for %s particles", positions.shape[0])
+        ytLogger.info("Allocating KDTree for %s particles", positions.shape[0])
         self._kdtree = PyKDTree(
             positions.astype("float64"),
             left_edge=self.ds.domain_left_edge,

@@ -19,7 +19,7 @@ unparsed_args = __startup_tasks.unparsed_args
 
 if _level >= int(ytcfg_defaults["yt"]["log_level"]):
     # This won't get displayed.
-    mylog.debug("Turning off NumPy error reporting")
+    ytLogger.debug("Turning off NumPy error reporting")
     np.seterr(all="ignore")
 
 # We load plugins.  Keep in mind, this can be fairly dangerous -

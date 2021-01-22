@@ -2,7 +2,7 @@ import numpy as np
 from matplotlib.cm import get_cmap
 from more_itertools import always_iterable
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.physical_constants import clight, hcgs, kboltz
 
 
@@ -736,7 +736,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         if alpha is None:
             alpha = a
         self.add_gaussian(v, w, [r, g, b, alpha])
-        mylog.debug(
+        ytLogger.debug(
             "Adding gaussian at %s with width %s and colors %s", v, w, (r, g, b, alpha)
         )
 
@@ -980,7 +980,7 @@ class PlanckTransferFunction(MultiVariateTransferFunction):
             # Now we set up the scattering
             scat = (johnson_filters[f]["Lchar"] ** -4 / mscat) * anorm
             tf = TransferFunction(rho_bounds)
-            mylog.debug("Adding: %s with relative scattering %s", f, scat)
+            ytLogger.debug("Adding: %s with relative scattering %s", f, scat)
             tf.y *= 0.0
             tf.y += scat
             self.add_field_table(tf, 1, weight_field_id=1)

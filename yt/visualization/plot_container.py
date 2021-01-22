@@ -10,7 +10,7 @@ import numpy as np
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import ensure_dir, get_image_suffix, is_sequence, iter_fields, mylog
+from yt.funcs import ensure_dir, get_image_suffix, is_sequence, iter_fields, ytLogger
 from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
@@ -899,7 +899,7 @@ class ImagePlotContainer(PlotContainer):
                 except AttributeError:
                     # only certain subclasses have a frb attribute
                     # they can rely on for inspecting units
-                    mylog.warning(
+                    ytLogger.warning(
                         "%s class doesn't support zmin/zmax"
                         " as tuples or unyt_quantitiy",
                         self.__class__.__name__,

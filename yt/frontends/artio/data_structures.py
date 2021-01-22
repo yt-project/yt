@@ -15,7 +15,7 @@ from yt.frontends.artio._artio_caller import (
     artio_is_valid,
 )
 from yt.frontends.artio.fields import ARTIOFieldInfo
-from yt.funcs import mylog, setdefaultattr
+from yt.funcs import setdefaultattr, ytLogger
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.utilities.exceptions import YTParticleDepositionNotImplemented
@@ -128,7 +128,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         # We allocate number of zones, not number of octs
         op = cls(nvals, kernel_name)
         op.initialize()
-        mylog.debug(
+        ytLogger.debug(
             "Depositing %s (%s^3) particles into %s Root Mesh",
             positions.shape[0],
             positions.shape[0] ** 0.3333333,
@@ -161,7 +161,7 @@ class ARTIOIndex(Index):
         return self.dataset.max_range
 
     def _setup_geometry(self):
-        mylog.debug("Initializing Geometry Handler empty for now.")
+        ytLogger.debug("Initializing Geometry Handler empty for now.")
 
     def get_smallest_dx(self):
         """
@@ -200,9 +200,9 @@ class ARTIOIndex(Index):
         source = self.all_data()
         if finest_levels is not False:
             source.min_level = self.max_level - finest_levels
-        mylog.debug("Searching for maximum value of %s", field)
+        ytLogger.debug("Searching for maximum value of %s", field)
         max_val, mx, my, mz = source.quantities["MaxLocation"](field)
-        mylog.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", max_val, mx, my, mz)
+        ytLogger.info("Max Value is %0.5e at %0.16f %0.16f %0.16f", max_val, mx, my, mz)
         self.ds.parameters[f"Max{field}Value"] = max_val
         self.ds.parameters[f"Max{field}Pos"] = f"{mx, my, mz}"
         return max_val, np.array((mx, my, mz), dtype="float64")
@@ -211,7 +211,7 @@ class ARTIOIndex(Index):
         self.fluid_field_list = self._detect_fluid_fields()
         self.particle_field_list = self._detect_particle_fields()
         self.field_list = self.fluid_field_list + self.particle_field_list
-        mylog.debug("Detected fields: %s", (self.field_list,))
+        ytLogger.debug("Detected fields: %s", (self.field_list,))
 
     def _detect_fluid_fields(self):
         return [("artio", f) for f in self.ds.artio_parameters["grid_variable_labels"]]
@@ -238,15 +238,15 @@ class ARTIOIndex(Index):
             sfc_end = getattr(dobj, "sfc_end", None)
             nz = getattr(dobj, "_num_zones", 0)
             if all_data:
-                mylog.debug("Selecting entire artio domain")
+                ytLogger.debug("Selecting entire artio domain")
                 list_sfc_ranges = self.ds._handle.root_sfc_ranges_all(
                     max_range_size=self.max_range
                 )
             elif sfc_start is not None and sfc_end is not None:
-                mylog.debug("Restricting to %s .. %s", sfc_start, sfc_end)
+                ytLogger.debug("Restricting to %s .. %s", sfc_start, sfc_end)
                 list_sfc_ranges = [(sfc_start, sfc_end)]
             else:
-                mylog.debug("Running selector on artio base grid")
+                ytLogger.debug("Running selector on artio base grid")
                 list_sfc_ranges = self.ds._handle.root_sfc_ranges(
                     dobj.selector, max_range_size=self.max_range
                 )
@@ -289,7 +289,7 @@ class ARTIOIndex(Index):
                     )
             dobj._chunk_info = ci
             if len(list_sfc_ranges) > 1:
-                mylog.info("Created %d chunks for ARTIO", len(list_sfc_ranges))
+                ytLogger.info("Created %d chunks for ARTIO", len(list_sfc_ranges))
         dobj._current_chunk = list(self._chunk_all(dobj))[0]
 
     def _data_size(self, dobj, dobjs):
@@ -470,7 +470,7 @@ class ARTIODataset(Dataset):
             self.parameters["unit_l"] = self.artio_parameters["length_unit"][0] * abox
 
             if self.artio_parameters["DeltaDC"][0] != 0:
-                mylog.warning(
+                ytLogger.warning(
                     "DeltaDC != 0, which implies auni != abox. "
                     "Be sure you understand which expansion parameter "
                     "is appropriate for your use! (Gnedin, Kravtsov, & Rudd 2011)"

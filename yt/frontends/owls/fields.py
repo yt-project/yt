@@ -8,7 +8,7 @@ from yt.fields.species_fields import (
     add_species_field_by_fraction,
 )
 from yt.frontends.sph.fields import SPHFieldInfo
-from yt.funcs import download_file, mylog
+from yt.funcs import download_file, ytLogger
 
 from . import owls_ion_tables as oit
 
@@ -341,7 +341,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         owls_ion_path = os.path.join(data_dir, "owls_ion_data")
 
         if not os.path.exists(owls_ion_path):
-            mylog.info(txt, data_url, data_dir)
+            ytLogger.info(txt, data_url, data_dir)
             fname = data_dir + "/" + data_file
             download_file(os.path.join(data_url, data_file), fname)
 

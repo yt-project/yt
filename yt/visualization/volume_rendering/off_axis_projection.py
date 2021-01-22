@@ -1,7 +1,7 @@
 import numpy as np
 
 from yt.data_objects.api import ImageArray
-from yt.funcs import is_sequence, mylog
+from yt.funcs import is_sequence, ytLogger
 from yt.units.unit_object import Unit
 from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.lib.pixelization_routines import (
@@ -300,7 +300,7 @@ def off_axis_projection(
     data_source.ds.index
     if item is None:
         field = data_source.ds.field_list[0]
-        mylog.info("Setting default field to %s", field.__repr__())
+        ytLogger.info("Setting default field to %s", field.__repr__())
 
     funits = data_source.ds._get_field_info(item).units
 
@@ -367,7 +367,7 @@ def off_axis_projection(
     if vol.weight_field is not None:
         fields.append(vol.weight_field)
 
-    mylog.debug("Casting rays")
+    ytLogger.debug("Casting rays")
 
     for (grid, mask) in data_source.blocks:
         data = []

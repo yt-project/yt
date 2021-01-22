@@ -8,7 +8,7 @@ from numpy.lib.recfunctions import append_fields
 from yt.frontends.sph.io import IOHandlerSPH
 from yt.frontends.tipsy.definitions import npart_mapping
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 class IOHandlerTipsyBinary(IOHandlerSPH):
@@ -60,7 +60,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             size = mask.sum()
         rv = {}
         for field in fields:
-            mylog.debug("Allocating %s values for %s", size, field)
+            ytLogger.debug("Allocating %s values for %s", size, field)
             if field in self._vector_fields:
                 rv[field] = np.empty((size, 3), dtype="float64")
                 if size == 0:
@@ -312,7 +312,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 for axi, ax in enumerate("xyz"):
                     mi = pp["Coordinates"][ax].min()
                     ma = pp["Coordinates"][ax].max()
-                    mylog.debug("Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
+                    ytLogger.debug("Spanning: %0.3e .. %0.3e in %s", mi, ma, ax)
                     mis[axi] = mi
                     mas[axi] = ma
                 pos = np.empty((pp.size, 3), dtype="float64")

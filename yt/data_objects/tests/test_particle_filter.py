@@ -54,7 +54,7 @@ def test_add_particle_filter():
 def test_add_particle_filter_overriding():
     """Test the add_particle_filter overriding"""
     from yt.data_objects.particle_filters import filter_registry
-    from yt.funcs import mylog
+    from yt.funcs import ytLogger
 
     def star_0(pfilter, data):
         pass
@@ -83,9 +83,9 @@ def test_add_particle_filter_overriding():
     ##         a warning is expected. We use the above closure to
     ##         check that.
     # Store the original warning function
-    warning = mylog.warning
+    warning = ytLogger.warning
     monkey_warning, monkey_patch_was_called = closure([False])
-    mylog.warning = monkey_warning
+    ytLogger.warning = monkey_warning
     add_particle_filter(
         "dummy", function=star_1, filtered_type="all", requires=["creation_time"]
     )
@@ -93,7 +93,7 @@ def test_add_particle_filter_overriding():
     assert_equal(monkey_patch_was_called(), True)
 
     # Restore the original warning function
-    mylog.warning = warning
+    ytLogger.warning = warning
 
 
 def test_particle_filter_decorator():

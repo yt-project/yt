@@ -12,7 +12,7 @@ from yt.units.unit_object import Unit
 from yt.units.unit_systems import unit_system_registry
 from yt.utilities.exceptions import YTGDFUnknownGeometry
 from yt.utilities.lib.misc_utilities import get_box_grids_level
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import GDFFieldInfo
@@ -220,7 +220,7 @@ class GDFDataset(Dataset):
                 setdefaultattr(self, unit_name, self.quan(value, unit))
                 if unit_name in h5f["/field_types"]:
                     if unit_name in self.field_units:
-                        mylog.warning(
+                        ytLogger.warning(
                             "'field_units' was overridden by 'dataset_units/%s'",
                             unit_name,
                         )

@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import mylog, parse_h5_attr
+from yt.funcs import parse_h5_attr, ytLogger
 from yt.geometry.selection_routines import GridSelector
 from yt.units.yt_array import uvstack
 from yt.utilities.exceptions import YTDomainOverflow
@@ -82,7 +82,7 @@ class IOHandlerYTGridHDF5(BaseIOHandler):
             fsize = size
             rv[field] = np.empty(fsize, dtype="float64")
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s grids",
             size,
             [f2 for f1, f2 in fields],
@@ -238,7 +238,7 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
         all_count = self._count_particles(data_file)
         pcount = sum(all_count.values())
         morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
+        ytLogger.debug(
             "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
         )
         ind = 0
@@ -354,7 +354,7 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
         all_count = self._count_particles(data_file)
         pcount = sum(all_count.values())
         morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
+        ytLogger.debug(
             "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
         )
         ind = 0

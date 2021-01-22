@@ -4,7 +4,7 @@ import numpy as np
 
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 class IOHandlerChomboHDF5(BaseIOHandler):
@@ -123,7 +123,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
             fsize = size
             rv[field] = np.empty(fsize, dtype="float64")
         ng = sum(len(c.objs) for c in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s grids",
             size,
             [f2 for f1, f2 in fields],
@@ -253,8 +253,8 @@ def parse_orion_sinks(fn):
         index["particle_luminosity"] = 16
     else:
         # give a warning if none of the above apply:
-        mylog.warning("Warning - could not figure out particle output file")
-        mylog.warning("These results could be nonsense!")
+        ytLogger.warning("Warning - could not figure out particle output file")
+        ytLogger.warning("These results could be nonsense!")
 
     return index
 

@@ -24,8 +24,8 @@ from yt.funcs import (
     ensure_dir_exists,
     get_hg_or_git_version,
     get_yt_version,
-    mylog,
     update_hg_or_git,
+    ytLogger,
 )
 from yt.loaders import load
 from yt.utilities.configure import set_config
@@ -1274,7 +1274,7 @@ class YTPlotCmd(YTCommand):
         ds = args.ds
         center = args.center
         if args.center == (-1, -1, -1):
-            mylog.info("No center fed in; seeking.")
+            ytLogger.info("No center fed in; seeking.")
             v, center = ds.find_max("density")
         if args.max:
             v, center = ds.find_max("density")
@@ -1298,7 +1298,7 @@ class YTPlotCmd(YTCommand):
             width = (args.width, args.unit)
 
         for ax in always_iterable(axes):
-            mylog.info("Adding plot for axis %i", ax)
+            ytLogger.info("Adding plot for axis %i", ax)
             if args.projection:
                 plt = ProjectionPlot(
                     ds,

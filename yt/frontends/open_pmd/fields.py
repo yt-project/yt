@@ -4,7 +4,7 @@ from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.frontends.open_pmd.misc import is_const_component, parse_unit_dimension
 from yt.units.yt_array import YTQuantity
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.physical_constants import mu_0, speed_of_light
 
@@ -179,7 +179,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                             self._mag_fields.append(ytname)
                         self.known_other_fields += ((ytname, (unit, aliases, None)),)
             for i in self.known_other_fields:
-                mylog.debug("open_pmd - known_other_fields - %s", i)
+                ytLogger.debug("open_pmd - known_other_fields - %s", i)
         except (KeyError, TypeError, AttributeError):
             pass
 
@@ -215,14 +215,14 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                                 )
                     except (KeyError):
                         if recname != "particlePatches":
-                            mylog.info(
+                            ytLogger.info(
                                 "open_pmd - %s_%s does not seem to have "
                                 "unitDimension",
                                 pname,
                                 recname,
                             )
             for i in self.known_particle_fields:
-                mylog.debug("open_pmd - known_particle_fields - %s", i)
+                ytLogger.debug("open_pmd - known_particle_fields - %s", i)
         except (KeyError, TypeError, AttributeError):
             pass
 

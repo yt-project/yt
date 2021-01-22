@@ -11,7 +11,7 @@ import numpy as np
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.units import dimensions
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
@@ -40,7 +40,7 @@ def _velocity(field, data, idir, prefix=None):
 
     mask1 = rho == 0
     if mask1.any():
-        mylog.info(
+        ytLogger.info(
             "zeros found in %sdensity, "
             "patching them to compute corresponding velocity field.",
             prefix,
@@ -124,7 +124,7 @@ class AMRVACFieldInfo(FieldInfoContainer):
         imax = self.__class__.MAXN_DUST_SPECIES
         while ("amrvac", "rhod%d" % idust) in self.field_list:
             if idust > imax:
-                mylog.error(
+                ytLogger.error(
                     "Only the first %d dust species are currently read by yt. "
                     "If you read this, please consider issuing a ticket. ",
                     imax,
@@ -243,17 +243,17 @@ class AMRVACFieldInfo(FieldInfoContainer):
         if ("amrvac", "e") in self.field_list:
             if self.ds._e_is_internal:
                 pressure_recipe = _polytropic_thermal_pressure
-                mylog.info("Using polytropic EoS for thermal pressure.")
+                ytLogger.info("Using polytropic EoS for thermal pressure.")
             elif ("amrvac", "b1") in self.field_list:
                 pressure_recipe = _full_thermal_pressure_MHD
-                mylog.info("Using full MHD energy for thermal pressure.")
+                ytLogger.info("Using full MHD energy for thermal pressure.")
             else:
                 pressure_recipe = _full_thermal_pressure_HD
-                mylog.info("Using full HD energy for thermal pressure.")
+                ytLogger.info("Using full HD energy for thermal pressure.")
         elif self.ds._c_adiab is not None:
             pressure_recipe = _adiabatic_thermal_pressure
-            mylog.info("Using adiabatic EoS for thermal pressure (isothermal).")
-            mylog.warning(
+            ytLogger.info("Using adiabatic EoS for thermal pressure (isothermal).")
+            ytLogger.warning(
                 "If you used usr_set_pthermal you should "
                 "redefine the thermal_pressure field."
             )
@@ -283,6 +283,6 @@ class AMRVACFieldInfo(FieldInfoContainer):
                 sampling_type="cell",
             )
         else:
-            mylog.warning(
+            ytLogger.warning(
                 "e not found and no parfile passed, can not set thermal_pressure."
             )

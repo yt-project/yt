@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from yt.funcs import get_pbar, mylog
+from yt.funcs import get_pbar, ytLogger
 from yt.utilities.lib.contour_finding import (
     ContourTree,
     TileContourTree,
@@ -44,9 +44,9 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
     if node_ids.size == 0:
         return 0, {}
     trunk = data_source.tiles.tree.trunk
-    mylog.info("Linking node (%s) contours.", len(contours))
+    ytLogger.info("Linking node (%s) contours.", len(contours))
     link_node_contours(trunk, contours, tree, node_ids)
-    mylog.info("Linked.")
+    ytLogger.info("Linked.")
     # joins = tree.cull_joins(bt)
     # tree.add_joins(joins)
     joins = tree.export()

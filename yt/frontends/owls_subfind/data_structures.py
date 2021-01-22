@@ -9,7 +9,7 @@ from yt.frontends.gadget.data_structures import _fix_unit_ordering
 from yt.funcs import only_on_root, setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.exceptions import YTException
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py
 
 from .fields import OWLSSubfindFieldInfo
@@ -146,7 +146,7 @@ class OWLSSubfindDataset(ParticleDataset):
     def _set_code_unit_attributes(self):
         # Set a sane default for cosmological simulations.
         if self._unit_base is None and self.cosmological_simulation == 1:
-            only_on_root(mylog.info, "Assuming length units are in Mpc/h (comoving)")
+            only_on_root(ytLogger.info, "Assuming length units are in Mpc/h (comoving)")
             self._unit_base = dict(length=(1.0, "Mpccm/h"))
         # The other same defaults we will use from the standard Gadget
         # defaults.

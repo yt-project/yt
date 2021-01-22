@@ -7,7 +7,7 @@ from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.ramses.io import convert_ramses_ages
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.linear_interpolators import BilinearFieldInterpolator
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.physical_constants import (
     boltzmann_constant_cgs,
     mass_hydrogen_cgs,
@@ -307,7 +307,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         )
 
         if not os.path.exists(filename):
-            mylog.warning("This output has no cooling fields")
+            ytLogger.warning("This output has no cooling fields")
             return
 
         # Function to create the cooling fields
@@ -345,7 +345,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 if var.size == n1 and i == 0:
                     # If this case occurs, the cooling files were produced pre-2010 in
                     # a format that is no longer supported
-                    mylog.warning(
+                    ytLogger.warning(
                         "This cooling file format is no longer supported. "
                         "Cooling field loading skipped."
                     )

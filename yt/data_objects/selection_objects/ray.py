@@ -17,7 +17,7 @@ from yt.funcs import (
 )
 from yt.units import YTArray, YTQuantity
 from yt.utilities.lib.pixelization_routines import SPHKernelInterpolationTable
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 class YTOrthoRay(YTSelectionContainer1D):
@@ -176,7 +176,7 @@ class YTRay(YTSelectionContainer1D):
         if (self.start_point < self.ds.domain_left_edge).any() or (
             self.end_point > self.ds.domain_right_edge
         ).any():
-            mylog.warning(
+            ytLogger.warning(
                 "Ray start or end is outside the domain. "
                 + "Returned data will only be for the ray section inside the domain."
             )

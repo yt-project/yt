@@ -19,7 +19,7 @@ from yt.frontends.enzo_p.misc import (
 from yt.funcs import get_pbar, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.cosmology import Cosmology
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.on_demand_imports import _h5py as h5py, _libconf as libconf
 
 
@@ -274,7 +274,7 @@ class EnzoPHierarchy(GridIndex):
             # Just check the first grid.
             grid = self.grids[0]
             field_list, ptypes = self.io._read_field_names(grid)
-            mylog.debug("Grid %s has: %s", grid.id, field_list)
+            ytLogger.debug("Grid %s has: %s", grid.id, field_list)
         else:
             field_list = None
             ptypes = None

@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 from yt.utilities.io_handler import BaseIOHandler
 
 
@@ -25,7 +25,7 @@ class IOHandlerMoabH5MHex8(BaseIOHandler):
             ftype, fname = field
             rv[field] = np.empty(size, dtype=fhandle[field_dname(fname)].dtype)
         ngrids = sum(len(chunk.objs) for chunk in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s blocks",
             size,
             [fname for ft, fn in fields],
@@ -52,7 +52,7 @@ class IOHandlerMoabPyneHex8(BaseIOHandler):
         for field in fields:
             rv[field] = np.empty(size, dtype="float64")
         ngrids = sum(len(chunk.objs) for chunk in chunks)
-        mylog.debug(
+        ytLogger.debug(
             "Reading %s cells of %s fields in %s blocks",
             size,
             [fname for ftype, fname in fields],

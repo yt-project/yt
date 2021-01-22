@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import get_requests, mylog
+from yt.funcs import get_requests, ytLogger
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
 
@@ -21,7 +21,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
         # This does not actually stream yet!
         ftype, fname = field
         s = f"{self._url}/{data_file.file_id}/{ftype}/{fname}"
-        mylog.info("Loading URL %s", s)
+        ytLogger.info("Loading URL %s", s)
         requests = get_requests()
         resp = requests.get(s)
         if resp.status_code != 200:

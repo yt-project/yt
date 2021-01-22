@@ -1,5 +1,5 @@
 from yt.funcs import is_sequence
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 from .field_info_container import FieldInfoContainer
 from .field_plugin_registry import register_field_plugin
@@ -22,7 +22,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
         override = kwargs.get("force_override", False)
         # Handle the case where the field has already been added.
         if not override and name in self:
-            mylog.warning(
+            ytLogger.warning(
                 "Field %s already exists. To override use `force_override=True`.",
                 name,
             )

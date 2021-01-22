@@ -11,7 +11,7 @@ from yt.funcs import get_pbar, only_on_root
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import ParticleBitmap
 from yt.utilities.lib.fnv_hash import fnv_hash
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 class ParticleIndex(Index):
@@ -100,7 +100,7 @@ class ParticleIndex(Index):
     def _initialize_index(self):
         ds = self.dataset
         only_on_root(
-            mylog.info,
+            ytLogger.info,
             "Allocating for %0.3e particles",
             self.total_particles,
             global_rootonly=True,
@@ -114,7 +114,7 @@ class ParticleIndex(Index):
             max_ppos = np.empty(3, dtype="float64")
             max_ppos[:] = np.nan
             only_on_root(
-                mylog.info,
+                ytLogger.info,
                 "Bounding box cannot be inferred from metadata, reading "
                 "particle positions to infer bounding box",
             )
@@ -123,7 +123,7 @@ class ParticleIndex(Index):
                     min_ppos = np.nanmin(np.vstack([min_ppos, ppos]), axis=0)
                     max_ppos = np.nanmax(np.vstack([max_ppos, ppos]), axis=0)
             only_on_root(
-                mylog.info,
+                ytLogger.info,
                 "Load this dataset with bounding_box=[%s, %s] to avoid I/O "
                 "overhead from inferring bounding_box." % (min_ppos, max_ppos),
             )
@@ -218,7 +218,7 @@ class ParticleIndex(Index):
         pb = get_pbar("Initializing refined index", len(self.data_files))
         mask_threshold = getattr(self, "_index_mask_threshold", 2)
         count_threshold = getattr(self, "_index_count_threshold", 256)
-        mylog.debug(
+        ytLogger.debug(
             "Using estimated thresholds of %s and %s for refinement",
             mask_threshold,
             count_threshold,
@@ -227,7 +227,7 @@ class ParticleIndex(Index):
         total_coarse_refined = (
             (mask >= 2) & (self.regions.particle_counts > count_threshold)
         ).sum()
-        mylog.debug(
+        ytLogger.debug(
             "This should produce roughly %s zones, for %s of the domain",
             total_coarse_refined,
             100 * total_coarse_refined / mask.size,

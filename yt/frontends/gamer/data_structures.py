@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import mylog, setdefaultattr
+from yt.funcs import setdefaultattr, ytLogger
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler
 
@@ -137,7 +137,7 @@ class GAMERHierarchy(GridIndex):
 
     # for _debug mode only
     def _validate_parent_children_relationship(self):
-        mylog.info("Validating the parent-children relationship ...")
+        ytLogger.info("Validating the parent-children relationship ...")
 
         father_list = self._handle["Tree/Father"][()]
 
@@ -199,7 +199,7 @@ class GAMERHierarchy(GridIndex):
                     if not grid.RightEdge[d] >= c.RightEdge[d]:
                         raise ValueError(msgR)
 
-        mylog.info("Check passed")
+        ytLogger.info("Check passed")
 
 
 class GAMERDataset(Dataset):
@@ -269,7 +269,7 @@ class GAMERDataset(Dataset):
 
         else:
             if len(self.units_override) == 0:
-                mylog.warning(
+                ytLogger.warning(
                     "Cannot determine code units ==> "
                     "Use units_override to specify the units"
                 )
@@ -283,7 +283,7 @@ class GAMERDataset(Dataset):
                 setdefaultattr(self, f"{unit}_unit", self.quan(value, cgs))
 
                 if len(self.units_override) == 0:
-                    mylog.warning("Assuming %8s unit = %f %s", unit, value, cgs)
+                    ytLogger.warning("Assuming %8s unit = %f %s", unit, value, cgs)
 
     def _parse_parameter_file(self):
 

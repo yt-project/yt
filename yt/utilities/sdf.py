@@ -3,7 +3,7 @@ from io import StringIO
 
 import numpy as np
 
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 
 
 def get_thingking_deps():
@@ -246,7 +246,7 @@ class HTTPDataStruct(DataStruct):
 
     def build_memmap(self):
         assert self.size != -1
-        mylog.info(
+        ytLogger.info(
             "Building memmap with offset: %i and size %i", self._offset, self.size
         )
         self.handle = self.HTTPArray(
@@ -397,7 +397,7 @@ class SDFRead(dict):
             vval = eval("np." + vtype + f"({vval})")
         except AttributeError:
             if vtype not in _types:
-                mylog.warning("Skipping parameter %s", vname)
+                ytLogger.warning("Skipping parameter %s", vname)
                 return
             vval = eval("np." + _types[vtype] + f"({vval})")
 
@@ -669,7 +669,7 @@ class SDFIndex:
             self.domain_buffer = 0
             self.domain_active_dims = self.domain_dims
         else:
-            mylog.debug("Setting up older data")
+            ytLogger.debug("Setting up older data")
             rx = self.sdfdata.parameters.get("Rx")
             ry = self.sdfdata.parameters.get("Ry")
             rz = self.sdfdata.parameters.get("Rz")
@@ -683,7 +683,7 @@ class SDFIndex:
             expand_root = 0.0
             morton_xyz = self.sdfdata.parameters.get("morton_xyz", False)
             if not morton_xyz:
-                mylog.debug("Accounting for wandering particles")
+                ytLogger.debug("Accounting for wandering particles")
                 self.wandering_particles = True
                 ic_Nmesh = self.sdfdata.parameters.get("ic_Nmesh", 0)
                 # Expand root for non power-of-2
@@ -691,7 +691,9 @@ class SDFIndex:
                     f2 = 1 << int(np.log2(ic_Nmesh - 1) + 1)
                     if f2 != ic_Nmesh:
                         expand_root = 1.0 * f2 / ic_Nmesh - 1.0
-                        mylog.debug("Expanding: %s, %s, %s", f2, ic_Nmesh, expand_root)
+                        ytLogger.debug(
+                            "Expanding: %s, %s, %s", f2, ic_Nmesh, expand_root
+                        )
                         rmin *= 1.0 + expand_root
                         rmax *= 1.0 + expand_root
 
@@ -703,8 +705,8 @@ class SDFIndex:
             ) / 2
             self.domain_active_dims = self.domain_dims - 2 * self.domain_buffer
 
-        mylog.debug("MIDX rmin: %s, rmax: %s", self.rmin, self.rmax)
-        mylog.debug(
+        ytLogger.debug("MIDX rmin: %s, rmax: %s", self.rmin, self.rmax)
+        ytLogger.debug(
             "MIDX: domain_width: %s, domain_dims: %s, domain_active_dims: %s ",
             self.domain_width,
             self.domain_dims,
@@ -802,7 +804,7 @@ class SDFIndex:
         # print('Getting data from ileft to iright:',  ileft, iright)
 
         ix, iy, iz = (iright - ileft) * 1j
-        mylog.debug("MIDX IBBOX: %s %s %s %s %s", ileft, iright, ix, iy, iz)
+        ytLogger.debug("MIDX IBBOX: %s %s %s %s %s", ileft, iright, ix, iy, iz)
 
         # plus 1 that is sliced, plus a bit since mgrid is not inclusive
         Z, Y, X = np.mgrid[
@@ -869,7 +871,7 @@ class SDFIndex:
         ileft = np.floor((left - self.rmin) / self.domain_width * self.domain_dims)
         iright = np.floor((right - self.rmin) / self.domain_width * self.domain_dims)
         if np.any(iright - ileft) > self.domain_dims:
-            mylog.warning(
+            ytLogger.warning(
                 "Attempting to get data from bounding box larger than the domain. "
                 "You may want to check your units."
             )
@@ -925,7 +927,7 @@ class SDFIndex:
     def iter_data(self, inds, fields):
         num_inds = len(inds)
         num_reads = 0
-        mylog.debug("MIDX Reading %i chunks", num_inds)
+        ytLogger.debug("MIDX Reading %i chunks", num_inds)
         i = 0
         while i < num_inds:
             ind = inds[i]
@@ -949,7 +951,7 @@ class SDFIndex:
                     break
 
             chunk = slice(base, base + length)
-            mylog.debug(
+            ytLogger.debug(
                 "Reading chunk %i of length %i after catting %i starting at %i",
                 i,
                 length,
@@ -962,7 +964,7 @@ class SDFIndex:
                 yield data
                 del data
             i += 1
-        mylog.debug("Read %i chunks, batched into %i reads", num_inds, num_reads)
+        ytLogger.debug("Read %i chunks, batched into %i reads", num_inds, num_reads)
 
     def filter_particles(self, myiter, myfilter):
         for data in myiter:
@@ -996,7 +998,7 @@ class SDFIndex:
             mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
             # print('Mask shape, sum:', mask.shape, mask.sum())
 
-            mylog.debug(
+            ytLogger.debug(
                 "Filtering particles, returning %i out of %i", mask.sum(), mask.shape[0]
             )
 
@@ -1035,7 +1037,7 @@ class SDFIndex:
             # Now get all particles that are within the sphere
             mask = ((pos - center) ** 2).sum(axis=1) ** 0.5 < radius
 
-            mylog.debug(
+            ytLogger.debug(
                 "Filtering particles, returning %i out of %i", mask.sum(), mask.shape[0]
             )
 
@@ -1061,7 +1063,7 @@ class SDFIndex:
         if pos_fields is None:
             pos_fields = "x", "y", "z"
         xf, yf, zf = pos_fields
-        mylog.debug("Using position fields: %s", pos_fields)
+        ytLogger.debug("Using position fields: %s", pos_fields)
 
         # I'm sorry.
         pos = (
@@ -1079,7 +1081,7 @@ class SDFIndex:
         # if it is even needed for a given left/right
         _shift_periodic(pos, left, right, DW)
 
-        mylog.debug(
+        ytLogger.debug(
             "Periodic filtering, %s %s %s %s",
             left,
             right,
@@ -1089,7 +1091,7 @@ class SDFIndex:
         # Now get all particles that are within the bbox
         mask = np.all(pos >= left, axis=1) * np.all(pos < right, axis=1)
 
-        mylog.debug(
+        ytLogger.debug(
             "Filtering particles, returning %i out of %i", mask.sum(), mask.shape[0]
         )
 
@@ -1109,7 +1111,7 @@ class SDFIndex:
         and a right.
         """
         _ensure_xyz_fields(fields)
-        mylog.debug("MIDX Loading region from %s to %s", left, right)
+        ytLogger.debug("MIDX Loading region from %s to %s", left, right)
         inds = self.get_bbox(left, right)
         # Need to put left/right in float32 to avoid fp roundoff errors
         # in the bbox later.
@@ -1129,13 +1131,13 @@ class SDFIndex:
         a radius.
         """
         _ensure_xyz_fields(fields)
-        mylog.debug("MIDX Loading spherical region %s to %s", center, radius)
+        ytLogger.debug("MIDX Loading spherical region %s to %s", center, radius)
         inds = self.get_bbox(center - radius, center + radius)
 
         yield from self.filter_sphere(center, radius, self.iter_data(inds, fields))
 
     def iter_ibbox_data(self, left, right, fields):
-        mylog.debug("MIDX Loading region from %s to %s", left, right)
+        ytLogger.debug("MIDX Loading region from %s to %s", left, right)
         inds = self.get_ibbox(left, right)
         return self.iter_data(inds, fields)
 
@@ -1158,7 +1160,7 @@ class SDFIndex:
 
         length = rbase + rlen - lbase
         if length > 0:
-            mylog.debug(
+            ytLogger.debug(
                 "Getting contiguous chunk of size %i starting at %i", length, lbase
             )
         return self.get_data(slice(lbase, lbase + length), fields)
@@ -1171,7 +1173,7 @@ class SDFIndex:
         base = self.indexdata["base"][key]
         length = self.indexdata["len"][key] - base
         if length > 0:
-            mylog.debug(
+            ytLogger.debug(
                 "Getting contiguous chunk of size %i starting at %i", length, base
             )
         return self.get_data(slice(base, base + length), fields)
@@ -1249,7 +1251,7 @@ class SDFIndex:
         """
         cell_iarr = np.array(cell_iarr, dtype="int64")
         lk, rk = self.get_key_bounds(level, cell_iarr)
-        mylog.debug("Reading contiguous chunk from %i to %i", lk, rk)
+        ytLogger.debug("Reading contiguous chunk from %i to %i", lk, rk)
         return self.get_contiguous_chunk(lk, rk, fields)
 
     def get_cell_bbox(self, level, cell_iarr):

@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, iter_fields, mylog
+from yt.funcs import get_output_filename, iter_fields, ytLogger
 from yt.loaders import load_uniform_grid
 from yt.utilities.lib.api import add_points_to_greyscale_image
 from yt.utilities.lib.pixelization_routines import pixelize_cylinder
@@ -125,7 +125,7 @@ class FixedResolutionBuffer:
     def __getitem__(self, item):
         if item in self.data:
             return self.data[item]
-        mylog.info(
+        ytLogger.info(
             "Making a fixed resolution buffer of (%s) %d by %d",
             item,
             self.buff_size[0],
@@ -563,7 +563,7 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
     def __getitem__(self, item):
         if item in self.data:
             return self.data[item]
-        mylog.info(
+        ytLogger.info(
             "Making a fixed resolution buffer of (%s) %d by %d",
             item,
             self.buff_size[0],
@@ -624,7 +624,7 @@ class ParticleImageBuffer(FixedResolutionBuffer):
         if item in self.data:
             return self.data[item]
 
-        mylog.info(
+        ytLogger.info(
             "Splatting (%s) onto a %d by %d mesh",
             item,
             self.buff_size[0],

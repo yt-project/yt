@@ -15,7 +15,7 @@ from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 
 
 class IOHandlerART(BaseIOHandler):
@@ -50,7 +50,7 @@ class IOHandlerART(BaseIOHandler):
                 rv = subset.fill(f, fields, selector)
                 for ft, f in fields:
                     d = rv.pop(f)
-                    mylog.debug(
+                    ytLogger.debug(
                         "Filling %s with %s (%0.3e %0.3e) (%s:%s)",
                         f,
                         d.size,
@@ -104,9 +104,9 @@ class IOHandlerART(BaseIOHandler):
 
     def _get_field(self, field):
         if field in self.cache.keys() and self.caching:
-            mylog.debug("Cached %s", str(field))
+            ytLogger.debug("Cached %s", str(field))
             return self.cache[field]
-        mylog.debug("Reading %s", str(field))
+        ytLogger.debug("Reading %s", str(field))
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
@@ -216,9 +216,9 @@ class IOHandlerDarkMatterART(IOHandlerART):
 
     def _get_field(self, field):
         if field in self.cache.keys() and self.caching:
-            mylog.debug("Cached %s", str(field))
+            ytLogger.debug("Cached %s", str(field))
             return self.cache[field]
-        mylog.debug("Reading %s", str(field))
+        ytLogger.debug("Reading %s", str(field))
         tr = {}
         ftype, fname = field
         ptmax = self.ws[-1]
@@ -307,8 +307,8 @@ def interpolate_ages(
         if current_time:
             tdiff = YTQuantity(b2t(t_stars), "Gyr") - current_time.in_units("Gyr")
             if np.abs(tdiff) > 1e-4:
-                mylog.info("Timestamp mismatch in star particle header: %s", tdiff)
-        mylog.info("Interpolating ages")
+                ytLogger.info("Timestamp mismatch in star particle header: %s", tdiff)
+        ytLogger.info("Interpolating ages")
         interp_tb, interp_ages = b2t(data)
         interp_tb = YTArray(interp_tb, "Gyr")
         interp_ages = YTArray(interp_ages, "Gyr")

@@ -19,7 +19,7 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.lib.misc_utilities import get_box_grids_level
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
 from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
@@ -278,7 +278,7 @@ def load_uniform_grid(
             if len(data[key].shape) == 1 or key[0] == "io":
                 if not isinstance(key, tuple):
                     field = ("io", key)
-                    mylog.debug("Reassigning '%s' to '%s'", key, field)
+                    ytLogger.debug("Reassigning '%s' to '%s'", key, field)
                 else:
                     field = key
                 sfh._additional_fields += (field,)
@@ -696,7 +696,7 @@ def load_particles(
     for key in data.keys():
         if not isinstance(key, tuple):
             field = ("io", key)
-            mylog.debug("Reassigning '%s' to '%s'", key, field)
+            ytLogger.debug("Reassigning '%s' to '%s'", key, field)
         else:
             field = key
         pdata[field] = data[key]
@@ -830,7 +830,7 @@ def load_hexahedral_mesh(
         fn = list(sorted(data))[0]
         array_values = data[fn]
         if array_values.size != connectivity.shape[0]:
-            mylog.error(
+            ytLogger.error(
                 "Dimensions of array must be one fewer than the coordinate set."
             )
             raise RuntimeError
@@ -1335,7 +1335,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
     # because in some cases the common path will overlap with the `load_name`
     # variable of the file.
     folder_path = os.path.commonprefix(storage_fname)
-    mylog.info("Files located at %s", folder_path)
+    ytLogger.info("Files located at %s", folder_path)
 
     # Location of the file to load automatically, registered in the Fido class
     info = fido[registered_fname]
@@ -1344,12 +1344,12 @@ def load_sample(fn=None, specific_file=None, pbar=True):
 
     if specific_file is None:
         # right now work on loading only untarred files. build out h5 later
-        mylog.info("Default to loading %s for %s dataset", file_lookup, name)
+        ytLogger.info("Default to loading %s for %s dataset", file_lookup, name)
         loaded_file = os.path.join(
             base_path, f"{registered_fname}.untar", name, file_lookup
         )
     else:
-        mylog.info("Loading %s for %s dataset", specific_file, name)
+        ytLogger.info("Loading %s for %s dataset", specific_file, name)
         loaded_file = os.path.join(
             base_path, f"{registered_fname}.untar", name, specific_file
         )

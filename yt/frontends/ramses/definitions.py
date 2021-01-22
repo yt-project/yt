@@ -2,7 +2,7 @@
 import re
 
 from yt.config import ytcfg
-from yt.funcs import mylog
+from yt.funcs import ytLogger
 
 
 def ramses_header(hvals):
@@ -73,7 +73,7 @@ if ytcfg.has_section("ramses-families"):
     for key in particle_families.keys():
         val = ytcfg.get("ramses-families", key, fallback=None)
         if val is not None:
-            mylog.info(
+            ytLogger.info(
                 "Changing family %s from %s to %s", key, particle_families[key], val
             )
             particle_families[key] = val
