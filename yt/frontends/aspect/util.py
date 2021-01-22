@@ -2,8 +2,36 @@ import re
 import string
 from collections import OrderedDict
 from itertools import takewhile
-
+import zlib
+import base64
 import numpy as np
+
+type_decider = {"Float32": "<f4", "Float64": "<f8"}
+
+
+def decode_piece(xmlPiece):
+    coord_type = type_decider[xmlPiece["Points"]["DataArray"]['@type']]
+
+    _, coords = decode_binary(xmlPiece["Points"]["DataArray"]["#text"].encode(),
+                              dtype=coord_type)
+    _, conn = decode_binary(xmlPiece["Cells"]["DataArray"][0]["#text"].encode(),
+                            dtype="u4")
+    _, offsets = decode_binary(xmlPiece["Cells"]["DataArray"][1]["#text"].encode(),
+                               dtype="u4")
+    _, cell_types = decode_binary(xmlPiece["Cells"]["DataArray"][2]["#text"].encode(),
+                                  dtype="u1")
+
+    coords = coords.reshape((coords.size // 3, 3))
+
+    return coords, conn, offsets, cell_types
+
+def decode_binary(blob, use_zlib = True, dtype="<f4"):
+    split_location = blob.find(b"==") + 2
+    first = base64.decodebytes(blob[:split_location])
+    second = base64.decodebytes(blob[split_location:])
+    if zlib:
+        second = zlib.decompress(second)
+    return np.frombuffer(first, dtype="<f4"), np.frombuffer(second, dtype=dtype)
 
 
 def get_num_pseudo_dims(coords):

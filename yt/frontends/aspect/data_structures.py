@@ -2,9 +2,9 @@ import json
 import os
 import stat
 
-import meshio  # should be on demand import: need to use a fork for now...
+import xmltodict
 import numpy as np
-import xmltodict  # should be on demand import
+
 
 from yt.data_objects.index_subobjects.unstructured_mesh import UnstructuredMesh
 from yt.data_objects.static_output import Dataset
@@ -14,7 +14,7 @@ from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.logger import ytLogger as mylog
 
 from .fields import ASPECTFieldInfo
-
+from .util import decode_piece
 
 class ASPECTUnstructuredMesh(UnstructuredMesh):
     _type_name = "aspect_unstructured_mesh"
@@ -66,6 +66,8 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
         mesh_files = self.ds.parameters["vtu_files"]
         pvtu_file = self.ds.parameter_filename
         mesh_id = 0
+
+        # single global mesh
         mesh = ASPECTUnstructuredMesh(
             mesh_id,
             pvtu_file,
@@ -277,46 +279,75 @@ class ASPECTDataset(Dataset):
         ]
         return [field["@Name"] for field in fields]
 
-    def _read_piece(self, srcFi):
-        meshPiece = meshio.read(srcFi)  # read it in with meshio
-        coords = meshPiece.points.astype(np.float64)  # coords are already global
-        # need to generalize the cell type
-        cell_types = list(meshPiece.cells_dict.keys())
-        if len(cell_types) > 1:
-            mylog.warn(
-                (
-                    "meshio detected more than one cell type, but the "
-                    "current aspect vtu loader\n    can only handle a single "
-                    f"cell type. Detected cell types: {cell_types}. \n"
-                    "    Will continue with the first and hope for the best..."
-                )
-            )
-        self.parameters["cell_type"] = cell_types[0]
-        mylog.info(f"detected cell type is {cell_types[0]}.")
+    def _read_single_vtu_pieces(self, src_file):
 
-        # do an element type check here, reduce it if necessary.
+        with open(src_file) as data:
+            xml = xmltodict.parse(data.read())
+            xmlPieces = xml['VTKFile']['UnstructuredGrid']['Piece']
 
-        connectivity = meshPiece.cells_dict[cell_types[0]]  # 2D connectivity array
-        # offset the connectivity matrix to global value
-        connectivity = np.array(connectivity)
-        return [connectivity, coords]
+        conns = []
+        alloffs = []
+        x = []
+        y = []
+        z = []
+        datadict = {}
+        pieceoff = 0
+
+        for piece_id in range(0, len(xmlPieces)):
+            coords, conn, offsets, cell_types = decode_piece(xmlPieces[piece_id])
+
+            x.extend(coords[:, 0])
+            y.extend(coords[:, 1])
+            z.extend(coords[:, 2])
+            conns.extend(conn + pieceoff)
+
+            # the connectivity array can repeat index references to coordinates
+            # update the offset number by the number of coords points:
+            pieceoff = pieceoff + coords.shape[0]
+            alloffs.extend(offsets)
+
+        if hasattr(self, 'field_to_piece_id') is False:
+            self.field_to_piece_id = {}
+
+        if src_file not in self.field_to_piece_id.keys():
+            self.field_to_piece_id[src_file] = {}
+            for piece_id in range(0, len(xmlPieces)):
+                self.field_to_piece_id[src_file][piece_id] = {}
+                xmlPiece = xmlPieces[piece_id]
+                for field_id, data_array in enumerate(xmlPiece['PointData']['DataArray']):
+                    fname = data_array['@Name']
+                    self.field_to_piece_id[src_file][piece_id][fname] =  field_id
+
+        coords = np.array(np.column_stack([x, y, z]))
+        alloffs = np.array(alloffs)
+        conns = np.array(conns)
+        conns = conns.reshape((conns.size // 8, 8)) # fix this 8
+
+        return coords, conns, alloffs
 
     def _read_pieces(self):
         # reads coordinates and connectivity from pieces, returns the mesh
         # concatenated across all pieces.
         with open(self.parameter_filename) as pvtu_fi:
             pXML = xmltodict.parse(pvtu_fi.read())
+
+        # the separate files
         pieces = pXML["VTKFile"]["PUnstructuredGrid"]["Piece"]
         if not isinstance(pieces, list):
             pieces = [pieces]
+
         conlist = []  # list of 2D connectivity arrays
         coordlist = []  # global, concatenated coordinate array
         node_offsets = []
         element_count = []
         current_offset = 0  # the NODE offset to global coordinate index
+
         for src in pieces:
-            srcfi = os.path.join(self.data_dir, src["@Source"])
-            [con, coord] = self._read_piece(srcfi)
+            src_file = os.path.join(self.data_dir, src["@Source"])
+            # print(src_file)
+            coord, con, _ = self._read_single_vtu_pieces(src_file)
+
+
             node_offsets.append(current_offset)
             element_count.append(con.shape[0])
             con = con + current_offset  # offset to global

@@ -1,10 +1,9 @@
 import os
 
-import meshio  # should be on demand
+import xmltodict
 import numpy as np
-
+from .util import decode_binary, type_decider, decode_piece
 from yt.utilities.io_handler import BaseIOHandler
-
 
 class IOHandlerASPECT(BaseIOHandler):
     _particle_reader = False
@@ -39,6 +38,7 @@ class IOHandlerASPECT(BaseIOHandler):
             rv[field] = []
             ftype_list.append(ftype)
 
+
         for chunk_id, chunk in enumerate(chunks):
             mesh = chunk.objs[0]
             el_counts = np.array(mesh.element_count)
@@ -56,49 +56,63 @@ class IOHandlerASPECT(BaseIOHandler):
                 # mask here is the **element** mask. i.e., shape(mask) = (n_elments,)
                 # rather than (n_elements, n_verts). These apply to all fields, so
                 # pull them out here:
-                mask = selector.fill_mesh_cell_mask(mesh)
+                mask = selector.fill_mesh_cell_mask(mesh) # global mask
                 if mask is not None:
                     # each mesh piece will pull the connectivity and mask values
                     # for the indices corresponding to each vtu file
                     for vtu_id, vtu_filename in enumerate(mesh.filenames):
-                        # load this vtu's part of the mesh
-                        vtu_file = os.path.join(self.ds.data_dir, vtu_filename)
-                        meshPiece = meshio.read(vtu_file)
 
-                        # the connectivty for this piece
-                        cell_types = list(meshPiece.cells_dict.keys())
-                        vtu_con = np.array(meshPiece.cells_dict[cell_types[0]])
-                        con_shape = vtu_con.shape
-                        conn1d = vtu_con.ravel()
 
                         # the element mask for this piece
                         element_offset_start = el_counts[0:vtu_id].sum()
                         element_offset_end = element_offset_start + el_counts[vtu_id]
                         vtu_mask = mask[element_offset_start:element_offset_end]
 
+                        # load this vtu's part of the mesh
+                        vtu_file = os.path.join(self.ds.data_dir, vtu_filename)
+                        f2id = self.ds.field_to_piece_id[vtu_file]
+                        with open(vtu_file) as data:
+                            xml = xmltodict.parse(data.read())
+                            xmlPieces = xml['VTKFile']['UnstructuredGrid']['Piece']
+
                         for field in fields:
                             ftype, fname = field
-                            if ftype == "all" or ftype == mesh_name:
-                                # meshio returns a 1d data array, so we need to:
-                                # 1. select with 1d connectivity to ensure proper order
-                                # 2. reshape to expected (element, n_verts) shape
-                                # 3. select the masked data
-                                # field_data = meshPiece.point_data[fname]
-                                if "velocity" in fname:
-                                    vdim = fname.split("_")[-1]
-                                    vdim_to_dim = {"x": 0, "y": 1, "z": 2}
-                                    dim = vdim_to_dim[vdim]
-                                    raw_data = meshPiece.point_data["velocity"][:, dim]
-                                else:
-                                    raw_data = meshPiece.point_data[fname]
-
-                                raw_data = raw_data[conn1d].reshape(con_shape)
-                                rv[field].append(raw_data[vtu_mask, :])
+                            vtu_field, vtu_conn1d = self._read_single_vtu_field(xmlPieces, fname, f2id)
+                            vtu_field = vtu_field[vtu_conn1d]
+                            vtu_field = vtu_field.reshape((vtu_conn1d.size // 8, 8))
+                            vtu_field = vtu_field[vtu_mask, :]
+                            rv[field].append(vtu_field)
 
         for field in fields:
             rv[field] = np.concatenate(rv[field]).astype(np.float64)
 
         return rv
+
+    def _read_single_vtu_field(self, xmlPieces, fieldname, field_to_piece_id):
+        vtu_data = []
+        pieceoff = 0
+        vtu_conns = []
+
+        for piece_id in range(0, len(xmlPieces)):
+            field_id = field_to_piece_id[piece_id][fieldname]
+            xmlPiece = xmlPieces[piece_id]
+            data_array = xmlPiece['PointData']['DataArray'][field_id]
+            names = data_array['@Name']
+            if names != 'velocity' and names == fieldname:
+                types = type_decider[data_array['@type']]
+                metadata, data_field = decode_binary(data_array['#text'].encode(), dtype=types)
+                vtu_data.append(data_field.astype(np.float64))
+
+            coords, conn, offsets, cell_types = decode_piece(xmlPieces[piece_id])
+            vtu_conns.extend(conn + pieceoff)
+            # the connectivity array can repeat index references to coordinates
+            # update the offset number by the number of coords points:
+            pieceoff = pieceoff + coords.shape[0]
+
+        vtu_data = np.concatenate(vtu_data)
+        vtu_conns = np.array(vtu_conns)
+
+        return vtu_data, vtu_conns
 
     def _read_chunk_data(self, chunk, fields):
         # This reads the data from a single chunk, and is only used for
