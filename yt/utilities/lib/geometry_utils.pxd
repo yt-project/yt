@@ -6,8 +6,8 @@ Particle Deposition onto Octs
 
 """
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
 from libc.float cimport DBL_MANT_DIG
 from libc.math cimport frexp, ldexp, sqrt
 
@@ -17,7 +17,7 @@ DEF INDEX_MAX_64=2097151
 DEF XSHIFT=2
 DEF YSHIFT=1
 DEF ZSHIFT=0
-    
+
 @cython.cdivision(True)
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -189,7 +189,7 @@ cdef inline np.uint64_t compact_64bits_by2(np.uint64_t x):
     x=(x|(x>>2))&(<np.uint64_t>0x00786070C0E181C3)
     x=(x|(x>>4))&(<np.uint64_t>0x0007E007C00F801F)
     x=(x|(x>>10))&(<np.uint64_t>0x000001FFC00003FF)
-    x=(x|(x>>20))&(<np.uint64_t>0x00000000001FFFFF) 
+    x=(x|(x>>20))&(<np.uint64_t>0x00000000001FFFFF)
     return x
 
 #-----------------------------------------------------------------------------
@@ -263,7 +263,7 @@ cdef inline np.uint64_t bounded_morton(np.float64_t x, np.float64_t y, np.float6
 
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton_relative(np.float64_t x, np.float64_t y, np.float64_t z,
-                               np.float64_t *DLE, np.float64_t *DRE, 
+                               np.float64_t *DLE, np.float64_t *DRE,
                                np.int32_t order1, np.int32_t order2):
     cdef int i
     cdef np.float64_t dds1[3]
@@ -283,7 +283,7 @@ cdef inline np.uint64_t bounded_morton_relative(np.float64_t x, np.float64_t y, 
     mi2 = encode_morton_64bit(x_ind,y_ind,z_ind)
     return mi2
 
-  
+
 # This dosn't seem to be much, if at all, faster...
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton_dds(np.float64_t x, np.float64_t y, np.float64_t z,
@@ -311,7 +311,7 @@ cdef inline np.uint64_t bounded_morton_relative_dds(np.float64_t x, np.float64_t
     mi2 = encode_morton_64bit(x_ind,y_ind,z_ind)
     return mi2
 
-  
+
 @cython.cdivision(True)
 cdef inline np.uint64_t bounded_morton_split_dds(np.float64_t x, np.float64_t y, np.float64_t z,
                                np.float64_t *DLE, np.float64_t *dds, np.uint64_t *p):
@@ -337,9 +337,9 @@ cdef inline np.uint64_t bounded_morton_split_relative_dds(np.float64_t x, np.flo
     mi2 = encode_morton_64bit(p2[0], p2[1], p2[2])
     return mi2
 
-  
+
 cdef np.uint32_t morton_neighbors_coarse(np.uint64_t mi1, np.uint64_t max_index1,
-                                         bint periodicity[3], np.uint32_t nn, 
+                                         bint periodicity[3], np.uint32_t nn,
                                          np.uint32_t[:,:] index,
                                          np.uint64_t[:,:] ind1_n,
                                          np.uint64_t[:] neighbors)

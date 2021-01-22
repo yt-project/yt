@@ -5,7 +5,7 @@ from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer3D,
 )
 from yt.data_objects.static_output import Dataset
-from yt.funcs import validate_center, validate_iterable, validate_object
+from yt.funcs import validate_center, validate_object, validate_sequence
 
 
 class YTDataCollection(YTSelectionContainer3D):
@@ -20,7 +20,7 @@ class YTDataCollection(YTSelectionContainer3D):
     def __init__(
         self, obj_list, ds=None, field_parameters=None, data_source=None, center=None
     ):
-        validate_iterable(obj_list)
+        validate_sequence(obj_list)
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(data_source, YTSelectionContainer)

@@ -1,4 +1,4 @@
-from yt.funcs import iterable
+from yt.funcs import is_sequence
 from yt.utilities.logger import ytLogger as mylog
 
 from .field_info_container import FieldInfoContainer
@@ -12,7 +12,7 @@ class LocalFieldInfoContainer(FieldInfoContainer):
             sampling_type, kwargs.get("particle_type")
         )
 
-        if isinstance(name, str) or not iterable(name):
+        if isinstance(name, str) or not is_sequence(name):
             if sampling_type == "particle":
                 ftype = "all"
             else:
@@ -23,12 +23,11 @@ class LocalFieldInfoContainer(FieldInfoContainer):
         # Handle the case where the field has already been added.
         if not override and name in self:
             mylog.warning(
-                "Field %s already exists. To override use `force_override=True`.", name,
+                "Field %s already exists. To override use `force_override=True`.",
+                name,
             )
 
-        return super(LocalFieldInfoContainer, self).add_field(
-            name, function, sampling_type, **kwargs
-        )
+        return super().add_field(name, function, sampling_type, **kwargs)
 
 
 # Empty FieldInfoContainer

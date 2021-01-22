@@ -6,8 +6,9 @@ Shareable definitions for common fp/int Cython utilities
 """
 
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
+
 
 cdef inline np.int64_t imax(np.int64_t i0, np.int64_t i1) nogil:
     if i0 > i1: return i0
@@ -57,4 +58,3 @@ cdef inline _ensure_code(arr):
             return arr
         arr.convert_to_units("code_length")
     return arr
-

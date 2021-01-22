@@ -15,7 +15,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
         self._url = ds.base_url
         # This should eventually manage the IO and cache it
         self.total_bytes = 0
-        super(IOHandlerHTTPStream, self).__init__(ds)
+        super().__init__(ds)
 
     def _open_stream(self, data_file, field):
         # This does not actually stream yet!
@@ -37,7 +37,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -50,7 +50,7 @@ class IOHandlerHTTPStream(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)

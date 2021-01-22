@@ -330,7 +330,7 @@ larger than this.
 Alternative values for the following simulation parameters may be specified
 using a ``parameters`` dict, accepting the following keys:
 
-* ``gamma``: ratio of specific heats, Type: Float. If not specified, 
+* ``gamma``: ratio of specific heats, Type: Float. If not specified,
   :math:`\gamma = 5/3` is assumed.
 * ``geometry``: Geometry type, currently accepts ``"cartesian"`` or
   ``"cylindrical"``. Default is ``"cartesian"``.
@@ -361,13 +361,6 @@ using a ``parameters`` dict, accepting the following keys:
   release.
 * Domains may be visualized assuming periodicity.
 * Particle list data is currently unsupported.
-
-.. note::
-
-   The old behavior of supplying unit conversions using a ``parameters``
-   dict supplied to ``load`` for Athena datasets is still supported, but is
-   being deprecated in favor of ``units_override``, which provides the same
-   functionality.
 
 .. _loading-athena-pp-data:
 
@@ -409,7 +402,7 @@ will be in code units.
 Alternative values for the following simulation parameters may be specified
 using a ``parameters`` dict, accepting the following keys:
 
-* ``gamma``: ratio of specific heats, Type: Float. If not specified, 
+* ``gamma``: ratio of specific heats, Type: Float. If not specified,
   :math:`\gamma = 5/3` is assumed.
 * ``geometry``: Geometry type, currently accepts ``"cartesian"`` or
   ``"cylindrical"``. Default is ``"cartesian"``.
@@ -858,7 +851,7 @@ can read FITS image files that have the following (case-insensitive) suffixes:
 
 yt can currently read two kinds of FITS files: FITS image files and FITS
 binary table files containing positions, times, and energies of X-ray
-events. These are described in more detail below. 
+events. These are described in more detail below.
 
 Types of FITS Datasets Supported by yt
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -866,18 +859,18 @@ Types of FITS Datasets Supported by yt
 yt FITS Data Standard
 """""""""""""""""""""
 
-yt has facilities for creating 2 and 3-dimensional FITS images from derived, 
-fixed-resolution data products from other datasets. These include images 
+yt has facilities for creating 2 and 3-dimensional FITS images from derived,
+fixed-resolution data products from other datasets. These include images
 produced from slices, projections, and 3D covering grids. The resulting
-FITS images are fully-describing in that unit, parameter, and coordinate 
-information is passed from the original dataset. These can be created via the 
-:class:`~yt.visualization.fits_image.FITSImageData` class and its subclasses. 
-For information about how to use these special classes, see 
+FITS images are fully-describing in that unit, parameter, and coordinate
+information is passed from the original dataset. These can be created via the
+:class:`~yt.visualization.fits_image.FITSImageData` class and its subclasses.
+For information about how to use these special classes, see
 :ref:`writing_fits_images`.
 
 Once you have produced a FITS file in this fashion, you can load it using
 yt and it will be detected as a ``YTFITSDataset`` object, and it can be analyzed
-in the same way as any other dataset in yt. 
+in the same way as any other dataset in yt.
 
 Astronomical Image Data
 """""""""""""""""""""""
@@ -890,10 +883,10 @@ These files are one of three types:
 
 These FITS images typically are in celestial or galactic coordinates, and
 for 3D spectral cubes the third axis is typically in velocity, wavelength,
-or frequency units. For these datasets, since yt does not yet recognize 
+or frequency units. For these datasets, since yt does not yet recognize
 non-spatial axes, the coordinates are in units of the image pixels. The
 coordinates of these pixels in the WCS coordinate systems will be available
-in separate fields. 
+in separate fields.
 
 Often, the aspect ratio of 3D spectral cubes can be far from unity. Because yt
 sets the pixel scale as the ``code_length``, certain visualizations (such as
@@ -907,22 +900,22 @@ plane:
 
    ds = yt.load("m33_hi.fits.gz", spectral_factor=0.1)
 
-For 4D spectral cubes, the fourth axis is assumed to be composed of different 
+For 4D spectral cubes, the fourth axis is assumed to be composed of different
 fields altogether (e.g., Stokes parameters for radio data).
 
-*Chandra* X-ray event data, which is in tabular form, will be loaded as 
-particle fields in yt, but a grid will be constructed from the WCS 
-information in the FITS header. There is a helper function, 
-``setup_counts_fields``, which may be used to make deposited image fields 
-from the event data for different energy bands (for an example see 
+*Chandra* X-ray event data, which is in tabular form, will be loaded as
+particle fields in yt, but a grid will be constructed from the WCS
+information in the FITS header. There is a helper function,
+``setup_counts_fields``, which may be used to make deposited image fields
+from the event data for different energy bands (for an example see
 :ref:`xray_fits`).
 
 Generic FITS Images
 """""""""""""""""""
 
 If the FITS file contains images but does not have adequate header information
-to fall into one of the above categories, yt will still load the data, but 
-the resulting field and/or coordinate information will necessarily be 
+to fall into one of the above categories, yt will still load the data, but
+the resulting field and/or coordinate information will necessarily be
 incomplete. Field names may not be descriptive, and units may be incorrect. To
 get the full use out of yt for FITS files, make sure that the file is sufficiently
 self-descripting to fall into one of the above categories.
@@ -930,9 +923,9 @@ self-descripting to fall into one of the above categories.
 Making the Most of yt for FITS Data
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt will load data without WCS information and/or some missing header keywords, 
-but the resulting field and/or coordinate information will necessarily be 
-incomplete. For example, field names may not be descriptive, and units will not 
+yt will load data without WCS information and/or some missing header keywords,
+but the resulting field and/or coordinate information will necessarily be
+incomplete. For example, field names may not be descriptive, and units will not
 be correct. To get the full use out of yt for FITS files, make sure that for
 each image HDU the following standard header keywords have sensible values:
 
@@ -1196,24 +1189,24 @@ similar to other particle-based datasets in yt.
 Mean Molecular Weight and Number Density Fields
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-The way the mean molecular weight and number density fields are defined depends on 
-what type of simulation you are running. If you are running a simulation without 
+The way the mean molecular weight and number density fields are defined depends on
+what type of simulation you are running. If you are running a simulation without
 species and a :math:`\gamma`-law equation of state, then the mean molecular weight
 is defined using the ``eos_singleSpeciesA`` parameter in the FLASH dataset. If you
 have multiple species and your dataset contains the FLASH field ``"abar"``, then
 this is used as the mean molecular weight. In either case, the number density field
-is calculated using this weight. 
+is calculated using this weight.
 
-If you are running a FLASH simulation where the fields ``"sumy"`` and ``"ye"`` are 
-present, Then the mean molecular weight is the inverse of ``"sumy"``, and the fields 
-``"El_number_density"``, ``"ion_number_density"``, and ``"number_density"`` are 
+If you are running a FLASH simulation where the fields ``"sumy"`` and ``"ye"`` are
+present, Then the mean molecular weight is the inverse of ``"sumy"``, and the fields
+``"El_number_density"``, ``"ion_number_density"``, and ``"number_density"`` are
 defined using the following mathematical definitions:
 
 * ``"El_number_density"`` :math:`n_e = N_AY_e\rho`
 * ``"ion_number_density"`` :math:`n_i = N_A\rho/\bar{A}`
 * ``"number_density"`` :math:`n = n_e + n_i`
 
-where :math:`n_e` and :math:`n_i` are the electron and ion number densities, 
+where :math:`n_e` and :math:`n_i` are the electron and ion number densities,
 :math:`\rho` is the mass density, :math:`Y_e` is the electron number per baryon,
 :math:`\bar{A}` is the mean molecular weight, and :math:`N_A` is Avogadro's number.
 
@@ -1235,7 +1228,7 @@ and visualization. See :ref:`loading-sph-data` for more details and
 visualizing a Gadget dataset.  An example which makes use of a Gadget snapshot
 from the OWLS project can be found at :ref:`owls-notebook`.
 
-.. note:: 
+.. note::
 
    If you are loading a multi-file dataset with Gadget, you can either supply the *zeroth*
    file to the ``load`` command or the directory containing all of the files.
@@ -1511,8 +1504,8 @@ assigned using the following prescription for a given gas cell :math:`i`:
 
 where :math:`\alpha` is a constant factor. By default, :math:`\alpha = 2`. In
 practice, smoothing lengths are only used for creating slices and projections,
-and this value of :math:`\alpha` works well for this purpose. However, this 
-value can be changed when loading an Arepo dataset by setting the 
+and this value of :math:`\alpha` works well for this purpose. However, this
+value can be changed when loading an Arepo dataset by setting the
 ``smoothing_factor`` parameter:
 
 .. code-block:: python
@@ -1521,7 +1514,7 @@ value can be changed when loading an Arepo dataset by setting the
    ds = yt.load("snapshot_100.hdf5", smoothing_factor=1.5)
 
 Currently, only Arepo HDF5 snapshots are supported. If the "GFM" metal fields are
-present in your dataset, they will be loaded in and aliased to the appropriate 
+present in your dataset, they will be loaded in and aliased to the appropriate
 species fields in the `"GFM_Metals"` field on-disk. For more information, see
 the `Illustris TNG documentation <http://www.tng-project.org/data/docs/specifications/#sec1b>`_.
 
@@ -1530,7 +1523,7 @@ the `Illustris TNG documentation <http://www.tng-project.org/data/docs/specifica
 GAMER Data
 ----------
 
-GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the 
+GAMER HDF5 data is supported and cared for by Hsi-Yu Schive. You can load the
 data like this:
 
 .. code-block:: python
@@ -1539,7 +1532,7 @@ data like this:
    ds = yt.load("InteractingJets/jet_000002")
 
 For simulations without units (i.e., ``OPT__UNIT = 0``), you can supply conversions
-for length, time, and mass to ``load`` using the ``units_override`` 
+for length, time, and mass to ``load`` using the ``units_override``
 functionality:
 
 .. code-block:: python
@@ -1550,10 +1543,10 @@ functionality:
                   "mass_unit"  :(1.4690033e+36,"g") }
    ds = yt.load("InteractingJets/jet_000002", units_override=code_units)
 
-This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units, 
+This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units,
 but the GAMER fields, e.g., ``("gamer","Dens")``, will be in code units.
 
-Particle data are supported and are always stored in the same file as the grid 
+Particle data are supported and are always stored in the same file as the grid
 data.
 
 .. rubric:: Caveats
@@ -2510,7 +2503,7 @@ It is possible to provide extra arguments to the load function when loading RAMS
       In the "ramses" convention, levels go from 1 (the root grid)
       to levelmax, such that the finest cells have a size of ``boxsize/2**levelmax``.
       In the "yt" convention, levels are numbered from 0 (the coarsest
-      uniform grid at RAMSES' ``levelmin``) to ``max_level``, such that 
+      uniform grid at RAMSES' ``levelmin``) to ``max_level``, such that
       the finest cells are ``2**max_level`` smaller than the coarsest.
 
 

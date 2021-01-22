@@ -30,7 +30,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
             ("GFM_Metals_07", ("", ["Si_fraction"], None)),
             ("GFM_Metals_08", ("", ["Fe_fraction"], None)),
         )
-        super(ArepoFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
         FieldInfoContainer.setup_particle_fields(self, ptype)
@@ -39,7 +39,7 @@ class ArepoFieldInfo(GadgetFieldInfo):
             setup_species_fields(self, ptype)
 
     def setup_gas_particle_fields(self, ptype):
-        super(ArepoFieldInfo, self).setup_gas_particle_fields(ptype)
+        super().setup_gas_particle_fields(ptype)
 
         if (ptype, "InternalEnergy") in self.field_list:
 

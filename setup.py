@@ -1,11 +1,12 @@
 import glob
 import os
 import sys
+from collections import defaultdict
 from distutils.ccompiler import get_default_compiler
 from distutils.version import LooseVersion
 
 import pkg_resources
-from setuptools import find_packages, setup
+from setuptools import Distribution, find_packages, setup
 
 from setupext import (
     check_for_openmp,
@@ -36,20 +37,24 @@ if os.path.exists("MANIFEST"):
 with open("README.md") as file:
     long_description = file.read()
 
-if check_for_openmp():
-    omp_args = ["-fopenmp"]
-else:
-    omp_args = []
+CPP14_CONFIG = defaultdict(
+    lambda: ["-std=c++14"], {"unix": ["-std=c++14"], "msvc": ["/std:c++14"]}
+)
+CPP03_CONFIG = defaultdict(
+    lambda: ["-std=c++03"], {"unix": ["-std=c++03"], "msvc": ["/std:c++03"]}
+)
+
+_COMPILER = get_default_compiler()
+
+omp_args, _ = check_for_openmp()
 
 if os.name == "nt":
     std_libs = []
 else:
     std_libs = ["m"]
 
-if get_default_compiler() == "msvc":
-    CPP14_FLAG = ["/std:c++14"]
-else:
-    CPP14_FLAG = ["--std=c++14"]
+CPP14_FLAG = CPP14_CONFIG[_COMPILER]
+CPP03_FLAG = CPP03_CONFIG[_COMPILER]
 
 cythonize_aliases = {
     "LIB_DIR": "yt/utilities/lib/",
@@ -65,6 +70,7 @@ cythonize_aliases = {
     "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
     "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
     "CPP14_FLAG": CPP14_FLAG,
+    "CPP03_FLAG": CPP03_FLAG,
 }
 
 lib_exts = [
@@ -83,6 +89,16 @@ lib_exts += embree_libs
 
 # This overrides using lib_exts, so it has to happen after lib_exts is fully defined
 build_ext, sdist = create_build_ext(lib_exts, cythonize_aliases)
+
+# Force setuptools to consider that there are ext modules, even if empty.
+# See https://github.com/yt-project/yt/issues/2922 and
+# https://stackoverflow.com/a/62668026/2601223 for the fix.
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name."""
+
+    def has_ext_modules(self):
+        return True
+
 
 if __name__ == "__main__":
     setup(
@@ -105,6 +121,7 @@ if __name__ == "__main__":
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
             "Topic :: Scientific/Engineering :: Astronomy",
             "Topic :: Scientific/Engineering :: Physics",
             "Topic :: Scientific/Engineering :: Visualization",
@@ -112,7 +129,9 @@ if __name__ == "__main__":
         ],
         keywords="astronomy astrophysics visualization " + "amr adaptivemeshrefinement",
         entry_points={
-            "console_scripts": ["yt = yt.utilities.command_line:run_main",],
+            "console_scripts": [
+                "yt = yt.utilities.command_line:run_main",
+            ],
             "nose.plugins.0.10": [
                 "answer-testing = yt.utilities.answer_testing.framework:AnswerTesting"
             ],
@@ -126,6 +145,9 @@ if __name__ == "__main__":
             "numpy>=1.10.4",
             "IPython>=1.0",
             "unyt>=2.7.2",
+            "more_itertools>=8.4",
+            "tqdm>=3.4.0",
+            "toml>=0.10.2",
         ],
         extras_require={"hub": ["girder_client"], "mapserver": ["bottle"]},
         cmdclass={"sdist": sdist, "build_ext": build_ext},
@@ -141,6 +163,7 @@ if __name__ == "__main__":
         license="BSD 3-Clause",
         zip_safe=False,
         scripts=["scripts/iyt"],
+        distclass=BinaryDistribution,
         ext_modules=[],  # !!! We override this inside build_ext above
         python_requires=">=3.6",
     )

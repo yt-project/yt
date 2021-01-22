@@ -1,6 +1,6 @@
 answer_tests:
 
-  local_amrvac_006:
+  local_amrvac_007: # PR 2945
     - yt/frontends/amrvac/tests/test_outputs.py:test_domain_size
     - yt/frontends/amrvac/tests/test_outputs.py:test_bw_polar_2d
     - yt/frontends/amrvac/tests/test_outputs.py:test_blastwave_cartesian_3D
@@ -11,7 +11,7 @@ answer_tests:
     - yt/frontends/amrvac/tests/test_outputs.py:test_jet_cylindrical_25D
     - yt/frontends/amrvac/tests/test_outputs.py:test_riemann_cartesian_175D
     - yt/frontends/amrvac/tests/test_outputs.py:test_rmi_cartesian_dust_2D
-    
+
   local_arepo_007:  # PR 2909
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_bullet
     - yt/frontends/arepo/tests/test_outputs.py:test_arepo_tng59
@@ -20,7 +20,7 @@ answer_tests:
   local_artio_003:
     - yt/frontends/artio/tests/test_outputs.py:test_sizmbhloz
 
-  local_athena_007:
+  local_athena_008: # PR 2945
     - yt/frontends/athena/tests/test_outputs.py:test_cloud
     - yt/frontends/athena/tests/test_outputs.py:test_blast
     - yt/frontends/athena/tests/test_outputs.py:test_stripping
@@ -36,7 +36,7 @@ answer_tests:
     - yt/frontends/chombo/tests/test_outputs.py:test_zp
     - yt/frontends/chombo/tests/test_outputs.py:test_kho
 
-  local_enzo_006:
+  local_enzo_007:  # PR 2926
     - yt/frontends/enzo/tests/test_outputs.py:test_moving7
     - yt/frontends/enzo/tests/test_outputs.py:test_galaxy0030
     - yt/frontends/enzo/tests/test_outputs.py:test_toro1d
@@ -44,7 +44,7 @@ answer_tests:
     - yt/frontends/enzo/tests/test_outputs.py:test_ecp
     - yt/frontends/enzo/tests/test_outputs.py:test_nuclei_density_fields
 
-  local_enzo_p_008:  # PR 2735
+  local_enzo_p_009: # PR 2945
     - yt/frontends/enzo_p/tests/test_outputs.py:test_hello_world
     - yt/frontends/enzo_p/tests/test_outputs.py:test_particle_fields
 
@@ -162,11 +162,14 @@ answer_tests:
   local_axialpix_006:
     - yt/geometry/coordinates/tests/test_axial_pixelization.py:test_axial_pixelization
 
-  local_cylindrical_background_003:  # PR 2902
+  local_cylindrical_background_004:  # PR 2915
     - yt/geometry/coordinates/tests/test_cylindrical_coordinates.py:test_noise_plots
 
   #local_particle_trajectory_001:
   #  - yt/data_objects/tests/test_particle_trajectories.py
+
+  local_nc4_cm1_000: # PR  2176
+    - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
 other_tests:
   unittests:

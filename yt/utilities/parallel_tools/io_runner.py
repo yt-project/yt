@@ -109,7 +109,7 @@ class IOHandlerRemote(BaseIOHandler):
         self.pool = pool
         self.comm = pool.comm
         self.proc_map = self.comm.comm.bcast(None, root=pool["io"].ranks[0])
-        super(IOHandlerRemote, self).__init__()
+        super().__init__()
 
     def _read_data_set(self, grid, field):
         dest = self.proc_map[grid.id]

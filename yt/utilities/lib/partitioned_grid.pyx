@@ -2,6 +2,8 @@
 # distutils: include_dirs = LIB_DIR
 # distutils: libraries = STD_LIBS
 # distutils: language = c++
+# distutils: extra_compile_args = CPP14_FLAG
+# distutils: extra_link_args = CPP14_FLAG
 """
 Image sampler definitions
 
@@ -155,4 +157,3 @@ cdef class PartitionedGrid:
         if vel_mag[0] != 0.0:
             for i in range(3):
                 vel[i] /= vel_mag[0]
-

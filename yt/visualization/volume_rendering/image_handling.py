@@ -5,7 +5,10 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 def export_rgba(
-    image, fn, h5=True, fits=False,
+    image,
+    fn,
+    h5=True,
+    fits=False,
 ):
     """
     This function accepts an *image*, of shape (N,M,4) corresponding to r,g,b,a,

@@ -6,20 +6,14 @@ from numbers import Number
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+from more_itertools import always_iterable, zip_equal
 from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
-from yt.funcs import (
-    ensure_list,
-    fix_axis,
-    fix_unitary,
-    issue_deprecation_warning,
-    iterable,
-    mylog,
-    obj_length,
-)
+from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
 from yt.units.unit_object import Unit
 from yt.units.unit_registry import UnitParseError
 from yt.units.yt_array import YTArray, YTQuantity
@@ -100,10 +94,10 @@ def get_axes_unit(width, ds):
     """
     if ds.no_cgs_equiv_length:
         return ("code_length",) * 2
-    if iterable(width):
+    if is_sequence(width):
         if isinstance(width[1], str):
             axes_unit = (width[1], width[1])
-        elif iterable(width[1]):
+        elif is_sequence(width[1]):
             axes_unit = (width[0][1], width[1][1])
         elif isinstance(width[0], YTArray):
             axes_unit = (str(width[0].units), str(width[1].units))
@@ -204,13 +198,11 @@ class PlotWindow(ImagePlotContainer):
 
         self.aspect = aspect
         skip = list(FixedResolutionBuffer._exclude_fields) + data_source._key_fields
-        if fields is None:
-            fields = []
-        else:
-            fields = ensure_list(fields)
+
+        fields = list(iter_fields(fields))
         self.override_fields = list(set(fields).intersection(set(skip)))
         self.fields = [f for f in fields if f not in skip]
-        super(PlotWindow, self).__init__(data_source, window_size, fontsize)
+        super().__init__(data_source, window_size, fontsize)
 
         self._set_window(bounds)  # this automatically updates the data and plot
         self.origin = origin
@@ -421,13 +413,7 @@ class PlotWindow(ImagePlotContainer):
         if equivalency_kwargs is None:
             equivalency_kwargs = {}
         field = self.data_source._determine_fields(field)[0]
-        field = ensure_list(field)
-        new_unit = ensure_list(new_unit)
-        if len(field) > 1 and len(new_unit) != len(field):
-            raise RuntimeError(
-                f"Field list {field} and unit list {new_unit} are incompatible"
-            )
-        for f, u in zip(field, new_unit):
+        for f, u in zip_equal(iter_fields(field), always_iterable(new_unit)):
             self.frb.set_unit(f, u, equivalency, equivalency_kwargs)
             self._equivalencies[f] = (equivalency, equivalency_kwargs)
         return self
@@ -682,7 +668,7 @@ class PlotWindow(ImagePlotContainer):
         )
         if new_center is None:
             self.center = None
-        elif iterable(new_center):
+        elif is_sequence(new_center):
             if len(new_center) != 2:
                 raise error
             for el in new_center:
@@ -716,18 +702,21 @@ class PlotWindow(ImagePlotContainer):
             The number of data elements in the buffer on the x and y axes.
             If a scalar is provided,  then the buffer is assumed to be square.
         """
-        if iterable(size):
+        if is_sequence(size):
             self.buff_size = size
         else:
             self.buff_size = (size, size)
         return self
 
     def set_window_size(self, size):
-        """This calls set_figure_size to adjust the size of the plot window.
+        """This calls set_figure_size to adjust the size of the plot window."""
+        from yt._maintenance.deprecation import issue_deprecation_warning
 
-        This is equivalent to set_figure_size but it still available to maintain
-        backwards compatibility.
-        """
+        issue_deprecation_warning(
+            "`PlotWindow.set_window_size` is a deprecated alias "
+            "for `PlotWindow.set_figure_size`.",
+            removal="4.1.0",
+        )
         self.set_figure_size(size)
         return self
 
@@ -800,9 +789,7 @@ class PlotWindow(ImagePlotContainer):
 
 
 class PWViewerMPL(PlotWindow):
-    """Viewer using matplotlib as a backend via the WindowPlotMPL.
-
-    """
+    """Viewer using matplotlib as a backend via the WindowPlotMPL."""
 
     _current_field = None
     _frb_generator = None
@@ -827,10 +814,10 @@ class PWViewerMPL(PlotWindow):
             origin = tuple(origin.split("-"))[:3]
         if 1 == len(origin):
             origin = ("lower", "left") + origin
-        elif 2 == len(origin) and origin[0] in set(["left", "right", "center"]):
+        elif 2 == len(origin) and origin[0] in {"left", "right", "center"}:
             o0map = {"left": "lower", "right": "upper", "center": "center"}
             origin = (o0map[origin[0]],) + origin
-        elif 2 == len(origin) and origin[0] in set(["lower", "upper", "center"]):
+        elif 2 == len(origin) and origin[0] in {"lower", "upper", "center"}:
             origin = (origin[0], "center", origin[-1])
         elif 3 == len(origin) and isinstance(origin[0], (int, float)):
             xc = self.ds.quan(origin[0], "code_length")
@@ -856,7 +843,7 @@ class PWViewerMPL(PlotWindow):
         else:
             mylog.warning("origin = %s", origin)
             msg = (
-                'origin keyword "{0}" not recognized, must declare "domain" '
+                'origin keyword "{}" not recognized, must declare "domain" '
                 'or "center" as the last term in origin.'
             ).format(self.origin)
             raise RuntimeError(msg)
@@ -1228,8 +1215,10 @@ class PWViewerMPL(PlotWindow):
         :py:meth:`yt.visualization.plot_window.PWViewerMPL.clear_annotations`
         """
         issue_deprecation_warning(
-            '"annotate_clear" has been deprecated'
-            ' in favor of "clear_annotations". Using "clear_annotations".'
+            "`annotate_clear` has been deprecated "
+            "in favor of `clear_annotations`. Using `clear_annotations`.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         self.clear_annotations(index=index)
 
@@ -1727,9 +1716,11 @@ class ProjectionPlot(PWViewerMPL):
         ):
             mylog.info("Setting origin='native' for %s geometry.", ds.geometry)
             origin = "native"
-        # proj_style is deprecated, but if someone specifies then it trumps
-        # method.
         if proj_style is not None:
+            issue_deprecation_warning(
+                "`proj_style` parameter is deprecated, use `method` instead.",
+                removal="4.1.0",
+            )
             method = proj_style
         # If a non-weighted integral projection, assure field-label reflects that
         if weight_field is None and method == "integrate":
@@ -2087,7 +2078,7 @@ class OffAxisProjectionPlot(PWViewerMPL):
         (bounds, center_rot) = get_oblique_window_parameters(
             normal, center, width, ds, depth=depth
         )
-        fields = ensure_list(fields)[:]
+        fields = list(iter_fields(fields))[:]
         oap_width = ds.arr(
             (bounds[1] - bounds[0], bounds[3] - bounds[2], bounds[5] - bounds[4])
         )
@@ -2172,7 +2163,7 @@ class WindowPlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        if iterable(figure_size):
+        if is_sequence(figure_size):
             fsize = figure_size[0]
         else:
             fsize = figure_size
@@ -2184,9 +2175,7 @@ class WindowPlotMPL(ImagePlotMPL):
 
         size, axrect, caxrect = self._get_best_layout()
 
-        super(WindowPlotMPL, self).__init__(
-            size, axrect, caxrect, zlim, figure, axes, cax
-        )
+        super().__init__(size, axrect, caxrect, zlim, figure, axes, cax)
 
         self._init_image(data, cbname, cblinthresh, cmap, extent, aspect)
 
@@ -2353,7 +2342,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
     if axis is not None:
         issue_deprecation_warning(
             "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
-            "will be removed in a future version of yt."
+            "will be removed in a future version of yt.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         if normal is not None:
             raise TypeError(
@@ -2370,7 +2361,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     # use an AxisAlignedSlicePlot where possible, e.g.:
     # maybe someone passed normal=[0,0,0.2] when they should have just used "z"
-    if iterable(normal) and not isinstance(normal, str):
+    if is_sequence(normal) and not isinstance(normal, str):
         if np.count_nonzero(normal) == 1:
             normal = ("x", "y", "z")[np.nonzero(normal)[0][0]]
         else:
@@ -2378,7 +2369,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
             np.divide(normal, np.dot(normal, normal), normal)
 
     # by now the normal should be properly set to get either a On/Off Axis plot
-    if iterable(normal) and not isinstance(normal, str):
+    if is_sequence(normal) and not isinstance(normal, str):
         # OffAxisSlicePlot has hardcoded origin; remove it if in kwargs
         if "origin" in kwargs:
             mylog.warning(

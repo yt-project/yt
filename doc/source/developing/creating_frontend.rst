@@ -27,20 +27,30 @@ be classified into a couple categories:
  * Data reading: This is the set of routines that actually perform a read of
    either all data in a region or a subset of that data.
 
-Data Meaning Structures
------------------------
 
 If you are interested in adding a new code, be sure to drop us a line on
 `yt-dev <https://mail.python.org/archives/list/yt-dev@python.org/>`_!
 
-To get started, make a new directory in ``yt/frontends`` with the name
-of your code and add the name into ``yt/frontends/api.py``.
-Copying the contents of the ``yt/frontends/_skeleton``
-directory will add a lot of boilerplate for the required classes and
-methods that are needed.  In particular, you'll have to create a
-subclass of ``Dataset`` in the data_structures.py file. This subclass
-will need to handle conversion between the different physical units
-and the code units (typically in the ``_set_code_unit_attributes()``
+
+Boostraping a new frontend
+--------------------------
+
+To get started
+
+* make a new directory in ``yt/frontends`` with the name of your code and add the name
+into ``yt/frontends/api.py:_frontends`` (in alphabetical order).
+
+* copy the contents of the ``yt/frontends/_skeleton`` directory, and replace every
+occurence of ``Skeleton`` with your frontend's name (preserving case). This adds a lot of
+boilerplate for the required classes and methods that are needed.
+
+
+Data Meaning Structures
+-----------------------
+
+You will need to create a subclass of ``Dataset`` in the ``data_structures.py``
+file. This subclass will need to handle conversion between the different physical
+units and the code units (typically in the ``_set_code_unit_attributes()``
 method), read in metadata describing the overall data on disk (via the
 ``_parse_parameter_file()`` method), and provide a ``classmethod``
 called ``_is_valid()`` that lets the ``yt.load`` method help identify an

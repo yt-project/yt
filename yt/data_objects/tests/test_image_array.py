@@ -13,7 +13,7 @@ from yt.testing import assert_equal, requires_module
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
     np.seterr(all="ignore")
 
 

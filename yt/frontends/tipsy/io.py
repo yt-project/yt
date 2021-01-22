@@ -46,7 +46,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
     def __init__(self, *args, **kwargs):
         self._aux_fields = []
-        super(IOHandlerTipsyBinary, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -86,7 +86,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         return rv
 
     def _read_particle_coords(self, chunks, ptf):
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -153,7 +153,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -322,7 +322,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
         ptypes = ["Gas", "Stars", "DarkMatter"]
-        npart = dict((ptype, v) for ptype, v in zip(ptypes, pcount))
+        npart = {ptype: v for ptype, v in zip(ptypes, pcount)}
         return npart
 
     @classmethod

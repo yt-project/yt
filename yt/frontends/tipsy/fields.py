@@ -34,4 +34,4 @@ class TipsyFieldInfo(SPHFieldInfo):
                 and self.aux_particle_fields[field[1]] not in self.known_particle_fields
             ):
                 self.known_particle_fields += (self.aux_particle_fields[field[1]],)
-        super(TipsyFieldInfo, self).__init__(ds, field_list, slice_info)
+        super().__init__(ds, field_list, slice_info)

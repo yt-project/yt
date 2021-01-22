@@ -18,7 +18,7 @@ class IOHandlerSDF(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
         for chunk in chunks:
@@ -34,7 +34,7 @@ class IOHandlerSDF(BaseIOHandler):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
         for chunk in chunks:
@@ -102,7 +102,7 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
         for chunk in chunks:
@@ -119,7 +119,7 @@ class IOHandlerHTTPSDF(IOHandlerSDF):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         assert ptf.keys()[0] == "dark_matter"
         for chunk in chunks:

@@ -8,6 +8,7 @@ AMR kD-Tree Cython Tools
 
 cimport numpy as np
 
+
 cdef struct Split:
     int dim
     np.float64_t pos

@@ -27,9 +27,7 @@ def determine_particle_fields(handle):
         particle_fields = [
             s[0].decode("ascii", "ignore").strip() for s in handle["/particle names"][:]
         ]
-        _particle_fields = dict(
-            [("particle_" + s, i) for i, s in enumerate(particle_fields)]
-        )
+        _particle_fields = {"particle_" + s: i for i, s in enumerate(particle_fields)}
     except KeyError:
         _particle_fields = {}
     return _particle_fields
@@ -40,7 +38,7 @@ class IOHandlerFLASH(BaseIOHandler):
     _dataset_type = "flash_hdf5"
 
     def __init__(self, ds):
-        super(IOHandlerFLASH, self).__init__(ds)
+        super().__init__(ds)
         # Now we cache the particle fields
         self._handle = ds._handle
         self._particle_handle = ds._particle_handle
@@ -157,7 +155,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
     _dataset_type = "flash_particle_hdf5"
 
     def __init__(self, ds):
-        super(IOHandlerFLASHParticle, self).__init__(ds)
+        super().__init__(ds)
         # Now we cache the particle fields
         self._handle = ds._handle
         self._particle_fields = determine_particle_fields(self._handle)
@@ -174,7 +172,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         for chunk in chunks:
             for obj in chunk.objs:
@@ -183,7 +181,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         p_fields = self._handle["/tracer particles"]
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             pxyz = np.asarray(
-                p_fields[data_file.start : data_file.end, (px, py, pz)], dtype="=f8"
+                p_fields[data_file.start : data_file.end, [px, py, pz]], dtype="=f8"
             )
             yield "io", pxyz.T
 
@@ -191,13 +189,13 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
         pxyz = np.asarray(
-            p_fields[data_file.start : data_file.end, (px, py, pz)], dtype="=f8"
+            p_fields[data_file.start : data_file.end, [px, py, pz]], dtype="=f8"
         )
         yield ("io", pxyz)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         for chunk in chunks:
             for obj in chunk.objs:

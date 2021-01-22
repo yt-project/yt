@@ -2,7 +2,7 @@
 
 [![Users' Mailing List](https://img.shields.io/badge/Users-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-users@python.org//)
 [![Devel Mailing List](https://img.shields.io/badge/Devel-List-lightgrey.svg)](https://mail.python.org/archives/list/yt-dev@python.org//)
-[![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=master)](https://travis-ci.org/yt-project/yt)
+[![Build Status](https://img.shields.io/travis/yt-project/yt.svg?branch=main)](https://travis-ci.org/yt-project/yt)
 [![Latest Documentation](https://img.shields.io/badge/docs-latest-brightgreen.svg)](http://yt-project.org/docs/dev/)
 [![Data Hub](https://img.shields.io/badge/data-hub-orange.svg)](https://hub.yt/)
 [![Powered by NumFOCUS](https://img.shields.io/badge/powered%20by-NumFOCUS-orange.svg?style=flat&colorA=E1523D&colorB=007D8A)](http://numfocus.org)
@@ -10,7 +10,7 @@
 [![Code style: black](https://img.shields.io/badge/code%20style-black-000000.svg)](https://github.com/psf/black)
 
 <!---
-[![codecov](https://codecov.io/gh/yt-project/yt/branch/master/graph/badge.svg)](https://codecov.io/gh/yt-project/yt)
+[![codecov](https://codecov.io/gh/yt-project/yt/branch/main/graph/badge.svg)](https://codecov.io/gh/yt-project/yt)
 --->
 <a href="http://yt-project.org"><img src="doc/source/_static/yt_logo.png" width="300"></a>
 
@@ -40,26 +40,26 @@ guide](http://yt-project.org/docs/dev/developing/developing.html#yt-community-co
 You can install the most recent stable version of yt either with conda from
 [conda-forge](https://conda-forge.org/):
 
-```
+```shell
 conda install -c conda-forge yt
 ```
 
 or with pip:
 
-```
+```shell
 pip install yt
 ```
 
 To get set up with a development version, you want to clone this repository:
 
-```
+```shell
 git clone https://github.com/yt-project/yt yt-git
 cd yt-git
 ```
 
 and work within a conda environment:
 
-```
+```shell
 # Create a conda environment named yt-git
 $ conda create -n yt-git python=3.6
 # Activate it
@@ -80,7 +80,7 @@ $ conda env export
 Alternatively, you can install yt in a
 [virtualenv](https://packaging.python.org/installing/#creating-virtual-environments):
 
-```
+```shell
 # It is conventional to create virtualenvs at ~/.virtualenv/
 $ mkdir -p ~/.virtualenv
 # Assuming your version of Python 3 is 3.4 or higher,
@@ -161,9 +161,7 @@ We have some community and documentation resources available.
 
 ## Powered by NumFOCUS
 
-yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/). 
+yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/).
 If you're interested in
 supporting the active maintenance and development of this project, consider
-[donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html). 
-
-
+[donating to the project](https://numfocus.salsalabs.org/donate-to-yt/index.html).

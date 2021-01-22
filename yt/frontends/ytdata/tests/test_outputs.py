@@ -44,7 +44,7 @@ class YTDataFieldTest(AnswerTestingTest):
     _attrs = ("field_name",)
 
     def __init__(self, ds_fn, field, decimals=10, geometric=True):
-        super(YTDataFieldTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.field = field
         if isinstance(field, tuple) and len(field) == 2:
             self.field_name = field[1]

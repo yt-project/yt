@@ -9,7 +9,7 @@ class ExtractConnectedSetsTest(AnswerTestingTest):
     _attrs = ()
 
     def __init__(self, ds_fn, data_source, field, num_levels, min_val, max_val):
-        super(ExtractConnectedSetsTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.data_source = data_source
         self.field = field
         self.num_levels = num_levels

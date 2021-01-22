@@ -1,8 +1,9 @@
 cimport numpy as np
-from libcpp.vector cimport vector
-from libcpp.pair cimport pair
+from libc.stdint cimport int32_t, int64_t, uint32_t, uint64_t
 from libcpp cimport bool
-from libc.stdint cimport uint32_t, uint64_t, int64_t, int32_t
+from libcpp.pair cimport pair
+from libcpp.vector cimport vector
+
 
 cdef extern from "<iostream>" namespace "std":
     cdef cppclass istream:
@@ -13,7 +14,7 @@ cdef extern from "<iostream>" namespace "std":
 
 # the following extern definitions adapted from
 # http://stackoverflow.com/a/31009461/1382869
-    
+
 # obviously std::ios_base isn't a namespace, but this lets
 # Cython generate the correct C++ code
 cdef extern from "<iostream>" namespace "std::ios_base":

@@ -8,10 +8,12 @@ Definitions for image samplers
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from .volume_container cimport VolumeContainer
+cimport numpy as np
+
 from .partitioned_grid cimport PartitionedGrid
+from .volume_container cimport VolumeContainer
 
 DEF Nch = 4
 

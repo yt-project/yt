@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
-from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, iterable, mylog
+from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -172,16 +172,16 @@ class Camera(ParallelAnalysisInterface):
         ParallelAnalysisInterface.__init__(self)
         if ds is not None:
             self.ds = ds
-        if not iterable(resolution):
+        if not is_sequence(resolution):
             resolution = (resolution, resolution)
         self.resolution = resolution
         self.sub_samples = sub_samples
         self.rotation_vector = north_vector
-        if iterable(width) and len(width) > 1 and isinstance(width[1], str):
+        if is_sequence(width) and len(width) > 1 and isinstance(width[1], str):
             width = self.ds.quan(width[0], units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length").value
-        if not iterable(width):
+        if not is_sequence(width):
             width = (width, width, width)  # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
             width = self.ds.arr(width, units="code_length")
@@ -632,7 +632,7 @@ class Camera(ParallelAnalysisInterface):
         """
         if width is None:
             width = self.width
-        if not iterable(width):
+        if not is_sequence(width):
             width = (width, width, width)  # left/right, tom/bottom, front/back
         self.width = width
         if center is not None:
@@ -1015,7 +1015,7 @@ class Camera(ParallelAnalysisInterface):
             final = self.ds.arr(final, units="code_length")
         if exponential:
             if final_width is not None:
-                if not iterable(final_width):
+                if not is_sequence(final_width):
                     final_width = [final_width, final_width, final_width]
                 if not isinstance(final_width, YTArray):
                     final_width = self.ds.arr(final_width, units="code_length")
@@ -1030,7 +1030,7 @@ class Camera(ParallelAnalysisInterface):
             dx = position_diff ** (1.0 / n_steps)
         else:
             if final_width is not None:
-                if not iterable(final_width):
+                if not is_sequence(final_width):
                     final_width = [final_width, final_width, final_width]
                 if not isinstance(final_width, YTArray):
                     final_width = self.ds.arr(final_width, units="code_length")
@@ -1706,7 +1706,7 @@ class FisheyeCamera(Camera):
         self.center = np.array(center, dtype="float64")
         self.radius = radius
         self.fov = fov
-        if iterable(resolution):
+        if is_sequence(resolution):
             raise RuntimeError("Resolution must be a single int")
         self.resolution = resolution
         if transfer_function is None:
@@ -1821,13 +1821,13 @@ class MosaicCamera(Camera):
         self.procs_per_wg = procs_per_wg
         if ds is not None:
             self.ds = ds
-        if not iterable(resolution):
+        if not is_sequence(resolution):
             resolution = (int(resolution / nimx), int(resolution / nimy))
         self.resolution = resolution
         self.nimx = nimx
         self.nimy = nimy
         self.sub_samples = sub_samples
-        if not iterable(width):
+        if not is_sequence(width):
             width = (width, width, width)  # front/back, left/right, top/bottom
         self.width = np.array([width[0], width[1], width[2]])
         self.center = center

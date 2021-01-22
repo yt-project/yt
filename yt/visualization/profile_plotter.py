@@ -7,11 +7,17 @@ from functools import wraps
 
 import matplotlib
 import numpy as np
+from more_itertools.more import always_iterable, unzip
 
 from yt.data_objects.profiles import create_profile, sanitize_field_tuple_keys
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.data_structures import YTProfileDataset
-from yt.funcs import ensure_list, get_image_suffix, iterable, matplotlib_style_context
+from yt.funcs import (
+    get_image_suffix,
+    is_sequence,
+    iter_fields,
+    matplotlib_style_context,
+)
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.logger import ytLogger as mylog
 
@@ -68,7 +74,7 @@ class PlotContainerDict(OrderedDict):
 class FigureContainer(OrderedDict):
     def __init__(self, plots):
         self.plots = plots
-        super(FigureContainer, self).__init__()
+        super().__init__()
 
     def __missing__(self, key):
         self[key] = self.plots[key].figure
@@ -83,31 +89,41 @@ class AxesContainer(OrderedDict):
         self.plots = plots
         self.ylim = {}
         self.xlim = (None, None)
-        super(AxesContainer, self).__init__()
+        super().__init__()
 
     def __missing__(self, key):
         self[key] = self.plots[key].axes
         return self[key]
 
     def __setitem__(self, key, value):
-        super(AxesContainer, self).__setitem__(key, value)
+        super().__setitem__(key, value)
         self.ylim[key] = (None, None)
 
 
-def sanitize_label(label, nprofiles):
-    label = ensure_list(label)
+def sanitize_label(labels, nprofiles):
+    labels = list(always_iterable(labels)) or [None]
 
-    if len(label) == 1:
-        label = label * nprofiles
+    if len(labels) == 1:
+        labels = labels * nprofiles
 
-    if len(label) != nprofiles:
-        raise RuntimeError("Number of labels must match number of profiles")
+    if len(labels) != nprofiles:
+        raise ValueError(
+            f"Number of labels {len(labels)} must match number of profiles {nprofiles}"
+        )
 
-    for l in label:
-        if l is not None and not isinstance(l, str):
-            raise RuntimeError("All labels must be None or a string")
+    invalid_data = [
+        (label, type(label))
+        for label in labels
+        if label is not None and not isinstance(label, str)
+    ]
+    if invalid_data:
+        invalid_labels, types = unzip(invalid_data)
+        raise TypeError(
+            "All labels must be None or a string, "
+            f"received {invalid_labels} with type {types}"
+        )
 
-    return label
+    return labels
 
 
 def data_object_or_all_data(data_source):
@@ -237,7 +253,7 @@ class ProfilePlot:
     ):
 
         data_source = data_object_or_all_data(data_source)
-        y_fields = ensure_list(y_fields)
+        y_fields = list(iter_fields(y_fields))
         logs = {x_field: bool(x_log)}
         if isinstance(y_log, bool):
             y_log = {y_field: y_log for y_field in y_fields}
@@ -363,8 +379,8 @@ class ProfilePlot:
                 img = plot._repr_png_()
             img = base64.b64encode(img).decode()
             ret += (
-                r'<img style="max-width:100%%;max-height:100%%;" '
-                r'src="data:image/png;base64,{0}"><br>'.format(img)
+                r'<img style="max-width:100%;max-height:100%;" '
+                r'src="data:image/png;base64,{}"><br>'.format(img)
             )
         return ret
 
@@ -426,7 +442,7 @@ class ProfilePlot:
 
         obj._font_properties = FontProperties(family="stixgeneral", size=18)
         obj._font_color = None
-        obj.profiles = ensure_list(profiles)
+        obj.profiles = list(always_iterable(profiles))
         obj.x_log = None
         obj.y_log = sanitize_field_tuple_keys(y_log, obj.profiles[0].data_source) or {}
         obj.y_title = {}
@@ -696,10 +712,7 @@ class ProfilePlot:
         >>> pp.save()
 
         """
-        if field == "all":
-            fields = list(self.axes.keys())
-        else:
-            fields = ensure_list(field)
+        fields = list(self.axes.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -730,9 +743,9 @@ class ProfilePlot:
             field = field[1]
         if field_name is None:
             field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", "\ ").title() + r"}$"
+            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
         elif field_name.find("$") == -1:
-            field_name = field_name.replace(" ", "\ ")
+            field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
         if fractional:
             label = field_name + r"$\rm{\ Probability\ Density}$"
@@ -780,10 +793,7 @@ class ProfilePlot:
                                 ["temperature", "dark_matter_density"])
 
         """
-        if field == "all":
-            fields = list(self.axes.keys())
-        else:
-            fields = ensure_list(field)
+        fields = list(self.axes.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -833,10 +843,7 @@ class ProfilePlot:
         >>>  plot.save()
 
         """
-        if field == "all":
-            fields = list(self.axes.keys())
-        else:
-            fields = ensure_list(field)
+        fields = list(self.axes.keys()) if field == "all" else field
         for profile in self.profiles:
             for field in profile.data_source._determine_fields(fields):
                 if field in profile.field_map:
@@ -953,7 +960,7 @@ class PhasePlot(ImagePlotContainer):
             profile = create_profile(
                 data_source,
                 [x_field, y_field],
-                ensure_list(z_fields),
+                list(always_iterable(z_fields)),
                 n_bins=[x_bins, y_bins],
                 weight_field=weight_field,
                 accumulation=accumulation,
@@ -1011,9 +1018,9 @@ class PhasePlot(ImagePlotContainer):
             field = field[1]
         if field_name is None:
             field_name = r"$\rm{" + field + r"}$"
-            field_name = r"$\rm{" + field.replace("_", "\ ").title() + r"}$"
+            field_name = r"$\rm{" + field.replace("_", r"\ ").title() + r"}$"
         elif field_name.find("$") == -1:
-            field_name = field_name.replace(" ", "\ ")
+            field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
         if fractional:
             label = field_name + r"$\rm{\ Probability\ Density}$"
@@ -1572,7 +1579,7 @@ class PhasePlot(ImagePlotContainer):
     def _recreate_profile(self):
         p = self._profile
         units = {p.x_field: str(p.x.units), p.y_field: str(p.y.units)}
-        zunits = dict((field, str(p.field_units[field])) for field in p.field_units)
+        zunits = {field: str(p.field_units[field]) for field in p.field_units}
         extrema = {p.x_field: self._xlim, p.y_field: self._ylim}
         if self.x_log is not None or self.y_log is not None:
             logs = {}
@@ -1634,7 +1641,7 @@ class PhasePlotMPL(ImagePlotMPL):
         if fontscale < 1.0:
             fontscale = np.sqrt(fontscale)
 
-        if iterable(figure_size):
+        if is_sequence(figure_size):
             self._cb_size = 0.0375 * figure_size[0]
         else:
             self._cb_size = 0.0375 * figure_size
@@ -1644,9 +1651,7 @@ class PhasePlotMPL(ImagePlotMPL):
 
         size, axrect, caxrect = self._get_best_layout()
 
-        super(PhasePlotMPL, self).__init__(
-            size, axrect, caxrect, zlim, figure, axes, cax
-        )
+        super().__init__(size, axrect, caxrect, zlim, figure, axes, cax)
 
         self._init_image(x_data, y_data, data, x_scale, y_scale, z_scale, zlim, cmap)
 

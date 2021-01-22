@@ -6,11 +6,13 @@ import weakref
 from functools import wraps
 
 import numpy as np
+from more_itertools import always_iterable
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
-from yt.funcs import ensure_list, issue_deprecation_warning, iterable, mylog
+from yt.funcs import is_sequence, mylog
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.exceptions import YTException
 from yt.utilities.object_registries import (
@@ -151,7 +153,7 @@ class DatasetSeries:
             outputs = cls._get_filenames_from_glob_pattern(outputs)
         except TypeError:
             pass
-        ret = super(DatasetSeries, cls).__new__(cls)
+        ret = super().__new__(cls)
         ret._pre_outputs = outputs[:]
         return ret
 
@@ -165,7 +167,7 @@ class DatasetSeries:
     ):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
         self._mixed_dataset_types = mixed_dataset_types
-        if iterable(outputs) and not isinstance(outputs, str):
+        if is_sequence(outputs) and not isinstance(outputs, str):
             self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
@@ -341,11 +343,10 @@ class DatasetSeries:
             yield next_ret
 
     def eval(self, tasks, obj=None):
-        tasks = ensure_list(tasks)
         return_values = {}
         for store, ds in self.piter(return_values):
             store.result = []
-            for task in tasks:
+            for task in always_iterable(tasks):
                 try:
                     style = inspect.getargspec(task.eval)[0][1]
                     if style == "ds":
@@ -407,7 +408,9 @@ class DatasetSeries:
         """
         issue_deprecation_warning(
             "DatasetSeries.from_filenames() is deprecated and will be removed "
-            "in a future version of yt. Use DatasetSeries() directly."
+            "in a future version of yt. Use DatasetSeries() directly.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
         return obj
@@ -511,12 +514,10 @@ class DatasetSeriesObject:
         self.data_object_name = data_object_name
         self._args = args
         self._kwargs = kwargs
-        qs = dict(
-            [
-                (qn, create_quantity_proxy(qv))
-                for qn, qv in derived_quantity_registry.items()
-            ]
-        )
+        qs = {
+            qn: create_quantity_proxy(qv)
+            for qn, qv in derived_quantity_registry.items()
+        }
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
     def eval(self, tasks):

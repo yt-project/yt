@@ -7,7 +7,7 @@ class IOHandlerARTIO(BaseIOHandler):
     _dataset_type = "artio"
 
     def _read_fluid_selection(self, chunks, selector, fields):
-        tr = dict((ftuple, np.empty(0, dtype="float64")) for ftuple in fields)
+        tr = {ftuple: np.empty(0, dtype="float64") for ftuple in fields}
         cp = 0
         for onechunk in chunks:
             for artchunk in onechunk.objs:

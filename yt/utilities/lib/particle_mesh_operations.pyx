@@ -373,8 +373,3 @@ def recursive_particle_assignment(grids, grid,
             recursive_particle_assignment(grids,grid,left_edges,right_edges,
                                            pos_x[assigned],pos_y[assigned],pos_z[assigned])
     #now we have assigned particles to other subgrids, we are left with particles on our grid
-
-
-
-
-

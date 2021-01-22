@@ -16,7 +16,7 @@
  *
  * Copies of the GNU Lesser General Public License and the GNU General
  * Public License are available in the file LICENSE, included with this
- * distribution.  If you failed to receive a copy of this file, see 
+ * distribution.  If you failed to receive a copy of this file, see
  * <http://www.gnu.org/licenses/>
  **********************************************************************/
 #include "artio.h"
@@ -56,7 +56,7 @@ artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_cont
 	int64_t tmp;
 	int artio_major, artio_minor;
 
-	artio_fileset *handle = 
+	artio_fileset *handle =
 		artio_fileset_allocate( file_prefix, ARTIO_FILESET_READ, context );
 	if ( handle == NULL ) {
 		return NULL;
@@ -64,7 +64,7 @@ artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_cont
 
 	/* open header file */
 	sprintf(filename, "%s.art", handle->file_prefix);
-	head_fh = artio_file_fopen(filename, 
+	head_fh = artio_file_fopen(filename,
 			ARTIO_MODE_READ | ARTIO_MODE_ACCESS, context);
 
 	if ( head_fh == NULL ) {
@@ -81,7 +81,7 @@ artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_cont
 	artio_file_fclose(head_fh);
 
 	/* check versions */
-	if ( artio_parameter_get_int(handle, "ARTIO_MAJOR_VERSION", &artio_major ) == 
+	if ( artio_parameter_get_int(handle, "ARTIO_MAJOR_VERSION", &artio_major ) ==
 			ARTIO_ERR_PARAM_NOT_FOUND ) {
 		/* version pre 1.0 */
 		artio_major = 0;
@@ -96,9 +96,9 @@ artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_cont
 		artio_fileset_destroy(handle);
 		return NULL;
 	}
-	
+
 	artio_parameter_get_long(handle, "num_root_cells", &handle->num_root_cells);
-	
+
 	if ( artio_parameter_get_int(handle, "sfc_type", &handle->sfc_type ) != ARTIO_SUCCESS ) {
 		handle->sfc_type = ARTIO_SFC_HILBERT;
 	}
@@ -135,15 +135,15 @@ artio_fileset *artio_fileset_open(char * file_prefix, int type, const artio_cont
 	return handle;
 }
 
-artio_fileset *artio_fileset_create(char * file_prefix, int64_t root_cells, 
+artio_fileset *artio_fileset_create(char * file_prefix, int64_t root_cells,
 		int64_t proc_sfc_begin, int64_t proc_sfc_end, const artio_context *context) {
-    artio_fileset *handle = 
+    artio_fileset *handle =
 		artio_fileset_allocate( file_prefix, ARTIO_FILESET_WRITE, context );
     if ( handle == NULL ) {
         return NULL;
     }
 
-	handle->proc_sfc_index = 
+	handle->proc_sfc_index =
 		(int64_t*)malloc((handle->num_procs+1)*sizeof(int64_t));
 	if ( handle->proc_sfc_index == NULL ) {
 		artio_fileset_destroy(handle);
@@ -151,7 +151,7 @@ artio_fileset *artio_fileset_create(char * file_prefix, int64_t root_cells,
 	}
 
 #ifdef ARTIO_MPI
-	MPI_Allgather( &proc_sfc_begin, 1, MPI_LONG_LONG, 
+	MPI_Allgather( &proc_sfc_begin, 1, MPI_LONG_LONG,
 			handle->proc_sfc_index, 1, MPI_LONG_LONG, handle->context->comm );
 #else
 	handle->proc_sfc_index[0] = 0;
@@ -173,13 +173,13 @@ artio_fileset *artio_fileset_create(char * file_prefix, int64_t root_cells,
 int artio_fileset_close(artio_fileset *handle) {
 	char header_filename[256];
 	artio_fh *head_fh;
-	
+
 	if ( handle == NULL ) {
 		return ARTIO_ERR_INVALID_HANDLE;
 	}
 
 	if (handle->open_mode == ARTIO_FILESET_WRITE) {
-		/* ensure we've flushed open particle and 
+		/* ensure we've flushed open particle and
 		 * grid files before writing header */
 		if ( handle->grid != NULL ) {
 			artio_fileset_close_grid(handle);
@@ -190,8 +190,8 @@ int artio_fileset_close(artio_fileset *handle) {
 		}
 
 		sprintf(header_filename, "%s.art", handle->file_prefix);
-		head_fh = artio_file_fopen(header_filename, 
-				ARTIO_MODE_WRITE | ((handle->rank == 0) ? ARTIO_MODE_ACCESS : 0), 
+		head_fh = artio_file_fopen(header_filename,
+				ARTIO_MODE_WRITE | ((handle->rank == 0) ? ARTIO_MODE_ACCESS : 0),
 				handle->context);
 
 		if (head_fh == NULL) {
@@ -210,7 +210,7 @@ int artio_fileset_close(artio_fileset *handle) {
 	return ARTIO_SUCCESS;
 }
 
-artio_fileset *artio_fileset_allocate( char *file_prefix, int mode, 
+artio_fileset *artio_fileset_allocate( char *file_prefix, int mode,
 		const artio_context *context ) {
 	int my_rank;
 	int num_procs;
@@ -248,10 +248,10 @@ artio_fileset *artio_fileset_allocate( char *file_prefix, int mode,
 		handle->proc_sfc_begin = -1;
 		handle->proc_sfc_end = -1;
 		handle->num_root_cells = -1;
-		
+
 		handle->grid = NULL;
 		handle->particle = NULL;
-	}	
+	}
 	return handle;
 }
 
@@ -259,7 +259,7 @@ void artio_fileset_destroy( artio_fileset *handle ) {
 	if ( handle == NULL ) return;
 
 	if ( handle->proc_sfc_index != NULL ) free( handle->proc_sfc_index );
-	
+
 	if ( handle->grid != NULL ) {
         artio_fileset_close_grid(handle);
     }

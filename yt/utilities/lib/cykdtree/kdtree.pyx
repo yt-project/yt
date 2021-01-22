@@ -3,7 +3,7 @@
 # distutils: sources = yt/utilities/lib/cykdtree/c_utils.cpp
 # distutils: depends = yt/utilities/lib/cykdtree/c_kdtree.hpp, yt/utilities/lib/cykdtree/c_utils.hpp
 # distutils: language = c++
-# distutils: extra_compile_args = -std=c++03
+# distutils: extra_compile_args = CPP03_FLAG
 import cython
 import numpy as np
 
@@ -466,11 +466,11 @@ cdef class PyKDTree:
 
         Args:
             filename (string): Name of the file to load the kdtree from
-            data_version (int): A unique integer corresponding to the data 
-                                being loaded. If the loaded data_version does 
-                                not match the data_version supplied here then 
+            data_version (int): A unique integer corresponding to the data
+                                being loaded. If the loaded data_version does
+                                not match the data_version supplied here then
                                 an OSError is raised. Optional.
-        
+
         Returns:
             :class:`cykdtree.PyKDTree`: A KDTree restored from the file
 

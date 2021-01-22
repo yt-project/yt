@@ -39,7 +39,13 @@ class AdaptaHOPParticleIndex(ParticleIndex):
             ]
         else:
             self.data_files = [
-                cls(self.dataset, self.io, self.dataset.parameter_filename, 0, None,)
+                cls(
+                    self.dataset,
+                    self.io,
+                    self.dataset.parameter_filename,
+                    0,
+                    None,
+                )
             ]
 
 
@@ -70,7 +76,7 @@ class AdaptaHOPDataset(Dataset):
             )
         self.parent_ds = parent_ds
 
-        super(AdaptaHOPDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -101,7 +107,7 @@ class AdaptaHOPDataset(Dataset):
         self.current_time = self.quan(params["age"], "Gyr")
         self.omega_lambda = 0.724  # hard coded if not inferred from parent ds
         self.hubble_constant = 0.7  # hard coded if not inferred from parent ds
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.particle_types = "halos"
         self.particle_types_raw = "halos"
 
@@ -119,10 +125,10 @@ class AdaptaHOPDataset(Dataset):
         self.parameters.update(params)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        fname = os.path.split(args[0])[1]
+    def _is_valid(cls, filename, *args, **kwargs):
+        fname = os.path.split(filename)[1]
         if not fname.startswith("tree_bricks") or not re.match(
-            "^tree_bricks\d{3}$", fname
+            r"^tree_bricks\d{3}$", fname
         ):
             return False
         return True
@@ -242,7 +248,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         self._set_halo_member_data()
 
         # Call constructor
-        super(AdaptaHOPHaloContainer, self).__init__(parent_ds, {})
+        super().__init__(parent_ds, {})
 
     def __repr__(self):
         return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)

@@ -79,7 +79,7 @@ class SDFDataset(ParticleDataset):
         if filename.startswith("http"):
             prefix += "http_"
         dataset_type = prefix + "sdf_particles"
-        super(SDFDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type=dataset_type,
             units_override=units_override,
@@ -122,9 +122,9 @@ class SDFDataset(ParticleDataset):
 
         self.domain_dimensions = np.ones(3, "int32")
         if "do_periodic" in self.parameters and self.parameters["do_periodic"]:
-            self.periodicity = (True, True, True)
+            self._periodicity = (True, True, True)
         else:
-            self.periodicity = (False, False, False)
+            self._periodicity = (False, False, False)
 
         self.cosmological_simulation = 1
 
@@ -182,8 +182,8 @@ class SDFDataset(ParticleDataset):
         setdefaultattr(self, "mass_unit", self.quan(float(factor), unit))
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        sdf_header = kwargs.get("sdf_header", args[0])
+    def _is_valid(cls, filename, *args, **kwargs):
+        sdf_header = kwargs.get("sdf_header", filename)
         if sdf_header.startswith("http"):
             requests = get_requests()
             if requests is None:

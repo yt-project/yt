@@ -286,8 +286,8 @@ example:
                            weight_field='density', buff_size=(1000, 1000))
    prj.save()
 
-will create a density-weighted projection of the temperature field along 
-the x axis with 1000 resolution elements per side, plot it, and then save 
+will create a density-weighted projection of the temperature field along
+the x axis with 1000 resolution elements per side, plot it, and then save
 the plot to a png image file.
 
 Like :ref:`slice-plots`, annotations and modifications can be applied
@@ -1093,9 +1093,9 @@ Setting axis labels
 The axis labels can be manipulated via the
 :meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylabel` and
 :meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlabel` functions.  The
-:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylabel` function accepts a field name 
+:meth:`~yt.visualization.profile_plotter.ProfilePlot.set_ylabel` function accepts a field name
 and a string with the desired label. The :meth:`~yt.visualization.profile_plotter.ProfilePlot.set_xlabel`
-function just accepts the desired label and applies this to all of the plots. 
+function just accepts the desired label and applies this to all of the plots.
 
 In the following example we create a plot of the average x-velocity and density as a
 function of radius. The xlabel is set to "Radius", for all plots, and the ylabel is set to
@@ -1333,7 +1333,7 @@ Similarly to 1D profile plots, :class:`~yt.visualization.profile_plotter.PhasePl
 can be customized via ``set_unit``,
 ``set_xlim``, ``set_ylim``, and ``set_zlim``.  The following example illustrates
 how to manipulate these functions. :class:`~yt.visualization.profile_plotter.PhasePlot`
-can also be customized in a similar manner as 
+can also be customized in a similar manner as
 :class:`~yt.visualization.plot_window.SlicePlot`, such as with ``hide_colorbar``
 and ``show_colorbar``.
 

@@ -7,11 +7,7 @@ from .fits_image import (
     FITSProjection,
     FITSSlice,
 )
-from .fixed_resolution import (
-    FixedResolutionBuffer,
-    ObliqueFixedResolutionBuffer,
-    ParticleImageBuffer,
-)
+from .fixed_resolution import FixedResolutionBuffer, ParticleImageBuffer
 from .image_writer import (
     apply_colormap,
     map_to_colors,

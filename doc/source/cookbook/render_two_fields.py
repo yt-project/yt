@@ -3,7 +3,7 @@ from yt.visualization.volume_rendering.api import Scene, create_volume_source
 
 filePath = "Sedov_3d/sedov_hdf5_chk_0003"
 ds = yt.load(filePath)
-ds.periodicity = (True, True, True)
+ds.force_periodicity()
 
 sc = Scene()
 

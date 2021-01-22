@@ -2,6 +2,7 @@ import builtins
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
 from yt.units.yt_array import YTQuantity
@@ -341,6 +342,8 @@ def write_projection(
     colorbar=True,
     colorbar_label=None,
     title=None,
+    vmin=None,
+    vmax=None,
     limits=None,
     take_log=True,
     figsize=(8, 6),
@@ -372,9 +375,10 @@ def write_projection(
         the label associated with your colorbar
     title : string
         the label at the top of the figure
-    limits : 2-element array_like
-        the lower limit and the upper limit to be plotted in the figure
-        of the data array
+    vmin : float or None
+        the lower limit of the zaxis (part of matplotlib api)
+    vmax : float or None
+        the lower limit of the zaxis (part of matplotlib api)
     take_log : boolean
         plot the log of the data array (and take the log of the limits if set)?
     figsize : array_like
@@ -390,7 +394,7 @@ def write_projection(
     >>> image = off_axis_projection(ds, c, L, W, N, "Density", no_ghost=False)
     >>> write_projection(image, 'test.png',
                          colorbar_label="Column Density (cm$^{-2}$)",
-                         title="Offaxis Projection", limits=(1e-5,1e-3),
+                         title="Offaxis Projection", vmin=1e-5, vmax=1e-3,
                          take_log=True)
     """
     if cmap_name is None:
@@ -400,14 +404,26 @@ def write_projection(
 
     from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
 
+    if limits is not None:
+        if vmin is not None or vmax is not None:
+            raise ValueError(
+                "The `limits` keyword argument is deprecated and can not "
+                "be used simultaneously with `vmin` or `vmax`."
+            )
+        issue_deprecation_warning(
+            "The `limits` keyword argument is deprecated and will "
+            "be removed in a future version of yt. Use `vmin` and `vmax` instead.",
+            since="4.0.0",
+            removal="4.1.0",
+        )
+        vmin, vmax = limits
+
     # If this is rendered as log, then apply now.
     if take_log:
-        norm = matplotlib.colors.LogNorm()
+        norm_cls = matplotlib.colors.LogNorm
     else:
-        norm = matplotlib.colors.Normalize()
-
-    if limits is None:
-        limits = [None, None]
+        norm_cls = matplotlib.colors.Normalize
+    norm = norm_cls(vmin=vmin, vmax=vmax)
 
     # Create the figure and paint the data on
     fig = matplotlib.figure.Figure(figsize=figsize)
@@ -415,8 +431,6 @@ def write_projection(
 
     cax = ax.imshow(
         data.to_ndarray(),
-        vmin=limits[0],
-        vmax=limits[1],
         norm=norm,
         extent=extent,
         cmap=cmap_name,

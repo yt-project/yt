@@ -5,8 +5,6 @@ on cloud platforms like Travis
 """
 
 
-from __future__ import print_function
-
 import argparse
 import base64
 import collections
@@ -201,7 +199,7 @@ def generate_answers(answer_dir, answers):
         "-d",
         "-v",
         "--local",
-        "--local-dir=%s" % answer_dir,
+        f"--local-dir={answer_dir}",
         "--answer-store",
     ]
 
@@ -433,7 +431,7 @@ if __name__ == "__main__":
                 + COLOR_CYAN
                 + "Successfully uploaded answer(s) for failed test at URL: "
                 + response.text.split("\n")[1]
-                + ". Please commit these "
+                + " . Please commit these "
                 "answers in the repository's answer-store." + COLOR_RESET + FLAG_EMOJI
             )
             log.info(msg)
@@ -446,7 +444,7 @@ if __name__ == "__main__":
                 + COLOR_CYAN
                 + "Successfully uploaded missing answer(s) at URL: "
                 + response.text.split("\n")[1]
-                + ". Please commit these "
+                + " . Please commit these "
                 "answers in the repository's answer-store." + COLOR_RESET + FLAG_EMOJI
             )
             log.info(msg)

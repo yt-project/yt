@@ -42,7 +42,7 @@
 #endif
 
 #ifdef _MSC_VER
-#include <intrin.h> 
+#include <intrin.h>
 #endif
 
 static inline uint32_t ctz64(uint64_t n) {

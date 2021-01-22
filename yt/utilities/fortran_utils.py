@@ -69,7 +69,7 @@ def read_attrs(f, attrs, endian="="):
         s2 = vals.pop(0)
         if s1 != s2:
             size = struct.calcsize(endian + "I" + "".join(n * [t]) + "I")
-            raise IOError(
+            raise OSError(
                 "An error occured while reading a Fortran record. "
                 "Got a different size at the beginning and at the "
                 "end of the record: %s %s",
@@ -80,7 +80,7 @@ def read_attrs(f, attrs, endian="="):
             v = v[0]
         if isinstance(a, tuple):
             if len(a) != len(v):
-                raise IOError(
+                raise OSError(
                     "An error occured while reading a Fortran "
                     "record. Record length is not equal to expected "
                     "length: %s %s",
@@ -147,7 +147,7 @@ def read_cattrs(f, attrs, endian="="):
             v = v[0]
         if isinstance(a, tuple):
             if len(a) != len(v):
-                raise IOError(
+                raise OSError(
                     "An error occured while reading a Fortran "
                     "record. Record length is not equal to expected "
                     "length: %s %s",
@@ -192,7 +192,7 @@ def read_vector(f, d, endian="="):
     vec_fmt = f"{endian}{d}"
     vec_size = struct.calcsize(vec_fmt)
     if vec_len % vec_size != 0:
-        raise IOError(
+        raise OSError(
             "An error occured while reading a Fortran record. "
             "Vector length is not compatible with data type: %s %s",
             vec_len,
@@ -205,7 +205,7 @@ def read_vector(f, d, endian="="):
         tr = np.fromstring(f.read(vec_len), vec_fmt, count=vec_num)
     vec_len2 = struct.unpack(pad_fmt, f.read(pad_size))[0]
     if vec_len != vec_len2:
-        raise IOError(
+        raise OSError(
             "An error occured while reading a Fortran record. "
             "Got a different size at the beginning and at the "
             "end of the record: %s %s",
@@ -248,7 +248,7 @@ def skip(f, n=1, endian="="):
         f.seek(s1 + fmt_size, os.SEEK_CUR)
         s2 = struct.unpack(fmt, size)[0]
         if s1 != s2:
-            raise IOError(
+            raise OSError(
                 "An error occured while reading a Fortran record. "
                 "Got a different size at the beginning and at the "
                 "end of the record: %s %s",
@@ -261,7 +261,7 @@ def skip(f, n=1, endian="="):
 
 
 def peek_record_size(f, endian="="):
-    r""" This function accept the file handle and returns
+    r"""This function accept the file handle and returns
     the size of the next record and then rewinds the file
     to the previous position.
 
@@ -323,7 +323,7 @@ def read_record(f, rspec, endian="="):
     vals = list(struct.unpack(net_format, f.read(size)))
     s1, s2 = vals.pop(0), vals.pop(-1)
     if s1 != s2:
-        raise IOError(
+        raise OSError(
             "An error occured while reading a Fortran record. Got "
             "a different size at the beginning and at the end of "
             "the record: %s %s",

@@ -1,3 +1,6 @@
+# distutils: language = c++
+# distutils: extra_compile_args = CPP14_FLAG
+# distutils: extra_link_args = CPP14_FLAG
 """
 Field Interpolation Tables
 
@@ -8,9 +11,18 @@ Field Interpolation Tables
 
 cimport cython
 cimport numpy as np
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip, fabs
 from libc.stdlib cimport malloc
-from libc.math cimport isnormal
+
+from yt.utilities.lib.fp_utils cimport fabs, fclip, fmax, fmin, iclip, imax, imin
+
+
+cdef extern from "<cmath>" namespace "std":
+    bint isnormal(double x) nogil
+
+
+cdef extern from "platform_dep_math.hpp":
+    bint __isnormal(double) nogil
+
 
 cdef struct FieldInterpolationTable:
     # Note that we make an assumption about retaining a reference to values
@@ -56,7 +68,7 @@ cdef inline np.float64_t FIT_get_value(const FieldInterpolationTable *fit,
     cdef np.float64_t dd, dout
     cdef int bin_id
     if dvs[fit.field_id] >= fit.bounds[1] or dvs[fit.field_id] <= fit.bounds[0]: return 0.0
-    if not isnormal(dvs[fit.field_id]): return 0.0
+    if not __isnormal(dvs[fit.field_id]): return 0.0
     bin_id = <int> ((dvs[fit.field_id] - fit.bounds[0]) * fit.idbin)
     bin_id = iclip(bin_id, 0, fit.nbins-2)
 
@@ -65,7 +77,7 @@ cdef inline np.float64_t FIT_get_value(const FieldInterpolationTable *fit,
     cdef int wfi = fit.weight_field_id
     if wfi != -1:
         dout *= dvs[wfi]
-    return dout 
+    return dout
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -129,4 +141,3 @@ cdef inline void FIT_eval_transfer_with_light(np.float64_t dt, np.float64_t *dvs
         for i in range(3):
             ta = fmax(1.0-dt*trgba[i], 0.0)
             rgba[i] = (1.-ta)*trgba[i]*(1. + dot_prod*l_rgba[i]) + ta * rgba[i]
-

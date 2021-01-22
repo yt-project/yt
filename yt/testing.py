@@ -14,7 +14,7 @@ from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
 from yt.config import ytcfg
-from yt.funcs import iterable
+from yt.funcs import is_sequence
 from yt.loaders import load
 from yt.units.yt_array import YTArray, YTQuantity
 
@@ -125,7 +125,7 @@ def amrspace(extent, levels=7, cells=8):
         levels = np.asarray(levels, dtype="int32")
         minlvl = levels.min()
         maxlvl = levels.max()
-        if minlvl != maxlvl and (minlvl != 0 or set([minlvl, maxlvl]) != set(levels)):
+        if minlvl != maxlvl and (minlvl != 0 or {minlvl, maxlvl} != set(levels)):
             raise ValueError("all levels must have the same value or zero.")
     dims_zero = levels == 0
     dims_nonzero = ~dims_zero
@@ -204,11 +204,11 @@ def fake_random_ds(
     from yt.loaders import load_uniform_grid
 
     prng = RandomState(0x4D3D3D3)
-    if not iterable(ndims):
+    if not is_sequence(ndims):
         ndims = [ndims, ndims, ndims]
     else:
         assert len(ndims) == 3
-    if not iterable(negative):
+    if not is_sequence(negative):
         negative = [negative for f in fields]
     assert len(fields) == len(negative)
     offsets = []
@@ -312,7 +312,7 @@ def fake_particle_ds(
     from yt.loaders import load_particles
 
     prng = RandomState(0x4D3D3D3)
-    if not iterable(negative):
+    if not is_sequence(negative):
         negative = [negative for f in fields]
     assert len(fields) == len(negative)
     offsets = []
@@ -820,7 +820,7 @@ def requires_file(req_file):
     def ffalse(func):
         @functools.wraps(func)
         def false_wrapper(*args, **kwargs):
-            if ytcfg.getboolean("yt", "__strict_requires"):
+            if ytcfg.get("yt", "internals", "strict_requires"):
                 raise FileNotFoundError(req_file)
             raise SkipTest
 
@@ -846,11 +846,11 @@ def disable_dataset_cache(func):
     @functools.wraps(func)
     def newfunc(*args, **kwargs):
         restore_cfg_state = False
-        if ytcfg.get("yt", "skip_dataset_cache") == "False":
-            ytcfg["yt", "skip_dataset_cache"] = "True"
+        if not ytcfg.get("yt", "skip_dataset_cache"):
+            ytcfg["yt", "skip_dataset_cache"] = True
         rv = func(*args, **kwargs)
         if restore_cfg_state:
-            ytcfg["yt", "skip_dataset_cache"] = "False"
+            ytcfg["yt", "skip_dataset_cache"] = False
         return rv
 
     return newfunc
@@ -1195,14 +1195,17 @@ def assert_fname(fname):
 
     extension = os.path.splitext(fname)[1]
 
-    assert image_type == extension, (
-        "Expected an image of type '%s' but '%s' is an image of type '%s'"
-        % (extension, fname, image_type)
+    assert (
+        image_type == extension
+    ), "Expected an image of type '{}' but '{}' is an image of type '{}'".format(
+        extension,
+        fname,
+        image_type,
     )
 
 
 def requires_backend(backend):
-    """ Decorator to check for a specified matplotlib backend.
+    """Decorator to check for a specified matplotlib backend.
 
     This decorator returns the decorated function if the specified `backend`
     is same as of `matplotlib.get_backend()`, otherwise returns null function.
@@ -1233,7 +1236,7 @@ def requires_backend(backend):
             print(msg)
             pytest.skip(msg)
 
-        if ytcfg.getboolean("yt", "__withinpytest"):
+        if ytcfg.get("yt", "internals", "within_pytest"):
             return skip
         else:
             return lambda: None

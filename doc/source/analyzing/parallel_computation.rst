@@ -536,7 +536,7 @@ chunk-based fashion.
 * **Cutting planes**: cutting planes are parallelized exactly as slices are.
   However, in contrast to slices, because the data-selection operation can be
   much more time consuming, cutting planes often benefit from parallelism.
-  
+
 * **Covering Grids**: covering grids are parallelized exactly as slices are.
 
 Object-Based

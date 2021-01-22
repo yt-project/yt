@@ -104,15 +104,15 @@ class OWLSFieldInfo(SPHFieldInfo):
 
         self.known_particle_fields += new_particle_fields
 
-        super(OWLSFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
 
         # This enables the machinery in yt.fields.species_fields
         self.species_names += list(self._elements)
 
     def setup_particle_fields(self, ptype):
-        """ additional particle fields derived from those in snapshot.
+        """additional particle fields derived from those in snapshot.
         we also need to add the smoothed fields here b/c setup_fluid_fields
-        is called before setup_particle_fields. """
+        is called before setup_particle_fields."""
 
         smoothed_suffixes = ("_number_density", "_density", "_mass")
 
@@ -140,7 +140,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         else:
             ftype = ptype
 
-        super(OWLSFieldInfo, self).setup_particle_fields(
+        super().setup_particle_fields(
             ptype, num_neighbors=self._num_neighbors, ftype=ftype
         )
 
@@ -279,8 +279,7 @@ class OWLSFieldInfo(SPHFieldInfo):
             self._show_field_errors.append((ftype, fname))
 
     def _create_ion_density_func(self, ftype, ion):
-        """ returns a function that calculates the ion density of a particle.
-        """
+        """returns a function that calculates the ion density of a particle."""
 
         def get_owls_ion_density_field(ion, ftype, itab):
             def _func(field, data):
@@ -295,8 +294,7 @@ class OWLSFieldInfo(SPHFieldInfo):
         return get_owls_ion_density_field(ion, ftype, itab)
 
     def _create_ion_mass_func(self, ftype, ion):
-        """ returns a function that calculates the ion mass of a particle
-        """
+        """returns a function that calculates the ion mass of a particle"""
 
         def get_owls_ion_mass_field(ion, ftype, itab):
             def _func(field, data):

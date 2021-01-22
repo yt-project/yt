@@ -1,7 +1,6 @@
 import cmd
 import pdb
 import signal
-import socket
 import sys
 import traceback
 from io import StringIO
@@ -38,8 +37,8 @@ class PdbXMLRPCServer(SimpleXMLRPCServer):
 
 def rpdb_excepthook(exc_type, exc, tb):
     traceback.print_exception(exc_type, exc, tb)
-    task = ytcfg.getint("yt", "__global_parallel_rank")
-    size = ytcfg.getint("yt", "__global_parallel_size")
+    task = ytcfg.get("yt", "internals", "global_parallel_rank")
+    size = ytcfg.get("yt", "internals", "global_parallel_size")
     print(f"Starting RPDB server on task {task} ; connect with 'yt rpdb -t {task}'")
     handler = pdb_handler(tb)
     server = PdbXMLRPCServer(("localhost", 8010 + task))
@@ -120,7 +119,7 @@ def run_rpdb(task=None):
     sp = ServerProxy(f"http://localhost:{port}/")
     try:
         pp = rpdb_cmd(sp)
-    except socket.error:
+    except OSError:
         print("Connection refused.  Is the server running?")
         sys.exit(1)
     pp.cmdloop(__header % dict(task=port - 8010))

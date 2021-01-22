@@ -6,9 +6,10 @@ This module gathers all user-facing functions with a `load_` prefix.
 import os
 
 import numpy as np
+from more_itertools import always_iterable
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.funcs import ensure_list, issue_deprecation_warning, mylog
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
@@ -18,6 +19,7 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
@@ -140,11 +142,11 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
 
 def simulation(fn, simulation_type, find_outputs=False):
-    from yt.funcs import issue_deprecation_warning
-
     issue_deprecation_warning(
         "yt.simulation is a deprecated alias for yt.load_simulation"
-        "and will be removed in a future version of yt."
+        "and will be removed in a future version of yt.",
+        since="4.0.0",
+        removal="4.1.0",
     )
     return load_simulation(
         fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
@@ -255,7 +257,9 @@ def load_uniform_grid(
             "the number of particles in the data "
             "dict. The number of particles is "
             "determined from the sizes of the "
-            "particle fields."
+            "particle fields.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         data.pop("number_of_particles")
     # First we fix our field names, apply units to data
@@ -481,7 +485,9 @@ def load_amr_grids(
                 "the number of particles in the data "
                 "dict. The number of particles is "
                 "determined from the sizes of the "
-                "particle fields."
+                "particle fields.",
+                since="4.0.0",
+                removal="4.1.0",
             )
             g.pop("number_of_particles")
         field_units, data, n_particles = process_data(
@@ -1151,19 +1157,11 @@ def load_unstructured_mesh(
     if elem_data is None and node_data is None:
         raise RuntimeError("No data supplied in load_unstructured_mesh.")
 
-    if isinstance(connectivity, list):
-        num_meshes = len(connectivity)
-    else:
-        num_meshes = 1
-    connectivity = ensure_list(connectivity)
+    connectivity = list(always_iterable(connectivity, base_type=np.ndarray))
+    num_meshes = max(1, len(connectivity))
 
-    if elem_data is None:
-        elem_data = [{} for i in range(num_meshes)]
-    elem_data = ensure_list(elem_data)
-
-    if node_data is None:
-        node_data = [{} for i in range(num_meshes)]
-    node_data = ensure_list(node_data)
+    elem_data = list(always_iterable(elem_data, base_type=dict)) or [{}] * num_meshes
+    node_data = list(always_iterable(node_data, base_type=dict)) or [{}] * num_meshes
 
     data = [{} for i in range(num_meshes)]
     for elem_dict, data_dict in zip(elem_data, data):
@@ -1172,7 +1170,6 @@ def load_unstructured_mesh(
     for node_dict, data_dict in zip(node_data, data):
         for field, values in node_dict.items():
             data_dict[field] = values
-    data = ensure_list(data)
 
     if bbox is None:
         bbox = [
@@ -1320,12 +1317,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
 
     downloader = None
     if pbar:
-        try:
-            import tqdm  # noqa: F401
-
-            downloader = pooch.pooch.HTTPDownloader(progressbar=True)
-        except ImportError:
-            mylog.warning("tqdm is not installed, progress bar can not be displayed.")
+        downloader = pooch.pooch.HTTPDownloader(progressbar=True)
 
     if extension != "h5":
         # we are going to assume most files that exist on the hub are

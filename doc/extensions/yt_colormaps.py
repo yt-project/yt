@@ -3,9 +3,11 @@
 #  2. This script is added to the document in a literalinclude
 #  3. Any _static images found will be added
 
-from docutils.parsers.rst import Directive
-from docutils.parsers.rst import directives
-import os, glob, shutil
+import glob
+import os
+import shutil
+
+from docutils.parsers.rst import Directive, directives
 
 # Some of this magic comes from the matplotlib plot_directive.
 
@@ -30,7 +32,6 @@ class ColormapScript(Directive):
         rst_dir = os.path.abspath(os.path.dirname(rst_file))
         script_fn = directives.path(self.arguments[0])
         script_bn = os.path.basename(script_fn)
-        script_name = os.path.basename(self.arguments[0]).split(".")[0]
 
         # This magic is from matplotlib
         dest_dir = os.path.abspath(
@@ -52,9 +53,9 @@ class ColormapScript(Directive):
         lines = []
         for im in images:
             im_name = os.path.join("_static", os.path.basename(im))
-            lines.append(".. image:: %s" % im_name)
+            lines.append(f".. image:: {im_name}")
             lines.append("   :width: 400")
-            lines.append("   :target: ../../_images/%s" % os.path.basename(im))
+            lines.append(f"   :target: ../../_images/{os.path.basename(im)}")
             lines.append("\n")
         lines.append("\n")
         self.state_machine.insert_input(lines, rst_file)

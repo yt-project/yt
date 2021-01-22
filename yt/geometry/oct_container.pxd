@@ -9,14 +9,16 @@ Oct definitions file
 
 cimport cython
 cimport numpy as np
-from yt.utilities.lib.fp_utils cimport *
 cimport oct_visitors
 cimport selection_routines
-from .oct_visitors cimport OctVisitor, Oct, cind, OctInfo
-from libc.stdlib cimport bsearch, qsort, realloc, malloc, free
 from libc.math cimport floor
-from yt.utilities.lib.allocation_container cimport \
-    ObjectPool, AllocationContainer
+from libc.stdlib cimport bsearch, free, malloc, qsort, realloc
+
+from yt.utilities.lib.allocation_container cimport AllocationContainer, ObjectPool
+from yt.utilities.lib.fp_utils cimport *
+
+from .oct_visitors cimport Oct, OctInfo, OctVisitor, cind
+
 
 cdef int ORDER_MAX
 

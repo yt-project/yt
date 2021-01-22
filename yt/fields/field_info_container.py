@@ -2,7 +2,8 @@ from numbers import Number as numeric_type
 
 import numpy as np
 
-from yt.funcs import issue_deprecation_warning, mylog, only_on_root
+from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
 from yt.units.unit_object import Unit
@@ -66,7 +67,7 @@ class FieldInfoContainer(dict):
         # Now we get all our index types and set up aliases to them
         if self.ds is None:
             return
-        index_fields = set([f for _, f in self if _ == "index"])
+        index_fields = {f for _, f in self if _ == "index"}
         for ftype in self.ds.fluid_types:
             if ftype in ("index", "deposit"):
                 continue
@@ -168,8 +169,18 @@ class FieldInfoContainer(dict):
                 uni_alias_name = alias_name.replace("particle_position_", "")
             elif "particle_" in alias_name:
                 uni_alias_name = alias_name.replace("particle_", "")
-            new_aliases.append(((ftype, uni_alias_name), (ptype, alias_name),))
-            new_aliases.append(((ptype, uni_alias_name), (ptype, alias_name),))
+            new_aliases.append(
+                (
+                    (ftype, uni_alias_name),
+                    (ptype, alias_name),
+                )
+            )
+            new_aliases.append(
+                (
+                    (ptype, uni_alias_name),
+                    (ptype, alias_name),
+                )
+            )
             for alias, source in new_aliases:
                 self.alias(alias, source)
 
@@ -284,7 +295,9 @@ class FieldInfoContainer(dict):
         if particle_type:
             issue_deprecation_warning(
                 "'particle_type' keyword argument is deprecated in favour "
-                "of the positional argument 'sampling_type'."
+                "of the positional argument 'sampling_type'.",
+                since="4.0.0",
+                removal="4.1.0",
             )
             if sampling_type != "particle":
                 raise RuntimeError(
@@ -450,11 +463,9 @@ class FieldInfoContainer(dict):
         return key in self.fallback
 
     def __iter__(self):
-        for f in dict.__iter__(self):
-            yield f
+        yield from dict.__iter__(self)
         if self.fallback is not None:
-            for f in self.fallback:
-                yield f
+            yield from self.fallback
 
     def keys(self):
         keys = dict.keys(self)
@@ -469,6 +480,7 @@ class FieldInfoContainer(dict):
         for field in fields_to_check:
             fi = self[field]
             try:
+                # fd: field detector
                 fd = fi.get_dependencies(ds=self.ds)
             except (NotImplementedError, Exception) as e:  # noqa: B014
                 if field in self._show_field_errors:
@@ -493,6 +505,34 @@ class FieldInfoContainer(dict):
             fd.requested = set(fd.requested)
             deps[field] = fd
             mylog.debug("Succeeded with %s (needs %s)", field, fd.requested)
+
+        # now populate the derived field list with results
+        # this violates isolation principles and should be refactored
         dfl = set(self.ds.derived_field_list).union(deps.keys())
-        self.ds.derived_field_list = list(sorted(dfl, key=tupleize))
+        dfl = list(sorted(dfl, key=tupleize))
+
+        if not hasattr(self.ds.index, "meshes"):
+            # the meshes attribute characterizes an unstructured-mesh data structure
+
+            # ideally this filtering should not be required
+            # and this could maybe be handled in fi.get_dependencies
+            # but it's a lot easier to do here
+
+            filtered_dfl = []
+            for field in dfl:
+                try:
+                    ftype, fname = field
+                    if "vertex" in fname:
+                        continue
+                except ValueError:
+                    # in very rare cases, there can a field represented by a single
+                    # string, like "emissivity"
+                    # this try block _should_ be removed and the error fixed upstream
+                    # for reference, a test that would break is
+                    # yt/data_objects/tests/test_fluxes.py::ExporterTests
+                    pass
+                filtered_dfl.append(field)
+            dfl = filtered_dfl
+
+        self.ds.derived_field_list = dfl
         return deps, unavailable

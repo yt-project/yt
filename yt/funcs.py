@@ -25,8 +25,9 @@ from numbers import Number as numeric_type
 
 import matplotlib
 import numpy as np
+from more_itertools import always_iterable, collapse, first
+from tqdm import tqdm
 
-from yt.extern.tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
@@ -34,29 +35,49 @@ from yt.utilities.logger import ytLogger as mylog
 # Some functions for handling sequences and other types
 
 
-def iterable(obj):
+def is_sequence(obj):
     """
     Grabbed from Python Cookbook / matplotlib.cbook.  Returns true/false for
     *obj* iterable.
     """
     try:
         len(obj)
+        return True
     except TypeError:
         return False
-    return True
 
 
-def ensure_list(obj):
+def iter_fields(field_or_fields):
     """
-    This function ensures that *obj* is a list.  Typically used to convert a
-    string to a list, for instance ensuring the *fields* as an argument is a
-    list.
+    Create an iterator for field names, specified as single strings or tuples(fname,
+    ftype) alike.
+    This can safely be used in places where we accept a single field or a list as input.
+
+    Parameters
+    ----------
+    obj: str, tuple(str, str), or any iterable of the previous types.
+
+    Examples
+    --------
+
+    >>> fields = "density"
+    >>> for field in iter_fields(fields):
+    ...     print(field)
+    density
+
+    >>> fields = ("gas", "density")
+    >>> for field in iter_fields(fields):
+    ...     print(field)
+    ('gas', 'density')
+
+    >>> fields = ["density", "temperature", ("index", "dx")]
+    >>> for field in iter_fields(fields):
+    ...     print(field)
+    density
+    temperature
+    ('index', 'dx')
     """
-    if obj is None:
-        return [obj]
-    if not isinstance(obj, list):
-        return [obj]
-    return obj
+    return always_iterable(field_or_fields, base_type=(tuple, str, bytes))
 
 
 def ensure_numpy_array(obj):
@@ -75,20 +96,6 @@ def ensure_numpy_array(obj):
         return np.asarray([obj])
 
 
-def ensure_tuple(obj):
-    """
-    This function ensures that *obj* is a tuple.  Typically used to convert
-    scalar, list, or array arguments specified by a user in a context where
-    we assume a tuple internally
-    """
-    if isinstance(obj, tuple):
-        return obj
-    elif isinstance(obj, (list, np.ndarray)):
-        return tuple(obj)
-    else:
-        return (obj,)
-
-
 def read_struct(f, fmt):
     """
     This reads a struct, and only that struct, from an open file.
@@ -99,13 +106,7 @@ def read_struct(f, fmt):
 
 def just_one(obj):
     # If we have an iterable, sometimes we only want one item
-    if hasattr(obj, "flat"):
-        if isinstance(obj, YTArray):
-            return YTQuantity(obj.flat[0], obj.units, registry=obj.units.registry)
-        return obj.flat[0]
-    elif iterable(obj):
-        return obj[0]
-    return obj
+    return first(collapse(obj))
 
 
 def compare_dicts(dict1, dict2):
@@ -172,7 +173,7 @@ def get_memory_usage(subtract_share=False):
 def time_execution(func):
     r"""
     Decorator for seeing how long a given function takes, depending on whether
-    or not the global 'yt.timefunctions' config parameter is set.
+    or not the global 'yt.time_functions' config parameter is set.
     """
 
     @wraps(func)
@@ -185,7 +186,7 @@ def time_execution(func):
 
     from yt.config import ytcfg
 
-    if ytcfg.getboolean("yt", "timefunctions"):
+    if ytcfg.get("yt", "time_functions"):
         return wrapper
     else:
         return func
@@ -231,51 +232,11 @@ def rootonly(func):
 
     @wraps(func)
     def check_parallel_rank(*args, **kwargs):
-        if ytcfg.getint("yt", "__topcomm_parallel_rank") > 0:
+        if ytcfg.get("yt", "internals", "topcomm_parallel_rank") > 0:
             return
         return func(*args, **kwargs)
 
     return check_parallel_rank
-
-
-class VisibleDeprecationWarning(UserWarning):
-    """Visible deprecation warning, adapted from NumPy
-
-    By default python does not show users deprecation warnings.
-    This ensures that a deprecation warning is visible to users
-    if that is desired.
-    """
-
-    pass
-
-
-def deprecate(replacement):
-    def real_deprecate(func):
-        """
-        This decorator issues a deprecation warning.
-
-        This can be used like so:
-
-        .. code-block:: python
-
-        @deprecate("new_function")
-        def some_really_old_function(...):
-
-        """
-
-        @wraps(func)
-        def run_func(*args, **kwargs):
-            message = "%s has been deprecated and may be removed without notice!"
-            if replacement is not None:
-                message += f" Use {replacement} instead."
-            warnings.warn(
-                message % func.__name__, VisibleDeprecationWarning, stacklevel=2
-            )
-            func(*args, **kwargs)
-
-        return run_func
-
-    return real_deprecate
 
 
 def pdb_run(func):
@@ -424,12 +385,12 @@ def get_pbar(title, maxval, parallel=False):
     from yt.config import ytcfg
 
     if (
-        ytcfg.getboolean("yt", "suppressStreamLogging")
-        or ytcfg.getboolean("yt", "__withintesting")
+        ytcfg.get("yt", "suppress_stream_logging")
+        or ytcfg.get("yt", "internals", "within_testing")
         or maxval == 1
     ):
         return DummyProgressBar()
-    elif ytcfg.getboolean("yt", "__parallel"):
+    elif ytcfg.get("yt", "internals", "parallel"):
         # If parallel is True, update progress on root only.
         if parallel:
             if is_root():
@@ -454,9 +415,9 @@ def only_on_root(func, *args, **kwargs):
         cfg_option = "__global_parallel_rank"
     else:
         cfg_option = "__topcomm_parallel_rank"
-    if not ytcfg.getboolean("yt", "__parallel"):
+    if not ytcfg.get("yt", "internals", "parallel"):
         return func(*args, **kwargs)
-    if ytcfg.getint("yt", cfg_option) > 0:
+    if ytcfg.get("yt", cfg_option) > 0:
         return
     return func(*args, **kwargs)
 
@@ -469,9 +430,9 @@ def is_root():
     from yt.config import ytcfg
 
     cfg_option = "__topcomm_parallel_rank"
-    if not ytcfg.getboolean("yt", "__parallel"):
+    if not ytcfg.get("yt", "internals", "parallel"):
         return True
-    if ytcfg.getint("yt", cfg_option) > 0:
+    if ytcfg.get("yt", cfg_option) > 0:
         return False
     return True
 
@@ -583,19 +544,19 @@ def update_git(path):
             print("")
             print(f"    $ cd {path}")
             print("    $ git stash")
-            print("    $ git checkout master")
+            print("    $ git checkout main")
             print("    $ git pull")
             print("    $ git stash pop")
             print(f"    $ {sys.executable} setup.py develop")
             print("")
             return 1
-        if repo.active_branch.name != "master":
-            print("yt repository is not tracking the master branch so I won't ")
+        if repo.active_branch.name != "main":
+            print("yt repository is not tracking the main branch so I won't ")
             print("update the code. You will have to do this yourself.")
             print("Here's a set of sample commands:")
             print("")
             print(f"    $ cd {path}")
-            print("    $ git checkout master")
+            print("    $ git checkout main")
             print("    $ git pull")
             print(f"    $ {sys.executable} setup.py develop")
             print("")
@@ -610,9 +571,9 @@ def update_git(path):
                 "yt_upstream", url="https://github.com/yt-project/yt"
             )
             remote.fetch()
-        master = repo.heads.master
-        master.set_tracking_branch(remote.refs.master)
-        master.checkout()
+        main = repo.heads.main
+        main.set_tracking_branch(remote.refs.main)
+        main.checkout()
         remote.pull()
         new_version = repo.git.rev_parse("HEAD", short=12)
         f.write(f"Updated from {old_version} to {new_version}\n\n")
@@ -645,8 +606,8 @@ def update_hg(path):
         f.write("Updating the repository\n\n")
         books = repo.bookmarks()[0]
         books = [b[0].decode("utf8") for b in books]
-        if "master" in books:
-            repo.update("master", check=True)
+        if "main" in books:
+            repo.update("main", check=True)
         else:
             repo.update("yt", check=True)
         f.write(f"Updated from {ident} to {repo.identify()}\n\n")
@@ -895,8 +856,8 @@ def parallel_profile(prefix):
 
     fn = "%s_%04i_%04i.cprof" % (
         prefix,
-        ytcfg.getint("yt", "__topcomm_parallel_size"),
-        ytcfg.getint("yt", "__topcomm_parallel_rank"),
+        ytcfg.get("yt", "internals", "topcomm_parallel_size"),
+        ytcfg.get("yt", "internals", "topcomm_parallel_rank"),
     )
     p = cProfile.Profile()
     p.enable()
@@ -908,7 +869,7 @@ def parallel_profile(prefix):
 def get_num_threads():
     from .config import ytcfg
 
-    nt = ytcfg.getint("yt", "numthreads")
+    nt = ytcfg.get("yt", "num_threads")
     if nt < 0:
         return os.environ.get("OMP_NUM_THREADS", 0)
     return nt
@@ -999,7 +960,7 @@ def ensure_dir(path):
 
 
 def validate_width_tuple(width):
-    if not iterable(width) or len(width) != 2:
+    if not is_sequence(width) or len(width) != 2:
         raise YTInvalidWidthError(f"width ({width}) is not a two element tuple")
     is_numeric = isinstance(width[0], numeric_type)
     length_has_units = isinstance(width[0], YTArray)
@@ -1022,7 +983,7 @@ def camelcase_to_underscore(name):
 
 def set_intersection(some_list):
     if len(some_list) == 0:
-        return set([])
+        return set()
     # This accepts a list of iterables, which we get the intersection of.
     s = set(some_list[0])
     for l in some_list[1:]:
@@ -1062,7 +1023,7 @@ def memory_checker(interval=15, dest=None):
 
         def run(self):
             while not self.event.wait(self.interval):
-                print("MEMORY: %0.3e gb" % (get_memory_usage() / 1024.0), file=dest)
+                print(f"MEMORY: {get_memory_usage() / 1024.0:0.3e} gb", file=dest)
 
     e = threading.Event()
     mem_check = MemoryChecker(e, interval)
@@ -1073,29 +1034,14 @@ def memory_checker(interval=15, dest=None):
         e.set()
 
 
-def deprecated_class(cls):
-    @wraps(cls)
-    def _func(*args, **kwargs):
-        # Note we use SyntaxWarning because by default, DeprecationWarning is
-        # not shown.
-        warnings.warn(
-            f"This usage is deprecated.  Please use {cls.__name__} instead.",
-            SyntaxWarning,
-            stacklevel=2,
-        )
-        return cls(*args, **kwargs)
-
-    return _func
-
-
-def enable_plugins(pluginfilename=None):
+def enable_plugins(plugin_filename=None):
     """Forces a plugin file to be parsed.
 
     A plugin file is a means of creating custom fields, quantities,
     data objects, colormaps, and other code classes and objects to be used
     in yt scripts without modifying the yt source directly.
 
-    If <pluginfilename> is omited, this function will look for a plugin file at
+    If ``plugin_filename`` is omitted, this function will look for a plugin file at
     ``$HOME/.config/yt/my_plugins.py``, which is the prefered behaviour for a
     system-level configuration.
 
@@ -1106,8 +1052,8 @@ def enable_plugins(pluginfilename=None):
     from yt.config import CONFIG_DIR, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
 
-    if pluginfilename is not None:
-        _fn = pluginfilename
+    if plugin_filename is not None:
+        _fn = plugin_filename
         if not os.path.isfile(_fn):
             raise FileNotFoundError(_fn)
     else:
@@ -1115,7 +1061,7 @@ def enable_plugins(pluginfilename=None):
         # - absolute path
         # - CONFIG_DIR
         # - obsolete config dir.
-        my_plugin_name = ytcfg.get("yt", "pluginfilename")
+        my_plugin_name = ytcfg.get("yt", "plugin_filename")
         old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
         for base_prefix in ("", CONFIG_DIR, old_config_dir):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
@@ -1325,14 +1271,8 @@ def parse_h5_attr(f, attr):
         return val
 
 
-def issue_deprecation_warning(msg, stacklevel=3):
-    from numpy import VisibleDeprecationWarning
-
-    warnings.warn(msg, VisibleDeprecationWarning, stacklevel=stacklevel)
-
-
 def obj_length(v):
-    if iterable(v):
+    if is_sequence(v):
         return len(v)
     else:
         # If something isn't iterable, we return 0
@@ -1361,7 +1301,7 @@ def array_like_field(data, x, field):
 
 
 def validate_3d_array(obj):
-    if not iterable(obj) or len(obj) != 3:
+    if not is_sequence(obj) or len(obj) != 3:
         raise TypeError(
             "Expected an array of size (3,), received '%s' of "
             "length %s" % (str(type(obj)).split("'")[1], len(obj))
@@ -1413,15 +1353,15 @@ def validate_float(obj):
             )
         else:
             return
-    if iterable(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
+    if is_sequence(obj) and (len(obj) != 1 or not isinstance(obj[0], numeric_type)):
         raise TypeError(
             "Expected a numeric value (or size-1 array), "
             "received '%s' of length %s" % (str(type(obj)).split("'")[1], len(obj))
         )
 
 
-def validate_iterable(obj):
-    if obj is not None and not iterable(obj):
+def validate_sequence(obj):
+    if obj is not None and not is_sequence(obj):
         raise TypeError(
             "Expected an iterable object,"
             " received '%s'" % str(type(obj)).split("'")[1]
@@ -1461,7 +1401,7 @@ def validate_center(center):
                 "'m', 'max', 'min'] or the prefix to be "
                 "'max_'/'min_', received '%s'." % center
             )
-    elif not isinstance(center, (numeric_type, YTQuantity)) and not iterable(center):
+    elif not isinstance(center, (numeric_type, YTQuantity)) and not is_sequence(center):
         raise TypeError(
             "Expected 'center' to be a numeric object of type "
             "list/tuple/np.ndarray/YTArray/YTQuantity, "

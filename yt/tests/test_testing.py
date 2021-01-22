@@ -19,7 +19,7 @@ def test_requires_backend():
         return True
 
     assert_equal(plot_b(), True)
-    if not ytcfg.getboolean("yt", "__withinpytest"):
+    if not ytcfg.get("yt", "internals", "within_pytest"):
         assert_equal(plot_a(), None)
     else:
         # NOTE: This doesn't actually work. pytest.skip() doesn't actually

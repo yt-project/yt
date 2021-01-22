@@ -38,12 +38,10 @@ class EnzoPFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list, slice_info=None):
-        super(EnzoPFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
 
     def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):
-        super(EnzoPFieldInfo, self).setup_particle_fields(
-            ptype, ftype=ftype, num_neighbors=num_neighbors
-        )
+        super().setup_particle_fields(ptype, ftype=ftype, num_neighbors=num_neighbors)
         self.setup_particle_mass_field(ptype)
 
     def setup_particle_mass_field(self, ptype):

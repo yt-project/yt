@@ -379,10 +379,10 @@ unfamiliar, please visit :ref:`loading-data`.
 To make things easier to load these sample datasets, you can add the parent
 directory to your downloaded sample data to your *yt path*.
 If you set the option ``test_data_dir``, in the section ``[yt]``,
-in ``~/.config/yt/ytrc``, yt will search this path for them.
+in ``~/.config/yt/yt.toml``, yt will search this path for them.
 
 This means you can download these datasets to ``/big_drive/data_for_yt`` , add
-the appropriate item to ``~/.config/yt/ytrc``, and no matter which directory you are
+the appropriate item to ``~/.config/yt/yt.toml``, and no matter which directory you are
 in when running yt, it will also check in *that* directory.
 
 
@@ -428,11 +428,11 @@ especially if you are in an IPython notebook or running a long or parallel scrip
 On the other hand, you may want it to output a lot more, since you can't figure out
 exactly what's going wrong, and you want to output some debugging information.
 The default yt log level can be changed using the :ref:`configuration-file`,
-either by setting it in the ``$HOME/.config/yt/ytrc`` file:
+either by setting it in the ``$HOME/.config/yt/yt.toml`` file:
 
 .. code-block:: bash
 
-   $ yt config set yt loglevel 10  # This sets the log level to "DEBUG"
+   $ yt config set yt log_level 10  # This sets the log level to "DEBUG"
 
 which would produce debug (as well as info, warning, and error) messages, or at runtime:
 

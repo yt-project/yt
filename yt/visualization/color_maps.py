@@ -26,9 +26,13 @@ yt_colormaps = {}
 
 def add_cmap(name, cdict):
     """Deprecated alias, kept for backwards compatibility."""
-    from yt.funcs import issue_deprecation_warning
+    from yt._maintenance.deprecation import issue_deprecation_warning
 
-    issue_deprecation_warning("Deprecated alias. Use add_colormap instead.")
+    issue_deprecation_warning(
+        "`add_cmap` is a deprecated alias for `add_colormap`",
+        since="4.0.0",
+        removal="4.1.0",
+    )
     add_colormap(name, cdict)
 
 
@@ -465,26 +469,22 @@ _turbo_colormap_data = np.array(
 )
 
 _tvals = np.linspace(0, 1, 256)
-_turbo_data = dict(
-    (
-        color,
-        np.transpose([_tvals, _turbo_colormap_data[:, i], _turbo_colormap_data[:, i]]),
+_turbo_data = {
+    color: np.transpose(
+        [_tvals, _turbo_colormap_data[:, i], _turbo_colormap_data[:, i]]
     )
     for i, color in enumerate(["red", "green", "blue"])
-)
+}
 
 add_colormap("turbo", _turbo_data)
 
 _turbo_r_colormap_data = np.flip(_turbo_colormap_data, axis=0)
-_turbo_r_data = dict(
-    (
-        color,
-        np.transpose(
-            [_tvals, _turbo_r_colormap_data[:, i], _turbo_r_colormap_data[:, i]]
-        ),
+_turbo_r_data = {
+    color: np.transpose(
+        [_tvals, _turbo_r_colormap_data[:, i], _turbo_r_colormap_data[:, i]]
     )
     for i, color in enumerate(["red", "green", "blue"])
-)
+}
 add_colormap("turbo_r", _turbo_r_data)
 
 # Add colormaps from cmocean, if it's installed

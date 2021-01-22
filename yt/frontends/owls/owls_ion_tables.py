@@ -4,9 +4,9 @@ from yt.utilities.on_demand_imports import _h5py as h5py
 
 
 def h5rd(fname, path, dtype=None):
-    """ Read Data. Return a dataset located at <path> in file <fname> as
+    """Read Data. Return a dataset located at <path> in file <fname> as
     a numpy array.
-    e.g. rd( fname, '/PartType0/Coordinates' ). """
+    e.g. rd( fname, '/PartType0/Coordinates' )."""
 
     data = None
     fid = h5py.h5f.open(fname.encode("latin-1"), h5py.h5f.ACC_RDONLY)

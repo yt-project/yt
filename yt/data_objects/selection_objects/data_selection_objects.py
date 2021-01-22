@@ -4,17 +4,17 @@ from collections import defaultdict
 from contextlib import contextmanager
 
 import numpy as np
+from more_itertools import always_iterable
 from unyt.exceptions import UnitConversionError, UnitParseError
 
 import yt.geometry
-from yt import YTArray, iterable
 from yt.data_objects.data_containers import YTDataContainer
 from yt.data_objects.derived_quantities import DerivedQuantityCollection
 from yt.data_objects.field_data import YTFieldData
 from yt.fields.field_exceptions import NeedsGridType
-from yt.funcs import ensure_list, fix_axis, validate_width_tuple
+from yt.funcs import fix_axis, is_sequence, iter_fields, validate_width_tuple
 from yt.geometry.selection_routines import compose_selector
-from yt.units import dimensions as ytdims
+from yt.units import YTArray, dimensions as ytdims
 from yt.utilities.exceptions import (
     GenerationInProgress,
     YTBooleanObjectError,
@@ -40,10 +40,11 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
     _dimensionality = None
     _max_level = None
     _min_level = None
+    _derived_quantity_chunking = "io"
 
     def __init__(self, ds, field_parameters, data_source=None):
         ParallelAnalysisInterface.__init__(self)
-        super(YTSelectionContainer, self).__init__(ds, field_parameters)
+        super().__init__(ds, field_parameters)
         self._data_source = data_source
         if data_source is not None:
             if data_source.ds != self.ds:
@@ -89,7 +90,7 @@ class YTSelectionContainer(YTDataContainer, ParallelAnalysisInterface):
         # those are the ones that will be.
         chunk_ind = kwargs.pop("chunk_ind", None)
         if chunk_ind is not None:
-            chunk_ind = ensure_list(chunk_ind)
+            chunk_ind = list(always_iterable(chunk_ind))
         for ci, chunk in enumerate(self.index._chunk(self, chunking_style, **kwargs)):
             if chunk_ind is not None and ci not in chunk_ind:
                 continue
@@ -480,7 +481,7 @@ class YTSelectionContainer0D(YTSelectionContainer):
     _dimensionality = 0
 
     def __init__(self, ds, field_parameters=None, data_source=None):
-        super(YTSelectionContainer0D, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
 
 
 class YTSelectionContainer1D(YTSelectionContainer):
@@ -488,7 +489,7 @@ class YTSelectionContainer1D(YTSelectionContainer):
     _dimensionality = 1
 
     def __init__(self, ds, field_parameters=None, data_source=None):
-        super(YTSelectionContainer1D, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         self._grids = None
         self._sortkey = None
         self._sorted = {}
@@ -504,7 +505,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
     _spatial = False
 
     def __init__(self, axis, ds, field_parameters=None, data_source=None):
-        super(YTSelectionContainer2D, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         # We need the ds, which will exist by now, for fix_axis.
         self.axis = fix_axis(axis, self.ds)
         self.set_field_parameter("axis", axis)
@@ -521,7 +522,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
         skip += list(set(frb._exclude_fields).difference(set(self._key_fields)))
         self.fields = [k for k in self.field_data if k not in skip]
         if fields is not None:
-            self.fields = ensure_list(fields) + self.fields
+            self.fields = list(iter_fields(fields)) + self.fields
         if len(self.fields) == 0:
             raise ValueError("No fields found to plot in get_pw")
         (bounds, center, display_center) = get_window_parameters(
@@ -593,7 +594,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             )
 
             validate_width_tuple(width)
-            if iterable(resolution):
+            if is_sequence(resolution):
                 resolution = max(resolution)
             frb = CylindricalFixedResolutionBuffer(self, width, resolution)
             return frb
@@ -602,9 +603,9 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center = self.center
             if center is None:
                 center = (self.ds.domain_right_edge + self.ds.domain_left_edge) / 2.0
-        elif iterable(center) and not isinstance(center, YTArray):
+        elif is_sequence(center) and not isinstance(center, YTArray):
             center = self.ds.arr(center, "code_length")
-        if iterable(width):
+        if is_sequence(width):
             w, u = width
             if isinstance(w, tuple) and isinstance(u, tuple):
                 height = u
@@ -614,12 +615,12 @@ class YTSelectionContainer2D(YTSelectionContainer):
             width = self.ds.quan(width, "code_length")
         if height is None:
             height = width
-        elif iterable(height):
+        elif is_sequence(height):
             h, u = height
             height = self.ds.quan(h, units=u)
         elif not isinstance(height, YTArray):
             height = self.ds.quan(height, "code_length")
-        if not iterable(resolution):
+        if not is_sequence(resolution):
             resolution = (resolution, resolution)
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
 
@@ -648,7 +649,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
     _dimensionality = 3
 
     def __init__(self, center, ds, field_parameters=None, data_source=None):
-        super(YTSelectionContainer3D, self).__init__(ds, field_parameters, data_source)
+        super().__init__(ds, field_parameters, data_source)
         self._set_center(center)
         self.coords = None
         self._grids = None
@@ -1233,7 +1234,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             else:
                 f = open(filename, "w")
             for v1 in verts:
-                f.write("v %0.16e %0.16e %0.16e\n" % (v1[0], v1[1], v1[2]))
+                f.write(f"v {v1[0]:0.16e} {v1[1]:0.16e} {v1[2]:0.16e}\n")
             for i in range(len(verts) // 3):
                 f.write(f"f {i * 3 + 1} {i * 3 + 2} {i * 3 + 3}\n")
             if not hasattr(filename, "write"):
@@ -1383,7 +1384,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             from yt.data_objects.level_sets.clump_handling import add_contour_field
 
             nj, cids = identify_contours(self, field, cons[level], mv)
-            unique_contours = set([])
+            unique_contours = set()
             for sl_list in cids.values():
                 for _sl, ff in sl_list:
                     unique_contours.update(np.unique(ff))

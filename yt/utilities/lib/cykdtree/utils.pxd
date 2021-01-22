@@ -1,8 +1,8 @@
 cimport numpy as np
-from libcpp.vector cimport vector
-from libcpp.pair cimport pair
+from libc.stdint cimport int32_t, int64_t, uint32_t, uint64_t
 from libcpp cimport bool
-from libc.stdint cimport uint32_t, uint64_t, int64_t, int32_t
+from libcpp.pair cimport pair
+from libcpp.vector cimport vector
 
 
 cdef extern from "c_utils.hpp":

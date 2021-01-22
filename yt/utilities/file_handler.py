@@ -108,9 +108,9 @@ class NetCDF4FileHandler:
         self.filename = filename
 
     @contextmanager
-    def open_ds(self):
+    def open_ds(self, **kwargs):
         from yt.utilities.on_demand_imports import _netCDF4 as netCDF4
 
-        ds = netCDF4.Dataset(self.filename)
+        ds = netCDF4.Dataset(self.filename, mode="r", **kwargs)
         yield ds
         ds.close()

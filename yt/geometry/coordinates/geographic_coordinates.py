@@ -12,7 +12,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def __init__(self, ds, ordering=None):
         if not ordering:
             ordering = ("latitude", "longitude", self.radial_axis)
-        super(GeographicCoordinateHandler, self).__init__(ds, ordering)
+        super().__init__(ds, ordering)
         self.image_units = {}
         self.image_units[self.axis_id["latitude"]] = (None, None)
         self.image_units[self.axis_id["longitude"]] = (None, None)
@@ -354,8 +354,8 @@ class GeographicCoordinateHandler(CoordinateHandler):
         # Cartesian coordinates, since we transform them.
         rv = {
             self.axis_id["latitude"]: (
-                "x / \\sin(\mathrm{latitude})",
-                "y / \\sin(\mathrm{latitude})",
+                "x / \\sin(\\mathrm{latitude})",
+                "y / \\sin(\\mathrm{latitude})",
             ),
             self.axis_id["longitude"]: ("R", "z"),
             self.axis_id[self.radial_axis]: ("longitude", "latitude"),
@@ -413,9 +413,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
         return self.ds.domain_width
 
     def sanitize_center(self, center, axis):
-        center, display_center = super(
-            GeographicCoordinateHandler, self
-        ).sanitize_center(center, axis)
+        center, display_center = super().sanitize_center(center, axis)
         name = self.axis_name[axis]
         if name == self.radial_axis:
             display_center = center
@@ -439,9 +437,7 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def sanitize_width(self, axis, width, depth):
         name = self.axis_name[axis]
         if width is not None:
-            width = super(GeographicCoordinateHandler, self).sanitize_width(
-                axis, width, depth
-            )
+            width = super().sanitize_width(axis, width, depth)
         elif name == self.radial_axis:
             rax = self.radial_axis
             width = [
