@@ -69,37 +69,39 @@ your code. Here is a snippet from the base BoxLib field container:
 .. code-block:: python
 
     from yt.fields.field_info_container import FieldInfoContainer
+
+
     class BoxlibFieldInfo(FieldInfoContainer):
         known_other_fields = (
             ("density", (rho_units, ["density"], None)),
-	    ("eden", (eden_units, ["energy_density"], None)),
-	    ("xmom", (mom_units, ["momentum_x"], None)),
-	    ("ymom", (mom_units, ["momentum_y"], None)),
-	    ("zmom", (mom_units, ["momentum_z"], None)),
-	    ("temperature", ("K", ["temperature"], None)),
-	    ("Temp", ("K", ["temperature"], None)),
-	    ("x_velocity", ("cm/s", ["velocity_x"], None)),
-	    ("y_velocity", ("cm/s", ["velocity_y"], None)),
-	    ("z_velocity", ("cm/s", ["velocity_z"], None)),
-	    ("xvel", ("cm/s", ["velocity_x"], None)),
-	    ("yvel", ("cm/s", ["velocity_y"], None)),
-	    ("zvel", ("cm/s", ["velocity_z"], None)),
-	)
+            ("eden", (eden_units, ["energy_density"], None)),
+            ("xmom", (mom_units, ["momentum_x"], None)),
+            ("ymom", (mom_units, ["momentum_y"], None)),
+            ("zmom", (mom_units, ["momentum_z"], None)),
+            ("temperature", ("K", ["temperature"], None)),
+            ("Temp", ("K", ["temperature"], None)),
+            ("x_velocity", ("cm/s", ["velocity_x"], None)),
+            ("y_velocity", ("cm/s", ["velocity_y"], None)),
+            ("z_velocity", ("cm/s", ["velocity_z"], None)),
+            ("xvel", ("cm/s", ["velocity_x"], None)),
+            ("yvel", ("cm/s", ["velocity_y"], None)),
+            ("zvel", ("cm/s", ["velocity_z"], None)),
+        )
 
-	known_particle_fields = (
-	    ("particle_mass", ("code_mass", [], None)),
-	    ("particle_position_x", ("code_length", [], None)),
-	    ("particle_position_y", ("code_length", [], None)),
-	    ("particle_position_z", ("code_length", [], None)),
-	    ("particle_momentum_x", (mom_units, [], None)),
-	    ("particle_momentum_y", (mom_units, [], None)),
-	    ("particle_momentum_z", (mom_units, [], None)),
-	    ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
-	    ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
-	    ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
-	    ("particle_id", ("", ["particle_index"], None)),
-	    ("particle_mdot", ("code_mass/code_time", [], None)),
-	)
+        known_particle_fields = (
+            ("particle_mass", ("code_mass", [], None)),
+            ("particle_position_x", ("code_length", [], None)),
+            ("particle_position_y", ("code_length", [], None)),
+            ("particle_position_z", ("code_length", [], None)),
+            ("particle_momentum_x", (mom_units, [], None)),
+            ("particle_momentum_y", (mom_units, [], None)),
+            ("particle_momentum_z", (mom_units, [], None)),
+            ("particle_angmomen_x", ("code_length**2/code_time", [], None)),
+            ("particle_angmomen_y", ("code_length**2/code_time", [], None)),
+            ("particle_angmomen_z", ("code_length**2/code_time", [], None)),
+            ("particle_id", ("", ["particle_index"], None)),
+            ("particle_mdot", ("code_mass/code_time", [], None)),
+        )
 
 The tuples, ``known_other_fields`` and ``known_particle_fields`` contain
 entries, which are tuples of the form ``("name", ("units", ["fields", "to",
@@ -141,16 +143,15 @@ example of how this is implemented in the FLASH frontend:
 
     class FLASHFieldInfo(FieldInfoContainer):
         known_other_fields = (
-            ...
-            ("magx", (b_units, [], "B_x")), # Note there is no alias here
+            ...("magx", (b_units, [], "B_x")),  # Note there is no alias here
             ("magy", (b_units, [], "B_y")),
             ("magz", (b_units, [], "B_z")),
-            ...
+            ...,
         )
 
         def setup_fluid_fields(self):
-            from yt.fields.magnetic_field import \
-                setup_magnetic_field_aliases
+            from yt.fields.magnetic_field import setup_magnetic_field_aliases
+
             ...
             setup_magnetic_field_aliases(self, "flash", ["mag%s" % ax for ax in "xyz"])
 
@@ -236,9 +237,9 @@ that is needed:
     class ChomboGrid(AMRGridPatch):
         _id_offset = 0
         __slots__ = ["_level_id"]
+
         def __init__(self, id, index, level=-1):
-            AMRGridPatch.__init__(self, id, filename=index.index_filename,
-                                  index=index)
+            AMRGridPatch.__init__(self, id, filename=index.index_filename, index=index)
             self.Parent = None
             self.Children = []
             self.Level = level
