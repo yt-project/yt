@@ -232,6 +232,16 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         """
         ds = data_file.ds
         ind = 0
+        # NOTE:
+        #  We hardcode this value here because otherwise we get into a
+        #  situation where we require the existence of index before we
+        #  can successfully instantiate it, or where we are calling it
+        #  from within its instantiation.
+        #
+        #  Because this value is not propagated later on, and does not
+        #  impact the construction of the bitmap indices, it should be
+        #  acceptable to just use a reasonable number here.
+        chunksize = 64 ** 3
         # Check to make sure that the domain hasn't already been set
         # by the parameter file
         if np.all(np.isfinite(ds.domain_left_edge)) and np.all(
@@ -251,7 +261,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     continue
                 stop = ind + count
                 while ind < stop:
-                    c = min(self.ds.index.chunksize, stop - ind)
+                    c = min(chunksize, stop - ind)
                     pp = np.fromfile(f, dtype=self._pdtypes[ptype], count=c)
                     np.minimum(
                         mi,
