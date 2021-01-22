@@ -43,7 +43,6 @@ from yt.visualization import (
     profile_plotter as profile_plotter,
 )
 
-mylog = logging.getLogger("nose.plugins.answer-testing")
 run_big_data = False
 
 # Set the latest gold and local standard filenames
@@ -269,7 +268,8 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         for ds_name in result_storage:
             answer_name = f"{ds_name}"
             if answer_name in ds:
-                mylog.info("Overwriting %s", answer_name)
+                noseLogger = logging.getLogger("nose.plugins.answer-testing")
+                noseLogger.info("Overwriting %s", answer_name)
             ds[answer_name] = result_storage[ds_name]
         ds.close()
 
