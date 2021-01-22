@@ -74,10 +74,9 @@ choose to have different transforms for each axis.
 
 .. code-block:: python
 
-    ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims),
-    bbox=bbox)
-    ds.coordinates.data_transform["altitude"]="Miller"
-    p = yt.SlicePlot(ds, "altitude", 'AIRDENS')
+    ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims), bbox=bbox)
+    ds.coordinates.data_transform["altitude"] = "Miller"
+    p = yt.SlicePlot(ds, "altitude", "AIRDENS")
 
 In this example, the ``data_transform`` kwarg has been changed from its default
 of ``PlateCarree`` to ``Miller``. You can check that you have successfully changed
@@ -107,9 +106,8 @@ option of ``Mollweide`` will be displayed.
 
 .. code-block:: python
 
-    ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims),
-    bbox=bbox)
-    p = yt.SlicePlot(ds, "altitude", 'AIRDENS')
+    ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims), bbox=bbox)
+    p = yt.SlicePlot(ds, "altitude", "AIRDENS")
 
 If an option other than ``Mollweide`` is desired, the plot projection type can
 be set with the ``set_mpl_projection`` function. The next code block illustrates how to
@@ -117,10 +115,9 @@ set the projection to a ``Robinson`` projection from the default `PlateCarree`.
 
 .. code-block:: python
 
-    ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims),
-    bbox=bbox)
-    p = yt.SlicePlot(ds, "altitude", 'AIRDENS')
-    p.set_mpl_projection('Robinson')
+    ds = yt.load_uniform_grid(data, sizes, 1.0, geometry=("geographic", dims), bbox=bbox)
+    p = yt.SlicePlot(ds, "altitude", "AIRDENS")
+    p.set_mpl_projection("Robinson")
     p.show()
 
 The axes attributes of the plot can be accessed to add in annotations, such as
@@ -130,10 +127,10 @@ available with matplotlib should be available for customization. Here a
 
 .. code-block:: python
 
-    p.set_mpl_projection('Robinson')
+    p.set_mpl_projection("Robinson")
     p._setup_plots()
-    p.plots['AIRDENS'].axes.set_global()
-    p.plots['AIRDENS'].axes.coastlines()
+    p.plots["AIRDENS"].axes.set_global()
+    p.plots["AIRDENS"].axes.coastlines()
     p.show()
 
 ``p._setup_plots()`` is required here to access the plot axes. When a new
@@ -159,9 +156,9 @@ levels of customization:
 
 .. code-block:: python
 
-    set_mpl_projection('ProjectionType')
-    set_mpl_projection(('ProjectionType', (args)))
-    set_mpl_projection(('ProjectionType', (args), {kwargs}))
+    set_mpl_projection("ProjectionType")
+    set_mpl_projection(("ProjectionType", (args)))
+    set_mpl_projection(("ProjectionType", (args), {kwargs}))
     set_mpl_projection(cartopy.crs.PlateCarree())
 
 Further examples of using the geographic transforms with this dataset

@@ -89,11 +89,15 @@ to blue.  These will be accessible for the rest of the yt session as
 
 .. code-block:: python
 
-    yt.make_colormap([('blue', 20), ('white', 20), ('red', 20)],
-                     name='french_flag', interpolate=False)
-    yt.make_colormap([('black', 5), ('red', 10), ('green', 20), ('blue', 0)],
-                     name='weird', interpolate=True)
-    yt.show_colormaps(subset=['french_flag', 'weird'], filename='cmaps.png')
+    yt.make_colormap(
+        [("blue", 20), ("white", 20), ("red", 20)], name="french_flag", interpolate=False
+    )
+    yt.make_colormap(
+        [("black", 5), ("red", 10), ("green", 20), ("blue", 0)],
+        name="weird",
+        interpolate=True,
+    )
+    yt.show_colormaps(subset=["french_flag", "weird"], filename="cmaps.png")
 
 All Colormaps (including matplotlib)
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -124,6 +128,7 @@ available in a local window:
 .. code-block:: python
 
     import yt
+
     yt.show_colormaps()
 
 or to output just a few colormaps to an image file, try:
@@ -131,9 +136,11 @@ or to output just a few colormaps to an image file, try:
 .. code-block:: python
 
     import yt
-    yt.show_colormaps(subset=['algae', 'kamae', 'spectral',
-                              'arbre', 'dusk', 'octarine', 'kelp'],
-                      filename="yt_native.png")
+
+    yt.show_colormaps(
+        subset=["algae", "kamae", "spectral", "arbre", "dusk", "octarine", "kelp"],
+        filename="yt_native.png",
+    )
 
 Applying a Colormap to your Rendering
 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -143,7 +150,7 @@ manually specify a specific colormap.  For example:
 
 .. code-block:: python
 
-    yt.write_image(im, "output.png", cmap_name = 'jet')
+    yt.write_image(im, "output.png", cmap_name="jet")
 
 If you're using the Plot Window interface (e.g. SlicePlot, ProjectionPlot,
 etc.), it's even easier than that.  Simply create your rendering, and you
@@ -155,11 +162,11 @@ callback:
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     p = yt.ProjectionPlot(ds, "z", "density")
 
-    p.set_cmap(field="density", cmap='jet')
-    p.save('proj_with_jet_cmap.png')
+    p.set_cmap(field="density", cmap="jet")
+    p.save("proj_with_jet_cmap.png")
 
-    p.set_cmap(field="density", cmap='hot')
-    p.save('proj_with_hot_cmap.png')
+    p.set_cmap(field="density", cmap="hot")
+    p.save("proj_with_hot_cmap.png")
 
 For more information about the callbacks available to Plot Window objects,
 see :ref:`callbacks`.

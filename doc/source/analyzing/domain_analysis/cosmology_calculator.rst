@@ -14,9 +14,13 @@ in the following way:
 
    from yt.utilities.cosmology import Cosmology
 
-   co = Cosmology(hubble_constant=0.7, omega_matter=0.3,
-                  omega_lambda=0.7, omega_curvature=0.0,
-                  omega_radiation=0.0)
+   co = Cosmology(
+       hubble_constant=0.7,
+       omega_matter=0.3,
+       omega_lambda=0.7,
+       omega_curvature=0.0,
+       omega_radiation=0.0,
+   )
 
 Once created, various distance calculations as well as conversions between
 redshift and time are available:

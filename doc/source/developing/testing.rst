@@ -46,6 +46,7 @@ that can import the yt module:
 .. code-block:: python
 
    import yt
+
    yt.run_nose()
 
 If you are developing new functionality, it is sometimes more convenient to use
@@ -275,6 +276,7 @@ You can find examples there of how to write a test.  Here is a trivial example:
    class MaximumValueTest(AnswerTestingTest):
        _type_name = "MaximumValue"
        _attrs = ("field",)
+
        def __init__(self, ds_fn, field):
            super(MaximumValueTest, self).__init__(ds_fn)
            self.field = field
@@ -378,10 +380,14 @@ Here is an example test function:
 
 .. code-block:: python
 
-   from yt.utilities.answer_testing.framework import \
-       GenericImageTest, requires_ds, data_dir_load
+   from yt.utilities.answer_testing.framework import (
+       GenericImageTest,
+       requires_ds,
+       data_dir_load,
+   )
 
    from matplotlib import pyplot as plt
+
 
    @requires_ds(my_ds)
    def test_my_ds():
@@ -390,6 +396,7 @@ Here is an example test function:
        def create_image(filename_prefix):
            plt.plot([1, 2], [1, 2])
            plt.savefig("%s_lineplot" % filename_prefix)
+
        test = GenericImageTest(ds, create_image, 12)
 
        # this ensures the test has a unique key in the

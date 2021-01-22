@@ -143,7 +143,7 @@ only the particles with ``particle_type`` (i.e.  field = ``('all',
 
 .. code-block:: python
 
-    @yt.particle_filter(requires=["particle_type"], filtered_type='all')
+    @yt.particle_filter(requires=["particle_type"], filtered_type="all")
     def stars(pfilter, data):
         filter = data[(pfilter.filtered_type, "particle_type")] == 2
         return filter
@@ -168,8 +168,10 @@ As an alternative syntax, you can also define a new particle filter via the
         filter = data[(pfilter.filtered_type, "particle_type")] == 2
         return filter
 
-    yt.add_particle_filter("stars", function=stars, filtered_type='all',
-                        requires=["particle_type"])
+
+    yt.add_particle_filter(
+        "stars", function=stars, filtered_type="all", requires=["particle_type"]
+    )
 
 This is equivalent to our use of the ``particle_filter`` decorator above.  The
 choice to use either the ``particle_filter`` decorator or the
@@ -182,8 +184,9 @@ create new filtered fields if the dataset has the required fields, though.
 .. code-block:: python
 
     import yt
-    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    ds.add_particle_filter('stars')
+
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ds.add_particle_filter("stars")
 
 And that's it!  We can now access all of the ('stars', field) fields from
 our dataset ``ds`` and treat them as any other particle field.  In addition,
@@ -198,11 +201,16 @@ the difference between current time and their creation_time.
 
     def young_stars(pfilter, data):
         age = data.ds.current_time - data[pfilter.filtered_type, "creation_time"]
-        filter = np.logical_and(age.in_units('Myr') <= 5, age >= 0)
+        filter = np.logical_and(age.in_units("Myr") <= 5, age >= 0)
         return filter
 
-    yt.add_particle_filter("young_stars", function=young_stars,
-                        filtered_type='stars', requires=["creation_time"])
+
+    yt.add_particle_filter(
+        "young_stars",
+        function=young_stars,
+        filtered_type="stars",
+        requires=["creation_time"],
+    )
 
 If we properly define all the filters using the decorator ``yt.particle_filter``
 or the function ``yt.add_particle_filter`` in advance. We can add the filter
@@ -214,8 +222,9 @@ to the dataset, it will also add ``stars`` filter to the dataset.
 .. code-block:: python
 
     import yt
-    ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
-    ds.add_particle_filter('young_stars')
+
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    ds.add_particle_filter("young_stars")
 
 
 .. notebook:: particle_filter.ipynb
@@ -240,8 +249,7 @@ accessible to this new particle type and it will add them.
 
 .. code-block:: python
 
-   from yt.data_objects.particle_unions import \
-       ParticleUnion
+   from yt.data_objects.particle_unions import ParticleUnion
 
    u = ParticleUnion("star", ["halo", "disk"])
    ds.add_particle_union(u)
