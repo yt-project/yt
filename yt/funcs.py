@@ -28,9 +28,23 @@ import numpy as np
 from more_itertools import always_iterable, collapse, first
 from tqdm import tqdm
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
-from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.logger import ytLogger
+
+
+def _mylog(*args):
+    issue_deprecation_warning(
+        "yt.funcs.mylog is a deprecated alias for yt.utilities.logger.ytLogger ."
+        "If you are looking to set yt's logger level, please use yt.set_log_level",
+        since="4.0.0",
+        removal="4.2.0",
+    )
+    ytLogger(*args)
+
+
+mylog = _mylog.__call__
 
 # Some functions for handling sequences and other types
 
