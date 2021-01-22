@@ -55,6 +55,7 @@ from yt.funcs import (
     is_root,
     is_sequence,
     memory_checker,
+    mylog,
     only_on_root,
     parallel_profile,
     print_tb,
@@ -78,7 +79,7 @@ from yt.units import (
     uvstack,
 )
 from yt.units.unit_object import define_unit
-from yt.utilities.logger import set_log_level, ytLogger
+from yt.utilities.logger import set_log_level
 
 frontends = _frontend_container()
 
