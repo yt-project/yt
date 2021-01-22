@@ -5,8 +5,6 @@ from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.lib.geometry_utils import compute_morton
 
-CHUNKSIZE = 32 ** 3
-
 
 class IOHandlerSDF(BaseIOHandler):
     _dataset_type = "sdf_particles"
@@ -67,7 +65,7 @@ class IOHandlerSDF(BaseIOHandler):
         morton = np.empty(pcount, dtype="uint64")
         ind = 0
         while ind < pcount:
-            npart = min(CHUNKSIZE, pcount - ind)
+            npart = min(self.ds.index.chunksize, pcount - ind)
             pos = np.empty((npart, 3), dtype=x.dtype)
             pos[:, 0] = x[ind : ind + npart]
             pos[:, 1] = y[ind : ind + npart]
@@ -80,7 +78,7 @@ class IOHandlerSDF(BaseIOHandler):
                 data_file.ds.domain_left_edge,
                 data_file.ds.domain_right_edge,
             )
-            ind += CHUNKSIZE
+            ind += self.ds.index.chunksize
         return morton
 
     def _identify_fields(self, data_file):

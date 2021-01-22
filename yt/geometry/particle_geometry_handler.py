@@ -13,8 +13,6 @@ from yt.geometry.particle_oct_container import ParticleBitmap
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.logger import ytLogger as mylog
 
-CHUNKSIZE = 64 ** 3
-
 
 class ParticleIndex(Index):
     """The Index subclass for particle datasets"""
@@ -44,6 +42,11 @@ class ParticleIndex(Index):
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
+
+    @property
+    def chunksize(self):
+        # This can be overridden in subclasses
+        return 64 ** 3
 
     _data_files = None
 
@@ -79,15 +82,20 @@ class ParticleIndex(Index):
         fi = 0
         for i in range(int(ndoms)):
             start = 0
-            end = start + CHUNKSIZE
+            if self.chunksize > 0:
+                end = start + self.chunksize
+            else:
+                end = None
             while True:
                 df = cls(self.dataset, self.io, template % {"num": i}, fi, (start, end))
                 if max(df.total_particles.values()) == 0:
                     break
                 fi += 1
                 self.data_files.append(df)
+                if self.chunksize <= 0:
+                    break
                 start = end
-                end += CHUNKSIZE
+                end += self.chunksize
 
     def _initialize_index(self):
         ds = self.dataset
