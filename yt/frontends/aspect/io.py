@@ -78,7 +78,7 @@ class IOHandlerASPECT(BaseIOHandler):
                         for field in fields:
                             ftype, fname = field
 
-                            vdim = None
+                            vdim = -1
                             if 'velocity' in fname:
                                 vdim = xyz_to_dim[fname.split('_')[-1]]
                                 fname = 'velocity'
@@ -94,7 +94,7 @@ class IOHandlerASPECT(BaseIOHandler):
 
         return rv
 
-    def _read_single_vtu_field(self, xmlPieces, fieldname, field_to_piece_id, vectordim=None, ndims=3):
+    def _read_single_vtu_field(self, xmlPieces, fieldname, field_to_piece_id, vectordim=-1, ndims=3):
         vtu_data = []
         pieceoff = 0
         vtu_conns = []
