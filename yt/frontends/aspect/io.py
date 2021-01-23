@@ -38,7 +38,7 @@ class IOHandlerASPECT(BaseIOHandler):
             rv[field] = []
             ftype_list.append(ftype)
 
-
+        xyz_to_dim = {'x': 0, 'y': 1, 'z': 2} # should come from ds parameters...
         for chunk_id, chunk in enumerate(chunks):
             mesh = chunk.objs[0]
             el_counts = np.array(mesh.element_count)
@@ -77,7 +77,13 @@ class IOHandlerASPECT(BaseIOHandler):
 
                         for field in fields:
                             ftype, fname = field
-                            vtu_field, vtu_conn1d = self._read_single_vtu_field(xmlPieces, fname, f2id)
+
+                            vdim = None
+                            if 'velocity' in fname:
+                                vdim = xyz_to_dim[fname.split('_')[-1]]
+                                fname = 'velocity'
+
+                            vtu_field, vtu_conn1d = self._read_single_vtu_field(xmlPieces, fname, f2id, vectordim=vdim)
                             vtu_field = vtu_field[vtu_conn1d]
                             vtu_field = vtu_field.reshape((vtu_conn1d.size // 8, 8))
                             vtu_field = vtu_field[vtu_mask, :]
@@ -88,7 +94,7 @@ class IOHandlerASPECT(BaseIOHandler):
 
         return rv
 
-    def _read_single_vtu_field(self, xmlPieces, fieldname, field_to_piece_id):
+    def _read_single_vtu_field(self, xmlPieces, fieldname, field_to_piece_id, vectordim=None, ndims=3):
         vtu_data = []
         pieceoff = 0
         vtu_conns = []
@@ -98,9 +104,13 @@ class IOHandlerASPECT(BaseIOHandler):
             xmlPiece = xmlPieces[piece_id]
             data_array = xmlPiece['PointData']['DataArray'][field_id]
             names = data_array['@Name']
-            if names != 'velocity' and names == fieldname:
+            if names == fieldname:
                 types = type_decider[data_array['@type']]
                 metadata, data_field = decode_binary(data_array['#text'].encode(), dtype=types)
+                if vectordim >= 0:
+                    # extract the dimension of the vector we want
+                    data_field = data_field.reshape((data_field.size // ndims, ndims))
+                    data_field = data_field[:, vectordim]
                 vtu_data.append(data_field.astype(np.float64))
 
             coords, conn, offsets, cell_types = decode_piece(xmlPieces[piece_id])
