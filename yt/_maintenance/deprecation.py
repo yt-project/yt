@@ -1,7 +1,5 @@
 import warnings
 
-from yt.config import ytcfg
-
 
 class VisibleDeprecationWarning(UserWarning):
     """Visible deprecation warning, adapted from NumPy
@@ -54,6 +52,9 @@ def issue_deprecation_warning(
             removal="4.2.0"
         )
     """
+    # We need to import this here to prevent import cycles
+    from yt.config import ytcfg
+
     warnings_to_ignore = ytcfg.get("yt", "developers", "ignore_warnings")
     if deprecation_id in warnings_to_ignore:
         return
