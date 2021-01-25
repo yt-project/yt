@@ -1,5 +1,7 @@
 import warnings
 
+from yt.config import ytcfg
+
 
 class VisibleDeprecationWarning(UserWarning):
     """Visible deprecation warning, adapted from NumPy
@@ -14,13 +16,19 @@ class VisibleDeprecationWarning(UserWarning):
     pass
 
 
-def issue_deprecation_warning(msg, *, removal, since=None, stacklevel=3):
+def issue_deprecation_warning(
+    msg, *, removal, since=None, stacklevel=3, deprecation_id=None
+):
     """
     Parameters
     ----------
     msg: str
         A text message explaining that the code surrounding the call to this function is
         deprecated, and what should be changed on the user side to avoid it.
+
+    deprecation_id: str
+        A unique id to identify the deprecation message. This can be used to silent
+        some warnings manually.
 
     since and removal: str version numbers, indicating the anticipated removal date
 
@@ -41,10 +49,15 @@ def issue_deprecation_warning(msg, *, removal, since=None, stacklevel=3):
     --------
     >>> issue_deprecation_warning(
             "This code is deprecated.",
+            deprecation_id="filename:key",
             since="4.0.0",
             removal="4.2.0"
         )
     """
+    warnings_to_ignore = ytcfg.get("yt", "developers", "ignore_warnings")
+    if deprecation_id in warnings_to_ignore:
+        return
+
     msg += "\n"
     if since is not None:
         msg += f"Deprecated since v{since} . "
