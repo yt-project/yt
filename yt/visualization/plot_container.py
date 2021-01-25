@@ -304,6 +304,7 @@ class PlotContainer:
             issue_deprecation_warning(
                 "Deprecated api, use bools for *state*.",
                 deprecation_id="plot_container:bools_for_state",
+                since="4.0.0",
                 removal="4.1.0",
             )
             state = {"on": True, "off": False}[state.lower()]
