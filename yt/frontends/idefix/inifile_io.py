@@ -144,7 +144,7 @@ class IdefixConf(dict):
         dict_filepath_or_buffer: dict, os.Pathlike or str or a readable file handle.
         """
         if isinstance(dict_or_path_or_buffer, dict):
-            super(IdefixConf, self).__init__(dict_or_path_or_buffer)
+            super().__init__(dict_or_path_or_buffer)
             return
         self.from_file(dict_or_path_or_buffer)
 
@@ -169,7 +169,7 @@ class IdefixConf(dict):
             if len(values) == 1:
                 values = values[0]
             _dict[current_section][key] = values
-        super(IdefixConf, self).__init__(_dict)
+        super().__init__(_dict)
 
     @staticmethod
     def normalize_data(data):
