@@ -869,6 +869,7 @@ def add_volume_weighted_smoothed_field(
         "visualization machinery now treats SPH fields properly by smoothing onto "
         "pixel locations. See this page to learn more: "
         "https://yt-project.org/doc/yt4differences.html",
+        deprecation_id="particle_fields:add_volume_weighted_smoothed_field",
         since="4.0.0",
         removal="4.1.0",
     )

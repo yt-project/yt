@@ -158,6 +158,7 @@ def _check_deprecated_parameters():
     if ytcfg.get("yt", "load_field_plugins"):
         issue_deprecation_warning(
             "Found deprecated parameter 'load_field_plugins' in yt's configuration file.",
+            deprecation_id="init:load_field_plugins",
             removal="4.1.0",
         )
 

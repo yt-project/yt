@@ -30,6 +30,7 @@ def add_cmap(name, cdict):
 
     issue_deprecation_warning(
         "`add_cmap` is a deprecated alias for `add_colormap`",
+        deprecation_id="color_maps:add_cmap",
         since="4.0.0",
         removal="4.1.0",
     )

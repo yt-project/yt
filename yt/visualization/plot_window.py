@@ -2346,7 +2346,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
         issue_deprecation_warning(
             "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
             "will be removed in a future version of yt.",
-            deprecation_id="plot_window:slice_plot:axis",
+            deprecation_id="plot_window:slice_plot-axis",
             since="4.0.0",
             removal="4.1.0",
         )
