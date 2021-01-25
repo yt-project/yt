@@ -1,4 +1,5 @@
 import warnings
+from typing import List
 
 
 class VisibleDeprecationWarning(UserWarning):
@@ -12,6 +13,23 @@ class VisibleDeprecationWarning(UserWarning):
     # this class becomes useless after the tests are migrated from nose to pytest
 
     pass
+
+
+class WarnOnce:
+    def __init__(self):
+        self._warned = False
+
+    def __call__(self, silenced_warnings: List[str]):
+        if self._warned:
+            return
+
+        msg = "The following warnings have been silenced in the config file: "
+        msg += "[" + ", ".join(silenced_warnings) + "]"
+        warnings.warn(msg, UserWarning, stacklevel=3)
+        self._warned = True
+
+
+warn_about_silenced_warnings = WarnOnce()
 
 
 def issue_deprecation_warning(
@@ -55,8 +73,9 @@ def issue_deprecation_warning(
     # We need to import this here to prevent import cycles
     from yt.config import ytcfg
 
-    warnings_to_ignore = ytcfg.get("yt", "developers", "ignore_warnings")
-    if deprecation_id in warnings_to_ignore:
+    silenced_warnings = ytcfg.get("yt", "developers", "ignore_warnings")
+    if deprecation_id in silenced_warnings:
+        warn_about_silenced_warnings(silenced_warnings)
         return
 
     msg += "\n"
