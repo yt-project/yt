@@ -715,6 +715,7 @@ class PlotWindow(ImagePlotContainer):
         issue_deprecation_warning(
             "`PlotWindow.set_window_size` is a deprecated alias "
             "for `PlotWindow.set_figure_size`.",
+            deprecation_id="plot_window:set_window_size",
             removal="4.1.0",
         )
         self.set_figure_size(size)
@@ -1217,6 +1218,7 @@ class PWViewerMPL(PlotWindow):
         issue_deprecation_warning(
             "`annotate_clear` has been deprecated "
             "in favor of `clear_annotations`. Using `clear_annotations`.",
+            deprecation_id="plot_window:annotate_clear",
             since="4.0.0",
             removal="4.1.0",
         )
@@ -1719,6 +1721,7 @@ class ProjectionPlot(PWViewerMPL):
         if proj_style is not None:
             issue_deprecation_warning(
                 "`proj_style` parameter is deprecated, use `method` instead.",
+                deprecation_id="plot_window:proj_style",
                 removal="4.1.0",
             )
             method = proj_style
@@ -2343,6 +2346,7 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
         issue_deprecation_warning(
             "SlicePlot's argument 'axis' is a deprecated alias for 'normal', it "
             "will be removed in a future version of yt.",
+            deprecation_id="plot_window:slice_plot-axis",
             since="4.0.0",
             removal="4.1.0",
         )

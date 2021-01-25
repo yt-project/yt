@@ -145,6 +145,7 @@ def simulation(fn, simulation_type, find_outputs=False):
     issue_deprecation_warning(
         "yt.simulation is a deprecated alias for yt.load_simulation"
         "and will be removed in a future version of yt.",
+        deprecation_id="loaders:yt.simulation",
         since="4.0.0",
         removal="4.1.0",
     )
@@ -258,6 +259,7 @@ def load_uniform_grid(
             "dict. The number of particles is "
             "determined from the sizes of the "
             "particle fields.",
+            deprecation_id="loaders:number_of_particles",
             since="4.0.0",
             removal="4.1.0",
         )
@@ -486,6 +488,7 @@ def load_amr_grids(
                 "dict. The number of particles is "
                 "determined from the sizes of the "
                 "particle fields.",
+                deprecation_id="loaders:number_of_particles",
                 since="4.0.0",
                 removal="4.1.0",
             )

@@ -532,7 +532,12 @@ class OctreeSubset(YTSelectionContainer):
                 "get_vertex_centered_data() requires list of fields, rather than "
                 "a single field as an argument."
             )
-            issue_deprecation_warning(message, since="4.0.0", removal="4.1.0")
+            issue_deprecation_warning(
+                message,
+                deprecation_id="octree_subset:get_vertex_centered_data-old_api",
+                since="4.0.0",
+                removal="4.1.0",
+            )
             fields = [fields]
 
         # Make sure the field list has only unique entries

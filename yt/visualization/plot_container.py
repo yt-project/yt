@@ -302,7 +302,10 @@ class PlotContainer:
         """
         if isinstance(state, str):
             issue_deprecation_warning(
-                "Deprecated api, use bools for *state*.", removal="4.1.0"
+                "Deprecated api, use bools for *state*.",
+                deprecation_id="plot_container:bools_for_state",
+                since="4.0.0",
+                removal="4.1.0",
             )
             state = {"on": True, "off": False}[state.lower()]
 
@@ -944,6 +947,7 @@ class ImagePlotContainer(PlotContainer):
         issue_deprecation_warning(
             "`ImagePlotContainer.set_cbar_minorticks` is a deprecated alias "
             "for `ImagePlotContainer.set_colorbar_minorticks`.",
+            deprecation_id="plot_container:cbar_minorticks",
             removal="4.1.0",
         )
 

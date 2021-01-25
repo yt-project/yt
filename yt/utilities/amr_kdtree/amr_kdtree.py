@@ -377,6 +377,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         issue_deprecation_warning(
             "`AMRKDTree.locate_brick` is a deprecated alias "
             "for `AMRKDTree.locate_node`.",
+            deprecation_id="amr_kdtree:locate_brick",
             removal="4.1.0",
         )
         return self.locate_node(position)
