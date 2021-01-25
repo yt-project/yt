@@ -23,7 +23,7 @@ class IdefixGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level, dims):
-        super(IdefixGrid, self).__init__(id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -44,7 +44,7 @@ class IdefixHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        super(IdefixHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         self.field_list = [
@@ -89,13 +89,15 @@ class IdefixDataset(Dataset):
     _field_info_class = IdefixFieldInfo
 
     def __init__(
-        self, dmpfile, inifile=None, dataset_type="idefix", units_override=None,
+        self,
+        dmpfile,
+        inifile=None,
+        dataset_type="idefix",
+        units_override=None,
     ):
         self.fluid_types += ("idefix",)
         self.inifile = inifile
-        super(IdefixDataset, self).__init__(
-            dmpfile, dataset_type, units_override=units_override
-        )
+        super().__init__(dmpfile, dataset_type, units_override=units_override)
         self.storage_filename = None
 
         # idefix does not support grid refinement
@@ -156,7 +158,7 @@ class IdefixDataset(Dataset):
 
         self.current_time = fdata["time"]
 
-        self.periodicity = tuple(bool(p) for p in fdata["periodicity"])
+        self._periodicity = tuple(bool(p) for p in fdata["periodicity"])
         enum_geoms = {1: "cartesian", 2: "cylindrial", 3: "polar", 4: "spherical"}
         self.geometry = enum_geoms[fdata["geometry"]]
 
