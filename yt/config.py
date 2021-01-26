@@ -64,11 +64,6 @@ ytcfg_defaults["yt"] = dict(
         topcomm_parallel_size=1,
         command_line=False,
     ),
-    # Options for developers
-    developers=dict(
-        # List of warnings to ignore
-        ignore_warnings=[]
-    ),
 )
 
 
@@ -184,9 +179,17 @@ OLD_CONFIG_FILE = os.path.join(CONFIG_DIR, "ytrc")
 _global_config_file = YTConfig.get_global_config_file()
 _local_config_file = YTConfig.get_local_config_file()
 
-warn_about_both_config_present = False
 if os.path.exists(OLD_CONFIG_FILE):
-    if not os.path.exists(_global_config_file):
+    if os.path.exists(_global_config_file):
+        issue_deprecation_warning(
+            f"The configuration file {OLD_CONFIG_FILE} is deprecated in "
+            f"favor of {_global_config_file}. Currently, both are present. "
+            "Please manually remove the deprecated one to silence "
+            "this warning.",
+            since="4.0.0",
+            removal="4.1.0",
+        )
+    else:
         # We have an issue here: when calling from the command line,
         # we do not want this to exit, as it would prevent `yt config migrate`
         # from running. The issue is that yt.config (this file) is imported
@@ -203,15 +206,10 @@ if os.path.exists(OLD_CONFIG_FILE):
                 f"The configuration file {OLD_CONFIG_FILE} is deprecated. "
                 f"Please migrate your config to {_global_config_file} by running: "
                 "'yt config migrate'",
-                deprecation_id="config:migration",
                 since="4.0.0",
                 removal="4.1.0",
             )
             raise SystemExit
-    else:
-        # We keep the information both files are present and warn afterwards,
-        # unless the config explicitely asks for it to be turned off
-        warn_about_both_config_present = True
 
 
 if not os.path.exists(_global_config_file):
@@ -232,16 +230,3 @@ if os.path.exists(_local_config_file):
     ytcfg.read(_local_config_file)
 elif os.path.exists(_global_config_file):
     ytcfg.read(_global_config_file)
-
-# We need to do this *after* the config was read so that devs may
-# deactivate the warnings
-if warn_about_both_config_present:
-    issue_deprecation_warning(
-        f"The configuration file {OLD_CONFIG_FILE} is deprecated in "
-        f"favor of {_global_config_file}. Currently, both are present. "
-        "Please manually remove the deprecated one to silence "
-        "this warning.",
-        deprecation_id="config:both_file_present",
-        since="4.0.0",
-        removal="4.1.0",
-    )

@@ -261,7 +261,6 @@ class Dataset(abc.ABC):
             "Dataset.periodicity should not be overriden manually. "
             "In the future, this will become an error. "
             "Use `Dataset.force_periodicity` instead.",
-            deprecation_id="static_output:manual-set-periodicity",
             since="4.0.0",
             removal="4.1.0",
         )
@@ -1683,7 +1682,6 @@ class Dataset(abc.ABC):
             "visualization machinery now treats SPH fields properly by smoothing onto "
             "pixel locations. See this page to learn more: "
             "https://yt-project.org/doc/yt4differences.html",
-            deprecation_id="static_output:add_smoothed_particle_field",
             since="4.0.0",
             removal="4.1.0",
         )
@@ -1733,7 +1731,6 @@ class Dataset(abc.ABC):
             issue_deprecation_warning(
                 "keyword argument 'input_field' is deprecated in favor of 'fields' "
                 "and will be removed in a future version of yt.",
-                deprecation_id="static_output:input_field",
                 since="4.0.0",
                 removal="4.1.0",
             )

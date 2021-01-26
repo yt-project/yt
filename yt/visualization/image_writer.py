@@ -413,7 +413,6 @@ def write_projection(
         issue_deprecation_warning(
             "The `limits` keyword argument is deprecated and will "
             "be removed in a future version of yt. Use `vmin` and `vmax` instead.",
-            deprecation_id="image_writer:limits_keyword",
             since="4.0.0",
             removal="4.1.0",
         )
