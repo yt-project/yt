@@ -93,11 +93,17 @@ class IdefixDataset(Dataset):
         dmpfile,
         inifile=None,
         dataset_type="idefix",
+        unit_system="cgs",
         units_override=None,
     ):
         self.fluid_types += ("idefix",)
         self.inifile = inifile
-        super().__init__(dmpfile, dataset_type, units_override=units_override)
+        super().__init__(
+            dmpfile,
+            dataset_type,
+            units_override=units_override,
+            unit_system=unit_system,
+        )
         self.storage_filename = None
 
         # idefix does not support grid refinement
