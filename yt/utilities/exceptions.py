@@ -37,7 +37,6 @@ class YTOutputNotIdentified(YTUnidentifiedDataType):
 
         issue_deprecation_warning(
             "YTOutputNotIdentified is a deprecated alias for YTUnidentifiedDataType",
-            deprecation_id="exceptions:YTOutputNotIdentified",
             since="4.0.0",
             removal="4.1.0",
         )

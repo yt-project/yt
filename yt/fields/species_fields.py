@@ -182,7 +182,6 @@ def add_deprecated_species_alias(registry, ftype, alias_species, species, suffix
             issue_deprecation_warning(
                 ('The "%s_%s" field is deprecated. ' + 'Please use "%s_%s" instead.')
                 % (alias_species, suffix, species, suffix),
-                deprecation_id="species_field:deprecated_alias_fields",
                 since="4.0.0",
                 removal="4.1.0",
             )

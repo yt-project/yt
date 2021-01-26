@@ -320,7 +320,6 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
         "This function is no longer used in the "
         "yt project testing framework and is "
         "targeted for deprecation.",
-        deprecation_id="framework:can_run_sim",
         since="4.0.0",
         removal="4.1.0",
     )
@@ -1117,7 +1116,6 @@ def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
         "This function is no longer used in the "
         "yt project testing framework and is "
         "targeted for deprecation.",
-        deprecation_id="framework:requires_sim",
         since="4.0.0",
         removal="4.1.0",
     )
