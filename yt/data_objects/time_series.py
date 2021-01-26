@@ -194,7 +194,7 @@ class DatasetSeries:
         pattern = outputs
         epattern = os.path.expanduser(pattern)
         data_dir = ytcfg.get("yt", "test_data_dir")
-        # if not match if found from the current work dir,
+        # if no match if found from the current work dir,
         # we try to match the pattern from the test data dir
         file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
         if not file_list:
