@@ -206,6 +206,7 @@ if os.path.exists(OLD_CONFIG_FILE):
                 deprecation_id="config:migration",
                 since="4.0.0",
                 removal="4.1.0",
+                prevent_ignore=True,
             )
             raise SystemExit
     else:

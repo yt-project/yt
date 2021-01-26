@@ -33,7 +33,7 @@ warn_about_silenced_warnings = WarnOnce()
 
 
 def issue_deprecation_warning(
-    msg, *, removal, since=None, stacklevel=3, deprecation_id=None
+    msg, *, removal, since=None, stacklevel=3, deprecation_id=None, prevent_ignore=False
 ):
     """
     Parameters
@@ -45,6 +45,10 @@ def issue_deprecation_warning(
     deprecation_id: str
         A unique id to identify the deprecation message. This can be used to silent
         some warnings manually.
+
+    prevent_ignore: bool
+        If True, this deprecation warning won't be ignored. This is also useful at places
+        where yt's config hasn't been read (yet).
 
     since and removal: str version numbers, indicating the anticipated removal date
 
@@ -70,13 +74,14 @@ def issue_deprecation_warning(
             removal="4.2.0"
         )
     """
-    # We need to import this here to prevent import cycles
-    from yt.config import ytcfg
+    if not prevent_ignore:
+        # We need to import this here to prevent import cycles
+        from yt.config import ytcfg
 
-    silenced_warnings = ytcfg.get("yt", "developers", "ignore_warnings")
-    if deprecation_id in silenced_warnings:
-        warn_about_silenced_warnings(silenced_warnings)
-        return
+        silenced_warnings = ytcfg.get("yt", "developers", "ignore_warnings")
+        if deprecation_id in silenced_warnings:
+            warn_about_silenced_warnings(silenced_warnings)
+            return
 
     msg += "\n"
     if since is not None:
