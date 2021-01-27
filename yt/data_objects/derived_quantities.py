@@ -810,7 +810,7 @@ class SpinParameter(DerivedQuantity):
         j = data.ds.quan(0.0, "g*cm**2/s")
         m = data.ds.quan(0.0, "g")
         if use_gas:
-            e += (data["gas", "kinetic_energy"] * data["gas", "volume"]).sum(
+            e += (data["gas", "kinetic_energy_density"] * data["gas", "volume"]).sum(
                 dtype=np.float64
             )
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)
