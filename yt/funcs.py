@@ -412,12 +412,12 @@ def only_on_root(func, *args, **kwargs):
     from yt.config import ytcfg
 
     if kwargs.pop("global_rootonly", False):
-        cfg_option = "__global_parallel_rank"
+        cfg_option = "global_parallel_rank"
     else:
-        cfg_option = "__topcomm_parallel_rank"
+        cfg_option = "topcomm_parallel_rank"
     if not ytcfg.get("yt", "internals", "parallel"):
         return func(*args, **kwargs)
-    if ytcfg.get("yt", cfg_option) > 0:
+    if ytcfg.get("yt", "internals", cfg_option) > 0:
         return
     return func(*args, **kwargs)
 
@@ -429,10 +429,10 @@ def is_root():
     """
     from yt.config import ytcfg
 
-    cfg_option = "__topcomm_parallel_rank"
+    cfg_option = "topcomm_parallel_rank"
     if not ytcfg.get("yt", "internals", "parallel"):
         return True
-    if ytcfg.get("yt", cfg_option) > 0:
+    if ytcfg.get("yt", "internals", cfg_option) > 0:
         return False
     return True
 
