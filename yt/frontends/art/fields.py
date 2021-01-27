@@ -12,13 +12,13 @@ en_units = "code_mass*code_velocity**2/code_length**3"
 class ARTFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("Density", (rho_units, ["density"], None)),
-        ("TotalEnergy", (en_units, ["total_energy"], None)),
+        ("TotalEnergy", (en_units, ["total_energy_density"], None)),
         ("XMomentumDensity", (mom_units, ["momentum_x"], None)),
         ("YMomentumDensity", (mom_units, ["momentum_y"], None)),
         ("ZMomentumDensity", (mom_units, ["momentum_z"], None)),
         ("Pressure", ("", ["pressure"], None)),  # Unused
         ("Gamma", ("", ["gamma"], None)),
-        ("GasEnergy", (en_units, ["thermal_energy"], None)),
+        ("GasEnergy", (en_units, ["thermal_energy_density"], None)),
         ("MetalDensitySNII", (rho_units, ["metal_ii_density"], None)),
         ("MetalDensitySNIa", (rho_units, ["metal_ia_density"], None)),
         ("PotentialNew", ("", ["potential"], None)),
