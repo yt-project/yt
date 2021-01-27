@@ -79,16 +79,38 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _kin_energy(field, data):
+    def _kinetic_energy_density(field, data):
         v = obtain_relative_velocity_vector(data)
         return 0.5 * data[ftype, "density"] * (v ** 2).sum(axis=0)
 
     registry.add_field(
-        (ftype, "kinetic_energy"),
+        (ftype, "kinetic_energy_density"),
         sampling_type="local",
-        function=_kin_energy,
+        function=_kinetic_energy_density,
         units=unit_system["pressure"],
         validators=[ValidateParameter("bulk_velocity")],
+    )
+
+    def _kinetic_energy(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, "kinetic_energy_density"]
+
+    registry.add_field(
+        (ftype, "kinetic_energy"),
+        sampling_type="local",
+        function=_kinetic_energy,
+        units=unit_system["pressure"],
+    )
+
+    def _thermal_energy(field, data):
+        """This field is deprecated and will be removed in a future release"""
+        return data[ptype, "specific_thermal_energy"]
+
+    registry.add_field(
+        (ftype, "thermal_energy"),
+        sampling_type="local",
+        function=_thermal_energy,
+        units=unit_system["specific_energy"],
     )
 
     def _mach_number(field, data):
@@ -122,7 +144,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     def _pressure(field, data):
         """ M{(Gamma-1.0)*rho*E} """
         tr = (data.ds.gamma - 1.0) * (
-            data[ftype, "density"] * data[ftype, "thermal_energy"]
+            data[ftype, "density"] * data[ftype, "specific_thermal_energy"]
         )
         return tr
 
