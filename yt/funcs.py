@@ -431,7 +431,7 @@ def is_root():
 
     if not ytcfg.get("yt", "internals", "parallel"):
         return True
-    return ytcfg.get("yt", "internals", "topcomm_parallel_rank") == 0:
+    return ytcfg.get("yt", "internals", "topcomm_parallel_rank") == 0
 
 
 #
