@@ -1679,9 +1679,6 @@ functionality:
    }
    ds = yt.load("InteractingJets/jet_000002", units_override=code_units)
 
-This means that the yt fields, e.g., ``("gas","density")``, will be in cgs units,
-but the GAMER fields, e.g., ``("gamer","Dens")``, will be in code units.
-
 Particle data are supported and are always stored in the same file as the grid
 data.
 
