@@ -17,9 +17,13 @@ CyOctree building, loading and refining routines
 cimport cython
 cimport libc.math as math
 cimport numpy as np
-from yt.geometry.particle_deposit cimport \
-    kernel_func, get_kernel_func
-from libc.stdlib cimport malloc, free
+
+import numpy as np
+
+from libc.stdlib cimport free, malloc
+
+from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
+
 np.import_array()
 
 cdef struct Octree:
@@ -518,7 +522,7 @@ cdef class CyOctree:
         children.
 
         Args:
-            buff: The array which we are depositing the field onto, it has the 
+            buff: The array which we are depositing the field onto, it has the
                 length of the number of leaves.
             buff_den: The array we deposit just mass onto to allow normalization
             pos<>: The x, y, and z coordinates of the particle we are depositing
