@@ -17,8 +17,8 @@ p_units = "code_mass / (code_length * code_time**2)"
 class ARTIOFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("HVAR_GAS_DENSITY", (rho_units, ["density"], None)),
-        ("HVAR_GAS_ENERGY", (en_units, ["total_energy"], None)),
-        ("HVAR_INTERNAL_ENERGY", (en_units, ["thermal_energy"], None)),
+        ("HVAR_GAS_ENERGY", (en_units, ["total_energy_density"], None)),
+        ("HVAR_INTERNAL_ENERGY", (en_units, ["thermal_energy_density"], None)),
         ("HVAR_PRESSURE", (p_units, ["pressure"], None)),
         ("HVAR_MOMENTUM_X", (mom_units, ["momentum_x"], None)),
         ("HVAR_MOMENTUM_Y", (mom_units, ["momentum_y"], None)),
@@ -71,7 +71,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
             )
 
         def _temperature(field, data):
-            tr = data["thermal_energy"] / data["density"]
+            tr = data["thermal_energy_density"] / data["density"]
             # We want this to match *exactly* what ARTIO would compute
             # internally.  We therefore use the exact values that are internal
             # to ARTIO, rather than yt's own internal constants.
