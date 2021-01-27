@@ -47,6 +47,19 @@ def write_config(config_file):
     CONFIG.write(config_file)
 
 
+def interactive_migrate_config():
+    prompt = "Perform the migration now [yn]? "
+    user_input = input(prompt).lower()
+    while user_input not in ("y", "yes", "n", "no"):
+        print(f"Did not understand your input '{user_input}'. Please enter 'y' or 'n'.")
+        user_input = input(prompt).lower()
+
+    if user_input in ("y", "yes"):
+        migrate_config()
+    else:
+        raise SystemExit("Migration not performed: exiting.")
+
+
 def migrate_config():
     if not os.path.exists(OLD_CONFIG_FILE):
         print("Old config not found.")

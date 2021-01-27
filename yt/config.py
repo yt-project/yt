@@ -6,6 +6,7 @@ from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.configuration_tree import ConfigNode
+from yt.utilities.configure import interactive_migrate_config
 
 ytcfg_defaults = {}
 
@@ -209,7 +210,7 @@ if os.path.exists(OLD_CONFIG_FILE):
                 since="4.0.0",
                 removal="4.1.0",
             )
-            raise SystemExit
+            interactive_migrate_config()
 
 
 if not os.path.exists(_global_config_file):
