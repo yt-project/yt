@@ -25,6 +25,7 @@ class ASPECTUnstructuredMesh(UnstructuredMesh):
         "vtu_offsets",
         "connectivity_indices",
         "connectivity_coords",
+        "nodes_per_cell"
     )
 
     def __init__(
@@ -36,6 +37,7 @@ class ASPECTUnstructuredMesh(UnstructuredMesh):
         element_count,
         connectivity_indices,
         connectivity_coords,
+        nodes_per_cell,
         index,
     ):
         super(ASPECTUnstructuredMesh, self).__init__(
@@ -44,6 +46,7 @@ class ASPECTUnstructuredMesh(UnstructuredMesh):
         self.filenames = filenames
         self.node_offsets = node_offsets
         self.element_count = element_count
+        self.nodes_per_cell = nodes_per_cell
 
         # some error checking
 
@@ -61,7 +64,7 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
         self.global_coords = None
 
     def _initialize_mesh(self):
-        connectivity, coords, node_offsets, el_count = self.ds._read_pieces()
+        connectivity, coords, node_offsets, el_count, nodes_per_cell = self.ds._read_pieces()
         self.meshes = []
         mesh_files = self.ds.parameters["vtu_files"]
         pvtu_file = self.ds.parameter_filename
@@ -76,6 +79,7 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
             el_count,
             connectivity,
             coords,
+            nodes_per_cell,
             self,
         )
         self.meshes.append(mesh)
@@ -292,9 +296,21 @@ class ASPECTDataset(Dataset):
         z = []
         datadict = {}
         pieceoff = 0
+        n_p_cells = []
+
+        if type(xmlPieces) != list:
+            xmlPieces = [xmlPieces]
 
         for piece_id in range(0, len(xmlPieces)):
             coords, conn, offsets, cell_types = decode_piece(xmlPieces[piece_id])
+
+            if len(np.unique(cell_types)) > 1:
+                mylog.error(f"multiple cell types in piece {piece_id} of vtu {src_file}")
+                raise NotImplementedError("can only handle single cell types at present")
+
+            n_nodes = conn.size
+            n_cells = int(xmlPieces[piece_id]['@NumberOfCells'])
+            n_p_cells.append(n_nodes // n_cells)
 
             x.extend(coords[:, 0])
             y.extend(coords[:, 1])
@@ -316,14 +332,23 @@ class ASPECTDataset(Dataset):
                 xmlPiece = xmlPieces[piece_id]
                 for field_id, data_array in enumerate(xmlPiece['PointData']['DataArray']):
                     fname = data_array['@Name']
-                    self.field_to_piece_id[src_file][piece_id][fname] =  field_id
+                    self.field_to_piece_id[src_file][piece_id][fname] = field_id
 
         coords = np.array(np.column_stack([x, y, z]))
         alloffs = np.array(alloffs)
         conns = np.array(conns)
-        conns = conns.reshape((conns.size // 8, 8)) # fix this 8
 
-        return coords, conns, alloffs
+        # check that cell types are the same, otherwise we have a problem...
+        # but ASPECT does not mix elements, so should be ok.
+        n_p_cell_vals = np.unique(n_p_cells)
+        if len(n_p_cell_vals) > 1:
+            mylog.error(f"{src_file} contains multiple cell types")
+            raise NotImplementedError("can only handle single cell types at present")
+        npc = n_p_cell_vals[0]
+
+        conns = conns.reshape((conns.size // npc, npc))
+
+        return coords, conns, alloffs, npc
 
     def _read_pieces(self):
         # reads coordinates and connectivity from pieces, returns the mesh
@@ -341,12 +366,12 @@ class ASPECTDataset(Dataset):
         node_offsets = []
         element_count = []
         current_offset = 0  # the NODE offset to global coordinate index
-
+        nodes_per_cell = []
         for src in pieces:
             src_file = os.path.join(self.data_dir, src["@Source"])
             # print(src_file)
-            coord, con, _ = self._read_single_vtu_pieces(src_file)
-
+            coord, con, all_offs, npc = self._read_single_vtu_pieces(src_file)
+            nodes_per_cell.append(npc)
 
             node_offsets.append(current_offset)
             element_count.append(con.shape[0])
@@ -355,10 +380,18 @@ class ASPECTDataset(Dataset):
             conlist.append(con.astype("i8"))
             coordlist.append(coord.astype("f8"))
 
+        nodes_per_cell = np.unique(nodes_per_cell)
+        if len(nodes_per_cell) > 1:
+            mylog.error(f"Found different cell types across vtu files")
+            raise NotImplementedError("can only handle single cell types at present")
+        nodes_per_cell = nodes_per_cell[-1]
+        if nodes_per_cell > 8:
+            mylog.info("Found higher order elements: most operations will only use first order components.")
+
         # concatenate across into a single mesh.
         coordlist = np.vstack(coordlist)
         conlist = np.vstack(conlist).astype("i8")
-        return conlist, coordlist, node_offsets, element_count
+        return conlist, coordlist, node_offsets, element_count, nodes_per_cell
 
     def _load_domain_edge(self):
         """
@@ -373,7 +406,7 @@ class ASPECTDataset(Dataset):
         right_edge = self.parameter_info.get("domain_right_edge", None)
 
         if not left_edge:
-            _, coord, _, _ = self._read_pieces()
+            _, coord, _, _, _ = self._read_pieces()
             # coord = np.vstack(coord)
             left_edge = [coord[:, i].min() for i in range(self.dimensionality)]
             right_edge = [coord[:, i].max() for i in range(self.dimensionality)]

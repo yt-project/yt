@@ -38,14 +38,16 @@ class IOHandlerASPECT(BaseIOHandler):
             rv[field] = []
             ftype_list.append(ftype)
 
-        xyz_to_dim = {'x': 0, 'y': 1, 'z': 2} # should come from ds parameters...
+        xyz_to_dim = {'x': 0, 'y': 1, 'z': 2}  # should come from ds parameters...
+        vel_vectors = ['velocity_'+dimstr for dimstr in xyz_to_dim.keys()]
         for chunk_id, chunk in enumerate(chunks):
             mesh = chunk.objs[0]
+            npc = mesh.nodes_per_cell
             el_counts = np.array(mesh.element_count)
             # operations here should not offset mesh indeces as the indices for
             # a chunk's mesh are not global. need to temporarily
             # zero the mesh index for use within the selector objects, then
-            # reset after for places where global concatentation of the indices
+            # reset after for places where global concatenation of the indices
             # is required.
             # orig_offset = mesh._index_offset
             # mesh._index_offset = 0
@@ -75,17 +77,20 @@ class IOHandlerASPECT(BaseIOHandler):
                             xml = xmltodict.parse(data.read())
                             xmlPieces = xml['VTKFile']['UnstructuredGrid']['Piece']
 
+                        if type(xmlPieces) != list:
+                            xmlPieces = [xmlPieces]
+
                         for field in fields:
                             ftype, fname = field
 
                             vdim = -1
-                            if 'velocity' in fname:
+                            if fname in vel_vectors:
                                 vdim = xyz_to_dim[fname.split('_')[-1]]
                                 fname = 'velocity'
 
                             vtu_field, vtu_conn1d = self._read_single_vtu_field(xmlPieces, fname, f2id, vectordim=vdim)
                             vtu_field = vtu_field[vtu_conn1d]
-                            vtu_field = vtu_field.reshape((vtu_conn1d.size // 8, 8))
+                            vtu_field = vtu_field.reshape((vtu_conn1d.size // npc, npc))
                             vtu_field = vtu_field[vtu_mask, :]
                             rv[field].append(vtu_field)
 
