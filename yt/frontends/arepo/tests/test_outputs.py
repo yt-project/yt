@@ -85,9 +85,18 @@ for pair in pair_list:
 
 
 for pair in pair_list:
+    # ("gas", "temperature") occurs twice in each field list because
+    # it needs to be paired with two different weights. However, when
+    # saving the raw arrays this creates a bug because it results in the
+    # same group name being created twice, which causes an error
+    temp_count = 0
     for field in pair[1]:
         for obj in pair[3]:
+            if field == ("gas", "temperature") and temp_count == 1:
+                break
             fv_pairs.append((pair[0], field, obj))
+        if field == ("gas", "temperature"):
+            temp_count = 1
 
 
 @pytest.mark.answer_test

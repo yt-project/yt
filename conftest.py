@@ -241,7 +241,8 @@ def hashing(request):
     # If the ds is passed to the ds fixture with args or kwargs, then
     # pytest cannot properly populate the test name with the ds name and
     # uses a placeholder value instead. Here we extract the ds name from
-    # the list
+    # the list. The same is true for field, weight, and dobj, since those
+    # can also be tuples that cause pytes to use a placeholder
     newName = sanitize_name(request)
     hashes = {newName: hashes}
     # Save hashes
@@ -265,14 +266,22 @@ def hashing(request):
 
 
 def sanitize_name(request):
-    if "ds" not in request.node.funcargs.keys():
-        newName = request.node.name
-    else:
-        pattern = r"ds[0-9]+"
-        ds = request.node.funcargs["ds"]
-        if isinstance(ds, list):
-            ds = ds[0]
-        newName = re.sub(pattern, str(ds), request.node.name)
+    to_change = ["ds", "d", "w", "f"]
+    patterns = [r"ds[0-9]+", r"d[0-9]+", r"w[0-9]+", r"f[0-9]+"]
+    newName = request.node.name
+    for param, pattern in zip(to_change, patterns):
+        if param not in request.node.funcargs.keys():
+            newName = newName 
+        else:
+            val = request.node.funcargs[param]
+            if isinstance(val, list):
+                val = val[0]
+            elif isinstance(val, tuple):
+                if "sphere" in val:
+                    val = val[0]
+                else:
+                    val = val[1]
+            newName = re.sub(pattern, str(val), newName)
     return newName
 
 

@@ -315,12 +315,14 @@ def _pad_parentage_relationships_data(data):
             nCols = len(row)
     try:
         assert nCols > 0
-    # Sometimes the children list is [[]]
+    # Sometimes the children list is [[]] or [[], [], ...]
     except AssertionError:
-        if nRows == 1:
-            data[0].append(-2)
-        else:
-            raise AssertionError
+        for i in range(len(data)):
+            data[i].append(-2)
+        # Now update the number of columns from 0 -> 1 otherwise the
+        # for loop below over j won't trigger and no data will be
+        # added to the padded array
+        nCols = 1
     # Construct our rectancular array
     padded = np.zeros((nRows, nCols), dtype=np.int)
     # Fill the array
@@ -334,7 +336,6 @@ def _pad_parentage_relationships_data(data):
                 padded[i][j] = data[i][j]
     assert padded.dtype == np.int
     return padded
-
 
 
 def _parse_raw_answer_dict(d, h5grp):

@@ -80,10 +80,10 @@ def test_displacement_fields():
         {"connect1": (1.0, [1.0, 2.0, 3.0]), "connect2": (0.0, [0.0, 0.0, 0.0])},
     ]
     for disp in displacement_dicts:
-        ds = data_dir_load(big_data, displacements=disp)
+        ds = data_dir_load(big_data, kwargs={"displacements" : disp})
         for mesh in ds.index.meshes:
 
-            def array_func():
+            def array_func(*args, **kwargs):
                 return mesh.connectivity_coords
 
             yield GenericArrayTest(ds, array_func, 12)

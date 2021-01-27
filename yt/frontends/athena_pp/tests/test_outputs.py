@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 
 from yt.frontends.athena_pp.api import AthenaPPDataset
-from yt.testing import assert_allclose, units_override_check
+from yt.testing import assert_allclose, assert_equal, units_override_check
 from yt.utilities.answer_testing.answer_tests import (
     field_values,
     generic_array,
@@ -11,6 +11,7 @@ from yt.utilities.answer_testing.answer_tests import (
     parentage_relationships,
     projection_values,
 )
+from yt.utilities.answer_testing.testing_utilities import data_dir_load
 
 # Test data
 disk = "KeplerianDisk/disk.out1.00000.athdf"
@@ -34,15 +35,20 @@ class TestAthenaPP:
     answer_file = None
     saved_hashes = None
 
-    @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [disk], indirect=True)
-    @pytest.mark.parametrize("f", ["density", "velocity_r"], indirect=True)
-    def test_disk(self, f, ds):
+    def test_disk_validation(self, ds):
+        assert_equal(str(ds), "disk.out1.00000")
         dd = ds.all_data()
         vol = (ds.domain_right_edge[0] ** 3 - ds.domain_left_edge[0] ** 3) / 3.0
         vol *= np.cos(ds.domain_left_edge[1]) - np.cos(ds.domain_right_edge[1])
         vol *= ds.domain_right_edge[2].v - ds.domain_left_edge[2].v
         assert_allclose(dd.quantities.total_quantity("cell_volume"), vol)
+
+    @pytest.mark.usefixtures("hashing")
+    @pytest.mark.parametrize("ds", [disk], indirect=True)
+    @pytest.mark.parametrize("f", ["density", "velocity_r"], indirect=True)
+    def test_disk(self, f, ds):
+        dd = ds.all_data()
 
         def field_func(name):
             return dd[f]
