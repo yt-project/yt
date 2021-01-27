@@ -29,6 +29,7 @@ from yt.utilities.tree_container import TreeContainer
 from .fields import YTDataContainerFieldInfo, YTGridFieldInfo
 
 _grid_data_containers = ["arbitrary_grid", "covering_grid", "smoothed_covering_grid"]
+_set_attrs = {"periodicity": "_periodicity"}
 
 
 class SavedDataset(Dataset):
@@ -104,7 +105,8 @@ class SavedDataset(Dataset):
 
         for attr in self._con_attrs:
             try:
-                setattr(self, attr, self.parameters.get(attr))
+                sattr = _set_attrs.get(attr, attr)
+                setattr(self, sattr, self.parameters.get(attr))
             except TypeError:
                 # some Dataset attributes are properties with setters
                 # which may not accept None as an input
@@ -516,12 +518,13 @@ class YTGridDataset(YTDataset):
                     self.domain_right_edge - self.domain_left_edge
                 ) / self.domain_dimensions
 
-            self._periodicity = (
+            periodicity = (
                 np.abs(self.domain_left_edge - self.base_domain_left_edge) < 0.5 * dx
             )
-            self.periodicity &= (
+            periodicity &= (
                 np.abs(self.domain_right_edge - self.base_domain_right_edge) < 0.5 * dx
             )
+            self._periodicity = periodicity
 
         elif self.data_type == "yt_frb":
             dle = self.domain_left_edge
@@ -728,7 +731,7 @@ class YTNonspatialDataset(YTGridDataset):
             "domain_dimensions": np.ones(3, dtype="int"),
             "domain_left_edge": np.zeros(3),
             "domain_right_edge": np.ones(3),
-            "periodicity": np.ones(3, dtype="bool"),
+            "_periodicity": np.ones(3, dtype="bool"),
         }
         for att, val in default_attrs.items():
             if getattr(self, att, None) is None:
