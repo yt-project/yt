@@ -209,7 +209,6 @@ if os.path.exists(OLD_CONFIG_FILE):
                 since="4.0.0",
                 removal="4.1.0",
             )
-            raise SystemExit
 
 
 if not os.path.exists(_global_config_file):
