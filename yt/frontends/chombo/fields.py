@@ -30,9 +30,9 @@ class Orion2FieldInfo(ChomboFieldInfo):
         ("density", (rho_units, ["density"], None)),
         ("energy-density", (eden_units, ["total_energy_density"], None)),
         ("radiation-energy-density", (eden_units, ["radiation_energy_density"], None)),
-        ("X-momentum", (mom_units, ["momentum_x"], None)),
-        ("Y-momentum", (mom_units, ["momentum_y"], None)),
-        ("Z-momentum", (mom_units, ["momentum_z"], None)),
+        ("X-momentum", (mom_units, ["momentum_density_x"], None)),
+        ("Y-momentum", (mom_units, ["momentum_density_y"], None)),
+        ("Z-momentum", (mom_units, ["momentum_density_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
         ("X-magnfield", (b_units, [], None)),
         ("Y-magnfield", (b_units, [], None)),
@@ -127,7 +127,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"momentum_{axis}"] / data["density"]
+                return data[f"momentum_density_{axis}"] / data["density"]
 
             return velocity
 
