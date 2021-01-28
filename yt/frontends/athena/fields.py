@@ -63,18 +63,17 @@ class AthenaFieldInfo(FieldInfoContainer):
 
         # Add pressure, energy, and temperature fields
         def eint_from_etot(data):
-            eint = data["athena", "total_energy"].copy()
-            eint -= data["gas", "kinetic_energy"]
+            eint = data["athena", "total_energy"] - \
+                data["gas", "kinetic_energy_density"]
             if ("athena", "cell_centered_B_x") in self.field_list:
-                eint -= data["gas", "magnetic_energy"]
+                eint -= data["gas", "magnetic_energy_density"]
             return eint
 
         def etot_from_pres(data):
-            etot = data["athena", "pressure"].copy()
-            etot /= data.ds.gamma - 1.0
-            etot += data["gas", "kinetic_energy"]
+            etot = data["athena", "pressure"]/(data.ds.gamma - 1.0)
+            etot += data["gas", "kinetic_energy_density"]
             if ("athena", "cell_centered_B_x") in self.field_list:
-                etot += data["gas", "magnetic_energy"]
+                etot += data["gas", "magnetic_energy_density"]
             return etot
 
         if ("athena", "pressure") in self.field_list:
@@ -87,7 +86,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                 units=unit_system["pressure"],
             )
 
-            def _thermal_energy(field, data):
+            def _specific_thermal_energy(field, data):
                 return (
                     data["athena", "pressure"]
                     / (data.ds.gamma - 1.0)
@@ -95,19 +94,19 @@ class AthenaFieldInfo(FieldInfoContainer):
                 )
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
-                function=_thermal_energy,
+                function=_specific_thermal_energy,
                 units=unit_system["specific_energy"],
             )
 
-            def _total_energy(field, data):
+            def _specific_total_energy(field, data):
                 return etot_from_pres(data) / data["athena", "density"]
 
             self.add_field(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 sampling_type="cell",
-                function=_total_energy,
+                function=_specific_total_energy,
                 units=unit_system["specific_energy"],
             )
         elif ("athena", "total_energy") in self.field_list:
@@ -115,21 +114,21 @@ class AthenaFieldInfo(FieldInfoContainer):
                 ("athena", "total_energy"), sampling_type="cell", units=pres_units
             )
 
-            def _thermal_energy(field, data):
+            def _specific_thermal_energy(field, data):
                 return eint_from_etot(data) / data["athena", "density"]
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
-                function=_thermal_energy,
+                function=_specific_thermal_energy,
                 units=unit_system["specific_energy"],
             )
 
-            def _total_energy(field, data):
+            def _specific_total_energy(field, data):
                 return data["athena", "total_energy"] / data["athena", "density"]
 
             self.add_field(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 sampling_type="cell",
                 function=_total_energy,
                 units=unit_system["specific_energy"],
