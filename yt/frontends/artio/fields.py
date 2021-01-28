@@ -20,9 +20,9 @@ class ARTIOFieldInfo(FieldInfoContainer):
         ("HVAR_GAS_ENERGY", (en_units, ["total_energy_density"], None)),
         ("HVAR_INTERNAL_ENERGY", (en_units, ["thermal_energy_density"], None)),
         ("HVAR_PRESSURE", (p_units, ["pressure"], None)),
-        ("HVAR_MOMENTUM_X", (mom_units, ["momentum_x"], None)),
-        ("HVAR_MOMENTUM_Y", (mom_units, ["momentum_y"], None)),
-        ("HVAR_MOMENTUM_Z", (mom_units, ["momentum_z"], None)),
+        ("HVAR_MOMENTUM_X", (mom_units, ["momentum_density_x"], None)),
+        ("HVAR_MOMENTUM_Y", (mom_units, ["momentum_density_y"], None)),
+        ("HVAR_MOMENTUM_Z", (mom_units, ["momentum_density_z"], None)),
         ("HVAR_GAMMA", ("", ["gamma"], None)),
         ("HVAR_METAL_DENSITY_Ia", (rho_units, ["metal_ia_density"], None)),
         ("HVAR_METAL_DENSITY_II", (rho_units, ["metal_ii_density"], None)),
@@ -58,7 +58,7 @@ class ARTIOFieldInfo(FieldInfoContainer):
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"momentum_{axis}"] / data["density"]
+                return data[f"momentum_density_{axis}"] / data["density"]
 
             return velocity
 
