@@ -16,9 +16,9 @@ class GAMERFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # hydro fields on disk (GAMER outputs conservative variables)
         ("Dens", (rho_units, ["density"], r"\rho")),
-        ("MomX", (mom_units, ["momentum_x"], None)),
-        ("MomY", (mom_units, ["momentum_y"], None)),
-        ("MomZ", (mom_units, ["momentum_z"], None)),
+        ("MomX", (mom_units, ["momentum_density_x"], None)),
+        ("MomY", (mom_units, ["momentum_density_y"], None)),
+        ("MomZ", (mom_units, ["momentum_density_z"], None)),
         ("Engy", (erg_units, ["total_energy_density"], None)),
         ("Pote", (pot_units, ["gravitational_potential"], None)),
         # MHD fields on disk (CC=cell-centered)
@@ -56,7 +56,7 @@ class GAMERFieldInfo(FieldInfoContainer):
         # velocity
         def velocity_xyz(v):
             def _velocity(field, data):
-                return data["gas", f"momentum_{v}"] / data["gas", "density"]
+                return data["gas", f"momentum_density_{v}"] / data["gas", "density"]
 
             return _velocity
 
