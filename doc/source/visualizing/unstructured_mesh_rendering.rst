@@ -426,13 +426,13 @@ disk each time.
 
     # override the default colormap
     ms = sc.get_source()
-    ms.cmap = 'Eos A'
+    ms.cmap = "Eos A"
 
     # adjust the camera position and orientation
     cam = sc.camera
-    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
-    cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
-    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam_pos = ds.arr([-3.0, 3.0, -3.0], "code_length")
+    north_vector = ds.arr([0.0, -1.0, -1.0], "dimensionless")
     cam.set_position(cam_pos, north_vector)
 
     # increase the default resolution
@@ -444,9 +444,9 @@ disk each time.
     # make movie frames
     num_frames = 301
     for i in range(num_frames):
-        cam.rotate(2.0*np.pi/num_frames)
+        cam.rotate(2.0 * np.pi / num_frames)
         sc.render()
-        sc.save('movie_frames/surface_render_%.4d.png' % i)
+        sc.save("movie_frames/surface_render_%.4d.png" % i)
 
 Finally, this example demonstrates how to loop over the time steps in a single
 file with a fixed camera position:
@@ -458,7 +458,7 @@ file with a fixed camera position:
     import pylab as plt
 
     NUM_STEPS = 127
-    CMAP = 'hot'
+    CMAP = "hot"
     VMIN = 300.0
     VMAX = 2000.0
 

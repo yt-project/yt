@@ -25,8 +25,12 @@ them to apply radiative feedback, one could imagine calling it directly:
 
    for grid in ds.index.grids:
        rt_grid = radtrans.RegularBox(
-            grid.LeftEdge, grid.RightEdge,
-            grid["density"], grid["temperature"], grid["metallicity"])
+           grid.LeftEdge,
+           grid.RightEdge,
+           grid["density"],
+           grid["temperature"],
+           grid["metallicity"],
+       )
        rt_grids.append(rt_grid)
        grid.clear_data()
 
@@ -137,19 +141,18 @@ Here's a rough outline of what should go in ``axes_calculator_setup.py``:
    from distutils.extension import Extension
    from Cython.Distutils import build_ext
 
-   ext_modules = [Extension(NAME,
-                    [NAME+".pyx"] + EXT_SOURCES,
-                    libraries = EXT_LIBRARIES,
-                    library_dirs = EXT_LIBRARY_DIRS,
-                    include_dirs = EXT_INCLUDE_DIRS,
-                    define_macros = DEFINES)
+   ext_modules = [
+       Extension(
+           NAME,
+           [NAME + ".pyx"] + EXT_SOURCES,
+           libraries=EXT_LIBRARIES,
+           library_dirs=EXT_LIBRARY_DIRS,
+           include_dirs=EXT_INCLUDE_DIRS,
+           define_macros=DEFINES,
+       )
    ]
 
-   setup(
-     name = NAME,
-     cmdclass = {'build_ext': build_ext},
-     ext_modules = ext_modules
-   )
+   setup(name=NAME, cmdclass={"build_ext": build_ext}, ext_modules=ext_modules)
 
 The only variables you should have to change in this are the first six, and
 possibly only the first one.  We'll go through these variables one at a time.
@@ -303,6 +306,7 @@ Now, create a sample file that feeds in the particles:
 .. code-block:: python
 
     import axes_calculator
+
     axes_calculator.examine_axes(xpos, ypos, zpos)
 
 Most of the time in that function is spent in converting the data.  So now we
@@ -395,6 +399,7 @@ import, and then save things out into a file.
 .. code-block:: python
 
    import h5py
+
    f = h5py.File("some_file.h5", mode="w")
    f.create_dataset("/data", data=some_data)
 

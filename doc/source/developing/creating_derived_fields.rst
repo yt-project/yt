@@ -20,9 +20,9 @@ this approach.
 
    import yt
 
+
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * \
-              data["density"] * data["thermal_energy"]
+       return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
 
 Note that we do a couple different things here.  We access the ``gamma``
 parameter from the dataset, we access the ``density`` field and we access
@@ -98,12 +98,17 @@ the dimensionality of the returned array and the field are the same:
     import yt
     from yt.units import dimensions
 
-    def _pressure(field, data):
-        return (data.ds.gamma - 1.0) * \
-              data["density"] * data["thermal_energy"]
 
-    yt.add_field(("gas","pressure"), function=_pressure, units="auto",
-                 dimensions=dimensions.pressure)
+    def _pressure(field, data):
+        return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
+
+
+    yt.add_field(
+        ("gas", "pressure"),
+        function=_pressure,
+        units="auto",
+        dimensions=dimensions.pressure,
+    )
 
 If ``dimensions`` is not set, an error will be thrown. The ``dimensions`` keyword
 can be a SymPy ``symbol`` object imported from ``yt.units.dimensions``, a compound
@@ -117,10 +122,10 @@ the previous example:
 
    from yt import derived_field
 
+
    @derived_field(name="pressure", units="dyne/cm**2")
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * \
-              data["density"] * data["thermal_energy"]
+       return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
 
 The :func:`derived_field` decorator takes the same arguments as
 :func:`add_field`, and is often a more convenient shorthand in cases where
@@ -152,8 +157,11 @@ using basic arithmetic if necessary:
 
 .. code-block:: python
 
-    ds.add_field(("gas", "my_acceleration"), function=_my_acceleration,
-                 units=ds.unit_system["length"]/ds.unit_system["time"]**2)
+    ds.add_field(
+        ("gas", "my_acceleration"),
+        function=_my_acceleration,
+        units=ds.unit_system["length"] / ds.unit_system["time"] ** 2,
+    )
 
 If you find yourself using the same custom-defined fields over and over, you should put them in your plugins file as
 described in :ref:`plugin-file`.
@@ -173,28 +181,33 @@ transparent and simple example).
    from yt.fields.api import ValidateParameter
    import numpy as np
 
+
    def _my_radial_velocity(field, data):
        if data.has_field_parameter("bulk_velocity"):
            bv = data.get_field_parameter("bulk_velocity").in_units("cm/s")
        else:
            bv = data.ds.arr(np.zeros(3), "cm/s")
-       xv = data["gas","velocity_x"] - bv[0]
-       yv = data["gas","velocity_y"] - bv[1]
-       zv = data["gas","velocity_z"] - bv[2]
-       center = data.get_field_parameter('center')
+       xv = data["gas", "velocity_x"] - bv[0]
+       yv = data["gas", "velocity_y"] - bv[1]
+       zv = data["gas", "velocity_z"] - bv[2]
+       center = data.get_field_parameter("center")
        x_hat = data["x"] - center[0]
        y_hat = data["y"] - center[1]
        z_hat = data["z"] - center[2]
-       r = np.sqrt(x_hat*x_hat+y_hat*y_hat+z_hat*z_hat)
+       r = np.sqrt(x_hat * x_hat + y_hat * y_hat + z_hat * z_hat)
        x_hat /= r
        y_hat /= r
        z_hat /= r
-       return xv*x_hat + yv*y_hat + zv*z_hat
-   yt.add_field(("gas","my_radial_velocity"),
-                function=_my_radial_velocity,
-                units="cm/s",
-                take_log=False,
-                validators=[ValidateParameter(['center', 'bulk_velocity'])])
+       return xv * x_hat + yv * y_hat + zv * z_hat
+
+
+   yt.add_field(
+       ("gas", "my_radial_velocity"),
+       function=_my_radial_velocity,
+       units="cm/s",
+       take_log=False,
+       validators=[ValidateParameter(["center", "bulk_velocity"])],
+   )
 
 Note that we have added a few optional arguments to ``yt.add_field``; we specify
 that we do not wish to display this field as logged, that we require both the
@@ -212,8 +225,8 @@ called on any object that has fields:
 .. code-block:: python
 
    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
-   sp = ds.sphere("max", (200.,"kpc"))
-   sp.set_field_parameter("bulk_velocity", yt.YTArray([-100.,200.,300.], "km/s"))
+   sp = ds.sphere("max", (200.0, "kpc"))
+   sp.set_field_parameter("bulk_velocity", yt.YTArray([-100.0, 200.0, 300.0], "km/s"))
 
 In this case, we already know what the ``center`` of the sphere is, so we do
 not set it. Also, note that ``center`` and ``bulk_velocity`` need to be
@@ -235,18 +248,23 @@ For example, let's write a field that depends on a field parameter named ``'axis
 .. code-block:: python
 
    def my_axis_field(field, data):
-       axis = data.get_field_parameter('axis')
+       axis = data.get_field_parameter("axis")
        if axis == 0:
-           return data['x-velocity']
+           return data["x-velocity"]
        elif axis == 1:
-           return data['y-velocity']
+           return data["y-velocity"]
        elif axis == 2:
-           return data['z-velocity']
+           return data["z-velocity"]
        else:
            raise ValueError
 
-   ds.add_field('my_axis_field', function=my_axis_field, units='cm/s',
-                validators=[ValidateParameter("axis", {"axis": [0, 1, 2]})])
+
+   ds.add_field(
+       "my_axis_field",
+       function=my_axis_field,
+       units="cm/s",
+       validators=[ValidateParameter("axis", {"axis": [0, 1, 2]})],
+   )
 
 In this example, we've told yt's field system that the data object we are
 querying ``my_axis_field`` must have the ``axis`` field parameter set. In
@@ -321,18 +339,18 @@ For instance, if you had defined this derived field:
 
 .. code-block:: python
 
-   @yt.derived_field(name = ("gas","funthings"))
+   @yt.derived_field(name=("gas", "funthings"))
    def funthings(field, data):
-       return data["sillythings"] + data["humorousthings"]**2.0
+       return data["sillythings"] + data["humorousthings"] ** 2.0
 
 And you wanted to debug it, you could do:
 
 .. code-block:: python
 
-   @yt.derived_field(name = ("gas","funthings"))
+   @yt.derived_field(name=("gas", "funthings"))
    def funthings(field, data):
        data._debug()
-       return data["sillythings"] + data["humorousthings"]**2.0
+       return data["sillythings"] + data["humorousthings"] ** 2.0
 
 And now, when that derived field is actually used, you will be placed into a
 debugger.

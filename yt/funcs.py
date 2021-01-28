@@ -202,7 +202,8 @@ def print_tb(func):
     .. code-block:: python
 
        @print_tb
-       def some_deeply_nested_function(...):
+       def some_deeply_nested_function(*args, **kwargs):
+           ...
 
     """
 
@@ -225,8 +226,8 @@ def rootonly(func):
     .. code-block:: python
 
        @rootonly
-       def some_root_only_function(...):
-
+       def some_root_only_function(*args, **kwargs):
+           ...
     """
     from yt.config import ytcfg
 
@@ -249,7 +250,8 @@ def pdb_run(func):
     .. code-block:: python
 
        @pdb_run
-       def some_function_to_debug(...):
+       def some_function_to_debug(*args, **kwargs):
+           ...
 
     """
 
