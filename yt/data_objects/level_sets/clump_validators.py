@@ -52,7 +52,9 @@ def _gravitationally_bound(
     )
 
     if use_thermal_energy:
-        kinetic += (clump["gas", "mass"] * clump["gas", "specific_thermal_energy"]).sum()
+        kinetic += (
+            clump["gas", "mass"] * clump["gas", "specific_thermal_energy"]
+        ).sum()
 
     if use_particles:
         kinetic += (

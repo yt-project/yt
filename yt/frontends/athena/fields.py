@@ -57,7 +57,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                 self.alias(
                     ("gas", f"momentum_density_{comp}"),
                     mom_field,
-                    units=unit_system["density"]*unit_system["velocity"],
+                    units=unit_system["density"] * unit_system["velocity"],
                 )
                 self.add_field(
                     ("gas", f"velocity_{comp}"),
@@ -68,14 +68,15 @@ class AthenaFieldInfo(FieldInfoContainer):
 
         # Add pressure, energy, and temperature fields
         def eint_from_etot(data):
-            eint = data["athena", "total_energy"] - \
-                data["gas", "kinetic_energy_density"]
+            eint = (
+                data["athena", "total_energy"] - data["gas", "kinetic_energy_density"]
+            )
             if ("athena", "cell_centered_B_x") in self.field_list:
                 eint -= data["gas", "magnetic_energy_density"]
             return eint
 
         def etot_from_pres(data):
-            etot = data["athena", "pressure"]/(data.ds.gamma - 1.0)
+            etot = data["athena", "pressure"] / (data.ds.gamma - 1.0)
             etot += data["gas", "kinetic_energy_density"]
             if ("athena", "cell_centered_B_x") in self.field_list:
                 etot += data["gas", "magnetic_energy_density"]

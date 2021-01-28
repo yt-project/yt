@@ -41,6 +41,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     create_vector_fields(
         registry, "velocity", unit_system["velocity"], ftype, slice_info
     )
+
     create_vector_fields(
         registry, "magnetic_field", unit_system[mag_units], ftype, slice_info
     )
@@ -55,6 +56,31 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["mass"],
     )
     registry.alias((ftype, "mass"), (ftype, "cell_mass"))
+
+    # momentum
+    def momentum_xyz(v):
+        def _mom(field, data):
+            return data["gas", "mass"] * data["gas", f"velocity_{v}"]
+
+        def _momd(field, data):
+            return data["gas", "density"] * data["gas", f"velocity_{v}"]
+
+        return _mom, _momd
+
+    for v in "xyz":
+        _mom, _momd = momentum_xyz(v)
+        registry.add_field(
+            ("gas", f"momentum_{v}"),
+            sampling_type="cell",
+            function=_mom,
+            units=unit_system["momentum"],
+        )
+        registry.add_field(
+            ("gas", f"momentum_density_{v}"),
+            sampling_type="cell",
+            function=_momd,
+            units=unit_system["density"] * unit_system["velocity"],
+        )
 
     def _sound_speed(field, data):
         tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, "density"]

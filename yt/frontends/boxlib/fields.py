@@ -21,7 +21,11 @@ def _thermal_energy_density(field, data):
     #   rho e = rho E - rho * u * u / 2
     ke = (
         0.5
-        * (data["momentum_density_x"] ** 2 + data["momentum_density_y"] ** 2 + data["momentum_density_z"] ** 2)
+        * (
+            data["momentum_density_x"] ** 2
+            + data["momentum_density_y"] ** 2
+            + data["momentum_density_z"] ** 2
+        )
         / data["density"]
     )
     return data["eden"] - ke
@@ -315,7 +319,10 @@ class CastroFieldInfo(FieldInfoContainer):
         ("grav_y", ("cm/s**2", [], r"\mathbf{g} \cdot \mathbf{e}_y")),
         ("grav_z", ("cm/s**2", [], r"\mathbf{g} \cdot \mathbf{e}_z")),
         ("pressure", ("dyne/cm**2", [], r"p")),
-        ("kineng", ("erg/cm**3", ["kinetic_energy_density"], r"\frac{1}{2}\rho|\mathbf{U}|^2")),
+        (
+            "kineng",
+            ("erg/cm**3", ["kinetic_energy_density"], r"\frac{1}{2}\rho|\mathbf{U}|^2"),
+        ),
         ("soundspeed", ("cm/s", ["sound_speed"], "Sound Speed")),
         ("Machnumber", ("", ["mach_number"], "Mach Number")),
         ("entropy", ("erg/(g*K)", ["entropy"], r"s")),
