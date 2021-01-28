@@ -54,6 +54,11 @@ class AthenaFieldInfo(FieldInfoContainer):
                     sampling_type="cell",
                     units="code_mass/code_time/code_length**2",
                 )
+                self.alias(
+                    ("gas", f"momentum_density_{comp}"),
+                    mom_field,
+                    units=unit_system["density"]*unit_system["velocity"],
+                )
                 self.add_field(
                     ("gas", f"velocity_{comp}"),
                     sampling_type="cell",
