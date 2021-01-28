@@ -204,11 +204,15 @@ if os.path.exists(OLD_CONFIG_FILE):
         if len(stack) < 2 or stack[-2].function != "importlib_load_entry_point":
             issue_deprecation_warning(
                 f"The configuration file {OLD_CONFIG_FILE} is deprecated. "
-                f"Please migrate your config to {_global_config_file} by running: "
-                "'yt config migrate'",
+                f"Migrating your config to {_global_config_file} automatically. "
+                "You can also migrate manually by running: "
+                "'yt config migrate'.",
                 since="4.0.0",
                 removal="4.1.0",
             )
+            from yt.utilities.configure import migrate_config
+
+            migrate_config()
 
 
 if not os.path.exists(_global_config_file):
