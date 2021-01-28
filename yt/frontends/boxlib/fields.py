@@ -21,7 +21,7 @@ def _thermal_energy_density(field, data):
     #   rho e = rho E - rho * u * u / 2
     ke = (
         0.5
-        * (data["momentum_x"] ** 2 + data["momentum_y"] ** 2 + data["momentum_z"] ** 2)
+        * (data["momentum_density_x"] ** 2 + data["momentum_density_y"] ** 2 + data["momentum_density_z"] ** 2)
         / data["density"]
     )
     return data["eden"] - ke
@@ -186,9 +186,9 @@ class BoxlibFieldInfo(FieldInfoContainer):
     known_other_fields = (
         ("density", (rho_units, ["density"], None)),
         ("eden", (eden_units, ["total_energy_density"], None)),
-        ("xmom", (mom_units, ["momentum_x"], None)),
-        ("ymom", (mom_units, ["momentum_y"], None)),
-        ("zmom", (mom_units, ["momentum_z"], None)),
+        ("xmom", (mom_units, ["momentum_density_x"], None)),
+        ("ymom", (mom_units, ["momentum_density_y"], None)),
+        ("zmom", (mom_units, ["momentum_density_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
         ("Temp", ("K", ["temperature"], None)),
         ("x_velocity", ("cm/s", ["velocity_x"], None)),
@@ -289,7 +289,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
 
         for ax in "xyz":
             self.add_field(
-                ("gas", f"momentum_{ax}"),
+                ("gas", f"momentum_density_{ax}"),
                 sampling_type="cell",
                 function=_get_mom(ax),
                 units=mom_units,
@@ -300,9 +300,9 @@ class CastroFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
         ("density", ("g/cm**3", ["density"], r"\rho")),
-        ("xmom", ("g/(cm**2 * s)", ["momentum_x"], r"\rho u")),
-        ("ymom", ("g/(cm**2 * s)", ["momentum_y"], r"\rho v")),
-        ("zmom", ("g/(cm**2 * s)", ["momentum_z"], r"\rho w")),
+        ("xmom", ("g/(cm**2 * s)", ["momentum_density_x"], r"\rho u")),
+        ("ymom", ("g/(cm**2 * s)", ["momentum_density_y"], r"\rho v")),
+        ("zmom", ("g/(cm**2 * s)", ["momentum_density_z"], r"\rho w")),
         # velocity components are not always present
         ("x_velocity", ("cm/s", ["velocity_x"], r"u")),
         ("y_velocity", ("cm/s", ["velocity_y"], r"v")),
