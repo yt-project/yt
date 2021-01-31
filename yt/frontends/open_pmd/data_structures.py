@@ -316,9 +316,7 @@ class OpenPMDHierarchy(GridIndex):
                 0, domain_dimension[0], num_grids + 1, dtype=np.int32
             )
             grid_edge_offset = (
-                grid_dim_offset
-                * np.float(domain_dimension[0]) ** -1
-                * (gre[0] - gle[0])
+                grid_dim_offset * float(domain_dimension[0]) ** -1 * (gre[0] - gle[0])
                 + gle[0]
             )
             mesh_names = []
@@ -556,7 +554,7 @@ class OpenPMDDataset(Dataset):
 
         self.unique_identifier = 0
         self.parameters = 0
-        self._periodicity = np.zeros(3, dtype=np.bool)
+        self._periodicity = np.zeros(3, dtype=bool)
         self.refine_by = 1
         self.cosmological_simulation = 0
 
@@ -642,7 +640,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
         self.handle = h5py.File(filename, mode="r")
         self.filename = filename
         self._pre_outputs = sorted(
-            np.asarray(list(self.handle["/data"].keys()), dtype=np.int)
+            np.asarray(list(self.handle["/data"].keys()), dtype=int)
         )
 
     def __iter__(self):

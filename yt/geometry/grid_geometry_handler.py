@@ -248,7 +248,7 @@ class GridIndex(Index, abc.ABC):
         coords = self.ds.arr(ensure_numpy_array(coords), "code_length")
         grids = self._find_points(coords[:, 0], coords[:, 1], coords[:, 2])[0]
         fields = list(iter_fields(fields))
-        mark = np.zeros(3, dtype=np.int)
+        mark = np.zeros(3, dtype=int)
         out = []
 
         # create point -> grid mapping
@@ -418,7 +418,7 @@ class GridIndex(Index, abc.ABC):
         if chunk_sizing == "auto":
             chunk_ngrids = len(gobjs)
             if chunk_ngrids > 0:
-                nproc = np.float(ytcfg.get("yt", "internals", "global_parallel_size"))
+                nproc = float(ytcfg.get("yt", "internals", "global_parallel_size"))
                 chunking_factor = np.ceil(
                     self._grid_chunksize * nproc / chunk_ngrids
                 ).astype("int")
