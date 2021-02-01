@@ -201,16 +201,6 @@ class DatasetSeries:
             raise FileNotFoundError(f"No match found for pattern : {pattern}")
         return sorted(file_list)
 
-    def __iter__(self):
-        # We can make this fancier, but this works
-        for o in self._pre_outputs:
-            try:
-                ds = self._load(o, **self.kwargs)
-                self._setup_function(ds)
-                yield ds
-            except TypeError:
-                yield o
-
     def __getitem__(self, key):
         if isinstance(key, slice):
             if isinstance(key.start, float):
