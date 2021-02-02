@@ -1407,7 +1407,7 @@ def _read_header(raw_file, field):
             except ValueError:
                 # nghost_line[0] is (#,#,#)
                 nghost_list = nghost_line[0].strip("()").split(",")
-                nghost = np.array(nghost_list, dtype=int)
+                nghost = np.array(nghost_list, dtype="int64")
 
             # read the file and offset position for the corresponding box
             file_names = []

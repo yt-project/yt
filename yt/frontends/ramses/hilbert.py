@@ -308,7 +308,7 @@ def get_cpu_list(ds, X):
     if bit_length > 0:
         ndom = 8
 
-    idom, jdom, kdom = [np.zeros(8, dtype=int) for _ in range(3)]
+    idom, jdom, kdom = [np.zeros(8, dtype="int64") for _ in range(3)]
 
     idom[0], idom[1] = imin, imax
     idom[2], idom[3] = imin, imax

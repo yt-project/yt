@@ -65,7 +65,7 @@ def get_block_info(block, min_dim=3):
 
 def get_root_blocks(block, min_dim=3):
     mybs, dim = get_block_string_and_dim(block, min_dim=min_dim)
-    nb = np.ones(dim, dtype=int)
+    nb = np.ones(dim, dtype="int64")
     for i, myb in enumerate(mybs):
         if myb == "":
             continue
@@ -76,7 +76,7 @@ def get_root_blocks(block, min_dim=3):
 
 def get_root_block_id(block, min_dim=3):
     mybs, dim = get_block_string_and_dim(block, min_dim=min_dim)
-    rbid = np.zeros(dim, dtype=int)
+    rbid = np.zeros(dim, dtype="int64")
     for i, myb in enumerate(mybs):
         if myb == "":
             continue
