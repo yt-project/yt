@@ -1112,7 +1112,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def _get_grid_bounds_size(self):
         dd = self.ds.domain_width / 2 ** self.level
-        bounds = np.zeros(6, dtype=float)
+        bounds = np.zeros(6, dtype="float64")
 
         bounds[0] = self.left_edge[0].in_base("code")
         bounds[1] = bounds[0] + dd[0].d * self.ActiveDimensions[0]
@@ -1224,7 +1224,7 @@ class YTArbitraryGrid(YTCoveringGrid):
             self[field] = self.ds.arr(dest, fi.units)
 
     def _get_grid_bounds_size(self):
-        bounds = np.empty(6, dtype=float)
+        bounds = np.empty(6, dtype="float64")
         bounds[0] = self.left_edge[0].in_base("code")
         bounds[2] = self.left_edge[1].in_base("code")
         bounds[4] = self.left_edge[2].in_base("code")

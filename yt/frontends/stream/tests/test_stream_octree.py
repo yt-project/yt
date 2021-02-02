@@ -36,7 +36,7 @@ def test_octree():
     octree_mask = np.array(OCT_MASK_LIST, dtype=np.uint8)
 
     quantities = {}
-    quantities[("gas", "density")] = np.ones((22, 1), dtype=float)
+    quantities[("gas", "density")] = np.ones((22, 1), dtype="float64")
 
     bbox = np.array([[-10.0, 10.0], [-10.0, 10.0], [-10.0, 10.0]])
 
