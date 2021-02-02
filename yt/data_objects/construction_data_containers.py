@@ -134,7 +134,7 @@ class YTStreamline(YTSelectionContainer1D):
             self.positions <= grid.RightEdge, axis=1
         )
         pids = np.where(points_in_grid)[0]
-        mask = np.zeros(points_in_grid.sum(), dtype="int")
+        mask = np.zeros(points_in_grid.sum(), dtype="int64")
         dts = np.zeros(points_in_grid.sum(), dtype="float64")
         ts = np.zeros(points_in_grid.sum(), dtype="float64")
         for mi, (i, pos) in enumerate(zip(pids, self.positions[points_in_grid])):

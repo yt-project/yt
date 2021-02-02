@@ -338,7 +338,7 @@ def get_cpu_list(ds, X):
     for icpu in range(1, ncpu + 1):
         bound_key[icpu - 1], bound_key[icpu] = ds.hilbert_indices[icpu]
 
-    cpu_min, cpu_max = [np.zeros(ncpu + 1, dtype="int") for _ in range(2)]
+    cpu_min, cpu_max = [np.zeros(ncpu + 1, dtype="int64") for _ in range(2)]
     for icpu in range(1, ncpu + 1):
         for i in range(ndom):
             if (

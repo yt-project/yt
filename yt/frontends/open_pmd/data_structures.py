@@ -640,7 +640,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
         self.handle = h5py.File(filename, mode="r")
         self.filename = filename
         self._pre_outputs = sorted(
-            np.asarray(list(self.handle["/data"].keys()), dtype="int")
+            np.asarray(list(self.handle["/data"].keys()), dtype="int64")
         )
 
     def __iter__(self):
