@@ -554,7 +554,7 @@ class OpenPMDDataset(Dataset):
 
         self.unique_identifier = 0
         self.parameters = 0
-        self._periodicity = np.zeros(3, dtype=bool)
+        self._periodicity = np.zeros(3, dtype="bool")
         self.refine_by = 1
         self.cosmological_simulation = 0
 
@@ -640,7 +640,7 @@ class OpenPMDDatasetSeries(DatasetSeries):
         self.handle = h5py.File(filename, mode="r")
         self.filename = filename
         self._pre_outputs = sorted(
-            np.asarray(list(self.handle["/data"].keys()), dtype=int)
+            np.asarray(list(self.handle["/data"].keys()), dtype="int")
         )
 
     def __iter__(self):
