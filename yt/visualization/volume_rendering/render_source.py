@@ -1,46 +1,48 @@
-"""
-RenderSource Class
-
-"""
-
-# -----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-# -----------------------------------------------------------------------------
+import abc
+from functools import wraps
 
 import numpy as np
-from functools import wraps
-from yt.config import \
-    ytcfg
-from yt.funcs import mylog, ensure_numpy_array, iterable
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    ParallelAnalysisInterface
-from yt.utilities.amr_kdtree.api import AMRKDTree
-from .transfer_function_helper import TransferFunctionHelper
-from .transfer_functions import TransferFunction, \
-    ProjectionTransferFunction, ColorTransferFunction
-from .utils import new_volume_render_sampler, data_source_or_all, \
-    get_corners, new_projection_sampler, new_mesh_sampler, \
-    new_interpolated_projection_sampler
-from yt.utilities.lib.bounding_volume_hierarchy import BVH
-from yt.visualization.image_writer import apply_colormap
-from yt.data_objects.image_array import ImageArray
-from .zbuffer_array import ZBuffer
-from yt.utilities.lib.misc_utilities import \
-    zlines, zpoints
 
+from yt.config import ytcfg
+from yt.data_objects.image_array import ImageArray
+from yt.funcs import ensure_numpy_array, is_sequence, mylog
+from yt.geometry.grid_geometry_handler import GridIndex
+from yt.geometry.oct_geometry_handler import OctreeIndex
+from yt.utilities.amr_kdtree.api import AMRKDTree
+from yt.utilities.lib.bounding_volume_hierarchy import BVH
+from yt.utilities.lib.misc_utilities import zlines, zpoints
+from yt.utilities.lib.octree_raytracing import OctreeRayTracing
+from yt.utilities.lib.partitioned_grid import PartitionedGrid
 from yt.utilities.on_demand_imports import NotAModule
+from yt.utilities.parallel_tools.parallel_analysis_interface import (
+    ParallelAnalysisInterface,
+)
+from yt.visualization.image_writer import apply_colormap
+
+from .transfer_function_helper import TransferFunctionHelper
+from .transfer_functions import (
+    ColorTransferFunction,
+    ProjectionTransferFunction,
+    TransferFunction,
+)
+from .utils import (
+    data_source_or_all,
+    get_corners,
+    new_interpolated_projection_sampler,
+    new_mesh_sampler,
+    new_projection_sampler,
+    new_volume_render_sampler,
+)
+from .zbuffer_array import ZBuffer
+
 try:
-    from yt.utilities.lib import mesh_traversal
+    from yt.utilities.lib.embree_mesh import mesh_traversal
 # Catch ValueError in case size of objects in Cython change
 except (ImportError, ValueError):
     mesh_traversal = NotAModule("pyembree")
     ytcfg["yt", "ray_tracing_engine"] = "yt"
 try:
-    from yt.utilities.lib import mesh_construction
+    from yt.utilities.lib.embree_mesh import mesh_construction
 # Catch ValueError in case size of objects in Cython change
 except (ImportError, ValueError):
     mesh_construction = NotAModule("pyembree")
@@ -52,14 +54,16 @@ def invalidate_volume(f):
     def wrapper(*args, **kwargs):
         ret = f(*args, **kwargs)
         obj = args[0]
-        if isinstance(obj._transfer_function, ProjectionTransferFunction):
-            obj.sampler_type = 'projection'
+        if isinstance(obj.transfer_function, ProjectionTransferFunction):
+            obj.sampler_type = "projection"
             obj._log_field = False
             obj._use_ghost_zones = False
         del obj.volume
         obj._volume_valid = False
         return ret
+
     return wrapper
+
 
 def validate_volume(f):
     @wraps(f)
@@ -70,11 +74,13 @@ def validate_volume(f):
         if obj.weight_field is not None:
             fields.append(obj.weight_field)
             log_fields.append(obj.log_field)
-        if obj._volume_valid is False:
-            obj.volume.set_fields(fields, log_fields,
-                                  no_ghost=(not obj.use_ghost_zones))
+        if not obj._volume_valid:
+            obj.volume.set_fields(
+                fields, log_fields, no_ghost=(not obj.use_ghost_zones)
+            )
         obj._volume_valid = True
         return f(*args, **kwargs)
+
     return wrapper
 
 
@@ -86,14 +92,18 @@ class RenderSource(ParallelAnalysisInterface):
 
     """
 
+    volume_method = None
+
     def __init__(self):
-        super(RenderSource, self).__init__()
+        super().__init__()
         self.opaque = False
         self.zbuffer = None
 
+    @abc.abstractmethod
     def render(self, camera, zbuffer=None):
         pass
 
+    @abc.abstractmethod
     def _validate(self):
         pass
 
@@ -104,15 +114,28 @@ class OpaqueSource(RenderSource):
     Will be inherited from for LineSources, BoxSources, etc.
 
     """
+
     def __init__(self):
-        super(OpaqueSource, self).__init__()
+        super().__init__()
         self.opaque = True
 
     def set_zbuffer(self, zbuffer):
         self.zbuffer = zbuffer
 
 
-class VolumeSource(RenderSource):
+def create_volume_source(data_source, field):
+    data_source = data_source_or_all(data_source)
+    ds = data_source.ds
+    index_class = ds.index.__class__
+    if issubclass(index_class, GridIndex):
+        return KDTreeVolumeSource(data_source, field)
+    elif issubclass(index_class, OctreeIndex):
+        return OctreeVolumeSource(data_source, field)
+    else:
+        raise NotImplementedError
+
+
+class VolumeSource(RenderSource, abc.ABC):
     """A class for rendering data from a volumetric data source
 
     Examples of such sources include a sphere, cylinder, or the
@@ -146,10 +169,11 @@ class VolumeSource(RenderSource):
     camera, and renders an image.
 
     >>> import yt
-    >>> from yt.visualization.volume_rendering.api import Scene, VolumeSource, Camera
+    >>> from yt.visualization.volume_rendering.api import\
+    ...     Scene, create_volume_source, Camera
     >>> ds = yt.load('IsolatedGalaxy/galaxy0030/galaxy0030')
     >>> sc = Scene()
-    >>> source = VolumeSource(ds.all_data(), 'density')
+    >>> source = create_volume_source(ds.all_data(), 'density')
     >>> sc.add_source(source)
     >>> sc.add_camera()
     >>> im = sc.render()
@@ -158,17 +182,18 @@ class VolumeSource(RenderSource):
 
     _image = None
     data_source = None
+    volume_method = None
 
     def __init__(self, data_source, field):
         r"""Initialize a new volumetric source for rendering."""
-        super(VolumeSource, self).__init__()
+        super().__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
         self.current_image = None
         self.check_nans = False
         self.num_threads = 0
         self.num_samples = 10
-        self.sampler_type = 'volume-render'
+        self.sampler_type = "volume-render"
 
         self._volume_valid = False
 
@@ -205,13 +230,19 @@ class VolumeSource(RenderSource):
     @transfer_function.setter
     def transfer_function(self, value):
         self.tfh.tf = None
-        valid_types = (TransferFunction, ColorTransferFunction,
-                       ProjectionTransferFunction, type(None))
+        valid_types = (
+            TransferFunction,
+            ColorTransferFunction,
+            ProjectionTransferFunction,
+            type(None),
+        )
         if not isinstance(value, valid_types):
-            raise RuntimeError("transfer_function not a valid type, "
-                               "received object of type %s" % type(value))
+            raise RuntimeError(
+                "transfer_function not a valid type, "
+                "received object of type %s" % type(value)
+            )
         if isinstance(value, ProjectionTransferFunction):
-            self.sampler_type = 'projection'
+            self.sampler_type = "projection"
             if self._volume is not None:
                 fields = [self.field]
                 if self.weight_field is not None:
@@ -226,21 +257,16 @@ class VolumeSource(RenderSource):
         This object does the heavy lifting to access data in an efficient manner
         using a KDTree
         """
-        if self._volume is None:
-            mylog.info("Creating volume")
-            volume = AMRKDTree(self.data_source.ds, data_source=self.data_source)
-            self._volume = volume
-
-        return self._volume
+        return self._get_volume()
 
     @volume.setter
     def volume(self, value):
-        assert(isinstance(value, AMRKDTree))
+        assert isinstance(value, AMRKDTree)
         del self._volume
         self._field = value.fields
         self._log_field = value.log_fields
         self._volume = value
-        self._volume_valid is True
+        assert self._volume_valid
 
     @volume.deleter
     def volume(self):
@@ -259,7 +285,8 @@ class VolumeSource(RenderSource):
         if len(field) > 1:
             raise RuntimeError(
                 "VolumeSource.field can only be a single field but received "
-                "multiple fields: %s") % field
+                "multiple fields: %s"
+            ) % field
         field = field[0]
         if self._field != field:
             log_field = self.data_source.ds.field_info[field].take_log
@@ -398,16 +425,162 @@ class VolumeSource(RenderSource):
         ray. Interpolation is always performed for volume renderings.
 
         """
-        if self.sampler_type == 'volume-render':
+        if self.sampler_type == "volume-render":
             sampler = new_volume_render_sampler(camera, self)
-        elif self.sampler_type == 'projection' and interpolated:
+        elif self.sampler_type == "projection" and interpolated:
             sampler = new_interpolated_projection_sampler(camera, self)
-        elif self.sampler_type == 'projection':
+        elif self.sampler_type == "projection":
             sampler = new_projection_sampler(camera, self)
         else:
-            NotImplementedError("%s not implemented yet" % self.sampler_type)
+            NotImplementedError(f"{self.sampler_type} not implemented yet")
         self.sampler = sampler
-        assert(self.sampler is not None)
+        assert self.sampler is not None
+
+    @abc.abstractmethod
+    def _get_volume(self):
+        """The abstract volume associated with this VolumeSource
+
+        This object does the heavy lifting to access data in an efficient manner
+        using a KDTree
+        """
+        pass
+
+    @abc.abstractmethod
+    @validate_volume
+    def render(self, camera, zbuffer=None):
+        """Renders an image using the provided camera
+
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+            A volume rendering camera. Can be any type of camera.
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance  # noqa: E501
+            A zbuffer array. This is used for opaque sources to determine the
+            z position of the source relative to other sources. Only useful if
+            you are manually calling render on multiple sources. Scene.render
+            uses this internally.
+
+        Returns
+        -------
+        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        the rendered image.
+
+        """
+        pass
+
+    def finalize_image(self, camera, image):
+        """Parallel reduce the image.
+
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+            The camera used to produce the volume rendering image.
+        image: :class:`yt.data_objects.image_array.ImageArray` instance
+            A reference to an image to fill
+        """
+        image.shape = camera.resolution[0], camera.resolution[1], 4
+        # If the call is from VR, the image is rotated by 180 to get correct
+        # up direction
+        if not self.transfer_function.grey_opacity:
+            image[:, :, 3] = 1
+        return image
+
+    def __repr__(self):
+        disp = f"<Volume Source>:{str(self.data_source)} "
+        disp += f"transfer_function:{str(self._transfer_function)}"
+        return disp
+
+
+class KDTreeVolumeSource(VolumeSource):
+    volume_method = "KDTree"
+
+    def _get_volume(self):
+        """The abstract volume associated with this VolumeSource
+
+        This object does the heavy lifting to access data in an efficient manner
+        using a KDTree
+        """
+
+        if self._volume is None:
+            mylog.info("Creating volume")
+            volume = AMRKDTree(self.data_source.ds, data_source=self.data_source)
+            self._volume = volume
+
+        return self._volume
+
+    @validate_volume
+    def render(self, camera, zbuffer=None):
+        """Renders an image using the provided camera
+
+        Parameters
+        ----------
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
+            A volume rendering camera. Can be any type of camera.
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
+            A zbuffer array. This is used for opaque sources to determine the
+            z position of the source relative to other sources. Only useful if
+            you are manually calling render on multiple sources. Scene.render
+            uses this internally.
+
+        Returns
+        -------
+        A :class:`yt.data_objects.image_array.ImageArray` containing
+        the rendered image.
+
+        """
+        self.zbuffer = zbuffer
+        self.set_sampler(camera)
+        assert self.sampler is not None
+
+        mylog.debug("Casting rays")
+        total_cells = 0
+        if self.check_nans:
+            for brick in self.volume.bricks:
+                for data in brick.my_data:
+                    if np.any(np.isnan(data)):
+                        raise RuntimeError
+
+        for brick in self.volume.traverse(camera.lens.viewpoint):
+            mylog.debug("Using sampler %s", self.sampler)
+            self.sampler(brick, num_threads=self.num_threads)
+            total_cells += np.prod(brick.my_data[0].shape)
+        mylog.debug("Done casting rays")
+        self.current_image = self.finalize_image(camera, self.sampler.aimage)
+
+        if zbuffer is None:
+            self.zbuffer = ZBuffer(
+                self.current_image, np.full(self.current_image.shape[:2], np.inf)
+            )
+
+        return self.current_image
+
+    def finalize_image(self, camera, image):
+        if self._volume is not None:
+            image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
+
+        return super().finalize_image(camera, image)
+
+
+class OctreeVolumeSource(VolumeSource):
+    volume_method = "Octree"
+
+    def __init__(self, *args, **kwa):
+        super().__init__(*args, **kwa)
+        self.set_use_ghost_zones(True)
+
+    def _get_volume(self):
+        """The abstract volume associated with this VolumeSource
+
+        This object does the heavy lifting to access data in an efficient manner
+        using an octree.
+        """
+
+        if self._volume is None:
+            mylog.info("Creating volume")
+            volume = OctreeRayTracing(self.data_source)
+            self._volume = volume
+
+        return self._volume
 
     @validate_volume
     def render(self, camera, zbuffer=None):
@@ -417,7 +590,7 @@ class VolumeSource(RenderSource):
         ----------
         camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance  # noqa: E501
             A zbuffer array. This is used for opaque sources to determine the
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
@@ -431,54 +604,38 @@ class VolumeSource(RenderSource):
         """
         self.zbuffer = zbuffer
         self.set_sampler(camera)
-        assert (self.sampler is not None)
+        if self.sampler is None:
+            raise RuntimeError(
+                "No sampler set. This is likely a bug as it should never happen."
+            )
+
+        data = self.data_source
+
+        dx = data["dx"].to("unitary").value[:, None]
+        xyz = np.stack([data[_].to("unitary").value for _ in "x y z".split()], axis=-1)
+        LE = xyz - dx / 2
+        RE = xyz + dx / 2
+
+        mylog.debug("Gathering data")
+        dt = np.stack(list(self.volume.data) + [*LE.T, *RE.T], axis=-1).reshape(
+            1, len(dx), 14, 1
+        )
+        mask = np.full(dt.shape[1:], 1, dtype=np.uint8)
+        dims = np.array([1, 1, 1], dtype=int)
+        pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims, n_fields=1)
 
         mylog.debug("Casting rays")
-        total_cells = 0
-        if self.check_nans:
-            for brick in self.volume.bricks:
-                for data in brick.my_data:
-                    if np.any(np.isnan(data)):
-                        raise RuntimeError
-
-        for brick in self.volume.traverse(camera.lens.viewpoint):
-            mylog.debug("Using sampler %s" % self.sampler)
-            self.sampler(brick, num_threads=self.num_threads)
-            total_cells += np.prod(brick.my_data[0].shape)
+        self.sampler(pg, oct=self.volume.octree)
         mylog.debug("Done casting rays")
-        self.current_image = self.finalize_image(
-            camera, self.sampler.aimage)
+
+        self.current_image = self.finalize_image(camera, self.sampler.aimage)
 
         if zbuffer is None:
             self.zbuffer = ZBuffer(
-                self.current_image,
-                np.full(self.current_image.shape[:2], np.inf))
+                self.current_image, np.full(self.current_image.shape[:2], np.inf)
+            )
 
         return self.current_image
-
-    def finalize_image(self, camera, image):
-        """Parallel reduce the image.
-
-        Parameters
-        ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
-            The camera used to produce the volume rendering image.
-        image: :class:`yt.data_objects.image_array.ImageArray` instance
-            A reference to an image to fill
-        """
-        if self._volume is not None:
-            image = self.volume.reduce_tree_images(image, camera.lens.viewpoint)
-        image.shape = camera.resolution[0], camera.resolution[1], 4
-        # If the call is from VR, the image is rotated by 180 to get correct
-        # up direction
-        if self.transfer_function.grey_opacity is False:
-            image[:, :, 3] = 1
-        return image
-
-    def __repr__(self):
-        disp = "<Volume Source>:%s " % str(self.data_source)
-        disp += "transfer_function:%s" % str(self._transfer_function)
-        return disp
 
 
 class MeshSource(OpaqueSource):
@@ -509,7 +666,7 @@ class MeshSource(OpaqueSource):
 
     def __init__(self, data_source, field):
         r"""Initialize a new unstructured mesh source for rendering."""
-        super(MeshSource, self).__init__()
+        super().__init__()
         self.data_source = data_source_or_all(data_source)
         field = self.data_source._determine_fields(field)[0]
         self.field = field
@@ -527,27 +684,29 @@ class MeshSource(OpaqueSource):
         self._mesh_line_alpha = 1.0
 
         # Error checking
-        assert(self.field is not None)
-        assert(self.data_source is not None)
-        if self.field[0] == 'all':
-            raise NotImplementedError("Mesh unions are not implemented "
-                                       "for 3D rendering")
+        assert self.field is not None
+        assert self.data_source is not None
+        if self.field[0] == "all":
+            raise NotImplementedError(
+                "Mesh unions are not implemented " "for 3D rendering"
+            )
 
-        if self.engine == 'embree':
+        if self.engine == "embree":
             self.volume = mesh_traversal.YTEmbreeScene()
             self.build_volume_embree()
-        elif self.engine == 'yt':
+        elif self.engine == "yt":
             self.build_volume_bvh()
         else:
-            raise NotImplementedError("Invalid ray-tracing engine selected. "
-                                      "Choices are 'embree' and 'yt'.")
+            raise NotImplementedError(
+                "Invalid ray-tracing engine selected. " "Choices are 'embree' and 'yt'."
+            )
 
     def cmap():
-        '''
+        """
         This is the name of the colormap that will be used when rendering
         this MeshSource object. Should be a string, like 'arbre', or 'dusk'.
 
-        '''
+        """
 
         def fget(self):
             return self._cmap
@@ -556,17 +715,20 @@ class MeshSource(OpaqueSource):
             self._cmap = cmap_name
             if hasattr(self, "data"):
                 self.current_image = self.apply_colormap()
+
         return locals()
+
     cmap = property(**cmap())
 
     def color_bounds():
-        '''
+        """
         These are the bounds that will be used with the colormap to the display
         the rendered image. Should be a (vmin, vmax) tuple, like (0.0, 2.0). If
         None, the bounds will be automatically inferred from the max and min of
         the rendered data.
 
-        '''
+        """
+
         def fget(self):
             return self._color_bounds
 
@@ -574,7 +736,9 @@ class MeshSource(OpaqueSource):
             self._color_bounds = bounds
             if hasattr(self, "data"):
                 self.current_image = self.apply_colormap()
+
         return locals()
+
     color_bounds = property(**color_bounds())
 
     def _validate(self):
@@ -608,24 +772,21 @@ class MeshSource(OpaqueSource):
         # low-order geometry. Right now, high-order geometry is only
         # implemented for 20-point hexes.
         if indices.shape[1] == 20 or indices.shape[1] == 10:
-            self.mesh = mesh_construction.QuadraticElementMesh(self.volume,
-                                                               vertices,
-                                                               indices,
-                                                               field_data)
+            self.mesh = mesh_construction.QuadraticElementMesh(
+                self.volume, vertices, indices, field_data
+            )
         else:
             # if this is another type of higher-order element, we demote
             # to 1st order here, for now.
             if indices.shape[1] == 27:
                 # hexahedral
-                mylog.warning("27-node hexes not yet supported, " +
-                              "dropping to 1st order.")
+                mylog.warning("27-node hexes not yet supported, dropping to 1st order.")
                 field_data = field_data[:, 0:8]
                 indices = indices[:, 0:8]
 
-            self.mesh = mesh_construction.LinearElementMesh(self.volume,
-                                                            vertices,
-                                                            indices,
-                                                            field_data)
+            self.mesh = mesh_construction.LinearElementMesh(
+                self.volume, vertices, indices, field_data
+            )
 
     def build_volume_bvh(self):
         """
@@ -650,8 +811,7 @@ class MeshSource(OpaqueSource):
         # low-order geometry.
         if indices.shape[1] == 27:
             # hexahedral
-            mylog.warning("27-node hexes not yet supported, " +
-                          "dropping to 1st order.")
+            mylog.warning("27-node hexes not yet supported, dropping to 1st order.")
             field_data = field_data[:, 0:8]
             indices = indices[:, 0:8]
 
@@ -662,9 +822,9 @@ class MeshSource(OpaqueSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
             A zbuffer array. This is used for opaque sources to determine the
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
@@ -672,21 +832,20 @@ class MeshSource(OpaqueSource):
 
         Returns
         -------
-        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        A :class:`yt.data_objects.image_array.ImageArray` containing
         the rendered image.
 
         """
 
         shape = (camera.resolution[0], camera.resolution[1], 4)
         if zbuffer is None:
-            empty = np.empty(shape, dtype='float64')
-            z = np.empty(empty.shape[:2], dtype='float64')
+            empty = np.empty(shape, dtype="float64")
+            z = np.empty(empty.shape[:2], dtype="float64")
             empty[:] = 0.0
             z[:] = np.inf
             zbuffer = ZBuffer(empty, z)
         elif zbuffer.rgba.shape != shape:
-            zbuffer = ZBuffer(zbuffer.rgba.reshape(shape),
-                              zbuffer.z.reshape(shape[:2]))
+            zbuffer = ZBuffer(zbuffer.rgba.reshape(shape), zbuffer.z.reshape(shape[:2]))
         self.zbuffer = zbuffer
 
         self.sampler = new_mesh_sampler(camera, self, engine=self.engine)
@@ -698,18 +857,17 @@ class MeshSource(OpaqueSource):
         self.finalize_image(camera)
         self.current_image = self.apply_colormap()
 
-        zbuffer += ZBuffer(self.current_image.astype('float64'),
-                           self.sampler.azbuffer)
+        zbuffer += ZBuffer(self.current_image.astype("float64"), self.sampler.azbuffer)
         zbuffer.rgba = ImageArray(zbuffer.rgba)
         self.zbuffer = zbuffer
         self.current_image = self.zbuffer.rgba
 
         if self._annotate_mesh:
-            self.current_image = self.annotate_mesh_lines(self._mesh_line_color,
-                                                          self._mesh_line_alpha)
+            self.current_image = self.annotate_mesh_lines(
+                self._mesh_line_color, self._mesh_line_alpha
+            )
 
         return self.current_image
-
 
     def finalize_image(self, camera):
         sam = self.sampler
@@ -717,8 +875,7 @@ class MeshSource(OpaqueSource):
         # reshape data
         Nx = camera.resolution[0]
         Ny = camera.resolution[1]
-        self.data = sam.aimage[:,:,0].reshape(Nx, Ny)
-
+        self.data = sam.aimage[:, :, 0].reshape(Nx, Ny)
 
     def annotate_mesh_lines(self, color=None, alpha=1.0):
         r"""
@@ -754,7 +911,7 @@ class MeshSource(OpaqueSource):
         return self.current_image
 
     def apply_colormap(self):
-        '''
+        """
 
         Applies a colormap to the current image without re-rendering.
 
@@ -762,7 +919,7 @@ class MeshSource(OpaqueSource):
         ----------
         cmap_name : string, optional
             An acceptable colormap.  See either yt.visualization.color_maps or
-            http://www.scipy.org/Cookbook/Matplotlib/Show_colormaps .
+            https://scipy-cookbook.readthedocs.io/items/Matplotlib_Show_colormaps.html .
         color_bounds : tuple of floats, optional
             The min and max to scale between.  Outlying values will be clipped.
 
@@ -772,18 +929,21 @@ class MeshSource(OpaqueSource):
             the underlying data.
 
 
-        '''
+        """
 
-        image = apply_colormap(self.data,
-                               color_bounds=self._color_bounds,
-                               cmap_name=self._cmap)/255.
+        image = (
+            apply_colormap(
+                self.data, color_bounds=self._color_bounds, cmap_name=self._cmap
+            )
+            / 255.0
+        )
         alpha = image[:, :, 3]
         alpha[self.sampler.aimage_used == -1] = 0.0
         image[:, :, 3] = alpha
         return image
 
     def __repr__(self):
-        disp = "<Mesh Source>:%s " % str(self.data_source)
+        disp = f"<Mesh Source>:{str(self.data_source)} "
         return disp
 
 
@@ -833,23 +993,22 @@ class PointSource(OpaqueSource):
 
     """
 
-
     _image = None
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1, radii=None):
-        assert(positions.ndim == 2 and positions.shape[1] == 3)
+        assert positions.ndim == 2 and positions.shape[1] == 3
         if colors is not None:
-            assert(colors.ndim == 2 and colors.shape[1] == 4)
-            assert(colors.shape[0] == positions.shape[0])
-        if not iterable(radii):
-            if radii is not None:  #broadcast the value
-                radii = radii*np.ones(positions.shape[0], dtype='int64')
-            else: #default radii to 0 pixels (i.e. point is 1 pixel wide)
-                radii = np.zeros(positions.shape[0], dtype='int64')
+            assert colors.ndim == 2 and colors.shape[1] == 4
+            assert colors.shape[0] == positions.shape[0]
+        if not is_sequence(radii):
+            if radii is not None:  # broadcast the value
+                radii = radii * np.ones(positions.shape[0], dtype="int64")
+            else:  # default radii to 0 pixels (i.e. point is 1 pixel wide)
+                radii = np.zeros(positions.shape[0], dtype="int64")
         else:
-            assert(radii.ndim == 1)
-            assert(radii.shape[0] == positions.shape[0]) 
+            assert radii.ndim == 1
+            assert radii.shape[0] == positions.shape[0]
         self.positions = positions
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -863,9 +1022,9 @@ class PointSource(OpaqueSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
             A zbuffer array. This is used for opaque sources to determine the
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
@@ -873,14 +1032,14 @@ class PointSource(OpaqueSource):
 
         Returns
         -------
-        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        A :class:`yt.data_objects.image_array.ImageArray` containing
         the rendered image.
 
         """
         vertices = self.positions
         if zbuffer is None:
             empty = camera.lens.new_image(camera)
-            z = np.empty(empty.shape[:2], dtype='float64')
+            z = np.empty(empty.shape[:2], dtype="float64")
             empty[:] = 0.0
             z[:] = np.inf
             zbuffer = ZBuffer(empty, z)
@@ -891,7 +1050,7 @@ class PointSource(OpaqueSource):
         # DRAW SOME POINTS
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
-        
+
         zpoints(empty, z, px, py, dz, self.colors, self.radii, self.color_stride)
 
         self.zbuffer = zbuffer
@@ -961,18 +1120,18 @@ class LineSource(OpaqueSource):
     data_source = None
 
     def __init__(self, positions, colors=None, color_stride=1):
-        super(LineSource, self).__init__()
+        super().__init__()
 
-        assert(positions.ndim == 3)
-        assert(positions.shape[1] == 2)
-        assert(positions.shape[2] == 3)
+        assert positions.ndim == 3
+        assert positions.shape[1] == 2
+        assert positions.shape[2] == 3
         if colors is not None:
-            assert(colors.ndim == 2)
-            assert(colors.shape[1] == 4)
+            assert colors.ndim == 2
+            assert colors.shape[1] == 4
 
         # convert the positions to the shape expected by zlines, below
         N = positions.shape[0]
-        self.positions = positions.reshape((2*N, 3))
+        self.positions = positions.reshape((2 * N, 3))
 
         # If colors aren't individually set, make black with full opacity
         if colors is None:
@@ -985,24 +1144,23 @@ class LineSource(OpaqueSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
-            A zbuffer array. This is used for opaque sources to determine the
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
             uses this internally.
 
         Returns
         -------
-        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        A :class:`yt.data_objects.image_array.ImageArray` containing
         the rendered image.
 
         """
         vertices = self.positions
         if zbuffer is None:
             empty = camera.lens.new_image(camera)
-            z = np.empty(empty.shape[:2], dtype='float64')
+            z = np.empty(empty.shape[:2], dtype="float64")
             empty[:] = 0.0
             z[:] = np.inf
             zbuffer = ZBuffer(empty, z)
@@ -1014,19 +1172,34 @@ class LineSource(OpaqueSource):
         camera.lens.setup_box_properties(camera)
         px, py, dz = camera.lens.project_to_plane(camera, vertices)
 
-        px = px.astype('int64')
-        py = py.astype('int64')
+        px = px.astype("int64")
+        py = py.astype("int64")
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors.astype('float64'),
-                   self.color_stride)
+            zlines(
+                empty, z, px, py, dz, self.colors.astype("float64"), self.color_stride
+            )
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
-            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
-                   self.colors.astype('float64'), self.color_stride)
-            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
-                   self.colors.astype('float64'), self.color_stride)
+            zlines(
+                empty,
+                z,
+                px[0, :],
+                py[0, :],
+                dz[0, :],
+                self.colors.astype("float64"),
+                self.color_stride,
+            )
+            zlines(
+                empty,
+                z,
+                px[1, :],
+                py[1, :],
+                dz[1, :],
+                self.colors.astype("float64"),
+                self.color_stride,
+            )
 
         self.zbuffer = zbuffer
         return zbuffer
@@ -1071,10 +1244,11 @@ class BoxSource(LineSource):
     >>> im = sc.render()
 
     """
+
     def __init__(self, left_edge, right_edge, color=None):
 
-        assert(left_edge.shape == (3,))
-        assert(right_edge.shape == (3,))
+        assert left_edge.shape == (3,)
+        assert right_edge.shape == (3,)
 
         if color is None:
             color = np.array([1.0, 1.0, 1.0, 1.0])
@@ -1087,10 +1261,10 @@ class BoxSource(LineSource):
         order += [0, 4, 1, 5, 2, 6, 3, 7]
         vertices = np.empty([24, 3])
         for i in range(3):
-            vertices[:, i] = corners[order, i, ...].ravel(order='F')
+            vertices[:, i] = corners[order, i, ...].ravel(order="F")
         vertices = vertices.reshape((12, 2, 3))
 
-        super(BoxSource, self).__init__(vertices, color, color_stride=24)
+        super().__init__(vertices, color, color_stride=24)
 
 
 class GridSource(LineSource):
@@ -1149,22 +1323,26 @@ class GridSource(LineSource):
 
     """
 
-    def __init__(self, data_source, alpha=0.3, cmap=None,
-                 min_level=None, max_level=None):
+    def __init__(
+        self, data_source, alpha=0.3, cmap=None, min_level=None, max_level=None
+    ):
         self.data_source = data_source_or_all(data_source)
         corners = []
         levels = []
-        for block, mask in self.data_source.blocks:
-            block_corners = np.array([
-                [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
-                [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
-                [block.RightEdge[0], block.RightEdge[1], block.LeftEdge[2]],
-                [block.LeftEdge[0], block.RightEdge[1], block.LeftEdge[2]],
-                [block.LeftEdge[0], block.LeftEdge[1], block.RightEdge[2]],
-                [block.RightEdge[0], block.LeftEdge[1], block.RightEdge[2]],
-                [block.RightEdge[0], block.RightEdge[1], block.RightEdge[2]],
-                [block.LeftEdge[0], block.RightEdge[1], block.RightEdge[2]],
-            ], dtype='float64')
+        for block, _mask in self.data_source.blocks:
+            block_corners = np.array(
+                [
+                    [block.LeftEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                    [block.RightEdge[0], block.LeftEdge[1], block.LeftEdge[2]],
+                    [block.RightEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                    [block.LeftEdge[0], block.RightEdge[1], block.LeftEdge[2]],
+                    [block.LeftEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                    [block.RightEdge[0], block.LeftEdge[1], block.RightEdge[2]],
+                    [block.RightEdge[0], block.RightEdge[1], block.RightEdge[2]],
+                    [block.LeftEdge[0], block.RightEdge[1], block.RightEdge[2]],
+                ],
+                dtype="float64",
+            )
             corners.append(block_corners)
             levels.append(block.Level)
         corners = np.dstack(corners)
@@ -1181,22 +1359,26 @@ class GridSource(LineSource):
             levels = levels[subset]
             corners = corners[:, :, subset]
 
-        colors = apply_colormap(
-            levels*1.0,
-            color_bounds=[0, self.data_source.ds.index.max_level],
-            cmap_name=cmap)[0, :, :]/255.
+        colors = (
+            apply_colormap(
+                levels * 1.0,
+                color_bounds=[0, self.data_source.ds.index.max_level],
+                cmap_name=cmap,
+            )[0, :, :]
+            / 255.0
+        )
         colors[:, 3] = alpha
 
         order = [0, 1, 1, 2, 2, 3, 3, 0]
         order += [4, 5, 5, 6, 6, 7, 7, 4]
         order += [0, 4, 1, 5, 2, 6, 3, 7]
 
-        vertices = np.empty([corners.shape[2]*2*12, 3])
+        vertices = np.empty([corners.shape[2] * 2 * 12, 3])
         for i in range(3):
-            vertices[:, i] = corners[order, i, ...].ravel(order='F')
-        vertices = vertices.reshape((corners.shape[2]*12, 2, 3))
+            vertices[:, i] = corners[order, i, ...].ravel(order="F")
+        vertices = vertices.reshape((corners.shape[2] * 12, 2, 3))
 
-        super(GridSource, self).__init__(vertices, colors, color_stride=24)
+        super().__init__(vertices, colors, color_stride=24)
 
 
 class CoordinateVectorSource(OpaqueSource):
@@ -1208,9 +1390,9 @@ class CoordinateVectorSource(OpaqueSource):
     Parameters
     ----------
     colors: array-like of shape (3,4), optional
-        The RGBA values to use to draw the x, y, and z vectors. The default is 
+        The RGBA values to use to draw the x, y, and z vectors. The default is
         [[1, 0, 0, alpha], [0, 1, 0, alpha], [0, 0, 1, alpha]]  where ``alpha``
-        is set by the parameter below. If ``colors`` is set then ``alpha`` is 
+        is set by the parameter below. If ``colors`` is set then ``alpha`` is
         ignored.
     alpha : float, optional
         The opacity of the vectors.
@@ -1233,7 +1415,7 @@ class CoordinateVectorSource(OpaqueSource):
     """
 
     def __init__(self, colors=None, alpha=1.0):
-        super(CoordinateVectorSource, self).__init__()
+        super().__init__()
         # If colors aren't individually set, make black with full opacity
         if colors is None:
             colors = np.zeros((3, 4))
@@ -1248,9 +1430,9 @@ class CoordinateVectorSource(OpaqueSource):
 
         Parameters
         ----------
-        camera: :class:`yt.visualization.volume_rendering.camera.Camera` instance
+        camera: :class:`yt.visualization.volume_rendering.camera.Camera`
             A volume rendering camera. Can be any type of camera.
-        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer` instance
+        zbuffer: :class:`yt.visualization.volume_rendering.zbuffer_array.Zbuffer`
             A zbuffer array. This is used for opaque sources to determine the
             z position of the source relative to other sources. Only useful if
             you are manually calling render on multiple sources. Scene.render
@@ -1258,7 +1440,7 @@ class CoordinateVectorSource(OpaqueSource):
 
         Returns
         -------
-        A :class:`yt.data_objects.image_array.ImageArray` instance containing
+        A :class:`yt.data_objects.image_array.ImageArray` containing
         the rendered image.
 
         """
@@ -1270,7 +1452,7 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Create vectors in the x,y,z directions
         for i in range(3):
-            positions[2*i+1, i] += camera.width.in_units('code_length').d[i] / 16.0
+            positions[2 * i + 1, i] += camera.width.in_units("code_length").d[i] / 16.0
 
         # Project to the image plane
         px, py, dz = camera.lens.project_to_plane(camera, positions)
@@ -1291,24 +1473,24 @@ class CoordinateVectorSource(OpaqueSource):
             dz[:] = 0.0
         else:
             # For stereo-lens, two sets of pos for each eye are contained in px...pz
-            dpx = px[:,1::2] - px[:,::2]
-            dpy = py[:,1::2] - py[:,::2]
+            dpx = px[:, 1::2] - px[:, ::2]
+            dpy = py[:, 1::2] - py[:, ::2]
 
             lpx = camera.resolution[0] / 16
             lpy = camera.resolution[1] - camera.resolution[1] / 8  # Upside-downsies
 
             # Offset the pixels according to the projections above
-            px[:,::2] = lpx
-            px[:,1::2] = lpx + dpx
-            px[1,:] += camera.resolution[0] / 2
-            py[:,::2] = lpy
-            py[:,1::2] = lpy + dpy
-            dz[:,:] = 0.0
+            px[:, ::2] = lpx
+            px[:, 1::2] = lpx + dpx
+            px[1, :] += camera.resolution[0] / 2
+            py[:, ::2] = lpy
+            py[:, 1::2] = lpy + dpy
+            dz[:, :] = 0.0
 
         # Create a zbuffer if needed
         if zbuffer is None:
             empty = camera.lens.new_image(camera)
-            z = np.empty(empty.shape[:2], dtype='float64')
+            z = np.empty(empty.shape[:2], dtype="float64")
             empty[:] = 0.0
             z[:] = np.inf
             zbuffer = ZBuffer(empty, z)
@@ -1318,18 +1500,20 @@ class CoordinateVectorSource(OpaqueSource):
 
         # Draw the vectors
 
-        px = px.astype('int64')
-        py = py.astype('int64')
+        px = px.astype("int64")
+        py = py.astype("int64")
 
         if len(px.shape) == 1:
-            zlines(empty, z, px, py, dz, self.colors.astype('float64'))
+            zlines(empty, z, px, py, dz, self.colors.astype("float64"))
         else:
             # For stereo-lens, two sets of pos for each eye are contained
             # in px...pz
-            zlines(empty, z, px[0, :], py[0, :], dz[0, :],
-                   self.colors.astype('float64'))
-            zlines(empty, z, px[1, :], py[1, :], dz[1, :],
-                   self.colors.astype('float64'))
+            zlines(
+                empty, z, px[0, :], py[0, :], dz[0, :], self.colors.astype("float64")
+            )
+            zlines(
+                empty, z, px[1, :], py[1, :], dz[1, :], self.colors.astype("float64")
+            )
 
         # Set the new zbuffer
         self.zbuffer = zbuffer

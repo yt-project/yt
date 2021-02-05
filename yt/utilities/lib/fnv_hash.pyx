@@ -1,21 +1,17 @@
+# distutils: libraries = STD_LIBS
+# distutils: include_dirs = LIB_DIR
 """
 Fast hashing routines
 
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2017, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
 
 cimport cython
+cimport numpy as np
+
 
 @cython.wraparound(False)
 @cython.boundscheck(False)
@@ -32,13 +28,13 @@ cdef np.int64_t c_fnv_hash(unsigned char[:] octets) nogil:
 
 def fnv_hash(octets):
     """
-    
+
     Create a FNV hash from a bytestring.
     Info: http://www.isthe.com/chongo/tech/comp/fnv/index.html
-    
+
     Parameters
     ----------
     octets : bytestring
-        The string of bytes to generate a hash from. 
+        The string of bytes to generate a hash from.
     """
     return c_fnv_hash(octets)

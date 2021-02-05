@@ -1,0 +1,63 @@
+[build-system]
+# See https://github.com/scipy/scipy/pull/10431 for the AIX issue.
+requires = [
+  "setuptools>=19.6",
+  "wheel",
+
+  # keep in sync with travis.yml "minimal" specs (Cython and numpy for py36)
+
+  # cython version is imposed by that of numpy, see release notes
+  # https://github.com/numpy/numpy/releases/tag/v1.19.2
+  "Cython>=0.26.1; python_version=='3.6'",
+  "Cython>=0.29.21; python_version>='3.7'",
+  "numpy==1.13.3; python_version=='3.6' and platform_system!='AIX'",
+  "numpy>=1.19.2; python_version>='3.7' and platform_system!='AIX'",
+]
+
+# To be kept consistent with "Code Style" section in CONTRIBUTING.rst
+[tool.black]
+line-length = 88
+# note : 'py39' is not an available option as of black 19.10b0
+target-version = ['py36', 'py37', 'py38']
+include = '\.pyi?$'
+exclude = '''
+/(
+    \.eggs
+  | \.git
+  | \.hg
+  | \.mypy_cache
+  | \.tox
+  | \.venv
+  | _build
+  | buck-out
+  | build
+  | dist
+  | yt/frontends/stream/sample_data
+)/
+| yt/visualization/_colormap_data.py
+'''
+
+
+# To be kept consistent with "Import Formatting" section in CONTRIBUTING.rst
+[tool.isort]
+profile = "black"
+combine_as_imports = true
+skip =  ["venv", "benchmarks"]
+known_third_party = [
+  "IPython",
+  "nose",
+  "numpy",
+  "sympy",
+  "matplotlib",
+  "unyt",
+  "git",
+  "yaml",
+  "dateutil",
+  "requests",
+  "coverage",
+  "pytest",
+  "pyx",
+  "glue",
+]
+known_first_party = ["yt"]
+sections = ["FUTURE", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]

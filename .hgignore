@@ -37,6 +37,7 @@ yt/utilities/lib/contour_finding.c
 yt/utilities/lib/depth_first_octree.c
 yt/utilities/lib/distance_queue.c
 yt/utilities/lib/element_mappings.c
+yt/utilities/lib/ewah_bool_wrap.cpp
 yt/utilities/lib/fnv_hash.c
 yt/utilities/lib/fortran_reader.c
 yt/utilities/lib/freetype_writer.c
@@ -54,6 +55,7 @@ yt/utilities/lib/mesh_traversal.cpp
 yt/utilities/lib/mesh_triangulation.c
 yt/utilities/lib/mesh_utilities.c
 yt/utilities/lib/misc_utilities.c
+yt/utilities/lib/particle_kdtree_tools.cpp
 yt/utilities/lib/particle_mesh_operations.c
 yt/utilities/lib/partitioned_grid.c
 yt/utilities/lib/primitives.c

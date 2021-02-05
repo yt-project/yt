@@ -1,7 +1,6 @@
-# -*- coding: utf-8 -*-
 import inspect
 from collections import Counter
-from yt.extern.six.moves import reduce
+from functools import reduce
 
 
 def find_lowest_subclasses(candidates):

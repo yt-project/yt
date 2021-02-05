@@ -1,3 +1,5 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Make a fake octree, deposit particle at every leaf
 
@@ -6,25 +8,20 @@ Make a fake octree, deposit particle at every leaf
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
-from libc.stdlib cimport malloc, free, rand, RAND_MAX
 cimport numpy as np
+from libc.stdlib cimport RAND_MAX, free, malloc, rand
 from oct_visitors cimport cind
-import numpy as np
-cimport cython
 
-from oct_container cimport Oct, RAMSESOctreeContainer
+import numpy as np
+
+cimport cython
+from oct_container cimport Oct, SparseOctreeContainer
+
 
 # Create a balanced octree by a random walk that recursively
 # subdivides
-def create_fake_octree(RAMSESOctreeContainer oct_handler,
+def create_fake_octree(SparseOctreeContainer oct_handler,
                        long max_noct,
                        long max_level,
                        np.ndarray[np.int32_t, ndim=1] ndd,
@@ -45,19 +42,19 @@ def create_fake_octree(RAMSESOctreeContainer oct_handler,
     cur_leaf = 8 #we've added one parent...
     mask = np.ones((max_noct,8),dtype='uint8')
     while oct_handler.domains[0].n_assigned < max_noct:
-        print "root: nocts ", oct_handler.domains[0].n_assigned
+        print("root: nocts ", oct_handler.domains[0].n_assigned)
         cur_leaf = subdivide(oct_handler, parent, ind, dd, cur_leaf, 0,
                              max_noct, max_level, fsubdivide, mask)
     return cur_leaf
 
 
-cdef long subdivide(RAMSESOctreeContainer oct_handler,
+cdef long subdivide(SparseOctreeContainer oct_handler,
                     Oct *parent,
                     int ind[3], int dd[3],
                     long cur_leaf, long cur_level,
                     long max_noct, long max_level, float fsubdivide,
                     np.ndarray[np.uint8_t, ndim=2] mask):
-    print "child", parent.file_ind, ind[0], ind[1], ind[2], cur_leaf, cur_level
+    print("child", parent.file_ind, ind[0], ind[1], ind[2], cur_leaf, cur_level)
     cdef int ddr[3]
     cdef int ii
     cdef long i

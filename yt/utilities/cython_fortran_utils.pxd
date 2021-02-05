@@ -1,5 +1,5 @@
-from libc.stdio cimport FILE
 cimport numpy as np
+from libc.stdio cimport FILE
 
 ctypedef np.int32_t INT32_t
 ctypedef np.int64_t INT64_t

@@ -65,7 +65,7 @@ typedef __int32 int32_t;
 
 #define ARTIO_ERR_PARAM_NOT_FOUND           1
 #define ARTIO_PARAMETER_EXHAUSTED			2
-#define ARTIO_ERR_PARAM_INVALID_LENGTH      3 
+#define ARTIO_ERR_PARAM_INVALID_LENGTH      3
 #define ARTIO_ERR_PARAM_TYPE_MISMATCH       4
 #define ARTIO_ERR_PARAM_LENGTH_MISMATCH     5
 #define ARTIO_ERR_PARAM_LENGTH_INVALID      6
@@ -147,7 +147,7 @@ artio_fileset *artio_fileset_open( char * file_name, int type, const artio_conte
  *  handle			the artio file handle
  *
  */
-artio_fileset *artio_fileset_create(char * file_prefix, 
+artio_fileset *artio_fileset_create(char * file_prefix,
         int64_t root_cells, int64_t proc_sfc_begin, int64_t proc_sfc_end, const artio_context *context);
 
 /*
@@ -169,7 +169,7 @@ int artio_parameter_set_int_array(artio_fileset *handle, const char * key, int l
 		int32_t *values);
 int artio_parameter_get_int_array(artio_fileset *handle, const char * key, int length,
 		int32_t *values);
-int artio_parameter_get_int_array_index(artio_fileset *handle, const char * key, 
+int artio_parameter_get_int_array_index(artio_fileset *handle, const char * key,
 		int index, int32_t *values);
 
 int artio_parameter_set_string(artio_fileset *handle, const char * key, char * value);
@@ -246,7 +246,7 @@ int artio_fileset_close_grid(artio_fileset *handle);
  *  level			The depth of the Oct tree correlated to the root level cell
  *  num_level_octs		The array store the number of Oct nodes each level
  */
-int artio_grid_write_root_cell_begin(artio_fileset *handle, int64_t sfc, 
+int artio_grid_write_root_cell_begin(artio_fileset *handle, int64_t sfc,
 		float * variables, int level, int * num_octs_per_level);
 
 /*
@@ -282,7 +282,7 @@ int artio_grid_write_oct(artio_fileset *handle, float *variables, int *refined);
  *  num_octs_per_level		The number of node of each oct level
  *
  */
-int artio_grid_read_root_cell_begin(artio_fileset *handle, int64_t sfc, 
+int artio_grid_read_root_cell_begin(artio_fileset *handle, int64_t sfc,
 		double *pos, float *variables,
 		int *num_tree_levels, int *num_octs_per_level);
 
@@ -304,7 +304,7 @@ int artio_grid_read_level_end(artio_fileset *handle);
 /*
  * Description:	Read the data of a special oct tree node from the file
  */
-int artio_grid_read_oct(artio_fileset *handle, double *pos, 
+int artio_grid_read_oct(artio_fileset *handle, double *pos,
 		float *variables, int *refined);
 
 int artio_grid_cache_sfc_range(artio_fileset *handle, int64_t sfc_start, int64_t sfc_end);
@@ -324,9 +324,9 @@ int artio_grid_count_octs_in_sfc_range(artio_fileset *handle,
  *  callback        callback function
  *  params          a pointer to user-defined data passed to the callback
  */
-int artio_grid_read_sfc_range_levels(artio_fileset *handle, 
-		int64_t sfc1, int64_t sfc2, 
-		int min_level_to_read, int max_level_to_read, 
+int artio_grid_read_sfc_range_levels(artio_fileset *handle,
+		int64_t sfc1, int64_t sfc2,
+		int min_level_to_read, int max_level_to_read,
 		int options, artio_grid_callback callback,
 		void *params );
 
@@ -341,7 +341,7 @@ int artio_grid_read_selection(artio_fileset *handle,
 		void *params );
 
 int artio_grid_read_selection_levels( artio_fileset *handle,
-		artio_selection *selection, 
+		artio_selection *selection,
 		int min_level_to_read, int max_level_to_read,
 		int options,
 		artio_grid_callback callback,
@@ -356,7 +356,7 @@ int artio_grid_read_selection_levels( artio_fileset *handle,
  *  handle			the artio file handle
  *
  */
-int artio_fileset_add_particles(artio_fileset *handle, 
+int artio_fileset_add_particles(artio_fileset *handle,
         int num_particle_files, int allocation_strategy,
         int num_species, char **species_labels,
         int *num_primary_variables,
@@ -369,7 +369,7 @@ int artio_fileset_open_particles(artio_fileset *handle);
 int artio_fileset_close_particles(artio_fileset *handle);
 
 /*
- * Description:	Output the variables of the root level cell and the index of 
+ * Description:	Output the variables of the root level cell and the index of
  *                  the oct-tree correlated with this root level cell
  *
  *  handle			The File handle
@@ -402,7 +402,7 @@ int artio_particle_write_species_end(artio_fileset *handle);
  *  handle			The handle of the file
  *  variables 			The array recording the variables of the eight cells belonging to this Octree node.
  */
-int artio_particle_write_particle(artio_fileset *handle, int64_t pid, int subspecies, 
+int artio_particle_write_particle(artio_fileset *handle, int64_t pid, int subspecies,
 			double* primary_variables, float *secondary_variables);
 
 /*
@@ -415,7 +415,7 @@ int artio_particle_write_particle(artio_fileset *handle, int64_t pid, int subspe
  *  num_octs_per_level		The number of node of each oct level
  *
  */
-int artio_particle_read_root_cell_begin(artio_fileset *handle, int64_t sfc, 
+int artio_particle_read_root_cell_begin(artio_fileset *handle, int64_t sfc,
 			int * num_particle_per_species);
 
 /*
@@ -440,10 +440,10 @@ int artio_particle_read_particle(artio_fileset *handle, int64_t *pid, int *subsp
 			double *primary_variables, float *secondary_variables);
 
 int artio_particle_cache_sfc_range(artio_fileset *handle, int64_t sfc_start, int64_t sfc_end);
-int artio_particle_clear_sfc_cache(artio_fileset *handle );                                                          
+int artio_particle_clear_sfc_cache(artio_fileset *handle );
 
 typedef void (* artio_particle_callback)(int64_t sfc_index,
-		int species, int subspecies, int64_t pid, 
+		int species, int subspecies, int64_t pid,
 		double *primary_variables, float *secondary_variables, void *params );
 
 /*
@@ -457,13 +457,13 @@ typedef void (* artio_particle_callback)(int64_t sfc_index,
  *  callback        callback function
  *  params          user defined data passed to the callback function
  */
-int artio_particle_read_sfc_range(artio_fileset *handle, 
-		int64_t sfc1, int64_t sfc2, 
+int artio_particle_read_sfc_range(artio_fileset *handle,
+		int64_t sfc1, int64_t sfc2,
 		artio_particle_callback callback,
 		void *params);
 
-int artio_particle_read_sfc_range_species( artio_fileset *handle, 
-        int64_t sfc1, int64_t sfc2, 
+int artio_particle_read_sfc_range_species( artio_fileset *handle,
+        int64_t sfc1, int64_t sfc2,
         int start_species, int end_species,
         artio_particle_callback callback,
 		void *params);
@@ -481,7 +481,7 @@ artio_selection *artio_selection_allocate( artio_fileset *handle );
 artio_selection *artio_select_all( artio_fileset *handle );
 artio_selection *artio_select_volume( artio_fileset *handle, double lpos[3], double rpos[3] );
 artio_selection *artio_select_cube( artio_fileset *handle, double center[3], double size );
-int artio_selection_add_root_cell( artio_selection *selection, int coords[3] );                   
+int artio_selection_add_root_cell( artio_selection *selection, int coords[3] );
 int artio_selection_destroy( artio_selection *selection );
 void artio_selection_print( artio_selection *selection );
 int artio_selection_iterator( artio_selection *selection,

@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Simple integrators for the radiative transfer equation
 
@@ -5,18 +7,14 @@ Simple integrators for the radiative transfer equation
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
-cimport numpy as np
 cimport cython
+cimport numpy as np
+
 import numpy as np
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
@@ -375,8 +373,3 @@ def recursive_particle_assignment(grids, grid,
             recursive_particle_assignment(grids,grid,left_edges,right_edges,
                                            pos_x[assigned],pos_y[assigned],pos_z[assigned])
     #now we have assigned particles to other subgrids, we are left with particles on our grid
-
-
-
-
-

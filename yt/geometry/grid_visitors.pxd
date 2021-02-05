@@ -6,15 +6,9 @@ Grid visitor definitions file
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport numpy as np
+
 
 cdef struct GridTreeNode:
     np.int32_t num_children
@@ -59,7 +53,7 @@ cdef struct GridVisitorData:
     int ref_factor # This may change on a grid-by-grid basis
                    # It is the number of cells a child grid has per dimension
                    # in a cell of this grid.
-                            
+
 cdef void free_tuples(GridVisitorData *data) nogil
 cdef void setup_tuples(GridVisitorData *data) nogil
 cdef np.uint8_t check_child_masked(GridVisitorData *data) nogil

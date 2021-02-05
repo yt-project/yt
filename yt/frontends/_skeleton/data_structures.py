@@ -1,28 +1,13 @@
-"""
-Skeleton data structures
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import os
-import numpy as np
 import weakref
 
-from yt.data_objects.grid_patch import \
-    AMRGridPatch
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
+import numpy as np
+
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
+from yt.funcs import setdefaultattr
+from yt.geometry.grid_geometry_handler import GridIndex
+
 from .fields import SkeletonFieldInfo
 
 
@@ -30,8 +15,7 @@ class SkeletonGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level):
-        super(SkeletonGrid, self).__init__(
-            id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -43,7 +27,7 @@ class SkeletonGrid(AMRGridPatch):
 class SkeletonHierarchy(GridIndex):
     grid = SkeletonGrid
 
-    def __init__(self, ds, dataset_type='skeleton'):
+    def __init__(self, ds, dataset_type="skeleton"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
@@ -51,7 +35,7 @@ class SkeletonHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        super(SkeletonHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _detect_output_fields(self):
         # This needs to set a self.field_list that contains all the available,
@@ -63,7 +47,7 @@ class SkeletonHierarchy(GridIndex):
         pass
 
     def _count_grids(self):
-        # This needs to set self.num_grids
+        # This needs to set self.num_grids (int)
         pass
 
     def _parse_index(self):
@@ -78,14 +62,16 @@ class SkeletonHierarchy(GridIndex):
         pass
 
     def _populate_grid_objects(self):
-        # For each grid g, this must call:
-        #   g._prepare_grid()
-        #   g._setup_dx()
+        # the minimal form of this method is
+        #
+        # for g in self.grids:
+        #     g._prepare_grid()
+        #     g._setup_dx()
+        #
         # This must also set:
         #   g.Children <= list of child grids
         #   g.Parent   <= parent grid
-        # This is handled by the frontend because often the children must be
-        # identified.
+        # This is handled by the frontend because often the children must be identified.
         pass
 
 
@@ -93,12 +79,15 @@ class SkeletonDataset(Dataset):
     _index_class = SkeletonHierarchy
     _field_info_class = SkeletonFieldInfo
 
-    def __init__(self, filename, dataset_type='skeleton',
-                 storage_filename=None,
-                 units_override=None):
-        self.fluid_types += ('skeleton',)
-        super(SkeletonDataset, self).__init__(filename, dataset_type,
-                         units_override=units_override)
+    def __init__(
+        self,
+        filename,
+        dataset_type="skeleton",
+        storage_filename=None,
+        units_override=None,
+    ):
+        self.fluid_types += ("skeleton",)
+        super().__init__(filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
         # self.refine_by = 2
@@ -117,7 +106,11 @@ class SkeletonDataset(Dataset):
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
-        pass
+
+        # this minimalistic implementation fills the requirements for
+        # this frontend to run, change it to make it run _correctly_ !
+        for key, unit in self.__class__.default_units.items():
+            setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
         # This needs to set up the following items.  Note that these are all
@@ -127,13 +120,13 @@ class SkeletonDataset(Dataset):
         #
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME)
-        #   self.parameters             <= full of code-specific items of use
-        #   self.domain_left_edge       <= array of float64
-        #   self.domain_right_edge      <= array of float64
+        #   self.parameters             <= dict full of code-specific items of use
+        #   self.domain_left_edge       <= three-element array of float64
+        #   self.domain_right_edge      <= three-element array of float64
         #   self.dimensionality         <= int
-        #   self.domain_dimensions      <= array of int64
+        #   self.domain_dimensions      <= three-element array of int64
         #   self.periodicity            <= three-element tuple of booleans
-        #   self.current_time           <= simulation time in code units
+        #   self.current_time           <= simulation time in code units (float)
         #
         # We also set up cosmological information.  Set these to zero if
         # non-cosmological.
@@ -143,10 +136,30 @@ class SkeletonDataset(Dataset):
         #   self.omega_lambda               <= float
         #   self.omega_matter               <= float
         #   self.hubble_constant            <= float
-        pass
+
+        # optional (the followin have default implementations)
+        #   self.unique_identifier      <= unique identifier for the dataset
+        #                                  being read (e.g., UUID or ST_CTIME) (int)
+        #
+        #   self.geometry  <= a lower case string
+        #                     ("cartesian", "polar", "cylindrical"...)
+        #                     (defaults to 'cartesian')
+
+        # this attribute is required.
+        # Change this value to a constant 0 if time is not relevant to your dataset.
+        # Otherwise, parse its value in any appropriate fashion.
+        self.current_time = -1
+
+        # required. Change this if need be.
+        self.cosmological_simulation = 0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
+        #
+        # The functionality in this method should be unique enough that it can
+        # differentiate the frontend from others. Sometimes this means looking
+        # for specific fields or attributes in the dataset in addition to
+        # looking at the file name or extension.
         return False

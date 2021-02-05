@@ -11,16 +11,6 @@ yt supports :ref:`many different code formats <code-support>`, and we provide
 :ref:`sample data for each format <getting-sample-data>` with
 :ref:`instructions on how to load and examine each data type <examining-data>`.
 
-.. raw:: html
-
-   <form action="search.html" method="get" _lpchecked="1">
-     <div class="form-group">
-       <input type="text" name="q" class="form-control" placeholder="Search" style="width: 70%">
-     </div>
-     <input type="hidden" name="check_keywords" value="yes">
-     <input type="hidden" name="area" value="default">
-   </form>
-
 
 
 Table of Contents
@@ -113,11 +103,11 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="analyzing/analysis_modules/index.html">Topic-Specific Analysis Modules</a>
+           <a href="analyzing/domain_analysis/index.html">Domain-Specific Analysis</a>
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Track halos, make synthetic observations, find clumps, and more</p>
+         <p class="linkdescr">Astrophysical analysis, clump finding, cosmology calculations, and more</p>
        </td>
      </tr>
       <tr valign="top">
