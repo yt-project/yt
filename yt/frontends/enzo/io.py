@@ -38,9 +38,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 if grid.ds.dimensionality == 1:
                     fields.append(("enzo", str(name)))
                 elif add_io:
-                    fields.append( ("io", str(name)) )
+                    fields.append(("io", str(name)))
                 elif add_dm:
-                    fields.append( ("DarkMatter", str(name)) )
+                    fields.append(("DarkMatter", str(name)))
             else:
                 fields.append(("enzo", str(name)))
                 dtypes.add(v.dtype)
@@ -79,18 +79,21 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype == "io":
-                        if g.NumberOfParticles == 0: continue
+                        if g.NumberOfParticles == 0:
+                            continue
                         pds = ds
                     elif ptype == "DarkMatter":
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        if g.NumberOfActiveParticles[ptype] == 0:
+                            continue
                         pds = ds
                     else:
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        if g.NumberOfActiveParticles[ptype] == 0:
+                            continue
                         pds = ds.get("Active Particles/%s" % ptype)
-                    pn = _particle_position_names.get(ptype,
-                            r"particle_position_%s")
-                    x, y, z = (np.asarray(pds.get(pn % ax).value, dtype="=f8")
-                               for ax in 'xyz')
+                    pn = _particle_position_names.get(ptype, r"particle_position_%s")
+                    x, y, z = (
+                        np.asarray(pds.get(pn % ax).value, dtype="=f8") for ax in "xyz"
+                    )
                     if selector is None:
                         # This only ever happens if the call is made from
                         # _read_particle_coords.
