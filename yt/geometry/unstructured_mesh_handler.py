@@ -29,13 +29,12 @@ class UnstructuredIndex(Index):
         """
         Returns (in code units) the smallest cell size in the simulation.
         """
-        dx = min(
+        return min(
             smallest_fwidth(
                 mesh.connectivity_coords, mesh.connectivity_indices, mesh._index_offset
             )
             for mesh in self.meshes
         )
-        return dx
 
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
@@ -53,8 +52,7 @@ class UnstructuredIndex(Index):
     def _count_selection(self, dobj, meshes=None):
         if meshes is None:
             meshes = dobj._chunk_info
-        count = sum(m.count(dobj.selector) for m in meshes)
-        return count
+        return sum(m.count(dobj.selector) for m in meshes)
 
     def _chunk_all(self, dobj, cache=True):
         oobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)

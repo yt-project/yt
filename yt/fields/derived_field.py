@@ -298,7 +298,7 @@ class DerivedField:
         for field_name in data.keys():
             if field_name not in original_fields:
                 del data[field_name]
-        return dd
+        return dd  # noqa R504
 
     def get_source(self):
         """
@@ -367,10 +367,7 @@ class DerivedField:
 
     def _is_ion(self):
         p = re.compile("_p[0-9]+_")
-        result = False
-        if p.search(self.name[1]) is not None:
-            result = True
-        return result
+        return p.search(self.name[1]) is not None
 
     def _ion_to_label(self):
         # check to see if the output format has changed
@@ -437,7 +434,7 @@ class DerivedField:
 
             if self._ionization_label_format == "roman_numeral":
                 roman = pnum2rom[pstr[1:]]
-                label = (
+                return (
                     species_label
                     + r"\ "
                     + roman
@@ -448,7 +445,7 @@ class DerivedField:
             # use +/- for ionization
             else:
                 sign = "+" * int(pstr[1:])
-                label = (
+                return (
                     "{"
                     + species_label
                     + "}"
@@ -460,8 +457,7 @@ class DerivedField:
                 )
 
         else:
-            label = self.name[1]
-        return label
+            return self.name[1]
 
     def get_latex_display_name(self):
         label = self.display_name
@@ -469,13 +465,14 @@ class DerivedField:
             if self._is_ion():
                 fname = self._ion_to_label()
                 label = r"$\rm{" + fname.replace("_", r"\ ") + r"}$"
-                label = label.replace("latexsub", "_")
+                return label.replace("latexsub", "_")
             else:
-                label = r"$\rm{" + self.name[1].replace("_", r"\ ").title() + r"}$"
+                return r"$\rm{" + self.name[1].replace("_", r"\ ").title() + r"}$"
         elif label.find("$") == -1:
             label = label.replace(" ", r"\ ")
-            label = r"$\rm{" + label + r"}$"
-        return label
+            return r"$\rm{" + label + r"}$"
+        else:
+            return label
 
 
 class FieldValidator:

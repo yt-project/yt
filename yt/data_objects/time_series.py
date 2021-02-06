@@ -53,8 +53,7 @@ def get_ds_prop(propname):
     def _eval(params, ds):
         return getattr(ds, propname)
 
-    cls = type(propname, (AnalysisTask,), dict(eval=_eval, _params=tuple()))
-    return cls
+    return type(propname, (AnalysisTask,), dict(eval=_eval, _params=tuple()))
 
 
 attrs = (
@@ -401,8 +400,9 @@ class DatasetSeries:
             since="4.0.0",
             removal="4.1.0",
         )
-        obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
-        return obj
+        return cls(
+            filenames, parallel=parallel, setup_function=setup_function, **kwargs
+        )
 
     @classmethod
     def from_output_log(cls, output_log, line_prefix="DATASET WRITTEN", parallel=True):
@@ -413,8 +413,7 @@ class DatasetSeries:
             cut_line = line[len(line_prefix) :].strip()
             fn = cut_line.split()[0]
             filenames.append(fn)
-        obj = cls(filenames, parallel=parallel)
-        return obj
+        return cls(filenames, parallel=parallel)
 
     _dataset_cls = None
 

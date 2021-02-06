@@ -370,8 +370,7 @@ class StreamDictFieldHandler(dict):
         self_fields = chain.from_iterable(s.keys() for s in self.values())
         self_fields = list(set(self_fields))
         fields = list(self._additional_fields) + self_fields
-        fields = list(set(fields))
-        return fields
+        return list(set(fields))
 
 
 class StreamParticleIndex(SPHParticleIndex):
@@ -685,19 +684,17 @@ class StreamOctreeSubset(OctreeSubset):
 
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         try:
-            new_subset = self._subset_with_gz
             mylog.debug("Reusing previous subset with ghost zone.")
+            return self._subset_with_gz
         except AttributeError:
-            new_subset = StreamOctreeSubset(
+            self._subset_with_gz = StreamOctreeSubset(
                 self.base_region,
                 self.ds,
                 self.oct_handler,
                 self._over_refine_factor,
                 num_ghost_zones=ngz,
             )
-            self._subset_with_gz = new_subset
-
-        return new_subset
+            return self._subset_with_gz
 
     def _fill_no_ghostzones(self, content, dest, selector, offset):
         # Here we get a copy of the file, which we skip through and read the
@@ -710,10 +707,9 @@ class StreamOctreeSubset(OctreeSubset):
         levels[:] = 0
         dest.update((field, np.empty(cell_count, dtype="float64")) for field in content)
         # Make references ...
-        count = oct_handler.fill_level(
+        return oct_handler.fill_level(
             0, levels, cell_inds, file_inds, dest, content, offset
         )
-        return count
 
     def _fill_with_ghostzones(self, content, dest, selector, offset):
         oct_handler = self.oct_handler

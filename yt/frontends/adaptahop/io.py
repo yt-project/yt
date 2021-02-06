@@ -168,15 +168,16 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                         halo_id = fpu.read_int()
                         offset_map[ihalo, 0] = halo_id
                         offset_map[ihalo, 1] = ipos
-        data = self.ds.arr(data, "code_length") + self.ds.domain_width / 2
 
         # Make sure halos are loaded in increasing halo_id order
         assert np.all(np.diff(offset_map[:, 0]) > 0)
 
         # Cache particle positions as one do not expect a large number of halos anyway
-        self._particle_positions = data
+        self._particle_positions = (
+            self.ds.arr(data, "code_length") + self.ds.domain_width / 2
+        )
         self._offsets = offset_map
-        return data
+        return self._particle_positions
 
     def members(self, ihalo):
         offset = self._offsets[ihalo, 1]
@@ -185,8 +186,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
             fpu.seek(offset)
             if isinstance(todo[0], int):
                 fpu.skip(todo.pop(0))
-            members = fpu.read_attrs(todo.pop(0))["particle_identities"]
-        return members
+            return fpu.read_attrs(todo.pop(0))["particle_identities"]
 
 
 def _todo_from_attributes(attributes):

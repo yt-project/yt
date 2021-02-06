@@ -302,8 +302,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         # Adding the fields in the rt_ files
         def gen_pdens(igroup):
             def _photon_density(field, data):
-                rv = data["ramses-rt", f"Photon_density_{igroup + 1}"] * dens_conv
-                return rv
+                return data["ramses-rt", f"Photon_density_{igroup + 1}"] * dens_conv
 
             return _photon_density
 
@@ -319,8 +318,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
         def gen_flux(key, igroup):
             def _photon_flux(field, data):
-                rv = data["ramses-rt", f"Photon_flux_{key}_{igroup + 1}"] * flux_conv
-                return rv
+                return data["ramses-rt", f"Photon_flux_{key}_{igroup + 1}"] * flux_conv
 
             return _photon_flux
 

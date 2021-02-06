@@ -332,8 +332,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
         ptypes = ["Gas", "Stars", "DarkMatter"]
-        npart = {ptype: v for ptype, v in zip(ptypes, pcount)}
-        return npart
+        return {ptype: v for ptype, v in zip(ptypes, pcount)}
 
     @classmethod
     def _compute_dtypes(cls, field_dtypes, endian="<"):

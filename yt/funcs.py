@@ -21,7 +21,8 @@ import warnings
 from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Type
+from types import FunctionType
+from typing import Any, Callable, Optional, Type
 
 import matplotlib
 import numpy as np
@@ -186,7 +187,7 @@ def time_execution(func):
         res = func(*arg, **kw)
         t2 = time.time()
         mylog.debug("%s took %0.3f s", func.__name__, (t2 - t1))
-        return res
+        return res  # noqa: R504
 
     from yt.config import ytcfg
 
@@ -234,9 +235,9 @@ def rootonly(func):
     from yt.config import ytcfg
 
     @wraps(func)
-    def check_parallel_rank(*args, **kwargs):
+    def check_parallel_rank(*args, **kwargs) -> Optional[FunctionType]:
         if ytcfg.get("yt", "internals", "topcomm_parallel_rank") > 0:
-            return
+            return None
         return func(*args, **kwargs)
 
     return check_parallel_rank
@@ -371,7 +372,7 @@ def only_on_root(func, *args, **kwargs):
     if not ytcfg.get("yt", "internals", "parallel"):
         return func(*args, **kwargs)
     if ytcfg.get("yt", "internals", cfg_option) > 0:
-        return
+        return None
     return func(*args, **kwargs)
 
 
@@ -470,7 +471,7 @@ class YTEmptyClass:
     pass
 
 
-def update_git(path):
+def update_git(path) -> int:
     try:
         import git
     except ImportError:
@@ -522,6 +523,7 @@ def update_git(path):
         f.write(f"Updated from {old_version} to {new_version}\n\n")
         rebuild_modules(path, f)
     print("Updated successfully")
+    return 0
 
 
 def rebuild_modules(path, f):
@@ -568,7 +570,7 @@ def get_yt_version():
     else:
         v_str = version[:12].strip()
         if hasattr(v_str, "decode"):
-            v_str = v_str.decode("utf-8")
+            return v_str.decode("utf-8")
         return v_str
 
 
@@ -588,10 +590,9 @@ def get_script_contents():
     if not os.path.exists(finfo[0]):
         return None
     try:
-        contents = open(finfo[0]).read()
+        return open(finfo[0]).read()
     except Exception:
-        contents = None
-    return contents
+        return None
 
 
 def download_file(url, filename):
@@ -1266,9 +1267,8 @@ def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
             super().__init__(*args, **kwargs)
 
         def __missing__(self, key):
-            val = self.factory(key)
-            self[key] = val
-            return val
+            self[key] = self.factory(key)
+            return self[key]
 
     return DictWithFactory
 

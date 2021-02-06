@@ -60,7 +60,7 @@ def invalidate_volume(f):
             obj._use_ghost_zones = False
         del obj.volume
         obj._volume_valid = False
-        return ret
+        return ret  # noqa R504
 
     return wrapper
 
@@ -935,8 +935,7 @@ class MeshSource(OpaqueSource):
         return image
 
     def __repr__(self):
-        disp = f"<Mesh Source>:{str(self.data_source)} "
-        return disp
+        return f"<Mesh Source>:{str(self.data_source)} "
 
 
 class PointSource(OpaqueSource):
@@ -1049,8 +1048,7 @@ class PointSource(OpaqueSource):
         return zbuffer
 
     def __repr__(self):
-        disp = "<Point Source>"
-        return disp
+        return "<Point Source>"
 
 
 class LineSource(OpaqueSource):
@@ -1197,8 +1195,7 @@ class LineSource(OpaqueSource):
         return zbuffer
 
     def __repr__(self):
-        disp = "<Line Source>"
-        return disp
+        return "<Line Source>"
 
 
 class BoxSource(LineSource):
@@ -1513,5 +1510,4 @@ class CoordinateVectorSource(OpaqueSource):
         return zbuffer
 
     def __repr__(self):
-        disp = "<Coordinates Source>"
-        return disp
+        return "<Coordinates Source>"

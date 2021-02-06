@@ -18,8 +18,7 @@ def exc_writeout(f):
     @wraps(f)
     def func(*args, **kwargs):
         try:
-            rv = f(*args, **kwargs)
-            return rv
+            return f(*args, **kwargs)
         except Exception:
             traceback.print_exc(None, open("temp.exc", "w"))
             raise
@@ -111,8 +110,7 @@ class PannableMapServer:
                 frb[field], color_bounds=(cmi, cma), cmap_name=cmap
             )
 
-        rv = write_png_to_string(to_plot)
-        return rv
+        return write_png_to_string(to_plot)
 
     def index(self, field=None):
         if field is not None:

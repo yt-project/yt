@@ -33,16 +33,16 @@ def check_readline(fl):
         line = line[line.find(chk) :]
     chk = chk23("VECTORS")
     if chk in line and not line.startswith(chk):
-        line = line[line.find(chk) :]
+        return line[line.find(chk) :]
     return line
 
 
 def check_break(line):
     splitup = line.strip().split()
     do_break = chk23("SCALAR") in splitup
-    do_break = (chk23("VECTOR") in splitup) & do_break
-    do_break = (chk23("TABLE") in splitup) & do_break
-    do_break = (len(line) == 0) & do_break
+    do_break &= chk23("VECTOR") in splitup
+    do_break &= chk23("TABLE") in splitup
+    do_break &= len(line) == 0
     return do_break
 
 

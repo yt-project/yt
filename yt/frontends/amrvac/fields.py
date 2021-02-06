@@ -222,17 +222,15 @@ class AMRVACFieldInfo(FieldInfoContainer):
 
         def _full_thermal_pressure_HD(field, data):
             # energy density and pressure are actually expressed in the same unit
-            pthermal = (data.ds.gamma - 1) * (
+            return (data.ds.gamma - 1) * (
                 data["gas", "energy_density"] - data["gas", "kinetic_energy_density"]
             )
-            return pthermal
 
         def _full_thermal_pressure_MHD(field, data):
-            pthermal = (
+            return (
                 _full_thermal_pressure_HD(field, data)
                 - (data.ds.gamma - 1) * data["gas", "magnetic_energy_density"]
             )
-            return pthermal
 
         def _polytropic_thermal_pressure(field, data):
             return (data.ds.gamma - 1) * data["gas", "energy_density"]

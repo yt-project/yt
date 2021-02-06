@@ -289,10 +289,9 @@ class FieldDetector(defaultdict):
             0 : self.nd - 1 : self.nd * 1j,
         ]
         if self.flat:
-            ic.shape = (self.nd * self.nd * self.nd, 3)
+            return np.reshape(ic, (self.nd ** 3, 3))
         else:
-            ic = ic.transpose()
-        return ic
+            return ic.transpose()
 
     @property
     def ires(self):

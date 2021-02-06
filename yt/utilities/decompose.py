@@ -37,14 +37,14 @@ def evaluate_domain_decomposition(n_d, pieces, ldom):
         float(pieces) * np.product((n_d - 1) // ldom + 1)
     )
 
+    if np.any(ldom > n_d):
+        return 0
     # 0.25 is magic number
     quality = load_balance / (1 + 0.25 * (bsize / ideal_bsize - 1.0))
     # \todo add a factor that estimates lower cost when x-direction is
     # not chopped too much
     # \deprecated estimate these magic numbers
     quality *= 1.0 - (0.001 * ldom[0] + 0.0001 * ldom[1]) / pieces
-    if np.any(ldom > n_d):
-        quality = 0
 
     return quality
 

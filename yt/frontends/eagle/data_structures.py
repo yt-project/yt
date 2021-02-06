@@ -51,20 +51,17 @@ class EagleDataset(GadgetHDF5Dataset):
             "PartType0/ChemistryAbundances",
             "PartType0/ChemicalAbundances",
         ]
-        valid = True
         try:
-            fileh = h5py.File(filename, mode="r")
-            for ng in need_groups:
-                if ng not in fileh["/"]:
-                    valid = False
-            for vg in veto_groups:
-                if vg in fileh["/"]:
-                    valid = False
-            fileh.close()
+            with h5py.File(filename, mode="r") as fileh:
+                for ng in need_groups:
+                    if ng not in fileh["/"]:
+                        return False
+                for vg in veto_groups:
+                    if vg in fileh["/"]:
+                        return False
+            return True
         except Exception:
-            valid = False
-            pass
-        return valid
+            return False
 
 
 class EagleNetworkDataset(EagleDataset):

@@ -118,12 +118,10 @@ class UnstructuredMesh(YTSelectionContainer):
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
-        count = selector.count_points(x, y, z, 0.0)
-        return count
+        return selector.count_points(x, y, z, 0.0)
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x, y, z, 0.0)
-        return mask
+        return selector.select_points(x, y, z, 0.0)
 
     def _get_selector_mask(self, selector):
         if hash(selector) == self._last_selector_id:
@@ -162,6 +160,7 @@ class SemiStructuredMesh(UnstructuredMesh):
             return self._current_chunk.fwidth[:, 1]
         elif field == "dz":
             return self._current_chunk.fwidth[:, 2]
+        raise ValueError
 
     def select_fwidth(self, dobj):
         mask = self._get_selector_mask(dobj.selector)

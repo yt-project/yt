@@ -478,7 +478,7 @@ class EnzoSimulation(SimulationTimeSeries):
             or "CycleSkipDataDump" not in self.parameters
             or self.parameters["CycleSkipDataDump"] <= 0.0
         ):
-            return []
+            return
 
         self.all_time_outputs = []
         index = 0

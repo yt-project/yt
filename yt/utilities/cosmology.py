@@ -554,8 +554,7 @@ class Cosmology:
             if iter > 10:
                 raise RuntimeError("a_from_t calculation did not converge!")
 
-        a = np.power(10, table(lt))
-        return a
+        return np.power(10, table(lt))
 
     def z_from_t(self, t):
         """
@@ -600,11 +599,9 @@ class Cosmology:
         scale_factor = 1.0 / (1.0 + z)
 
         # Evaluate exponential using Linder02 parameterization
-        dark_factor = np.power(
-            scale_factor, -3.0 * (1.0 + self.w_0 + self.w_a)
-        ) * np.exp(-3.0 * self.w_a * (1.0 - scale_factor))
-
-        return dark_factor
+        return np.power(scale_factor, -3.0 * (1.0 + self.w_0 + self.w_a)) * np.exp(
+            -3.0 * self.w_a * (1.0 - scale_factor)
+        )
 
     _arr = None
 

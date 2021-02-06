@@ -41,7 +41,6 @@ class OWLSDataset(GadgetHDF5Dataset):
             "RuntimePars",
             "HashTable",
         ]
-        valid = True
         valid_fname = filename
         # If passed arg is a directory, look for the .0 file in that dir
         if os.path.isdir(filename):
@@ -55,22 +54,17 @@ class OWLSDataset(GadgetHDF5Dataset):
                     and os.path.isfile(fname)
                 ):
                     valid_files.append(fname)
-            if len(valid_files) == 0:
-                valid = False
-            elif len(valid_files) > 1:
-                valid = False
-            else:
-                valid_fname = valid_files[0]
+            if len(valid_files) != 1:
+                return False
+            valid_fname = valid_files[0]
         try:
-            fileh = h5py.File(valid_fname, mode="r")
-            for ng in need_groups:
-                if ng not in fileh["/"]:
-                    valid = False
-            for vg in veto_groups:
-                if vg in fileh["/"]:
-                    valid = False
-            fileh.close()
+            with h5py.File(valid_fname, mode="r") as fileh:
+                for ng in need_groups:
+                    if ng not in fileh["/"]:
+                        return False
+                for vg in veto_groups:
+                    if vg in fileh["/"]:
+                        return False
+            return True
         except Exception:
-            valid = False
-            pass
-        return valid
+            return False

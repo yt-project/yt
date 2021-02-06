@@ -67,8 +67,7 @@ class ARTIOOctreeSubset(OctreeSubset):
         self.oct_handler.fill_sfc(
             levels, cell_inds, file_inds, domain_counts, field_indices, tr
         )
-        tr = {field: v for field, v in zip(fields, tr)}
-        return tr
+        return {field: v for field, v in zip(fields, tr)}
 
     def fill_particles(self, fields):
         if len(fields) == 0:
@@ -113,8 +112,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         ]
         tr = self.oct_handler.fill_sfc(selector, field_indices)
         self.data_size = tr[0].size
-        tr = {field: v for field, v in zip(fields, tr)}
-        return tr
+        return {field: v for field, v in zip(fields, tr)}
 
     def deposit(self, positions, fields=None, method=None, kernel_name="cubic"):
         # Here we perform our particle deposition.
@@ -139,7 +137,7 @@ class ARTIORootMeshSubset(ARTIOOctreeSubset):
         self.oct_handler.deposit(op, self.base_selector, pos, f64)
         vals = op.finalize()
         if vals is None:
-            return
+            return None
         return np.asfortranarray(vals)
 
 

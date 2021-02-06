@@ -52,6 +52,7 @@ class ExtensionImporter:
     def find_module(self, fullname, path=None):
         if fullname.startswith(self.prefix):
             return self
+        return None  # checkme: this should probably be a raise statement
 
     def load_module(self, fullname):
         if fullname in sys.modules:

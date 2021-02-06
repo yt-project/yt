@@ -28,6 +28,7 @@ def setup_poynting_vector(self):
                     data[("openPMD", "E_x")] * data[("gas", "magnetic_field_y")]
                     - data[("openPMD", "E_y")] * data[("gas", "magnetic_field_x")]
                 )
+            raise ValueError
 
         return poynting
 

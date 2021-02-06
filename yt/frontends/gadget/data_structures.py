@@ -24,7 +24,7 @@ from .fields import GadgetFieldInfo
 
 def _fix_unit_ordering(unit):
     if isinstance(unit[0], str):
-        unit = unit[1], unit[0]
+        return unit[1], unit[0]
     return unit
 
 
@@ -335,7 +335,7 @@ class GadgetDataset(SPHDataset):
             _hs = ()
             for hs in spec.split("+"):
                 _hs += spec_dict[hs]
-            spec = _hs
+            return _hs
         return spec
 
     def __str__(self):
@@ -682,22 +682,13 @@ class GadgetHDF5Dataset(GadgetDataset):
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ["Header"]
         veto_groups = ["FOF", "Group", "Subhalo"]
-        valid = True
         try:
-            fh = h5py.File(filename, mode="r")
-            valid = all(ng in fh["/"] for ng in need_groups) and not any(
-                vg in fh["/"] for vg in veto_groups
-            )
-            fh.close()
+            with h5py.File(filename, mode="r") as fh:
+                try:
+                    return fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
+                except (OSError, KeyError):
+                    valid = all(ng in fh["/"] for ng in need_groups)
+                    valid &= not any(vg in fh["/"] for vg in veto_groups)
+                    return valid
         except Exception:
-            valid = False
-            pass
-
-        try:
-            fh = h5py.File(filename, mode="r")
-            valid = fh["Header"].attrs["Code"].decode("utf-8") != "SWIFT"
-            fh.close()
-        except (OSError, KeyError, ImportError):
-            pass
-
-        return valid
+            return False

@@ -39,7 +39,7 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         MJ_constant = (((5.0 * pc.kboltz) / (pc.G * pc.mh)) ** 1.5) * (
             3.0 / (4.0 * np.pi)
         ) ** 0.5
-        u = (
+        return (
             MJ_constant
             * (
                 (data[ftype, "temperature"] / data[ftype, "mean_molecular_weight"])
@@ -47,7 +47,6 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
             )
             * (data[ftype, "density"] ** (-0.5))
         )
-        return u
 
     registry.add_field(
         (ftype, "jeans_mass"),

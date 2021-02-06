@@ -25,8 +25,7 @@ class YTUnidentifiedDataType(YTException):
             msg.append(", ".join(str(a) for a in self.args))
         if self.kwargs:
             msg.append(", ".join(f"{k}={v}" for k, v in self.kwargs.items()))
-        msg = ", ".join(msg) + "`."
-        return msg
+        return ", ".join(msg) + "`."
 
 
 class YTOutputNotIdentified(YTUnidentifiedDataType):
@@ -571,11 +570,10 @@ class YTDuplicateFieldInProfile(Exception):
         self.old_spec = old_spec
 
     def __str__(self):
-        r = f"""Field {self.field} already exists with field spec:
+        return f"""Field {self.field} already exists with field spec:
                {self.old_spec}
                But being asked to add it with:
                {self.new_spec}"""
-        return r
 
 
 class YTInvalidPositionArray(Exception):
@@ -584,9 +582,8 @@ class YTInvalidPositionArray(Exception):
         self.dimensions = dimensions
 
     def __str__(self):
-        r = f"""Position arrays must be length and shape (N,3).
+        return f"""Position arrays must be length and shape (N,3).
                But this one has {self.dimensions} and {self.shape}."""
-        return r
 
 
 class YTIllDefinedCutRegion(Exception):
@@ -697,7 +694,7 @@ class YTInvalidFieldType(YTException):
         self.fields = fields
 
     def __str__(self):
-        msg = (
+        return (
             "\nSlicePlot, ProjectionPlot, and OffAxisProjectionPlot can "
             "only plot fields that\n"
             "are defined on a mesh or for SPH particles, but received the "
@@ -707,7 +704,6 @@ class YTInvalidFieldType(YTException):
             "Did you mean to use ParticlePlot or plot a deposited particle "
             "field instead?" % self.fields
         )
-        return msg
 
 
 class YTUnknownUniformKind(YTException):
@@ -830,11 +826,10 @@ class YTIllDefinedAMR(YTException):
         self.axis = axis
 
     def __str__(self):
-        msg = (
+        return (
             "Grids on the level {} are not properly aligned with cell edges "
             "on the parent level ({} axis)"
         ).format(self.level, self.axis)
-        return msg
 
 
 class YTIllDefinedParticleData(YTException):

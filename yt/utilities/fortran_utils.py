@@ -212,7 +212,7 @@ def read_vector(f, d, endian="="):
             vec_len,
             vec_len2,
         )
-    return tr
+    return tr  # noqa R504
 
 
 def skip(f, n=1, endian="="):

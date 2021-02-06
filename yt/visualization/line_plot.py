@@ -87,10 +87,9 @@ class LinePlotDictionary(PlotDictionary):
         ).dimensions
         if dimensions not in self.known_dimensions:
             self.known_dimensions[dimensions] = item
-            ret_item = item
+            return item
         else:
-            ret_item = self.known_dimensions[dimensions]
-        return ret_item
+            return self.known_dimensions[dimensions]
 
     def __getitem__(self, item):
         ret_item = self._sanitize_dimensions(item)
@@ -280,12 +279,9 @@ class LinePlot(PlotContainer):
             y_frac_widths[1],
         )
 
-        try:
-            plot = self.plots[field]
-        except KeyError:
-            plot = PlotMPL(self.figure_size, axrect, None, None)
-            self.plots[field] = plot
-        return plot
+        if field not in self.plots:
+            self.plots[field] = PlotMPL(self.figure_size, axrect, None, None)
+        return self.plots[field]
 
     def _setup_plots(self):
         if self._plot_valid:
@@ -450,5 +446,5 @@ def _validate_point(point, ds, start=False):
             val = 0
         else:
             val = 1
-        point = np.append(point.d, [val] * (3 - ds.dimensionality)) * point.uq
+        return np.append(point.d, [val] * (3 - ds.dimensionality)) * point.uq
     return point

@@ -26,8 +26,7 @@ def _get_coord_fields(axi, units="code_length"):
 
 def _get_vert_fields(axi, units="code_length"):
     def _vert(field, data):
-        rv = data.ds.arr(data.fcoords_vertex[..., axi].copy(), units)
-        return rv
+        return data.ds.arr(data.fcoords_vertex[..., axi].copy(), units)
 
     return _vert
 

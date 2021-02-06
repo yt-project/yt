@@ -23,8 +23,7 @@ def _hse(field, data):
     hx = data[("gas", "pressure_gradient_x")] - gx
     hy = data[("gas", "pressure_gradient_y")] - gy
     hz = data[("gas", "pressure_gradient_z")] - gz
-    h = np.sqrt((hx * hx + hy * hy + hz * hz) / (gx * gx + gy * gy + gz * gz))
-    return h
+    return np.sqrt((hx * hx + hy * hy + hz * hz) / (gx * gx + gy * gy + gz * gz))
 
 
 ds.add_field(

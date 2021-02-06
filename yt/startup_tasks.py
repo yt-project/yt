@@ -18,7 +18,6 @@ from yt.utilities import rpdb
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
 def turn_on_parallelism():
-    parallel_capable = False
     try:
         # we import this to check if mpi4py is installed
         from mpi4py import MPI  # NOQA
@@ -34,8 +33,7 @@ def turn_on_parallelism():
         enable_parallelism,
     )
 
-    parallel_capable = enable_parallelism()
-    return parallel_capable
+    return enable_parallelism()
 
 
 # This fallback is for Paraview:

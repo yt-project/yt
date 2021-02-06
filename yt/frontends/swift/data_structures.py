@@ -81,9 +81,7 @@ class SwiftDataset(SPHDataset):
         """
 
         with h5py.File(self.filename, mode="r") as handle:
-            header = dict(handle[dataset].attrs)
-
-        return header
+            return dict(handle[dataset].attrs)
 
     def _parse_parameter_file(self):
         """
@@ -178,13 +176,9 @@ class SwiftDataset(SPHDataset):
         This requires the file to have the Code attribute set in the
         Header dataset to "SWIFT".
         """
-        valid = True
         # Attempt to open the file, if it's not a hdf5 then this will fail:
         try:
-            handle = h5py.File(filename, mode="r")
-            valid = handle["Header"].attrs["Code"].decode("utf-8") == "SWIFT"
-            handle.close()
+            with h5py.File(filename, mode="r") as handle:
+                return handle["Header"].attrs["Code"].decode("utf-8") == "SWIFT"
         except (OSError, KeyError, ImportError):
-            valid = False
-
-        return valid
+            return False

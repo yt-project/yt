@@ -302,8 +302,7 @@ class YTDataChunk:
     def fcoords(self):
         if self._fast_index is not None:
             ci = self._fast_index.select_fcoords(self.dobj.selector, self.data_size)
-            ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
-            return ci
+            return YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
         ci = np.empty((self.data_size, 3), dtype="float64")
         ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
         if self.data_size == 0:
@@ -320,8 +319,7 @@ class YTDataChunk:
     @cached_property
     def icoords(self):
         if self._fast_index is not None:
-            ci = self._fast_index.select_icoords(self.dobj.selector, self.data_size)
-            return ci
+            return self._fast_index.select_icoords(self.dobj.selector, self.data_size)
         ci = np.empty((self.data_size, 3), dtype="int64")
         if self.data_size == 0:
             return ci
@@ -338,8 +336,7 @@ class YTDataChunk:
     def fwidth(self):
         if self._fast_index is not None:
             ci = self._fast_index.select_fwidth(self.dobj.selector, self.data_size)
-            ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
-            return ci
+            return YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
         ci = np.empty((self.data_size, 3), dtype="float64")
         ci = YTArray(ci, units="code_length", registry=self.dobj.ds.unit_registry)
         if self.data_size == 0:
@@ -356,8 +353,7 @@ class YTDataChunk:
     @cached_property
     def ires(self):
         if self._fast_index is not None:
-            ci = self._fast_index.select_ires(self.dobj.selector, self.data_size)
-            return ci
+            return self._fast_index.select_ires(self.dobj.selector, self.data_size)
         ci = np.empty(self.data_size, dtype="int64")
         if self.data_size == 0:
             return ci

@@ -128,8 +128,7 @@ class ARTFieldInfo(FieldInfoContainer):
         )
 
         def _H_mass_fraction(field, data):
-            tr = 1.0 - data.ds.parameters["Y_p"] - data["gas", "metal_mass_fraction"]
-            return tr
+            return 1.0 - data.ds.parameters["Y_p"] - data["gas", "metal_mass_fraction"]
 
         self.add_field(
             ("gas", "H_mass_fraction"),

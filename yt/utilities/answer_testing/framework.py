@@ -227,7 +227,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
             # This is dangerous, but we have a controlled S3 environment
             rv = pickle.loads(data)
         self.cache[ds_name] = rv
-        return rv
+        return self.cache[ds_name]
 
     def progress_callback(self, current, total):
         self.pbar.update(current)
@@ -280,11 +280,11 @@ class AnswerTestLocalStorage(AnswerTestStorage):
         answer_name = f"{ds_name}"
         ds = shelve.open(self.reference_name, protocol=-1)
         try:
-            result = ds[answer_name]
+            return ds[answer_name]
         except KeyError:
-            result = default
-        ds.close()
-        return result
+            return default
+        finally:
+            ds.close()
 
 
 @contextlib.contextmanager
@@ -447,8 +447,7 @@ class AnswerTestingTest:
         cls = getattr(pw, plot_type, None)
         if cls is None:
             cls = getattr(particle_plots, plot_type)
-        plot = cls(*(ds, plot_axis, plot_field), **plot_kwargs)
-        return plot
+        return cls(*(ds, plot_axis, plot_field), **plot_kwargs)
 
     @property
     def sim_center(self):
@@ -723,8 +722,7 @@ class VerifySimulationSameTest(AnswerTestingTest):
         self.ds = simulation_obj
 
     def run(self):
-        result = [ds.current_time for ds in self.ds]
-        return result
+        return [ds.current_time for ds in self.ds]
 
     def compare(self, new_result, old_result):
         assert_equal(
@@ -951,8 +949,7 @@ class PhasePlotAttributeTest(AnswerTestingTest):
         cls = getattr(profile_plotter, plot_type, None)
         if cls is None:
             cls = getattr(particle_plots, plot_type)
-        plot = cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
-        return plot
+        return cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
 
     def run(self):
         plot = self.create_plot(
@@ -1270,5 +1267,4 @@ def create_obj(ds, obj_type):
     if obj_type is None:
         return ds.all_data()
     cls = getattr(ds, obj_type[0])
-    obj = cls(*obj_type[1])
-    return obj
+    return cls(*obj_type[1])

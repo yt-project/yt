@@ -133,8 +133,7 @@ def test_particle_projection_filter():
     """
 
     def formed_star(pfilter, data):
-        filter = data["all", "creation_time"] > 0
-        return filter
+        return data["all", "creation_time"] > 0
 
     add_particle_filter(
         "formed_star",

@@ -110,7 +110,7 @@ class PlotMPL:
         try:
             module, fig_canvas, fig_manager = BACKEND_SPECS[key]
         except KeyError:
-            return
+            return None
 
         mod = __import__(
             "matplotlib.backends",

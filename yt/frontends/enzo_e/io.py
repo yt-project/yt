@@ -172,5 +172,5 @@ class EnzoEIOHandler(BaseIOHandler):
         data = rdata[self._base].T
         if self.ds.dimensionality < 3:
             nshape = data.shape + (1,) * (3 - self.ds.dimensionality)
-            data = np.reshape(data, nshape)
+            return np.reshape(data, nshape)
         return data

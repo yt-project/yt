@@ -17,8 +17,7 @@ def compare(ds, field, test_prefix, decimals=12):
     def slice_image(filename_prefix):
         sl = yt.SlicePlot(ds, "z", field)
         sl.set_log("all", False)
-        image_file = sl.save(filename_prefix)
-        return image_file
+        return sl.save(filename_prefix)
 
     slice_image.__name__ = f"slice_{test_prefix}"
     test = GenericImageTest(ds, slice_image, decimals)

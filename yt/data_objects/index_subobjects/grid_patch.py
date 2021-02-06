@@ -186,8 +186,7 @@ class AMRGridPatch(YTSelectionContainer):
 
     def get_position(self, index):
         """Returns center position of an *index*."""
-        pos = (index + 0.5) * self.dds + self.LeftEdge
-        return pos
+        return (index + 0.5) * self.dds + self.LeftEdge
 
     def _fill_child_mask(self, child, mask, tofill, dlevel=1):
         rf = self.ds.refine_by
@@ -380,7 +379,7 @@ class AMRGridPatch(YTSelectionContainer):
         op.process_grid(self, positions, fields)
         vals = op.finalize()
         if vals is None:
-            return
+            return None
         # Fortran-ordered, so transpose.
         vals = vals.transpose()
         # squeeze dummy dimension we appended above
@@ -427,9 +426,7 @@ class AMRGridPatch(YTSelectionContainer):
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
-        count = selector.count_points(x, y, z, 0.0)
-        return count
+        return selector.count_points(x, y, z, 0.0)
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x, y, z, 0.0)
-        return mask
+        return selector.select_points(x, y, z, 0.0)

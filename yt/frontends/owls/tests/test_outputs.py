@@ -41,8 +41,7 @@ def test_OWLS_particlefilter():
 
     def cold_gas(pfilter, data):
         temperature = data[pfilter.filtered_type, "Temperature"]
-        filter = temperature.in_units("K") <= 1e5
-        return filter
+        return temperature.in_units("K") <= 1e5
 
     add_particle_filter(
         "gas_cold",

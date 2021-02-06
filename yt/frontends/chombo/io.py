@@ -211,8 +211,7 @@ def parse_orion_sinks(fn):
     except IndexError:
         # a particle file exists, but there is only one line,
         # so no sinks have been created yet.
-        index = {}
-        return index
+        return {}
 
     # The basic fields that all sink particles have
     index = {

@@ -30,7 +30,7 @@ def setup_fake_refby():
         g["density"] = (np.random.random(g["dimensions"].astype("i8")), "g/cm**3")
     bbox = np.array([[0.0, 1.0], [0.0, np.pi], [0.0, np.pi * 2]])
 
-    ds = yt.load_amr_grids(
+    return yt.load_amr_grids(
         grid_data,
         top_grid_dim,
         bbox=bbox,
@@ -38,7 +38,6 @@ def setup_fake_refby():
         refine_by=refine_by,
         length_unit="kpc",
     )
-    return ds
 
 
 def test_refine_by():

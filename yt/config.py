@@ -108,15 +108,12 @@ class YTConfig:
         return node_or_leaf
 
     def get_most_specific(self, section, *keys, **kwargs):
-        use_fallback = "fallback" in kwargs
-        fallback = kwargs.pop("fallback", None)
         try:
             return self.config_root.get_deepest_leaf(section, *keys)
         except KeyError as err:
-            if use_fallback:
-                return fallback
-            else:
-                raise err
+            if "fallback" in kwargs:
+                return kwargs["fallback"]
+            raise err
 
     def update(self, new_values, metadata=None):
         if metadata is None:

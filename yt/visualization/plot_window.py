@@ -97,19 +97,15 @@ def get_axes_unit(width, ds):
         return ("code_length",) * 2
     if is_sequence(width):
         if isinstance(width[1], str):
-            axes_unit = (width[1], width[1])
+            return (width[1], width[1])
         elif is_sequence(width[1]):
-            axes_unit = (width[0][1], width[1][1])
+            return (width[0][1], width[1][1])
         elif isinstance(width[0], YTArray):
-            axes_unit = (str(width[0].units), str(width[1].units))
-        else:
-            axes_unit = None
-    else:
-        if isinstance(width, YTArray):
-            axes_unit = (str(width.units), str(width.units))
-        else:
-            axes_unit = None
-    return axes_unit
+            return (str(width[0].units), str(width[1].units))
+        return None
+    if isinstance(width, YTArray):
+        return (str(width.units), str(width.units))
+    return None
 
 
 def validate_mesh_fields(data_source, fields):

@@ -235,12 +235,12 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
         if None not in (si, ei):
-            pcount = {}
-            for ptype, npart in self.ds.num_particles.items():
-                pcount[ptype] = np.clip(npart - si, 0, ei - si)
+            return {
+                ptype: np.clip(npart - si, 0, ei - si)
+                for ptype, npart in self.ds.num_particles.items()
+            }
         else:
-            pcount = self.ds.num_particles
-        return pcount
+            return self.ds.num_particles
 
     def _identify_fields(self, data_file):
         fields = []

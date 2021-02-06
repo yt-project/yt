@@ -84,12 +84,11 @@ class RegionExpression:
 
     def _spec_to_value(self, input):
         if isinstance(input, tuple):
-            v = self.ds.quan(input[0], input[1]).to("code_length")
+            return self.ds.quan(input[0], input[1]).to("code_length")
         elif isinstance(input, YTQuantity):
-            v = self.ds.quan(input).to("code_length")
+            return self.ds.quan(input).to("code_length")
         else:
-            v = self.ds.quan(input, "code_length")
-        return v
+            return self.ds.quan(input, "code_length")
 
     def _create_slice(self, slice_tuple):
         # This is somewhat more complex because we want to allow for slicing
@@ -133,7 +132,7 @@ class RegionExpression:
             height = source.right_edge[yax] - source.left_edge[yax]
             # Make a resolution tuple with
             resolution = (int(new_slice[xax].step.imag), int(new_slice[yax].step.imag))
-            sl = sl.to_frb(width=width, resolution=resolution, height=height)
+            return sl.to_frb(width=width, resolution=resolution, height=height)
         return sl
 
     def _slice_to_edges(self, ax, val):
@@ -203,10 +202,9 @@ class RegionExpression:
                     axis = ax
                     new_slice.append(v)
         if npoints > 0:
-            ray = LineBuffer(self.ds, start_point, end_point, npoints)
+            return LineBuffer(self.ds, start_point, end_point, npoints)
         else:
             if axis == 1:
                 coord = [coord[1], coord[0]]
             source = self._create_region(new_slice)
-            ray = self.ds.ortho_ray(axis, coord, data_source=source)
-        return ray
+            return self.ds.ortho_ray(axis, coord, data_source=source)

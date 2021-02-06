@@ -129,8 +129,7 @@ def create_spectral_slabs(filename, slab_centers, slab_width, **kwargs):
     for hdu in fid:
         hdu.header.pop("RESTFREQ", None)
         hdu.header.pop("RESTFRQ", None)
-    ds = FITSDataset(fid, **kwargs)
-    return ds
+    return FITSDataset(fid, **kwargs)
 
 
 def ds9_region(ds, reg, obj=None, field_parameters=None):
@@ -257,6 +256,7 @@ class PlotWindowWCS:
         for k in self.keys():
             if k[1] == key:
                 return self.plots[k]
+        raise KeyError(key)
 
     def show(self):
         return self

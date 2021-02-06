@@ -368,7 +368,7 @@ class AMRKDTree(ParallelAnalysisInterface):
         node.dirty = False
         if not self._initialized:
             self.brick_dimensions.append(dims)
-        return brick
+        return brick  # noqa R504
 
     def locate_brick(self, position):
         """Given a position, find the node that contains it."""

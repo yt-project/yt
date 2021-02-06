@@ -642,10 +642,9 @@ class Camera(ParallelAnalysisInterface):
         self._setup_box_properties(width, self.center, self.orienter.unit_vectors)
 
     def new_image(self):
-        image = np.zeros(
+        return np.zeros(
             (self.resolution[0], self.resolution[1], 4), dtype="float64", order="C"
         )
-        return image
 
     def get_sampler_args(self, image):
         rotp = np.concatenate(
@@ -686,12 +685,11 @@ class Camera(ParallelAnalysisInterface):
             )
             if self.light_rgba is None:
                 self.set_default_light_rgba()
-            sampler = LightSourceRenderSampler(
+            return LightSourceRenderSampler(
                 *args, light_dir=temp_dir, light_rgba=self.light_rgba, **kwargs
             )
-        else:
-            sampler = self._sampler_object(*args, **kwargs)
-        return sampler
+
+        return self._sampler_object(*args, **kwargs)
 
     def finalize_image(self, image):
         view_pos = (
@@ -722,8 +720,7 @@ class Camera(ParallelAnalysisInterface):
 
         pbar.finish()
         image = sampler.aimage
-        image = self.finalize_image(image)
-        return image
+        return self.finalize_image(image)
 
     @cached_property
     def _pyplot(self):
@@ -764,8 +761,7 @@ class Camera(ParallelAnalysisInterface):
             del nz
         else:
             nim = im
-        ax = self._pyplot.imshow(nim[:, :, :3] / nim[:, :, :3].max(), origin="upper")
-        return ax
+        return self._pyplot.imshow(nim[:, :, :3] / nim[:, :, :3].max(), origin="upper")
 
     def draw(self):
         self._pyplot.draw()
@@ -817,7 +813,7 @@ class Camera(ParallelAnalysisInterface):
         )
 
     def get_information(self):
-        info_dict = {
+        return {
             "fields": self.fields,
             "type": self.__class__.__name__,
             "east_vector": self.orienter.unit_vectors[0],
@@ -826,7 +822,6 @@ class Camera(ParallelAnalysisInterface):
             "width": self.width,
             "dataset": self.ds.fullpath,
         }
-        return info_dict
 
     def snapshot(
         self,
@@ -1381,8 +1376,7 @@ class PerspectiveCamera(Camera):
             pbar.update(total_cells)
 
         pbar.finish()
-        image = self.finalize_image(sampler.aimage)
-        return image
+        return self.finalize_image(sampler.aimage)
 
     def finalize_image(self, image):
         view_pos = self.front_center
@@ -1502,8 +1496,7 @@ class HEALpixCamera(Camera):
         raise NotImplementedError
 
     def new_image(self):
-        image = np.zeros((12 * self.nside ** 2, 1, 4), dtype="float64", order="C")
-        return image
+        return np.zeros((12 * self.nside ** 2, 1, 4), dtype="float64", order="C")
 
     def get_sampler_args(self, image):
         nv = 12 * self.nside ** 2
@@ -1558,18 +1551,16 @@ class HEALpixCamera(Camera):
 
     def finalize_image(self, image):
         view_pos = self.center
-        image = self.volume.reduce_tree_images(image, view_pos)
-        return image
+        return self.volume.reduce_tree_images(image, view_pos)
 
     def get_information(self):
-        info_dict = {
+        return {
             "fields": self.fields,
             "type": self.__class__.__name__,
             "center": self.center,
             "radius": self.radius,
             "dataset": self.ds.fullpath,
         }
-        return info_dict
 
     def snapshot(
         self,
@@ -1723,8 +1714,7 @@ class FisheyeCamera(Camera):
         return {}
 
     def new_image(self):
-        image = np.zeros((self.resolution ** 2, 1, 4), dtype="float64", order="C")
-        return image
+        return np.zeros((self.resolution ** 2, 1, 4), dtype="float64", order="C")
 
     def get_sampler_args(self, image):
         vp = arr_fisheye_vectors(self.resolution, self.fov)
@@ -1888,10 +1878,9 @@ class MosaicCamera(Camera):
         return volume
 
     def new_image(self):
-        image = np.zeros(
+        return np.zeros(
             (self.resolution[0], self.resolution[1], 4), dtype="float64", order="C"
         )
-        return image
 
     def _setup_box_properties(self, width, center, unit_vectors):
         owidth = deepcopy(width)
@@ -2113,10 +2102,8 @@ class ProjectionCamera(Camera):
 
     def get_sampler(self, args, kwargs):
         if self.interpolated:
-            sampler = InterpolatedProjectionSampler(*args, **kwargs)
-        else:
-            sampler = ProjectionSampler(*args, **kwargs)
-        return sampler
+            return InterpolatedProjectionSampler(*args, **kwargs)
+        return ProjectionSampler(*args, **kwargs)
 
     def initialize_source(self):
         if self.interpolated:
@@ -2203,8 +2190,7 @@ class ProjectionCamera(Camera):
             grid.clear_data()
             sampler(pg, num_threads=num_threads)
 
-        image = self.finalize_image(sampler.aimage)
-        return image
+        return self.finalize_image(sampler.aimage)
 
     def save_image(self, image, fn=None, clip_ratio=None):
         dd = self.ds.all_data()
@@ -2312,8 +2298,7 @@ class SphericalCamera(Camera):
             pbar.update(total_cells)
 
         pbar.finish()
-        image = self.finalize_image(sampler.aimage)
-        return image
+        return self.finalize_image(sampler.aimage)
 
     def finalize_image(self, image):
         view_pos = self.front_center
@@ -2321,8 +2306,7 @@ class SphericalCamera(Camera):
         image = self.volume.reduce_tree_images(image, view_pos)
         if not self.transfer_function.grey_opacity:
             image[:, :, 3] = 1.0
-        image = image[1:-1, 1:-1, :]
-        return image
+        return image[1:-1, 1:-1, :]
 
 
 data_object_registry["spherical_camera"] = SphericalCamera
@@ -2446,8 +2430,7 @@ class StereoSphericalCamera(Camera):
         image.shape = self.resolution[0], self.resolution[1], 4
         if not self.transfer_function.grey_opacity:
             image[:, :, 3] = 1.0
-        image = image[1:-1, 1:-1, :]
-        return image
+        return image[1:-1, 1:-1, :]
 
 
 data_object_registry["stereospherical_camera"] = StereoSphericalCamera

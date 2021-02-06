@@ -579,13 +579,12 @@ def load_amr_grids(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamDataset(
+    return StreamDataset(
         handler,
         geometry=geometry,
         unit_system=unit_system,
         default_species_fields=default_species_fields,
     )
-    return sds
 
 
 def load_particles(
@@ -699,7 +698,7 @@ def load_particles(
         if unit is None:
             unit = "code_" + dimension
             if data_source is not None:
-                unit = getattr(data_source.ds, dimension + "_unit", unit)
+                return getattr(data_source.ds, dimension + "_unit", unit)
         return unit
 
     length_unit = parse_unit(length_unit, "length")
@@ -753,14 +752,12 @@ def load_particles(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamParticlesDataset(
+    return StreamParticlesDataset(
         handler,
         geometry=geometry,
         unit_system=unit_system,
         default_species_fields=default_species_fields,
     )
-
-    return sds
 
 
 def load_hexahedral_mesh(
@@ -899,9 +896,7 @@ def load_hexahedral_mesh(
     handler.simulation_time = sim_time
     handler.cosmology_simulation = 0
 
-    sds = StreamHexahedralDataset(handler, geometry=geometry, unit_system=unit_system)
-
-    return sds
+    return StreamHexahedralDataset(handler, geometry=geometry, unit_system=unit_system)
 
 
 def load_octree(

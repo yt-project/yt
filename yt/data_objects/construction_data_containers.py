@@ -305,8 +305,7 @@ class YTProj(YTSelectionContainer2D):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-        pw = self._get_pw(fields, center, width, origin, "Projection")
-        return pw
+        return self._get_pw(fields, center, width, origin, "Projection")
 
     def plot(self, fields=None):
         if hasattr(self.data_source, "left_edge") and hasattr(
@@ -1148,8 +1147,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         if length_unit is None:
             length_unit = self.ds.length_unit
         fields = list(iter_fields(fields))
-        fid = FITSImageData(self, fields, length_unit=length_unit)
-        return fid
+        return FITSImageData(self, fields, length_unit=length_unit)
 
 
 class YTArbitraryGrid(YTCoveringGrid):
@@ -1621,10 +1619,9 @@ class YTSurface(YTSelectionContainer3D):
             svals = None
 
         sample_type = {"face": 1, "vertex": 2}[sample_type]
-        my_verts = march_cubes_grid(
+        return march_cubes_grid(
             value, vals, mask, grid.LeftEdge, grid.dds, svals, sample_type
         )
-        return my_verts
 
     def calculate_flux(self, field_x, field_y, field_z, fluxing_field=None):
         r"""This calculates the flux over the surface.
@@ -1693,8 +1690,7 @@ class YTSurface(YTSelectionContainer3D):
                 flux += self._calculate_flux_in_grid(
                     block, mask, field_x, field_y, field_z, fluxing_field
                 )
-        flux = self.comm.mpi_allreduce(flux, op="sum")
-        return flux
+        return self.comm.mpi_allreduce(flux, op="sum")
 
     def _calculate_flux_in_grid(
         self, grid, mask, field_x, field_y, field_z, fluxing_field=None
@@ -2584,8 +2580,7 @@ class YTSurface(YTSelectionContainer3D):
         }
         files = {"modelFile": zfs}
         upload_id = self._upload_to_sketchfab(data, files)
-        upload_id = self.comm.mpi_bcast(upload_id, root=0)
-        return upload_id
+        return self.comm.mpi_bcast(upload_id, root=0)
 
     @parallel_root_only
     def _upload_to_sketchfab(self, data, files):
@@ -2599,13 +2594,13 @@ class YTSurface(YTSelectionContainer3D):
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
         except requests.exceptions.RequestException:
             mylog.exception("An error has occured")
-            return
+            return None
 
         result = r.json()
 
         if r.status_code != requests.codes.created:
             mylog.error("Upload to SketchFab failed with error: %s", result)
-            return
+            return None
 
         model_uid = result["uid"]
         model_url = SKETCHFAB_MODEL_URL + model_uid
@@ -2746,18 +2741,15 @@ class YTOctree(YTSelectionContainer3D):
 
     @property
     def sph_smoothing_style(self):
-        smoothing_style = getattr(self.ds, "sph_smoothing_style", "scatter")
-        return smoothing_style
+        return getattr(self.ds, "sph_smoothing_style", "scatter")
 
     @property
     def sph_normalize(self):
-        normalize = getattr(self.ds, "use_sph_normalization", "normalize")
-        return normalize
+        return getattr(self.ds, "use_sph_normalization", "normalize")
 
     @property
     def sph_num_neighbors(self):
-        num_neighbors = getattr(self.ds, "num_neighbors", 32)
-        return num_neighbors
+        return getattr(self.ds, "num_neighbors", 32)
 
     def _sanitize_ptypes(self, ptypes):
         if ptypes is None:
@@ -2805,7 +2797,7 @@ class YTOctree(YTSelectionContainer3D):
 
     def get_data(self, fields=None):
         if fields is None:
-            return
+            return None
 
         if hasattr(self.ds, "_sph_ptypes"):
             sph_ptypes = self.ds._sph_ptypes
@@ -2827,10 +2819,10 @@ class YTOctree(YTSelectionContainer3D):
                 self._scatter_smooth(fields, units, normalize)
             else:
                 self._gather_smooth(fields, units, normalize)
+            return None
         elif fields[0] == "index":
             return self[fields]
-        else:
-            raise NotImplementedError
+        raise NotImplementedError
 
     def _gather_smooth(self, fields, units, normalize):
         buff = np.zeros(self.tree.num_nodes, dtype="float64")

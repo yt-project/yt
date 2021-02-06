@@ -64,17 +64,11 @@ class BaseIOHandler:
 
     def _field_in_backup(self, grid, backup_file, field_name):
         if os.path.exists(backup_file):
-            fhandle = h5py.File(backup_file, mode="r")
-            g = fhandle["data"]
-            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
-            if field_name in grid_group:
-                return_val = True
-            else:
-                return_val = False
-            fhandle.close()
-            return return_val
-        else:
-            return False
+            with h5py.File(backup_file, mode="r") as fhandle:
+                g = fhandle["data"]
+                grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+                return field_name in grid_group
+        return False
 
     def _read_data_set(self, grid, field):
         # check backup file first. if field not found,
@@ -83,14 +77,11 @@ class BaseIOHandler:
         if not grid.ds.read_from_backup:
             return self._read_data(grid, field)
         elif self._field_in_backup(grid, backup_filename, field):
-            fhandle = h5py.File(backup_filename, mode="r")
-            g = fhandle["data"]
-            grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
-            data = grid_group[field][:]
-            fhandle.close()
-            return data
-        else:
-            return self._read_data(grid, field)
+            with h5py.File(backup_filename, mode="r") as fhandle:
+                g = fhandle["data"]
+                grid_group = g["grid_%010i" % (grid.id - grid._id_offset)]
+                return grid_group[field][:]
+        return self._read_data(grid, field)
 
     # Now we define our interface
     def _read_data(self, grid, field):
@@ -136,7 +127,7 @@ class BaseIOHandler:
         sl[axis] = slice(coord, coord + 1)
         tr = self._read_data_set(grid, field)[tuple(sl)]
         if tr.dtype == "float32":
-            tr = tr.astype("float64")
+            return tr.astype("float64")
         return tr
 
     def _read_field_names(self, grid):

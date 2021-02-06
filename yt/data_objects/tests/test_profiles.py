@@ -481,8 +481,7 @@ def test_particle_profile_negative_field():
 
 def test_profile_zero_weight():
     def DMparticles(pfilter, data):
-        filter = data[(pfilter.filtered_type, "particle_type")] == 1
-        return filter
+        return data[(pfilter.filtered_type, "particle_type")] == 1
 
     def DM_in_cell_mass(field, data):
         return data["deposit", "DM_density"] * data["index", "cell_volume"]

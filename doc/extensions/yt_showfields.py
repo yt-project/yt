@@ -10,9 +10,7 @@ def setup(app):
     setup.config = app.config
     setup.confdir = app.confdir
 
-    retdict = dict(version="1.0", parallel_read_safe=True, parallel_write_safe=True)
-
-    return retdict
+    return dict(version="1.0", parallel_read_safe=True, parallel_write_safe=True)
 
 
 class ShowFields(Directive):

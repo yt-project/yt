@@ -39,8 +39,7 @@ def parentage_relationships(ds):
         else:
             parents = parents + [pg.id for pg in p]
         children = children + [c.id for c in g.Children]
-    result = np.array(parents + children)
-    return result
+    return np.array(parents + children)
 
 
 def grid_values(ds, field):
@@ -232,7 +231,7 @@ def plot_window_attribute(
     plot.save(name=tmpname)
     image = mpimg.imread(tmpname)
     os.remove(tmpname)
-    return image
+    return image  # noqa R504
 
 
 def phase_plot_attribute(
@@ -258,12 +257,11 @@ def phase_plot_attribute(
     plot.save(name=tmpname)
     image = mpimg.imread(tmpname)
     os.remove(tmpname)
-    return image
+    return image  # noqa R504
 
 
 def generic_image(img_fname):
-    img_data = mpimg.imread(img_fname)
-    return img_data
+    return mpimg.imread(img_fname)
 
 
 def axial_pixelization(ds):
@@ -302,8 +300,7 @@ def extract_connected_sets(ds_fn, data_source, field, num_levels, min_val, max_v
                     all_sets[level][set_id]["cell_mass"].sum(),
                 ]
             )
-    result = np.array(result)
-    return result
+    return np.array(result)
 
 
 def VR_image_comparison(scene):
@@ -312,4 +309,4 @@ def VR_image_comparison(scene):
     scene.save(tmpname, sigma_clip=1.0)
     image = mpimg.imread(tmpname)
     os.remove(tmpname)
-    return image
+    return image  # noqa R504

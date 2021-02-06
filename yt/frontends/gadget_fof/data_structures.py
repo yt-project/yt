@@ -133,7 +133,7 @@ class GadgetFOFHDF5File(HaloCatalogFile):
         if close:
             f.close()
 
-        return pos
+        return pos  # noqa R504
 
 
 class GadgetFOFDataset(ParticleDataset):
@@ -298,17 +298,13 @@ class GadgetFOFDataset(ParticleDataset):
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ["Group", "Header", "Subhalo"]
         veto_groups = ["FOF"]
-        valid = True
         try:
-            fh = h5py.File(filename, mode="r")
-            valid = all(ng in fh["/"] for ng in need_groups) and not any(
-                vg in fh["/"] for vg in veto_groups
-            )
-            fh.close()
+            with h5py.File(filename, mode="r") as fh:
+                return all(ng in fh["/"] for ng in need_groups) and not any(
+                    vg in fh["/"] for vg in veto_groups
+                )
         except Exception:
-            valid = False
-            pass
-        return valid
+            return False
 
 
 class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
@@ -380,8 +376,7 @@ class GadgetFOFHaloParticleIndex(GadgetFOFParticleIndex):
 
     def _get_halo_scalar_index(self, ptype, identifier):
         i_scalar = self._get_halo_file_indices(ptype, [identifier])[0]
-        scalar_index = identifier - self._halo_index_start[ptype][i_scalar]
-        return scalar_index
+        return identifier - self._halo_index_start[ptype][i_scalar]
 
     def _get_halo_values(self, ptype, identifiers, fields, f=None):
         """

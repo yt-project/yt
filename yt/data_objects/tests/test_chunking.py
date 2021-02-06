@@ -3,7 +3,7 @@ from yt.units.yt_array import uconcatenate
 
 
 def _get_dobjs(c):
-    dobjs = [
+    return [
         ("sphere", ("center", (1.0, "unitary"))),
         ("sphere", ("center", (0.1, "unitary"))),
         ("ortho_ray", (0, (c[1], c[2]))),
@@ -13,7 +13,6 @@ def _get_dobjs(c):
         ("cutting", ([0.1, 0.3, 0.6], "center")),
         ("all_data", ()),
     ]
-    return dobjs
 
 
 def test_chunking():

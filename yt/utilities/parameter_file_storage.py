@@ -96,6 +96,7 @@ class ParameterFileStore:
         for h in self._records:
             if self._records[h]["ctid"] == ctid:
                 return self._convert_ds(self._records[h])
+        raise ValueError(f"Unknown value received for `ctid` = {ctid}")
 
     def _adapt_ds(self, ds):
         """This turns a dataset into a CSV entry."""
@@ -165,8 +166,7 @@ class ParameterFileStore:
         self.read_db()
 
     def get_recent(self, n=10):
-        recs = sorted(self._records.values(), key=lambda a: -a["last_seen"])[:n]
-        return recs
+        return sorted(self._records.values(), key=lambda a: -a["last_seen"])[:n]
 
     @parallel_simple_proxy
     def _write_out(self):

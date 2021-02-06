@@ -83,9 +83,7 @@ def z_from_t_analytic(my_time, hubble_constant=0.7, omega_matter=0.3, omega_lamb
     else:
         raise NotImplementedError
 
-    redshift = (1.0 / a) - 1.0
-
-    return redshift
+    return (1.0 / a) - 1.0
 
 
 def t_from_z_analytic(z, hubble_constant=0.7, omega_matter=0.3, omega_lambda=0.7):
@@ -130,9 +128,7 @@ def t_from_z_analytic(z, hubble_constant=0.7, omega_matter=0.3, omega_lambda=0.7
 
     # Now convert from Time * H0 to time.
 
-    my_time = t0 / hubble_constant
-
-    return my_time
+    return t0 / hubble_constant
 
 
 def test_z_t_roundtrip():

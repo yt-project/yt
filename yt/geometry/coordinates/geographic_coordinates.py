@@ -319,17 +319,17 @@ class GeographicCoordinateHandler(CoordinateHandler):
             nc[:, lat] = np.cos(phi) * np.sin(theta) * r
             nc[:, lon] = np.sin(phi) * np.sin(theta) * r
             nc[:, rad] = np.cos(theta) * r
+            return nc
         else:
             a, b, c = coord
             theta = b * np.pi / 180
             phi = a * np.pi / 180
             r = factor * c + offset
-            nc = (
+            return (
                 np.cos(phi) * np.sin(theta) * r,
                 np.sin(phi) * np.sin(theta) * r,
                 np.cos(theta) * r,
             )
-        return nc
 
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
@@ -437,10 +437,10 @@ class GeographicCoordinateHandler(CoordinateHandler):
     def sanitize_width(self, axis, width, depth):
         name = self.axis_name[axis]
         if width is not None:
-            width = super().sanitize_width(axis, width, depth)
+            return super().sanitize_width(axis, width, depth)
         elif name == self.radial_axis:
             rax = self.radial_axis
-            width = [
+            return [
                 self.ds.domain_width[self.x_axis[rax]],
                 self.ds.domain_width[self.y_axis[rax]],
             ]
@@ -448,11 +448,12 @@ class GeographicCoordinateHandler(CoordinateHandler):
             ri = self.axis_id[self.radial_axis]
             # Remember, in spherical coordinates when we cut in theta,
             # we create a conic section
-            width = [2.0 * self.ds.domain_width[ri], 2.0 * self.ds.domain_width[ri]]
+            return [2.0 * self.ds.domain_width[ri], 2.0 * self.ds.domain_width[ri]]
         elif name == "longitude":
             ri = self.axis_id[self.radial_axis]
-            width = [self.ds.domain_width[ri], 2.0 * self.ds.domain_width[ri]]
-        return width
+            return [self.ds.domain_width[ri], 2.0 * self.ds.domain_width[ri]]
+
+        raise ValueError
 
 
 class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
@@ -533,12 +534,12 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
     def sanitize_width(self, axis, width, depth):
         name = self.axis_name[axis]
         if width is not None:
-            width = super(GeographicCoordinateHandler, self).sanitize_width(
+            return super(GeographicCoordinateHandler, self).sanitize_width(
                 axis, width, depth
             )
         elif name == self.radial_axis:
             rax = self.radial_axis
-            width = [
+            return [
                 self.ds.domain_width[self.x_axis[rax]],
                 self.ds.domain_width[self.y_axis[rax]],
             ]
@@ -548,10 +549,11 @@ class InternalGeographicCoordinateHandler(GeographicCoordinateHandler):
             # we create a conic section
             offset, factor = self._retrieve_radial_offset()
             outermost = factor * self.ds.domain_left_edge[ri] + offset
-            width = [2.0 * outermost, 2.0 * outermost]
+            return [2.0 * outermost, 2.0 * outermost]
         elif name == "longitude":
             ri = self.axis_id[self.radial_axis]
             offset, factor = self._retrieve_radial_offset()
             outermost = factor * self.ds.domain_left_edge[ri] + offset
-            width = [outermost, 2.0 * outermost]
-        return width
+            return [outermost, 2.0 * outermost]
+        else:
+            raise ValueError

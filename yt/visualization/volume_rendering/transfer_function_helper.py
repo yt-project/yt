@@ -207,13 +207,13 @@ class TransferFunctionHelper:
         if fn is None:
             from IPython.core.display import Image
 
-            f = BytesIO()
-            canvas.print_figure(f)
-            f.seek(0)
-            img = f.read()
-            return Image(img)
-        else:
-            fig.savefig(fn)
+            with BytesIO() as f:
+                canvas.print_figure(f)
+                f.seek(0)
+                return Image(f.read())
+
+        fig.savefig(fn)
+        return None
 
     def setup_profile(self, profile_field=None, profile_weight=None):
         if profile_field is None:

@@ -13,7 +13,6 @@ class GizmoDataset(GadgetHDF5Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ["Header"]
         veto_groups = ["FOF", "Group", "Subhalo"]
-        valid = True
         valid_fname = filename
         # If passed arg is a directory, look for the .0 file in that dir
         if os.path.isdir(filename):
@@ -27,25 +26,22 @@ class GizmoDataset(GadgetHDF5Dataset):
                     and os.path.isfile(fname)
                 ):
                     valid_files.append(fname)
-            if len(valid_files) == 0:
-                valid = False
-            elif len(valid_files) > 1:
-                valid = False
+            if len(valid_files) != 1:
+                return False
             else:
                 valid_fname = valid_files[0]
         try:
-            fh = h5py.File(valid_fname, mode="r")
-            valid = all(ng in fh["/"] for ng in need_groups) and not any(
-                vg in fh["/"] for vg in veto_groups
-            )
-            dmetal = "/PartType0/Metallicity"
-            if dmetal not in fh or fh[dmetal].shape[1] < 11:
-                valid = False
-            fh.close()
+            with h5py.File(valid_fname, mode="r") as fh:
+                dmetal = "/PartType0/Metallicity"
+                if dmetal not in fh or fh[dmetal].shape[1] < 11:
+                    return False
+
+                return all(ng in fh["/"] for ng in need_groups) and not any(
+                    vg in fh["/"] for vg in veto_groups
+                )
+
         except Exception:
-            valid = False
-            pass
-        return valid
+            return False
 
     def _set_code_unit_attributes(self):
         super()._set_code_unit_attributes()

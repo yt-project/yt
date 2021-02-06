@@ -189,19 +189,17 @@ def generate_hash(data):
     # Try to hash. Some tests return hashable types (like ndarrays) and
     # others don't (such as dictionaries)
     try:
-        hd = hashlib.md5(data).hexdigest()
+        return hashlib.md5(data).hexdigest()
         # Handle those tests that return non-hashable types. This is done
         # here instead of in the tests themselves to try and reduce boilerplate
         # and provide a central location where all of this is done in case it needs
         # to be changed
     except TypeError:
         if isinstance(data, dict):
-            hd = _hash_dict(data)
+            return _hash_dict(data)
         elif data is None:
-            hd = hashlib.md5(bytes(str(-1).encode("utf-8"))).hexdigest()
-        else:
-            raise
-    return hd
+            return hashlib.md5(bytes(str(-1).encode("utf-8"))).hexdigest()
+        raise
 
 
 def _save_result(data, output_file):
@@ -421,8 +419,7 @@ def create_obj(ds, obj_type):
     if obj_type is None:
         return ds.all_data()
     cls = getattr(ds, obj_type[0])
-    obj = cls(*obj_type[1])
-    return obj
+    return cls(*obj_type[1])
 
 
 def compare_unit_attributes(ds1, ds2):
@@ -481,8 +478,7 @@ def _create_plot_window_attribute_plot(ds, plot_type, field, axis, pkwargs=None)
     cls = getattr(pw, plot_type, None)
     if cls is None:
         cls = getattr(particle_plots, plot_type)
-    plot = cls(ds, axis, field, **pkwargs)
-    return plot
+    return cls(ds, axis, field, **pkwargs)
 
 
 def _create_phase_plot_attribute_plot(
@@ -516,8 +512,7 @@ def _create_phase_plot_attribute_plot(
     cls = getattr(profile_plotter, plot_type, None)
     if cls is None:
         cls = getattr(particle_plots, plot_type)
-    plot = cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
-    return plot
+    return cls(*(data_source, x_field, y_field, z_field), **plot_kwargs)
 
 
 def get_parameterization(fname):

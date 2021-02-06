@@ -38,8 +38,7 @@ def scale_image(image, mi=None, ma=None):
         mi = image.min()
     if ma is None:
         ma = image.max()
-    image = (np.clip((image - mi) / (ma - mi) * 255, 0, 255)).astype("uint8")
-    return image
+    return (np.clip((image - mi) / (ma - mi) * 255, 0, 255)).astype("uint8")
 
 
 def multi_image_composite(
@@ -248,8 +247,7 @@ def apply_colormap(image, color_bounds=None, cmap_name=None, func=lambda x: x):
         color_bounds = [YTQuantity(func(c), image.units) for c in color_bounds]
     image = (image - color_bounds[0]) / (color_bounds[1] - color_bounds[0])
     to_plot = map_to_colors(image, cmap_name)
-    to_plot = np.clip(to_plot, 0, 255)
-    return to_plot
+    return np.clip(to_plot, 0, 255)
 
 
 def map_to_colors(buff, cmap_name):

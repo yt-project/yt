@@ -32,10 +32,9 @@ def get_block_string_and_dim(block, min_dim=3):
 
 def get_block_level(block):
     if ":" in block:
-        l = block.find(":")
+        return block.find(":")
     else:
-        l = len(block)
-    return l
+        return len(block)
 
 
 def get_block_info(block, min_dim=3):
@@ -91,8 +90,7 @@ def get_child_index(anc_id, desc_id):
     cid = ""
     for aind, dind in zip(anc_id.split("_"), desc_id.split("_")):
         cid += dind[len(aind)]
-    cid = int(cid, 2)
-    return cid
+    return int(cid, 2)
 
 
 def is_parent(anc_block, desc_block):

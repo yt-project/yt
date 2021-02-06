@@ -46,10 +46,10 @@ def new_mesh_sampler(camera, render_source, engine):
     )
     kwargs = {"lens_type": params["lens_type"]}
     if engine == "embree":
-        sampler = mesh_traversal.EmbreeMeshSampler(*args, **kwargs)
+        return mesh_traversal.EmbreeMeshSampler(*args, **kwargs)
     elif engine == "yt":
-        sampler = bounding_volume_hierarchy.BVHMeshSampler(*args, **kwargs)
-    return sampler
+        return bounding_volume_hierarchy.BVHMeshSampler(*args, **kwargs)
+    raise ValueError(f"Unknown value passed for `engine` ({engine}).")
 
 
 def new_volume_render_sampler(camera, render_source):
@@ -83,8 +83,7 @@ def new_volume_render_sampler(camera, render_source):
         )
     else:
         kwargs["zbuffer"] = np.ones(params["image"].shape[:2], "float64")
-    sampler = VolumeRenderSampler(*args, **kwargs)
-    return sampler
+    return VolumeRenderSampler(*args, **kwargs)
 
 
 def new_interpolated_projection_sampler(camera, render_source):
@@ -108,8 +107,7 @@ def new_interpolated_projection_sampler(camera, render_source):
         kwargs["zbuffer"] = render_source.zbuffer.z
     else:
         kwargs["zbuffer"] = np.ones(params["image"].shape[:2], "float64")
-    sampler = InterpolatedProjectionSampler(*args, **kwargs)
-    return sampler
+    return InterpolatedProjectionSampler(*args, **kwargs)
 
 
 def new_projection_sampler(camera, render_source):
@@ -135,8 +133,7 @@ def new_projection_sampler(camera, render_source):
         kwargs["zbuffer"] = render_source.zbuffer.z
     else:
         kwargs["zbuffer"] = np.ones(params["image"].shape[:2], "float64")
-    sampler = ProjectionSampler(*args, **kwargs)
-    return sampler
+    return ProjectionSampler(*args, **kwargs)
 
 
 def get_corners(le, re):

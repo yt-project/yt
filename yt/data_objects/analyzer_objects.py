@@ -29,16 +29,14 @@ def analysis_task(params=None):
         params = tuple()
 
     def create_new_class(func):
-        cls = type(func.__name__, (AnalysisTask,), dict(eval=func, _params=params))
-        return cls
+        return type(func.__name__, (AnalysisTask,), dict(eval=func, _params=params))
 
     return create_new_class
 
 
 @analysis_task(("field",))
 def MaximumValue(params, data_object):
-    v = data_object.quantities["MaxLocation"](params.field)[0]
-    return v
+    return data_object.quantities["MaxLocation"](params.field)[0]
 
 
 @analysis_task()
@@ -76,8 +74,7 @@ class QuantityProxy(AnalysisTask):
         self.kwargs = kwargs
 
     def eval(self, data_object):
-        rv = data_object.quantities[self.quantity_name](*self.args, **self.kwargs)
-        return rv
+        return data_object.quantities[self.quantity_name](*self.args, **self.kwargs)
 
 
 class ParameterValue(AnalysisTask):
@@ -104,5 +101,4 @@ def create_quantity_proxy(quantity_object):
     if kwargs is not None:
         params += kwargs
     dd = dict(_params=params, quantity_name=quantity_object[0])
-    cls = type(quantity_object[0], (QuantityProxy,), dd)
-    return cls
+    return type(quantity_object[0], (QuantityProxy,), dd)

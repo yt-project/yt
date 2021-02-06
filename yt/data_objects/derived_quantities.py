@@ -22,11 +22,9 @@ def get_position_fields(field, data):
             ftype = finfo.alias_name[0]
         else:
             ftype = finfo.name[0]
-        position_fields = [(ftype, f"particle_position_{d}") for d in axis_names]
+        return [(ftype, f"particle_position_{d}") for d in axis_names]
     else:
-        position_fields = [("index", ax_name) for ax_name in axis_names]
-
-    return position_fields
+        return [("index", ax_name) for ax_name in axis_names]
 
 
 class DerivedQuantity(ParallelAnalysisInterface):
@@ -63,8 +61,7 @@ class DerivedQuantity(ParallelAnalysisInterface):
                 values[i].append(storage[key][i])
         # These will be YTArrays
         values = [self.data_source.ds.arr(values[i]) for i in range(self.num_vals)]
-        values = self.reduce_intermediate(values)
-        return values
+        return self.reduce_intermediate(values)
 
     def process_chunk(self, data, *args, **kwargs):
         raise NotImplementedError
@@ -132,7 +129,7 @@ class WeightedAverageQuantity(DerivedQuantity):
         fields = list(iter_fields(fields))
         rv = super().__call__(fields, weight)
         if len(rv) == 1:
-            rv = rv[0]
+            return rv[0]
         return rv
 
     def process_chunk(self, data, fields, weight):
@@ -171,12 +168,11 @@ class TotalQuantity(DerivedQuantity):
         fields = list(iter_fields(fields))
         rv = super().__call__(fields)
         if len(rv) == 1:
-            rv = rv[0]
+            return rv[0]
         return rv
 
     def process_chunk(self, data, fields):
-        vals = [data[field].sum(dtype=np.float64) for field in fields]
-        return vals
+        return [data[field].sum(dtype=np.float64) for field in fields]
 
     def reduce_intermediate(self, values):
         return [v.sum(dtype=np.float64) for v in values]
@@ -418,7 +414,7 @@ class WeightedStandardDeviation(DerivedQuantity):
         rv = super().__call__(fields, weight)
         rv = [self.data_source.ds.arr(v, u) for v, u in zip(rv, units)]
         if len(rv) == 1:
-            rv = rv[0]
+            return rv[0]
         return rv
 
     def process_chunk(self, data, fields, weight):
@@ -607,7 +603,7 @@ class Extrema(DerivedQuantity):
         fields = list(iter_fields(fields))
         rv = super().__call__(fields, non_zero)
         if len(rv) == 1:
-            rv = rv[0]
+            return rv[0]
         return rv
 
     def process_chunk(self, data, fields, non_zero):
@@ -664,7 +660,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
     def __call__(self, field, sample_fields):
         rv = super().__call__(field, sample_fields)
         if len(rv) == 1:
-            rv = rv[0]
+            return rv[0]
         return rv
 
     def process_chunk(self, data, field, sample_fields):
@@ -711,7 +707,7 @@ class MaxLocation(SampleAtMaxFieldValues):
         sample_fields = get_position_fields(field, self.data_source)
         rv = super().__call__(field, sample_fields)
         if len(rv) == 1:
-            rv = rv[0]
+            return rv[0]
         return rv
 
 
@@ -767,7 +763,7 @@ class MinLocation(SampleAtMinFieldValues):
         sample_fields = get_position_fields(field, self.data_source)
         rv = super().__call__(field, sample_fields)
         if len(rv) == 1:
-            rv = rv[0]
+            return rv[0]
         return rv
 
 

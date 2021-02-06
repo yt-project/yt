@@ -58,14 +58,13 @@ _arg_groups = {}
 
 def _fix_ds(arg, *args, **kwargs):
     if os.path.isdir(f"{arg}") and os.path.exists(f"{arg}/{arg}"):
-        ds = load(f"{arg}/{arg}", *args, **kwargs)
+        return load(f"{arg}/{arg}", *args, **kwargs)
     elif os.path.isdir(f"{arg}.dir") and os.path.exists(f"{arg}.dir/{arg}"):
-        ds = load(f"{arg}.dir/{arg}", *args, **kwargs)
+        return load(f"{arg}.dir/{arg}", *args, **kwargs)
     elif arg.endswith(".index"):
-        ds = load(arg[:-10], *args, **kwargs)
+        return load(arg[:-10], *args, **kwargs)
     else:
-        ds = load(arg, *args, **kwargs)
-    return ds
+        return load(arg, *args, **kwargs)
 
 
 def _add_arg(sc, arg):
@@ -1557,6 +1556,7 @@ class YTDeleteImageCmd(YTCommand):
             print("Something has gone wrong!  Here is the server response:")
             print()
             pprint.pprint(rv)
+        return None
 
 
 class YTUploadImageCmd(YTCommand):
@@ -1604,6 +1604,7 @@ class YTUploadImageCmd(YTCommand):
             print("Something has gone wrong!  Here is the server response:")
             print()
             pprint.pprint(rv)
+        return None
 
 
 class YTUploadFileCmd(YTCommand):

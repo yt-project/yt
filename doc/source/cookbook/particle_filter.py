@@ -10,20 +10,17 @@ from yt.data_objects.particle_filters import add_particle_filter
 # in the old stars filter.
 def stars_10Myr(pfilter, data):
     age = data.ds.current_time - data["Stars", "creation_time"]
-    filter = np.logical_and(age >= 0, age.in_units("Myr") < 10)
-    return filter
+    return np.logical_and(age >= 0, age.in_units("Myr") < 10)
 
 
 def stars_100Myr(pfilter, data):
     age = (data.ds.current_time - data["Stars", "creation_time"]).in_units("Myr")
-    filter = np.logical_and(age >= 10, age < 100)
-    return filter
+    return np.logical_and(age >= 10, age < 100)
 
 
 def stars_old(pfilter, data):
     age = data.ds.current_time - data["Stars", "creation_time"]
-    filter = np.logical_or(age < 0, age.in_units("Myr") >= 100)
-    return filter
+    return np.logical_or(age < 0, age.in_units("Myr") >= 100)
 
 
 # Create the particle filters

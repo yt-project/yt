@@ -121,10 +121,8 @@ class HandlerMixin:
         fname = os.path.join(
             os.path.split(ds.parameter_filename)[0], cls.fname.format(iout=iout, icpu=1)
         )
-        exists = os.path.exists(fname)
-        cls._unique_registry[ds.unique_identifier] = exists
-
-        return exists
+        cls._unique_registry[ds.unique_identifier] = os.path.exists(fname)
+        return cls._unique_registry[ds.unique_identifier]
 
 
 class FieldFileHandler(abc.ABC, HandlerMixin):

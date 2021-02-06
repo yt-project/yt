@@ -75,40 +75,36 @@ class PlotCallback:
         code_length units.  Projected data units are 2D versions of the
         simulation data units relative to the axes of the final plot.
         """
-        if len(coord) == 3:
-            if not isinstance(coord, YTArray):
-                coord = plot.data.ds.arr(coord, "code_length")
-            coord.convert_to_units("code_length")
-            ax = plot.data.axis
-            # if this is an on-axis projection or slice, then
-            # just grab the appropriate 2 coords for the on-axis view
-            if ax >= 0 and ax <= 2:
-                (xi, yi) = (
-                    plot.data.ds.coordinates.x_axis[ax],
-                    plot.data.ds.coordinates.y_axis[ax],
-                )
-                coord = (coord[xi], coord[yi])
-
-            # if this is an off-axis project or slice (ie cutting plane)
-            # we have to calculate where the data coords fall in the projected
-            # plane
-            elif ax == 4:
-                # transpose is just to get [[x1,x2,...],[y1,y2,...],[z1,z2,...]]
-                # in the same order as plot.data.center for array arithmetic
-                coord_vectors = coord.transpose() - plot.data.center
-                x = np.dot(coord_vectors, plot.data.orienter.unit_vectors[1])
-                y = np.dot(coord_vectors, plot.data.orienter.unit_vectors[0])
-                # Transpose into image coords. Due to VR being not a
-                # right-handed coord system
-                coord = (y, x)
-            else:
-                raise ValueError("Object being plot must have a `data.axis` defined")
-
-        # if the position is already two-coords, it is expected to be
-        # in the proper projected orientation
-        else:
+        if len(coord) != 3:
+            # if the position is already two-coords, it is expected to be
+            # in the proper projected orientation
             raise ValueError("'data' coordinates must be 3 dimensions")
-        return coord
+        if not isinstance(coord, YTArray):
+            coord = plot.data.ds.arr(coord, "code_length")
+        coord.convert_to_units("code_length")
+        ax = plot.data.axis
+        # if this is an on-axis projection or slice, then
+        # just grab the appropriate 2 coords for the on-axis view
+        if ax >= 0 and ax <= 2:
+            (xi, yi) = (
+                plot.data.ds.coordinates.x_axis[ax],
+                plot.data.ds.coordinates.y_axis[ax],
+            )
+            return (coord[xi], coord[yi])
+
+        # if this is an off-axis project or slice (ie cutting plane)
+        # we have to calculate where the data coords fall in the projected
+        # plane
+        elif ax == 4:
+            # transpose is just to get [[x1,x2,...],[y1,y2,...],[z1,z2,...]]
+            # in the same order as plot.data.center for array arithmetic
+            coord_vectors = coord.transpose() - plot.data.center
+            x = np.dot(coord_vectors, plot.data.orienter.unit_vectors[1])
+            y = np.dot(coord_vectors, plot.data.orienter.unit_vectors[0])
+            # Transpose into image coords. Due to VR being not a
+            # right-handed coord system
+            return (y, x)
+        raise ValueError("Object being plot must have a `data.axis` defined")
 
     def _convert_to_plot(self, plot, coord, offset=True):
         """

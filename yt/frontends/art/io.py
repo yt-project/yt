@@ -74,9 +74,7 @@ class IOHandlerART(BaseIOHandler):
         mask = selector.select_points(x, y, z, 0.0)
         if self.caching:
             self.masks[key] = mask
-            return self.masks[key]
-        else:
-            return mask
+        return mask  # noqa R504
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
@@ -352,8 +350,7 @@ def _read_art_level_info(
     # try to find the root_level first
     def cfc(root_level, level, le):
         d_x = 1.0 / (2.0 ** (root_level - level + 1))
-        fc = (d_x * le) - 2 ** (level - 1)
-        return fc
+        return (d_x * le) - 2 ** (level - 1)
 
     if root_level is None:
         root_level = np.floor(np.log2(le.max() * 1.0 / coarse_grid))
@@ -559,8 +556,7 @@ def _read_root_level(f, level_offsets, level_info, nhydro_vars=10):
     var = read_vector(f, "f", ">")
     hvar = hvar.reshape((nhydro_vars, nocts * 8), order="F")
     var = var.reshape((2, nocts * 8), order="F")
-    arr = np.concatenate((hvar, var))
-    return arr
+    return np.concatenate((hvar, var))
 
 
 # All of these functions are to convert from hydro time var to
@@ -586,8 +582,7 @@ def find_root(f, a, b, tol=1e-6):
 def quad(fintegrand, xmin, xmax, n=1e4):
     spacings = np.logspace(np.log10(xmin), np.log10(xmax), num=int(n))
     integrand_arr = fintegrand(spacings)
-    val = np.trapz(integrand_arr, dx=np.diff(spacings))
-    return val
+    return np.trapz(integrand_arr, dx=np.diff(spacings))
 
 
 def a2b(at, Om0=0.27, Oml0=0.73, h=0.700):
@@ -596,9 +591,7 @@ def a2b(at, Om0=0.27, Oml0=0.73, h=0.700):
         val /= sqrt(Om0 / x ** 3.0 + Oml0 + (1.0 - Om0 - Oml0) / x ** 2.0)
         return val
 
-    # val, err = si.quad(f_a2b,1,at)
-    val = quad(f_a2b, 1, at)
-    return val
+    return quad(f_a2b, 1, at)
 
 
 def b2a(bt, **kwargs):

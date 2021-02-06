@@ -613,9 +613,8 @@ class OffAxisProjectionFixedResolutionBuffer(FixedResolutionBuffer):
             north_vector=dd.north_vector,
             method=dd.method,
         )
-        ia = ImageArray(buff.swapaxes(0, 1), info=self._get_info(item))
-        self[item] = ia
-        return ia
+        self[item] = ImageArray(buff.swapaxes(0, 1), info=self._get_info(item))
+        return self[item]
 
 
 class ParticleImageBuffer(FixedResolutionBuffer):

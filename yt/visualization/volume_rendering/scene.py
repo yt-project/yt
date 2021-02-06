@@ -221,9 +221,8 @@ class Scene:
             camera = self.camera
         assert camera is not None
         self._validate()
-        bmp = self.composite(camera=camera)
-        self._last_render = bmp
-        return bmp
+        self._last_render = self.composite(camera=camera)
+        return self._last_render
 
     def _render_on_demand(self, render):
         # checks for existing render before rendering, in most cases we want to
@@ -478,9 +477,7 @@ class Scene:
             del nz
         else:
             nim = im
-        axim = ax.imshow(nim[:, :, :3] / nim[:, :, :3].max(), interpolation="bilinear")
-
-        return axim
+        return ax.imshow(nim[:, :, :3] / nim[:, :, :3].max(), interpolation="bilinear")
 
     def _annotate(self, ax, tf, source, label="", label_fmt=None):
         ax.get_xaxis().set_visible(False)
@@ -943,7 +940,7 @@ class Scene:
             filename=None, sigma_clip=self._sigma_clip, background="black"
         )
         self._sigma_clip = None
-        return png
+        return png  # noqa 504
 
     def __repr__(self):
         disp = "<Scene Object>:"

@@ -21,12 +21,12 @@ class ConfigNode:
 
     def get_child(self, key, constructor=None):
         if key in self.children:
-            child = self.children[key]
+            return self.children[key]
         elif constructor is not None:
-            child = self.children[key] = constructor()
+            self.children[key] = constructor()
+            return self.children[key]
         else:
             raise KeyError(f"Cannot get key {key}")
-        return child
 
     def add_child(self, key):
         self.get_child(key, lambda: ConfigNode(key, parent=self))

@@ -72,11 +72,10 @@ class EnzoGrid(AMRGridPatch):
         if not hasattr(self.index, "grid_active_particle_count"):
             return {}
         id = self.id - self._id_offset
-        nap = {
+        return {
             ptype: self.index.grid_active_particle_count[ptype][id]
             for ptype in self.index.grid_active_particle_count
         }
-        return nap
 
 
 class EnzoGridInMemory(EnzoGrid):
@@ -222,6 +221,7 @@ class EnzoHierarchy(GridIndex):
             for line in f:
                 if line.startswith(token):
                     return line.split()[2:]
+            raise ValueError
 
         pattern = r"Pointer: Grid\[(\d*)\]->NextGrid(Next|This)Level = (\d*)\s+$"
         patt = re.compile(pattern)

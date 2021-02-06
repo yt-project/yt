@@ -359,8 +359,7 @@ class GridIndex(Index, abc.ABC):
             return fast_index.count(dobj.selector)
         if grids is None:
             grids = dobj._chunk_info
-        count = sum(g.count(dobj.selector) for g in grids)
-        return count
+        return sum(g.count(dobj.selector) for g in grids)
 
     def _chunk_all(self, dobj, cache=True, fast_index=None):
         gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)

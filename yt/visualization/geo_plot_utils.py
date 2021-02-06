@@ -104,5 +104,5 @@ def get_mpl_transform(mpl_proj):
     # build in a check that if none of the above options are satisfied by what
     # the user passes that None is returned for the instantiated function
     if key is None:
-        instantiated_func = None
-    return instantiated_func
+        return None
+    return instantiated_func  # noqa R504

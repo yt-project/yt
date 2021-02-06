@@ -71,13 +71,11 @@ class IOCommunicator(BaseIOHandler):
             # because this gets upcast to float
             return np.array([], dtype="float64")
         try:
-            temp = self.ds.index.io._read_data_set(g, f)
+            return self.ds.index.io._read_data_set(g, f)
         except Exception:  # self.ds.index.io._read_exception as exc:
             if fi.not_in_all:
-                temp = np.zeros(g.ActiveDimensions, dtype="float64")
-            else:
-                raise
-        return temp
+                return np.zeros(g.ActiveDimensions, dtype="float64")
+            raise
 
     def wait(self):
         status = MPI.Status()

@@ -596,8 +596,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             validate_width_tuple(width)
             if is_sequence(resolution):
                 resolution = max(resolution)
-            frb = CylindricalFixedResolutionBuffer(self, width, resolution)
-            return frb
+            return CylindricalFixedResolutionBuffer(self, width, resolution)
 
         if center is None:
             center = self.center
@@ -632,8 +631,7 @@ class YTSelectionContainer2D(YTSelectionContainer):
             center[yax] - height * 0.5,
             center[yax] + height * 0.5,
         )
-        frb = FixedResolutionBuffer(self, bounds, resolution, periodic=periodic)
-        return frb
+        return FixedResolutionBuffer(self, bounds, resolution, periodic=periodic)
 
 
 class YTSelectionContainer3D(YTSelectionContainer):
@@ -687,10 +685,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         if locals is None:
             locals = {}
-        cr = self.ds.cut_region(
+        return self.ds.cut_region(
             self, field_cuts, field_parameters=field_parameters, locals=locals
         )
-        return cr
 
     def _build_operator_cut(self, operation, field, value, units=None):
         """
@@ -902,8 +899,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
                 f'(obj["{ftype}", "{fname}"].in_units("{units}") <= {min_value}) | '
                 f'(obj["{ftype}", "{fname}"].in_units("{units}") >= {max_value})'
             )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self.cut_region(field_cuts)
 
     def include_inside(self, field, min_value, max_value, units=None):
         """
@@ -946,8 +942,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
                 f'(obj["{ftype}", "{fname}"].in_units("{units}") > {min_value}) & '
                 f'(obj["{ftype}", "{fname}"].in_units("{units}") < {max_value})'
             )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self.cut_region(field_cuts)
 
     def exclude_outside(self, field, min_value, max_value, units=None):
         """
@@ -979,8 +974,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
         cr = self.exclude_below(field, min_value, units)
-        cr = cr.exclude_above(field, max_value, units)
-        return cr
+        return cr.exclude_above(field, max_value, units)
 
     def include_outside(self, field, min_value, max_value, units=None):
         """
@@ -1012,8 +1006,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.exclude_outside(("gas", "temperature"), 1e5, 1e6)
         >>> print(cr.quantities.total_quantity(("gas", "cell_mass")).in_units("Msun"))
         """
-        cr = self.exclude_inside(field, min_value, max_value, units)
-        return cr
+        return self.exclude_inside(field, min_value, max_value, units)
 
     def exclude_below(self, field, value, units=None):
         """
@@ -1211,10 +1204,9 @@ class YTSelectionContainer3D(YTSelectionContainer):
         except KeyError:
             svals = None
 
-        my_verts = march_cubes_grid(
+        return march_cubes_grid(
             value, vc_data[field], mask, grid.LeftEdge, grid.dds, svals
         )
-        return my_verts
 
     def calculate_isocontour_flux(
         self, field, value, field_x, field_y, field_z, fluxing_field=None
@@ -1289,8 +1281,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
             flux += self._calculate_flux_in_grid(
                 block, mask, field, value, field_x, field_y, field_z, fluxing_field
             )
-        flux = self.comm.mpi_allreduce(flux, op="sum")
-        return flux
+        return self.comm.mpi_allreduce(flux, op="sum")
 
     def _calculate_flux_in_grid(
         self, grid, mask, field, value, field_x, field_y, field_z, fluxing_field=None

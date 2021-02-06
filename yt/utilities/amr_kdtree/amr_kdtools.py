@@ -41,5 +41,4 @@ def send_to_parent(comm, outgoing_rank, image):
 
 def scatter_image(comm, root, image):
     mylog.debug("Scattering from %04i", root)
-    image = comm.mpi_bcast(image, root=root)
-    return image
+    return comm.mpi_bcast(image, root=root)

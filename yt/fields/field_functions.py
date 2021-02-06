@@ -33,11 +33,9 @@ def get_radius(data, field_prefix, ftype):
         np.add(radius2, r, radius2)
         if data.ds.dimensionality < i + 1:
             break
-    # Now it's cm.
-    np.sqrt(radius2, radius2)
-    # Alias it, just for clarity.
-    radius = radius2
-    return radius
+
+    np.sqrt(radius2, r)
+    return r
 
 
 def get_periodic_rvec(data):

@@ -61,8 +61,7 @@ class ParticleContainer(YTSelectionContainer):
         raise YTDataSelectorNotImplemented(self.oc_type_name)
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x, y, z)
-        return mask
+        return selector.select_points(x, y, z)
 
     @contextlib.contextmanager
     def _expand_data_files(self):

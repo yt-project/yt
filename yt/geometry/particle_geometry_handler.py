@@ -382,6 +382,7 @@ class ParticleIndex(Index):
                 data = fh.read(size)
                 ret.extend(data)
             return fnv_hash(ret)
+        raise RuntimeError
 
     def _initialize_frontend_specific(self):
         """This is for frontend-specific initialization code

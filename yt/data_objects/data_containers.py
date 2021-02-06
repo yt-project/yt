@@ -2,6 +2,7 @@ import os
 import weakref
 from collections import defaultdict
 from contextlib import contextmanager
+from typing import List, Union
 
 import numpy as np
 
@@ -26,19 +27,17 @@ from yt.utilities.parameter_file_storage import ParameterFileStore
 
 
 def sanitize_weight_field(ds, field, weight):
+    if weight is not None:
+        return weight
+
     field_object = ds._get_field_info(field)
-    if weight is None:
-        if field_object.sampling_type == "particle":
-            if field_object.name[0] == "gas":
-                ptype = ds._sph_ptypes[0]
-            else:
-                ptype = field_object.name[0]
-            weight_field = (ptype, "particle_ones")
+    if field_object.sampling_type == "particle":
+        if field_object.name[0] == "gas":
+            ptype = ds._sph_ptypes[0]
         else:
-            weight_field = ("index", "ones")
-    else:
-        weight_field = weight
-    return weight_field
+            ptype = field_object.name[0]
+        return (ptype, "particle_ones")
+    return ("index", "ones")
 
 
 def _get_ipython_key_completion(ds):
@@ -261,14 +260,13 @@ class YTDataContainer:
         # Note that this is less succinct so that we can account for the case
         # when there are, for example, no elements in the object.
         try:
-            rv = self.field_data[f]
+            return self.field_data[f]
         except KeyError:
             if isinstance(f, tuple):
                 fi = self.ds._get_field_info(*f)
             elif isinstance(f, bytes):
                 fi = self.ds._get_field_info("unknown", f)
-            rv = self.ds.arr(self.field_data[key], fi.units)
-        return rv
+            return self.ds.arr(self.field_data[key], fi.units)
 
     def _ipython_key_completions_(self):
         return _get_ipython_key_completion(self.ds)
@@ -313,24 +311,26 @@ class YTDataContainer:
         try:
             finfo.check_available(gen_obj)
         except NeedsGridType as ngt_exception:
-            rv = self._generate_spatial_fluid(field, ngt_exception.ghost_zones)
+            return self._generate_spatial_fluid(field, ngt_exception.ghost_zones)
         else:
-            rv = finfo(gen_obj)
-        return rv
+            return finfo(gen_obj)
 
-    def _generate_spatial_fluid(self, field, ngz):
+    def _generate_spatial_fluid(
+        self, field, ngz
+    ) -> Union[List[np.ndarray], np.ndarray]:
         finfo = self.ds._get_field_info(*field)
         if finfo.units is None:
             raise YTSpatialFieldUnitError(field)
         units = finfo.units
         try:
-            rv = self.ds.arr(np.zeros(self.ires.size, dtype="float64"), units)
+            arr = self.ds.arr(np.zeros(self.ires.size, dtype="float64"), units)
             accumulate = False
         except YTNonIndexedDataContainer:
             # In this case, we'll generate many tiny arrays of unknown size and
             # then concatenate them.
             outputs = []
             accumulate = True
+
         ind = 0
         if ngz == 0:
             deps = self._identify_dependencies([field], spatial=True)
@@ -339,12 +339,12 @@ class YTDataContainer:
                 for _chunk in self.chunks([], "spatial", ngz=0, preload_fields=deps):
                     o = self._current_chunk.objs[0]
                     if accumulate:
-                        rv = self.ds.arr(np.empty(o.ires.size, dtype="float64"), units)
-                        outputs.append(rv)
+                        arr = self.ds.arr(np.empty(o.ires.size, dtype="float64"), units)
+                        outputs.append(arr)
                         ind = 0  # Does this work with mesh?
                     with o._activate_cache():
                         ind += o.select(
-                            self.selector, source=self[field], dest=rv, offset=ind
+                            self.selector, source=self[field], dest=arr, offset=ind
                         )
         else:
             chunks = self.index._chunk(self, "spatial", ngz=ngz)
@@ -354,19 +354,19 @@ class YTDataContainer:
                     gz.field_parameters = self.field_parameters
                     wogz = gz._base_grid
                     if accumulate:
-                        rv = self.ds.arr(
+                        arr = self.ds.arr(
                             np.empty(wogz.ires.size, dtype="float64"), units
                         )
-                        outputs.append(rv)
+                        outputs.append(arr)
                     ind += wogz.select(
                         self.selector,
                         source=gz[field][ngz:-ngz, ngz:-ngz, ngz:-ngz],
-                        dest=rv,
+                        dest=arr,
                         offset=ind,
                     )
         if accumulate:
-            rv = uconcatenate(outputs)
-        return rv
+            return uconcatenate(outputs)
+        return arr
 
     def _generate_particle_field(self, field):
         # First we check the validator
@@ -400,7 +400,7 @@ class YTDataContainer:
                     ind += data.size
         else:
             with self._field_type_state(ftype, finfo, gen_obj):
-                rv = self.ds._get_field_info(*field)(gen_obj)
+                return self.ds._get_field_info(*field)(gen_obj)
         return rv
 
     def _count_particles(self, ftype):
@@ -526,8 +526,7 @@ class YTDataContainer:
         fields = self._determine_fields(fields)
         for field in fields:
             data[field[-1]] = self[field]
-        df = pd.DataFrame(data)
-        return df
+        return pd.DataFrame(data)
 
     def to_astropy_table(self, fields):
         """
@@ -1024,10 +1023,9 @@ class YTDataContainer:
                 return rv[0]
             return rv
         elif axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, method="mip")
-            return r
-        else:
-            raise NotImplementedError(f"Unknown axis {axis}")
+            return self.ds.proj(field, axis, data_source=self, method="mip")
+
+        raise NotImplementedError(f"Unknown axis {axis}")
 
     def min(self, field, axis=None):
         r"""Compute the minimum of a field.
@@ -1183,7 +1181,7 @@ class YTDataContainer:
         >>> print(profile["gas", "temperature"])
         >>> plot = profile.plot()
         """
-        p = create_profile(
+        return create_profile(
             self,
             bin_fields,
             fields,
@@ -1196,7 +1194,6 @@ class YTDataContainer:
             fractional,
             deposition,
         )
-        return p
 
     def mean(self, field, axis=None, weight=None):
         r"""Compute the mean of a field, optionally along an axis, with a
@@ -1232,12 +1229,12 @@ class YTDataContainer:
         """
         weight_field = sanitize_weight_field(self.ds, field, weight)
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, weight_field=weight_field)
+            return self.ds.proj(
+                field, axis, data_source=self, weight_field=weight_field
+            )
         elif axis is None:
-            r = self.quantities.weighted_average_quantity(field, weight_field)
-        else:
-            raise NotImplementedError(f"Unknown axis {axis}")
-        return r
+            return self.quantities.weighted_average_quantity(field, weight_field)
+        raise NotImplementedError(f"Unknown axis {axis}")
 
     def sum(self, field, axis=None):
         r"""Compute the sum of a field, optionally along an axis.
@@ -1269,12 +1266,11 @@ class YTDataContainer:
         # function.
         if axis in self.ds.coordinates.axis_name:
             with self._field_parameter_state({"axis": axis}):
-                r = self.ds.proj(field, axis, data_source=self, method="sum")
+                return self.ds.proj(field, axis, data_source=self, method="sum")
         elif axis is None:
-            r = self.quantities.total_quantity(field)
-        else:
-            raise NotImplementedError(f"Unknown axis {axis}")
-        return r
+            return self.quantities.total_quantity(field)
+
+        raise NotImplementedError(f"Unknown axis {axis}")
 
     def integrate(self, field, weight=None, axis=None):
         r"""Compute the integral (projection) of a field along an axis.
@@ -1304,10 +1300,11 @@ class YTDataContainer:
         else:
             weight_field = None
         if axis in self.ds.coordinates.axis_name:
-            r = self.ds.proj(field, axis, data_source=self, weight_field=weight_field)
-        else:
-            raise NotImplementedError(f"Unknown axis {axis}")
-        return r
+            return self.ds.proj(
+                field, axis, data_source=self, weight_field=weight_field
+            )
+
+        raise NotImplementedError(f"Unknown axis {axis}")
 
     @property
     def _hash(self):

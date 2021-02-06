@@ -167,7 +167,7 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def _ortho_pixelize(
         self, data_source, field, bounds, size, antialias, dim, periodic
     ):
-        buff = pixelize_aitoff(
+        return pixelize_aitoff(
             data_source["py"],
             data_source["pdy"],
             data_source["px"],
@@ -179,7 +179,6 @@ class SphericalCoordinateHandler(CoordinateHandler):
             theta_offset=0,
             phi_offset=0,
         ).transpose()
-        return buff
 
     def _cyl_pixelize(self, data_source, field, bounds, size, antialias, dimension):
         name = self.axis_name[dimension]
@@ -226,14 +225,14 @@ class SphericalCoordinateHandler(CoordinateHandler):
             nc[:, ri] = np.cos(phi) * np.sin(theta) * r
             nc[:, thetai] = np.sin(phi) * np.sin(theta) * r
             nc[:, phii] = np.cos(theta) * r
+            return nc
         else:
             r, theta, phi = coord
-            nc = (
+            return (
                 np.cos(phi) * np.sin(theta) * r,
                 np.sin(phi) * np.sin(theta) * r,
                 np.cos(theta) * r,
             )
-        return nc
 
     def convert_to_cylindrical(self, coord):
         raise NotImplementedError
@@ -300,9 +299,9 @@ class SphericalCoordinateHandler(CoordinateHandler):
     def sanitize_width(self, axis, width, depth):
         name = self.axis_name[axis]
         if width is not None:
-            width = super().sanitize_width(axis, width, depth)
+            return super().sanitize_width(axis, width, depth)
         elif name == "r":
-            width = [
+            return [
                 self.ds.domain_width[self.x_axis["r"]],
                 self.ds.domain_width[self.y_axis["r"]],
             ]
@@ -310,11 +309,11 @@ class SphericalCoordinateHandler(CoordinateHandler):
             ri = self.axis_id["r"]
             # Remember, in spherical coordinates when we cut in theta,
             # we create a conic section
-            width = [2.0 * self.ds.domain_width[ri], 2.0 * self.ds.domain_width[ri]]
+            return [2.0 * self.ds.domain_width[ri], 2.0 * self.ds.domain_width[ri]]
         elif name == "phi":
             ri = self.axis_id["r"]
-            width = [self.ds.domain_right_edge[ri], 2.0 * self.ds.domain_width[ri]]
-        return width
+            return [self.ds.domain_right_edge[ri], 2.0 * self.ds.domain_width[ri]]
+        raise ValueError
 
     def _sanity_check(self):
         """This prints out a handful of diagnostics that help verify the

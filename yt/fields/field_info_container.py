@@ -357,7 +357,7 @@ class FieldInfoContainer(dict):
                     return f
 
                 return create_function
-            return
+            return None
         # add_field can be used in two different ways: it can be called
         # directly, or used as a decorator (as yt.derived_field). If called directly,
         # the function will be passed in as an argument, and we simply create
@@ -375,7 +375,7 @@ class FieldInfoContainer(dict):
 
         if isinstance(name, tuple):
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
-            return
+            return None
 
         sampling_type = self._sanitize_sampling_type(
             sampling_type, particle_type=kwargs.get("particle_type")
@@ -394,6 +394,7 @@ class FieldInfoContainer(dict):
             self.alias(name, tuple_name)
         else:
             self[name] = DerivedField(name, sampling_type, function, **kwargs)
+        return None
 
     def load_all_plugins(self, ftype="gas"):
         loaded = []
@@ -409,8 +410,7 @@ class FieldInfoContainer(dict):
             f = field_plugins[plugin_name]
         orig = set(self.items())
         f(self, ftype, slice_info=self.slice_info)
-        loaded = [n for n, v in set(self.items()).difference(orig)]
-        return loaded
+        return [n for n, v in set(self.items()).difference(orig)]
 
     def find_dependencies(self, loaded):
         deps, unavailable = self.check_derived_fields(loaded)

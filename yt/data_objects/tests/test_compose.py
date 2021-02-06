@@ -22,8 +22,7 @@ def _IDFIELD(field, data):
     xi = x / min_dx
     yi = y / min_dx
     zi = z / min_dx
-    index = xi + delta[0] * (yi + delta[1] * zi)
-    return index
+    return xi + delta[0] * (yi + delta[1] * zi)
 
 
 def test_compose_no_overlap():

@@ -46,23 +46,20 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
     def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ["Header", "Config"]
         veto_groups = ["FOF", "Group", "Subhalo"]
-        valid = True
         try:
-            fh = h5py.File(filename, mode="r")
-            valid = (
-                all(ng in fh["/"] for ng in need_groups)
-                and not any(vg in fh["/"] for vg in veto_groups)
-                and (
-                    "VORONOI" in fh["/Config"].attrs.keys()
-                    or "AMR" in fh["/Config"].attrs.keys()
+            with h5py.File(filename, mode="r") as fh:
+                return (
+                    all(ng in fh["/"] for ng in need_groups)
+                    and not any(vg in fh["/"] for vg in veto_groups)
+                    and (
+                        "VORONOI" in fh["/Config"].attrs.keys()
+                        or "AMR" in fh["/Config"].attrs.keys()
+                    )
+                    # Datasets with GFM_ fields present are AREPO
+                    or any(field.startswith("GFM_") for field in fh["/PartType0"])
                 )
-                # Datasets with GFM_ fields present are AREPO
-                or any(field.startswith("GFM_") for field in fh["/PartType0"])
-            )
-            fh.close()
         except Exception:
-            valid = False
-        return valid
+            return False
 
     def _get_uvals(self):
         handle = h5py.File(self.parameter_filename, mode="r")
@@ -81,7 +78,7 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
                 missing[i] = True
         handle.close()
         if all(missing):
-            uvals = None
+            return None
         return uvals
 
     def _set_code_unit_attributes(self):

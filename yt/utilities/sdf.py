@@ -47,12 +47,11 @@ def _get_type(vtype, tlen=None):
     try:
         t = _types[vtype]
         if tlen is not None:
-            t = np.dtype((t, tlen))
+            return np.dtype((t, tlen))
         else:
-            t = np.dtype(t)
+            return np.dtype(t)
     except KeyError:
-        t = eval("np." + vtype)
-    return t
+        return eval("np." + vtype)
 
 
 def _lstrip(text_list):
@@ -537,10 +536,9 @@ def load_sdf(filename, header=None):
 
     """
     if "http" in filename:
-        sdf = HTTPSDFRead(filename, header=header)
+        return HTTPSDFRead(filename, header=header)
     else:
-        sdf = SDFRead(filename, header=header)
-    return sdf
+        return SDFRead(filename, header=header)
 
 
 def _shift_periodic(pos, left, right, domain_width):
@@ -856,10 +854,9 @@ class SDFIndex:
         # indices = np.array([self.get_key_ijk(x, y, z) for x, y, z in zip(X, Y, Z)])
         # Here we sort the indices to batch consecutive reads together.
         if self.wandering_particles:
-            indices = np.sort(np.append(indices, dinds))
+            return np.sort(np.append(indices, dinds))
         else:
-            indices = np.sort(indices)
-        return indices
+            return np.sort(indices)
 
     def get_bbox(self, left, right):
         """
@@ -1219,16 +1216,14 @@ class SDFIndex:
         return lmax_lk, lmax_rk
 
     def find_max_cell(self):
-        max_cell = np.argmax(self.indexdata["len"][:])
-        return max_cell
+        return np.argmax(self.indexdata["len"][:])
 
     def find_max_cell_center(self):
         max_cell = self.find_max_cell()
         cell_ijk = np.array(
             self.get_ind_from_key(self.indexdata["index"][max_cell]), dtype="int64"
         )
-        position = (cell_ijk + 0.5) * (self.domain_width / self.domain_dims) + self.rmin
-        return position
+        return (cell_ijk + 0.5) * (self.domain_width / self.domain_dims) + self.rmin
 
     def get_cell_data(self, level, cell_iarr, fields):
         """

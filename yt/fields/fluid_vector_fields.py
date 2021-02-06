@@ -209,8 +209,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             dot += (
                 data[ftype, f"vorticity_{ax}"] * data[ftype, f"vorticity_growth_{ax}"]
             ).to_ndarray()
-        result = np.sign(dot) * result
-        return result
+        return np.sign(dot) * result
 
     registry.add_field(
         (ftype, "vorticity_growth_magnitude"),
@@ -350,8 +349,7 @@ def setup_fluid_vector_fields(registry, ftype="gas", slice_info=None):
             dot += (
                 data[ftype, f"vorticity_{ax}"] * data[ftype, f"vorticity_growth_{ax}"]
             ).to_ndarray()
-        result = np.sign(dot) * result
-        return result
+        return np.sign(dot) * result
 
     registry.add_field(
         (ftype, "vorticity_radiation_pressure_growth_magnitude"),

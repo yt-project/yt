@@ -33,8 +33,7 @@ class AHFHalosFile(HaloCatalogFile):
             line = line[1:]
             names = line.split()
             # Remove trailing '()'
-            names = [name.split("(")[0] for name in names]
-            return names
+            return [name.split("(")[0] for name in names]
 
     def _read_particle_positions(self, ptype, f=None):
         """

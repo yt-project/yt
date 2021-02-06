@@ -112,8 +112,7 @@ class YTSlice(YTSelectionContainer2D):
         object, which can then be moved around, zoomed, and on and on.  All
         behavior of the plot window is relegated to that routine.
         """
-        pw = self._get_pw(fields, center, width, origin, "Slice")
-        return pw
+        return self._get_pw(fields, center, width, origin, "Slice")
 
     def plot(self, fields=None):
         if hasattr(self._data_source, "left_edge") and hasattr(
@@ -366,5 +365,4 @@ class YTCuttingPlane(YTSelectionContainer2D):
         from yt.visualization.fixed_resolution import FixedResolutionBuffer
 
         bounds = (-width / 2.0, width / 2.0, -height / 2.0, height / 2.0)
-        frb = FixedResolutionBuffer(self, bounds, resolution, periodic=periodic)
-        return frb
+        return FixedResolutionBuffer(self, bounds, resolution, periodic=periodic)

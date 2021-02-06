@@ -978,7 +978,7 @@ class OrionHierarchy(BoxlibHierarchy):
     def _read_particle_file(self, fn):
         """actually reads the orion particle data file itself."""
         if not os.path.exists(fn):
-            return
+            return None
         with open(fn) as f:
             lines = f.readlines()
             self.num_stars = int(lines[0].strip()[0])
@@ -1354,7 +1354,7 @@ def _guess_pcast(vals):
     else:
         vals = [pcast(value) for value in vals.split()]
     if len(vals) == 1:
-        vals = vals[0]
+        return vals[0]
     return vals
 
 
@@ -1518,15 +1518,8 @@ class WarpXHierarchy(BoxlibHierarchy):
             self.ds.nodal_flags[field_name] = np.array(boxes[0][2])
 
 
-def _skip_line(line):
-    if len(line) == 0:
-        return True
-    if line[0] == "\n":
-        return True
-    if line[0] == "=":
-        return True
-    if line[0] == " ":
-        return True
+def _skip_line(line: str) -> bool:
+    return not line or line.startswith(("\n", "=", " "))
 
 
 class WarpXDataset(BoxlibDataset):

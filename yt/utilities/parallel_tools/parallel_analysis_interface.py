@@ -90,7 +90,7 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     except ImportError:
         mylog.info("mpi4py was not found. Disabling parallel computation")
         parallel_capable = False
-        return
+        return None
     MPI = _MPI
     exe_name = os.path.basename(sys.executable)
 
@@ -153,6 +153,7 @@ def get_mpi_type(dtype):
     for dt, val in dtype_names.items():
         if dt == dtype:
             return val
+    raise ValueError
 
 
 class ObjectIterator:
@@ -245,8 +246,7 @@ def parallel_simple_proxy(func):
         # To be sure we utilize the root= kwarg, we manually access the .comm
         # attribute, which must be an instance of MPI.Intracomm, and call bcast
         # on that.
-        retval = comm.comm.bcast(retval, root=self._owner)
-        return retval
+        return comm.comm.bcast(retval, root=self._owner)
 
     return single_proc_results
 
@@ -289,10 +289,9 @@ def parallel_passthrough(func):
 
 def _get_comm(args):
     if len(args) > 0 and hasattr(args[0], "comm"):
-        comm = args[0].comm
-    else:
-        comm = communication_system.communicators[-1]
-    return comm
+        return args[0].comm
+
+    return _reconstruct_communicator()
 
 
 def parallel_blocking_call(func):
@@ -310,7 +309,7 @@ def parallel_blocking_call(func):
         retval = func(*args, **kwargs)
         mylog.debug("Entering barrier after %s", func.__name__)
         comm.barrier()
-        return retval
+        return retval  # noqa R504
 
     return barrierize
 
@@ -326,11 +325,11 @@ def parallel_root_only(func):
         if not parallel_capable:
             return func(*args, **kwargs)
         comm = _get_comm(args)
-        rv = None
+
         if comm.rank == 0:
             try:
-                rv = func(*args, **kwargs)
                 all_clear = 1
+                return func(*args, **kwargs)
             except Exception:
                 traceback.print_last()
                 all_clear = 0
@@ -339,7 +338,7 @@ def parallel_root_only(func):
         all_clear = comm.mpi_bcast(all_clear)
         if not all_clear:
             raise RuntimeError
-        return rv
+        return None
 
     return root_only
 
@@ -721,7 +720,6 @@ class Communicator:
         mine, statuses = self.mpi_info_dict(data)
         if True in statuses.values():
             raise RuntimeError("Fatal error. Exiting.")
-        return None
 
     @parallel_passthrough
     def par_combine_object(self, data, op, datatype=None):
@@ -852,8 +850,7 @@ class Communicator:
             return data
         else:
             # Use pickled methods.
-            data = self.comm.bcast(data, root=root)
-            return data
+            return self.comm.bcast(data, root=root)
 
     def preload(self, grids, fields, io_handler):
         # This is non-functional.
@@ -1101,8 +1098,7 @@ class Communicator:
                 recv.append(
                     self.alltoallv_array(send[i, :].copy(), total_size, offsets, sizes)
                 )
-            recv = np.array(recv)
-            return recv
+            return np.array(recv)
         offset = offsets[self.comm.rank]
         tmp_send = send.view(self.__tocast)
         recv = np.empty(total_size, dtype=send.dtype)

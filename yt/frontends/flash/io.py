@@ -26,10 +26,9 @@ def determine_particle_fields(handle):
         particle_fields = [
             s[0].decode("ascii", "ignore").strip() for s in handle["/particle names"][:]
         ]
-        _particle_fields = {"particle_" + s: i for i, s in enumerate(particle_fields)}
+        return {"particle_" + s: i for i, s in enumerate(particle_fields)}
     except KeyError:
-        _particle_fields = {}
-    return _particle_fields
+        return {}
 
 
 class IOHandlerFLASH(BaseIOHandler):

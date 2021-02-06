@@ -29,8 +29,7 @@ class ExtractConnectedSetsTest(AnswerTestingTest):
                         all_sets[level][set_id]["cell_mass"].sum(),
                     ]
                 )
-        result = np.array(result)
-        return result
+        return np.array(result)
 
     def compare(self, new_result, old_result):
         err_msg = f"Size and/or mass of connected sets do not agree for {self.ds_fn}."

@@ -36,7 +36,7 @@ def invalidate_profile(f):
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._profile_valid = False
-        return rv
+        return rv  # noqa 504
 
     return newfunc
 
@@ -735,12 +735,11 @@ class ProfilePlot:
             field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
         if fractional:
-            label = field_name + r"$\rm{\ Probability\ Density}$"
+            return field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
-            label = field_name
+            return field_name
         else:
-            label = field_name + r"$\ \ (" + field_unit + r")$"
-        return label
+            return field_name + r"$\ \ (" + field_unit + r")$"
 
     def _get_field_title(self, field_y, profile):
         field_x = profile.x_field
@@ -1023,12 +1022,11 @@ class PhasePlot(ImagePlotContainer):
             field_name = field_name.replace(" ", r"\ ")
             field_name = r"$\rm{" + field_name + r"}$"
         if fractional:
-            label = field_name + r"$\rm{\ Probability\ Density}$"
+            return field_name + r"$\rm{\ Probability\ Density}$"
         elif field_unit is None or field_unit == "":
-            label = field_name
+            return field_name
         else:
-            label = field_name + r"$\ \ (" + field_unit + r")$"
-        return label
+            return field_name + r"$\ \ (" + field_unit + r")$"
 
     def _get_field_log(self, field_z, profile):
         zfi = profile.field_info[field_z]

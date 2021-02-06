@@ -62,7 +62,7 @@ def invalidate_data(f):
         rv = f(*args, **kwargs)
         args[0]._data_valid = False
         args[0]._plot_valid = False
-        return rv
+        return rv  # noqa R504
 
     return newfunc
 
@@ -76,7 +76,7 @@ def invalidate_figure(f):
             args[0].plots[field].axes = None
             args[0].plots[field].cax = None
         args[0]._setup_plots()
-        return rv
+        return rv  # noqa R504
 
     return newfunc
 
@@ -86,7 +86,7 @@ def invalidate_plot(f):
     def newfunc(*args, **kwargs):
         rv = f(*args, **kwargs)
         args[0]._plot_valid = False
-        return rv
+        return rv  # noqa R504
 
     return newfunc
 
@@ -104,8 +104,7 @@ def validate_plot(f):
             # it is the responsibility of _setup_plots to
             # call args[0].run_callbacks()
             args[0]._setup_plots()
-        rv = f(*args, **kwargs)
-        return rv
+        return f(*args, **kwargs)
 
     return newfunc
 
@@ -380,12 +379,13 @@ class PlotContainer:
         # Left blank to be overridden in subclasses
         pass
 
-    def _initialize_dataset(self, ts):
-        if not isinstance(ts, DatasetSeries):
-            if not is_sequence(ts):
-                ts = [ts]
-            ts = DatasetSeries(ts)
-        return ts
+    def _initialize_dataset(self, ts) -> DatasetSeries:
+        if isinstance(ts, DatasetSeries):
+            return ts
+
+        if not is_sequence(ts):
+            ts = [ts]
+        return DatasetSeries(ts)
 
     def _switch_ds(self, new_ds, data_source=None):
         old_object = self.data_source
@@ -976,12 +976,16 @@ class ImagePlotContainer(PlotContainer):
 
         def _sanitize_units(z, _field):
             # convert dimensionful inputs to float
+            if z is None:
+                return None
+            if isinstance(z, (int, float, np.floating, np.integer)):
+                return np.float64(z)
             if isinstance(z, tuple):
-                z = self.ds.quan(*z)
+                return self.ds.quan(*z)
             if isinstance(z, YTQuantity):
                 try:
                     plot_units = self.frb[_field].units
-                    z = z.to(plot_units).value
+                    return z.to(plot_units).value
                 except AttributeError:
                     # only certain subclasses have a frb attribute
                     # they can rely on for inspecting units
@@ -990,8 +994,8 @@ class ImagePlotContainer(PlotContainer):
                         " as tuples or unyt_quantitiy",
                         self.__class__.__name__,
                     )
-                    z = z.value
-            return z
+                    return z.value
+            raise TypeError(f"received `z={z}` with unexpected type `{type(z)}`.")
 
         if field == "all":
             fields = list(self.plots.keys())

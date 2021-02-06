@@ -274,7 +274,7 @@ def fake_random_ds(
             for f in (f"particle_velocity_{ax}" for ax in "xyz"):
                 data["io", f] = (prng.random_sample(size=particles) - 0.5, "cm/s")
             data["io", "particle_mass"] = (prng.random_sample(particles), "g")
-    ug = load_uniform_grid(
+    return load_uniform_grid(
         data,
         ndims,
         length_unit=length_unit,
@@ -283,7 +283,6 @@ def fake_random_ds(
         bbox=bbox,
         default_species_fields=default_species_fields,
     )
-    return ug
 
 
 _geom_transforms = {
@@ -404,8 +403,7 @@ def fake_particle_ds(
         v = prng.random_sample(npart) - offset
         data[field] = (v, u)
     bbox = np.array([[0.0, 1.0], [0.0, 1.0], [0.0, 1.0]])
-    ds = load_particles(data, 1.0, bbox=bbox)
-    return ds
+    return load_particles(data, 1.0, bbox=bbox)
 
 
 def fake_tetrahedral_ds():
@@ -426,10 +424,9 @@ def fake_tetrahedral_ds():
     elem_data = {}
     elem_data[("connect1", "elem")] = prng.rand(_connectivity.shape[0])
 
-    ds = load_unstructured_mesh(
+    return load_unstructured_mesh(
         _connectivity, _coordinates, node_data=node_data, elem_data=elem_data
     )
-    return ds
 
 
 def fake_hexahedral_ds(fields=None):
@@ -452,10 +449,9 @@ def fake_hexahedral_ds(fields=None):
     elem_data = {}
     elem_data[("connect1", "elem")] = prng.rand(_connectivity.shape[0])
 
-    ds = load_unstructured_mesh(
+    return load_unstructured_mesh(
         _connectivity - 1, _coordinates, node_data=node_data, elem_data=elem_data
     )
-    return ds
 
 
 def small_fake_hexahedral_ds():
@@ -480,8 +476,7 @@ def small_fake_hexahedral_ds():
     dist = np.sum(_coordinates ** 2, 1)
     node_data[("connect1", "test")] = dist[_connectivity - 1]
 
-    ds = load_unstructured_mesh(_connectivity - 1, _coordinates, node_data=node_data)
-    return ds
+    return load_unstructured_mesh(_connectivity - 1, _coordinates, node_data=node_data)
 
 
 def fake_vr_orientation_test_ds(N=96, scale=1):
@@ -568,8 +563,7 @@ def fake_vr_orientation_test_ds(N=96, scale=1):
         arr[idx] = 0.6
 
     data = dict(density=(arr, "g/cm**3"))
-    ds = load_uniform_grid(data, arr.shape, bbox=bbox)
-    return ds
+    return load_uniform_grid(data, arr.shape, bbox=bbox)
 
 
 def fake_sph_orientation_ds():
@@ -703,7 +697,7 @@ def fake_octree_ds(
         quantities[("gas", "velocity_y")] = prng.random_sample((particles, 1))
         quantities[("gas", "velocity_z")] = prng.random_sample((particles, 1))
 
-    ds = load_octree(
+    return load_octree(
         octree_mask=octree_mask,
         data=quantities,
         bbox=bbox,
@@ -718,7 +712,6 @@ def fake_octree_ds(
         over_refine_factor=over_refine_factor,
         unit_system=unit_system,
     )
-    return ds
 
 
 def add_noise_fields(ds):
@@ -966,7 +959,7 @@ def disable_dataset_cache(func):
         rv = func(*args, **kwargs)
         if restore_cfg_state:
             ytcfg["yt", "skip_dataset_cache"] = False
-        return rv
+        return rv  # noqa R504
 
     return newfunc
 

@@ -42,7 +42,8 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
     def setup_fields(self, registry):
         if not self.ds.no_cgs_equiv_length:
-            return super().setup_fields(registry)
+            super().setup_fields(registry)
+            return
         for axi, ax in enumerate("xyz"):
             f1, f2 = _get_coord_fields(axi)
 

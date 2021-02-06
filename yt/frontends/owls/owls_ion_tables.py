@@ -56,9 +56,7 @@ class IonTableSpectrum:
         dlog_GH1 = logGH1_all[i_zhi] - logGH1_all[i_zlo]
 
         logGH1_table = logGH1_all[i_zlo] + z_frac * dlog_GH1
-        GH1_table = 10.0 ** logGH1_table
-
-        return GH1_table
+        return 10.0 ** logGH1_table
 
 
 class IonTableOWLS:
@@ -137,8 +135,7 @@ class IonTableOWLS:
         # in that case we simply return 1.0
 
         if nH.size == 1 and T.size == 1:
-            ionfrac = 1.0
-            return ionfrac
+            return 1.0
 
         # find inH and fnH
         # -----------------------------------------------------

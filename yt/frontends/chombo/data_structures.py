@@ -26,10 +26,9 @@ from .fields import (
 def is_chombo_hdf5(fn):
     try:
         with h5py.File(fn, mode="r") as fileh:
-            valid = "Chombo_global" in fileh["/"]
+            return "Chombo_global" in fileh["/"]
     except (KeyError, OSError, ImportError):
         return False
-    return valid
 
 
 class ChomboGrid(AMRGridPatch):
@@ -342,15 +341,13 @@ class ChomboDataset(Dataset):
         fileh = self._handle
         dx0 = fileh["/level_0"].attrs["dx"]
         D = self.dimensionality
-        LE = dx0 * ((np.array(list(fileh["/level_0"].attrs["prob_domain"])))[0:D])
-        return LE
+        return dx0 * ((np.array(list(fileh["/level_0"].attrs["prob_domain"])))[0:D])
 
     def _calc_right_edge(self):
         fileh = self._handle
         dx0 = fileh["/level_0"].attrs["dx"]
         D = self.dimensionality
-        RE = dx0 * ((np.array(list(fileh["/level_0"].attrs["prob_domain"])))[D:] + 1)
-        return RE
+        return dx0 * ((np.array(list(fileh["/level_0"].attrs["prob_domain"])))[D:] + 1)
 
     def _calc_domain_dimensions(self):
         fileh = self._handle
@@ -377,12 +374,11 @@ class ChomboDataset(Dataset):
 
         if not (pluto_ini_file_exists or orion2_ini_file_exists):
             try:
-                fileh = h5py.File(filename, mode="r")
-                valid = "Chombo_global" in fileh["/"]
-                # ORION2 simulations should always have this:
-                valid = valid and not ("CeilVA_mass" in fileh.attrs.keys())
-                valid = valid and not ("Charm_global" in fileh.keys())
-                fileh.close()
+                with h5py.File(filename, mode="r") as fileh:
+                    valid = "Chombo_global" in fileh["/"]
+                    # ORION2 simulations should always have this:
+                    valid &= not ("CeilVA_mass" in fileh.attrs.keys())
+                    valid &= not ("Charm_global" in fileh.keys())
                 return valid
             except Exception:
                 pass
@@ -738,13 +734,13 @@ class Orion2Dataset(ChomboDataset):
 
         if not pluto_ini_file_exists:
             try:
-                fileh = h5py.File(filename, mode="r")
-                valid = "CeilVA_mass" in fileh.attrs.keys()
-                valid = (
-                    "Chombo_global" in fileh["/"] and "Charm_global" not in fileh["/"]
-                )
-                valid = valid and "CeilVA_mass" in fileh.attrs.keys()
-                fileh.close()
+                with h5py.File(filename, mode="r") as fileh:
+                    valid = "CeilVA_mass" in fileh.attrs.keys()
+                    valid &= (
+                        "Chombo_global" in fileh["/"]
+                        and "Charm_global" not in fileh["/"]
+                    )
+                    valid &= "CeilVA_mass" in fileh.attrs.keys()
                 return valid
             except Exception:
                 pass
@@ -810,10 +806,7 @@ class ChomboPICDataset(ChomboDataset):
             return False
 
         try:
-            fileh = h5py.File(filename, mode="r")
-            valid = "Charm_global" in fileh["/"]
-            fileh.close()
-            return valid
+            with h5py.File(filename, mode="r") as fileh:
+                return "Charm_global" in fileh["/"]
         except Exception:
-            pass
-        return False
+            return False

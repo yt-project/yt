@@ -44,5 +44,5 @@ def test_bounding_volume_hierarchy():
 
     image = np.empty(800 * 800, np.float64)
     test_ray_trace(image, origins, direction, bvh)
-    image = image.reshape((800, 800))
+    image.shape = (800, 800)
     return image

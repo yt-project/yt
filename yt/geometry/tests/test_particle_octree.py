@@ -471,12 +471,10 @@ def makeall_decomp_hilbert_gaussian(
     def load_pos(file_id):
         filename = fname_base + f"file{file_id}"
         if os.path.isfile(filename):
-            fd = open(filename, "rb")
-            positions = pickle.load(fd)
-            fd.close()
+            with open(filename, "rb") as fd:
+                return pickle.load(fd)
         else:
-            positions = np.empty((0, 3), dtype="float64")
-        return positions
+            return np.empty((0, 3), dtype="float64")
 
     def save_pos(file_id, positions):
         filename = fname_base + f"file{file_id}"
@@ -656,8 +654,7 @@ def fake_decomp_grid(npart, nfiles, ifile, DLE, DRE, buff=0.0, verbose=False):
         DLE[2] + 0.1 * div[2] : DRE[2] - 0.1 * div[2] : nYZ * 1j,
     ]
     X = 0.5 * div[0] * np.ones(Y.shape, dtype="float64") + div[0] * ifile
-    pos = np.array([X.ravel(), Y.ravel(), Z.ravel()], dtype="float64").transpose()
-    return pos
+    return np.array([X.ravel(), Y.ravel(), Z.ravel()], dtype="float64").transpose()
 
 
 def yield_fake_decomp(decomp, npart, nfiles, DLE, DRE, **kws):
@@ -674,10 +671,8 @@ def fake_decomp(
     if fname is None and distrib == "gaussian":
         fname = f"{decomp}6_{distrib}_np{npart}_nf{nfiles}_file{ifile}"
     if fname is not None and os.path.isfile(fname):
-        fd = open(fname, "rb")
-        pos = pickle.load(fd)
-        fd.close()
-        return pos
+        with open(fname, "rb") as fd:
+            return pickle.load(fd)
     if decomp.startswith("zoom_"):
         zoom_factor = 5
         decomp_zoom = decomp.split("zoom_")[-1]

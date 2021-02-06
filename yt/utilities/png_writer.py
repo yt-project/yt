@@ -22,8 +22,6 @@ def write_png(buffer, filename, dpi=100):
 
 
 def write_png_to_string(buffer, dpi=100):
-    fileobj = BytesIO()
-    call_png_write_png(buffer, fileobj, dpi)
-    png_str = fileobj.getvalue()
-    fileobj.close()
-    return png_str
+    with BytesIO() as fileobj:
+        call_png_write_png(buffer, fileobj, dpi)
+        return fileobj.getvalue()

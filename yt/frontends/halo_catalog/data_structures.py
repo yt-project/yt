@@ -250,8 +250,7 @@ class YTHaloParticleIndex(ParticleIndex):
 
     def _get_halo_scalar_index(self, ptype, identifier):
         i_scalar = self._get_halo_file_indices(ptype, [identifier])[0]
-        scalar_index = identifier - self._halo_index_start[ptype][i_scalar]
-        return scalar_index
+        return identifier - self._halo_index_start[ptype][i_scalar]
 
     def _get_halo_values(self, ptype, identifiers, fields, f=None):
         """

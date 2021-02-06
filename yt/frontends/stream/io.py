@@ -110,11 +110,10 @@ class StreamParticleIOHandler(BaseIOHandler):
                 )
 
     def _read_smoothing_length(self, chunks, ptf, ptype):
-        for data_file in sorted(
+        data_file = sorted(
             self._get_data_files(chunks), key=lambda x: (x.filename, x.start)
-        ):
-            f = self.fields[data_file.filename]
-            return f[ptype, "smoothing_length"]
+        )[0]
+        return self.fields[data_file.filename][ptype, "smoothing_length"]
 
     def _get_data_files(self, chunks):
         data_files = set()

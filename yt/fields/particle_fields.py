@@ -54,8 +54,7 @@ def _field_concat(fname):
             if ptype == "all" or ptype in data.ds.known_filters:
                 continue
             v.append(data[ptype, fname].copy())
-        rv = uconcatenate(v, axis=0)
-        return rv
+        return uconcatenate(v, axis=0)
 
     return _AllFields
 
@@ -68,8 +67,7 @@ def _field_concat_slice(fname, axi):
             if ptype == "all" or ptype in data.ds.known_filters:
                 continue
             v.append(data[ptype, fname][:, axi])
-        rv = uconcatenate(v, axis=0)
-        return rv
+        return uconcatenate(v, axis=0)
 
     return _AllFields
 
@@ -158,8 +156,7 @@ def particle_deposition_functions(ptype, coord_name, mass_name, registry):
             top[bottom == 0] = 0.0
             bnz = bottom.nonzero()
             top[bnz] /= bottom[bnz]
-            d = data.ds.arr(top, units=units)
-            return d
+            return data.ds.arr(top, units=units)
 
         return _deposit_field
 
@@ -557,8 +554,7 @@ def standard_particle_fields(
         vel = data[(ptype, "relative_particle_velocity")].T
         theta = get_sph_theta(pos, normal)
         phi = get_sph_phi(pos, normal)
-        sphr = get_sph_r_component(vel, theta, phi, normal)
-        return sphr
+        return get_sph_r_component(vel, theta, phi, normal)
 
     registry.add_field(
         (ptype, "particle_velocity_spherical_radius"),
@@ -591,8 +587,7 @@ def standard_particle_fields(
         vel = data[(ptype, "relative_particle_velocity")].T
         theta = get_sph_theta(pos, normal)
         phi = get_sph_phi(pos, normal)
-        spht = get_sph_theta_component(vel, theta, phi, normal)
-        return spht
+        return get_sph_theta_component(vel, theta, phi, normal)
 
     registry.add_field(
         (ptype, "particle_velocity_spherical_theta"),
@@ -618,8 +613,7 @@ def standard_particle_fields(
         pos = data[(ptype, "relative_particle_position")].T
         vel = data[(ptype, "relative_particle_velocity")].T
         phi = get_sph_phi(pos, normal)
-        sphp = get_sph_phi_component(vel, phi, normal)
-        return sphp
+        return get_sph_phi_component(vel, phi, normal)
 
     registry.add_field(
         (ptype, "particle_velocity_spherical_phi"),
@@ -701,8 +695,7 @@ def standard_particle_fields(
         pos = data[(ptype, "relative_particle_position")].T
         vel = data[(ptype, "relative_particle_velocity")].T
         theta = get_cyl_theta(pos, normal)
-        cylr = get_cyl_r_component(vel, theta, normal)
-        return cylr
+        return get_cyl_r_component(vel, theta, normal)
 
     registry.add_field(
         (ptype, "particle_velocity_cylindrical_radius"),
@@ -722,8 +715,7 @@ def standard_particle_fields(
         pos = data[(ptype, "relative_particle_position")].T
         vel = data[(ptype, "relative_particle_velocity")].T
         theta = get_cyl_theta(pos, normal)
-        cylt = get_cyl_theta_component(vel, theta, normal)
-        return cylt
+        return get_cyl_theta_component(vel, theta, normal)
 
     registry.add_field(
         (ptype, "particle_velocity_cylindrical_theta"),
@@ -747,8 +739,7 @@ def standard_particle_fields(
         """
         normal = data.get_field_parameter("normal")
         vel = data[(ptype, "relative_particle_velocity")].T
-        cylz = get_cyl_z_component(vel, normal)
-        return cylz
+        return get_cyl_z_component(vel, normal)
 
     registry.add_field(
         (ptype, "particle_velocity_cylindrical_z"),
@@ -861,8 +852,7 @@ def add_nearest_neighbor_value_field(ptype, coord_name, sampled_field, registry)
         rv = data.smooth(
             pos, [value], method="nearest", create_octree=True, nneighbors=1
         )
-        rv = data.apply_units(rv, field_units)
-        return rv
+        return data.apply_units(rv, field_units)
 
     registry.add_field(
         field_name,

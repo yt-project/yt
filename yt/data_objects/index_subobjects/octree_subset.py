@@ -97,14 +97,12 @@ class OctreeSubset(YTSelectionContainer):
         # data.  But, it might.  However, I can't seem to figure out how to
         # make the assignment to .shape, which *won't* copy the data, make the
         # resultant array viewed in Fortran order.
-        arr = arr.reshape(new_shape, order="F")
-        return arr
+        return arr.reshape(new_shape, order="F")
 
     _domain_ind = None
 
     def mask_refinement(self, selector):
-        mask = self.oct_handler.mask(selector, domain_id=self.domain_id)
-        return mask
+        return self.oct_handler.mask(selector, domain_id=self.domain_id)
 
     def select_blocks(self, selector):
         mask = self.oct_handler.mask(selector, domain_id=self.domain_id)
@@ -203,7 +201,7 @@ class OctreeSubset(YTSelectionContainer):
         )
         vals = op.finalize()
         if vals is None:
-            return
+            return None
         return np.asfortranarray(vals)
 
     def mesh_sampling_particle_field(self, positions, mesh_field, lvlmax=None):
@@ -385,10 +383,9 @@ class OctreeSubset(YTSelectionContainer):
         with np.errstate(invalid="ignore"):
             vals = op.finalize()
         if isinstance(vals, list):
-            vals = [np.asfortranarray(v) for v in vals]
+            return [np.asfortranarray(v) for v in vals]
         else:
-            vals = np.asfortranarray(vals)
-        return vals
+            return np.asfortranarray(vals)
 
     def particle_operation(
         self, positions, fields=None, method=None, nneighbors=64, kernel_name="cubic"
@@ -474,12 +471,11 @@ class OctreeSubset(YTSelectionContainer):
         )
         vals = op.finalize()
         if vals is None:
-            return
+            return None
         if isinstance(vals, list):
-            vals = [np.asfortranarray(v) for v in vals]
+            return [np.asfortranarray(v) for v in vals]
         else:
-            vals = np.asfortranarray(vals)
-        return vals
+            return np.asfortranarray(vals)
 
     @cell_count_cache
     def select_icoords(self, dobj):
@@ -508,22 +504,19 @@ class OctreeSubset(YTSelectionContainer):
         )
 
     def select(self, selector, source, dest, offset):
-        n = self.oct_handler.selector_fill(
+        return self.oct_handler.selector_fill(
             selector, source, dest, offset, domain_id=self.domain_id
         )
-        return n
 
     def count(self, selector):
         return -1
 
     def count_particles(self, selector, x, y, z):
         # We don't cache the selector results
-        count = selector.count_points(x, y, z, 0.0)
-        return count
+        return selector.count_points(x, y, z, 0.0)
 
     def select_particles(self, selector, x, y, z):
-        mask = selector.select_points(x, y, z, 0.0)
-        return mask
+        return selector.select_points(x, y, z, 0.0)
 
     def get_vertex_centered_data(self, fields):
         _old_api = isinstance(fields, (str, tuple))
@@ -565,11 +558,10 @@ class OctreeSubsetBlockSlicePosition:
 
     def __getitem__(self, key):
         bs = self.block_slice
-        rv = np.require(
+        return np.require(
             bs.octree_subset[key][:, :, :, self.ind].T,
             requirements=bs.octree_subset._block_order,
         )
-        return rv
 
     @property
     def id(self):
@@ -679,8 +671,7 @@ class YTPositionArray(YTArray):
         LE -= np.abs(LE) * eps
         RE = self.max(axis=0)
         RE += np.abs(RE) * eps
-        morton = compute_morton(self[:, 0], self[:, 1], self[:, 2], LE, RE)
-        return morton
+        return compute_morton(self[:, 0], self[:, 1], self[:, 2], LE, RE)
 
     def to_octree(self, over_refine_factor=1, dims=(1, 1, 1), n_ref=64):
         mi = self.morton

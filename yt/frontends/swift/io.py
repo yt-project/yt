@@ -72,8 +72,7 @@ class IOHandlerSwift(IOHandlerSPH):
             pcount = np.clip(pcount - si, 0, ei - si)
             # we upscale to float64
             hsml = f[ptype]["SmoothingLength"][si:ei, ...]
-            hsml = hsml.astype("float64", copy=False)
-            return hsml
+            return hsml.astype("float64", copy=False)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
@@ -120,8 +119,7 @@ class IOHandlerSwift(IOHandlerSPH):
         # defined by the subfile
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
-        npart = {f"PartType{i}": v for i, v in enumerate(pcount)}
-        return npart
+        return {f"PartType{i}": v for i, v in enumerate(pcount)}
 
     def _identify_fields(self, data_file):
         f = h5py.File(data_file.filename, mode="r")

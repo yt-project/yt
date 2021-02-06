@@ -601,8 +601,9 @@ class FITSImageData:
             output.write("\n".join(results))
             output.write("\n")
             output.flush()
-        else:
-            return results[2:]
+            return None
+
+        return results[2:]
 
     @parallel_root_only
     def writeto(self, fileobj, fields=None, overwrite=False, **kwargs):
@@ -839,9 +840,9 @@ class FITSImageBuffer(FITSImageData):
 def sanitize_fits_unit(unit):
     if unit == "Mpc":
         mylog.info("Changing FITS file length unit to kpc.")
-        unit = "kpc"
+        return "kpc"
     elif unit == "au":
-        unit = "AU"
+        return "AU"
     return unit
 
 

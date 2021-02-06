@@ -399,14 +399,15 @@ class RAMSESDomainSubset(OctreeSubset):
     def fwidth(self):
         fwidth = super().fwidth
         if self._num_ghost_zones > 0:
-            fwidth = fwidth.reshape(-1, 8, 3)
+            fwidth.shape = (-1, 8, 3)
             n_oct = fwidth.shape[0]
             # new_fwidth contains the fwidth of the oct+ghost zones
             # this is a constant array in each oct, so we simply copy
             # the oct value using numpy fancy-indexing
             new_fwidth = np.zeros((n_oct, self.nz ** 3, 3), dtype=fwidth.dtype)
             new_fwidth[:, :, :] = fwidth[:, 0:1, :]
-            fwidth = new_fwidth.reshape(-1, 3)
+            new_fwidth.shape = (-1, 3)
+            return new_fwidth
         return fwidth
 
     @property
@@ -428,9 +429,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
         inds = indices[oct_inds, cell_inds]
 
-        fcoords = self.ds.arr(oh.fcoords(self.selector)[inds].reshape(-1, 3), "unitary")
-
-        return fcoords
+        return self.ds.arr(oh.fcoords(self.selector)[inds].reshape(-1, 3), "unitary")
 
     def fill(self, fd, fields, selector, file_handler):
         if self._num_ghost_zones == 0:

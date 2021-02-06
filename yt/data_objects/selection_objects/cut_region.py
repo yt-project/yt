@@ -219,7 +219,7 @@ class YTCutRegion(YTSelectionContainer3D):
     def _part_ind_brute_force(self, ptype):
         parent = getattr(self, "parent", self.base_object)
         units = "code_length"
-        mask = points_in_cells(
+        return points_in_cells(
             self[("index", "x")].to(units),
             self[("index", "y")].to(units),
             self[("index", "z")].to(units),
@@ -230,8 +230,6 @@ class YTCutRegion(YTSelectionContainer3D):
             parent[(ptype, "particle_position_y")].to(units),
             parent[(ptype, "particle_position_z")].to(units),
         )
-
-        return mask
 
     def _part_ind(self, ptype):
         # If scipy is installed, use the fast KD tree

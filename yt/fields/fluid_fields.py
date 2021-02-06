@@ -145,8 +145,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         t3 = data[ftype, "dz"] / (
             data[ftype, "sound_speed"] + np.abs(data[ftype, "velocity_z"])
         )
-        tr = np.minimum(np.minimum(t1, t2), t3)
-        return tr
+        return np.minimum(np.minimum(t1, t2), t3)
 
     registry.add_field(
         (ftype, "courant_time_step"),
@@ -157,10 +156,9 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
     def _pressure(field, data):
         """M{(Gamma-1.0)*rho*E}"""
-        tr = (data.ds.gamma - 1.0) * (
+        return (data.ds.gamma - 1.0) * (
             data[ftype, "density"] * data[ftype, "specific_thermal_energy"]
         )
-        return tr
 
     registry.add_field(
         (ftype, "pressure"),
@@ -288,7 +286,7 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
             new_field[slice_3d] = f
 
             if block_order == "F":
-                new_field = new_field.swapaxes(0, 2)
+                return new_field.swapaxes(0, 2)
 
             return new_field
 

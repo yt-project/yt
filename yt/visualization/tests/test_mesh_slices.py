@@ -27,8 +27,7 @@ def compare(ds, field, idir, test_prefix, test_name, decimals=12, annotate=False
         if annotate:
             sl.annotate_mesh_lines()
         sl.set_log("all", False)
-        image_file = sl.save(filename_prefix)
-        return image_file
+        return sl.save(filename_prefix)
 
     slice_image.__name__ = f"slice_{test_prefix}"
     test = GenericImageTest(ds, slice_image, decimals)

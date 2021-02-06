@@ -261,10 +261,10 @@ def euclidean_dist(a, b):
     c = c.sum(axis=0)
     if isinstance(c, np.ndarray):
         np.sqrt(c, c)
+        return c
     else:
         # This happens if a and b only have one entry.
-        c = math.sqrt(c)
-    return c
+        return math.sqrt(c)
 
 
 def rotate_vector_3D(a, dim, angle):
@@ -1184,7 +1184,7 @@ def get_rotation_matrix(theta, rot_vector):
     cost = np.cos(theta)
     sint = np.sin(theta)
 
-    R = np.array(
+    return np.array(
         [
             [
                 cost + ux ** 2 * (1 - cost),
@@ -1203,8 +1203,6 @@ def get_rotation_matrix(theta, rot_vector):
             ],
         ]
     )
-
-    return R
 
 
 def quaternion_mult(q1, q2):
@@ -1328,10 +1326,9 @@ def get_sph_r(coords):
 
 def resize_vector(vector, vector_array):
     if len(vector_array.shape) == 4:
-        res_vector = np.resize(vector, (3, 1, 1, 1))
+        return np.resize(vector, (3, 1, 1, 1))
     else:
-        res_vector = np.resize(vector, (3, 1))
-    return res_vector
+        return np.resize(vector, (3, 1))
 
 
 def normalize_vector(vector):
@@ -1340,8 +1337,7 @@ def normalize_vector(vector):
 
     L2 = np.atleast_1d(np.linalg.norm(vector))
     L2[L2 == 0] = 1.0
-    vector = vector / L2
-    return vector
+    return vector / L2
 
 
 def get_sph_theta(coords, normal):

@@ -237,12 +237,11 @@ class TransferFunction:
         self.features = []
 
     def __repr__(self):
-        disp = (
+        return (
             "<Transfer Function Object>: "
             "x_bounds:(%3.2g, %3.2g) nbins:%3.2g features:%s"
             % (self.x_bounds[0], self.x_bounds[1], self.nbins, self.features)
         )
-        return disp
 
 
 class MultiVariateTransferFunction:
@@ -598,8 +597,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.yaxis.set_ticks(yticks)
 
         def y_format(y, pos):
-            s = f"{y:0.2f}"
-            return s
+            return f"{y:0.2f}"
 
         ax.yaxis.set_major_formatter(FuncFormatter(y_format))
         ax.set_ylabel("Opacity")
@@ -680,8 +678,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         ax.xaxis.set_ticks(yticks)
 
         def y_format(y, pos):
-            s = f"{y:0.2f}"
-            return s
+            return f"{y:0.2f}"
 
         ax.xaxis.set_major_formatter(FuncFormatter(y_format))
         ax.set_xlim(0.0, max_alpha)
@@ -888,8 +885,7 @@ class ColorTransferFunction(MultiVariateTransferFunction):
         for i, f in enumerate(self.funcs[:3]):
             vals = np.interp(hvals, f.x, f.y)
             image[:, :, i] = (vals[:, None] * 255).astype("uint8")
-        image = image[::-1, :, :]
-        return image
+        return image[::-1, :, :]
 
     def clear(self):
         for f in self.funcs:

@@ -149,11 +149,10 @@ class GizmoFieldInfo(GadgetFieldInfo):
             if data.ds.cosmological_simulation:
                 a_form = data[(ptype, "StellarFormationTime")]
                 z_form = 1 / a_form - 1
-                creation_time = data.ds.cosmology.t_from_z(z_form)
+                return data.ds.cosmology.t_from_z(z_form)
             else:
                 t_form = data[(ptype, "StellarFormationTime")]
-                creation_time = data.ds.arr(t_form, "code_time")
-            return creation_time
+                return data.ds.arr(t_form, "code_time")
 
         self.add_field(
             (ptype, "creation_time"),

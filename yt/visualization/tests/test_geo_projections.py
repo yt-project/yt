@@ -25,8 +25,7 @@ def compare(
             sl._setup_plots()
             sl.annotate_mesh_lines()
         sl.set_log("all", False)
-        image_file = sl.save(filename_prefix)
-        return image_file
+        return sl.save(filename_prefix)
 
     slice_image.__name__ = f"slice_{test_prefix}"
     test = GenericImageTest(ds, slice_image, decimals)

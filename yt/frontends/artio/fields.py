@@ -1,5 +1,3 @@
-import numpy as np
-
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.units.yt_array import YTArray
 from yt.utilities.physical_constants import amu_cgs, boltzmann_constant_cgs
@@ -107,21 +105,20 @@ class ARTIOFieldInfo(FieldInfoContainer):
             if flag1 and flag2:
 
                 def _metal_density(field, data):
-                    tr = data[("gas", "metal_ia_density")].copy()
-                    np.add(tr, data[("gas", "metal_ii_density")], out=tr)
-                    return tr
+                    return (
+                        data[("gas", "metal_ia_density")]
+                        + data[("gas", "metal_ii_density")]
+                    )
 
             elif flag1 and not flag2:
 
                 def _metal_density(field, data):
-                    tr = data["metal_ia_density"]
-                    return tr
+                    return data["metal_ia_density"]
 
             else:
 
                 def _metal_density(field, data):
-                    tr = data["metal_ii_density"]
-                    return tr
+                    return data["metal_ii_density"]
 
             self.add_field(
                 ("gas", "metal_density"),

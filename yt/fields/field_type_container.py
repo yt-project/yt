@@ -10,7 +10,7 @@ from yt.fields.derived_field import DerivedField
 
 
 def _fill_values(values):
-    value = (
+    return (
         '<div class="rendered_html jp-RenderedHTMLCommon">'
         + "<table><thead><tr><th>Name</th><th>Type</th>"
         + "<th>Value</th></tr></thead><tr><td>"
@@ -22,7 +22,6 @@ def _fill_values(values):
         )
         + "</td></tr></table></div>"
     )
-    return value
 
 
 class FieldTypeContainer:

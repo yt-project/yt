@@ -303,25 +303,22 @@ class ExodusIIDataset(Dataset):
         mylog.info("Loading coordinates")
         with self._handle.open_ds() as ds:
             if "coord" not in ds.variables:
-                coords = (
+                return (
                     np.array([ds.variables[f"coord{ax}"][:] for ax in coord_axes])
                     .transpose()
                     .astype("f8")
                 )
-            else:
-                coords = (
-                    np.array([coord for coord in ds.variables["coord"][:]])
-                    .transpose()
-                    .astype("f8")
-                )
-            return coords
+            return (
+                np.array([coord for coord in ds.variables["coord"][:]])
+                .transpose()
+                .astype("f8")
+            )
 
     def _apply_displacement(self, coords, mesh_id):
 
         mesh_name = "connect%d" % (mesh_id + 1)
         if mesh_name not in self.displacements:
-            new_coords = coords.copy()
-            return new_coords
+            return coords.copy()
 
         new_coords = np.zeros_like(coords)
         fac = self.displacements[mesh_name][0]

@@ -60,8 +60,7 @@ class CameraTest(TestCase):
             return tf
         elif camera_type in ["healpix"]:
             return ProjectionTransferFunction()
-        else:
-            pass
+        raise ValueError(f"Unknown `camera_type` value received '{camera_type}'.")
 
     def test_camera(self):
         tf = self.setup_transfer_function("camera")

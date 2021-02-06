@@ -97,8 +97,7 @@ def requires_index(attr_name):
     def ireq(self):
         self.index
         # By now it should have been set
-        attr = self.__dict__[attr_name]
-        return attr
+        return self.__dict__[attr_name]
 
     @ireq.setter
     def ireq(self, value):
@@ -155,14 +154,14 @@ class Dataset(abc.ABC):
         apath = os.path.abspath(filename)
         cache_key = (apath, pickle.dumps(args), pickle.dumps(kwargs))
         if ytcfg.get("yt", "skip_dataset_cache"):
-            obj = object.__new__(cls)
+            return object.__new__(cls)
         elif cache_key not in _cached_datasets:
             obj = object.__new__(cls)
             if not obj._skip_cache:
                 _cached_datasets[cache_key] = obj
+            return obj
         else:
-            obj = _cached_datasets[cache_key]
-        return obj
+            return _cached_datasets[cache_key]
 
     def __init_subclass__(cls, *args, **kwargs):
         super().__init_subclass__(*args, **kwargs)
@@ -505,6 +504,7 @@ class Dataset(abc.ABC):
                 uq = self.quan(j, good_u)
                 if uq <= v:
                     return uq
+            raise RuntimeError
         else:
             return good_u
 
@@ -1238,8 +1238,7 @@ class Dataset(abc.ABC):
             string that we can parse for a sympy Expr.
 
         """
-        new_unit = Unit(unit_str, registry=self.unit_registry)
-        return new_unit
+        return Unit(unit_str, registry=self.unit_registry)
 
     def set_code_units(self):
         # here we override units, if overrides have been provided.
@@ -1860,8 +1859,7 @@ class Dataset(abc.ABC):
 
 def _reconstruct_ds(*args, **kwargs):
     datasets = ParameterFileStore()
-    ds = datasets.get_ds_hash(*args)
-    return ds
+    return datasets.get_ds_hash(*args)
 
 
 @functools.total_ordering
@@ -1934,9 +1932,9 @@ class ParticleDataset(Dataset):
 
 def validate_index_order(index_order):
     if index_order is None:
-        index_order = (7, 5)
+        return (7, 5)
     elif not is_sequence(index_order):
-        index_order = (int(index_order), 1)
+        return (int(index_order), 1)
     else:
         if len(index_order) != 2:
             raise RuntimeError(
@@ -1944,5 +1942,4 @@ def validate_index_order(index_order):
                 "index_order\nmust be an integer or a two-element tuple of "
                 "integers.".format(index_order)
             )
-        index_order = tuple(int(o) for o in index_order)
-    return index_order
+        return tuple(int(o) for o in index_order)

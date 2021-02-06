@@ -23,10 +23,10 @@ def _expand_all(s):
 def _cast_value_helper(value, types=(_cast_bool_helper, int, float, _expand_all)):
     for t in types:
         try:
-            retval = t(value)
-            return retval
+            return t(value)
         except ValueError:
             pass
+    raise ValueError
 
 
 def get_config(section, option):

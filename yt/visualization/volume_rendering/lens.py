@@ -94,7 +94,7 @@ class PlaneParallelLens(Lens):
             ]
         )
 
-        sampler_params = dict(
+        return dict(
             vp_pos=vp_pos,
             vp_dir=self.box_vectors[2],  # All the same
             center=self.back_center,
@@ -110,7 +110,6 @@ class PlaneParallelLens(Lens):
             image=image,
             lens_type="plane-parallel",
         )
-        return sampler_params
 
     def set_viewpoint(self, camera):
         """Set the viewpoint based on the camera"""
@@ -138,10 +137,9 @@ class PlaneParallelLens(Lens):
         return px, py, dz
 
     def __repr__(self):
-        disp = "<Lens Object>:\n\tlens_type:plane-parallel\n\tviewpoint:%s" % (
+        return "<Lens Object>:\n\tlens_type:plane-parallel\n\tviewpoint:%s" % (
             self.viewpoint
         )
-        return disp
 
 
 class PerspectiveLens(Lens):
@@ -221,7 +219,10 @@ class PerspectiveLens(Lens):
 
         image = self.new_image(camera)
 
-        sampler_params = dict(
+        mylog.debug(positions)
+        mylog.debug(vectors)
+
+        return dict(
             vp_pos=positions,
             vp_dir=vectors,
             center=self.back_center,
@@ -232,11 +233,6 @@ class PerspectiveLens(Lens):
             image=image,
             lens_type="perspective",
         )
-
-        mylog.debug(positions)
-        mylog.debug(vectors)
-
-        return sampler_params
 
     def set_viewpoint(self, camera):
         """
@@ -293,8 +289,7 @@ class PerspectiveLens(Lens):
         return px, py, dz
 
     def __repr__(self):
-        disp = f"<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:{self.viewpoint}"
-        return disp
+        return f"<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:{self.viewpoint}"
 
 
 class StereoPerspectiveLens(Lens):
@@ -354,7 +349,7 @@ class StereoPerspectiveLens(Lens):
         vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
         positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
 
-        sampler_params = dict(
+        return dict(
             vp_pos=positions_comb,
             vp_dir=vectors_comb,
             center=self.back_center,
@@ -365,8 +360,6 @@ class StereoPerspectiveLens(Lens):
             image=image,
             lens_type="stereo-perspective",
         )
-
-        return sampler_params
 
     def _get_positions_vectors(self, camera, disparity):
 
@@ -518,8 +511,7 @@ class StereoPerspectiveLens(Lens):
         self.viewpoint = self.front_center
 
     def __repr__(self):
-        disp = f"<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:{self.viewpoint}"
-        return disp
+        return f"<Lens Object>:\n\tlens_type:perspective\n\tviewpoint:{self.viewpoint}"
 
 
 class FisheyeLens(Lens):
@@ -574,7 +566,7 @@ class FisheyeLens(Lens):
         else:
             image = self.new_image(camera)
 
-        sampler_params = dict(
+        return dict(
             vp_pos=positions,
             vp_dir=vp,
             center=self.center,
@@ -586,18 +578,15 @@ class FisheyeLens(Lens):
             lens_type="fisheye",
         )
 
-        return sampler_params
-
     def set_viewpoint(self, camera):
         """For a FisheyeLens, the viewpoint is the camera's position"""
         self.viewpoint = camera.position
 
     def __repr__(self):
-        disp = (
+        return (
             "<Lens Object>:\n\tlens_type:fisheye\n\tviewpoint:%s"
             "\nt\tfov:%s\n\tradius:%s" % (self.viewpoint, self.fov, self.radius)
         )
-        return disp
 
     def project_to_plane(self, camera, pos, res=None):
         if res is None:
@@ -698,7 +687,7 @@ class SphericalLens(Lens):
         vectors.shape = (camera.resolution[0], camera.resolution[1], 3)
         positions.shape = (camera.resolution[0], camera.resolution[1], 3)
 
-        sampler_params = dict(
+        return dict(
             vp_pos=positions,
             vp_dir=vectors,
             center=self.back_center,
@@ -709,7 +698,6 @@ class SphericalLens(Lens):
             image=image,
             lens_type="spherical",
         )
-        return sampler_params
 
     def set_viewpoint(self, camera):
         """For a SphericalLens, the viewpoint is the camera's position"""
@@ -835,7 +823,7 @@ class StereoSphericalLens(Lens):
         vectors_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
         positions_comb.shape = (camera.resolution[0], camera.resolution[1], 3)
 
-        sampler_params = dict(
+        return dict(
             vp_pos=positions_comb,
             vp_dir=vectors_comb,
             center=self.back_center,
@@ -846,7 +834,6 @@ class StereoSphericalLens(Lens):
             image=image,
             lens_type="stereo-spherical",
         )
-        return sampler_params
 
     def set_viewpoint(self, camera):
         """

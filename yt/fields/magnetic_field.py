@@ -27,6 +27,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
             return 4.0 * np.pi
         elif dims == dimensions.magnetic_field_mks:
             return ds.units.physical_constants.mu_0
+        raise ValueError
 
     def _magnetic_field_strength(field, data):
         xm = f"relative_magnetic_field_{axis_names[0]}"

@@ -145,8 +145,7 @@ def get_single_block_data(istream, byte_offset, block_shape):
     fmt = ALIGN + np.prod(block_shape) * "d"
     d = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
     # Fortran ordering
-    block_data = np.reshape(d, block_shape, order="F")
-    return block_data
+    return np.reshape(d, block_shape, order="F")
 
 
 def get_single_block_field_data(istream, byte_offset, block_shape, field_idx):
@@ -163,5 +162,4 @@ def get_single_block_field_data(istream, byte_offset, block_shape, field_idx):
     d = struct.unpack(fmt, istream.read(struct.calcsize(fmt)))
 
     # Fortran ordering
-    block_field_data = np.reshape(d, field_shape, order="F")
-    return block_field_data
+    return np.reshape(d, field_shape, order="F")

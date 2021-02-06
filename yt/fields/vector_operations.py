@@ -17,10 +17,9 @@ from .derived_field import NeedsParameter, ValidateParameter, ValidateSpatial
 
 def get_bulk(data, basename, unit):
     if data.has_field_parameter(f"bulk_{basename}"):
-        bulk = data.get_field_parameter(f"bulk_{basename}")
+        return data.get_field_parameter(f"bulk_{basename}")
     else:
-        bulk = [0, 0, 0] * unit
-    return bulk
+        return [0, 0, 0] * unit
 
 
 def create_magnitude_field(
@@ -108,12 +107,10 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
         if is_sequence(ax):
             # Make sure this is a unit vector
             ax /= np.sqrt(np.dot(ax, ax))
-            ret = data[fns[0]] * ax[0] + data[fns[1]] * ax[1] + data[fns[2]] * ax[2]
+            return data[fns[0]] * ax[0] + data[fns[1]] * ax[1] + data[fns[2]] * ax[2]
         elif ax in [0, 1, 2]:
-            ret = data[fns[ax]]
-        else:
-            raise NeedsParameter(["axis"])
-        return ret
+            return data[fns[ax]]
+        raise NeedsParameter(["axis"])
 
     registry.add_field(
         (ftype, f"{basename}_los"),
@@ -528,6 +525,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                         - data[(ftype, f"{basename}_phi")]
                         * np.sin(data[(ftype, "phi")])
                     )
+            raise ValueError(f"Unknown geometry '{registry.ds.geometry}'.")
 
         # it's redundant to define a cartesian x field for 1D data
         if registry.ds.dimensionality > 1:
@@ -554,6 +552,10 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                     ) + data[(ftype, f"{basename}_theta")] * np.cos(
                         data[(ftype, "theta")]
                     )
+                raise ValueError(
+                    "Unknown combination: cylindrical geometry with "
+                    f"dimensionality = {data.ds.dimensionality}"
+                )
 
             elif registry.ds.geometry == "spherical":
 
@@ -572,6 +574,11 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                         + data[(ftype, f"{basename}_phi")]
                         * np.cos(data[(ftype, "phi")])
                     )
+                raise ValueError(
+                    "Unknown combination: spherical geometry with "
+                    f"dimensionality = {data.ds.dimensionality}"
+                )
+            raise ValueError(f"Unknown geometry '{registry.ds.geometry}'.")
 
         if registry.ds.dimensionality >= 2:
             registry.add_field(
@@ -589,6 +596,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                 return data[(ftype, f"{basename}_r")] * np.cos(
                     data[(ftype, "theta")]
                 ) - data[(ftype, f"{basename}_theta")] * np.sin(data[(ftype, "theta")])
+            raise ValueError(f"Unknown geometry '{registry.ds.geometry}'.")
 
         if registry.ds.dimensionality == 3:
             registry.add_field(

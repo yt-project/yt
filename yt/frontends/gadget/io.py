@@ -1,5 +1,6 @@
 import os
 from collections import defaultdict
+from typing import Optional
 
 import numpy as np
 
@@ -237,8 +238,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         f.close()
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
-        npart = {f"PartType{i}": v for i, v in enumerate(pcount)}
-        return npart
+        return {f"PartType{i}": v for i, v in enumerate(pcount)}
 
     def _identify_fields(self, data_file):
         f = h5py.File(data_file.filename, mode="r")
@@ -427,9 +427,9 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                     yield (ptype, field), data
             f.close()
 
-    def _read_field_from_file(self, f, count, name):
+    def _read_field_from_file(self, f, count, name) -> Optional[np.ndarray]:
         if count == 0:
-            return
+            return None
         if name == "ParticleIDs":
             dt = self._endian + self.ds._id_dtype
         else:
@@ -444,7 +444,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         arr = arr.astype(dt)
         if name in self._vector_fields:
             factor = self._vector_fields[name]
-            arr = arr.reshape((count // factor, factor), order="C")
+            return arr.reshape((count // factor, factor), order="C")
         return arr
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
@@ -463,31 +463,31 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
                 pp.shape = (count, 3)
                 yield ptype, pp
 
-    def _get_smoothing_length(self, data_file, position_dtype, position_shape):
+    def _get_smoothing_length(
+        self, data_file, position_dtype, position_shape
+    ) -> Optional[np.ndarray]:
         ret = self._get_field(data_file, "SmoothingLength", "Gas")
         if position_dtype is not None and ret.dtype != position_dtype:
             # Sometimes positions are stored in double precision
             # but smoothing lengths are stored in single precision.
             # In these cases upcast smoothing length to double precision
             # to avoid ValueErrors when we pass these arrays to Cython.
-            ret = ret.astype(position_dtype)
+            return ret.astype(position_dtype)
         return ret
 
-    def _get_field(self, data_file, field, ptype):
+    def _get_field(self, data_file, field, ptype) -> Optional[np.ndarray]:
         poff = data_file.field_offsets
         tp = data_file.total_particles
         with open(data_file.filename, "rb") as f:
             f.seek(poff[ptype, field], os.SEEK_SET)
-            pp = self._read_field_from_file(f, tp[ptype], field)
-        return pp
+            return self._read_field_from_file(f, tp[ptype], field)
 
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
         pcount = np.array(data_file.header["Npart"])
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
-        npart = {self._ptypes[i]: v for i, v in enumerate(pcount)}
-        return npart
+        return {self._ptypes[i]: v for i, v in enumerate(pcount)}
 
     # header is 256, but we have 4 at beginning and end for ints
     _field_size = 4

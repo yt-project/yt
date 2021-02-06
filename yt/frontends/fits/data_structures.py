@@ -630,13 +630,16 @@ class YTFITSDataset(FITSDataset):
         fileh = check_fits_valid(filename)
         if fileh is None:
             return False
-        else:
-            if "WCSNAME" in fileh[0].header:
-                isyt = fileh[0].header["WCSNAME"].strip() == "yt"
-            else:
-                isyt = False
+
+        try:
+            return (
+                "WCSNAME" in fileh[0].header
+                and fileh[0].header["WCSNAME"].strip() == "yt"
+            )
+        except Exception:
+            return False
+        finally:
             fileh.close()
-            return isyt
 
 
 class SkyDataFITSDataset(FITSDataset):
@@ -910,11 +913,12 @@ class EventsFITSDataset(SkyDataFITSDataset):
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
         fileh = check_fits_valid(filename)
-        if fileh is not None:
-            try:
-                valid = fileh[1].name == "EVENTS"
-                fileh.close()
-                return valid
-            except Exception:
-                pass
-        return False
+        if fileh is None:
+            return False
+
+        try:
+            return fileh[1].name == "EVENTS"
+        except Exception:
+            return False
+        finally:
+            fileh.close()

@@ -33,8 +33,7 @@ def convert_frac_to_tex(string):
         + r"}$"
         + result[end_pos:]
     )
-    result = result.replace(r"\ ", r"\;")
-    return result
+    return result.replace(r"\ ", r"\;")
 
 
 def pyxize_label(string):
@@ -45,8 +44,7 @@ def pyxize_label(string):
     else:
         result = string
     result = result.replace("$", "")
-    result = r"$" + result + r"$"
-    return result
+    return r"$" + result + r"$"
 
 
 class DualEPS:
@@ -1538,17 +1536,16 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
                 "Number of plots ({}) is less "
                 "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
             )
-        figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
+        return multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow * ncol:
             raise RuntimeError(
                 "Number of plots ({}) is less "
                 "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
             )
-        figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
-    else:
-        raise RuntimeError("Unknown plot type in multiplot_yt")
-    return figure
+        return multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
+
+    raise RuntimeError("Unknown plot type in multiplot_yt")
 
 
 # =============================================================================

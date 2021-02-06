@@ -129,21 +129,19 @@ class XrayEmissivityIntegrator:
 
         interp_data = (data[..., e_is:e_ie] * my_dE).sum(axis=-1)
         if data.ndim == 2:
-            emiss = UnilinearFieldInterpolator(
+            return UnilinearFieldInterpolator(
                 np.log10(interp_data),
                 [self.log_T[0], self.log_T[-1]],
                 "log_T",
                 truncate=True,
             )
         else:
-            emiss = BilinearFieldInterpolator(
+            return BilinearFieldInterpolator(
                 np.log10(interp_data),
                 [self.log_nH[0], self.log_nH[-1], self.log_T[0], self.log_T[-1]],
                 ["log_nH", "log_T"],
                 truncate=True,
             )
-
-        return emiss
 
 
 def add_xray_emissivity_field(
