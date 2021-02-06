@@ -757,27 +757,23 @@ Source code style guide
  * Do not use nested classes unless you have a very good reason to, such as
    requiring a namespace or class-definition modification.  Classes should live
    at the top level.  ``__metaclass__`` is exempt from this.
- * Do not use unnecessary parenthesis in conditionals.  ``if((something) and
-   (something_else))`` should be rewritten as
-   ``if something and something_else``. Python is more forgiving than C.
  * Avoid copying memory when possible. For example, don't do
    ``a = a.reshape(3, 4)`` when ``a.shape = (3, 4)`` will do, and ``a = a * 3``
    should be ``np.multiply(a, 3, a)``.
  * In general, avoid all double-underscore method names: ``__something`` is
    usually unnecessary.
  * When writing a subclass, use the super built-in to access the super class,
-   rather than explicitly. Ex: ``super(SpecialGridSubclass, self).__init__()``
-   rather than ``SpecialGrid.__init__()``.
+   rather than explicitly.
+   Ex: ``super().__init__()`` rather than ``SpecialGrid.__init__()``.
  * Docstrings should describe input, output, behavior, and any state changes
    that occur on an object.  See :ref:`docstrings` below for a fiducial example
    of a docstring.
- * Unless there is a good reason not to, imports should happen at the top of the file.
+ * Unless there is a good reason not to (e.g., to avoid circular imports),
+   imports should happen at the top of the file.
  * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
  * Only declare local variables if they will be used later. If you do not use the
    return value of a function, do not store it in a variable.
- * Add tests for new functionality. When fixing a bug, consider adding a test to
-   prevent the bug from recurring.
 
 API Style Guide
 ---------------
