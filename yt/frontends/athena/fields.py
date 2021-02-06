@@ -60,6 +60,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                     function=velocity_field(comp),
                     units=unit_system["velocity"],
                 )
+
         # Add pressure, energy, and temperature fields
         def eint_from_etot(data):
             eint = data["athena", "total_energy"].copy()
@@ -133,6 +134,7 @@ class AthenaFieldInfo(FieldInfoContainer):
                 function=_total_energy,
                 units=unit_system["specific_energy"],
             )
+
         # Add temperature field
         def _temperature(field, data):
             return (
