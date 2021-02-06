@@ -729,9 +729,19 @@ If you do not want to/are unable to configure ``pre-commit`` on your machine, no
 after opening a pull request, a bot will run the hooks and validate your contribution by
 appending commits to your branch.
 
-.. note:: It is not recommended to run linter tools directly on the command line because
+Here's a list of the main automated formatters we use along with a short description
+
+- `black <https://black.readthedocs.io/en/stable/>_` (overall coding style)
+- `isort <https://pycqa.github.io/isort/>_` (import statements ordering)
+- `pyupgrade <https://github.com/asottile/pyupgrade>_` (enforce modern python idioms)
+- `flake8 <https://flake8.pycqa.org/en/latest/>_` + `bugbear <https://github.com/PyCQA/flake8-bugbear>_`
+(static code smells detection)
+
+The complete configuration is located in ``.pre-commit-config.yaml``.
+
+.. note:: It is not recommended to run formatters directly on the command line because
     versions available in your system may conflict with the ones we run through
-    pre-commit hooks.
+    ``pre-commit`` hooks (which are updated periodically).
 
 Below are a list of additional guidelines for coding in yt, that are not automatically
 enforced.
