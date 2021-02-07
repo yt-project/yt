@@ -58,7 +58,7 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
 
     def _magnetic_energy(field, data):
         """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "magnetic_energy_density"]
+        return data[ftype, "magnetic_energy_density"]
 
     registry.add_field(
         (ftype, "magnetic_energy"),
