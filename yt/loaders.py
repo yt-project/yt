@@ -6,13 +6,17 @@ import os
 import sys
 import tarfile
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, Union
 from urllib.parse import urlsplit
 
 import numpy as np
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt._typing import FileLike
+from yt.config import ytcfg
+from yt.data_objects.static_output import Dataset
+from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import levenshtein_distance
 from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
@@ -34,7 +38,7 @@ from yt.utilities.on_demand_imports import _pooch as pooch
 # --- Loaders for known data formats ---
 
 
-def load(fn, *args, **kwargs):
+def load(fn: FileLike, *args, **kwargs) -> Union[DatasetSeries, Dataset]:
     """
     Load a Dataset or DatasetSeries object.
     The data format is automatically discovered, and the exact return type is the
@@ -72,8 +76,6 @@ def load(fn, *args, **kwargs):
     fn = os.path.expanduser(fn)
 
     if any(wildcard in fn for wildcard in "[]?!*"):
-        from yt.data_objects.time_series import DatasetSeries
-
         return DatasetSeries(fn, *args, **kwargs)
 
     # This will raise FileNotFoundError if the path isn't matched
@@ -98,7 +100,9 @@ def load(fn, *args, **kwargs):
     raise YTUnidentifiedDataType(fn, *args, **kwargs)
 
 
-def load_simulation(fn, simulation_type, find_outputs=False):
+def load_simulation(
+    fn: FileLike, simulation_type: str, find_outputs: bool = False
+) -> DatasetSeries:
     """
     Load a simulation time series object of the specified simulation type.
 
