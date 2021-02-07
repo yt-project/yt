@@ -136,7 +136,7 @@ class AthenaFieldInfo(FieldInfoContainer):
             self.add_field(
                 ("gas", "specific_total_energy"),
                 sampling_type="cell",
-                function=_total_energy,
+                function=_specific_total_energy,
                 units=unit_system["specific_energy"],
             )
 

@@ -119,7 +119,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
     def _kinetic_energy(field, data):
         """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "kinetic_energy_density"]
+        return data["gas", "kinetic_energy_density"]
 
     registry.add_field(
         (ftype, "kinetic_energy"),
@@ -130,7 +130,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
     def _thermal_energy(field, data):
         """This field is deprecated and will be removed in a future release"""
-        return data[ptype, "specific_thermal_energy"]
+        return data["gas", "specific_thermal_energy"]
 
     registry.add_field(
         (ftype, "thermal_energy"),
