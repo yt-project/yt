@@ -53,6 +53,7 @@ repos:
         flake8-bugbear>=20.3.2, # GH PR 2851
         flake8-logging-format,
         flake8-2020==1.6.0,
+        flake8-typing-imports==1.10.1,
       ]
 -   repo: https://github.com/asottile/blacken-docs
     rev: v1.11.0
