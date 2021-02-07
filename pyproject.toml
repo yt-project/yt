@@ -14,7 +14,6 @@ requires = [
   "numpy>=1.19.2; python_version>='3.7' and platform_system!='AIX'",
 ]
 
-# To be kept consistent with "Code Style" section in CONTRIBUTING.rst
 [tool.black]
 line-length = 88
 # note : 'py39' is not an available option as of black 19.10b0
@@ -38,7 +37,6 @@ exclude = '''
 '''
 
 
-# To be kept consistent with "Import Formatting" section in CONTRIBUTING.rst
 [tool.isort]
 profile = "black"
 combine_as_imports = true
