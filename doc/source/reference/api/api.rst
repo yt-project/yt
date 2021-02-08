@@ -721,7 +721,6 @@ Function List
 
 .. autosummary::
 
-   ~yt.convenience.load
    ~yt.frontends.ytdata.utilities.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
