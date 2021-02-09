@@ -49,7 +49,6 @@ from yt.funcs import (
     get_memory_usage,
     get_pbar,
     get_version_stack,
-    get_yt_supp,
     get_yt_version,
     insert_ipython,
     is_root,
