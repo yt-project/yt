@@ -39,7 +39,7 @@ with open("README.md") as file:
     long_description = file.read()
 
 CPP14_CONFIG = defaultdict(
-    lambda: check_CPP14_flags(["-std=c++14", "-std=c++1y"]),
+    lambda: check_CPP14_flags(["-std=c++14", "-std=c++1y", "-std=gnu++0x"]),
     {"msvc": ["/std:c++14"]},
 )
 CPP03_CONFIG = defaultdict(lambda: ["-std=c++03"], {"msvc": ["/std:c++03"]})
