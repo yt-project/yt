@@ -30,6 +30,12 @@ int main() {
 }
 """
 
+CPPCODE = """
+int main() {
+    auto lambda = [](auto x, auto y) {return x + y;};
+}
+"""
+
 
 @contextlib.contextmanager
 def stdchannel_redirected(stdchannel, dest_filename):
@@ -143,6 +149,47 @@ def check_for_openmp():
         return compile_flags, link_flags
     else:
         return [], []
+
+
+def check_CPP14_flag(compile_flags):
+    # Create a temporary directory
+    ccompiler = new_compiler()
+    customize_compiler(ccompiler)
+
+    tmp_dir = tempfile.mkdtemp()
+    start_dir = os.path.abspath(".")
+
+    ok = True
+    try:
+        os.chdir(tmp_dir)
+
+        with open("test_cpp14.cpp", "w") as f:
+            f.write("")
+
+        os.mkdir("objects")
+
+        # Compile, link, and run test program
+        with stdchannel_redirected(sys.stderr, os.devnull):
+            ccompiler.compile(
+                ["test_cpp14.cpp"], output_dir="objects", extra_postargs=compile_flags
+            )
+    except CompileError:
+        ok = False
+    finally:
+        os.chdir(start_dir)
+    return ok
+
+
+def check_CPP14_flags(possible_compile_flags):
+    for flags in possible_compile_flags:
+        if check_CPP14_flag([flags]):
+            return flags
+
+    log.warn(
+        "Your compiler seems to be too old to support C++14. "
+        "yt may not be able to be compiled. Please use a newer version."
+    )
+    return []
 
 
 def check_for_pyembree(std_libs):

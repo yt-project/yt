@@ -9,6 +9,7 @@ import pkg_resources
 from setuptools import Distribution, find_packages, setup
 
 from setupext import (
+    check_CPP14_flags,
     check_for_openmp,
     check_for_pyembree,
     create_build_ext,
@@ -38,11 +39,10 @@ with open("README.md") as file:
     long_description = file.read()
 
 CPP14_CONFIG = defaultdict(
-    lambda: ["-std=c++14"], {"unix": ["-std=c++14"], "msvc": ["/std:c++14"]}
+    lambda: check_CPP14_flags(["-std=c++14", "-std=c++1y"]),
+    {"msvc": ["/std:c++14"]},
 )
-CPP03_CONFIG = defaultdict(
-    lambda: ["-std=c++03"], {"unix": ["-std=c++03"], "msvc": ["/std:c++03"]}
-)
+CPP03_CONFIG = defaultdict(lambda: ["-std=c++03"], {"msvc": ["/std:c++03"]})
 
 _COMPILER = get_default_compiler()
 
