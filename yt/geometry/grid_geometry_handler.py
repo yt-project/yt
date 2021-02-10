@@ -418,7 +418,7 @@ class GridIndex(Index, abc.ABC):
         if chunk_sizing == "auto":
             chunk_ngrids = len(gobjs)
             if chunk_ngrids > 0:
-                nproc = float(ytcfg.get("yt", "internals", "global_parallel_size"))
+                nproc = int(ytcfg.get("yt", "internals", "global_parallel_size"))
                 chunking_factor = np.ceil(
                     self._grid_chunksize * nproc / chunk_ngrids
                 ).astype("int")
