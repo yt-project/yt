@@ -169,9 +169,8 @@ def check_CPP14_flag(compile_flags):
     tmp_dir = tempfile.mkdtemp()
     start_dir = os.path.abspath(".")
 
-    ok = True
+    os.chdir(tmp_dir)
     try:
-        os.chdir(tmp_dir)
 
         with open("test_cpp14.cpp", "w") as f:
             f.write(CPPCODE)
@@ -183,11 +182,11 @@ def check_CPP14_flag(compile_flags):
             ccompiler.compile(
                 ["test_cpp14.cpp"], output_dir="objects", extra_postargs=compile_flags
             )
+           return True
     except CompileError:
-        ok = False
+        return False
     finally:
         os.chdir(start_dir)
-    return ok
 
 
 def check_CPP14_flags(possible_compile_flags):
