@@ -181,7 +181,7 @@ def check_CPP14_flag(compile_flags):
             ccompiler.compile(
                 ["test_cpp14.cpp"], output_dir="objects", extra_postargs=compile_flags
             )
-           return True
+        return True
     except CompileError:
         return False
     finally:
