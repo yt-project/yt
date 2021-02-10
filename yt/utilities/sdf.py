@@ -186,7 +186,7 @@ class DataStruct:
 
     def __getitem__(self, key):
         mask = None
-        if isinstance(key, (int, np.int, np.integer)):
+        if isinstance(key, (int, np.integer)):
             if key == -1:
                 key = slice(-1, None)
             else:

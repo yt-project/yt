@@ -135,7 +135,7 @@ class IOHandlerART(BaseIOHandler):
             tr[field] = np.arange(idxa, idxb)
         elif fname == "particle_type":
             a = 0
-            data = np.zeros(npa, dtype="int")
+            data = np.zeros(npa, dtype="int64")
             for i, (ptb, size) in enumerate(zip(pbool, sizes)):
                 if ptb:
                     data[a : a + size] = i
@@ -248,7 +248,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
             tr[field] = np.arange(idxa, idxb)
         elif fname == "particle_type":
             a = 0
-            data = np.zeros(npa, dtype="int")
+            data = np.zeros(npa, dtype="int64")
             for i, (ptb, size) in enumerate(zip(pbool, sizes)):
                 if ptb:
                     data[a : a + size] = i

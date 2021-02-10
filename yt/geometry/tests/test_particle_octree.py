@@ -544,7 +544,7 @@ def fake_decomp_hilbert_gaussian(
     hpos = get_hilbert_points(order, hlist)
     iLE = np.empty((len(hlist), 3), dtype="float")
     iRE = np.empty((len(hlist), 3), dtype="float")
-    count = np.zeros(3, dtype="int")
+    count = np.zeros(3, dtype="int64")
     pos = np.empty((npart, 3), dtype="float")
     for k in range(3):
         iLE[:, k] = DLE[k] + hdiv[k] * hpos[:, k]

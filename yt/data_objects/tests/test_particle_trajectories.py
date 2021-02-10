@@ -62,7 +62,7 @@ def test_etc_traj():
 def test_uniqueness():
     n_particles = 2
     n_steps = 2
-    ids = np.arange(n_particles, dtype=int) % (n_particles // 2)
+    ids = np.arange(n_particles, dtype="int64") % (n_particles // 2)
     data = {"particle_index": ids}
     fields = [
         "particle_position_x",

@@ -728,7 +728,7 @@ class YTNonspatialDataset(YTGridDataset):
         # set some defaults just to make things go
         default_attrs = {
             "dimensionality": 3,
-            "domain_dimensions": np.ones(3, dtype="int"),
+            "domain_dimensions": np.ones(3, dtype="int64"),
             "domain_left_edge": np.zeros(3),
             "domain_right_edge": np.ones(3),
             "_periodicity": np.ones(3, dtype="bool"),
@@ -822,7 +822,7 @@ class YTProfileDataset(YTNonspatialDataset):
         self.base_domain_right_edge = self.domain_right_edge
         self.base_domain_dimensions = self.domain_dimensions
 
-        domain_dimensions = np.ones(3, dtype="int")
+        domain_dimensions = np.ones(3, dtype="int64")
         domain_dimensions[: self.dimensionality] = self.profile_dimensions
         self.domain_dimensions = domain_dimensions
         domain_left_edge = np.zeros(3)

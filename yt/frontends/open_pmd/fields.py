@@ -156,7 +156,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     # This appears to be a vector field of single dimensionality
                     ytname = str("_".join([fname.replace("_", "-")]))
                     parsed = parse_unit_dimension(
-                        np.asarray(field.attrs["unitDimension"], dtype=np.int)
+                        np.asarray(field.attrs["unitDimension"], dtype="int64")
                     )
                     unit = str(YTQuantity(1, parsed).units)
                     aliases = []
@@ -169,7 +169,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     for axis in field.keys():
                         ytname = str("_".join([fname.replace("_", "-"), axis]))
                         parsed = parse_unit_dimension(
-                            np.asarray(field.attrs["unitDimension"], dtype=np.int)
+                            np.asarray(field.attrs["unitDimension"], dtype="int64")
                         )
                         unit = str(YTQuantity(1, parsed).units)
                         aliases = []

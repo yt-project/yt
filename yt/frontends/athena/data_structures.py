@@ -371,7 +371,7 @@ class AthenaHierarchy(GridIndex):
                     [slc[0].start, slc[1].start, slc[2].start] for slc in slices
                 ]
                 read_dims += [
-                    np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int")
+                    np.array([gdims[i][0], gdims[i][1], shape[2]], dtype="int64")
                     for shape in shapes
                 ]
             self.num_grids *= self.dataset.nprocs

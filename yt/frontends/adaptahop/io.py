@@ -186,7 +186,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
 
             nhalos = params["nhalos"] + params["nsubs"]
             data = np.zeros((nhalos, 3))
-            offset_map = np.zeros((nhalos, 2), dtype=int)
+            offset_map = np.zeros((nhalos, 2), dtype="int64")
             for ihalo in range(nhalos):
                 ipos = fpu.tell()
                 for it in todo:
