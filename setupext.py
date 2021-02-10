@@ -31,8 +31,15 @@ int main() {
 """
 
 CPPCODE = """
+#include <vector>
+
+struct node {
+    std::vector<int> vic;
+    bool visited = false;
+};
+
 int main() {
-    auto lambda = [](auto x, auto y) {return x + y;};
+    return 0;
 }
 """
 
@@ -164,7 +171,7 @@ def check_CPP14_flag(compile_flags):
         os.chdir(tmp_dir)
 
         with open("test_cpp14.cpp", "w") as f:
-            f.write("")
+            f.write(CPPCODE)
 
         os.mkdir("objects")
 
