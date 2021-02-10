@@ -30,6 +30,9 @@ int main() {
 }
 """
 
+# Note: This code requires C++14 functionalities (also required to compile yt)
+# It compiles on gcc 4.7.4 (together with the entirety of yt) with the flag "-std=gnu++0x".
+# It does not compile on gcc 4.6.4 (neither does yt).
 CPPCODE = """
 #include <vector>
 
