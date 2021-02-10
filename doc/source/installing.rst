@@ -379,7 +379,7 @@ source include:
 
 - ``git``
 - A C compiler such as ``gcc`` or ``clang``
-- ``Python >= 3.5``
+- ``Python >= 3.6``
 
 In addition, building yt from source requires ``numpy`` and ``cython``
 which can be installed with ``pip``:
