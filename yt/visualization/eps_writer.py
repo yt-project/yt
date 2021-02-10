@@ -436,10 +436,10 @@ class DualEPS:
                 YTQuantity(xlimits[0], "m"),
                 YTQuantity(xlimits[1], "m"),
             )  # unit hardcoded but afaik it is not used anywhere so it doesn't matter
-            if list(plot.axes.ylim.viewvalues())[0][0] is None:
+            if list(plot.axes.ylim.values())[0][0] is None:
                 ylimits = subplot.get_ylim()
             else:
-                ylimits = list(plot.axes.ylim.viewvalues())[0]
+                ylimits = list(plot.axes.ylim.values())[0]
             _yrange = (
                 YTQuantity(ylimits[0], "m"),
                 YTQuantity(ylimits[1], "m"),

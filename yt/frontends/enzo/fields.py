@@ -250,6 +250,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_output_field(
                 ("enzo", te_name), sampling_type="cell", units="code_velocity**2"
             )
+
             # Subtract off B-field energy
             def _sub_b(field, data):
                 ret = data[te_name] - 0.5 * data["velocity_x"] ** 2.0
