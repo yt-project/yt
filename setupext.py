@@ -197,7 +197,7 @@ def check_CPP14_flags(possible_compile_flags):
 
     log.warn(
         "Your compiler seems to be too old to support C++14. "
-        "yt may not be able to be compiled. Please use a newer version."
+        "yt may not be able to compile. Please use a newer version."
     )
     return []
 
