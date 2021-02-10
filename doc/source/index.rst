@@ -182,6 +182,7 @@ Table of Contents
    cookbook/index
    visualizing/index
    analyzing/index
+   analyzing/domain_analysis/index
    examining/index
    developing/index
    sharing_data
