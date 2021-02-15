@@ -929,9 +929,10 @@ class Dataset(abc.ABC):
         if to_array:
             if any(x.units.is_dimensionless for x in coords):
                 mylog.warning(
-                    f"dataset {self} has angular coordinates. "
+                    "dataset `%s` has angular coordinates. "
                     "Use 'to_array=False' to preserve "
-                    "dimensionality in each coordinate."
+                    "dimensionality in each coordinate.",
+                    str(self),
                 )
 
             # force conversion to length

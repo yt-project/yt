@@ -1400,7 +1400,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 self.ds.__class__,
                 category=RuntimeWarning,
             )
-            mylog.debug(f"Caught {runtime_errors_count} runtime errors.")
+            mylog.debug("Caught %d runtime errors.", runtime_errors_count)
         for name, v in zip(fields, ls.fields):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]
@@ -2567,8 +2567,8 @@ class YTSurface(YTSelectionContainer3D):
 
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
-        except requests.exceptions.RequestException as e:
-            mylog.error("An error occured: %s", e)
+        except requests.exceptions.RequestException:
+            mylog.exception("An error has occured")
             return
 
         result = r.json()

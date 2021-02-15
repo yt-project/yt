@@ -443,9 +443,10 @@ class RAMSESDomainSubset(OctreeSubset):
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         if smoothed:
             mylog.warning(
-                f"{self}.retrieve_ghost_zones was called with the "
-                f"`smoothed` argument set to True. This is not supported, "
-                "ignoring it."
+                "%s.retrieve_ghost_zones was called with the "
+                "`smoothed` argument set to True. This is not supported, "
+                "ignoring it.",
+                self,
             )
             smoothed = False
 
@@ -950,9 +951,10 @@ class RAMSESDataset(Dataset):
                     nml = f90nml.read(f)
             except ImportError as e:
                 nml = f"An error occurred when reading the namelist: {str(e)}"
-            except (ValueError, StopIteration) as e:
+            except (ValueError, StopIteration) as err:
                 mylog.warning(
-                    "Could not parse `namelist.txt` file as it was malformed: %s", e
+                    "Could not parse `namelist.txt` file as it was malformed:",
+                    exc_info=err,
                 )
                 return
 
