@@ -117,26 +117,14 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         validators=[ValidateParameter("bulk_velocity")],
     )
 
-    def _kinetic_energy(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data["gas", "kinetic_energy_density"]
-
-    registry.add_field(
+    registry.deprecated(
         (ftype, "kinetic_energy"),
-        sampling_type="local",
-        function=_kinetic_energy,
-        units=unit_system["pressure"],
+        (ftype, "kinetic_energy_density")
     )
 
-    def _thermal_energy(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data["gas", "specific_thermal_energy"]
-
-    registry.add_field(
+    registry.deprecated(
         (ftype, "thermal_energy"),
-        sampling_type="local",
-        function=_thermal_energy,
-        units=unit_system["specific_energy"],
+        (ftype, "specific_thermal_energy")
     )
 
     def _mach_number(field, data):
