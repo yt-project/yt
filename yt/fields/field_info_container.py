@@ -15,7 +15,8 @@ from yt.utilities.exceptions import (
     YTFieldNotFound,
 )
 
-from .derived_field import DerivedField, NullFunc, TranslationFunc
+from .derived_field import DerivedField, NullFunc, TranslationFunc, \
+    DeprecatedFunc
 from .field_plugin_registry import field_plugins
 from .particle_fields import (
     add_union_field,
@@ -438,6 +439,25 @@ class FieldInfoContainer(dict):
             function=TranslationFunc(original_name),
             sampling_type=self[original_name].sampling_type,
             display_name=self[original_name].display_name,
+            units=units,
+        )
+
+    def deprecated(self, deprecated_name, new_name, units=None):
+        if new_name not in self:
+            return
+        if units is None:
+            # We default to CGS here, but in principle, this can be pluggable
+            # as well.
+            u = Unit(self[new_name].units, registry=self.ds.unit_registry)
+            if u.dimensions is not dimensionless:
+                units = str(self.ds.unit_system[u.dimensions])
+            else:
+                units = self[new_name].units
+        self.add_field(
+            deprecated_name,
+            function=DeprecatedFunc(new_name),
+            sampling_type=self[new_name].sampling_type,
+            display_name=self[new_name].display_name,
             units=units,
         )
 
