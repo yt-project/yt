@@ -6,7 +6,7 @@ import warnings
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
-from yt.funcs import iter_fields
+from yt.funcs import iter_fields, mylog
 from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 
@@ -32,6 +32,16 @@ def TranslationFunc(field_name):
 
 def NullFunc(field, data):
     raise YTFieldNotFound(field.name)
+
+
+def DeprecatedFunc(new_field):
+    def _DeprecatedFunc(field, data):
+        if data.ds.fields_detected:
+            msg = f"The Derived Field {field.name} field is deprecated. "
+            msg += f"Use {new_field} instead."
+            mylog.warning(msg)
+        return data[new_field]
+    return _DeprecatedFunc
 
 
 class DerivedField:
