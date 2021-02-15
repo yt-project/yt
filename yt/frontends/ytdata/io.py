@@ -234,48 +234,6 @@ class IOHandlerYTDataContainerHDF5(BaseIOHandler):
                         data = f[ptype][field][mask].astype("float64")
                         yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
-        all_count = self._count_particles(data_file)
-        pcount = sum(all_count.values())
-        morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
-            "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
-        )
-        ind = 0
-        with h5py.File(data_file.filename, mode="r") as f:
-            for ptype in all_count:
-                if ptype not in f or all_count[ptype] == 0:
-                    continue
-                pos = np.empty((all_count[ptype], 3), dtype="float64")
-                units = _get_position_array_units(ptype, f, "x")
-                if ptype == "grid":
-                    dx = f["grid"]["dx"][()].min()
-                    dx = self.ds.quan(dx, parse_h5_attr(f["grid"]["dx"], "units")).to(
-                        "code_length"
-                    )
-                else:
-                    dx = 2.0 * np.finfo(f[ptype]["particle_position_x"].dtype).eps
-                    dx = self.ds.quan(dx, units).to("code_length")
-                pos[:, 0] = _get_position_array(ptype, f, "x")
-                pos[:, 1] = _get_position_array(ptype, f, "y")
-                pos[:, 2] = _get_position_array(ptype, f, "z")
-                pos = self.ds.arr(pos, units).to("code_length")
-                dle = self.ds.domain_left_edge.to("code_length")
-                dre = self.ds.domain_right_edge.to("code_length")
-
-                # These are 32 bit numbers, so we give a little lee-way.
-                # Otherwise, for big sets of particles, we often will bump into the
-                # domain edges.  This helps alleviate that.
-                np.clip(pos, dle + dx, dre - dx, pos)
-                if np.any(pos.min(axis=0) < dle) or np.any(pos.max(axis=0) > dre):
-                    raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0), dle, dre)
-                regions.add_data_file(pos, data_file.file_id)
-                morton[ind : ind + pos.shape[0]] = compute_morton(
-                    pos[:, 0], pos[:, 1], pos[:, 2], dle, dre
-                )
-                ind += pos.shape[0]
-        return morton
-
     def _count_particles(self, data_file):
         si, ei = data_file.start, data_file.end
         if None not in (si, ei):
@@ -349,49 +307,6 @@ class IOHandlerYTSpatialPlotHDF5(IOHandlerYTDataContainerHDF5):
                     for field in field_list:
                         data = f[ptype][field][mask].astype("float64")
                         yield (ptype, field), data
-
-    def _initialize_index(self, data_file, regions):
-        all_count = self._count_particles(data_file)
-        pcount = sum(all_count.values())
-        morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
-            "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
-        )
-        ind = 0
-        with h5py.File(data_file.filename, mode="r") as f:
-            for ptype in all_count:
-                if ptype not in f or all_count[ptype] == 0:
-                    continue
-                pos = np.empty((all_count[ptype], 3), dtype="float64")
-                pos = self.ds.arr(pos, "code_length")
-                if ptype == "grid":
-                    dx = f["grid"]["pdx"][()].min()
-                    dx = self.ds.quan(dx, parse_h5_attr(f["grid"]["pdx"], "units")).to(
-                        "code_length"
-                    )
-                else:
-                    raise NotImplementedError
-                pos[:, 0] = _get_position_array(ptype, f, "px")
-                pos[:, 1] = _get_position_array(ptype, f, "py")
-                pos[:, 2] = (
-                    np.zeros(all_count[ptype], dtype="float64")
-                    + self.ds.domain_left_edge[2].to("code_length").d
-                )
-                dle = self.ds.domain_left_edge.to("code_length")
-                dre = self.ds.domain_right_edge.to("code_length")
-
-                # These are 32 bit numbers, so we give a little lee-way.
-                # Otherwise, for big sets of particles, we often will bump into the
-                # domain edges.  This helps alleviate that.
-                np.clip(pos, dle + dx, dre - dx, pos)
-                if np.any(pos.min(axis=0) < dle) or np.any(pos.max(axis=0) > dre):
-                    raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0), dre, dle)
-                regions.add_data_file(pos, data_file.file_id)
-                morton[ind : ind + pos.shape[0]] = compute_morton(
-                    pos[:, 0], pos[:, 1], pos[:, 2], dle, dre
-                )
-                ind += pos.shape[0]
-        return morton
 
 
 def _get_position_array(ptype, f, ax):

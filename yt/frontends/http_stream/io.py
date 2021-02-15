@@ -71,27 +71,5 @@ class IOHandlerHTTPStream(BaseIOHandler):
                     data = c[mask, ...]
                     yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
-        header = self.ds.parameters
-        ptypes = header["particle_count"][data_file.file_id].keys()
-        pcount = sum(header["particle_count"][data_file.file_id].values())
-        morton = np.empty(pcount, dtype="uint64")
-        ind = 0
-        for ptype in ptypes:
-            s = self._open_stream(data_file, (ptype, "Coordinates"))
-            c = np.frombuffer(s, dtype="float64")
-            c.shape = (c.shape[0] / 3.0, 3)
-            regions.add_data_file(c, data_file.file_id, data_file.ds.filter_bbox)
-            morton[ind : ind + c.shape[0]] = compute_morton(
-                c[:, 0],
-                c[:, 1],
-                c[:, 2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-                data_file.ds.filter_bbox,
-            )
-            ind += c.shape[0]
-        return morton
-
     def _count_particles(self, data_file):
         return self.ds.parameters["particle_count"][data_file.file_id]

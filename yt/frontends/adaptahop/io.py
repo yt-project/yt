@@ -118,38 +118,6 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                 i = field_list.index(field)
                 yield (ptype, field), data[mask, i]
 
-    def _initialize_index(self, data_file, regions):
-        pcount = data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
-        morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
-            "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
-        )
-        if pcount == 0:
-            return morton
-        ind = 0
-
-        pos = self._get_particle_positions()
-
-        if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or np.any(
-            pos.max(axis=0) > self.ds.domain_right_edge
-        ):
-            raise YTDomainOverflow(
-                pos.min(axis=0),
-                pos.max(axis=0),
-                self.ds.domain_left_edge,
-                self.ds.domain_right_edge,
-            )
-        regions.add_data_file(pos, data_file.file_id)
-        morton[ind : ind + pos.shape[0]] = compute_morton(
-            pos[:, 0],
-            pos[:, 1],
-            pos[:, 2],
-            data_file.ds.domain_left_edge,
-            data_file.ds.domain_right_edge,
-        )
-
-        return morton
-
     def _count_particles(self, data_file):
         nhalos = data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
         return {"halos": nhalos}

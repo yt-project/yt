@@ -218,29 +218,6 @@ class IOHandlerFLASHParticle(BaseIOHandler):
                     data = p_fields[si:ei, fi]
                     yield (ptype, field), data[mask]
 
-    def _initialize_index(self, data_file, regions):
-        p_fields = self._handle["/tracer particles"]
-        px, py, pz = self._position_fields
-        pcount = self._count_particles(data_file)["io"]
-        morton = np.empty(pcount, dtype="uint64")
-        ind = 0
-        while ind < pcount:
-            npart = min(self.chunksize, pcount - ind)
-            pos = np.empty((npart, 3), dtype="=f8")
-            pos[:, 0] = p_fields[ind : ind + npart, px]
-            pos[:, 1] = p_fields[ind : ind + npart, py]
-            pos[:, 2] = p_fields[ind : ind + npart, pz]
-            regions.add_data_file(pos, data_file.file_id)
-            morton[ind : ind + npart] = compute_morton(
-                pos[:, 0],
-                pos[:, 1],
-                pos[:, 2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-            )
-            ind += self.chunksize
-        return morton
-
     _pcount = None
 
     def _count_particles(self, data_file):

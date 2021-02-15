@@ -56,28 +56,6 @@ class IOHandlerAHFHalos(BaseIOHandler):
                     data = halos[field][si:ei][mask].astype("float64")
                     yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
-        halos = data_file.read_data(usecols=["ID"])
-        pcount = len(halos["ID"])
-        morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
-            "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
-        )
-        if pcount == 0:
-            return morton
-        ind = 0
-        pos = data_file._get_particle_positions("halos")
-        pos = data_file.ds.arr(pos, "code_length")
-        dle = self.ds.domain_left_edge
-        dre = self.ds.domain_right_edge
-        if np.any(pos.min(axis=0) < dle) or np.any(pos.max(axis=0) > dre):
-            raise YTDomainOverflow(pos.min(axis=0), pos.max(axis=0), dle, dre)
-        regions.add_data_file(pos, data_file.file_id)
-        morton[ind : ind + pos.shape[0]] = compute_morton(
-            pos[:, 0], pos[:, 1], pos[:, 2], dle, dre
-        )
-        return morton
-
     def _count_particles(self, data_file):
         halos = data_file.read_data(usecols=["ID"])
         nhalos = len(halos["ID"])

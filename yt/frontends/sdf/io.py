@@ -58,29 +58,6 @@ class IOHandlerSDF(BaseIOHandler):
                         data = self._handle[field][mask]
                     yield (ptype, field), data
 
-    def _initialize_index(self, data_file, regions):
-        x, y, z = (self._handle[ax] for ax in "xyz")
-        pcount = x.size
-
-        morton = np.empty(pcount, dtype="uint64")
-        ind = 0
-        while ind < pcount:
-            npart = min(self.ds.index.chunksize, pcount - ind)
-            pos = np.empty((npart, 3), dtype=x.dtype)
-            pos[:, 0] = x[ind : ind + npart]
-            pos[:, 1] = y[ind : ind + npart]
-            pos[:, 2] = z[ind : ind + npart]
-            regions.add_data_file(pos, data_file.file_id)
-            morton[ind : ind + npart] = compute_morton(
-                pos[:, 0],
-                pos[:, 1],
-                pos[:, 2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-            )
-            ind += self.ds.index.chunksize
-        return morton
-
     def _identify_fields(self, data_file):
         fields = [("dark_matter", v) for v in self._handle.keys()]
         fields.append(("dark_matter", "mass"))
@@ -191,43 +168,6 @@ class IOHandlerSIndexSDF(IOHandlerSDF):
                     else:
                         data = dd[field][mask]
                     yield (ptype, field), data
-
-    def _initialize_index(self, data_file, regions):
-        dle = self.ds.domain_left_edge.in_units("code_length").d
-        dre = self.ds.domain_right_edge.in_units("code_length").d
-        pcount = 0
-        for dd in self.ds.midx.iter_bbox_data(dle, dre, ["x"]):
-            pcount += dd["x"].size
-
-        morton = np.empty(pcount, dtype="uint64")
-        ind = 0
-
-        chunk_id = 0
-        for dd in self.ds.midx.iter_bbox_data(dle, dre, ["x", "y", "z"]):
-            npart = dd["x"].size
-            pos = np.empty((npart, 3), dtype=dd["x"].dtype)
-            pos[:, 0] = dd["x"]
-            pos[:, 1] = dd["y"]
-            pos[:, 2] = dd["z"]
-            if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or np.any(
-                pos.max(axis=0) > self.ds.domain_right_edge
-            ):
-                raise YTDomainOverflow(
-                    pos.min(axis=0),
-                    pos.max(axis=0),
-                    self.ds.domain_left_edge,
-                    self.ds.domain_right_edge,
-                )
-            regions.add_data_file(pos, chunk_id)
-            morton[ind : ind + npart] = compute_morton(
-                pos[:, 0],
-                pos[:, 1],
-                pos[:, 2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-            )
-            ind += npart
-        return morton
 
     def _count_particles(self, data_file):
         dle = self.ds.domain_left_edge.in_units("code_length").d
