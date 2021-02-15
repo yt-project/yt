@@ -382,6 +382,7 @@ def create_build_ext(lib_exts, cythonize_aliases):
     the appropriate package manager for your python environment."""
                 ) from e
             if LooseVersion(cython.__version__) < LooseVersion("0.26.1"):
+                # keep in sync with pyproject.toml [build-system]
                 raise RuntimeError(
                     """Building yt from source requires Cython 0.26.1 or newer but
     Cython %s is installed. Please update Cython using the appropriate
@@ -389,6 +390,7 @@ def create_build_ext(lib_exts, cythonize_aliases):
                     % cython.__version__
                 )
             if LooseVersion(numpy.__version__) < LooseVersion("1.13.3"):
+                # keep in sync with pyproject.toml [build-system]
                 raise RuntimeError(
                     """Building yt from source requires NumPy 1.13.3 or newer but
     NumPy %s is installed. Please update NumPy using the appropriate
