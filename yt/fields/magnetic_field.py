@@ -56,15 +56,8 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["pressure"],
     )
 
-    def _magnetic_energy(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data[ftype, "magnetic_energy_density"]
-
-    registry.add_field(
-        (ftype, "magnetic_energy"),
-        sampling_type="local",
-        function=_magnetic_energy,
-        units=unit_system["pressure"],
+    registry.alias(
+        (ftype, "magnetic_energy"), (ftype, "magnetic_energy_density"), deprecate=True
     )
 
     def _plasma_beta(field, data):

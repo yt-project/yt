@@ -117,14 +117,12 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         validators=[ValidateParameter("bulk_velocity")],
     )
 
-    registry.deprecated(
-        (ftype, "kinetic_energy"),
-        (ftype, "kinetic_energy_density")
+    registry.alias(
+        (ftype, "kinetic_energy"), (ftype, "kinetic_energy_density"), deprecate=True
     )
 
-    registry.deprecated(
-        (ftype, "thermal_energy"),
-        (ftype, "specific_thermal_energy")
+    registry.alias(
+        (ftype, "thermal_energy"), (ftype, "specific_thermal_energy"), deprecate=True
     )
 
     def _mach_number(field, data):

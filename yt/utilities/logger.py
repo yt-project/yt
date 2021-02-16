@@ -87,7 +87,7 @@ ytLogger.addFilter(DuplicateFilter())
 class DeprecatedFieldFilter(logging.Filter):
     """A filter that suppresses repeated logging of deprecated field warnings"""
 
-    def __init__(self, name=''):
+    def __init__(self, name=""):
         self.logged_fields = []
         super().__init__(name=name)
 

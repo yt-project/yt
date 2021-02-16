@@ -162,16 +162,8 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _spherical_r(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data["index", "spherical_radius"]
-
-    registry.add_field(
-        ("index", "spherical_r"),
-        sampling_type="cell",
-        function=_spherical_r,
-        validators=[ValidateParameter("center")],
-        units=unit_system["length"],
+    registry.alias(
+        ("index", "spherical_r"), ("index", "spherical_radius"), deprecate=True
     )
 
     def _spherical_theta(field, data):
@@ -236,16 +228,8 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units=unit_system["length"],
     )
 
-    def _cylindrical_r(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data["index", "cylindrical_radius"]
-
-    registry.add_field(
-        ("index", "cylindrical_r"),
-        sampling_type="cell",
-        function=_cylindrical_r,
-        validators=[ValidateParameter("center")],
-        units=unit_system["length"],
+    registry.alias(
+        ("index", "cylindrical_r"), ("index", "cylindrical_radius"), deprecate=True
     )
 
     def _cylindrical_z(field, data):
@@ -303,15 +287,4 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _height(field, data):
-        """This field is deprecated and will be removed in a future release"""
-        return data["index", "cylindrical_z"]
-
-    registry.add_field(
-        ("index", "height"),
-        sampling_type="cell",
-        function=_height,
-        validators=[ValidateParameter("center"), ValidateParameter("normal")],
-        units=unit_system["length"],
-        display_field=False,
-    )
+    registry.alias(("index", "height"), ("index", "cylindrical_z"), deprecate=True)

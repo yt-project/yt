@@ -15,8 +15,7 @@ from yt.utilities.exceptions import (
     YTFieldNotFound,
 )
 
-from .derived_field import DerivedField, NullFunc, TranslationFunc, \
-    DeprecatedFunc
+from .derived_field import DeprecatedFunc, DerivedField, NullFunc, TranslationFunc
 from .field_plugin_registry import field_plugins
 from .particle_fields import (
     add_union_field,
@@ -450,7 +449,7 @@ class FieldInfoContainer(dict):
             name,
             function=DeprecatedFunc(name, function),
             sampling_type=sampling_type,
-            **kwargs
+            **kwargs,
         )
 
     def has_key(self, key):

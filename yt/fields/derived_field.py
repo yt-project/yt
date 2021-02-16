@@ -44,6 +44,7 @@ def DeprecatedFunc(ret_field, func):
                 args.append(ret_field)
             mylog.warning(msg, *args)
         return func(field, data)
+
     return _DeprecatedFunc
 
 
