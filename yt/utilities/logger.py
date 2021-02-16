@@ -84,6 +84,28 @@ class DuplicateFilter(logging.Filter):
 ytLogger.addFilter(DuplicateFilter())
 
 
+class DeprecatedFieldFilter(logging.Filter):
+    """A filter that suppresses repeated logging of deprecated field warnings"""
+
+    def __init__(self, name=''):
+        self.logged_fields = []
+        super().__init__(name=name)
+
+    def filter(self, record):
+        if record.msg.startswith("The Derived Field"):
+            field = record.args[0]
+            if field in self.logged_fields:
+                return False
+            else:
+                self.logged_fields.append(field)
+                return True
+        else:
+            return True
+
+
+ytLogger.addFilter(DeprecatedFieldFilter())
+
+
 def disable_stream_logging():
     if len(ytLogger.handlers) > 0:
         ytLogger.removeHandler(ytLogger.handlers[0])
