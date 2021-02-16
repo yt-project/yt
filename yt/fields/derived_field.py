@@ -34,13 +34,16 @@ def NullFunc(field, data):
     raise YTFieldNotFound(field.name)
 
 
-def DeprecatedFunc(new_field):
+def DeprecatedFunc(ret_field, func):
     def _DeprecatedFunc(field, data):
         if data.ds.fields_detected:
-            msg = f"The Derived Field {field.name} field is deprecated. "
-            msg += f"Use {new_field} instead."
-            mylog.warning(msg)
-        return data[new_field]
+            args = [field.name]
+            msg = "The Derived Field %s field is deprecated. "
+            if ret_field != field.name:
+                msg += "Use %s instead."
+                args.append(ret_field)
+            mylog.warning(msg, *args)
+        return func(field, data)
     return _DeprecatedFunc
 
 

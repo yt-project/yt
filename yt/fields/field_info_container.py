@@ -422,7 +422,7 @@ class FieldInfoContainer(dict):
         kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
-    def alias(self, alias_name, original_name, units=None):
+    def alias(self, alias_name, original_name, units=None, deprecate=False):
         if original_name not in self:
             return
         if units is None:
@@ -434,31 +434,23 @@ class FieldInfoContainer(dict):
             else:
                 units = self[original_name].units
         self.field_aliases[alias_name] = original_name
+        function = TranslationFunc(original_name)
+        if deprecate:
+            function = DeprecatedFunc(original_name, function)
         self.add_field(
             alias_name,
-            function=TranslationFunc(original_name),
+            function=function,
             sampling_type=self[original_name].sampling_type,
             display_name=self[original_name].display_name,
             units=units,
         )
 
-    def deprecated(self, deprecated_name, new_name, units=None):
-        if new_name not in self:
-            return
-        if units is None:
-            # We default to CGS here, but in principle, this can be pluggable
-            # as well.
-            u = Unit(self[new_name].units, registry=self.ds.unit_registry)
-            if u.dimensions is not dimensionless:
-                units = str(self.ds.unit_system[u.dimensions])
-            else:
-                units = self[new_name].units
+    def add_deprecated_field(self, name, function, sampling_type, **kwargs):
         self.add_field(
-            deprecated_name,
-            function=DeprecatedFunc(new_name),
-            sampling_type=self[new_name].sampling_type,
-            display_name=self[new_name].display_name,
-            units=units,
+            name,
+            function=DeprecatedFunc(name, function),
+            sampling_type=sampling_type,
+            **kwargs
         )
 
     def has_key(self, key):
