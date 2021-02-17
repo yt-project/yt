@@ -2,7 +2,6 @@ import numpy as np
 
 from yt.funcs import get_requests, mylog
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 
 
 class IOHandlerHTTPStream(BaseIOHandler):

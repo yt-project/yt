@@ -1,9 +1,7 @@
 import numpy as np
 
 from yt.funcs import mylog
-from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 
 
 class IOHandlerSDF(BaseIOHandler):

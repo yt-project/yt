@@ -14,7 +14,6 @@ from yt.frontends.art.definitions import (
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.logger import ytLogger as mylog
 
 
