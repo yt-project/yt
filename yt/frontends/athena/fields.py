@@ -140,6 +140,14 @@ class AthenaFieldInfo(FieldInfoContainer):
                 units=unit_system["specific_energy"],
             )
 
+        self.alias(("gas", "total_energy_density"), ("athena", "total_energy"))
+
+        self.alias(
+            ("gas", "total_energy"),
+            ("gas", "total_energy_density"),
+            deprecate=True
+        )
+
         # Add temperature field
         def _temperature(field, data):
             return (

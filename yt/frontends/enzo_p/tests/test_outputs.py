@@ -11,7 +11,7 @@ from yt.utilities.answer_testing.framework import (
 )
 from yt.utilities.on_demand_imports import _h5py as h5py
 
-_fields = ("density", "specific_total_energy", "velocity_x", "velocity_y")
+_fields = ("density", "total_energy", "velocity_x", "velocity_y")
 
 _pfields = (
     "particle_position_x",

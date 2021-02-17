@@ -40,6 +40,14 @@ class EnzoPFieldInfo(FieldInfoContainer):
     def __init__(self, ds, field_list, slice_info=None):
         super().__init__(ds, field_list, slice_info=slice_info)
 
+    def setup_fluid_fields(self):
+        super().setup_fluid_fields()
+        self.alias(
+            ("gas", "total_energy"),
+            ("gas", "specific_total_energy"),
+            deprecate=True
+        )
+
     def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):
         super().setup_particle_fields(ptype, ftype=ftype, num_neighbors=num_neighbors)
         self.setup_particle_mass_field(ptype)
