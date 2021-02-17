@@ -1,4 +1,4 @@
-cimport cython 
+cimport cython
 cimport cython.floating
 from libc.math cimport sqrt
 
@@ -6,9 +6,9 @@ from libc.math cimport sqrt
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline cython.floating dot(const cython.floating[3] a, 
+cdef inline cython.floating dot(const cython.floating[3] a,
                                 const cython.floating[3] b) nogil:
-    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2] 
+    return a[0]*b[0] + a[1]*b[1] + a[2]*b[2]
 
 
 @cython.boundscheck(False)
@@ -25,7 +25,7 @@ cdef inline void cross(const cython.floating[3] a,
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef inline void subtract(const cython.floating[3] a, 
+cdef inline void subtract(const cython.floating[3] a,
                           const cython.floating[3] b,
                           cython.floating c[3]) nogil:
     c[0] = a[0] - b[0]
@@ -45,7 +45,7 @@ cdef inline cython.floating distance(const cython.floating[3] a,
 @cython.wraparound(False)
 @cython.cdivision(True)
 cdef inline void fma(const cython.floating f,
-                     const cython.floating[3] a, 
+                     const cython.floating[3] a,
                      const cython.floating[3] b,
                      cython.floating[3] c) nogil:
     c[0] = f * a[0] + b[0]

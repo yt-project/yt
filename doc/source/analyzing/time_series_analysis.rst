@@ -39,6 +39,7 @@ pattern to the ``yt.load`` function.
 .. code-block:: python
 
    import yt
+
    ts = yt.load("DD????/DD????")
 
 This will create a new time series, populated with all datasets that match the
@@ -50,6 +51,7 @@ initializer:
 .. code-block:: python
 
    import yt
+
    ts = yt.DatasetSeries(["DD0030/DD0030", "DD0040/DD0040"])
 
 Analyzing Each Dataset In Sequence
@@ -62,6 +64,7 @@ is returned for iteration:
 .. code-block:: python
 
    import yt
+
    ts = yt.load("*/*.index")
    for ds in ts:
        print(ds.current_time)
@@ -91,7 +94,8 @@ To instantiate, give the parameter file and the simulation type.
 .. code-block:: python
 
   import yt
-  my_sim = yt.simulation('enzo_tiny_cosmology/32Mpc_32.enzo', 'Enzo')
+
+  my_sim = yt.simulation("enzo_tiny_cosmology/32Mpc_32.enzo", "Enzo")
 
 Then, create a ``DatasetSeries`` object with the
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series`
@@ -111,9 +115,9 @@ After this, time series analysis can be done normally.
 
 .. code-block:: python
 
-  for ds in my_sim.piter()
+  for ds in my_sim.piter():
       all_data = ds.all_data()
-      print(all_data.quantities.extrema('density'))
+      print(all_data.quantities.extrema("density"))
 
 Additional keywords can be given to
 :meth:`frontends.enzo.simulation_handling.EnzoSimulation.get_time_series`

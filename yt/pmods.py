@@ -101,7 +101,7 @@ consider this::
         if mpi.rank == 0:
             bar = someFunction()
         bar = mpi.bcast(bar,root=0)
-    
+
     def someFunction():
         import os
         return os.name
@@ -119,7 +119,7 @@ The import hook provides a way to test whether we're using this
 importer, which can be used to disable rank-asymmetric behavior in a
 module import::
 
-    from yt.extern.six.moves import builtins
+    import builtins
     hasattr(builtins.__import__,"mpi_import")
 
 This evaluates to True only when we're in an ``mpi_import()`` context
@@ -141,7 +141,7 @@ Here is an example showing the use of this feature::
 
     # Either importer is None (standard import) or it's a reference to
     # the mpi_import object that owns the current importer.
-    from yt.extern.six.moves import builtins
+    import builtins
     importer = getattr(builtins.__import__,"mpi_import",None)
     if importer:
         importer.callAfterImport(f)
@@ -175,7 +175,7 @@ Some implementation details
   be replaced with the following wrapper::
 
     from mpi4py import MPI
-    class mpi(object):
+    class mpi:
         rank = MPI.COMM_WORLD.Get_rank()
         @staticmethod
         def bcast(obj=None,root=0):
@@ -186,27 +186,30 @@ Some implementation details
   process reached the end of the context manager. This was somewhat
   faster than the current implementation, but was prone to deadlock
   when loading modules containing MPI synchronization points.
-  
+
 * The ``level`` parameter to the import hook is not handled correctly; we
   treat it as if it were -1 (try relative and absolute imports). For
   more information about the level parameter, run ``help(__import__)``.
 """
-from __future__ import print_function
 
-import sys
+
+import builtins
 import imp
+import sys
 import types
-from yt.extern.six.moves import builtins
+
 from mpi4py import MPI
 
 
-class mpi(object):
+class mpi:
     rank = MPI.COMM_WORLD.Get_rank()
-    @staticmethod
-    def bcast(obj=None,root=0):
-        return MPI.COMM_WORLD.bcast(obj,root)
 
-class mpi_import(object):
+    @staticmethod
+    def bcast(obj=None, root=0):
+        return MPI.COMM_WORLD.bcast(obj, root)
+
+
+class mpi_import:
     def __enter__(self):
         imp.acquire_lock()
         __import_hook__.mpi_import = self
@@ -214,14 +217,14 @@ class mpi_import(object):
         self.original_import = builtins.__import__
         builtins.__import__ = __import_hook__
 
-    def __exit__(self,type,value,traceback):
+    def __exit__(self, type, value, traceback):
         builtins.__import__ = self.original_import
         __import_hook__.mpi_import = None
         imp.release_lock()
         for f in self.__funcs:
             f()
 
-    def callAfterImport(self,f):
+    def callAfterImport(self, f):
         "Add f to the list of functions to call on exit"
         if not isinstance(f, types.FunctionType):
             raise TypeError("Argument must be a function!")
@@ -245,6 +248,7 @@ def __import_hook__(name, globals=None, locals=None, fromlist=None, level=-1):
         __ensure_fromlist__(m, fromlist)
     return m
 
+
 # __import_module__ is the only part of knee.py with non-trivial changes.
 # The MPI rank 0 process handles the lookup and broadcasts the location to
 # the others. This must be called synchronously, at least in the case that
@@ -255,36 +259,36 @@ def __import_module__(partname, fqname, parent):
         return sys.modules[fqname]
     except KeyError:
         pass
-    fp = None         # module's file
-    pathname = None   # module's location
-    stuff = None      # tuple of (suffix,mode,type) for the module
-    ierror = False    # are we propagating an import error from rank 0?
+    fp = None  # module's file
+    pathname = None  # module's location
+    stuff = None  # tuple of (suffix,mode,type) for the module
+    ierror = False  # are we propagating an import error from rank 0?
 
     # Start with the lookup on rank 0. The other processes will be waiting
     # on a broadcast, so we need to send one even if we're bailing out due
     # to an import error.
     if mpi.rank == 0:
         try:
-            fp, pathname, stuff = imp.find_module(partname,
-                                                  parent and parent.__path__)
+            fp, pathname, stuff = imp.find_module(partname, parent and parent.__path__)
         except ImportError:
             ierror = True
             return None
         finally:
-            pathname,stuff,ierror = mpi.bcast((pathname,stuff,ierror))
+            pathname, stuff, ierror = mpi.bcast((pathname, stuff, ierror))
     else:
-        pathname,stuff,ierror = mpi.bcast((pathname,stuff,ierror))
+        pathname, stuff, ierror = mpi.bcast((pathname, stuff, ierror))
         if ierror:
             return None
         # If imp.find_module returned an open file to rank 0, then we should
         # open the corresponding file for this process too.
         if stuff and stuff[1]:
-            fp = open(pathname,stuff[1])
+            fp = open(pathname, stuff[1])
 
     try:
         m = imp.load_module(fqname, fp, pathname, stuff)
     finally:
-        if fp: fp.close()
+        if fp:
+            fp.close()
     if parent:
         setattr(parent, partname, m)
     return m
@@ -295,57 +299,63 @@ def __import_module__(partname, fqname, parent):
 def __determine_parent__(globals, level):
     if not globals or "__name__" not in globals:
         return None
-    pname = globals['__name__']
+    pname = globals["__name__"]
     if "__path__" in globals:
         parent = sys.modules[pname]
         assert globals is parent.__dict__
         return parent
-    if '.' in pname:
+    if "." in pname:
         if level > 0:
             end = len(pname)
-            for l in range(level):
-                i = pname.rfind('.', 0, end)
+            for _ in range(level):
+                i = pname.rfind(".", 0, end)
                 end = i
         else:
-            i = pname.rfind('.')
+            i = pname.rfind(".")
         pname = pname[:i]
         parent = sys.modules[pname]
         assert parent.__name__ == pname
         return parent
     return None
 
+
 def __find_head_package__(parent, name):
-    if '.' in name:
-        i = name.find('.')
+    if "." in name:
+        i = name.find(".")
         head = name[:i]
-        tail = name[i+1:]
+        tail = name[i + 1 :]
     else:
         head = name
         tail = ""
     if parent:
-        qname = "%s.%s" % (parent.__name__, head)
+        qname = f"{parent.__name__}.{head}"
     else:
         qname = head
     q = __import_module__(head, qname, parent)
-    if q: return q, tail
+    if q:
+        return q, tail
     if parent:
         qname = head
         parent = None
         q = __import_module__(head, qname, parent)
-        if q: return q, tail
+        if q:
+            return q, tail
     raise ImportError("No module named " + qname)
+
 
 def __load_tail__(q, tail):
     m = q
     while tail:
-        i = tail.find('.')
-        if i < 0: i = len(tail)
-        head, tail = tail[:i], tail[i+1:]
-        mname = "%s.%s" % (m.__name__, head)
+        i = tail.find(".")
+        if i < 0:
+            i = len(tail)
+        head, tail = tail[:i], tail[i + 1 :]
+        mname = f"{m.__name__}.{head}"
         m = __import_module__(head, mname, m)
         if not m:
             raise ImportError("No module named " + mname)
     return m
+
 
 def __ensure_fromlist__(m, fromlist, recursive=0):
     for sub in fromlist:
@@ -359,13 +369,17 @@ def __ensure_fromlist__(m, fromlist, recursive=0):
                     __ensure_fromlist__(m, all, 1)
             continue
         if sub != "*" and not hasattr(m, sub):
-            subname = "%s.%s" % (m.__name__, sub)
+            subname = f"{m.__name__}.{sub}"
             submod = __import_module__(sub, subname, m)
             if not submod:
                 raise ImportError("No module named " + subname)
 
+
 # Now we import all the yt.mods items.
 with mpi_import():
-    if MPI.COMM_WORLD.rank == 0: print("Beginning parallel import block.")
+    if MPI.COMM_WORLD.rank == 0:
+        print("Beginning parallel import block.")
     from yt.mods import *  # NOQA
-    if MPI.COMM_WORLD.rank == 0: print("Ending parallel import block.")
+
+    if MPI.COMM_WORLD.rank == 0:
+        print("Ending parallel import block.")

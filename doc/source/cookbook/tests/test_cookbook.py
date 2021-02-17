@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """Module for cookbook testing
 
 
@@ -11,15 +10,14 @@ Example:
 """
 import glob
 import os
-import sys
 import subprocess
+import sys
 
 
 def run_with_capture(*args, **kwargs):
-    sp = subprocess.Popen(*args,
-                          stdout=subprocess.PIPE,
-                          stderr=subprocess.PIPE,
-                          **kwargs)
+    sp = subprocess.Popen(
+        *args, stdout=subprocess.PIPE, stderr=subprocess.PIPE, **kwargs
+    )
     out, err = sp.communicate()
     if out:
         sys.stdout.write(out.decode("UTF-8"))
@@ -28,7 +26,7 @@ def run_with_capture(*args, **kwargs):
 
     if sp.returncode != 0:
         retstderr = " ".join(args[0])
-        retstderr += "\n\nTHIS IS THE REAL CAUSE OF THE FAILURE:\n" 
+        retstderr += "\n\nTHIS IS THE REAL CAUSE OF THE FAILURE:\n"
         retstderr += err.decode("UTF-8") + "\n"
         raise subprocess.CalledProcessError(sp.returncode, retstderr)
 
@@ -36,29 +34,36 @@ def run_with_capture(*args, **kwargs):
 
 
 PARALLEL_TEST = {"rockstar_nest.py": "3"}
-BLACKLIST = ["opengl_ipython.py", "opengl_vr.py", "matplotlib-animation.py"]
+BLACKLIST = [
+    "opengl_ipython.py",
+    "opengl_vr.py",
+    "matplotlib-animation.py",
+    "rockstar_nest.py",
+]
 
-if sys.version_info >= (3,0,0):
-    BLACKLIST.append("rockstar_nest.py")
 
 def test_recipe():
-    '''Dummy test grabbing all cookbook's recipes'''
+    """Dummy test grabbing all cookbook's recipes"""
     for fname in glob.glob("doc/source/cookbook/*.py"):
         recipe = os.path.basename(fname)
         if recipe in BLACKLIST:
             continue
-        check_recipe.description = "Testing recipe: %s" % recipe
+        check_recipe.description = f"Testing recipe: {recipe}"
         if recipe in PARALLEL_TEST:
-            yield check_recipe, \
-                ["mpiexec", "-n", PARALLEL_TEST[recipe], "python", fname]
+            yield check_recipe, [
+                "mpiexec",
+                "-n",
+                PARALLEL_TEST[recipe],
+                "python",
+                fname,
+            ]
         else:
             yield check_recipe, ["python", fname]
 
 
 def check_recipe(cmd):
-    '''Run single recipe'''
-    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE,
-                            stderr=subprocess.PIPE)
+    """Run single recipe"""
+    proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = proc.communicate()
     if out:
         sys.stdout.write(out.decode("utf8"))
@@ -67,6 +72,6 @@ def check_recipe(cmd):
 
     if proc.returncode != 0:
         retstderr = " ".join(cmd)
-        retstderr += "\n\nTHIS IS THE REAL CAUSE OF THE FAILURE:\n" 
+        retstderr += "\n\nTHIS IS THE REAL CAUSE OF THE FAILURE:\n"
         retstderr += err.decode("UTF-8") + "\n"
         raise subprocess.CalledProcessError(proc.returncode, retstderr)

@@ -16,12 +16,8 @@ Coding is only one way to be involved!
 Communication Channels
 ----------------------
 
-There are five main communication channels for yt:
+There are three main communication channels for yt:
 
- * We have an IRC channel, on ``irc.freenode.net`` in ``#yt``.
-   You can connect through our web
-   gateway without any special client, at https://yt-project.org/irc.html .
-   *IRC is the first stop for conversation!*
  * Many yt developers participate in the yt Slack community. Slack is a free
    chat service that many teams use to organize their work. You can get an
    invite to yt's Slack organization by clicking the "Join us @ Slack" button
@@ -56,10 +52,10 @@ of a repository; in this case the fork will live in the space under your
 username on github, rather than the ``yt-project``. If you have never made a
 fork of a repository on github, or are unfamiliar with this process, here is a
 short article about how to do so:
-https://help.github.com/en/github/getting-started-with-github/fork-a-repo . 
+https://help.github.com/en/github/getting-started-with-github/fork-a-repo .
 The documentation for
 ``yt`` lives in the ``doc`` directory in the root of the yt git
-repository. To make a contribution to the yt documentation you will 
+repository. To make a contribution to the yt documentation you will
 make your changes in your own fork of ``yt``.  When you are done,
 issue a pull request through the website for your new fork, and we can comment
 back and forth and eventually accept your changes. See :ref:`sharing-changes` for
@@ -91,7 +87,7 @@ usually we end up accepting.
 
 For more information, see :ref:`contributing-code`, where we spell out how to
 get up and running with a development environment, how to commit, and how to
-use GitHub. When you're ready to share your changes with the community, refer to 
+use GitHub. When you're ready to share your changes with the community, refer to
 :ref:`sharing-changes` to see how to contribute them back upstream.
 
 Online Presence
@@ -312,7 +308,7 @@ directory.
 
    $ cd yt-git
 
-Verify that you are on the master branch of yt by running:
+Verify that you are on the ``main`` branch of yt by running:
 
 .. code-block:: bash
 
@@ -338,15 +334,15 @@ You can always return to the most recent version of the code by executing the
 same command as above with the most recent revision specifier in the
 repository. However, using ``git log`` when you're checked out to an older
 revision specifier will not show more recent changes to the repository. An
-alternative option is to use ``checkout`` on a branch. In yt the ``master``
-branch is our primary development branch, so checking out ``master`` should
-return you to the tip (or most up-to-date revision specifier) on the ``master``
-branch. 
+alternative option is to use ``checkout`` on a branch. In yt the ``main``
+branch is our primary development branch, so checking out ``main`` should
+return you to the tip (or most up-to-date revision specifier) on the ``main``
+branch.
 
 .. code-block:: bash
-   
-   $ git checkout master
-   
+
+   $ git checkout main
+
 Lastly, if you want to use this new downloaded version of your yt repository as
 the *active* version of yt on your computer (i.e. the one which is executed when
 you run yt from the command line or the one that is loaded when you do ``import
@@ -405,12 +401,6 @@ the following subdirectories:
    classes for data regions, covering grids, time series, and so on.  This
    also includes derived fields and derived quantities.
 
-``analysis_modules``
-   This is where all mechanisms for processing data live.  This includes
-   things like clump finding, halo profiling, halo finding, and so on.  This
-   is something of a catchall, but it serves as a level of greater
-   abstraction that simply data selection and modification.
-
 ``gui``
    This is where all GUI components go.  Typically this will be some small
    tool used for one or two things, which contains a launching mechanism on
@@ -419,10 +409,6 @@ the following subdirectories:
 ``utilities``
    All broadly useful code that doesn't clearly fit in one of the other
    categories goes here.
-
-``extern``
-   Bundled external modules (i.e. code that was not written by one of
-   the yt authors but that yt depends on) lives here.
 
 
 If you're looking for a specific file or function in the yt source code, use
@@ -560,12 +546,12 @@ chat or on the mailing list to walk you through any troubles you might have.
 Here are some general suggestions for using git with yt:
 
 * Although not necessary, a common development work flow is to create a local
-  named branch other than ``master`` to address a feature request or bugfix. If
+  named branch other than ``main`` to address a feature request or bugfix. If
   the dev work addresses a specific yt GitHub issue, you may include that issue
   number in the branch name. For example, if you want to work on issue number X
   regarding a cool new slice plot feature, you might name the branch:
   ``cool_new_plot_feature_X``. When you're ready to share your work, push your
-  feature branch to your remote and create a pull request to the ``master``
+  feature branch to your remote and create a pull request to the ``main``
   branch of the yt-project's repository.
 * When contributing changes, you might be asked to make a handful of
   modifications to your source code.  We'll work through how to do this with
@@ -669,7 +655,7 @@ Here's a more detailed flowchart of how to submit changes.
      protocol.
 
      .. _SSH key: https://help.github.com/en/articles/connecting-to-github-with-ssh/
-#. Issue a pull request at https://github.com/yt-project/yt/pull/new/master A
+#. Issue a pull request at https://github.com/yt-project/yt/pull/new/main A
    pull request is essentially just asking people to review and accept the
    modifications you have made to your personal version of the code.
 
@@ -690,13 +676,13 @@ straightforward.
 Once your pull request is merged, sync up with the main yt repository by pulling
 from the ``upstream`` remote::
 
-     git checkout master
-     git pull upstream master
+     git checkout main
+     git pull upstream main
 
 You might also want to sync your fork of yt on GitHub::
 
      # sync my fork of yt with upstream
-     git push origin master
+     git push origin main
 
 And delete the branch for the merged pull request::
 
@@ -726,36 +712,39 @@ active PR for which ``feature_1`` is a pointer to the ``HEAD`` commit. A push to
 Coding Style Guide
 ==================
 
-Automatically checking code style
----------------------------------
+Automatically checking and fixing code style
+--------------------------------------------
 
-Below are a list of rules for coding style in yt. Some of these rules are
-suggestions are not explicitly enforced, while some are enforced via automated
-testing. The yt project uses a subset of the rules checked by ``flake8`` to
-verify our code. The ``flake8`` tool is a combination of the ``pyflakes`` and
-``pep8`` tools. To check the coding style of your contributions locally you will
-need to install the ``flake8`` tool from ``pip``:
+We use the `pre-commit <https://pre-commit.com>`_ framework to validate and
+automatically fix code styling.
+It is recommended (though not required) that you install ``pre-commit`` on your machine
+(see their documentation) and, from the top level of the repo, run
 
 .. code-block:: bash
 
-    $ pip install flake8
+    $ pre-commit install
 
-And then navigate to the root of the yt repository and run ``flake8`` on the
-``yt`` subdirectory:
+So that our hooks will run and update your changes on every commit.
+If you do not want to/are unable to configure ``pre-commit`` on your machine, note that
+after opening a pull request, a bot will run the hooks and validate your contribution by
+appending commits to your branch.
 
-.. code-block:: bash
+Here's a list of the main automated formatters we use along with a short description
 
-    $ cd yt-git
-    $ flake8 ./yt
+- `black <https://black.readthedocs.io/en/stable/>_` (overall coding style)
+- `isort <https://pycqa.github.io/isort/>_` (import statements ordering)
+- `pyupgrade <https://github.com/asottile/pyupgrade>_` (enforce modern python idioms)
+- `flake8 <https://flake8.pycqa.org/en/latest/>_` + `bugbear <https://github.com/PyCQA/flake8-bugbear>_` (static code smells detection)
 
-This will print out any ``flake8`` errors or warnings that your newly added code
-triggers. The errors will be in your newly added code because we have already
-cleaned up the rest of the yt codebase of the errors and warnings detected by
-the `flake8` tool. Note that this will only trigger a subset of the `full flake8
-error and warning list
-<https://flake8.readthedocs.io/en/latest/user/error-codes.html>`_, since we explicitly
-blacklist a large number of the full list of rules that are checked by
-``flake8`` by default.
+The complete configuration is located in ``.pre-commit-config.yaml``.
+
+.. note:: It is not recommended to run formatters directly on the command line because
+    versions available in your system may conflict with the ones we run through
+    ``pre-commit`` hooks (which are updated periodically).
+
+Below are a list of additional guidelines for coding in yt, that are not automatically
+enforced.
+
 
 Source code style guide
 -----------------------
@@ -764,45 +753,30 @@ Source code style guide
    https://www.python.org/dev/peps/pep-0008/
  * Classes are ``ConjoinedCapitals``, methods and functions are
    ``lowercase_with_underscores``.
- * Use 4 spaces, not tabs, to represent indentation.
- * Line widths should not be more than 80 characters.
  * Do not use nested classes unless you have a very good reason to, such as
    requiring a namespace or class-definition modification.  Classes should live
    at the top level.  ``__metaclass__`` is exempt from this.
- * Do not use unnecessary parenthesis in conditionals.  ``if((something) and
-   (something_else))`` should be rewritten as
-   ``if something and something_else``. Python is more forgiving than C.
  * Avoid copying memory when possible. For example, don't do
    ``a = a.reshape(3, 4)`` when ``a.shape = (3, 4)`` will do, and ``a = a * 3``
    should be ``np.multiply(a, 3, a)``.
  * In general, avoid all double-underscore method names: ``__something`` is
    usually unnecessary.
  * When writing a subclass, use the super built-in to access the super class,
-   rather than explicitly. Ex: ``super(SpecialGridSubclass, self).__init__()``
-   rather than ``SpecialGrid.__init__()``.
+   rather than explicitly.
+   Ex: ``super().__init__()`` rather than ``SpecialGrid.__init__()``.
  * Docstrings should describe input, output, behavior, and any state changes
    that occur on an object.  See :ref:`docstrings` below for a fiducial example
    of a docstring.
- * Use only one top-level import per line. Unless there is a good reason not to,
-   imports should happen at the top of the file, after the copyright blurb.
- * Never compare with ``True`` or ``False`` using ``==`` or ``!=``, always use
-   ``is`` or ``is not``.
+ * Unless there is a good reason not to (e.g., to avoid circular imports),
+   imports should happen at the top of the file.
  * If you are comparing with a numpy boolean array, just refer to the array.
    Ex: do ``np.all(array)`` instead of ``np.all(array == True)``.
- * Never compare with None using ``==`` or ``!=``, use ``is None`` or
-   ``is not None``.
- * Use ``statement is not True`` instead of ``not statement is True``
- * Only one statement per line, do not use semicolons to put two or more
-   statements on a single line.
  * Only declare local variables if they will be used later. If you do not use the
    return value of a function, do not store it in a variable.
- * Add tests for new functionality. When fixing a bug, consider adding a test to
-   prevent the bug from recurring.
 
 API Style Guide
 ---------------
 
- * Do not use ``from some_module import *``
  * Internally, only import from source files directly -- instead of:
 
      ``from yt.visualization.api import ProjectionPlot``
@@ -819,14 +793,12 @@ API Style Guide
  * Do not use too many keyword arguments.  If you have a lot of keyword
    arguments, then you are doing too much in ``__init__`` and not enough via
    parameter setting.
- * In function arguments, place spaces before commas.  ``def something(a,b,c)``
-   should be ``def something(a, b, c)``.
  * Don't create a new class to replicate the functionality of an old class --
    replace the old class.  Too many options makes for a confusing user
    experience.
  * Parameter files external to yt are a last resort.
  * The usage of the ``**kwargs`` construction should be avoided.  If they cannot
-   be avoided, they must be explained, even if they are only to be passed on to
+   be avoided, they must be documented, even if they are only to be passed on to
    a nested function.
 
 .. _docstrings:

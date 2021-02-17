@@ -1,35 +1,23 @@
-"""
-This is a library for defining and using particle filters.
-
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import copy
 from contextlib import contextmanager
 
-from yt.fields.field_info_container import \
-    NullFunc, TranslationFunc
+from yt.fields.field_info_container import NullFunc, TranslationFunc
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTIllDefinedFilter
 
 # One to one mapping
 filter_registry = {}
 
-class DummyFieldInfo(object):
+
+class DummyFieldInfo:
     particle_type = True
+    sampling_type = "particle"
+
+
 dfi = DummyFieldInfo()
 
-class ParticleFilter(object):
+
+class ParticleFilter:
     def __init__(self, name, function, requires, filtered_type):
         self.name = name
         self.function = function
@@ -48,7 +36,8 @@ class ParticleFilter(object):
                 # later.
                 fd = dobj.field_data
         for f, tr in fd.items():
-            if f[0] != self.filtered_type: continue
+            if f[0] != self.filtered_type:
+                continue
             if tr.shape != filter.shape and tr.shape[0] != filter.shape[0]:
                 raise YTIllDefinedFilter(self, tr.shape, filter.shape)
             else:
@@ -62,8 +51,11 @@ class ParticleFilter(object):
         return all((self.filtered_type, field) in field_list for field in self.requires)
 
     def missing(self, field_list):
-        return list((self.filtered_type, field) for field in self.requires if
-                    (self.filtered_type, field) not in field_list)
+        return list(
+            (self.filtered_type, field)
+            for field in self.requires
+            if (self.filtered_type, field) not in field_list
+        )
 
     def wrap_func(self, field_name, old_fi):
         new_fi = copy.copy(old_fi)
@@ -128,11 +120,11 @@ def add_particle_filter(name, function, requires=None, filtered_type="all"):
         requires = []
     filter = ParticleFilter(name, function, requires, filtered_type)
     if filter_registry.get(name, None) is not None:
-        mylog.warning('The %s particle filter already exists. Overriding.' % name)
+        mylog.warning("The %s particle filter already exists. Overriding.", name)
     filter_registry[name] = filter
 
 
-def particle_filter(name=None, requires=None, filtered_type='all'):
+def particle_filter(name=None, requires=None, filtered_type="all"):
     r"""A decorator that adds a new particle filter
 
     A particle filter is a short name that corresponds to an algorithm for
@@ -179,10 +171,12 @@ def particle_filter(name=None, requires=None, filtered_type='all'):
        2.04523901e+38   2.04770938e+38] g
 
     """
+
     def wrapper(function):
         if name is None:
             used_name = function.__name__
         else:
             used_name = name
         return add_particle_filter(used_name, function, requires, filtered_type)
+
     return wrapper

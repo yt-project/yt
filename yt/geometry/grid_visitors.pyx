@@ -1,3 +1,5 @@
+# distutils: include_dirs = LIB_DIR
+# distutils: libraries = STD_LIBS
 """
 Grid visitor functions
 
@@ -6,19 +8,14 @@ Grid visitor functions
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2015, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
-cimport numpy as np
 cimport cython
-from libc.stdlib cimport malloc, free
+cimport numpy as np
+from libc.stdlib cimport free, malloc
+
+from yt.utilities.lib.bitarray cimport ba_get_value, ba_set_value
 from yt.utilities.lib.fp_utils cimport iclip
-from yt.utilities.lib.bitarray cimport ba_set_value, ba_get_value
+
 
 cdef void free_tuples(GridVisitorData *data) nogil:
     # This wipes out the tuples, which is necessary since they are
@@ -106,7 +103,7 @@ cdef void icoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
     # Nice and easy icoord setter.
     if selected == 0: return
     cdef int i
-    cdef np.int64_t *icoords = <np.int64_t*> data.array 
+    cdef np.int64_t *icoords = <np.int64_t*> data.array
     for i in range(3):
         icoords[data.index * 3 + i] = data.pos[i] + data.grid.start_index[i]
     data.index += 1
@@ -128,7 +125,7 @@ cdef void fwidth_cells(GridVisitorData *data, np.uint8_t selected) nogil:
     # Fill with our dds.
     if selected == 0: return
     cdef int i
-    cdef np.float64_t *fwidth = <np.float64_t*> data.array 
+    cdef np.float64_t *fwidth = <np.float64_t*> data.array
     for i in range(3):
         fwidth[data.index * 3 + i] = data.grid.dds[i]
     data.index += 1
@@ -140,7 +137,7 @@ cdef void fcoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
     # Simple cell-centered position filling.
     if selected == 0: return
     cdef int i
-    cdef np.float64_t *fcoords = <np.float64_t*> data.array 
+    cdef np.float64_t *fcoords = <np.float64_t*> data.array
     for i in range(3):
         fcoords[data.index * 3 + i] = data.grid.left_edge[i] + \
             (0.5 + data.pos[i])*data.grid.dds[i]

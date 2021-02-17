@@ -1,6 +1,6 @@
 yt is a group effort.
 
-Contributors:   
+Contributors:
                 Tom Abel (tabel@slac.stanford.edu)
                 Gabriel Altay (gabriel.altay@gmail.com)
                 Kenza Arraki (karraki@nmsu.edu)
@@ -127,10 +127,8 @@ Contributors:
                 Michael Zingale (michael.zingale@stonybrook.edu)
                 John ZuHone (jzuhone@gmail.com)
 
-Several items included in the yt/extern directory were written by other
-individuals and may bear their own license, including the progressbar module by
-Nilton Volpato.  The PasteBin interface code (as well as the PasteBin itself)
-was written by the Pocoo collective (pocoo.org).  
-developed by Oliver Hahn.  
+The PasteBin interface code (as well as the PasteBin itself)
+was written by the Pocoo collective (pocoo.org).
+developed by Oliver Hahn.
 
 Thanks to everyone for all your contributions!

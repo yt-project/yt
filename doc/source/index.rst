@@ -103,11 +103,11 @@ Table of Contents
      <tr valign="top">
        <td width="25%">
          <p>
-           <a href="analyzing/analysis_modules/index.html">Topic-Specific Analysis Modules</a>
+           <a href="analyzing/domain_analysis/index.html">Domain-Specific Analysis</a>
          </p>
        </td>
        <td width="75%">
-         <p class="linkdescr">Track halos, make synthetic observations, find clumps, and more</p>
+         <p class="linkdescr">Astrophysical analysis, clump finding, cosmology calculations, and more</p>
        </td>
      </tr>
       <tr valign="top">
@@ -182,7 +182,7 @@ Table of Contents
    cookbook/index
    visualizing/index
    analyzing/index
-   analyzing/analysis_modules/index
+   analyzing/domain_analysis/index
    examining/index
    developing/index
    sharing_data

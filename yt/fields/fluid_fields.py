@@ -1,46 +1,23 @@
-"""
-Here are some fields that are specific to fluids.
-
-
-
-"""
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
-
 import numpy as np
 
+from yt.funcs import mylog
+from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.unit_object import Unit
+from yt.utilities.chemical_formulas import default_mu
+from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 
-from .derived_field import \
-    ValidateSpatial, \
-    ValidateParameter
+from .derived_field import ValidateParameter, ValidateSpatial
+from .field_plugin_registry import register_field_plugin
+from .vector_operations import (
+    create_averaged_field,
+    create_magnitude_field,
+    create_vector_fields,
+)
 
-from .field_plugin_registry import \
-    register_field_plugin
-
-from yt.geometry.geometry_handler import \
-    is_curvilinear
-
-from .vector_operations import \
-    create_averaged_field, \
-    create_magnitude_field, \
-    create_vector_fields
-
-from yt.utilities.physical_constants import \
-    mh, \
-    kboltz
-
-from yt.utilities.lib.misc_utilities import \
-    obtain_relative_velocity_vector
 
 @register_field_plugin
-def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
+def setup_fluid_fields(registry, ftype="gas", slice_info=None):
+    pc = registry.ds.units.physical_constants
     # slice_info would be the left, the right, and the factor.
     # For example, with the old Enzo-ZEUS fields, this would be:
     # slice(None, -2, None)
@@ -56,145 +33,200 @@ def setup_fluid_fields(registry, ftype = "gas", slice_info = None):
 
     unit_system = registry.ds.unit_system
 
-    create_vector_fields(registry, "velocity", unit_system["velocity"], ftype, slice_info)
-    create_vector_fields(registry, "magnetic_field", unit_system["magnetic_field"], ftype, slice_info)
+    if unit_system.name == "cgs":
+        mag_units = "magnetic_field_cgs"
+    else:
+        mag_units = "magnetic_field_mks"
+
+    create_vector_fields(
+        registry, "velocity", unit_system["velocity"], ftype, slice_info
+    )
+    create_vector_fields(
+        registry, "magnetic_field", unit_system[mag_units], ftype, slice_info
+    )
 
     def _cell_mass(field, data):
         return data[ftype, "density"] * data[ftype, "cell_volume"]
 
-    registry.add_field((ftype, "cell_mass"),
-                       sampling_type="cell",
-                       function=_cell_mass,
-                       units=unit_system["mass"])
+    registry.add_field(
+        (ftype, "cell_mass"),
+        sampling_type="cell",
+        function=_cell_mass,
+        units=unit_system["mass"],
+    )
+    registry.alias((ftype, "mass"), (ftype, "cell_mass"))
 
     def _sound_speed(field, data):
         tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, "density"]
         return np.sqrt(tr)
-    registry.add_field((ftype, "sound_speed"),
-                       sampling_type="cell",
-                       function=_sound_speed,
-                       units=unit_system["velocity"])
+
+    registry.add_field(
+        (ftype, "sound_speed"),
+        sampling_type="local",
+        function=_sound_speed,
+        units=unit_system["velocity"],
+    )
 
     def _radial_mach_number(field, data):
         """ Radial component of M{|v|/c_sound} """
         tr = data[ftype, "radial_velocity"] / data[ftype, "sound_speed"]
         return np.abs(tr)
-    registry.add_field((ftype, "radial_mach_number"),
-                       sampling_type="cell",
-                       function=_radial_mach_number,
-                       units = "")
+
+    registry.add_field(
+        (ftype, "radial_mach_number"),
+        sampling_type="local",
+        function=_radial_mach_number,
+        units="",
+    )
 
     def _kin_energy(field, data):
         v = obtain_relative_velocity_vector(data)
-        return 0.5 * data[ftype, "density"] * (v**2).sum(axis=0)
-    registry.add_field((ftype, "kinetic_energy"),
-                       sampling_type="cell",
-                       function=_kin_energy,
-                       units=unit_system["pressure"],
-                       validators=[ValidateParameter('bulk_velocity')])
+        return 0.5 * data[ftype, "density"] * (v ** 2).sum(axis=0)
+
+    registry.add_field(
+        (ftype, "kinetic_energy"),
+        sampling_type="local",
+        function=_kin_energy,
+        units=unit_system["pressure"],
+        validators=[ValidateParameter("bulk_velocity")],
+    )
 
     def _mach_number(field, data):
         """ M{|v|/c_sound} """
         return data[ftype, "velocity_magnitude"] / data[ftype, "sound_speed"]
-    registry.add_field((ftype, "mach_number"),
-                       sampling_type="cell",
-                       function=_mach_number,
-                       units = "")
+
+    registry.add_field(
+        (ftype, "mach_number"), sampling_type="local", function=_mach_number, units=""
+    )
 
     def _courant_time_step(field, data):
-        t1 = data[ftype, "dx"] / (data[ftype, "sound_speed"]
-                        + np.abs(data[ftype, "velocity_x"]))
-        t2 = data[ftype, "dy"] / (data[ftype, "sound_speed"]
-                        + np.abs(data[ftype, "velocity_y"]))
-        t3 = data[ftype, "dz"] / (data[ftype, "sound_speed"]
-                        + np.abs(data[ftype, "velocity_z"]))
+        t1 = data[ftype, "dx"] / (
+            data[ftype, "sound_speed"] + np.abs(data[ftype, "velocity_x"])
+        )
+        t2 = data[ftype, "dy"] / (
+            data[ftype, "sound_speed"] + np.abs(data[ftype, "velocity_y"])
+        )
+        t3 = data[ftype, "dz"] / (
+            data[ftype, "sound_speed"] + np.abs(data[ftype, "velocity_z"])
+        )
         tr = np.minimum(np.minimum(t1, t2), t3)
         return tr
 
-    registry.add_field((ftype, "courant_time_step"),
-                       sampling_type="cell",
-                       function=_courant_time_step,
-                       units=unit_system["time"])
+    registry.add_field(
+        (ftype, "courant_time_step"),
+        sampling_type="cell",
+        function=_courant_time_step,
+        units=unit_system["time"],
+    )
 
     def _pressure(field, data):
         """ M{(Gamma-1.0)*rho*E} """
-        tr = (data.ds.gamma - 1.0) \
-           * (data[ftype, "density"] * data[ftype, "thermal_energy"])
+        tr = (data.ds.gamma - 1.0) * (
+            data[ftype, "density"] * data[ftype, "thermal_energy"]
+        )
         return tr
 
-    registry.add_field((ftype, "pressure"),
-                       sampling_type="cell",
-                       function=_pressure,
-                       units=unit_system["pressure"])
+    registry.add_field(
+        (ftype, "pressure"),
+        sampling_type="local",
+        function=_pressure,
+        units=unit_system["pressure"],
+    )
 
     def _kT(field, data):
-        return (kboltz*data[ftype, "temperature"]).in_units("keV")
-    registry.add_field((ftype, "kT"),
-                       sampling_type="cell",
-                       function=_kT,
-                       units="keV",
-                       display_name="Temperature")
+        return (pc.kboltz * data[ftype, "temperature"]).in_units("keV")
 
-    def _entropy(field, data):
-        mw = data.get_field_parameter("mu")
-        if mw is None:
-            mw = 1.0
-        mw *= mh
-        gammam1 = 2./3.
-        tr = data[ftype,"kT"] / ((data[ftype, "density"]/mw)**gammam1)
-        return data.apply_units(tr, field.units)
-    registry.add_field((ftype, "entropy"),
-                       sampling_type="cell",
-                       units="keV*cm**2",
-                       function=_entropy)
+    registry.add_field(
+        (ftype, "kT"),
+        sampling_type="local",
+        function=_kT,
+        units="keV",
+        display_name="Temperature",
+    )
 
     def _metallicity(field, data):
         return data[ftype, "metal_density"] / data[ftype, "density"]
-    registry.add_field((ftype, "metallicity"),
-                       sampling_type="cell",
-                       function=_metallicity,
-                       units="Zsun")
+
+    registry.add_field(
+        (ftype, "metallicity"),
+        sampling_type="local",
+        function=_metallicity,
+        units="Zsun",
+    )
 
     def _metal_mass(field, data):
-        return data[ftype, "metal_density"] * data[ftype, "cell_volume"]
-    registry.add_field((ftype, "metal_mass"),
-                       sampling_type="cell",
-                       function=_metal_mass,
-                       units=unit_system["mass"])
+        Z = data[ftype, "metallicity"].to("dimensionless")
+        return Z * data[ftype, "mass"]
 
-    def _number_density(field, data):
-        field_data = np.zeros_like(data["gas", "%s_number_density" % \
-                                        data.ds.field_info.species_names[0]])
-        for species in data.ds.field_info.species_names:
-            field_data += data["gas", "%s_number_density" % species]
-        return field_data
-    registry.add_field((ftype, "number_density"),
-                       sampling_type="cell",
-                       function = _number_density,
-                       units=unit_system["number_density"])
-    
+    registry.add_field(
+        (ftype, "metal_mass"),
+        sampling_type="local",
+        function=_metal_mass,
+        units=unit_system["mass"],
+    )
+
+    if len(registry.ds.field_info.species_names) > 0:
+
+        def _number_density(field, data):
+            field_data = np.zeros_like(
+                data["gas", f"{data.ds.field_info.species_names[0]}_number_density"]
+            )
+            for species in data.ds.field_info.species_names:
+                field_data += data["gas", f"{species}_number_density"]
+            return field_data
+
+    else:
+
+        def _number_density(field, data):
+            mu = getattr(data.ds, "mu", default_mu)
+            return data[ftype, "density"] / (pc.mh * mu)
+
+    registry.add_field(
+        (ftype, "number_density"),
+        sampling_type="local",
+        function=_number_density,
+        units=unit_system["number_density"],
+    )
+
     def _mean_molecular_weight(field, data):
-        return (data[ftype, "density"] / (mh * data[ftype, "number_density"]))
-    registry.add_field((ftype, "mean_molecular_weight"),
-                       sampling_type="cell",
-                       function=_mean_molecular_weight,
-                       units="")
+        return data[ftype, "density"] / (pc.mh * data[ftype, "number_density"])
 
-    setup_gradient_fields(registry, (ftype, "pressure"), unit_system["pressure"],
-                          slice_info)
+    registry.add_field(
+        (ftype, "mean_molecular_weight"),
+        sampling_type="local",
+        function=_mean_molecular_weight,
+        units="",
+    )
 
-    setup_gradient_fields(registry, (ftype, "density"), unit_system["density"],
-                          slice_info)
+    setup_gradient_fields(
+        registry, (ftype, "pressure"), unit_system["pressure"], slice_info
+    )
 
-    create_averaged_field(registry, "density", unit_system["density"],
-                          ftype=ftype, slice_info=slice_info,
-                          weight="cell_mass")
+    setup_gradient_fields(
+        registry, (ftype, "density"), unit_system["density"], slice_info
+    )
 
-def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
-    # Current implementation for gradient is not valid for curvilinear geometries
-    if is_curvilinear(registry.ds.geometry): return
+    create_averaged_field(
+        registry,
+        "density",
+        unit_system["density"],
+        ftype=ftype,
+        slice_info=slice_info,
+        weight="mass",
+    )
 
-    assert(isinstance(grad_field, tuple))
+
+def setup_gradient_fields(registry, grad_field, field_units, slice_info=None):
+
+    geom = registry.ds.geometry
+    if is_curvilinear(geom):
+        mylog.warning(
+            "In %s geometry, gradient fields may contain "
+            "artifacts near cartesian axes.",
+            geom,
+        )
+
+    assert isinstance(grad_field, tuple)
     ftype, fname = grad_field
     if slice_info is None:
         sl_left = slice(None, -2, None)
@@ -205,28 +237,52 @@ def setup_gradient_fields(registry, grad_field, field_units, slice_info = None):
     slice_3d = (slice(1, -1), slice(1, -1), slice(1, -1))
 
     def grad_func(axi, ax):
-        slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi+1:]
-        slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi+1:]
+        slice_3dl = slice_3d[:axi] + (sl_left,) + slice_3d[axi + 1 :]
+        slice_3dr = slice_3d[:axi] + (sl_right,) + slice_3d[axi + 1 :]
+
         def func(field, data):
-            ds = div_fac * data[ftype, "d%s" % ax]
-            f  = data[grad_field][slice_3dr]/ds[slice_3d]
-            f -= data[grad_field][slice_3dl]/ds[slice_3d]
+            block_order = getattr(data, "_block_order", "C")
+            if block_order == "F":
+                # Fortran-ordering: we need to swap axes here and
+                # reswap below
+                field_data = data[grad_field].swapaxes(0, 2)
+            else:
+                field_data = data[grad_field]
+            dx = div_fac * data[ftype, f"d{ax}"]
+            if ax == "theta":
+                dx *= data[ftype, "r"]
+            if ax == "phi":
+                dx *= data[ftype, "r"] * np.sin(data[ftype, "theta"])
+            f = field_data[slice_3dr] / dx[slice_3d]
+            f -= field_data[slice_3dl] / dx[slice_3d]
             new_field = np.zeros_like(data[grad_field], dtype=np.float64)
-            new_field = data.ds.arr(new_field, f.units)
+            new_field = data.ds.arr(new_field, field_data.units / dx.units)
             new_field[slice_3d] = f
+
+            if block_order == "F":
+                new_field = new_field.swapaxes(0, 2)
+
             return new_field
+
         return func
 
     field_units = Unit(field_units, registry=registry.ds.unit_registry)
     grad_units = field_units / registry.ds.unit_system["length"]
 
-    for axi, ax in enumerate('xyz'):
+    for axi, ax in enumerate(registry.ds.coordinates.axis_order):
         f = grad_func(axi, ax)
-        registry.add_field((ftype, "%s_gradient_%s" % (fname, ax)),
-                           sampling_type="cell",
-                           function = f,
-                           validators = [ValidateSpatial(1, [grad_field])],
-                           units = grad_units)
-    create_magnitude_field(registry, "%s_gradient" % fname,
-                           grad_units, ftype=ftype,
-                           validators = [ValidateSpatial(1, [grad_field])])
+        registry.add_field(
+            (ftype, f"{fname}_gradient_{ax}"),
+            sampling_type="local",
+            function=f,
+            validators=[ValidateSpatial(1, [grad_field])],
+            units=grad_units,
+        )
+
+    create_magnitude_field(
+        registry,
+        f"{fname}_gradient",
+        grad_units,
+        ftype=ftype,
+        validators=[ValidateSpatial(1, [grad_field])],
+    )

@@ -15,11 +15,11 @@ int compute_tags(int ng, double boxsize, double **r, int np,
   /* Note that the particles must be fed in according to the order specified in
    * the README file */
   double predict, xmin,xmax,ymin,ymax,zmin,zmax;
-  
+
   double negb2, b2;
   int ng2,ng4, h, i,i2, x,y,z,nhalo,nhalo0,nhalo1,nhalo2,nhaloany;
   unsigned char *m0,*m1,*m2, mn,m0n,m1n,m2n; /*Morphology tag */
-  
+
   double dx,d1,d2;
 
   b2 = boxsize/2.;
@@ -37,7 +37,7 @@ int compute_tags(int ng, double boxsize, double **r, int np,
     if (r[0][i]<xmin) xmin = r[0][i]; if (r[0][i]>xmax) xmax = r[0][i];
     if (r[1][i]<ymin) ymin = r[1][i]; if (r[1][i]>ymax) ymax = r[1][i];
     if (r[2][i]<zmin) zmin = r[2][i]; if (r[2][i]>zmax) zmax = r[2][i];
-   
+
     m[i] = 1;
     m0[i] = 1;
     m1[i] = 1;
@@ -107,7 +107,7 @@ int compute_tags(int ng, double boxsize, double **r, int np,
 	      break;
 	    }
 	  }
-	// Now do diagonal directions 
+	// Now do diagonal directions
 	for (h=1; h<ng4; h = -h + isneg(h)) {
 	  i2 = par(x,goodmod(y+h,ng),goodmod(z+h,ng),ng);
 	  d1 = r[1][i2]-r[1][i];

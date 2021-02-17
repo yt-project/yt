@@ -53,7 +53,7 @@ The yt Development Team is the set of all contributors to the yt project.  This
 includes all of the yt subprojects.
 
 The core team that coordinates development on BitBucket can be found here:
-http://bitbucket.org/yt_analysis/ 
+http://bitbucket.org/yt_analysis/
 
 
 Our Copyright Policy
@@ -68,14 +68,3 @@ Development Team.  If individual contributors want to maintain a record of what
 changes/contributions they have specific copyright on, they should indicate
 their copyright in the commit message of the change, when they commit the
 change to one of the yt repositories.
-
-With this in mind, the following banner should be used in any source code file
-to indicate the copyright and license terms:
-
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------

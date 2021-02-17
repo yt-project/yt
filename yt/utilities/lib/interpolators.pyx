@@ -1,3 +1,5 @@
+
+# distutils: libraries = STD_LIBS
 """
 Simple interpolators
 
@@ -5,18 +7,14 @@ Simple interpolators
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
-from yt.utilities.lib.fp_utils cimport imax, fmax, imin, fmin, iclip, fclip
+cimport numpy as np
+
+from yt.utilities.lib.fp_utils cimport fclip, fmax, fmin, iclip, imax, imin
+
 
 @cython.cdivision(True)
 @cython.wraparound(False)

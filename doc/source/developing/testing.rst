@@ -46,6 +46,7 @@ that can import the yt module:
 .. code-block:: python
 
    import yt
+
    yt.run_nose()
 
 If you are developing new functionality, it is sometimes more convenient to use
@@ -128,7 +129,7 @@ To create new unit tests:
 #. Inside that file, create one or more routines prefixed with ``test_`` that
    accept no arguments. The test function should do some work that tests some
    functionality and should also verify that the results are correct using
-   assert statements or functions.  
+   assert statements or functions.
 #. Tests can ``yield`` a tuple of the form ``function``, ``argument_one``,
    ``argument_two``, etc.  For example ``yield my_test, 'banana', 2.0`` would be
    captured by nose and the ``my_test`` function will be run with the provided
@@ -240,7 +241,7 @@ project's contiguous integration server.
 This command will create a set of local answers from the tipsy frontend tests
 and store them in ``$HOME/Documents/test`` (this can but does not have to be the
 same directory as the ``test_data_dir`` configuration variable defined in your
-``~/.config/yt/ytrc`` file) in a file named ``local-tipsy``. To run the tipsy
+``~/.config/yt/yt.toml`` file) in a file named ``local-tipsy``. To run the tipsy
 frontend's answer tests using a different yt changeset, update to that
 changeset, recompile if necessary, and run the tests using the following
 command:
@@ -275,6 +276,7 @@ You can find examples there of how to write a test.  Here is a trivial example:
    class MaximumValueTest(AnswerTestingTest):
        _type_name = "MaximumValue"
        _attrs = ("field",)
+
        def __init__(self, ds_fn, field):
            super(MaximumValueTest, self).__init__(ds_fn)
            self.field = field
@@ -378,10 +380,14 @@ Here is an example test function:
 
 .. code-block:: python
 
-   from yt.utilities.answer_testing.framework import \
-       GenericImageTest, requires_ds, data_dir_load
+   from yt.utilities.answer_testing.framework import (
+       GenericImageTest,
+       requires_ds,
+       data_dir_load,
+   )
 
    from matplotlib import pyplot as plt
+
 
    @requires_ds(my_ds)
    def test_my_ds():
@@ -389,7 +395,8 @@ Here is an example test function:
 
        def create_image(filename_prefix):
            plt.plot([1, 2], [1, 2])
-           plt.savefig(filename_prefix)
+           plt.savefig("%s_lineplot" % filename_prefix)
+
        test = GenericImageTest(ds, create_image, 12)
 
        # this ensures the test has a unique key in the
@@ -400,6 +407,9 @@ Here is an example test function:
        test_my_ds.__name__ = test.description
 
        yield test
+
+.. note:: The inner function ``create_image`` can create any number of images,
+   as long as the corresponding filenames conform to the prefix.
 
 Another good example of an image comparison test is the
 ``PlotWindowAttributeTest`` defined in the answer testing framework and used in
@@ -465,13 +475,13 @@ change the answer name in *tests/tests.yaml* e.g.:
 
       local_pw_000:
 
-would regenerate answers for OWLS frontend. 
+would regenerate answers for OWLS frontend.
 
-When adding tests to an existing set of answers (like ``local_owls_000`` or ``local_varia_000``), 
-it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing 
+When adding tests to an existing set of answers (like ``local_owls_000`` or ``local_varia_000``),
+it is considered best practice to first submit a pull request adding the tests WITHOUT incrementing
 the version number. Then, allow the tests to run (resulting in "no old answer" errors for the missing
 answers). If no other failures are present, you can then increment the version number to regenerate
-the answers. This way, we can avoid accidentally covering up test breakages. 
+the answers. This way, we can avoid accidentally covering up test breakages.
 
 Adding New Answer Tests
 ~~~~~~~~~~~~~~~~~~~~~~~
@@ -493,19 +503,3 @@ In order to add a new set of answer tests, it is sufficient to extend the
    +
     other_tests:
       unittests:
-
-Restricting Python Versions for Answer Tests
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-
-If for some reason a test can be run only for a specific version of python it is
-possible to indicate this by adding a ``[py2]`` or ``[py3]`` tag. For example:
-
-.. code-block:: yaml
-
-   answer_tests:
-      local_test_000:
-         - yt/test_A.py  # [py2]
-         - yt/test_B.py  # [py3]
-
-would result in ``test_A.py`` being run only for *python2* and ``test_B.py``
-being run only for *python3*.

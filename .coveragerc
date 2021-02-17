@@ -9,12 +9,9 @@ omit=*.yml
 	 */__config__.py
 	 */tests/*
 	 yt/analysis_modules/*
-	 yt/extern/*
 	 yt/mods.py
 	 yt/utilities/fits_image.py
 	 yt/utilities/lodgeit.py
-	 yt/utilities/lru_cache.py
-	 yt/utilities/poster/*
 	 yt/visualization/_mpl_imports.py
 
 ignore_errors = True

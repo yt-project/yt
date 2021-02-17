@@ -1,19 +1,17 @@
+
+# distutils: libraries = STD_LIBS
 """
 Utilities for images
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2013, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 from yt.utilities.lib.fp_utils cimport iclip
+
 
 def add_points_to_greyscale_image(
         np.ndarray[np.float64_t, ndim=2] buffer,
@@ -53,8 +51,8 @@ def add_points_to_image(
 
 def add_rgba_points_to_image(
         np.ndarray[np.float64_t, ndim=3] buffer,
-        np.ndarray[np.float64_t, ndim=1] px, 
-        np.ndarray[np.float64_t, ndim=1] py, 
+        np.ndarray[np.float64_t, ndim=1] px,
+        np.ndarray[np.float64_t, ndim=1] py,
         np.ndarray[np.float64_t, ndim=2] rgba,
         ):
     """
