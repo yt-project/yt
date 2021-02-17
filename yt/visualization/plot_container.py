@@ -399,7 +399,7 @@ class PlotContainer:
               demi, bold, heavy, extra bold, or black
 
             See the matplotlib font manager API documentation for more details.
-            https://matplotlib.org/api/font_manager_api.html
+            https://matplotlib.org/stable/api/font_manager_api.html
 
         Notes
         -----
