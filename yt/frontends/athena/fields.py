@@ -20,6 +20,7 @@ class AthenaFieldInfo(FieldInfoContainer):
         ("cell_centered_B_x", (b_units, [], None)),
         ("cell_centered_B_y", (b_units, [], None)),
         ("cell_centered_B_z", (b_units, [], None)),
+        ("total_energy", ("code_pressure", ["total_energy_density"], None)),
         (
             "gravitational_potential",
             ("code_velocity**2", ["gravitational_potential"], None),
@@ -139,8 +140,6 @@ class AthenaFieldInfo(FieldInfoContainer):
                 function=_specific_total_energy,
                 units=unit_system["specific_energy"],
             )
-
-        self.alias(("gas", "total_energy_density"), ("athena", "total_energy"))
 
         self.alias(
             ("gas", "total_energy"),
