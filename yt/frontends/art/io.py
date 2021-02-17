@@ -14,7 +14,6 @@ from yt.frontends.art.definitions import (
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.logger import ytLogger as mylog
 
 
@@ -184,26 +183,6 @@ class IOHandlerDarkMatterART(IOHandlerART):
             k: self.ds.parameters["lspecies"][i]
             for i, k in enumerate(self.ds.particle_types_raw)
         }
-
-    def _initialize_index(self, data_file, regions):
-        totcount = 4096 ** 2  # file is always this size
-        count = data_file.ds.parameters["lspecies"][-1]
-        DLE = data_file.ds.domain_left_edge
-        DRE = data_file.ds.domain_right_edge
-        with open(data_file.filename, "rb") as f:
-            # The first total_particles * 3 values are positions
-            pp = np.fromfile(f, dtype=">f4", count=totcount * 3)
-            pp.shape = (3, totcount)
-            pp = pp[:, :count]  # remove zeros
-            pp = np.transpose(pp).astype(
-                np.float32
-            )  # cast as float32 for compute_morton
-            pp = (pp - 1.0) / data_file.ds.parameters[
-                "ng"
-            ]  # correct the dm particle units
-        regions.add_data_file(pp, data_file.file_id)
-        morton = compute_morton(pp[:, 0], pp[:, 1], pp[:, 2], DLE, DRE)
-        return morton
 
     def _identify_fields(self, domain):
         field_list = []
