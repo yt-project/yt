@@ -142,9 +142,7 @@ class AthenaFieldInfo(FieldInfoContainer):
             )
 
         self.alias(
-            ("gas", "total_energy"),
-            ("gas", "total_energy_density"),
-            deprecate=True
+            ("gas", "total_energy"), ("gas", "total_energy_density"), deprecate=True
         )
 
         # Add temperature field
