@@ -38,7 +38,7 @@ def DeprecatedFunc(ret_field, func):
     def _DeprecatedFunc(field, data):
         if data.ds.fields_detected:
             args = [field.name]
-            msg = "The Derived Field %s field is deprecated. "
+            msg = "The Derived Field %s is deprecated. "
             if ret_field != field.name:
                 msg += "Use %s instead."
                 args.append(ret_field)
