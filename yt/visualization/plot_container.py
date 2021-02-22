@@ -10,7 +10,14 @@ import numpy as np
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import ensure_dir, get_image_suffix, is_sequence, iter_fields, mylog
+from yt.funcs import (
+    DictWithFactory,
+    ensure_dir,
+    get_image_suffix,
+    is_sequence,
+    iter_fields,
+    mylog,
+)
 from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
@@ -208,6 +215,11 @@ class PlotContainer:
     _plot_type = None
     _plot_valid = False
 
+    # Plot defaults
+    _colormap_config: DictWithFactory = None
+    _log_config: DictWithFactory = None
+    _units_config: DictWithFactory = None
+
     def __init__(self, data_source, figure_size, fontsize):
         from matplotlib.font_manager import FontProperties
 
@@ -231,15 +243,18 @@ class PlotContainer:
     def setup_defaults(self):
         def default_from_config(key, default):
             def getter(field):
+
                 ftype, fname = self.data_source._determine_fields(field)[0]
                 return ytcfg.get_most_specific(ftype, fname, key, fallback=default)
 
             return getter
 
         default_cmap = ytcfg.get("yt", "default_colormap")
-        self._colormaps = DictWithFactory(default_from_config("cmap", default_cmap))
+        self._colormap_config = DictWithFactory(
+            default_from_config("cmap", default_cmap)
+        )
         self._log_config = DictWithFactory(default_from_config("log", [None, None]))
-        self._log_config = DictWithFactory(default_from_config("units", None))
+        self._units_config = DictWithFactory(default_from_config("units", None))
 
     @accepts_all_fields
     @invalidate_plot
@@ -844,7 +859,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         self._colorbar_valid = False
-        self._colormaps[field] = cmap
+        self._colormap_config[field] = cmap
         return self
 
     @accepts_all_fields
@@ -864,7 +879,7 @@ class ImagePlotContainer(PlotContainer):
 
         """
         if color is None:
-            cmap = self._colormaps[field]
+            cmap = self._colormap_config[field]
             if isinstance(cmap, str):
                 try:
                     cmap = yt_colormaps[cmap]

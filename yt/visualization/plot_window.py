@@ -232,7 +232,7 @@ class PlotWindow(ImagePlotContainer):
 
             if field in self._log_config:
                 log, linthresh = self._log_config[field]
-                self._set_log_helper(field, log, linthresh=linthresh)
+                self.set_log(field, log, linthresh=linthresh)
 
         self.setup_callbacks()
         self._setup_plots()
@@ -298,7 +298,7 @@ class PlotWindow(ImagePlotContainer):
             self._frb._get_data_source_fields()
 
             # New frb, apply default units (if any)
-            for field, field_unit in self._unit_config.items():
+            for field, field_unit in self._units_config.items():
                 field_unit = Unit(field_unit, registry=self.ds.unit_registry)
                 if field_unit is not None:
                     if self.data_source.weight_field is None:
@@ -1045,7 +1045,7 @@ class PWViewerMPL(PlotWindow):
                 ia,
                 self._field_transform[f].name,
                 self._field_transform[f].func,
-                self._colormaps[f],
+                self._colormap_config[f],
                 extent,
                 zlim,
                 self.figure_size,
