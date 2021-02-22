@@ -266,7 +266,7 @@ class PlotContainer:
         self._log_config = DictWithFactory(
             default_from_config(["log", "linthresh"], [None, None])
         )
-        self._units_config = DictWithFactory(default_from_config("units", None))
+        self._units_config = DictWithFactory(default_from_config("units", [None]))
 
     @accepts_all_fields
     @invalidate_plot

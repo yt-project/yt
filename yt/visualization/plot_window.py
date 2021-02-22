@@ -234,6 +234,9 @@ class PlotWindow(ImagePlotContainer):
             if (log is not None and log is not finfo.take_log) or linthresh:
                 self.set_log(field, log, linthresh=linthresh)
 
+            # Access the dictionary to force the key to be created
+            self._units_config[field]
+
         self.setup_callbacks()
         self._setup_plots()
 
@@ -299,43 +302,31 @@ class PlotWindow(ImagePlotContainer):
 
             # New frb, apply default units (if any)
             for field, field_unit in self._units_config.items():
-                field_unit = Unit(field_unit, registry=self.ds.unit_registry)
+                units = self.ds.field_info[field].units
                 if field_unit is not None:
-                    if self.data_source.weight_field is None:
-                        # Try to get specific integration unit
-                        path_length_unit = ytcfg.get(
-                            ("config", *field, "path_length_unit")
+                    field_unit = Unit(field_unit, registry=self.ds.unit_registry)
+                    is_projected = getattr(self, "projected", False)
+                    if is_projected:
+                        # Obtain config
+                        path_length_units = Unit(
+                            ytcfg.get_most_specific(
+                                *field, "path_length_units", fallback="cm"
+                            ),
+                            registry=self.ds.unit_registry,
                         )
-
-                        # Else get per-field-type integration unit
-                        if path_length_unit is None:
-                            path_length_unit = ytcfg.get(
-                                ("config", field[0], "path_length_unit")
-                            )
-                        # Fallback on unit from dataset
-                        if path_length_unit is None:
-                            ax_name = "xyz"[self.data_source.axis]
-                            path_element_name = ("index", "path_element_%s" % (ax_name))
-                            path_length_unit = self.ds.field_info[
-                                path_element_name
-                            ].units
-
-                        path_length_unit = Unit(
-                            path_length_unit, registry=self.ds.unit_registry
-                        )
-                        unit = field_unit * path_length_unit
+                        units = field_unit * path_length_units
                     else:
-                        unit = field_unit
-                self.frb[field].convert_to_units(unit)
+                        units = field_unit
+                    self.frb[field].convert_to_units(units)
         else:
             # Restore the old fields
-            for key, unit in zip(old_fields, old_units):
+            for key, units in zip(old_fields, old_units):
                 self._frb[key]
                 equiv = self._equivalencies[key]
                 if equiv[0] is None:
-                    self._frb[key].convert_to_units(unit)
+                    self._frb[key].convert_to_units(units)
                 else:
-                    self.frb.set_unit(key, unit, equiv[0], equiv[1])
+                    self.frb.set_unit(key, units, equiv[0], equiv[1])
 
         # Restore the override fields
         for key in self.override_fields:
