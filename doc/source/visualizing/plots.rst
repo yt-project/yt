@@ -61,8 +61,8 @@ of fixed size. This is accomplished behind the scenes using
 
 The :class:`~yt.visualization.plot_window.PlotWindow` class exposes the
 underlying matplotlib
-`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
-and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/stable/api/axes_api.html#matplotlib.axes.Axes>`_
 objects, making it easy to customize your plots and
 add new annotations.  See :ref:`matplotlib-customization` for more information.
 
@@ -850,8 +850,8 @@ accessed via the ``plots`` dictionary attached to each
 In this example ``dens_plot`` is an instance of
 :class:`~yt.visualization.plot_window.WindowPlotMPL`, an object that wraps the
 matplotlib
-`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
-and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/stable/api/axes_api.html#matplotlib.axes.Axes>`_
 objects.  We can access these matplotlib primitives via attributes of
 ``dens_plot``.
 
@@ -862,8 +862,8 @@ objects.  We can access these matplotlib primitives via attributes of
     colorbar_axes = dens_plot.cax
 
 These are the
-`figure <https://matplotlib.org/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
-and `axes <https://matplotlib.org/api/axes_api.html#matplotlib.axes.Axes>`_
+`figure <https://matplotlib.org/stable/api/_as_gen/matplotlib.figure.Figure.html#matplotlib.figure.Figure>`_
+and `axes <https://matplotlib.org/stable/api/axes_api.html#matplotlib.axes.Axes>`_
 objects that control the actual drawing of the plot.  Arbitrary plot
 customizations are possible by manipulating these objects.  See
 :ref:`matplotlib-primitives` for an example.
@@ -1194,7 +1194,7 @@ To change the text annotated text properties, we need to pass the matplotlib ``a
 
 The above example will set the fontsize of annotation to 20, add a bounding box of red color and center align
 horizontally and vertically. The is just an example to modify the text properties, for further options please check
-`matplotlib.axes.Axes.text <https://matplotlib.org/api/_as_gen/matplotlib.axes.Axes.text.html>`_.
+`matplotlib.axes.Axes.text <https://matplotlib.org/stable/api/_as_gen/matplotlib.axes.Axes.text.html>`_.
 
 Altering Line Properties
 ~~~~~~~~~~~~~~~~~~~~~~~~
