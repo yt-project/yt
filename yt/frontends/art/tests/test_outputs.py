@@ -42,6 +42,10 @@ def test_d9p():
                         )
             yield FieldValuesTest(d9p, field, dobj_name)
 
+
+@requires_ds(d9p, big_data=True)
+def test_d9p_global_values():
+    ds = data_dir_load(d9p)
     ad = ds.all_data()
     # 'Ana' variable values output from the ART Fortran 'ANA' analysis code
     AnaNStars = 6255
