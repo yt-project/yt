@@ -19,6 +19,7 @@ _fields = (
     ("gas", "temperature"),
     ("all", "particle_mass"),
     ("all", "particle_position_x"),
+    ("all", "particle_velocity_y"),
 )
 
 d9p = "D9p_500/10MpcBox_HartGal_csf_a0.500.d"
