@@ -230,8 +230,8 @@ class PlotWindow(ImagePlotContainer):
             else:
                 self._field_transform[field] = linear_transform
 
-            if field in self._log_config:
-                log, linthresh = self._log_config[field]
+            log, linthresh = self._log_config[field]
+            if (log is not None and log is not finfo.take_log) or linthresh:
                 self.set_log(field, log, linthresh=linthresh)
 
         self.setup_callbacks()

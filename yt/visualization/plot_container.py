@@ -6,6 +6,7 @@ from functools import wraps
 
 import matplotlib
 import numpy as np
+from more_itertools.more import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
@@ -241,11 +242,20 @@ class PlotContainer:
         self.setup_defaults()
 
     def setup_defaults(self):
-        def default_from_config(key, default):
-            def getter(field):
+        def default_from_config(keys, defaults):
+            _keys = list(always_iterable(keys))
+            _defaults = list(always_iterable(defaults))
 
+            def getter(field):
                 ftype, fname = self.data_source._determine_fields(field)[0]
-                return ytcfg.get_most_specific(ftype, fname, key, fallback=default)
+                ret = [
+                    ytcfg.get_most_specific(ftype, fname, key, fallback=default)
+                    for key, default in zip(_keys, _defaults)
+                ]
+                if len(ret) == 1:
+                    return ret[0]
+                else:
+                    return ret
 
             return getter
 
@@ -253,7 +263,9 @@ class PlotContainer:
         self._colormap_config = DictWithFactory(
             default_from_config("cmap", default_cmap)
         )
-        self._log_config = DictWithFactory(default_from_config("log", [None, None]))
+        self._log_config = DictWithFactory(
+            default_from_config(["log", "linthresh"], [None, None])
+        )
         self._units_config = DictWithFactory(default_from_config("units", None))
 
     @accepts_all_fields
