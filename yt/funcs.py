@@ -1311,6 +1311,7 @@ def sglob(pattern):
     """
     return sorted(glob.glob(pattern))
 
+
 class DictWithFactory(dict):
     def __init__(self, factory):
         self.factory = factory

@@ -229,18 +229,17 @@ class PlotContainer:
         self.setup_defaults()
 
     def setup_defaults(self):
-
         def default_from_config(key, default):
             def getter(field):
                 ftype, fname = self.data_source._determine_fields(field)[0]
                 return ytcfg.get_most_specific(ftype, fname, key, fallback=default)
+
             return getter
 
         default_cmap = ytcfg.get("yt", "default_colormap")
         self._colormaps = DictWithFactory(default_from_config("cmap", default_cmap))
         self._log_config = DictWithFactory(default_from_config("log", [None, None]))
         self._log_config = DictWithFactory(default_from_config("units", None))
-
 
     @accepts_all_fields
     @invalidate_plot
