@@ -121,7 +121,7 @@ class IOHandlerART(BaseIOHandler):
                 off = 1.0 / dd
                 tr[field] = rp(fields=[ax])[0] / dd - off
             if fname.startswith(f"particle_velocity_{ax}"):
-                (tr[field],) = rp(["v" + ax])
+                (tr[field],) = rp(fields=["v" + ax])
         if fname.startswith("particle_mass"):
             a = 0
             data = np.zeros(npa, dtype="f8")
