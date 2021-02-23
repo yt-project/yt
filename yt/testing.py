@@ -188,8 +188,28 @@ def amrspace(extent, levels=7, cells=8):
     return left, right, level
 
 
+def _check_field_unit_args_helper(args: dict, default_args: dict):
+    values = list(args.values())
+    keys = list(args.keys())
+    if all(v is None for v in values):
+        for key in keys:
+            args[key] = default_args[key]
+    elif None in values:
+        raise ValueError(
+            "Error in creating a fake dataset:"
+            f" either all or none of the following arguments need to specified: {keys}."
+        )
+    elif any(len(v) != len(values[0]) for v in values):
+        raise ValueError(
+            "Error in creating a fake dataset:"
+            f" all the following arguments must have the same length: {keys}."
+        )
+    return list(args.values())
+
+
 _fake_random_ds_default_fields = ("density", "velocity_x", "velocity_y", "velocity_z")
 _fake_random_ds_default_units = ("g/cm**3", "cm/s", "cm/s", "cm/s")
+_fake_random_ds_default_negative = (False, False, False, False)
 
 
 def fake_random_ds(
@@ -208,19 +228,6 @@ def fake_random_ds(
 ):
     from yt.loaders import load_uniform_grid
 
-    if (fields, units) == (None, None):
-        fields = _fake_random_ds_default_fields
-        units = _fake_random_ds_default_units
-    elif None in (fields, units):
-        raise ValueError(
-            "Error in creating a fake_random_ds:"
-            " `fields` and `units` keyword arguments cannot be used separately."
-        )
-    elif len(fields) != len(units):
-        raise ValueError(
-            f"inconsistent sizes in `fields` ({len(fields)}) and `units` ({len(units)}) arguments."
-        )
-
     prng = RandomState(0x4D3D3D3)
     if not is_sequence(ndims):
         ndims = [ndims, ndims, ndims]
@@ -228,7 +235,20 @@ def fake_random_ds(
         assert len(ndims) == 3
     if not is_sequence(negative):
         negative = [negative for f in fields]
-    assert len(fields) == len(negative)
+
+    fields, units, negative = _check_field_unit_args_helper(
+        {
+            "fields": fields,
+            "units": units,
+            "negative": negative,
+        },
+        {
+            "fields": _fake_random_ds_default_fields,
+            "units": _fake_random_ds_default_units,
+            "negative": _fake_random_ds_default_negative,
+        },
+    )
+
     offsets = []
     for n in negative:
         if n:
@@ -276,10 +296,25 @@ _geom_transforms = {
 }
 
 
+_fake_amr_ds_default_fields = ("Density",)
+_fake_amr_ds_default_units = ("g/cm**3",)
+
+
 def fake_amr_ds(
-    fields=("Density",), geometry="cartesian", particles=0, length_unit=None
+    fields=None, units=None, geometry="cartesian", particles=0, length_unit=None
 ):
     from yt.loaders import load_amr_grids
+
+    fields, units = _check_field_unit_args_helper(
+        {
+            "fields": fields,
+            "units": units,
+        },
+        {
+            "fields": _fake_amr_ds_default_fields,
+            "units": _fake_amr_ds_default_units,
+        },
+    )
 
     prng = RandomState(0x4D3D3D3)
     LE, RE = _geom_transforms[geometry]
@@ -311,18 +346,23 @@ def fake_amr_ds(
     )
 
 
+_fake_particle_ds_default_fields = (
+    "particle_position_x",
+    "particle_position_y",
+    "particle_position_z",
+    "particle_mass",
+    "particle_velocity_x",
+    "particle_velocity_y",
+    "particle_velocity_z",
+)
+_fake_particle_ds_default_units = ("cm", "cm", "cm", "g", "cm/s", "cm/s", "cm/s")
+_fake_particle_ds_default_negative = (False, False, False, False, True, True, True)
+
+
 def fake_particle_ds(
-    fields=(
-        "particle_position_x",
-        "particle_position_y",
-        "particle_position_z",
-        "particle_mass",
-        "particle_velocity_x",
-        "particle_velocity_y",
-        "particle_velocity_z",
-    ),
-    units=("cm", "cm", "cm", "g", "cm/s", "cm/s", "cm/s"),
-    negative=(False, False, False, False, True, True, True),
+    fields=None,
+    units=None,
+    negative=None,
     npart=16 ** 3,
     length_unit=1.0,
     data=None,
@@ -332,7 +372,20 @@ def fake_particle_ds(
     prng = RandomState(0x4D3D3D3)
     if not is_sequence(negative):
         negative = [negative for f in fields]
-    assert len(fields) == len(negative)
+
+    fields, units, negative = _check_field_unit_args_helper(
+        {
+            "fields": fields,
+            "units": units,
+            "negative": negative,
+        },
+        {
+            "fields": _fake_particle_ds_default_fields,
+            "units": _fake_particle_ds_default_units,
+            "negative": _fake_particle_ds_default_negative,
+        },
+    )
+
     offsets = []
     for n in negative:
         if n:
