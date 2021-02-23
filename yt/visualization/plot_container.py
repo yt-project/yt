@@ -217,9 +217,9 @@ class PlotContainer:
     _plot_valid = False
 
     # Plot defaults
-    _colormap_config: DictWithFactory = None
-    _log_config: DictWithFactory = None
-    _units_config: DictWithFactory = None
+    _colormap_config: DictWithFactory
+    _log_config: DictWithFactory
+    _units_config: DictWithFactory
 
     def __init__(self, data_source, figure_size, fontsize):
         from matplotlib.font_manager import FontProperties
