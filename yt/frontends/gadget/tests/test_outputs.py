@@ -21,6 +21,26 @@ snap_33_dir = "snapshot_033/"
 
 iso_kwargs = dict(bounding_box=[[-3, 3], [-3, 3], [-3, 3]])
 
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("c", (0.1, "unitary")))]
+fields = [
+    ("gas", "density"),
+    ("gas", "temperature"),
+    ("gas", "temperature"),
+    ("gas", "velocity_magnitude"),
+]
+weights = [
+    None,
+    None,
+    ("gas", "density"),
+    None,
+]
+
+iso_pairs = []
+for d in objs:
+    for f, w in zip(fields, weights):
+        iso_pairs.append(([isothermal_h5, {"kwargs" : iso_kwargs}], f, w, d))
+
 
 @pytest.mark.answer_test
 class TestGadget:
@@ -55,9 +75,9 @@ class TestGadget:
         assert data.cosmological_simulation == 0
 
     @pytest.mark.usefixtures("hashing")
-    @requires_ds(isothermal_h5)
-    def test_iso_collapse(self, f, w, d, a):
-        ds = data_dir_load(isothermal_h5, kwargs=iso_kwargs)
+    @pytest.mark.parametrize("ds, f, w, d", iso_pairs, indirect=True)
+    @pytest.mark.parametrize("a", axes, indirect=True)
+    def test_iso_collapse(self, f, w, d, a, ds):
         self.hashes.update(sph_answer(ds, "snap_505", 2 ** 17, f, w, d, a))
 
     @requires_ds(LE_SnapFormat2)
