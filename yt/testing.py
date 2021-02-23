@@ -370,7 +370,7 @@ def fake_particle_ds(
     from yt.loaders import load_particles
 
     prng = RandomState(0x4D3D3D3)
-    if not is_sequence(negative):
+    if negative is not None and not is_sequence(negative):
         negative = [negative for f in fields]
 
     fields, units, negative = _check_field_unit_args_helper(
