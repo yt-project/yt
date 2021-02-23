@@ -12,6 +12,29 @@ gmhd = "gizmo_mhd_mwdisk/gizmo_mhd_mwdisk.hdf5"
 
 gmhd_bbox = [[-400, 400]] * 3
 
+pairs = []
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("c", (0.1, "unitary")))]
+fields = [
+    ("gas", "density"),
+    ("gas", "temperature"),
+    ("gas", "metallicity"),
+    ("gas", "O_metallicity"),
+    ("gas", "velocity_magnitude"),
+]
+weights = [
+    None,
+    ("gas", "density"),
+    ("gas", "density"),
+    ("gas", "density"),
+    None,
+]
+
+for ax in axes:
+    for obj in objs:
+        for fld, wt in zip(fields, weights):
+            pairs.append((fld, wt, obj, ax, g64))
+
 
 @pytest.mark.answer_test
 class TestGizmo:
@@ -20,7 +43,7 @@ class TestGizmo:
 
     @pytest.mark.big_data
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [g64], indirect=True)
+    @pytest.mark.parametrize("f, w, d, a, ds", pairs, indirect=True)
     def test_gizmo_64(self, f, w, d, a, ds):
         self.hashes.update(sph_answer(ds, "snap_N64L16_135", 524288, f, w, d, a))
 
