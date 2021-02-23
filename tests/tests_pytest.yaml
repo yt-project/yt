@@ -148,7 +148,7 @@ TestAxialPixelization:
 
 TestRawFieldSlices:
     - raw_field_slices_answers_000.yaml
-    - raw_field_sices_ansewrs_raw_000.h5
+    - raw_field_slices_answers_raw_000.h5
 
 TestGeoSlicesAMR:
     - geo_slices_amr_answers_000.yaml
