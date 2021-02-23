@@ -384,7 +384,10 @@ def test_text_callback():
 @requires_file(cyl_3d)
 def test_velocity_callback():
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density", "velocity_x", "velocity_y", "velocity_z"))
+        ds = fake_amr_ds(
+            fields=("density", "velocity_x", "velocity_y", "velocity_z"),
+            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+        )
         for ax in "xyz":
             p = ProjectionPlot(ds, ax, "density", weight_field="density")
             p.annotate_velocity()

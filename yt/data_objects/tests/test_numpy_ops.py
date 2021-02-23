@@ -12,7 +12,7 @@ def setup():
 def test_mean_sum_integrate():
     for nprocs in [-1, 1, 2, 16]:
         if nprocs == -1:
-            ds = fake_amr_ds(fields=("density",), units=("g/cm**3"), particles=20)
+            ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), particles=20)
         else:
             ds = fake_random_ds(
                 32, nprocs=nprocs, fields=("density",), units=("g/cm**3",), particles=20
