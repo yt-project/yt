@@ -204,7 +204,7 @@ def generate_answers(answer_dir, answers):
     ]
 
     for job in answers:
-        log.info("\n Generating answers for " + job)
+        log.info("\n Generating answers for %s", job)
         status &= nose.run(
             argv=test_argv + [job], addplugins=[AnswerTesting()], exit=False
         )

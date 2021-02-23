@@ -40,7 +40,11 @@ repos:
     rev: '3.8.4'
     hooks:
     - id: flake8
-      additional_dependencies: [mccabe, flake8-bugbear]
+      additional_dependencies: [
+        mccabe,
+        flake8-bugbear,
+        flake8-logging-format
+      ]
 -   repo: https://github.com/asottile/blacken-docs
     rev: v1.9.2
     hooks:
