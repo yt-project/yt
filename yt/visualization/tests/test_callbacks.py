@@ -67,7 +67,7 @@ def test_timestamp_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
         vector = [1.0, 1.0, 1.0]
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_timestamp()
         assert_fname(p.save(prefix)[0])
@@ -83,7 +83,7 @@ def test_timestamp_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_timestamp(coord_system="data")
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
@@ -96,7 +96,7 @@ def test_scale_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
         vector = [1.0, 1.0, 1.0]
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_scale()
         assert_fname(p.save(prefix)[0])
@@ -124,7 +124,7 @@ def test_scale_callback():
         assert_raises(YTPlotCallbackError)
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_scale()
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
@@ -137,7 +137,7 @@ def test_line_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
         vector = [1.0, 1.0, 1.0]
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_line([0.1, 0.1, 0.1], [0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
@@ -155,7 +155,7 @@ def test_line_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_line([0.1, 0.1, 0.1], [0.5, 0.5, 0.5])
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
@@ -168,7 +168,7 @@ def test_ray_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
         vector = [1.0, 1.0, 1.0]
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.8, 0.5))
         oray = ds.ortho_ray(0, (0.3, 0.4))
         p = ProjectionPlot(ds, ax, "density")
@@ -190,7 +190,7 @@ def test_ray_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.8, 0.5))
         oray = ds.ortho_ray(0, (0.3, 0.4))
         p = ProjectionPlot(ds, "r", "density")
@@ -205,7 +205,7 @@ def test_arrow_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
         vector = [1.0, 1.0, 1.0]
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_arrow([0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
@@ -238,7 +238,7 @@ def test_arrow_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_arrow([0.5, 0.5, 0.5])
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
@@ -251,7 +251,7 @@ def test_marker_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
         vector = [1.0, 1.0, 1.0]
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_marker([0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
@@ -277,7 +277,7 @@ def test_marker_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_marker([0.5, 0.5, 0.5])
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
@@ -289,7 +289,7 @@ def test_marker_callback():
 def test_particles_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
-        ds = fake_amr_ds(fields=("density",), particles=1)
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), particles=1)
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_particles((10, "Mpc"))
         assert_fname(p.save(prefix)[0])
@@ -312,7 +312,7 @@ def test_particles_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_particles((10, "Mpc"))
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
@@ -322,7 +322,7 @@ def test_sphere_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
         vector = [1.0, 1.0, 1.0]
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
         assert_fname(p.save(prefix)[0])
@@ -338,7 +338,7 @@ def test_sphere_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
@@ -351,7 +351,7 @@ def test_text_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
         vector = [1.0, 1.0, 1.0]
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         p = ProjectionPlot(ds, ax, "density")
         p.annotate_text([0.5, 0.5, 0.5], "dinosaurs!")
         assert_fname(p.save(prefix)[0])
@@ -369,7 +369,7 @@ def test_text_callback():
         p.save(prefix)
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = ProjectionPlot(ds, "r", "density")
         p.annotate_text([0.5, 0.5, 0.5], "dinosaurs!")
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
@@ -426,6 +426,7 @@ def test_velocity_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(
             fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
+            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
             geometry="spherical",
         )
         p = ProjectionPlot(ds, "r", "density")
@@ -443,7 +444,13 @@ def test_magnetic_callback():
                 "magnetic_field_x",
                 "magnetic_field_y",
                 "magnetic_field_z",
-            )
+            ),
+            units=(
+                "g/cm**3",
+                "G",
+                "G",
+                "G",
+            ),
         )
         for ax in "xyz":
             p = ProjectionPlot(ds, ax, "density", weight_field="density")
@@ -487,6 +494,12 @@ def test_magnetic_callback():
                 "magnetic_field_theta",
                 "magnetic_field_phi",
             ),
+            units=(
+                "g/cm**3",
+                "G",
+                "G",
+                "G",
+            ),
             geometry="spherical",
         )
         p = ProjectionPlot(ds, "r", "density")
@@ -500,7 +513,10 @@ def test_magnetic_callback():
 @requires_file(cyl_3d)
 def test_quiver_callback():
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density", "velocity_x", "velocity_y", "velocity_z"))
+        ds = fake_amr_ds(
+            fields=("density", "velocity_x", "velocity_y", "velocity_z"),
+            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+        )
         for ax in "xyz":
             p = ProjectionPlot(ds, ax, "density")
             p.annotate_quiver("velocity_x", "velocity_y")
@@ -546,6 +562,7 @@ def test_quiver_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(
             fields=("density", "velocity_x", "velocity_theta", "velocity_phi"),
+            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
             geometry="spherical",
         )
         p = ProjectionPlot(ds, "r", "density")
@@ -565,7 +582,7 @@ def test_quiver_callback():
 @requires_file(cyl_2d)
 def test_contour_callback():
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density", "temperature"))
+        ds = fake_amr_ds(fields=("density", "temperature"), units=("g/cm**3", "K"))
         for ax in "xyz":
             p = ProjectionPlot(ds, ax, "density")
             p.annotate_contour("temperature")
@@ -621,7 +638,11 @@ def test_contour_callback():
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density", "temperature"), geometry="spherical")
+        ds = fake_amr_ds(
+            fields=("density", "temperature"),
+            units=("g/cm**3", "K"),
+            geometry="spherical",
+        )
         p = SlicePlot(ds, "r", "density")
         p.annotate_contour(
             "temperature",
@@ -639,7 +660,7 @@ def test_contour_callback():
 @requires_file(cyl_2d)
 def test_grids_callback():
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         for ax in "xyz":
             p = ProjectionPlot(ds, ax, "density")
             p.annotate_grids()
@@ -672,7 +693,7 @@ def test_grids_callback():
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = SlicePlot(ds, "r", "density")
         p.annotate_grids(
             alpha=0.7,
@@ -691,7 +712,7 @@ def test_grids_callback():
 @requires_file(cyl_2d)
 def test_cell_edges_callback():
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",))
         for ax in "xyz":
             p = ProjectionPlot(ds, ax, "density")
             p.annotate_cell_edges()
@@ -714,7 +735,7 @@ def test_cell_edges_callback():
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",), geometry="spherical")
+        ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), geometry="spherical")
         p = SlicePlot(ds, "r", "density")
         p.annotate_cell_edges()
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
@@ -742,7 +763,10 @@ def test_streamline_callback():
 
     with _cleanup_fname() as prefix:
 
-        ds = fake_amr_ds(fields=("density", "velocity_x", "velocity_y", "magvel"))
+        ds = fake_amr_ds(
+            fields=("density", "velocity_x", "velocity_y", "magvel"),
+            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+        )
 
         for ax in "xyz":
 
@@ -807,6 +831,7 @@ def test_streamline_callback():
 
         ds = fake_amr_ds(
             fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
+            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
             geometry="spherical",
         )
         p = SlicePlot(ds, "r", "density")
@@ -818,7 +843,10 @@ def test_streamline_callback():
 @requires_file(cyl_3d)
 def test_line_integral_convolution_callback():
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density", "velocity_x", "velocity_y", "velocity_z"))
+        ds = fake_amr_ds(
+            fields=("density", "velocity_x", "velocity_y", "velocity_z"),
+            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+        )
         for ax in "xyz":
             p = ProjectionPlot(ds, ax, "density")
             p.annotate_line_integral_convolution("velocity_x", "velocity_y")
@@ -867,6 +895,7 @@ def test_line_integral_convolution_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(
             fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
+            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
             geometry="spherical",
         )
         p = SlicePlot(ds, "r", "density")

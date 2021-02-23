@@ -328,8 +328,8 @@ def fake_amr_ds(
         gdata = dict(
             level=level, left_edge=left_edge, right_edge=right_edge, dimensions=dims
         )
-        for f in fields:
-            gdata[f] = prng.random_sample(dims)
+        for f, u in zip(fields, units):
+            gdata[f] = (prng.random_sample(dims), u)
         if particles:
             for i, f in enumerate(f"particle_position_{ax}" for ax in "xyz"):
                 pdata = prng.random_sample(particles)
