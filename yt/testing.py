@@ -208,15 +208,18 @@ def fake_random_ds(
 ):
     from yt.loaders import load_uniform_grid
 
-    if fields is not None and units is None:
-        raise RuntimeError(
-            "Error when creating a fake_random_ds:"
-            " passed a non-default `fields` without specifying `units`."
-        )
-    if fields is None:
+    if (fields, units) == (None, None):
         fields = _fake_random_ds_default_fields
-    if units is None:
         units = _fake_random_ds_default_units
+    elif None in (fields, units):
+        raise ValueError(
+            "Error in creating a fake_random_ds:"
+            " `fields` and `units` keyword arguments cannot be used separately."
+        )
+    elif len(fields) != len(units):
+        raise ValueError(
+            f"inconsistent sizes in `fields` ({len(fields)}) and `units` ({len(units)}) arguments."
+        )
 
     prng = RandomState(0x4D3D3D3)
     if not is_sequence(ndims):
