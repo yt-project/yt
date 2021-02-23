@@ -14,7 +14,9 @@ def test_mean_sum_integrate():
         if nprocs == -1:
             ds = fake_amr_ds(fields=("density",), particles=20)
         else:
-            ds = fake_random_ds(32, nprocs=nprocs, fields=("density",), particles=20)
+            ds = fake_random_ds(
+                32, nprocs=nprocs, fields=("density",), units=("g/cm**3",), particles=20
+            )
         ad = ds.all_data()
 
         # Sums
@@ -132,7 +134,12 @@ def test_argmin():
         if nprocs == -1:
             ds = fake_amr_ds(fields=("density", "temperature"))
         else:
-            ds = fake_random_ds(32, nprocs=nprocs, fields=("density", "temperature"))
+            ds = fake_random_ds(
+                32,
+                nprocs=nprocs,
+                fields=("density", "temperature"),
+                units=("g/cm**3", "K"),
+            )
 
         ad = ds.all_data()
 
@@ -156,7 +163,12 @@ def test_argmax():
         if nprocs == -1:
             ds = fake_amr_ds(fields=("density", "temperature"))
         else:
-            ds = fake_random_ds(32, nprocs=nprocs, fields=("density", "temperature"))
+            ds = fake_random_ds(
+                32,
+                nprocs=nprocs,
+                fields=("density", "temperature"),
+                units=("g/cm**3", "K"),
+            )
 
         ad = ds.all_data()
 

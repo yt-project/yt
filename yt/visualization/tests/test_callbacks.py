@@ -876,7 +876,8 @@ def test_line_integral_convolution_callback():
 
 def test_accepts_all_fields_decorator():
     fields = ["density", "velocity_x", "pressure", "temperature"]
-    ds = fake_random_ds(16, fields=fields)
+    units = ["g/cm**3", "cm/s", "dyn/cm**2", "K"]
+    ds = fake_random_ds(16, fields=fields, units=units)
     plot = SlicePlot(ds, "z", fields=fields)
 
     # mocking a class method
