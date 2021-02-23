@@ -7,6 +7,18 @@ from yt.utilities.answer_testing.answer_tests import small_patch_amr
 # Test data
 sedov = "sedov/sedov_tst_0004.h5"
 
+axes = [0, 1, 2]
+objs = [None, ("sphere", ("max", (0.1, "unitary")))]
+weights = [None, "density"]
+fields = ["density", "velocity_x"]
+
+pairs = []
+for ax in axes:
+    for obj in objs:
+        for wt in weights:
+            for fld in fields:
+                pairs.append((ax, obj, wt, fld, sedov))
+
 
 @pytest.mark.answer_test
 class TestGDF:
@@ -14,7 +26,7 @@ class TestGDF:
     saved_hashes = None
 
     @pytest.mark.usefixtures("hashing")
-    @pytest.mark.parametrize("ds", [sedov], indirect=True)
+    @pytest.mark.parametrize("a, d, w, f, ds", pairs, indirect=True)
     def test_sedov_tunnel(self, a, d, w, f, ds):
         self.hashes.update(small_patch_amr(ds, f, w, a, d))
 
