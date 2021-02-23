@@ -234,7 +234,10 @@ def fake_random_ds(
     else:
         assert len(ndims) == 3
     if not is_sequence(negative):
-        negative = [negative for f in fields]
+        if fields:
+            negative = [negative for f in fields]
+        else:
+            negative = None
 
     fields, units, negative = _check_field_unit_args_helper(
         {
