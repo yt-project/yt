@@ -12,7 +12,7 @@ from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
 from yt.funcs import (
-    DictWithFactory,
+    dictWithFactory,
     ensure_dir,
     get_image_suffix,
     is_sequence,
@@ -217,9 +217,9 @@ class PlotContainer:
     _plot_valid = False
 
     # Plot defaults
-    _colormap_config: DictWithFactory
-    _log_config: DictWithFactory
-    _units_config: DictWithFactory
+    _colormap_config: dict
+    _log_config: dict
+    _units_config: dict
 
     def __init__(self, data_source, figure_size, fontsize):
         from matplotlib.font_manager import FontProperties
@@ -260,13 +260,13 @@ class PlotContainer:
             return getter
 
         default_cmap = ytcfg.get("yt", "default_colormap")
-        self._colormap_config = DictWithFactory(
+        self._colormap_config = dictWithFactory(
             default_from_config("cmap", default_cmap)
-        )
-        self._log_config = DictWithFactory(
+        )()
+        self._log_config = dictWithFactory(
             default_from_config(["log", "linthresh"], [None, None])
-        )
-        self._units_config = DictWithFactory(default_from_config("units", [None]))
+        )()
+        self._units_config = dictWithFactory(default_from_config("units", [None]))()
 
     @accepts_all_fields
     @invalidate_plot

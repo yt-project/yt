@@ -22,6 +22,7 @@ from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from math import ceil, floor
 from numbers import Number as numeric_type
+from typing import Any, Callable
 
 import matplotlib
 import numpy as np
@@ -1312,11 +1313,15 @@ def sglob(pattern):
     return sorted(glob.glob(pattern))
 
 
-class DictWithFactory(dict):
-    def __init__(self, factory):
-        self.factory = factory
+def dictWithFactory(factory: Callable[[Any], Any]) -> dict:
+    class DictWithFactory(dict):
+        def __init__(self, *args, **kwargs):
+            self.factory = factory
+            super().__init__(*args, **kwargs)
 
-    def __missing__(self, key):
-        val = self.factory(key)
-        self[key] = val
-        return val
+        def __missing__(self, key):
+            val = self.factory(key)
+            self[key] = val
+            return val
+
+    return DictWithFactory
