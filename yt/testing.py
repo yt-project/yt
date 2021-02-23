@@ -188,11 +188,15 @@ def amrspace(extent, levels=7, cells=8):
     return left, right, level
 
 
+_fake_random_ds_default_fields = ("density", "velocity_x", "velocity_y", "velocity_z")
+_fake_random_ds_default_units = ("g/cm**3", "cm/s", "cm/s", "cm/s")
+
+
 def fake_random_ds(
     ndims,
     peak_value=1.0,
-    fields=("density", "velocity_x", "velocity_y", "velocity_z"),
-    units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+    fields=None,
+    units=None,
     particle_fields=None,
     particle_field_units=None,
     negative=False,
@@ -203,6 +207,16 @@ def fake_random_ds(
     bbox=None,
 ):
     from yt.loaders import load_uniform_grid
+
+    if fields is not None and units is None:
+        raise RuntimeError(
+            "Error when creating a fake_random_ds:"
+            " passed a non-default `fields` without specifying `units`."
+        )
+    if fields is None:
+        fields = _fake_random_ds_default_fields
+    if units is None:
+        units = _fake_random_ds_default_units
 
     prng = RandomState(0x4D3D3D3)
     if not is_sequence(ndims):
