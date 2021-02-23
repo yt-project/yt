@@ -41,7 +41,7 @@ pair_list = [
     [kho, fields, objs, weights],
 ]
 
-gv_pairs = [(i[0], f) for i in ds_list for f in i[1]]
+gv_pairs = [(i[0], f) for i in pair_list for f in i[1]]
 fv_pairs = [(i[0], f, d) for i in pair_list for f in i[1] for d in i[2]]
 pv_pairs = [
     (i[0], f, d, w) for i in pair_list for f in i[1] for d in i[2] for w in i[3]
