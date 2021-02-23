@@ -302,22 +302,23 @@ class PlotWindow(ImagePlotContainer):
 
             # New frb, apply default units (if any)
             for field, field_unit in self._units_config.items():
-                units = self.ds.field_info[field].units
-                if field_unit is not None:
-                    field_unit = Unit(field_unit, registry=self.ds.unit_registry)
-                    is_projected = getattr(self, "projected", False)
-                    if is_projected:
-                        # Obtain config
-                        path_length_units = Unit(
-                            ytcfg.get_most_specific(
-                                *field, "path_length_units", fallback="cm"
-                            ),
-                            registry=self.ds.unit_registry,
-                        )
-                        units = field_unit * path_length_units
-                    else:
-                        units = field_unit
-                    self.frb[field].convert_to_units(units)
+                if field_unit is None:
+                    continue
+
+                field_unit = Unit(field_unit, registry=self.ds.unit_registry)
+                is_projected = getattr(self, "projected", False)
+                if is_projected:
+                    # Obtain config
+                    path_length_units = Unit(
+                        ytcfg.get_most_specific(
+                            *field, "path_length_units", fallback="cm"
+                        ),
+                        registry=self.ds.unit_registry,
+                    )
+                    units = field_unit * path_length_units
+                else:
+                    units = field_unit
+                self.frb[field].convert_to_units(units)
         else:
             # Restore the old fields
             for key, units in zip(old_fields, old_units):
