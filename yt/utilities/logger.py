@@ -54,7 +54,7 @@ def set_log_level(level):
     if level == "ALL":  # non-standard alias
         level = 1
     ytLogger.setLevel(level)
-    ytLogger.debug("Set log level to %d", level)
+    ytLogger.debug("Set log level to %s", level)
 
 
 ufstring = "%(name)-3s: [%(levelname)-9s] %(asctime)s %(message)s"
