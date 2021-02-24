@@ -62,6 +62,8 @@ class AmbiguousResolvePlugin(Plugin):
 
         lineno = ft_err.f_lineno - 1
 
+        if len(v.possible_ftypes) == 2 and "stream" in v.possible_ftypes:
+            v.possible_ftypes.remove("stream")
         suggested_ftype = " OR ".join(v.possible_ftypes)
 
         corrected = lines.copy()
