@@ -94,7 +94,7 @@ def test_covering_grid():
 @requires_module("xarray")
 def test_xarray_export():
     def _run_tests(cg):
-        xarr = cg.to_xarray(fields=[("gas", "density"), "temperature"])
+        xarr = cg.to_xarray(fields=[("gas", "density"), ("gas", "temperature")])
         assert "density" in xarr.variables
         assert "temperature" in xarr.variables
         assert "thermal_energy" not in xarr.variables
@@ -145,7 +145,7 @@ def test_smoothed_covering_grid():
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions
                 for i in range(dn):
-                    f = cg["density"][
+                    f = cg[("gas", "density")][
                         dn * di[0] + i : dn * (di[0] + dd[0]) + i : dn,
                         dn * di[1] + i : dn * (di[1] + dd[1]) + i : dn,
                         dn * di[2] + i : dn * (di[2] + dd[2]) + i : dn,

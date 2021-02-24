@@ -20,7 +20,7 @@ def test_mean_sum_integrate():
         # Sums
         q = ad.sum(("gas", "density"))
 
-        q1 = ad.quantities.total_quantity("density")
+        q1 = ad.quantities.total_quantity(("gas", "density"))
 
         assert_equal(q, q1)
 
@@ -91,7 +91,7 @@ def test_min_max():
         ad = ds.all_data()
 
         q = ad.min(("gas", "density")).v
-        assert_equal(q, ad["density"].min())
+        assert_equal(q, ad[("gas", "density")].min())
 
         q = ad.max("density").v
         assert_equal(q, ad["density"].max())
@@ -137,7 +137,7 @@ def test_argmin():
         ad = ds.all_data()
 
         q = ad.argmin(("gas", "density"), axis=[("gas", "density")])
-        assert_equal(q, ad["density"].min())
+        assert_equal(q, ad[("gas", "density")].min())
 
         q1, q2 = ad.argmin("density", axis=["density", "temperature"])
         mi = np.argmin(ad["density"])
@@ -161,7 +161,7 @@ def test_argmax():
         ad = ds.all_data()
 
         q = ad.argmax(("gas", "density"), axis=[("gas", "density")])
-        assert_equal(q, ad["density"].max())
+        assert_equal(q, ad[("gas", "density")].max())
 
         q1, q2 = ad.argmax("density", axis=["density", "temperature"])
         mi = np.argmax(ad["density"])

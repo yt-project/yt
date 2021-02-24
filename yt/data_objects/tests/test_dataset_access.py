@@ -48,7 +48,7 @@ def test_region_from_d():
     # Now, string units in some -- 1.0 == cm
     reg1 = ds.r[(0.1, "cm"):(0.5, "cm"), :, (0.25, "cm"):(0.35, "cm")]
     reg2 = ds.region([0.3, 0.5, 0.3], [0.1, 0.0, 0.25], [0.5, 1.0, 0.35])
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
     # Now, string units in some -- 1.0 == cm
     reg1 = ds.r[(0.1, "cm"):(0.5, "cm"), :, 0.25:0.35]
@@ -85,7 +85,7 @@ def test_accessing_all_data():
     dd = ds.all_data()
     assert_equal(ds.r[("gas", "density")], dd[("gas", "density")])
     # Now let's assert that it's the same object
-    rho = ds.r["density"]
+    rho = ds.r[("gas", "density")]
     rho *= 2.0
     assert_equal(dd["density"] * 2.0, ds.r["density"])
     assert_equal(dd["gas", "density"] * 2.0, ds.r["gas", "density"])
@@ -99,7 +99,7 @@ def test_slice_from_r():
 
     frb1 = sl1.to_frb(width=1.0, height=1.0, resolution=(1024, 512))
     frb2 = ds.r[0.5, ::1024j, ::512j]
-    assert_equal(frb1["density"], frb2["density"])
+    assert_equal(frb1[("gas", "density")], frb2[("gas", "density")])
 
     # Test slice which doesn't cover the whole domain
     box = ds.box([0.0, 0.25, 0.25], [1.0, 0.75, 0.75])
@@ -133,7 +133,7 @@ def test_ray_from_r():
 
     ray3 = ds.r[0.5 * ds.domain_left_edge : 0.5 * ds.domain_right_edge]
     ray4 = ds.ray(0.5 * ds.domain_left_edge, 0.5 * ds.domain_right_edge)
-    assert_equal(ray3["density"], ray4["density"])
+    assert_equal(ray3[("gas", "density")], ray4[("gas", "density")])
 
     start = [(0.1, "cm"), 0.2, (0.3, "cm")]
     end = [(0.5, "cm"), (0.4, "cm"), 0.6]
@@ -157,7 +157,7 @@ def test_ortho_ray_from_r():
     # the y-coord is funny so test it too
     ray3 = ds.r[0.3, :, 0.2]
     ray4 = ds.ortho_ray("y", [0.2, 0.3])
-    assert_equal(ray3["density"], ray4["density"])
+    assert_equal(ray3[("gas", "density")], ray4[("gas", "density")])
 
     # Test ray which doesn't cover the whole domain
     box = ds.box([0.25, 0.0, 0.0], [0.75, 1.0, 1.0])

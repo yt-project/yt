@@ -33,7 +33,7 @@ def test_ray():
             dt = np.abs(dx / (p2 - p1))
             tin = uconcatenate(
                 [
-                    [(my_all["x"] - p1[0]) / (p2 - p1)[0] - 0.5 * dt[0]],
+                    [(my_all[("gas", "x")] - p1[0]) / (p2 - p1)[0] - 0.5 * dt[0]],
                     [(my_all["y"] - p1[1]) / (p2 - p1)[1] - 0.5 * dt[1]],
                     [(my_all["z"] - p1[2]) / (p2 - p1)[2] - 0.5 * dt[2]],
                 ]

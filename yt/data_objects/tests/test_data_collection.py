@@ -16,7 +16,8 @@ def test_data_collection():
         coll = ds.data_collection(ds.index.grids)
         crho = coll[("gas", "density")].sum(dtype="float64").to_ndarray()
         grho = np.sum(
-            [g["density"].sum(dtype="float64") for g in ds.index.grids], dtype="float64"
+            [g[("gas", "density")].sum(dtype="float64") for g in ds.index.grids],
+            dtype="float64",
         )
         assert_rel_equal(np.array([crho]), np.array([grho]), 12)
         assert_equal(coll.size, ds.domain_dimensions.prod())

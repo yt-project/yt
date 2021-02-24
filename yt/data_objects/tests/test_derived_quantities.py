@@ -28,12 +28,12 @@ def test_extrema():
         )
         for sp in [ds.sphere("c", (0.25, "unitary")), ds.r[0.5, :, :]]:
             mi, ma = sp.quantities["Extrema"](("gas", "density"))
-            assert_equal(mi, np.nanmin(sp["density"]))
-            assert_equal(ma, np.nanmax(sp["density"]))
+            assert_equal(mi, np.nanmin(sp[("gas", "density")]))
+            assert_equal(ma, np.nanmax(sp[("gas", "density")]))
             dd = ds.all_data()
             mi, ma = dd.quantities["Extrema"]("density")
-            assert_equal(mi, np.nanmin(dd["density"]))
-            assert_equal(ma, np.nanmax(dd["density"]))
+            assert_equal(mi, np.nanmin(dd[("gas", "density")]))
+            assert_equal(ma, np.nanmax(dd[("gas", "density")]))
             sp = ds.sphere("max", (0.25, "unitary"))
             assert_equal(np.any(np.isnan(sp["radial_velocity"])), False)
             mi, ma = dd.quantities["Extrema"]("radial_velocity")
@@ -49,10 +49,12 @@ def test_average():
             my_mean = ad.quantities["WeightedAverageQuantity"](
                 ("gas", "density"), "ones"
             )
-            assert_rel_equal(my_mean, ad["density"].mean(), 12)
+            assert_rel_equal(my_mean, ad[("gas", "density")].mean(), 12)
 
             my_mean = ad.quantities["WeightedAverageQuantity"]("density", "cell_mass")
-            a_mean = (ad["density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
+            a_mean = (ad[("gas", "density")] * ad["cell_mass"]).sum() / ad[
+                "cell_mass"
+            ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
 
 
@@ -64,14 +66,16 @@ def test_variance():
             my_std, my_mean = ad.quantities["WeightedVariance"](
                 ("gas", "density"), "ones"
             )
-            assert_rel_equal(my_mean, ad["density"].mean(), 12)
-            assert_rel_equal(my_std, ad["density"].std(), 12)
+            assert_rel_equal(my_mean, ad[("gas", "density")].mean(), 12)
+            assert_rel_equal(my_std, ad[("gas", "density")].std(), 12)
 
             my_std, my_mean = ad.quantities["WeightedVariance"]("density", "cell_mass")
-            a_mean = (ad["density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
+            a_mean = (ad[("gas", "density")] * ad["cell_mass"]).sum() / ad[
+                "cell_mass"
+            ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
             a_std = np.sqrt(
-                (ad["cell_mass"] * (ad["density"] - a_mean) ** 2).sum()
+                (ad["cell_mass"] * (ad[("gas", "density")] - a_mean) ** 2).sum()
                 / ad["cell_mass"].sum()
             )
             assert_rel_equal(my_std, a_std, 12)
@@ -84,9 +88,9 @@ def test_max_location():
 
             mv, x, y, z = ad.quantities.max_location(("gas", "density"))
 
-            assert_equal(mv, ad["density"].max())
+            assert_equal(mv, ad[("gas", "density")].max())
 
-            mi = np.argmax(ad["density"])
+            mi = np.argmax(ad[("gas", "density")])
 
             assert_equal(ad["x"][mi], x)
             assert_equal(ad["y"][mi], y)
@@ -100,9 +104,9 @@ def test_min_location():
 
             mv, x, y, z = ad.quantities.min_location(("gas", "density"))
 
-            assert_equal(mv, ad["density"].min())
+            assert_equal(mv, ad[("gas", "density")].min())
 
-            mi = np.argmin(ad["density"])
+            mi = np.argmin(ad[("gas", "density")])
 
             assert_equal(ad["x"][mi], x)
             assert_equal(ad["y"][mi], y)
@@ -117,15 +121,15 @@ def test_sample_at_min_field_values():
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             mv, temp, vm = ad.quantities.sample_at_min_field_values(
-                ("gas", "density"), ["temperature", "velocity_x"]
+                ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")]
             )
 
-            assert_equal(mv, ad["density"].min())
+            assert_equal(mv, ad[("gas", "density")].min())
 
-            mi = np.argmin(ad["density"])
+            mi = np.argmin(ad[("gas", "density")])
 
-            assert_equal(ad["temperature"][mi], temp)
-            assert_equal(ad["velocity_x"][mi], vm)
+            assert_equal(ad["gas", "temperature"][mi], temp)
+            assert_equal(ad["gas", "velocity_x"][mi], vm)
 
 
 def test_sample_at_max_field_values():
@@ -136,15 +140,15 @@ def test_sample_at_max_field_values():
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             mv, temp, vm = ad.quantities.sample_at_max_field_values(
-                ("gas", "density"), ["temperature", "velocity_x"]
+                ("gas", "density"), [("gas", "temperature"), "velocity_x"]
             )
 
-            assert_equal(mv, ad["density"].max())
+            assert_equal(mv, ad[("gas", "density")].max())
 
-            mi = np.argmax(ad["density"])
+            mi = np.argmax(ad[("gas", "density")])
 
-            assert_equal(ad["temperature"][mi], temp)
-            assert_equal(ad["velocity_x"][mi], vm)
+            assert_equal(ad["gas", "temperature"][mi], temp)
+            assert_equal(ad["gas", "velocity_x"][mi], vm)
 
 
 def test_in_memory_sph_derived_quantities():

@@ -46,7 +46,7 @@ def test_projection(pf):
         uc = [np.unique(c) for c in coords]
         # test if projections inherit the field parameters of their data sources
         dd.set_field_parameter("bulk_velocity", np.array([0, 1, 2]))
-        proj = ds.proj("density", 0, data_source=dd)
+        proj = ds.proj(("gas", "density"), 0, data_source=dd)
         assert_equal(
             dd.field_parameters["bulk_velocity"], proj.field_parameters["bulk_velocity"]
         )

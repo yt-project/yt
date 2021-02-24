@@ -8,7 +8,7 @@ def test_box_creation():
     # with units works
     ds = fake_random_ds(32, length_unit=2)
     reg = ds.box([0, 0, 0] * cm, [2, 2, 2] * cm)
-    dens_units = reg["density"]
+    dens_units = reg[("gas", "density")]
 
     reg = ds.box([0, 0, 0], [1, 1, 1])
     dens_no_units = reg["density"]
