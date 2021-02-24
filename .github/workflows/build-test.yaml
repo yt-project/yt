@@ -54,7 +54,7 @@ jobs:
       env:
         testsuite: ${{ matrix.tests-type }}
       run: python -m nose -c nose_${testsuite}.cfg --traverse-namespace
-    - name: Report Failed Answers
-      if: ${{ failure() }}
-      shell: bash
-      run: yt upload diff.txt
+    - uses: actions/upload-artifact@v2
+      with:
+        name: diff.txt ${{ matrix.node-version }}
+        path: diff.txt
