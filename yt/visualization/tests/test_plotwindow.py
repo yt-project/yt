@@ -425,7 +425,9 @@ def test_on_off_compare():
         ds, L, ("gas", "density"), center=[0, 0, 0], north_vector=north_vector
     )
 
-    assert_array_almost_equal(sl_on.frb["density"], sl_off.frb["density"])
+    assert_array_almost_equal(
+        sl_on.frb[("gas", "density")], sl_off.frb[("gas", "density")]
+    )
 
     sl_on.set_buff_size((800, 400))
     sl_on._recreate_frb()
@@ -535,7 +537,7 @@ def test_frb_regen():
     slc.set_buff_size(1200)
     assert_equal(slc.frb[("gas", "density")].shape, (1200, 1200))
     slc.set_buff_size((400.0, 200.7))
-    assert_equal(slc.frb["density"].shape, (200, 400))
+    assert_equal(slc.frb[("gas", "density")].shape, (200, 400))
 
 
 def test_set_background_color():
@@ -572,7 +574,7 @@ def test_set_unit():
 
     slc.set_buff_size(800)
 
-    slc.set_unit("temperature", "K")
+    slc.set_unit(("gas", "temperature"), "K")
     assert str(slc.frb["gas", "temperature"].units) == "K"
     assert_array_almost_equal(slc.frb["gas", "temperature"], orig_array)
 

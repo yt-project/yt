@@ -24,7 +24,7 @@ def test_no_rotation():
     center = (left_edge + right_edge) / 2
     width = right_edge - left_edge
     px = ad[("all", "particle_position_x")]
-    py = ad["particle_position_y"]
+    py = ad[("all", "particle_position_y")]
     hsml = ad["smoothing_length"]
     quantity_to_smooth = ad[("gas", "density")]
     density = ad["density"]

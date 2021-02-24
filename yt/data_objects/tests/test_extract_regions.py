@@ -32,33 +32,37 @@ def test_cut_region():
             ]
         )
         t = (
-            (dd["temperature"] > 0.5)
-            & (dd["density"] < 0.75)
-            & (dd["velocity_x"] > 0.25)
+            (dd[("gas", "temperature")] > 0.5)
+            & (dd[("gas", "density")] < 0.75)
+            & (dd[("gas", "velocity_x")] > 0.25)
         )
-        assert_equal(np.all(r["temperature"] > 0.5), True)
-        assert_equal(np.all(r["density"] < 0.75), True)
-        assert_equal(np.all(r["velocity_x"] > 0.25), True)
-        assert_equal(np.sort(dd["density"][t]), np.sort(r["density"]))
+        assert_equal(np.all(r[("gas", "temperature")] > 0.5), True)
+        assert_equal(np.all(r[("gas", "density")] < 0.75), True)
+        assert_equal(np.all(r[("gas", "velocity_x")] > 0.25), True)
+        assert_equal(np.sort(dd[("gas", "density")][t]), np.sort(r[("gas", "density")]))
         assert_equal(np.sort(dd["x"][t]), np.sort(r["x"]))
         r2 = r.cut_region(["obj['temperature'] < 0.75"])
-        t2 = r["temperature"] < 0.75
-        assert_equal(np.sort(r2["temperature"]), np.sort(r["temperature"][t2]))
-        assert_equal(np.all(r2["temperature"] < 0.75), True)
+        t2 = r[("gas", "temperature")] < 0.75
+        assert_equal(
+            np.sort(r2[("gas", "temperature")]), np.sort(r[("gas", "temperature")][t2])
+        )
+        assert_equal(np.all(r2[("gas", "temperature")] < 0.75), True)
 
         # Now we can test some projections
         dd = ds.all_data()
         cr = dd.cut_region(["obj['ones'] > 0"])
-        for weight in [None, "density"]:
-            p1 = ds.proj("density", 0, data_source=dd, weight_field=weight)
-            p2 = ds.proj("density", 0, data_source=cr, weight_field=weight)
+        for weight in [None, ("gas", "density")]:
+            p1 = ds.proj(("gas", "density"), 0, data_source=dd, weight_field=weight)
+            p2 = ds.proj(("gas", "density"), 0, data_source=cr, weight_field=weight)
             for f in p1.field_data:
                 assert_almost_equal(p1[f], p2[f])
         cr = dd.cut_region(["obj['density'] > 0.25"])
-        p2 = ds.proj("density", 2, data_source=cr)
-        assert_equal(p2["density"].max() > 0.25, True)
-        p2 = ds.proj("density", 2, data_source=cr, weight_field="density")
-        assert_equal(p2["density"].max() > 0.25, True)
+        p2 = ds.proj(("gas", "density"), 2, data_source=cr)
+        assert_equal(p2[("gas", "density")].max() > 0.25, True)
+        p2 = ds.proj(
+            ("gas", "density"), 2, data_source=cr, weight_field=("gas", "density")
+        )
+        assert_equal(p2[("gas", "density")].max() > 0.25, True)
 
 
 def test_region_and_particles():
@@ -68,8 +72,8 @@ def test_region_and_particles():
     reg = ad.cut_region('obj["x"] < .5')
 
     mask = ad[("all", "particle_position_x")] < 0.5
-    expected = np.sort(ad["particle_position_x"][mask].value)
-    result = np.sort(reg["particle_position_x"])
+    expected = np.sort(ad[("all", "particle_position_x")][mask].value)
+    result = np.sort(reg[("all", "particle_position_x")])
 
     assert_equal(expected.shape, result.shape)
     assert_equal(expected, result)

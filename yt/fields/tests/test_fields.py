@@ -380,7 +380,7 @@ def test_add_field_unit_semantics():
 def test_array_like_field():
     ds = fake_random_ds(4, particles=64)
     ad = ds.all_data()
-    u1 = ad["particle_mass"].units
+    u1 = ad[("all", "particle_mass")].units
     u2 = array_like_field(ad, 1.0, ("all", "particle_mass")).units
     assert u1 == u2
 

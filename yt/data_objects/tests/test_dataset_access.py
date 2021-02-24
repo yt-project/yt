@@ -58,7 +58,7 @@ def test_region_from_d():
     # And, lots of : usage!
     reg1 = ds.r[:, :, :]
     reg2 = ds.all_data()
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
     # Test slice as an index
     reg1 = ds.r[0.1:0.8]
@@ -110,7 +110,7 @@ def test_slice_from_r():
 
     frb3 = sl3.to_frb(width=0.5, height=0.5, resolution=(1024, 512))
     frb4 = ds.r[0.5, 0.25:0.75:1024j, 0.25:0.75:512j]
-    assert_equal(frb3["density"], frb4["density"])
+    assert_equal(frb3[("gas", "density")], frb4[("gas", "density")])
 
 
 def test_point_from_r():

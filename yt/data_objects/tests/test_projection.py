@@ -55,7 +55,7 @@ def test_projection(pf):
         for ax, an in enumerate("xyz"):
             xax = ds.coordinates.x_axis[ax]
             yax = ds.coordinates.y_axis[ax]
-            for wf in ["density", ("gas", "density"), None]:
+            for wf in [("gas", "density"), ("gas", "density"), None]:
                 proj = ds.proj(
                     [("gas", "ones"), ("gas", "density")], ax, weight_field=wf
                 )
@@ -71,7 +71,7 @@ def test_projection(pf):
                 assert_equal(np.unique(proj["py"]), uc[yax])
                 assert_equal(np.unique(proj["pdx"]), 1.0 / (dims[xax] * 2.0))
                 assert_equal(np.unique(proj["pdy"]), 1.0 / (dims[yax] * 2.0))
-                plots = [proj.to_pw(fields="density"), proj.to_pw()]
+                plots = [proj.to_pw(fields=("gas", "density")), proj.to_pw()]
                 for pw in plots:
                     for p in pw.plots.values():
                         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
@@ -79,7 +79,7 @@ def test_projection(pf):
                         p.save(name=tmpname)
                         fns.append(tmpname)
                 frb = proj.to_frb((1.0, "unitary"), 64)
-                for proj_field in ["ones", "density", "temperature"]:
+                for proj_field in ["ones", ("gas", "density"), ("gas", "temperature")]:
                     fi = ds._get_field_info(proj_field)
                     assert_equal(frb[proj_field].info["data_source"], proj.__str__())
                     assert_equal(frb[proj_field].info["axis"], ax)
@@ -113,8 +113,8 @@ def test_projection(pf):
                         )
             # wf == None
             assert_equal(wf, None)
-            v1 = proj["density"].sum()
-            v2 = (dd["density"] * dd[f"d{an}"]).sum()
+            v1 = proj[("gas", "density")].sum()
+            v2 = (dd[("gas", "density")] * dd[f"d{an}"]).sum()
             assert_rel_equal(v1, v2.in_units(v1.units), 10)
     teardown_func(fns)
 

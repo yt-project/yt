@@ -44,7 +44,13 @@ def test_profiles():
             # individually.
             for lf in [True, False]:
                 direct_profile = Profile1D(
-                    dd, "density", nb, rmi * e1, rma * e2, lf, weight_field=None
+                    dd,
+                    ("gas", "density"),
+                    nb,
+                    rmi * e1,
+                    rma * e2,
+                    lf,
+                    weight_field=None,
                 )
                 direct_profile.add_fields(["ones", "temperature"])
 
@@ -248,13 +254,13 @@ def test_particle_profiles():
         p1d = Profile1D(
             dd, ("all", "particle_position_x"), 128, 0.0, 1.0, False, weight_field=None
         )
-        p1d.add_fields(["particle_ones"])
+        p1d.add_fields([("all", "particle_ones")])
         assert_equal(p1d["particle_ones"].sum(), 32 ** 3)
 
         p1d = create_profile(
             dd,
-            ["particle_position_x"],
-            ["particle_ones"],
+            [("all", "particle_position_x")],
+            [("all", "particle_ones")],
             weight_field=None,
             n_bins=128,
             extrema=extrema_s,
@@ -271,46 +277,46 @@ def test_particle_profiles():
             extrema=extrema_t,
             logs=logs_t,
         )
-        assert_equal(p1d["particle_ones"].sum(), 32 ** 3)
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p2d = Profile2D(
             dd,
-            "particle_position_x",
+            ("all", "particle_position_x"),
             128,
             0.0,
             1.0,
             False,
-            "particle_position_y",
+            ("all", "particle_position_y"),
             128,
             0.0,
             1.0,
             False,
             weight_field=None,
         )
-        p2d.add_fields(["particle_ones"])
-        assert_equal(p2d["particle_ones"].sum(), 32 ** 3)
+        p2d.add_fields([("all", "particle_ones")])
+        assert_equal(p2d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p3d = Profile3D(
             dd,
-            "particle_position_x",
+            ("all", "particle_position_x"),
             128,
             0.0,
             1.0,
             False,
-            "particle_position_y",
+            ("all", "particle_position_y"),
             128,
             0.0,
             1.0,
             False,
-            "particle_position_z",
+            ("all", "particle_position_z"),
             128,
             0.0,
             1.0,
             False,
             weight_field=None,
         )
-        p3d.add_fields(["particle_ones"])
-        assert_equal(p3d["particle_ones"].sum(), 32 ** 3)
+        p3d.add_fields([("all", "particle_ones")])
+        assert_equal(p3d[("all", "particle_ones")].sum(), 32 ** 3)
 
 
 def test_mixed_particle_mesh_profiles():
@@ -324,44 +330,63 @@ def test_mixed_particle_mesh_profiles():
         ProfilePlot,
         ad,
         "radius",
-        ["particle_mass", "particle_ones"],
+        [("nbody OR all", "particle_mass"), ("all", "particle_ones")],
     )
     assert_raises(
-        YTIllDefinedProfile, ProfilePlot, ad, "radius", ["particle_mass", "ones"]
+        YTIllDefinedProfile,
+        ProfilePlot,
+        ad,
+        "radius",
+        [("all", "particle_mass"), "ones"],
     )
     assert_raises(
         YTIllDefinedProfile,
         ProfilePlot,
         ad,
         "particle_radius",
-        "particle_mass",
+        ("all", "particle_mass"),
         "cell_mass",
     )
     assert_raises(
-        YTIllDefinedProfile, ProfilePlot, ad, "radius", "cell_mass", "particle_ones"
+        YTIllDefinedProfile,
+        ProfilePlot,
+        ad,
+        "radius",
+        "cell_mass",
+        ("all", "particle_ones"),
     )
 
     assert_raises(
-        YTIllDefinedProfile, PhasePlot, ad, "radius", "particle_mass", "velocity_x"
+        YTIllDefinedProfile,
+        PhasePlot,
+        ad,
+        "radius",
+        ("all", "particle_mass"),
+        "velocity_x",
     )
     assert_raises(
         YTIllDefinedProfile,
         PhasePlot,
         ad,
         "particle_radius",
-        "particle_mass",
+        ("all", "particle_mass"),
         "cell_mass",
     )
     assert_raises(
-        YTIllDefinedProfile, PhasePlot, ad, "radius", "cell_mass", "particle_ones"
+        YTIllDefinedProfile,
+        PhasePlot,
+        ad,
+        "radius",
+        "cell_mass",
+        ("all", "particle_ones"),
     )
     assert_raises(
         YTIllDefinedProfile,
         PhasePlot,
         ad,
         "particle_radius",
-        "particle_mass",
-        "particle_ones",
+        ("all", "particle_mass"),
+        ("all", "particle_ones"),
     )
 
 
@@ -389,12 +414,12 @@ def test_particle_profile_negative_field():
 
     profile = yt.create_profile(
         ad,
-        ["particle_position_x", "particle_position_y"],
+        [("all", "particle_position_x"), ("all", "particle_position_y")],
         "particle_velocity_x",
         logs={
-            "particle_position_x": True,
-            "particle_position_y": True,
-            "particle_position_z": True,
+            ("all", "particle_position_x"): True,
+            ("all", "particle_position_y"): True,
+            ("all", "particle_position_z"): True,
         },
         weight_field=None,
     )
@@ -404,7 +429,7 @@ def test_particle_profile_negative_field():
 
     profile = yt.create_profile(
         ad,
-        ["particle_position_x", "particle_position_y"],
+        [("all", "particle_position_x"), ("all", "particle_position_y")],
         "particle_velocity_x",
         weight_field=None,
     )
@@ -416,12 +441,12 @@ def test_particle_profile_negative_field():
     with assert_raises(RuntimeError):
         yt.create_profile(
             ad,
-            ["particle_position_x", "particle_position_y"],
+            [("all", "particle_position_x"), ("all", "particle_position_y")],
             "particle_velocity_x",
             logs={
-                "particle_position_x": True,
-                "particle_position_y": False,
-                "particle_position_z": False,
+                ("all", "particle_position_x"): True,
+                ("all", "particle_position_y"): False,
+                ("all", "particle_position_z"): False,
             },
             weight_field=None,
             deposition="cic",
@@ -431,12 +456,12 @@ def test_particle_profile_negative_field():
     with assert_raises(RuntimeError):
         yt.create_profile(
             ad,
-            ["particle_position_x", "particle_position_y"],
+            [("all", "particle_position_x"), ("all", "particle_position_y")],
             "particle_velocity_x",
             logs={
-                "particle_position_x": False,
-                "particle_position_y": False,
-                "particle_position_z": False,
+                ("all", "particle_position_x"): False,
+                ("all", "particle_position_y"): False,
+                ("all", "particle_position_z"): False,
             },
             weight_field=None,
             deposition="cic",

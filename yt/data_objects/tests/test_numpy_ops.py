@@ -24,9 +24,9 @@ def test_mean_sum_integrate():
 
         assert_equal(q, q1)
 
-        q = ad.sum("particle_ones")
+        q = ad.sum(("all", "particle_ones"))
 
-        q1 = ad.quantities.total_quantity("particle_ones")
+        q1 = ad.quantities.total_quantity(("all", "particle_ones"))
 
         assert_equal(q, q1)
 
@@ -45,15 +45,19 @@ def test_mean_sum_integrate():
 
         assert_equal(w, w1)
 
-        w = ad.mean("particle_mass")
+        w = ad.mean(("all", "particle_mass"))
 
-        w1 = ad.quantities.weighted_average_quantity("particle_mass", "particle_ones")
+        w1 = ad.quantities.weighted_average_quantity(
+            ("all", "particle_mass"), ("all", "particle_ones")
+        )
 
         assert_equal(w, w1)
 
-        w = ad.mean("particle_mass", weight="particle_mass")
+        w = ad.mean(("all", "particle_mass"), weight=("all", "particle_mass"))
 
-        w1 = ad.quantities.weighted_average_quantity("particle_mass", "particle_mass")
+        w1 = ad.quantities.weighted_average_quantity(
+            ("all", "particle_mass"), ("all", "particle_mass")
+        )
 
         assert_equal(w, w1)
 
@@ -98,17 +102,19 @@ def test_min_max():
         q = ad.max(("gas", "density")).v
         assert_equal(q, ad[("gas", "density")].max())
 
-        q = ad.min("particle_mass").v
-        assert_equal(q, ad["particle_mass"].min())
+        q = ad.min(("all", "particle_mass")).v
+        assert_equal(q, ad[("all", "particle_mass")].min())
 
-        q = ad.max("particle_mass").v
-        assert_equal(q, ad["particle_mass"].max())
+        q = ad.max(("all", "particle_mass")).v
+        assert_equal(q, ad[("all", "particle_mass")].max())
 
         ptp = ad.ptp(("gas", "density")).v
         assert_equal(ptp, ad[("gas", "density")].max() - ad[("gas", "density")].min())
 
-        ptp = ad.ptp("particle_mass").v
-        assert_equal(ptp, ad["particle_mass"].max() - ad["particle_mass"].min())
+        ptp = ad.ptp(("all", "particle_mass")).v
+        assert_equal(
+            ptp, ad[("all", "particle_mass")].max() - ad[("all", "particle_mass")].min()
+        )
 
         p = ad.max(("gas", "density"), axis=1)
         p1 = ds.proj(("gas", "density"), 1, data_source=ad, method="mip")

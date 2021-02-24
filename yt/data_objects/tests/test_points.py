@@ -37,7 +37,7 @@ def test_domain_point():
     fpoint_den = ds.find_field_values_at_point(("gas", "density"), ds.domain_center)
 
     fpoint_den_vel = ds.find_field_values_at_point(
-        [("gas", "density"), "velocity_x"], ds.domain_center
+        [("gas", "density"), ("gas", "velocity_x")], ds.domain_center
     )
 
     assert_equal(point_den, fpoint_den)

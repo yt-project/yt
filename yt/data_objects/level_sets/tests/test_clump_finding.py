@@ -72,11 +72,13 @@ def test_clump_finding():
     assert_equal(
         master_clump.children[0][("gas", "density")][0], ad[("gas", "density")].max()
     )
-    assert_equal(master_clump.children[0]["particle_mass"].size, 1)
-    assert_array_equal(master_clump.children[0]["particle_mass"], ad["particle_mass"])
+    assert_equal(master_clump.children[0][("all", "particle_mass")].size, 1)
+    assert_array_equal(
+        master_clump.children[0][("all", "particle_mass")], ad[("all", "particle_mass")]
+    )
     assert_equal(master_clump.children[1]["density"][0].size, 1)
     assert_equal(master_clump.children[1]["density"][0], ad["density"].max())
-    assert_equal(master_clump.children[1]["particle_mass"].size, 0)
+    assert_equal(master_clump.children[1][("all", "particle_mass")].size, 0)
 
     # clean up global registry to avoid polluting other tests
     del clump_info_registry["total_volume"]

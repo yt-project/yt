@@ -7,11 +7,11 @@ from yt.testing import assert_equal, fake_random_ds
 def test_exclude_above():
     the_ds = fake_random_ds(ndims=3)
     all_data = the_ds.all_data()
-    new_ds = all_data.exclude_above("density", 1)
+    new_ds = all_data.exclude_above(("gas", "density"), 1)
     assert_equal(new_ds["gas", "density"], all_data["gas", "density"])
     new_ds = all_data.exclude_above(("gas", "density"), 1e6, "g/m**3")
     assert_equal(new_ds["gas", "density"], all_data["gas", "density"])
-    new_ds = all_data.exclude_above("density", 0)
+    new_ds = all_data.exclude_above("gas", "density", 0)
     assert_equal(new_ds["gas", "density"], [])
 
 
