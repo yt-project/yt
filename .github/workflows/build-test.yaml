@@ -55,5 +55,6 @@ jobs:
         testsuite: ${{ matrix.tests-type }}
       run: python -m nose -c nose_${testsuite}.cfg --traverse-namespace
     - name: Report Failed Answers
+      if: ${{ failure() }}
       shell: bash
       run: yt upload diff.txt
