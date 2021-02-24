@@ -419,6 +419,7 @@ class TestPerFieldConfig(unittest.TestCase):
             ("yt", "default_colormap"): "viridis",
             ("gas", "log"): False,
             ("gas", "density", "units"): "lb/yard**3",
+            ("gas", "density", "path_length_units"): "mile",
             ("gas", "density", "cmap"): "plasma",
             ("gas", "temperature", "log"): True,
             ("gas", "temperature", "linthresh"): 100,
@@ -442,8 +443,8 @@ class TestPerFieldConfig(unittest.TestCase):
         fields = [("gas", "density"), ("gas", "temperature"), ("gas", "pressure")]
         units = ["g/cm**3", "K", "dyn/cm**2"]
         if self.ds is None:
-            self.ds = fake_random_ds(64, fields=fields, units=units)
-            self.slc = SlicePlot(self.ds, 0, fields)
+            self.ds = fake_random_ds(16, fields=fields, units=units)
+            self.slc = ProjectionPlot(self.ds, 0, fields)
 
     def tearDown(self):
         from yt.config import ytcfg
@@ -456,20 +457,22 @@ class TestPerFieldConfig(unittest.TestCase):
             ytcfg[key] = val
 
     def test_units(self):
-        assert_true(str(self.slc.frb["gas", "density"].units) == "lb/yd**3")
-        assert_true(str(self.slc.frb["gas", "temperature"].units) == "K")
-        assert_true(str(self.slc.frb["gas", "pressure"].units) == "dyn/cm**2")
+        from unyt import Unit
+
+        assert_equal(self.slc.frb["gas", "density"].units, Unit("mile*lb/yd**3"))
+        assert_equal(self.slc.frb["gas", "temperature"].units, Unit("cm*K"))
+        assert_equal(self.slc.frb["gas", "pressure"].units, Unit("dyn/cm"))
 
     def test_scale(self):
-        assert_true(self.slc._field_transform["gas", "density"].name == "linear")
-        assert_true(self.slc._field_transform["gas", "temperature"].name == "symlog")
-        assert_true(self.slc._field_transform["gas", "temperature"].func == 100)
-        assert_true(self.slc._field_transform["gas", "pressure"].name == "log10")
+        assert_equal(self.slc._field_transform["gas", "density"].name, "linear")
+        assert_equal(self.slc._field_transform["gas", "temperature"].name, "symlog")
+        assert_equal(self.slc._field_transform["gas", "temperature"].func, 100)
+        assert_equal(self.slc._field_transform["gas", "pressure"].name, "log10")
 
     def test_cmap(self):
-        assert_true(self.slc._colormap_config["gas", "density"] == "plasma")
-        assert_true(self.slc._colormap_config["gas", "temperature"] == "hot")
-        assert_true(self.slc._colormap_config["gas", "pressure"] == "viridis")
+        assert_equal(self.slc._colormap_config["gas", "density"], "plasma")
+        assert_equal(self.slc._colormap_config["gas", "temperature"], "hot")
+        assert_equal(self.slc._colormap_config["gas", "pressure"], "viridis")
 
 
 def test_on_off_compare():
