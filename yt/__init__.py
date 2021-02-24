@@ -82,6 +82,7 @@ from yt.utilities.logger import set_log_level, ytLogger as mylog
 frontends = _frontend_container()
 
 import yt.visualization.volume_rendering.api as volume_rendering
+from yt.auto_update_ambiguous import AmbiguousResolvePlugin
 from yt.frontends.stream.api import hexahedral_connectivity
 from yt.frontends.ytdata.api import save_as_dataset
 from yt.loaders import simulation  # deprecated alias for load_simulation
