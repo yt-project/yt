@@ -33,6 +33,16 @@ Table of Contents
       <tr valign="top">
        <td width="25%">
          <p>
+           <a href="yt4differences.html">yt 4.0</a>
+         </p>
+       </td>
+       <td width="75%">
+         <p class="linkdescr">How yt-4.0 differs from past versions</p>
+       </td>
+     </tr>
+     <tr valign="top">
+       <td width="25%">
+         <p>
            <a href="yt3differences.html">yt 3.0</a>
          </p>
        </td>
