@@ -120,8 +120,8 @@ def compare_dicts(dict1, dict2):
                 else:
                     return False
             try:
-                comparison = (dict1[key] == dict2[key]).all()
-            except AttributeError:
+                comparison = np.array_equal(dict1[key], dict2[key])
+            except TypeError:
                 comparison = dict1[key] == dict2[key]
             if not comparison:
                 return False
