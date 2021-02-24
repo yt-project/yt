@@ -51,7 +51,7 @@ class AdaptaHOPFieldInfo(FieldInfoContainer):
     )
 
     def setup_particle_fields(self, ptype):
-        super(AdaptaHOPFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
 
         # Add particle position
         def generate_pos_field(d):

@@ -15,7 +15,7 @@ from yt.utilities.exceptions import YTException
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 _fields_to_compare = (

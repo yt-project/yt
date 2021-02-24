@@ -45,7 +45,13 @@ class OctreeIndex(Index):
             Nobjs = len(data._current_chunk.objs)
             Nbits = int(np.ceil(np.log2(Nobjs)))
 
-            for i, obj in enumerate(data._current_chunk.objs):
+            # Sort objs by decreasing number of octs
+            enumerated_objs = sorted(
+                enumerate(data._current_chunk.objs),
+                key=lambda arg: arg[1].oct_handler.nocts,
+                reverse=True,
+            )
+            for i, obj in enumerated_objs:
                 if Nremaining == 0:
                     break
                 icell = (

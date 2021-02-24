@@ -65,4 +65,3 @@ Other Useful Things Not Included Here
 
   Simulates a photon-counting detector's response to an input source,
   including a simplified models of telescopes.
-

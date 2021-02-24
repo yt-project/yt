@@ -1,7 +1,7 @@
 import os
 import weakref
 from collections import defaultdict
-from glob import glob
+from pathlib import Path
 
 import numpy as np
 
@@ -18,12 +18,98 @@ from yt.utilities.lib.cosmology_time import friedman
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 from yt.utilities.physical_constants import kb, mp
 
-from .definitions import field_aliases, particle_families, ramses_header
+from .definitions import (
+    OUTPUT_DIR_RE,
+    STANDARD_FILE_RE,
+    field_aliases,
+    particle_families,
+    ramses_header,
+)
 from .field_handlers import get_field_handlers
 from .fields import _X, RAMSESFieldInfo
 from .hilbert import get_cpu_list
 from .io_utils import fill_hydro, read_amr
 from .particle_handlers import get_particle_handlers
+
+
+class RAMSESFileSanitizer:
+    """A class to handle the different files that can be passed and associated
+    safely to a RAMSES output."""
+
+    root_folder = None  # Path | None: path to the root folder
+    info_fname = None  # Path | None: path to the info file
+    group_name = None  # str | None: name of the first group folder (if any)
+
+    def __init__(self, filename):
+        # Resolve so that it works with symlinks
+        filename = Path(filename).resolve()
+
+        self.original_filename = filename
+
+        self.output_dir = None
+        self.info_fname = None
+
+        for check_fun in (self.test_with_standard_file, self.test_with_folder_name):
+            ok, output_dir, info_fname = check_fun(filename)
+            if ok:
+                break
+
+        # Early exit if the ok flag is False
+        if not ok:
+            return
+
+        # Special case when organized in groups
+        if output_dir.name == "group_00001":
+            self.root_folder = output_dir.parent
+            self.group_name = output_dir.name
+        else:
+            self.root_folder = output_dir
+            self.group_name = None
+        self.info_fname = info_fname
+
+    @property
+    def is_valid(self):
+        return (self.root_folder is not None) and (self.info_fname is not None)
+
+    @staticmethod
+    def check_standard_files(folder, iout):
+        """Return True if the folder contains an amr file and the info file."""
+        # Check that the "amr_" and "info_" files exist
+        ok = (folder / f"amr_{iout}.out00001").is_file()
+        ok &= (folder / f"info_{iout}.txt").is_file()
+        return ok
+
+    @classmethod
+    def test_with_folder_name(cls, output_dir):
+        iout_match = OUTPUT_DIR_RE.match(output_dir.name)
+        ok = output_dir.is_dir() and iout_match is not None
+        if ok:
+            iout = iout_match.group(2)
+            ok &= cls.check_standard_files(output_dir, iout)
+            info_fname = output_dir / f"info_{iout}.txt"
+        else:
+            output_dir, info_fname = None, None
+
+        return ok, output_dir, info_fname
+
+    @classmethod
+    def test_with_standard_file(cls, filename):
+        iout_match = OUTPUT_DIR_RE.match(filename.parent.name)
+        ok = (
+            filename.is_file()
+            and STANDARD_FILE_RE.match(filename.name) is not None
+            and iout_match is not None
+        )
+
+        if ok:
+            iout = iout_match.group(2)
+            ok &= cls.check_standard_files(filename.parent, iout)
+            output_dir = filename.parent
+            info_fname = output_dir / f"info_{iout}.txt"
+        else:
+            output_dir, info_fname = None, None
+
+        return ok, output_dir, info_fname
 
 
 class RAMSESDomainFile:
@@ -147,10 +233,10 @@ class RAMSESDomainFile:
 
     def _read_amr(self):
         """Open the oct file, read in octs level-by-level.
-           For each oct, only the position, index, level and domain
-           are needed - its position in the octree is found automatically.
-           The most important is finding all the information to feed
-           oct_handler.add
+        For each oct, only the position, index, level and domain
+        are needed - its position in the octree is found automatically.
+        The most important is finding all the information to feed
+        oct_handler.add
         """
         self.oct_handler = RAMSESOctreeContainer(
             self.ds.domain_dimensions / 2,
@@ -203,9 +289,7 @@ class RAMSESDomainSubset(OctreeSubset):
         num_ghost_zones=0,
         base_grid=None,
     ):
-        super(RAMSESDomainSubset, self).__init__(
-            base_region, domain, ds, over_refine_factor, num_ghost_zones
-        )
+        super().__init__(base_region, domain, ds, over_refine_factor, num_ghost_zones)
 
         self._base_grid = base_grid
 
@@ -286,7 +370,7 @@ class RAMSESDomainSubset(OctreeSubset):
                 file_inds,
                 domains,
             ) = self.oct_handler.file_index_octs_with_ghost_zones(
-                selector, self.domain_id, cell_count
+                selector, self.domain_id, cell_count, self._num_ghost_zones
             )
             self._ghost_zone_cache = gz_cache
 
@@ -313,7 +397,7 @@ class RAMSESDomainSubset(OctreeSubset):
 
     @property
     def fwidth(self):
-        fwidth = super(RAMSESDomainSubset, self).fwidth
+        fwidth = super().fwidth
         if self._num_ghost_zones > 0:
             fwidth = fwidth.reshape(-1, 8, 3)
             n_oct = fwidth.shape[0]
@@ -329,15 +413,18 @@ class RAMSESDomainSubset(OctreeSubset):
     def fcoords(self):
         num_ghost_zones = self._num_ghost_zones
         if num_ghost_zones == 0:
-            return super(RAMSESDomainSubset, self).fcoords
+            return super().fcoords
 
         oh = self.oct_handler
 
         indices = oh.fill_index(self.selector).reshape(-1, 8)
-        oct_inds, cell_inds = oh.fill_octcellindex_neighbours(self.selector)
+        oct_inds, cell_inds = oh.fill_octcellindex_neighbours(
+            self.selector, self._num_ghost_zones
+        )
 
-        oct_inds = oct_inds.reshape(-1, 64)
-        cell_inds = cell_inds.reshape(-1, 64)
+        N_per_oct = self.nz ** 3
+        oct_inds = oct_inds.reshape(-1, N_per_oct)
+        cell_inds = cell_inds.reshape(-1, N_per_oct)
 
         inds = indices[oct_inds, cell_inds]
 
@@ -356,18 +443,23 @@ class RAMSESDomainSubset(OctreeSubset):
     def retrieve_ghost_zones(self, ngz, fields, smoothed=False):
         if smoothed:
             mylog.warning(
-                f"{self}.retrieve_ghost_zones was called with the "
-                f"`smoothed` argument set to True. This is not supported, "
-                "ignoring it."
+                "%s.retrieve_ghost_zones was called with the "
+                "`smoothed` argument set to True. This is not supported, "
+                "ignoring it.",
+                self,
             )
             smoothed = False
 
+        _subset_with_gz = getattr(self, "_subset_with_gz", {})
+
         try:
-            new_subset = self._subset_with_gz
+            new_subset = _subset_with_gz[ngz]
             mylog.debug(
-                "Reusing previous subset with ghost zone for domain %s", self.domain_id
+                "Reusing previous subset with %s ghost zones for domain %s",
+                ngz,
+                self.domain_id,
             )
-        except AttributeError:
+        except KeyError:
             new_subset = RAMSESDomainSubset(
                 self.base_region,
                 self.domain,
@@ -375,10 +467,11 @@ class RAMSESDomainSubset(OctreeSubset):
                 num_ghost_zones=ngz,
                 base_grid=self,
             )
-            self._subset_with_gz = new_subset
+            _subset_with_gz[ngz] = new_subset
 
-            # Cache the fields
-            new_subset.get_data(fields)
+        # Cache the fields
+        new_subset.get_data(fields)
+        self._subset_with_gz = _subset_with_gz
 
         return new_subset
 
@@ -393,7 +486,7 @@ class RAMSESIndex(OctreeIndex):
         self.max_level = None
 
         self.float_type = np.float64
-        super(RAMSESIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_oct_handler(self):
         if self.ds._bbox is not None:
@@ -414,7 +507,7 @@ class RAMSESIndex(OctreeIndex):
         self.num_grids = total_octs
 
     def _detect_output_fields(self):
-        dsl = set([])
+        dsl = set()
 
         # Get the detected particle fields
         for domain in self.domains:
@@ -428,7 +521,7 @@ class RAMSESIndex(OctreeIndex):
                 self.particle_field_list.append((f[0], "conformal_birth_time"))
 
         # Get the detected fields
-        dsl = set([])
+        dsl = set()
         for fh in self.domains[0].field_handlers:
             dsl.update(set(fh.field_list))
         self.fluid_field_list = list(dsl)
@@ -510,7 +603,7 @@ class RAMSESIndex(OctreeIndex):
 
         self._initialize_level_stats()
 
-        header = "%3s\t%14s\t%14s" % ("level", "# cells", "# cells^3")
+        header = "{:>3}\t{:>14}\t{:>14}".format("level", "# cells", "# cells^3")
         print(header)
         print(f"{len(header.expandtabs()) * '-'}")
         for level in range(self.dataset.min_level + self.dataset.max_level + 2):
@@ -528,7 +621,7 @@ class RAMSESIndex(OctreeIndex):
 
         dx = self.get_smallest_dx()
         try:
-            print("z = %0.8f" % (self.dataset.current_redshift))
+            print(f"z = {self.dataset.current_redshift:0.8f}")
         except Exception:
             pass
         print(
@@ -541,7 +634,7 @@ class RAMSESIndex(OctreeIndex):
         )
         print("\nSmallest Cell:")
         for item in ("Mpc", "pc", "AU", "cm"):
-            print("\tWidth: %0.3e %s" % (dx.in_units(item), item))
+            print(f"\tWidth: {dx.in_units(item):0.3e} {item}")
 
 
 class RAMSESDataset(Dataset):
@@ -591,28 +684,29 @@ class RAMSESDataset(Dataset):
             max_level, max_level_convention
         )
 
-        # Infer if the output is organized in groups
-        root_folder, group_folder = os.path.split(os.path.split(filename)[0])
+        file_handler = RAMSESFileSanitizer(filename)
 
-        if group_folder == "group_00001":
-            # Count the number of groups
-            # note: we exclude the unlikely event that one of the group is actually a
-            # file instad of a folder
-            self.num_groups = len(
-                [
-                    _
-                    for _ in glob(os.path.join(root_folder, "group_?????"))
-                    if os.path.isdir(_)
-                ]
+        # This should not happen, but let's check nonetheless.
+        if not file_handler.is_valid:
+            raise ValueError(
+                "Invalid filename found when building a RAMSESDataset object: %s",
+                filename,
             )
-            self.root_folder = root_folder
+
+        # Sanitize the filename
+        info_fname = file_handler.info_fname
+
+        if file_handler.group_name is not None:
+            self.num_groups = len(
+                [_ for _ in file_handler.root_folder.glob("group_?????") if _.is_dir()]
+            )
         else:
-            self.root_folder = os.path.split(filename)[0]
             self.num_groups = 0
+        self.root_folder = file_handler.root_folder
 
         Dataset.__init__(
             self,
-            filename,
+            info_fname,
             dataset_type,
             units_override=units_override,
             unit_system=unit_system,
@@ -671,7 +765,7 @@ class RAMSESDataset(Dataset):
 
     def create_field_info(self, *args, **kwa):
         """Extend create_field_info to add the particles types."""
-        super(RAMSESDataset, self).create_field_info(*args, **kwa)
+        super().create_field_info(*args, **kwa)
         # Register particle filters
         if ("io", "particle_family") in self.field_list:
             for fname, value in particle_families.items():
@@ -781,7 +875,7 @@ class RAMSESDataset(Dataset):
         self.domain_right_edge = np.ones(3, dtype="float64")
         # This is likely not true, but it's not clear
         # how to determine the boundary conditions
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
         if self.force_cosmological is not None:
             is_cosmological = self.force_cosmological
@@ -822,17 +916,25 @@ class RAMSESDataset(Dataset):
             iage = 1 + int(10.0 * age / self.dtau)
             iage = np.min([iage, self.n_frw // 2 + (iage - self.n_frw // 2) // 10])
 
-            self.time_simu = self.t_frw[iage] * (age - self.tau_frw[iage - 1]) / (
-                self.tau_frw[iage] - self.tau_frw[iage - 1]
-            ) + self.t_frw[iage - 1] * (age - self.tau_frw[iage]) / (
-                self.tau_frw[iage - 1] - self.tau_frw[iage]
-            )
+            try:
+                self.time_simu = self.t_frw[iage] * (age - self.tau_frw[iage - 1]) / (
+                    self.tau_frw[iage] - self.tau_frw[iage - 1]
+                ) + self.t_frw[iage - 1] * (age - self.tau_frw[iage]) / (
+                    self.tau_frw[iage - 1] - self.tau_frw[iage]
+                )
 
-            self.current_time = (
-                (self.time_tot + self.time_simu)
-                / (self.hubble_constant * 1e7 / 3.08e24)
-                / self.parameters["unit_t"]
-            )
+                self.current_time = (
+                    (self.time_tot + self.time_simu)
+                    / (self.hubble_constant * 1e7 / 3.08e24)
+                    / self.parameters["unit_t"]
+                )
+            except IndexError:
+                mylog.warning(
+                    "Yt could not convert conformal time to physical time. "
+                    "Yt will assume the simulation is *not* cosmological."
+                )
+                self.cosmological_simulation = 0
+                self.current_time = self.parameters["time"]
 
         if self.num_groups > 0:
             self.group_size = rheader["ncpu"] // self.num_groups
@@ -845,21 +947,19 @@ class RAMSESDataset(Dataset):
         namelist_file = os.path.join(self.root_folder, "namelist.txt")
         if os.path.exists(namelist_file):
             try:
-                with open(namelist_file, "r") as f:
+                with open(namelist_file) as f:
                     nml = f90nml.read(f)
             except ImportError as e:
                 nml = f"An error occurred when reading the namelist: {str(e)}"
-            except (ValueError, StopIteration) as e:
+            except (ValueError, StopIteration) as err:
                 mylog.warning(
-                    "Could not parse `namelist.txt` file as it was malformed: %s", e
+                    "Could not parse `namelist.txt` file as it was malformed:",
+                    exc_info=err,
                 )
                 return
 
             self.parameters["namelist"] = nml
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not os.path.basename(args[0]).startswith("info_"):
-            return False
-        fn = args[0].replace("info_", "amr_").replace(".txt", ".out00001")
-        return os.path.exists(fn)
+    def _is_valid(cls, filename, *args, **kwargs):
+        return RAMSESFileSanitizer(filename).is_valid

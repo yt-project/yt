@@ -21,7 +21,7 @@ cyl_3d = "MHD_Cyl3d_hdf5_plt_cnt_0100/MHD_Cyl3d_hdf5_plt_cnt_0100.hdf5"
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 @requires_file(cyl_2d)
@@ -213,7 +213,7 @@ def test_octree_cg():
 
 def test_smoothed_covering_grid_2d_dataset():
     ds = fake_random_ds([32, 32, 1], nprocs=4)
-    ds.periodicity = (True, True, True)
+    ds.force_periodicity()
     scg = ds.smoothed_covering_grid(1, [0.0, 0.0, 0.0], [32, 32, 1])
     assert_equal(scg["density"].shape, [32, 32, 1])
 

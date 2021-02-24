@@ -17,7 +17,7 @@ from yt.utilities.answer_testing.framework import data_dir_load
 def fake_halo_catalog(data):
     filename = "catalog.0.h5"
 
-    ftypes = dict((field, ".") for field in data)
+    ftypes = {field: "." for field in data}
     extra_attrs = {"data_type": "halo_catalog", "num_halos": data["particle_mass"].size}
 
     ds = {
@@ -43,10 +43,10 @@ class HaloCatalogTest(TempDirTest):
             f"particle_{name}" for name in ["mass"] + [f"position_{ax}" for ax in "xyz"]
         ]
         units = ["g"] + ["cm"] * 3
-        data = dict(
-            (field, YTArray(rs.random_sample(n_halos), unit))
+        data = {
+            field: YTArray(rs.random_sample(n_halos), unit)
             for field, unit in zip(fields, units)
-        )
+        }
 
         fn = fake_halo_catalog(data)
         ds = yt_load(fn)
@@ -68,10 +68,10 @@ class HaloCatalogTest(TempDirTest):
             f"particle_{name}" for name in ["mass"] + [f"position_{ax}" for ax in "xyz"]
         ]
         units = ["g"] + ["cm"] * 3
-        data = dict(
-            (field, YTArray(rs.random_sample(n_halos), unit))
+        data = {
+            field: YTArray(rs.random_sample(n_halos), unit)
             for field, unit in zip(fields, units)
-        )
+        }
 
         data["particle_position_x"][0] = 1.0
         data["particle_position_x"][1] = 0.0

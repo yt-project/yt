@@ -11,6 +11,7 @@ from stat import ST_CTIME
 import numpy as np
 from unyt.exceptions import UnitConversionError, UnitParseError
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.particle_filters import filter_registry
 from yt.data_objects.particle_unions import ParticleUnion
@@ -18,15 +19,7 @@ from yt.data_objects.region_expression import RegionExpression
 from yt.fields.derived_field import ValidateSpatial
 from yt.fields.field_type_container import FieldTypeContainer
 from yt.fields.fluid_fields import setup_gradient_fields
-from yt.fields.particle_fields import DEP_MSG_SMOOTH_FIELD
-from yt.funcs import (
-    ensure_list,
-    issue_deprecation_warning,
-    iterable,
-    mylog,
-    set_intersection,
-    setdefaultattr,
-)
+from yt.funcs import is_sequence, iter_fields, mylog, set_intersection, setdefaultattr
 from yt.geometry.coordinates.api import (
     CartesianCoordinateHandler,
     CoordinateHandler,
@@ -69,25 +62,6 @@ def _unsupported_object(ds, obj_name):
         raise YTObjectNotImplemented(ds, obj_name)
 
     return _raise_unsupp
-
-
-class IndexProxy:
-    # This is a simple proxy for Index objects.  It enables backwards
-    # compatibility so that operations like .h.sphere, .h.print_stats and
-    # .h.grid_left_edge will correctly pass through to the various dataset or
-    # index objects.
-    def __init__(self, ds):
-        self.ds = weakref.proxy(ds)
-        ds.index
-
-    def __getattr__(self, name):
-        # Check the ds first
-        if hasattr(self.ds, name):
-            return getattr(self.ds, name)
-        # Now for a subset of the available items, check the ds.index.
-        elif name in self.ds.index._index_properties:
-            return getattr(self.ds.index, name)
-        raise AttributeError
 
 
 class MutableAttribute:
@@ -159,7 +133,8 @@ class Dataset(abc.ABC):
     domain_left_edge = MutableAttribute(True)
     domain_right_edge = MutableAttribute(True)
     domain_dimensions = MutableAttribute(True)
-    periodicity = MutableAttribute()
+    _periodicity = MutableAttribute()
+    _force_periodicity = False
 
     # these are set in self._set_derived_attrs()
     domain_width = MutableAttribute(True)
@@ -178,7 +153,7 @@ class Dataset(abc.ABC):
             return obj
         apath = os.path.abspath(filename)
         cache_key = (apath, pickle.dumps(args), pickle.dumps(kwargs))
-        if ytcfg.getboolean("yt", "skip_dataset_cache"):
+        if ytcfg.get("yt", "skip_dataset_cache"):
             obj = object.__new__(cls)
         elif cache_key not in _cached_datasets:
             obj = object.__new__(cls)
@@ -274,10 +249,46 @@ class Dataset(abc.ABC):
     def unique_identifier(self, value):
         self._unique_identifier = value
 
+    @property
+    def periodicity(self):
+        if self._force_periodicity:
+            return (True, True, True)
+        return self._periodicity
+
+    @periodicity.setter
+    def periodicity(self, val):
+        # remove this setter to break backward compatibility
+        issue_deprecation_warning(
+            "Dataset.periodicity should not be overriden manually. "
+            "In the future, this will become an error. "
+            "Use `Dataset.force_periodicity` instead.",
+            since="4.0.0",
+            removal="4.1.0",
+        )
+        err_msg = f"Expected a 3-element boolean tuple, received `{val}`."
+        if not is_sequence(val):
+            raise TypeError(err_msg)
+        if len(val) != 3:
+            raise ValueError(err_msg)
+        if any(not isinstance(p, (bool, np.bool_)) for p in val):
+            raise TypeError(err_msg)
+        self._periodicity = tuple(bool(p) for p in val)
+
+    def force_periodicity(self, val=True):
+        """
+        Override box periodicity to (True, True, True).
+        Use ds.force_periodicty(False) to use the actual box periodicity.
+        """
+        # This is a user-facing method that embrace a long-standing
+        # workaround in yt user codes.
+        if not isinstance(val, bool):
+            raise TypeError("force_periodicity expected a boolean.")
+        self._force_periodicity = val
+
     # abstract methods require implementation in subclasses
     @classmethod
     @abc.abstractmethod
-    def _is_valid(cls, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # A heuristic test to determine if the data format can be interpreted
         # with the present frontend
         return False
@@ -403,8 +414,7 @@ class Dataset(abc.ABC):
         return self.parameters[key]
 
     def __iter__(self):
-        for i in self.parameters:
-            yield i
+        yield from self.parameters
 
     def get_smallest_appropriate_unit(
         self, v, quantity="distance", return_quantity=False
@@ -460,8 +470,8 @@ class Dataset(abc.ABC):
                 "fs",
             ]
         else:
-            raise SyntaxError(
-                "Specified quantity must be equal to 'distance'" "or 'time'."
+            raise ValueError(
+                "Specified quantity must be equal to 'distance' or 'time'."
             )
         for unit in unit_list:
             uq = self.quan(1.0, unit)
@@ -517,16 +527,6 @@ class Dataset(abc.ABC):
             self.create_field_info()
             np.seterr(**oldsettings)
         return self._instantiated_index
-
-    _index_proxy = None
-
-    @property
-    def h(self):
-        if self._index_proxy is None:
-            self._index_proxy = IndexProxy(self)
-        return self._index_proxy
-
-    hierarchy = h
 
     @parallel_root_only
     def print_key_parameters(self):
@@ -619,15 +619,15 @@ class Dataset(abc.ABC):
                 setattr(self, f"_{format_property}_format", value)
             else:
                 raise ValueError(
-                    "{0} not an acceptable value for format_property "
-                    "{1}. Choices are {2}.".format(
+                    "{} not an acceptable value for format_property "
+                    "{}. Choices are {}.".format(
                         value, format_property, available_formats[format_property]
                     )
                 )
         else:
             raise ValueError(
-                "{0} not a recognized format_property. Available"
-                "properties are: {1}".format(
+                "{} not a recognized format_property. Available"
+                "properties are: {}".format(
                     format_property, list(available_formats.keys())
                 )
             )
@@ -692,7 +692,7 @@ class Dataset(abc.ABC):
             return len(fields)
 
         for field in fields:
-            units = set([])
+            units = set()
             for s in union:
                 # First we check our existing fields for units
                 funits = self._get_field_info(s, field).units
@@ -934,9 +934,10 @@ class Dataset(abc.ABC):
         if to_array:
             if any(x.units.is_dimensionless for x in coords):
                 mylog.warning(
-                    f"dataset {self} has angular coordinates. "
+                    "dataset `%s` has angular coordinates. "
                     "Use 'to_array=False' to preserve "
-                    "dimensionality in each coordinate."
+                    "dimensionality in each coordinate.",
+                    str(self),
                 )
 
             # force conversion to length
@@ -975,11 +976,8 @@ class Dataset(abc.ABC):
         the input *fields*.
         """
         point = self.point(coords)
-        ret = []
-        field_list = ensure_list(fields)
-        for field in field_list:
-            ret.append(point[field])
-        if len(field_list) == 1:
+        ret = [point[f] for f in iter_fields(fields)]
+        if len(ret) == 1:
             return ret[0]
         else:
             return ret
@@ -997,7 +995,7 @@ class Dataset(abc.ABC):
         except AttributeError:
             pass
 
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         out = []
 
         # This may be slow because it creates a data object for each point
@@ -1511,7 +1509,8 @@ class Dataset(abc.ABC):
         # Handle the case where the field has already been added.
         if not override and name in self.field_info:
             mylog.warning(
-                "Field %s already exists. To override use `force_override=True`.", name,
+                "Field %s already exists. To override use `force_override=True`.",
+                name,
             )
 
         self.field_info.add_field(name, function, sampling_type, **kwargs)
@@ -1680,7 +1679,18 @@ class Dataset(abc.ABC):
 
         The field name tuple for the newly created field.
         """
-        issue_deprecation_warning("This method is deprecated. " + DEP_MSG_SMOOTH_FIELD)
+        issue_deprecation_warning(
+            "This method is deprecated."
+            "Since yt-4.0, it's no longer necessary to add a field specifically for "
+            "smoothing, because the global octree is removed. The old behavior of "
+            "interpolating onto a grid structure can be recovered through data objects "
+            "like ds.arbitrary_grid, ds.covering_grid, and most closely ds.octree. The "
+            "visualization machinery now treats SPH fields properly by smoothing onto "
+            "pixel locations. See this page to learn more: "
+            "https://yt-project.org/doc/yt4differences.html",
+            since="4.0.0",
+            removal="4.1.0",
+        )
 
     def add_gradient_fields(self, fields=None, input_field=None):
         """Add gradient fields.
@@ -1726,7 +1736,9 @@ class Dataset(abc.ABC):
         if input_field is not None:
             issue_deprecation_warning(
                 "keyword argument 'input_field' is deprecated in favor of 'fields' "
-                "and will be removed in a future version of yt."
+                "and will be removed in a future version of yt.",
+                since="4.0.0",
+                removal="4.1.0",
             )
             if fields is not None:
                 raise TypeError(
@@ -1876,7 +1888,7 @@ class ParticleDataset(Dataset):
     ):
         self.index_order = validate_index_order(index_order)
         self.index_filename = index_filename
-        super(ParticleDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type=dataset_type,
             file_style=file_style,
@@ -1888,7 +1900,7 @@ class ParticleDataset(Dataset):
 def validate_index_order(index_order):
     if index_order is None:
         index_order = (7, 5)
-    elif not iterable(index_order):
+    elif not is_sequence(index_order):
         index_order = (int(index_order), 1)
     else:
         if len(index_order) != 2:

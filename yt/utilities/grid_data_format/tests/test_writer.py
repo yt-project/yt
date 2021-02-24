@@ -16,7 +16,7 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 @requires_module("h5py")

@@ -95,6 +95,7 @@ class FLASHFieldInfo(FieldInfoContainer):
                 units="",
                 display_name=f"Energy Group {i}",
             )
+
         # Add energy fields
         def ekin(data):
             ek = data["flash", "velx"] ** 2

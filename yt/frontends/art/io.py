@@ -14,7 +14,6 @@ from yt.frontends.art.definitions import (
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.fortran_utils import read_vector, skip
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 from yt.utilities.logger import ytLogger as mylog
 
 
@@ -28,7 +27,7 @@ class IOHandlerART(BaseIOHandler):
     def __init__(self, *args, **kwargs):
         self.cache = {}
         self.masks = {}
-        super(IOHandlerART, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self.ws = self.ds.parameters["wspecies"]
         self.ls = self.ds.parameters["lspecies"]
         self.file_particle = self.ds._file_particle_data
@@ -135,7 +134,7 @@ class IOHandlerART(BaseIOHandler):
             tr[field] = np.arange(idxa, idxb)
         elif fname == "particle_type":
             a = 0
-            data = np.zeros(npa, dtype="int")
+            data = np.zeros(npa, dtype="int64")
             for i, (ptb, size) in enumerate(zip(pbool, sizes)):
                 if ptb:
                     data[a : a + size] = i
@@ -168,7 +167,7 @@ class IOHandlerART(BaseIOHandler):
             # dark_matter -- stars are regular matter.
             tr[field] /= self.ds.domain_dimensions.prod()
         if tr == {}:
-            tr = dict((f, np.array([])) for f in [field])
+            tr = {f: np.array([]) for f in [field]}
         if self.caching:
             self.cache[field] = tr[field]
             return self.cache[field]
@@ -184,26 +183,6 @@ class IOHandlerDarkMatterART(IOHandlerART):
             k: self.ds.parameters["lspecies"][i]
             for i, k in enumerate(self.ds.particle_types_raw)
         }
-
-    def _initialize_index(self, data_file, regions):
-        totcount = 4096 ** 2  # file is always this size
-        count = data_file.ds.parameters["lspecies"][-1]
-        DLE = data_file.ds.domain_left_edge
-        DRE = data_file.ds.domain_right_edge
-        with open(data_file.filename, "rb") as f:
-            # The first total_particles * 3 values are positions
-            pp = np.fromfile(f, dtype=">f4", count=totcount * 3)
-            pp.shape = (3, totcount)
-            pp = pp[:, :count]  # remove zeros
-            pp = np.transpose(pp).astype(
-                np.float32
-            )  # cast as float32 for compute_morton
-            pp = (pp - 1.0) / data_file.ds.parameters[
-                "ng"
-            ]  # correct the dm particle units
-        regions.add_data_file(pp, data_file.file_id)
-        morton = compute_morton(pp[:, 0], pp[:, 1], pp[:, 2], DLE, DRE)
-        return morton
 
     def _identify_fields(self, domain):
         field_list = []
@@ -248,7 +227,7 @@ class IOHandlerDarkMatterART(IOHandlerART):
             tr[field] = np.arange(idxa, idxb)
         elif fname == "particle_type":
             a = 0
-            data = np.zeros(npa, dtype="int")
+            data = np.zeros(npa, dtype="int64")
             for i, (ptb, size) in enumerate(zip(pbool, sizes)):
                 if ptb:
                     data[a : a + size] = i
@@ -280,7 +259,14 @@ class IOHandlerDarkMatterART(IOHandlerART):
 
 def _determine_field_size(pf, field, lspecies, ptmax):
     pbool = np.zeros(len(lspecies), dtype="bool")
-    idxas = np.concatenate(([0,], lspecies[:-1]))
+    idxas = np.concatenate(
+        (
+            [
+                0,
+            ],
+            lspecies[:-1],
+        )
+    )
     idxbs = lspecies
     if "specie" in field:
         index = int(field.replace("specie", ""))
@@ -453,7 +439,7 @@ def read_particles(file, Nrow, idxa, idxb, fields):
     real_size = 4  # for file_particle_data; not always true?
     np_per_page = Nrow ** 2  # defined in ART a_setup.h, # of particles/page
     num_pages = os.path.getsize(file) // (real_size * words * np_per_page)
-    fh = open(file, "r")
+    fh = open(file)
     skip, count = idxa, idxb - idxa
     kwargs = dict(
         words=words, real_size=real_size, np_per_page=np_per_page, num_pages=num_pages

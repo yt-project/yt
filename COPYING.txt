@@ -53,7 +53,7 @@ The yt Development Team is the set of all contributors to the yt project.  This
 includes all of the yt subprojects.
 
 The core team that coordinates development on BitBucket can be found here:
-http://bitbucket.org/yt_analysis/ 
+http://bitbucket.org/yt_analysis/
 
 
 Our Copyright Policy

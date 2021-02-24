@@ -21,10 +21,11 @@ from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
 from nose.plugins import Plugin
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import SimulationTimeSeries
-from yt.funcs import get_pbar, issue_deprecation_warning
+from yt.funcs import get_pbar
 from yt.loaders import load, load_simulation
 from yt.testing import (
     assert_allclose_units,
@@ -56,7 +57,7 @@ class AnswerTesting(Plugin):
     _my_version = None
 
     def options(self, parser, env=os.environ):
-        super(AnswerTesting, self).options(parser, env=env)
+        super().options(parser, env=env)
         parser.add_option(
             "--answer-name",
             dest="answer_name",
@@ -106,7 +107,7 @@ class AnswerTesting(Plugin):
         return self._my_version
 
     def configure(self, options, conf):
-        super(AnswerTesting, self).configure(options, conf)
+        super().configure(options, conf)
         if not self.enabled:
             return
         disable_stream_logging()
@@ -136,7 +137,7 @@ class AnswerTesting(Plugin):
 
         self.store_results = options.store_results
 
-        ytcfg["yt", "__withintesting"] = "True"
+        ytcfg["yt", "internals", "within_testing"] = True
         AnswerTestingTest.result_storage = self.result_storage = defaultdict(dict)
         if self.compare_name == "SKIP":
             self.compare_name = None
@@ -306,7 +307,7 @@ def can_run_ds(ds_fn, file_check=False):
     try:
         load(ds_fn)
     except FileNotFoundError:
-        if ytcfg.getboolean("yt", "__strict_requires"):
+        if ytcfg.get("yt", "internals", "strict_requires"):
             if result_storage is not None:
                 result_storage["tainted"] = True
             raise
@@ -317,8 +318,10 @@ def can_run_ds(ds_fn, file_check=False):
 def can_run_sim(sim_fn, sim_type, file_check=False):
     issue_deprecation_warning(
         "This function is no longer used in the "
-        + "yt project testing framework and is "
-        + "targeted for deprecation."
+        "yt project testing framework and is "
+        "targeted for deprecation.",
+        since="4.0.0",
+        removal="4.1.0",
     )
     result_storage = AnswerTestingTest.result_storage
     if isinstance(sim_fn, SimulationTimeSeries):
@@ -331,7 +334,7 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
     try:
         load_simulation(sim_fn, sim_type)
     except FileNotFoundError:
-        if ytcfg.getboolean("yt", "__strict_requires"):
+        if ytcfg.get("yt", "internals", "strict_requires"):
             if result_storage is not None:
                 result_storage["tainted"] = True
             raise
@@ -357,7 +360,7 @@ def data_dir_load(ds_fn, cls=None, args=None, kwargs=None):
 
 def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):
     if path is None and not os.path.exists(sim_fn):
-        raise IOError
+        raise OSError
     if os.path.exists(sim_fn) or not path:
         path = "."
     return load_simulation(
@@ -475,7 +478,7 @@ class AnswerTestingTest:
         if obj_type is None:
             oname = "all"
         else:
-            oname = "_".join((str(s) for s in obj_type))
+            oname = "_".join(str(s) for s in obj_type)
         args = [self._type_name, str(self.ds), oname]
         args += [str(getattr(self, an)) for an in self._attrs]
         suffix = getattr(self, "suffix", None)
@@ -489,7 +492,7 @@ class FieldValuesTest(AnswerTestingTest):
     _attrs = ("field",)
 
     def __init__(self, ds_fn, field, obj_type=None, particle_type=False, decimals=10):
-        super(FieldValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
         self.particle_type = particle_type
@@ -539,7 +542,7 @@ class AllFieldValuesTest(AnswerTestingTest):
     _attrs = ("field",)
 
     def __init__(self, ds_fn, field, obj_type=None, decimals=None):
-        super(AllFieldValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.obj_type = obj_type
         self.field = field
         self.decimals = decimals
@@ -569,7 +572,7 @@ class ProjectionValuesTest(AnswerTestingTest):
     def __init__(
         self, ds_fn, axis, field, weight_field=None, obj_type=None, decimals=10
     ):
-        super(ProjectionValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.axis = axis
         self.field = field
         self.weight_field = weight_field
@@ -631,7 +634,7 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
     _attrs = ("field", "axis", "weight_field")
 
     def __init__(self, ds_fn, axis, field, weight_field=None, obj_type=None):
-        super(PixelizedProjectionValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.axis = axis
         self.field = field
         self.weight_field = weight_field
@@ -690,7 +693,7 @@ class GridValuesTest(AnswerTestingTest):
     _attrs = ("field",)
 
     def __init__(self, ds_fn, field):
-        super(GridValuesTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.field = field
 
     def run(self):
@@ -836,7 +839,7 @@ class VRImageComparisonTest(AnswerTestingTest):
     _attrs = ("desc",)
 
     def __init__(self, scene, ds, desc, decimals):
-        super(VRImageComparisonTest, self).__init__(None)
+        super().__init__(None)
         self.obj_type = ("vr",)
         self.ds = ds
         self.scene = scene
@@ -878,7 +881,7 @@ class PlotWindowAttributeTest(AnswerTestingTest):
         callback_id="",
         callback_runners=None,
     ):
-        super(PlotWindowAttributeTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.plot_type = plot_type
         self.plot_field = plot_field
         self.plot_axis = plot_axis
@@ -927,7 +930,7 @@ class PhasePlotAttributeTest(AnswerTestingTest):
         decimals,
         plot_type="PhasePlot",
     ):
-        super(PhasePlotAttributeTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.data_source = self.ds.all_data()
         self.plot_type = plot_type
         self.x_field = x_field
@@ -978,7 +981,7 @@ class GenericArrayTest(AnswerTestingTest):
     _attrs = ("array_func_name", "args", "kwargs")
 
     def __init__(self, ds_fn, array_func, args=None, kwargs=None, decimals=None):
-        super(GenericArrayTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.array_func = array_func
         self.array_func_name = array_func.__name__
         self.args = args
@@ -1025,7 +1028,7 @@ class GenericImageTest(AnswerTestingTest):
     _attrs = ("image_func_name", "args", "kwargs")
 
     def __init__(self, ds_fn, image_func, decimals, args=None, kwargs=None):
-        super(GenericImageTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.image_func = image_func
         self.image_func_name = image_func.__name__
         self.args = args
@@ -1065,7 +1068,7 @@ class AxialPixelizationTest(AnswerTestingTest):
     _attrs = ("geometry",)
 
     def __init__(self, ds_fn, decimals=None):
-        super(AxialPixelizationTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.decimals = decimals
         self.geometry = self.ds.coordinates.name
 
@@ -1111,8 +1114,10 @@ class AxialPixelizationTest(AnswerTestingTest):
 def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
     issue_deprecation_warning(
         "This function is no longer used in the "
-        + "yt project testing framework and is "
-        + "targeted for deprecation."
+        "yt project testing framework and is "
+        "targeted for deprecation.",
+        since="4.0.0",
+        removal="4.1.0",
     )
 
     from functools import wraps

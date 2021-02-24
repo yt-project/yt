@@ -59,7 +59,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
             self.setup_star_particle_fields(ptype)
 
     def setup_gas_particle_fields(self, ptype):
-        super(GizmoFieldInfo, self).setup_gas_particle_fields(ptype)
+        super().setup_gas_particle_fields(ptype)
 
         def _h_p0_density(field, data):
             x_H = 1.0 - data[(ptype, "He_metallicity")] - data[(ptype, "metallicity")]

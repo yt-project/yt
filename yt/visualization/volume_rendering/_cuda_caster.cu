@@ -99,7 +99,7 @@ __device__ void sample_values(float v_pos[3], float v_dir[3],
         eval_transfer(dt, dv, rgba, tf);
     }
 }
-                   
+
 
 /* We need to know several things if we want to ray cast through a grid.
    We need the grid spatial information, as well as its values.  We also need
@@ -217,14 +217,14 @@ __global__ void ray_cast(int ngrids,
 
             intersect_ts[i] = 1.0;
 
-            intersect_ts[i] += 
+            intersect_ts[i] +=
               ( (tg.left_edge[x] <= temp_xl) &&
                 (temp_xl <= tg.right_edge[x]) &&
                 (tg.left_edge[y] <= temp_yl) &&
                 (temp_yl <= tg.right_edge[y]) &&
                 (0.0 <= tl) && (tl < intersect_ts[i]) && (tl < tr) ) * tl;
 
-            intersect_ts[i] += 
+            intersect_ts[i] +=
               ( (tg.left_edge[x] <= temp_xr) &&
                 (temp_xr <= tg.right_edge[x]) &&
                 (tg.left_edge[y] <= temp_yr) &&
@@ -258,7 +258,7 @@ __global__ void ray_cast(int ngrids,
         }
 
         /* This is the primary grid walking loop */
-        while(!( (skip) 
+        while(!( (skip)
               ||((cur_ind[0] < 0) || (cur_ind[0] >= tg.dims[0])
               || (cur_ind[1] < 0) || (cur_ind[1] >= tg.dims[1])
               || (cur_ind[2] < 0) || (cur_ind[2] >= tg.dims[2]))))
@@ -281,7 +281,7 @@ __global__ void ray_cast(int ngrids,
     int iy = threadIdx.y + blockDim.y * blockIdx.y;
     int ix = threadIdx.x + blockDim.x * blockIdx.x;
     __syncthreads();
-    
+
     image_r[tidx] = rgba[0];
     image_g[tidx] = rgba[1];
     image_b[tidx] = rgba[2];

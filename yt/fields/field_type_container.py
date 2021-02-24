@@ -16,7 +16,7 @@ def _fill_values(values):
         + "<th>Value</th></tr></thead><tr><td>"
         + "</td></tr><tr><td>".join(
             [
-                "{0}</td><td>{1}</td><td>{2}".format(
+                "{}</td><td>{}</td><td>{}".format(
                     v, type(values[v]).__name__, str(values[v])
                 )
                 for v in sorted(values)
@@ -27,7 +27,7 @@ def _fill_values(values):
     return value
 
 
-class FieldTypeContainer(object):
+class FieldTypeContainer:
     def __init__(self, ds):
         self.ds = weakref.proxy(ds)
 
@@ -43,7 +43,7 @@ class FieldTypeContainer(object):
     @property
     def field_types(self):
         if self._field_types is None:
-            self._field_types = set(t for t, n in self.ds.field_info)
+            self._field_types = {t for t, n in self.ds.field_info}
         return self._field_types
 
     def __dir__(self):
@@ -84,7 +84,7 @@ class FieldTypeContainer(object):
         display(tabs)
 
 
-class FieldNameContainer(object):
+class FieldNameContainer:
     def __init__(self, ds, field_type):
         self.ds = ds
         self.field_type = field_type

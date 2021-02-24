@@ -33,8 +33,7 @@ pkdgrav_kwargs = dict(
 @requires_ds(pkdgrav, big_data=True, file_check=True)
 def test_pkdgrav():
     ds = data_dir_load(pkdgrav, TipsyDataset, (), kwargs=pkdgrav_kwargs)
-    for test in nbody_answer(ds, "halo1e11_run1.00400", 26847360, _fields):
-        yield test
+    yield from nbody_answer(ds, "halo1e11_run1.00400", 26847360, _fields)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
 
@@ -55,8 +54,7 @@ def test_gasoline_dmonly():
         unit_base={"length": (60.0, "Mpccm/h")},
     )
     ds = data_dir_load(gasoline_dmonly, TipsyDataset, (), kwargs)
-    for test in nbody_answer(ds, "agora_1e11.00400", 10550576, _fields):
-        yield test
+    yield from nbody_answer(ds, "agora_1e11.00400", 10550576, _fields)
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()
 
@@ -71,7 +69,11 @@ tg_sph_fields = OrderedDict(
     ]
 )
 
-tg_nbody_fields = OrderedDict([(("Stars", "Metals"), None),])
+tg_nbody_fields = OrderedDict(
+    [
+        (("Stars", "Metals"), None),
+    ]
+)
 
 tipsy_gal = "TipsyGalaxy/galaxy.00300"
 

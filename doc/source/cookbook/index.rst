@@ -47,5 +47,4 @@ Example Notebooks
    fits_xray_images
    geographic_projections
    tipsy_notebook
-   halo_analysis_example
    ../visualizing/volume_rendering_tutorial

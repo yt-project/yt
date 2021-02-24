@@ -1,7 +1,6 @@
 import yt
 
 yt.enable_parallelism()
-import collections
 
 # Enable parallelism in the script (assuming it was called with
 # `mpirun -np <n_procs>` )
@@ -26,13 +25,13 @@ for ds in ts.piter():
     # Fill the dictionary with extrema and redshift information for each dataset
     data[ds.basename] = (extrema, ds.current_redshift)
 
-# Convert dictionary to ordered dictionary to get the right order
-od = collections.OrderedDict(sorted(data.items()))
+# Sort dict by keys
+data = {k: v for k, v in sorted(data.items())}
 
 # Print out all the values we calculated.
 print("Dataset      Redshift        Density Min      Density Max")
 print("---------------------------------------------------------")
-for key, val in od.items():
+for key, val in data.items():
     print(
         "%s       %05.3f          %5.3g g/cm^3   %5.3g g/cm^3"
         % (key, val[1], val[0][0], val[0][1])

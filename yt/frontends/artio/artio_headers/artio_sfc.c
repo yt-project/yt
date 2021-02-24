@@ -33,7 +33,7 @@
 /*******************************************************
  * morton_index
  ******************************************************/
-int64_t artio_morton_index( artio_fileset *handle, int coords[nDim] ) 
+int64_t artio_morton_index( artio_fileset *handle, int coords[nDim] )
 /* purpose: interleaves the bits of the nDim integer
  * 	coordinates, normally called Morton or z-ordering
  *
@@ -43,7 +43,7 @@ int64_t artio_morton_index( artio_fileset *handle, int coords[nDim] )
 	int i, d;
 	int64_t mortonnumber = 0;
 	int64_t bitMask = 1L << (handle->nBitsPerDim - 1);
-	
+
 	/* interleave bits of coordinates */
 	for ( i = handle->nBitsPerDim; i > 0; i-- ) {
 		for ( d = 0; d < nDim; d++ ) {
@@ -58,7 +58,7 @@ int64_t artio_morton_index( artio_fileset *handle, int coords[nDim] )
 /*******************************************************
  * hilbert_index
  ******************************************************/
-int64_t artio_hilbert_index( artio_fileset *handle, int coords[nDim] ) 
+int64_t artio_hilbert_index( artio_fileset *handle, int coords[nDim] )
 /* purpose: calculates the 1-d space-filling-curve index
  * 	corresponding to the nDim set of coordinates
  *
@@ -82,10 +82,10 @@ int64_t artio_hilbert_index( artio_fileset *handle, int coords[nDim] )
 	/* begin by transposing bits */
 	interleaved = artio_morton_index( handle, coords );
 
-	/* mask out nDim and 1 bit blocks starting 
+	/* mask out nDim and 1 bit blocks starting
 	 * at highest order bits */
 	singleMask = 1L << ((handle->nBitsPerDim - 1) * nDim);
-	
+
 	dimMask = singleMask;
 	for ( i = 1; i < nDim; i++ ) {
 		dimMask |= singleMask << i;
@@ -116,7 +116,7 @@ int64_t artio_hilbert_index( artio_fileset *handle, int coords[nDim] )
 		principal = 0;
 		for ( i = 1; i < nDim; i++ ) {
 			if ( (hilbertnumber & singleMask) != ((hilbertnumber>>i) & singleMask)) {
-				principal = i; 
+				principal = i;
 				break;
 			}
 		}
@@ -124,7 +124,7 @@ int64_t artio_hilbert_index( artio_fileset *handle, int coords[nDim] )
 		/* complement lowest bit position */
 		o ^= singleMask;
 
-		/* force even parity by complementing at principal position if necessary 
+		/* force even parity by complementing at principal position if necessary
 		 * Note: lowest order bit of hilbertnumber gives you parity of o at this
 		 * point due to xor operations of previous steps */
 		if ( !(hilbertnumber & singleMask) ) {
@@ -151,7 +151,7 @@ int64_t artio_hilbert_index( artio_fileset *handle, int coords[nDim] )
 /*******************************************************
  * hilbert_coords
  ******************************************************/
-void artio_hilbert_coords( artio_fileset *handle, int64_t index, int coords[nDim] ) 
+void artio_hilbert_coords( artio_fileset *handle, int64_t index, int coords[nDim] )
 /* purpose: performs the inverse of sfc_index,
  * 	taking a 1-d space-filling-curve index
  * 	and transforming it into nDim coordinates
@@ -199,7 +199,7 @@ void artio_hilbert_coords( artio_fileset *handle, int64_t index, int coords[nDim
 
 		/* if even parity, complement in principal bit position */
 		if ( !(index & singleMask) ) {
-			tau ^= singleMask << ( nDim - principal - 1 ); 
+			tau ^= singleMask << ( nDim - principal - 1 );
 		}
 
 		tau_ = rollRight( tau, num_shifts, dimMask );
@@ -235,13 +235,13 @@ int64_t artio_slab_index( artio_fileset *handle, int coords[nDim], int slab_dim 
 	int64_t index;
 
 	switch ( slab_dim ) {
-		case 0: 
+		case 0:
 			index = num_grid*num_grid*coords[0] + num_grid*coords[1] + coords[2];
 			break;
-		case 1: 
+		case 1:
 			index = num_grid*num_grid*coords[1] + num_grid*coords[0] + coords[2];
 			break;
-		case 2: 
+		case 2:
 			index = num_grid*num_grid*coords[2] + num_grid*coords[0] + coords[1];
 			break;
 		default:
@@ -263,7 +263,7 @@ void artio_slab_coords( artio_fileset *handle, int64_t index, int coords[nDim], 
 			coords[0] = ((index - coords[2] )/num_grid) % num_grid;
 			coords[1] = (index - coords[2] - num_grid*coords[0])/(num_grid*num_grid);
 			break;
-		case 2:	
+		case 2:
 			coords[1] = index % num_grid;
 			coords[0] = ((index - coords[1] )/num_grid) % num_grid;
 			coords[2] = (index - coords[1] - num_grid*coords[0])/(num_grid*num_grid);
@@ -295,17 +295,17 @@ void artio_sfc_coords( artio_fileset *handle, int64_t index, int coords[nDim] ) 
 	int i;
 
 	switch ( handle->sfc_type ) {
-		case ARTIO_SFC_SLAB_X: 
+		case ARTIO_SFC_SLAB_X:
 			artio_slab_coords( handle, index, coords, 0 );
 			break;
-		case ARTIO_SFC_SLAB_Y: 
+		case ARTIO_SFC_SLAB_Y:
 			artio_slab_coords( handle, index, coords, 1 );
 			break;
-		case ARTIO_SFC_SLAB_Z: 
+		case ARTIO_SFC_SLAB_Z:
 			artio_slab_coords( handle, index, coords, 2 );
 			break;
-		case ARTIO_SFC_HILBERT: 
-			artio_hilbert_coords( handle, index, coords );	
+		case ARTIO_SFC_HILBERT:
+			artio_hilbert_coords( handle, index, coords );
 			break;
 		default :
 			for ( i = 0; i < nDim; i++ ) {

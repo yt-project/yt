@@ -17,7 +17,14 @@ leaves = create_fake_octree(oct_handler, nocts, max_level, dd, dle, dre, fsub)
 mask = np.ones((nocts, 8), dtype="bool")
 cell_count = nocts * 8
 oct_counts = oct_handler.count_levels(max_level, 1, mask)
-level_counts = np.concatenate(([0,], np.cumsum(oct_counts)))
+level_counts = np.concatenate(
+    (
+        [
+            0,
+        ],
+        np.cumsum(oct_counts),
+    )
+)
 fc = oct_handler.fcoords(domain, mask, cell_count, level_counts.copy())
 leavesb = oct_handler.count_leaves(mask)
 assert leaves == leavesb
@@ -31,7 +38,14 @@ oct_handler2.add(fc, 1)
 print("added particles")
 cell_count2 = nocts * 8
 oct_counts2 = oct_handler.count_levels(max_level, 1, mask)
-level_counts2 = np.concatenate(([0,], np.cumsum(oct_counts)))
+level_counts2 = np.concatenate(
+    (
+        [
+            0,
+        ],
+        np.cumsum(oct_counts),
+    )
+)
 fc2 = oct_handler.fcoords(domain, mask, cell_count, level_counts.copy())
 leaves2 = oct_handler2.count_leaves(mask)
 assert leaves == leaves2

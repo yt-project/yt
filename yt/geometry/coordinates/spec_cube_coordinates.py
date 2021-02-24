@@ -9,13 +9,13 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
         ordering = tuple(
             "xyz"[axis] for axis in (ds.lon_axis, ds.lat_axis, ds.spec_axis)
         )
-        super(SpectralCubeCoordinateHandler, self).__init__(ds, ordering)
+        super().__init__(ds, ordering)
 
         self.default_unit_label = {}
         names = {}
         if ds.lon_name != "X" or ds.lat_name != "Y":
-            names["x"] = "Image\ x"
-            names["y"] = "Image\ y"
+            names["x"] = r"Image\ x"
+            names["y"] = r"Image\ y"
             # We can just use ds.lon_axis here
             self.default_unit_label[ds.lon_axis] = "pixel"
             self.default_unit_label[ds.lat_axis] = "pixel"
@@ -42,7 +42,7 @@ class SpectralCubeCoordinateHandler(CartesianCoordinateHandler):
 
     def setup_fields(self, registry):
         if not self.ds.no_cgs_equiv_length:
-            return super(SpectralCubeCoordinateHandler, self).setup_fields(registry)
+            return super().setup_fields(registry)
         for axi, ax in enumerate("xyz"):
             f1, f2 = _get_coord_fields(axi)
 

@@ -38,4 +38,4 @@ class SDFFieldInfo(FieldInfoContainer):
             (vzf, ("code_velocity", ["particle_velocity_z"], None)),
             (mnf, ("code_mass", ["particle_mass"], None)),
         )
-        super(SDFFieldInfo, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)

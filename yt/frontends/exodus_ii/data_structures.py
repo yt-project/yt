@@ -16,12 +16,12 @@ class ExodusIIUnstructuredMesh(UnstructuredMesh):
     _index_offset = 1
 
     def __init__(self, *args, **kwargs):
-        super(ExodusIIUnstructuredMesh, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
 
 class ExodusIIUnstructuredIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type="exodus_ii"):
-        super(ExodusIIUnstructuredIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_mesh(self):
         coords = self.ds._read_coordinates()
@@ -135,9 +135,7 @@ class ExodusIIDataset(Dataset):
             self.displacements = {}
         else:
             self.displacements = displacements
-        super(ExodusIIDataset, self).__init__(
-            filename, dataset_type, units_override=units_override
-        )
+        super().__init__(filename, dataset_type, units_override=units_override)
         self.index_filename = filename
         self.storage_filename = storage_filename
         self.default_field = [f for f in self.field_list if f[0] == "connect1"][-1]
@@ -169,7 +167,7 @@ class ExodusIIDataset(Dataset):
             self.parameters["elem_names"] = self._get_elem_names()
             self.parameters["nod_names"] = self._get_nod_names()
             self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
-            self.periodicity = (False, False, False)
+            self._periodicity = (False, False, False)
 
         # These attributes don't really make sense for unstructured
         # mesh data, but yt warns if they are not present, so we set
@@ -394,12 +392,11 @@ class ExodusIIDataset(Dataset):
         return mi, ma
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        warn_netcdf(args[0])
+    def _is_valid(cls, filename, *args, **kwargs):
+        warn_netcdf(filename)
         try:
             from netCDF4 import Dataset
 
-            filename = args[0]
             # We use keepweakref here to avoid holding onto the file handle
             # which can interfere with other is_valid calls.
             with Dataset(filename, keepweakref=True) as f:

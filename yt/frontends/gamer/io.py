@@ -30,7 +30,7 @@ class IOHandlerGAMER(BaseIOHandler):
     _dataset_type = "gamer"
 
     def __init__(self, ds):
-        super(IOHandlerGAMER, self).__init__(ds)
+        super().__init__(ds)
         self._handle = ds._handle
         self._group_grid = ds._group_grid
         self._group_particle = ds._group_particle

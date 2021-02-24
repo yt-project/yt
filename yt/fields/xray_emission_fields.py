@@ -26,12 +26,12 @@ def _get_data_file(table_type, data_dir=None):
         data_dir = supp_data_dir if os.path.exists(supp_data_dir) else "."
     data_path = os.path.join(data_dir, data_file)
     if not os.path.exists(data_path):
-        msg = "Failed to find emissivity data file %s! Please download from %s" % (
+        msg = "Failed to find emissivity data file {}! Please download from {}".format(
             data_file,
             data_url,
         )
         mylog.error(msg)
-        raise IOError(msg)
+        raise OSError(msg)
     return data_path
 
 
@@ -267,7 +267,7 @@ def add_xray_emissivity_field(
     ds.add_field(
         emiss_name,
         function=_emissivity_field,
-        display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
+        display_name=fr"\epsilon_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="erg/cm**3/s",
     )
@@ -279,7 +279,7 @@ def add_xray_emissivity_field(
     ds.add_field(
         lum_name,
         function=_luminosity_field,
-        display_name=r"\rm{L}_{X} (%s-%s keV)" % (e_min, e_max),
+        display_name=fr"\rm{{L}}_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="erg/s",
     )
@@ -304,7 +304,7 @@ def add_xray_emissivity_field(
     ds.add_field(
         phot_name,
         function=_photon_emissivity_field,
-        display_name=r"\epsilon_{X} (%s-%s keV)" % (e_min, e_max),
+        display_name=fr"\epsilon_{{X}} ({e_min}-{e_max} keV)",
         sampling_type="local",
         units="photons/cm**3/s",
     )
@@ -353,7 +353,7 @@ def add_xray_emissivity_field(
         ds.add_field(
             ei_name,
             function=_intensity_field,
-            display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
+            display_name=fr"I_{{X}} ({e_min}-{e_max} keV)",
             sampling_type="local",
             units="erg/cm**3/s/arcsec**2",
         )
@@ -367,7 +367,7 @@ def add_xray_emissivity_field(
         ds.add_field(
             i_name,
             function=_photon_intensity_field,
-            display_name=r"I_{X} (%s-%s keV)" % (e_min, e_max),
+            display_name=fr"I_{{X}} ({e_min}-{e_max} keV)",
             sampling_type="local",
             units="photons/cm**3/s/arcsec**2",
         )

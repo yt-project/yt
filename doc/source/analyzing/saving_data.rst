@@ -63,19 +63,19 @@ dictionary, normally associated with all datasets.
    sphere_ds = yt.load("DD0046_sphere.h5")
 
    # use the original data container
-   print (sphere_ds.data["grid", "density"])
+   print(sphere_ds.data["grid", "density"])
 
    # create a new data container
    ad = sphere_ds.all_data()
 
    # grid data
-   print (ad["grid", "density"])
-   print (ad["grid", "x"])
-   print (ad["grid", "dx"])
+   print(ad["grid", "density"])
+   print(ad["grid", "x"])
+   print(ad["grid", "dx"])
 
    # particle data
-   print (ad["all", "particle_mass"])
-   print (ad["all", "particle_position_x"])
+   print(ad["all", "particle_mass"])
+   print(ad["all", "particle_position_x"])
 
 Note that because field data queried from geometric containers is
 returned as unordered 1D arrays, data container datasets are treated,
@@ -96,19 +96,19 @@ containers.
 
 .. code-block:: python
 
-   cg = ds.covering_grid(level=0, left_edge=[0.25]*3, dims=[16]*3)
+   cg = ds.covering_grid(level=0, left_edge=[0.25] * 3, dims=[16] * 3)
    fn = cg.save_as_dataset(fields=["density", "particle_mass"])
 
    cg_ds = yt.load(fn)
    ad = cg_ds.all_data()
-   print (ad["grid", "density"])
+   print(ad["grid", "density"])
 
 Multidimensional indexing of field data is also available through
 the ``data`` attribute.
 
 .. code-block:: python
 
-   print (cg_ds.data["grid", "density"])
+   print(cg_ds.data["grid", "density"])
 
 Fixed resolution buffers work just the same.
 
@@ -118,7 +118,7 @@ Fixed resolution buffers work just the same.
    frb = my_proj.to_frb(1.0, (800, 800))
    fn = frb.save_as_dataset(fields=["density"])
    frb_ds = yt.load(fn)
-   print (frb_ds.data["density"])
+   print(frb_ds.data["density"])
 
 .. _saving-spatial-plots:
 
@@ -139,8 +139,7 @@ functions to make images.
 .. code-block:: python
 
    proj_ds = yt.load("DD0046_proj.h5")
-   p = yt.ProjectionPlot(proj_ds, "x", "density",
-                         weight_field="density")
+   p = yt.ProjectionPlot(proj_ds, "x", "density", weight_field="density")
    p.save()
 
 .. _saving-profile-data:
@@ -175,7 +174,7 @@ arrays with "x", "y", and "z".
 
 .. code-block:: python
 
-   print (prof_2d_ds.data["x"])
+   print(prof_2d_ds.data["x"])
 
 The bin fields can also be returned with the same shape as the profile
 data by accessing them with their original names.  This allows for
@@ -184,7 +183,7 @@ boolean masking of profile data using the bin fields.
 .. code-block:: python
 
    # density is the x bin field
-   print (prof_2d_ds.data["density"])
+   print(prof_2d_ds.data["density"])
 
 For 1, 2, and 3D profile datasets, a fake profile object will be
 constructed by accessing the ".profile" attribute.  This is used
@@ -194,8 +193,9 @@ primarily in the case of 1 and 2D profiles to create figures using
 
 .. code-block:: python
 
-   p = yt.PhasePlot(prof_2d_ds.data, "density", "temperature",
-                    "cell_mass", weight_field=None)
+   p = yt.PhasePlot(
+       prof_2d_ds.data, "density", "temperature", "cell_mass", weight_field=None
+   )
    p.save()
 
 .. _saving-array-data:

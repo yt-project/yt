@@ -103,7 +103,7 @@ def setup_absolute_positions(self, ptype):
 
 
 class OpenPMDFieldInfo(FieldInfoContainer):
-    """Specifies which fields from the dataset yt should know about.
+    r"""Specifies which fields from the dataset yt should know about.
 
     ``self.known_other_fields`` and ``self.known_particle_fields`` must be populated.
     Entries for both of these lists must be tuples of the form ("name", ("units",
@@ -156,7 +156,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     # This appears to be a vector field of single dimensionality
                     ytname = str("_".join([fname.replace("_", "-")]))
                     parsed = parse_unit_dimension(
-                        np.asarray(field.attrs["unitDimension"], dtype=np.int)
+                        np.asarray(field.attrs["unitDimension"], dtype="int64")
                     )
                     unit = str(YTQuantity(1, parsed).units)
                     aliases = []
@@ -169,7 +169,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     for axis in field.keys():
                         ytname = str("_".join([fname.replace("_", "-"), axis]))
                         parsed = parse_unit_dimension(
-                            np.asarray(field.attrs["unitDimension"], dtype=np.int)
+                            np.asarray(field.attrs["unitDimension"], dtype="int64")
                         )
                         unit = str(YTQuantity(1, parsed).units)
                         aliases = []
@@ -226,7 +226,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
         except (KeyError, TypeError, AttributeError):
             pass
 
-        super(OpenPMDFieldInfo, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
     def setup_fluid_fields(self):
         """Defines which derived mesh fields to create.
@@ -248,4 +248,4 @@ class OpenPMDFieldInfo(FieldInfoContainer):
         setup_absolute_positions(self, ptype)
         setup_kinetic_energy(self, ptype)
         setup_velocity(self, ptype)
-        super(OpenPMDFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)

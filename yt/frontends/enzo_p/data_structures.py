@@ -1,4 +1,3 @@
-import io as io
 import os
 import warnings
 
@@ -17,7 +16,7 @@ from yt.frontends.enzo_p.misc import (
     is_parent,
     nested_dict_get,
 )
-from yt.funcs import ensure_tuple, get_pbar, setdefaultattr
+from yt.funcs import get_pbar, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.cosmology import Cosmology
 from yt.utilities.logger import ytLogger as mylog
@@ -87,14 +86,14 @@ class EnzoPGrid(AMRGridPatch):
     def particle_count(self):
         if self._particle_count is None:
             with h5py.File(self.filename, mode="r") as f:
-                fnstr = "%s/%s" % (
+                fnstr = "{}/{}".format(
                     self.block_name,
                     self.ds.index.io._sep.join(["particle", "%s", "%s"]),
                 )
-                self._particle_count = dict(
-                    (ptype, f.get(fnstr % (ptype, pfield)).size)
+                self._particle_count = {
+                    ptype: f.get(fnstr % (ptype, pfield)).size
                     for ptype, pfield in self.ds.index.io.sample_pfields.items()
-                )
+                }
         return self._particle_count
 
     _total_particles = None
@@ -130,14 +129,14 @@ class EnzoPHierarchy(GridIndex):
         self.directory = os.path.dirname(ds.parameter_filename)
         self.index_filename = ds.parameter_filename
         if os.path.getsize(self.index_filename) == 0:
-            raise IOError(-1, "File empty", self.index_filename)
+            raise OSError(-1, "File empty", self.index_filename)
 
         GridIndex.__init__(self, ds, dataset_type)
         self.dataset.dataset_type = self.dataset_type
 
     def _count_grids(self):
         fblock_size = 32768
-        f = open(self.ds.parameter_filename, "r")
+        f = open(self.ds.parameter_filename)
         f.seek(0, 2)
         file_size = f.tell()
         nblocks = np.ceil(float(file_size) / fblock_size).astype(np.int64)
@@ -157,7 +156,7 @@ class EnzoPHierarchy(GridIndex):
         self.grids = np.empty(self.num_grids, dtype="object")
 
         pbar = get_pbar("Parsing Hierarchy", self.num_grids)
-        f = open(self.ds.parameter_filename, "r")
+        f = open(self.ds.parameter_filename)
         fblock_size = 32768
         f.seek(0, 2)
         file_size = f.tell()
@@ -253,7 +252,7 @@ class EnzoPHierarchy(GridIndex):
         self.max_level = self.grid_levels.max()
 
     def _setup_derived_fields(self):
-        super(EnzoPHierarchy, self)._setup_derived_fields()
+        super()._setup_derived_fields()
         for fname, field in self.ds.field_info.items():
             if not field.particle_type:
                 continue
@@ -263,10 +262,10 @@ class EnzoPHierarchy(GridIndex):
                 continue
 
     def _get_particle_type_counts(self):
-        return dict(
-            (ptype, sum([g.particle_count[ptype] for g in self.grids]))
+        return {
+            ptype: sum([g.particle_count[ptype] for g in self.grids])
             for ptype in self.ds.particle_types_raw
-        )
+        }
 
     def _detect_output_fields(self):
         self.field_list = []
@@ -344,18 +343,18 @@ class EnzoPDataset(Dataset):
         dictionaries.
         """
 
-        f = open(self.parameter_filename, "r")
+        f = open(self.parameter_filename)
         # get dimension from first block name
         b0, fn0 = f.readline().strip().split()
         level0, left0, right0 = get_block_info(b0, min_dim=0)
         root_blocks = get_root_blocks(b0)
         f.close()
         self.dimensionality = left0.size
-        self.periodicity = ensure_tuple(np.ones(self.dimensionality, dtype=bool))
+        self._periodicity = tuple(np.ones(self.dimensionality, dtype=bool))
 
         lcfn = self.parameter_filename[: -len(self._suffix)] + ".libconfig"
         if os.path.exists(lcfn):
-            with io.open(lcfn, "r") as lf:
+            with open(lcfn) as lf:
                 self.parameters = libconf.load(lf)
             cosmo = nested_dict_get(self.parameters, ("Physics", "cosmology"))
             if cosmo is not None:
@@ -367,15 +366,12 @@ class EnzoPDataset(Dataset):
                     "comoving_box_size",
                     "initial_redshift",
                 ]
-                co_dict = dict(
-                    (
-                        attr,
-                        nested_dict_get(
-                            self.parameters, ("Physics", "cosmology", attr)
-                        ),
+                co_dict = {
+                    attr: nested_dict_get(
+                        self.parameters, ("Physics", "cosmology", attr)
                     )
                     for attr in co_pars
-                )
+                }
                 for attr in ["hubble_constant", "omega_matter", "omega_lambda"]:
                     setattr(self, attr, co_dict[f"{attr}_now"])
 
@@ -465,13 +461,12 @@ class EnzoPDataset(Dataset):
         return self.basename[: -len(self._suffix)]
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        fn = args[0]
-        ddir = os.path.dirname(fn)
-        if not fn.endswith(cls._suffix):
+    def _is_valid(cls, filename, *args, **kwargs):
+        ddir = os.path.dirname(filename)
+        if not filename.endswith(cls._suffix):
             return False
         try:
-            with open(fn, "r") as f:
+            with open(filename) as f:
                 block, block_file = f.readline().strip().split()
                 get_block_info(block)
                 if not os.path.exists(os.path.join(ddir, block_file)):

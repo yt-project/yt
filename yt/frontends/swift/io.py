@@ -8,7 +8,7 @@ class IOHandlerSwift(IOHandlerSPH):
     _dataset_type = "swift"
 
     def __init__(self, ds, *args, **kwargs):
-        super(IOHandlerSwift, self).__init__(ds, *args, **kwargs)
+        super().__init__(ds, *args, **kwargs)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -22,7 +22,7 @@ class IOHandlerSwift(IOHandlerSPH):
         # yt has the concept of sub_files, i.e, we break up big files into
         # virtual sub_files to deal with the chunking system
         chunks = list(chunks)
-        sub_files = set([])
+        sub_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 sub_files.update(obj.data_files)
@@ -77,7 +77,7 @@ class IOHandlerSwift(IOHandlerSPH):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        sub_files = set([])
+        sub_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 sub_files.update(obj.data_files)
@@ -120,7 +120,7 @@ class IOHandlerSwift(IOHandlerSPH):
         # defined by the subfile
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
-        npart = dict((f"PartType{i}", v) for i, v in enumerate(pcount))
+        npart = {f"PartType{i}": v for i, v in enumerate(pcount)}
         return npart
 
     def _identify_fields(self, data_file):

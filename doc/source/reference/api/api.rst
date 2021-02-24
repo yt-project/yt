@@ -721,18 +721,16 @@ Function List
 
 .. autosummary::
 
-   ~yt.convenience.load
    ~yt.frontends.ytdata.utilities.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
-   ~yt.funcs.deprecate
-   ~yt.funcs.ensure_list
    ~yt.funcs.enable_plugins
    ~yt.funcs.get_pbar
    ~yt.funcs.humanize_time
    ~yt.funcs.insert_ipython
    ~yt.funcs.is_root
-   ~yt.funcs.iterable
+   ~yt.funcs.is_sequence
+   ~yt.funcs.iter_fields
    ~yt.funcs.just_one
    ~yt.funcs.only_on_root
    ~yt.funcs.paste_traceback

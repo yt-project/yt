@@ -2,8 +2,9 @@ import builtins
 
 import numpy as np
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.funcs import get_brewer_cmap, get_image_suffix, issue_deprecation_warning, mylog
+from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
 from yt.units.yt_array import YTQuantity
 from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -411,7 +412,9 @@ def write_projection(
             )
         issue_deprecation_warning(
             "The `limits` keyword argument is deprecated and will "
-            "be removed in a future version of yt. Use `vmin` and `vmax` instead."
+            "be removed in a future version of yt. Use `vmin` and `vmax` instead.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         vmin, vmax = limits
 
@@ -426,7 +429,12 @@ def write_projection(
     fig = matplotlib.figure.Figure(figsize=figsize)
     ax = fig.add_subplot(111)
 
-    cax = ax.imshow(data.to_ndarray(), norm=norm, extent=extent, cmap=cmap_name,)
+    cax = ax.imshow(
+        data.to_ndarray(),
+        norm=norm,
+        extent=extent,
+        cmap=cmap_name,
+    )
 
     if title:
         ax.set_title(title)

@@ -65,7 +65,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         field_dict = {}
         for key, val in self._handle.attrs.items():
             if key.startswith("component_"):
-                comp_number = int(re.match("component_(\d+)", key).groups()[0])
+                comp_number = int(re.match(r"component_(\d+)", key).groups()[0])
                 field_dict[val.decode("utf-8")] = comp_number
         self._field_dict = field_dict
         return self._field_dict
@@ -79,7 +79,9 @@ class IOHandlerChomboHDF5(BaseIOHandler):
         field_dict = {}
         for key, val in self._handle.attrs.items():
             if key.startswith("particle_"):
-                comp_number = int(re.match("particle_component_(\d+)", key).groups()[0])
+                comp_number = int(
+                    re.match(r"particle_component_(\d+)", key).groups()[0]
+                )
                 field_dict[val.decode("ascii")] = comp_number
         self._particle_field_index = field_dict
         return self._particle_field_index
@@ -115,7 +117,7 @@ class IOHandlerChomboHDF5(BaseIOHandler):
                 rv[ftype, fname] = self._read_data(grid, fname)
             return rv
         if size is None:
-            size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
+            size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
         for field in fields:
             ftype, fname = field
             fsize = size
@@ -194,14 +196,14 @@ class IOHandlerChomboHDF5(BaseIOHandler):
 
 
 def parse_orion_sinks(fn):
-    """
+    r"""
     Orion sink particles are stored in text files. This function
     is for figuring what particle fields are present based on the
     number of entries per line in the \*.sink file.
     """
 
     # Figure out the format of the particle file
-    with open(fn, "r") as f:
+    with open(fn) as f:
         lines = f.readlines()
 
     try:
@@ -285,7 +287,7 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
 
         def read(line, field):
             entry = line.strip().split(" ")[self.particle_field_index[field]]
-            return np.float(entry)
+            return float(entry)
 
         try:
             lines = self._cached_lines
@@ -295,7 +297,7 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
             return np.array(particles)
         except AttributeError:
             fn = grid.ds.fullplotdir[:-4] + "sink"
-            with open(fn, "r") as f:
+            with open(fn) as f:
                 lines = f.readlines()
                 self._cached_lines = lines
                 for num in grid._particle_line_numbers:

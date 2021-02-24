@@ -21,7 +21,7 @@ class IOHandlerBoxlib(BaseIOHandler):
     _dataset_type = "boxlib_native"
 
     def __init__(self, ds, *args, **kwargs):
-        super(IOHandlerBoxlib, self).__init__(ds)
+        super().__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
@@ -125,8 +125,7 @@ class IOHandlerBoxlib(BaseIOHandler):
         return data
 
     def _read_particle_coords(self, chunks, ptf):
-        for rv in self._read_particle_fields(chunks, ptf, None):
-            yield rv
+        yield from self._read_particle_fields(chunks, ptf, None)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         for chunk in chunks:  # These should be organized by grid filename
@@ -252,7 +251,7 @@ class IOHandlerOrion(IOHandlerBoxlib):
 
         def read(line, field):
             entry = line.strip().split(" ")[self.particle_field_index[field]]
-            return np.float(entry)
+            return float(entry)
 
         try:
             lines = self._cached_lines
@@ -262,7 +261,7 @@ class IOHandlerOrion(IOHandlerBoxlib):
             return np.array(particles)
         except AttributeError:
             fn = self.particle_filename
-            with open(fn, "r") as f:
+            with open(fn) as f:
                 lines = f.readlines()
                 self._cached_lines = lines
                 for num in grid._particle_line_numbers:

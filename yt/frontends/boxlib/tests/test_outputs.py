@@ -1,6 +1,7 @@
 import numpy as np
 
 from yt.frontends.boxlib.api import (
+    AMReXDataset,
     CastroDataset,
     MaestroDataset,
     NyxDataset,
@@ -302,6 +303,12 @@ def test_WarpXDataset():
 @requires_ds(laser)
 def test_WarpXDataset_2():
     assert isinstance(data_dir_load(laser), WarpXDataset)
+
+
+@requires_file("plt.Cavity00010")
+def test_AMReXDataset():
+    ds = data_dir_load("plt.Cavity00010", kwargs={"cparam_filename": "inputs"})
+    assert isinstance(ds, AMReXDataset)
 
 
 @requires_file(rt)

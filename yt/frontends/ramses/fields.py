@@ -3,12 +3,11 @@ import os
 import numpy as np
 
 from yt import units
-from yt.fields.field_detector import FieldDetector
 from yt.fields.field_info_container import FieldInfoContainer
 from yt.frontends.ramses.io import convert_ramses_ages
-from yt.funcs import issue_deprecation_warning, mylog
 from yt.utilities.cython_fortran_utils import FortranFile
 from yt.utilities.linear_interpolators import BilinearFieldInterpolator
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.physical_constants import (
     boltzmann_constant_cgs,
     mass_hydrogen_cgs,
@@ -30,8 +29,8 @@ cooling_function_prime_units = " erg * cm**3 /s/K"
 flux_unit = "1 / code_length**2 / code_time"
 number_density_unit = "1 / code_length**3"
 
-known_species_masses = dict(
-    (sp, mh * v)
+known_species_masses = {
+    sp: mh * v
     for sp, v in [
         ("HI", 1.0),
         ("HII", 1.0),
@@ -46,7 +45,7 @@ known_species_masses = dict(
         ("DII", 2.0),
         ("HDI", 3.0),
     ]
-)
+}
 
 _cool_axes = ("lognH", "logT")  # , "logTeq")
 _cool_arrs = (
@@ -141,31 +140,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
     )
 
     def setup_particle_fields(self, ptype):
-        super(RAMSESFieldInfo, self).setup_particle_fields(ptype)
-
-        def particle_age(field, data):
-            msg = (
-                "The RAMSES particle_age field has been deprecated since "
-                "it did not actually represent particle ages in all "
-                "cases. To get the time when a particle was formed use "
-                "the particle_birth_time field instead. To get the "
-                "age of a star particle, use the star_age field"
-            )
-            if not isinstance(data, FieldDetector):
-                issue_deprecation_warning(msg, stacklevel=2)
-            if data.ds.cosmological_simulation:
-                conformal_age = data[ptype, "conformal_birth_time"]
-                ret = convert_ramses_ages(data.ds, conformal_age)
-                return data.ds.arr(ret, "code_time")
-            else:
-                return data[ptype, "particle_birth_time"]
-
-        self.add_field(
-            (ptype, "particle_age"),
-            sampling_type="particle",
-            function=particle_age,
-            units=self.ds.unit_system["time"],
-        )
+        super().setup_particle_fields(ptype)
 
         def star_age(field, data):
             if data.ds.cosmological_simulation:
@@ -312,9 +287,9 @@ class RAMSESFieldInfo(FieldInfoContainer):
 
             return _photon_flux
 
-        flux_unit = str(
+        flux_unit = (
             1 / self.ds.unit_system["time"] / self.ds.unit_system["length"] ** 2
-        )
+        ).units
         for key in "xyz":
             for igroup in range(ngroups):
                 self.add_field(

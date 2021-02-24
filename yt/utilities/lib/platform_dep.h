@@ -60,5 +60,3 @@ double erf(double x)
 #include "alloca.h"
 #include <math.h>
 #endif
-
-

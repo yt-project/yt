@@ -97,7 +97,7 @@ npy_float64 trilinear_interpolate(int ds[3], int ci[3], npy_float64 dp[3],
     npy_float64 dm[3], vz[4];
   //dp is the distance to the plane.  dm is val, dp = 1-val
     for(i=0;i<3;i++)dm[i] = (1.0 - dp[i]);
-    
+
   //First interpolate in z
     vz[0] = dm[2]*VINDEX(0,0,0) + dp[2]*VINDEX(0,0,1);
     vz[1] = dm[2]*VINDEX(0,1,0) + dp[2]*VINDEX(0,1,1);
@@ -121,7 +121,7 @@ void eval_gradient(int ds[3], npy_float64 dp[3],
 
     int i;
     npy_float64 denom, plus, minus, backup, normval;
-    
+
     normval = 0.0;
     for (i = 0; i < 3; i++) {
       backup = dp[i];

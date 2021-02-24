@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 #
 # yt documentation build configuration file, created by
 # sphinx-quickstart on Tue Jan 11 09:46:53 2011.
@@ -11,9 +10,11 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import sys
-import os
 import glob
+import os
+import sys
+
+import sphinx_bootstrap_theme
 
 on_rtd = os.environ.get("READTHEDOCS", None) == "True"
 
@@ -46,8 +47,8 @@ if not on_rtd:
     extensions.append("pythonscript_sphinxext")
 
 try:
-    import RunNotebook
-    import nbconvert
+    import nbconvert  # NOQA: F401
+    import RunNotebook  # NOQA: F401
 
     if not on_rtd:
         extensions.append("RunNotebook.notebook_sphinxext")
@@ -119,8 +120,6 @@ pygments_style = "sphinx"
 
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
-import sphinx_bootstrap_theme
-
 html_theme = "bootstrap"
 html_theme_path = sphinx_bootstrap_theme.get_html_theme_path()
 
@@ -255,7 +254,7 @@ intersphinx_mapping = {
     "https://docs.python.org/3/": None,
     "https://ipython.readthedocs.io/en/stable/": None,
     "https://docs.scipy.org/doc/numpy/": None,
-    "https://matplotlib.org/": None,
+    "https://matplotlib.org/stable/": None,
     "https://docs.astropy.org/en/stable": None,
     "https://pandas.pydata.org/pandas-docs/stable": None,
     "trident": ("https://trident.readthedocs.io/en/latest/", None),

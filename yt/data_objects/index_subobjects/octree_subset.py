@@ -5,10 +5,10 @@ import numpy as np
 
 import yt.geometry.particle_deposit as particle_deposit
 import yt.geometry.particle_smooth as particle_smooth
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
 )
-from yt.funcs import issue_deprecation_warning, mylog
 from yt.geometry.particle_oct_container import ParticleOctreeContainer
 from yt.units.dimensions import length
 from yt.units.yt_array import YTArray
@@ -18,6 +18,7 @@ from yt.utilities.exceptions import (
     YTParticleDepositionNotImplemented,
 )
 from yt.utilities.lib.geometry_utils import compute_morton
+from yt.utilities.logger import ytLogger as mylog
 
 
 def cell_count_cache(func):
@@ -45,7 +46,7 @@ class OctreeSubset(YTSelectionContainer):
     def __init__(
         self, base_region, domain, ds, over_refine_factor=1, num_ghost_zones=0
     ):
-        super(OctreeSubset, self).__init__(ds, None)
+        super().__init__(ds, None)
         self._num_zones = 1 << (over_refine_factor)
         self._num_ghost_zones = num_ghost_zones
         self._oref = over_refine_factor
@@ -60,7 +61,7 @@ class OctreeSubset(YTSelectionContainer):
         self.base_selector = base_region.selector
 
     def __getitem__(self, key):
-        tr = super(OctreeSubset, self).__getitem__(key)
+        tr = super().__getitem__(key)
         try:
             fields = self._determine_fields(key)
         except YTFieldTypeNotFound:
@@ -531,7 +532,7 @@ class OctreeSubset(YTSelectionContainer):
                 "get_vertex_centered_data() requires list of fields, rather than "
                 "a single field as an argument."
             )
-            issue_deprecation_warning(message)
+            issue_deprecation_warning(message, since="4.0.0", removal="4.1.0")
             fields = [fields]
 
         # Make sure the field list has only unique entries

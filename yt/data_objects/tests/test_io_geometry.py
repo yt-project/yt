@@ -24,7 +24,7 @@ def test_preserve_geometric_properties():
         assert ds1.geometry == ds2.geometry == geom
 
         expected = set(ds1.coordinates.axis_order)
-        actual = set([fname for ftype, fname in dfl])
+        actual = {fname for ftype, fname in dfl}
         assert expected.difference(actual) == set()
 
 

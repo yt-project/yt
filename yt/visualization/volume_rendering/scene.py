@@ -77,7 +77,7 @@ class Scene:
 
     def __init__(self):
         r"""Create a new Scene instance"""
-        super(Scene, self).__init__()
+        super().__init__()
         self.sources = OrderedDict()
         self._last_render = None
         # A non-public attribute used to get around the fact that we can't

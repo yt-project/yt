@@ -1,11 +1,12 @@
 import numpy as np
+from more_itertools import always_iterable
 
 from yt.data_objects.selection_objects.data_selection_objects import (
     YTSelectionContainer,
     YTSelectionContainer3D,
 )
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_list, validate_iterable, validate_object
+from yt.funcs import iter_fields, validate_object, validate_sequence
 from yt.geometry.selection_routines import points_in_cells
 from yt.utilities.exceptions import YTIllDefinedCutRegion
 from yt.utilities.on_demand_imports import _scipy
@@ -37,6 +38,7 @@ class YTCutRegion(YTSelectionContainer3D):
 
     _type_name = "cut_region"
     _con_args = ("base_object", "conditionals")
+    _derived_quantity_chunking = "all"
 
     def __init__(
         self,
@@ -50,20 +52,14 @@ class YTCutRegion(YTSelectionContainer3D):
         if locals is None:
             locals = {}
         validate_object(data_source, YTSelectionContainer)
-        validate_iterable(conditionals)
+        validate_sequence(conditionals)
         for condition in conditionals:
             validate_object(condition, str)
         validate_object(ds, Dataset)
         validate_object(field_parameters, dict)
         validate_object(base_object, YTSelectionContainer)
-        if base_object is not None:
-            # passing base_object explicitly has been deprecated,
-            # but we handle it here for backward compatibility
-            if data_source is not None:
-                raise RuntimeError("Cannot use both base_object and data_source")
-            data_source = base_object
 
-        self.conditionals = ensure_list(conditionals)
+        self.conditionals = list(always_iterable(conditionals))
         if isinstance(data_source, YTCutRegion):
             # If the source is also a cut region, add its conditionals
             # and set the source to be its source.
@@ -71,7 +67,7 @@ class YTCutRegion(YTSelectionContainer3D):
             self.conditionals = data_source.conditionals + self.conditionals
             data_source = data_source.base_object
 
-        super(YTCutRegion, self).__init__(
+        super().__init__(
             data_source.center, ds, field_parameters, data_source=data_source
         )
         self.base_object = data_source
@@ -90,7 +86,7 @@ class YTCutRegion(YTSelectionContainer3D):
                     yield self
 
     def get_data(self, fields=None):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         self.base_object.get_data(fields)
         ind = self._cond_ind
         for field in fields:
@@ -165,11 +161,14 @@ class YTCutRegion(YTSelectionContainer3D):
             ],
             axis=1,
         ).value
-        levels = self[("index", "grid_level")].astype("int32").value
-        levelmin = levels.min()
-        levelmax = levels.max()
 
         mask = np.zeros(ppos.shape[0], dtype=bool)
+        levels = self[("index", "grid_level")].astype("int32").value
+        if levels.size == 0:
+            return mask
+
+        levelmin = levels.min()
+        levelmax = levels.max()
 
         for lvl in range(levelmax, levelmin - 1, -1):
             # Filter out cells not in the current level

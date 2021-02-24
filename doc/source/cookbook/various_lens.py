@@ -1,6 +1,7 @@
+import numpy as np
+
 import yt
 from yt.visualization.volume_rendering.api import Scene, create_volume_source
-import numpy as np
 
 field = ("gas", "density")
 

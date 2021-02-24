@@ -2,8 +2,8 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
-import mock
 import numpy as np
 
 from yt.data_objects.particle_filters import add_particle_filter
@@ -30,7 +30,7 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 #  override some of the plotwindow ATTR_ARGS

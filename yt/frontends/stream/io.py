@@ -13,7 +13,7 @@ class IOHandlerStream(BaseIOHandler):
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
         self.field_units = ds.stream_handler.field_units
-        super(IOHandlerStream, self).__init__(ds)
+        super().__init__(ds)
 
     def _read_data_set(self, grid, field):
         # This is where we implement processor-locking
@@ -94,7 +94,7 @@ class StreamParticleIOHandler(BaseIOHandler):
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
-        super(StreamParticleIOHandler, self).__init__(ds)
+        super().__init__(ds)
 
     def _read_particle_coords(self, chunks, ptf):
         for data_file in sorted(
@@ -117,7 +117,7 @@ class StreamParticleIOHandler(BaseIOHandler):
             return f[ptype, "smoothing_length"]
 
     def _get_data_files(self, chunks):
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -212,7 +212,7 @@ class IOHandlerStreamHexahedral(BaseIOHandler):
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
-        super(IOHandlerStreamHexahedral, self).__init__(ds)
+        super().__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)
@@ -247,7 +247,7 @@ class IOHandlerStreamOctree(BaseIOHandler):
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
-        super(IOHandlerStreamOctree, self).__init__(ds)
+        super().__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         rv = {}
@@ -271,7 +271,7 @@ class IOHandlerStreamUnstructured(BaseIOHandler):
 
     def __init__(self, ds):
         self.fields = ds.stream_handler.fields
-        super(IOHandlerStreamUnstructured, self).__init__(ds)
+        super().__init__(ds)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         chunks = list(chunks)

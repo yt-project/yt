@@ -1,5 +1,4 @@
 import glob
-import inspect
 import os
 import re
 import warnings
@@ -61,14 +60,14 @@ class BoxlibGrid(AMRGridPatch):
     _offset = -1
 
     def __init__(self, grid_id, offset, filename=None, index=None):
-        super(BoxlibGrid, self).__init__(grid_id, filename, index)
+        super().__init__(grid_id, filename, index)
         self._base_offset = offset
         self._parent_id = []
         self._children_ids = []
         self._pdata = {}
 
     def _prepare_grid(self):
-        super(BoxlibGrid, self)._prepare_grid()
+        super()._prepare_grid()
         my_ind = self.id - self._id_offset
         self.start_index = self.index.grid_start_index[my_ind]
 
@@ -134,7 +133,7 @@ class BoxLibParticleHeader:
 
         self.particle_type = directory_name
         header_filename = os.path.join(ds.output_dir, directory_name, "Header")
-        with open(header_filename, "r") as f:
+        with open(header_filename) as f:
             self.version_string = f.readline().strip()
 
             particle_real_type = self.version_string.split("_")[-1]
@@ -246,7 +245,7 @@ class AMReXParticleHeader:
         header_filename = os.path.join(ds.output_dir, directory_name, "Header")
         self.real_component_names = []
         self.int_component_names = []
-        with open(header_filename, "r") as f:
+        with open(header_filename) as f:
             self.version_string = f.readline().strip()
 
             particle_real_type = self.version_string.split("_")[-1]
@@ -358,7 +357,7 @@ class BoxlibHierarchy(GridIndex):
         read the global header file for an Boxlib plotfile output.
         """
         self.max_level = self.dataset._max_level
-        header_file = open(self.header_filename, "r")
+        header_file = open(self.header_filename)
 
         self.dimensionality = self.dataset.dimensionality
         _our_dim_finder = _dim_finder[self.dimensionality - 1]
@@ -540,7 +539,7 @@ class BoxlibHierarchy(GridIndex):
         # We can get everything from the Header file, but note that we're
         # duplicating some work done elsewhere.  In a future where we don't
         # pre-allocate grid arrays, this becomes unnecessary.
-        header_file = open(self.header_filename, "r")
+        header_file = open(self.header_filename)
         header_file.seek(self.dataset._header_mesh_start)
         # Skip over the level dxs, geometry and the zero:
         [next(header_file) for i in range(self.dataset._max_level + 3)]
@@ -555,13 +554,11 @@ class BoxlibHierarchy(GridIndex):
             self.num_grids += int(line.split()[1])
 
     def _initialize_grid_arrays(self):
-        super(BoxlibHierarchy, self)._initialize_grid_arrays()
+        super()._initialize_grid_arrays()
         self.grid_start_index = np.zeros((self.num_grids, 3), "int64")
 
     def _initialize_state_variables(self):
-        """override to not re-initialize num_grids in AMRHierarchy.__init__
-
-        """
+        """override to not re-initialize num_grids in AMRHierarchy.__init__"""
         self._parallel_locking = False
         self._data_file = None
         self._data_mode = None
@@ -569,7 +566,7 @@ class BoxlibHierarchy(GridIndex):
     def _detect_output_fields(self):
         # This is all done in _parse_header_file
         self.field_list = [("boxlib", f) for f in self.dataset._field_list]
-        self.field_indexes = dict((f[1], i) for i, f in enumerate(self.field_list))
+        self.field_indexes = {f[1]: i for i, f in enumerate(self.field_list)}
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
         self.field_order = [f for f in self.field_list]
@@ -579,7 +576,7 @@ class BoxlibHierarchy(GridIndex):
 
     def _determine_particle_output_type(self, directory_name):
         header_filename = self.ds.output_dir + "/" + directory_name + "/Header"
-        with open(header_filename, "r") as f:
+        with open(header_filename) as f:
             version_string = f.readline().strip()
             if version_string.startswith("Version_Two"):
                 return AMReXParticleHeader
@@ -634,13 +631,13 @@ class BoxlibDataset(Dataset):
     _index_class = BoxlibHierarchy
     _field_info_class = BoxlibFieldInfo
     _output_prefix = None
-
-    periodicity = (False, False, False)
+    _default_cparam_filename = "job_info"
+    _periodicity = (False, False, False)
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",  # todo: harmonise this default value with docstring
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -656,6 +653,8 @@ class BoxlibDataset(Dataset):
         """
         self.fluid_types += ("boxlib",)
         self.output_dir = os.path.abspath(os.path.expanduser(output_dir))
+
+        cparam_filename = cparam_filename or self.__class__._default_cparam_filename
         self.cparam_filename = self._lookup_cparam_filepath(
             output_dir, cparam_filename=cparam_filename
         )
@@ -688,20 +687,32 @@ class BoxlibDataset(Dataset):
         return None
 
     @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        # fill our args
-        output_dir = args[0]
+    def _is_valid(cls, filename, *args, cparam_filename=None, **kwargs):
+        output_dir = filename
         header_filename = os.path.join(output_dir, "Header")
         # boxlib datasets are always directories, and
         # We *know* it's not boxlib if Header doesn't exist.
-        return os.path.exists(header_filename)
+        if not os.path.exists(header_filename):
+            return False
+
+        if cls is BoxlibDataset:
+            # Stop checks here for the boxlib base class.
+            # Further checks are performed on subclasses.
+            return True
+
+        cparam_filename = cparam_filename or cls._default_cparam_filename
+        cparam_filepath = cls._lookup_cparam_filepath(output_dir, cparam_filename)
+
+        if cparam_filepath is None:
+            return False
+
+        lines = [line.lower() for line in open(cparam_filepath).readlines()]
+        return any(cls._subtype_keyword in line for line in lines)
 
     @classmethod
-    def _lookup_cparam_filepath(cls, *args, **kwargs):
-        output_dir = args[0]
-        iargs = inspect.getcallargs(cls.__init__, args, kwargs)
+    def _lookup_cparam_filepath(cls, output_dir, cparam_filename):
         lookup_table = [
-            os.path.abspath(os.path.join(p, iargs["cparam_filename"]))
+            os.path.abspath(os.path.join(p, cparam_filename))
             for p in (output_dir, os.path.dirname(output_dir))
         ]
         found = [os.path.exists(file) for file in lookup_table]
@@ -710,21 +721,6 @@ class BoxlibDataset(Dataset):
             return None
 
         return lookup_table[found.index(True)]
-
-    @classmethod
-    def _is_valid_subtype(cls, *args, **kwargs):
-        # this is used by derived classes
-        output_dir = args[0]
-
-        if not BoxlibDataset._is_valid(output_dir):
-            return False
-
-        cparam_filepath = cls._lookup_cparam_filepath(*args, **kwargs)
-        if cparam_filepath is None:
-            return False
-
-        lines = [line.lower() for line in open(cparam_filepath).readlines()]
-        return any(cls._subtype_keyword in line for line in lines)
 
     def _parse_parameter_file(self):
         """
@@ -766,14 +762,14 @@ class BoxlibDataset(Dataset):
                 assert len(vals) == self.dimensionality
                 periodicity = [False, False, False]  # default to non periodic
                 periodicity[: self.dimensionality] = vals  # fill in ndim parsed values
-                self.periodicity = tuple(periodicity)
+                self._periodicity = tuple(periodicity)
             elif param == "castro.use_comoving":
                 vals = self.cosmological_simulation = int(vals)
             else:
                 try:
                     vals = _guess_pcast(vals)
-                except IndexError:
-                    # hitting an empty string
+                except (IndexError, ValueError):
+                    # hitting an empty string or a comment
                     vals = None
             self.parameters[param] = vals
 
@@ -945,7 +941,7 @@ class OrionHierarchy(BoxlibHierarchy):
     def _detect_output_fields(self):
         # This is all done in _parse_header_file
         self.field_list = [("boxlib", f) for f in self.dataset._field_list]
-        self.field_indexes = dict((f[1], i) for i, f in enumerate(self.field_list))
+        self.field_indexes = {f[1]: i for i, f in enumerate(self.field_list)}
         # There are times when field_list may change.  We copy it here to
         # avoid that possibility.
         self.field_order = [f for f in self.field_list]
@@ -978,12 +974,10 @@ class OrionHierarchy(BoxlibHierarchy):
             self._read_particle_file(self.particle_filename)
 
     def _read_particle_file(self, fn):
-        """actually reads the orion particle data file itself.
-
-        """
+        """actually reads the orion particle data file itself."""
         if not os.path.exists(fn):
             return
-        with open(fn, "r") as f:
+        with open(fn) as f:
             lines = f.readlines()
             self.num_stars = int(lines[0].strip()[0])
             for num, line in enumerate(lines[1:]):
@@ -1028,11 +1022,12 @@ class OrionDataset(BoxlibDataset):
 
     _index_class = OrionHierarchy
     _subtype_keyword = "hyp."
+    _default_cparam_filename = "inputs"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="inputs",
+        cparam_filename=None,
         fparam_filename="probin",
         dataset_type="orion_native",
         storage_filename=None,
@@ -1050,14 +1045,10 @@ class OrionDataset(BoxlibDataset):
             unit_system=unit_system,
         )
 
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
-
 
 class CastroHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type="castro_native"):
-        super(CastroHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
         if "particles" in self.ds.parameters:
 
@@ -1083,11 +1074,12 @@ class CastroDataset(BoxlibDataset):
     _index_class = CastroHierarchy
     _field_info_class = CastroFieldInfo
     _subtype_keyword = "castro"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1095,7 +1087,7 @@ class CastroDataset(BoxlibDataset):
         unit_system="cgs",
     ):
 
-        super(CastroDataset, self).__init__(
+        super().__init__(
             output_dir,
             cparam_filename,
             fparam_filename,
@@ -1105,15 +1097,11 @@ class CastroDataset(BoxlibDataset):
             unit_system,
         )
 
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
-
     def _parse_parameter_file(self):
-        super(CastroDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
         line = ""
-        with open(jobinfo_filename, "r") as f:
+        with open(jobinfo_filename) as f:
             while not line.startswith(" Inputs File Parameters"):
                 # boundary condition info starts with -x:, etc.
                 bcs = ["-x:", "+x:", "-y:", "+y:", "-z:", "+z:"]
@@ -1151,7 +1139,7 @@ class CastroDataset(BoxlibDataset):
             except KeyError:
                 break
 
-        self.periodicity = tuple(periodicity)
+        self._periodicity = tuple(periodicity)
 
         if os.path.isdir(os.path.join(self.output_dir, "Tracer")):
             # we have particles
@@ -1164,11 +1152,12 @@ class MaestroDataset(BoxlibDataset):
 
     _field_info_class = MaestroFieldInfo
     _subtype_keyword = "maestro"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1176,7 +1165,7 @@ class MaestroDataset(BoxlibDataset):
         unit_system="cgs",
     ):
 
-        super(MaestroDataset, self).__init__(
+        super().__init__(
             output_dir,
             cparam_filename,
             fparam_filename,
@@ -1186,15 +1175,11 @@ class MaestroDataset(BoxlibDataset):
             unit_system,
         )
 
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
-
     def _parse_parameter_file(self):
-        super(MaestroDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
 
-        with open(jobinfo_filename, "r") as f:
+        with open(jobinfo_filename) as f:
             for line in f:
                 # get the code git hashes
                 if "git hash" in line:
@@ -1202,7 +1187,7 @@ class MaestroDataset(BoxlibDataset):
                     fields = line.split(":")
                     self.parameters[fields[0]] = fields[1].strip()
 
-        with open(jobinfo_filename, "r") as f:
+        with open(jobinfo_filename) as f:
             # get the runtime parameters
             for line in f:
                 try:
@@ -1226,12 +1211,12 @@ class MaestroDataset(BoxlibDataset):
             except KeyError:
                 pass
 
-        self.periodicity = tuple(periodicity)
+        self._periodicity = tuple(periodicity)
 
 
 class NyxHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type="nyx_native"):
-        super(NyxHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
         if "particles" in self.ds.parameters:
             # extra beyond the base real fields that all Boxlib
@@ -1257,11 +1242,12 @@ class NyxDataset(BoxlibDataset):
     _index_class = NyxHierarchy
     _field_info_class = NyxFieldInfo
     _subtype_keyword = "nyx"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1269,7 +1255,7 @@ class NyxDataset(BoxlibDataset):
         unit_system="cgs",
     ):
 
-        super(NyxDataset, self).__init__(
+        super().__init__(
             output_dir,
             cparam_filename,
             fparam_filename,
@@ -1279,16 +1265,12 @@ class NyxDataset(BoxlibDataset):
             unit_system,
         )
 
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
-
     def _parse_parameter_file(self):
-        super(NyxDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
 
         jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
 
-        with open(jobinfo_filename, "r") as f:
+        with open(jobinfo_filename) as f:
             for line in f:
                 # get the code git hashes
                 if "git hash" in line:
@@ -1396,18 +1378,16 @@ def _read_header(raw_file, field):
 
     for level_file in level_files:
         header_file = level_file + "/" + field + "_H"
-        with open(header_file, "r") as f:
+        with open(header_file) as f:
 
             f.readline()  # version
             f.readline()  # how
             f.readline()  # ncomp
-            nghost_lines = f.readline().strip().split()
-            try:
-                ng = int(nghost_lines[0])
-                nghost = np.array([ng, ng, ng])
-            except ValueError:
-                nghosts = nghost_lines[0][1:-1].split(",")
-                nghost = np.array([int(ng) for ng in nghosts])
+
+            # nghost_line will be parsed below after the number of dimensions
+            # is determined when the boxes are read in
+            nghost_line = f.readline().strip().split()
+
             f.readline()  # num boxes
 
             # read boxes
@@ -1418,6 +1398,16 @@ def _read_header(raw_file, field):
                     break
                 lo_corner, hi_corner, node_type = _line_to_numpy_arrays(clean_line)
                 boxes.append((lo_corner, hi_corner, node_type))
+
+            try:
+                # nghost_line[0] is a single number
+                ng = int(nghost_line[0])
+                ndims = len(lo_corner)
+                nghost = np.array(ndims * [ng])
+            except ValueError:
+                # nghost_line[0] is (#,#,#)
+                nghost_list = nghost_line[0].strip("()").split(",")
+                nghost = np.array(nghost_list, dtype="int64")
 
             # read the file and offset position for the corresponding box
             file_names = []
@@ -1438,7 +1428,7 @@ def _read_header(raw_file, field):
 class WarpXHeader:
     def __init__(self, header_fn):
         self.data = {}
-        with open(header_fn, "r") as f:
+        with open(header_fn) as f:
             self.data["Checkpoint_version"] = int(f.readline().strip().split()[-1])
 
             self.data["num_levels"] = int(f.readline().strip().split()[-1])
@@ -1484,7 +1474,7 @@ class WarpXHeader:
 
 class WarpXHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type="boxlib_native"):
-        super(WarpXHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
         is_checkpoint = True
         for ptype in self.ds.particle_types:
@@ -1502,7 +1492,7 @@ class WarpXHierarchy(BoxlibHierarchy):
                 self.parameters[mass_name] = val[1]
 
     def _detect_output_fields(self):
-        super(WarpXHierarchy, self)._detect_output_fields()
+        super()._detect_output_fields()
 
         # now detect the optional, non-cell-centered fields
         self.raw_file = self.ds.output_dir + "/raw_fields/"
@@ -1534,11 +1524,12 @@ class WarpXDataset(BoxlibDataset):
     _index_class = WarpXHierarchy
     _field_info_class = WarpXFieldInfo
     _subtype_keyword = "warpx"
+    _default_cparam_filename = "warpx_job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="warpx_job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1550,7 +1541,7 @@ class WarpXDataset(BoxlibDataset):
         self.default_field = ("mesh", "density")
         self.fluid_types = ("mesh", "index", "raw")
 
-        super(WarpXDataset, self).__init__(
+        super().__init__(
             output_dir,
             cparam_filename,
             fparam_filename,
@@ -1560,14 +1551,10 @@ class WarpXDataset(BoxlibDataset):
             unit_system,
         )
 
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return cls._is_valid_subtype(*args, **kwargs)
-
     def _parse_parameter_file(self):
-        super(WarpXDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         jobinfo_filename = os.path.join(self.output_dir, self.cparam_filename)
-        with open(jobinfo_filename, "r") as f:
+        with open(jobinfo_filename) as f:
             for line in f.readlines():
                 if _skip_line(line):
                     continue
@@ -1586,7 +1573,7 @@ class WarpXDataset(BoxlibDataset):
             periodicity[: len(is_periodic)] = [p == "1" for p in is_periodic]
         except KeyError:
             pass
-        self.periodicity = tuple(periodicity)
+        self._periodicity = tuple(periodicity)
 
         particle_types = glob.glob(self.output_dir + "/*/Header")
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
@@ -1608,7 +1595,7 @@ class WarpXDataset(BoxlibDataset):
 
 class AMReXHierarchy(BoxlibHierarchy):
     def __init__(self, ds, dataset_type="boxlib_native"):
-        super(AMReXHierarchy, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
         if "particles" in self.ds.parameters:
             is_checkpoint = True
@@ -1619,11 +1606,13 @@ class AMReXHierarchy(BoxlibHierarchy):
 class AMReXDataset(BoxlibDataset):
 
     _index_class = AMReXHierarchy
+    _subtype_keyword = "amrex"
+    _default_cparam_filename = "job_info"
 
     def __init__(
         self,
         output_dir,
-        cparam_filename="job_info",
+        cparam_filename=None,
         fparam_filename=None,
         dataset_type="boxlib_native",
         storage_filename=None,
@@ -1631,7 +1620,7 @@ class AMReXDataset(BoxlibDataset):
         unit_system="cgs",
     ):
 
-        super(AMReXDataset, self).__init__(
+        super().__init__(
             output_dir,
             cparam_filename,
             fparam_filename,
@@ -1642,14 +1631,10 @@ class AMReXDataset(BoxlibDataset):
         )
 
     def _parse_parameter_file(self):
-        super(AMReXDataset, self)._parse_parameter_file()
+        super()._parse_parameter_file()
         particle_types = glob.glob(self.output_dir + "/*/Header")
         particle_types = [cpt.split(os.sep)[-2] for cpt in particle_types]
         if len(particle_types) > 0:
             self.parameters["particles"] = 1
             self.particle_types = tuple(particle_types)
             self.particle_types_raw = self.particle_types
-
-    @classmethod
-    def _is_valid(cls, *args, **kwargs):
-        return False

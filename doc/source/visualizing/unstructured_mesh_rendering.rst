@@ -4,12 +4,12 @@ Unstructured Mesh Rendering
 ===========================
 
 Beginning with version 3.3, yt has the ability to volume render unstructured
-mesh data like that created by finite element calculations. No additional 
-dependencies are required in order to use this feature. However, it is 
-possible to speed up the rendering operation by installing with 
+mesh data like that created by finite element calculations. No additional
+dependencies are required in order to use this feature. However, it is
+possible to speed up the rendering operation by installing with
 `Embree <https://www.embree.org>`_ support. Embree is a fast ray-tracing
 library from Intel that can substantially speed up the mesh rendering operation
-on large datasets. You can read about how to install yt with Embree support 
+on large datasets. You can read about how to install yt with Embree support
 below, or you can skip to the examples.
 
 Optional Embree Installation
@@ -22,7 +22,7 @@ To install yt with Embree support, you can install yt from source using the
 
 .. code-block:: bash
 
-  wget https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
+  wget https://raw.githubusercontent.com/yt-project/yt/main/doc/install_script.sh
 
 and then run like so:
 
@@ -31,8 +31,8 @@ and then run like so:
   bash install_script.sh
 
 Alternatively, you can install the additional dependencies by hand.
-First, you will need to install Embree, either by compiling from source 
-or by using one of the pre-built binaries available at Embree's 
+First, you will need to install Embree, either by compiling from source
+or by using one of the pre-built binaries available at Embree's
 `downloads <https://www.embree.org/downloads.html>`_ page.
 
 Second, the python bindings for Embree (called
@@ -426,13 +426,13 @@ disk each time.
 
     # override the default colormap
     ms = sc.get_source()
-    ms.cmap = 'Eos A'
+    ms.cmap = "Eos A"
 
     # adjust the camera position and orientation
     cam = sc.camera
-    cam.focus = ds.arr([0.0, 0.0, 0.0], 'code_length')
-    cam_pos = ds.arr([-3.0, 3.0, -3.0], 'code_length')
-    north_vector = ds.arr([0.0, -1.0, -1.0], 'dimensionless')
+    cam.focus = ds.arr([0.0, 0.0, 0.0], "code_length")
+    cam_pos = ds.arr([-3.0, 3.0, -3.0], "code_length")
+    north_vector = ds.arr([0.0, -1.0, -1.0], "dimensionless")
     cam.set_position(cam_pos, north_vector)
 
     # increase the default resolution
@@ -444,9 +444,9 @@ disk each time.
     # make movie frames
     num_frames = 301
     for i in range(num_frames):
-        cam.rotate(2.0*np.pi/num_frames)
+        cam.rotate(2.0 * np.pi / num_frames)
         sc.render()
-        sc.save('movie_frames/surface_render_%.4d.png' % i)
+        sc.save("movie_frames/surface_render_%.4d.png" % i)
 
 Finally, this example demonstrates how to loop over the time steps in a single
 file with a fixed camera position:
@@ -458,7 +458,7 @@ file with a fixed camera position:
     import pylab as plt
 
     NUM_STEPS = 127
-    CMAP = 'hot'
+    CMAP = "hot"
     VMIN = 300.0
     VMAX = 2000.0
 

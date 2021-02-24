@@ -4,6 +4,7 @@ import numpy as np
 
 import yt
 from yt.config import ytcfg
+from yt.fields.field_detector import FieldDetector
 from yt.frontends.ramses.api import RAMSESDataset
 from yt.frontends.ramses.field_handlers import DETECTED_FIELDS, HydroFieldFileHandler
 from yt.testing import (
@@ -55,6 +56,15 @@ def test_output_00080():
 @requires_file(output_00080)
 def test_RAMSESDataset():
     assert isinstance(data_dir_load(output_00080), RAMSESDataset)
+
+
+@requires_file(output_00080)
+def test_RAMSES_alternative_load():
+    # Test that we can load a RAMSES dataset by giving it the folder name,
+    # the info file name or an amr file name
+    base_dir, info_file_fname = os.path.split(output_00080)
+    for fname in (base_dir, os.path.join(base_dir, "amr_00080.out00001")):
+        assert isinstance(data_dir_load(fname), RAMSESDataset)
 
 
 @requires_file(output_00080)
@@ -190,6 +200,14 @@ def test_ramses_rt():
         )
 
     for field in special_fields:
+        assert field in ds.derived_field_list
+        ad[field]
+
+    # Test the creation of rt fields
+    rt_fields = [("rt", "photon_density_1")] + [
+        ("rt", f"photon_flux_{d}_1") for d in "xyz"
+    ]
+    for field in rt_fields:
         assert field in ds.derived_field_list
         ad[field]
 
@@ -506,7 +524,7 @@ def test_ramses_empty_record():
 def test_namelist_reading():
     ds = data_dir_load(ramses_new_format)
     namelist_fname = os.path.join(ds.directory, "namelist.txt")
-    with open(namelist_fname, "r") as f:
+    with open(namelist_fname) as f:
         ref = f90nml.read(f)
 
     nml = ds.parameters["namelist"]
@@ -562,6 +580,36 @@ def test_field_accession():
     ):
         for field in fields:
             reg[field]
+
+
+@requires_file(output_00080)
+def test_ghost_zones():
+    ds = yt.load(output_00080)
+
+    def gen_dummy(ngz):
+        def dummy(field, data):
+            if not isinstance(data, FieldDetector):
+                shape = data["gas", "mach_number"].shape[:3]
+                np.testing.assert_equal(shape, (2 + 2 * ngz, 2 + 2 * ngz, 2 + 2 * ngz))
+            return data["gas", "mach_number"]
+
+        return dummy
+
+    fields = []
+    for ngz in (1, 2, 3):
+        fname = ("gas", f"density_ghost_zone_{ngz}")
+        ds.add_field(
+            fname,
+            gen_dummy(ngz),
+            sampling_type="cell",
+            validators=[yt.ValidateSpatial(ghost_zones=ngz)],
+        )
+        fields.append(fname)
+
+    box = ds.box([0, 0, 0], [0.1, 0.1, 0.1])
+    for f in fields:
+        print("Getting ", f)
+        box[f]
 
 
 @requires_file(output_00080)

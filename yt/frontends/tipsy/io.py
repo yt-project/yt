@@ -7,7 +7,6 @@ from numpy.lib.recfunctions import append_fields
 
 from yt.frontends.sph.io import IOHandlerSPH
 from yt.frontends.tipsy.definitions import npart_mapping
-from yt.geometry.particle_geometry_handler import CHUNKSIZE
 from yt.utilities.lib.particle_kdtree_tools import generate_smoothing_length
 from yt.utilities.logger import ytLogger as mylog
 
@@ -20,7 +19,6 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
     _aux_pdtypes = None  # auxiliary files' dtypes
 
     _ptypes = ("Gas", "DarkMatter", "Stars")
-    _chunksize = CHUNKSIZE
 
     _aux_fields = None
     _fields = (
@@ -48,7 +46,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
     def __init__(self, *args, **kwargs):
         self._aux_fields = []
-        super(IOHandlerTipsyBinary, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
@@ -88,10 +86,11 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         return rv
 
     def _read_particle_coords(self, chunks, ptf):
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
+        chunksize = self.ds.index.chunksize
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             poff = data_file.field_offsets
             tp = data_file.total_particles
@@ -102,7 +101,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                 f.seek(poff[ptype])
                 total = 0
                 while total < tp[ptype]:
-                    count = min(self._chunksize, tp[ptype] - total)
+                    count = min(chunksize, tp[ptype] - total)
                     p = np.fromfile(f, self._pdtypes[ptype], count=count)
                     total += p.size
                     d = [p["Coordinates"][ax].astype("float64") for ax in "xyz"]
@@ -154,7 +153,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -176,7 +175,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     continue
                 f.seek(poff[ptype])
                 afields = list(set(field_list).intersection(self._aux_fields))
-                count = min(self._chunksize, tp[ptype])
+                count = min(self.ds.index.chunksize, tp[ptype])
                 p = np.fromfile(f, self._pdtypes[ptype], count=count)
                 auxdata = []
                 for afield in afields:
@@ -233,6 +232,16 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         """
         ds = data_file.ds
         ind = 0
+        # NOTE:
+        #  We hardcode this value here because otherwise we get into a
+        #  situation where we require the existence of index before we
+        #  can successfully instantiate it, or where we are calling it
+        #  from within its instantiation.
+        #
+        #  Because this value is not propagated later on, and does not
+        #  impact the construction of the bitmap indices, it should be
+        #  acceptable to just use a reasonable number here.
+        chunksize = 64 ** 3
         # Check to make sure that the domain hasn't already been set
         # by the parameter file
         if np.all(np.isfinite(ds.domain_left_edge)) and np.all(
@@ -252,7 +261,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
                     continue
                 stop = ind + count
                 while ind < stop:
-                    c = min(CHUNKSIZE, stop - ind)
+                    c = min(chunksize, stop - ind)
                     pp = np.fromfile(f, dtype=self._pdtypes[ptype], count=c)
                     np.minimum(
                         mi,
@@ -323,7 +332,7 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
         ptypes = ["Gas", "Stars", "DarkMatter"]
-        npart = dict((ptype, v) for ptype, v in zip(ptypes, pcount))
+        npart = {ptype: v for ptype, v in zip(ptypes, pcount)}
         return npart
 
     @classmethod
@@ -467,10 +476,10 @@ class IOHandlerTipsyBinary(IOHandlerSPH):
             for i, ptype in enumerate(self._ptypes):
                 if data_file.total_particles[ptype] == 0:
                     continue
-                elif params[npart_mapping[ptype]] > CHUNKSIZE:
+                elif params[npart_mapping[ptype]] > self.ds.index.chunksize:
                     for j in range(i):
                         npart = params[npart_mapping[self._ptypes[j]]]
-                        if npart > CHUNKSIZE:
+                        if npart > self.ds.index.chunksize:
                             pos += npart * size
                     pos += data_file.start * size
                 aux_fields_offsets[afield][ptype] = pos
