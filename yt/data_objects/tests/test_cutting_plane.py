@@ -31,7 +31,7 @@ def test_cutting_plane():
         assert_equal(cut["ones"].sum(), cut["ones"].size)
         assert_equal(cut["ones"].min(), 1.0)
         assert_equal(cut["ones"].max(), 1.0)
-        pw = cut.to_pw(fields="density")
+        pw = cut.to_pw(fields=("gas", "density"))
         for p in pw.plots.values():
             tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
             os.close(tmpfd)

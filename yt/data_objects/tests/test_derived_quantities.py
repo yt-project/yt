@@ -27,7 +27,7 @@ def test_extrema():
             fields=("density", "velocity_x", "velocity_y", "velocity_z"),
         )
         for sp in [ds.sphere("c", (0.25, "unitary")), ds.r[0.5, :, :]]:
-            mi, ma = sp.quantities["Extrema"]("density")
+            mi, ma = sp.quantities["Extrema"](("gas", "density"))
             assert_equal(mi, np.nanmin(sp["density"]))
             assert_equal(ma, np.nanmax(sp["density"]))
             dd = ds.all_data()
@@ -46,7 +46,9 @@ def test_average():
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
-            my_mean = ad.quantities["WeightedAverageQuantity"]("density", "ones")
+            my_mean = ad.quantities["WeightedAverageQuantity"](
+                ("gas", "density"), "ones"
+            )
             assert_rel_equal(my_mean, ad["density"].mean(), 12)
 
             my_mean = ad.quantities["WeightedAverageQuantity"]("density", "cell_mass")
@@ -59,7 +61,9 @@ def test_variance():
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
-            my_std, my_mean = ad.quantities["WeightedVariance"]("density", "ones")
+            my_std, my_mean = ad.quantities["WeightedVariance"](
+                ("gas", "density"), "ones"
+            )
             assert_rel_equal(my_mean, ad["density"].mean(), 12)
             assert_rel_equal(my_std, ad["density"].std(), 12)
 
@@ -113,7 +117,7 @@ def test_sample_at_min_field_values():
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             mv, temp, vm = ad.quantities.sample_at_min_field_values(
-                "density", ["temperature", "velocity_x"]
+                ("gas", "density"), ["temperature", "velocity_x"]
             )
 
             assert_equal(mv, ad["density"].min())
@@ -132,7 +136,7 @@ def test_sample_at_max_field_values():
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             mv, temp, vm = ad.quantities.sample_at_max_field_values(
-                "density", ["temperature", "velocity_x"]
+                ("gas", "density"), ["temperature", "velocity_x"]
             )
 
             assert_equal(mv, ad["density"].max())
@@ -204,7 +208,10 @@ def test_derived_quantities_with_particle_types():
 
     @particle_filter(requires=["particle_position_x"], filtered_type="all")
     def low_x(pfilter, data):
-        return data["particle_position_x"].in_units("code_length") < 0.5
+        return (
+            data[(pfilter.filtered_type, "particle_position_x")].in_units("code_length")
+            < 0.5
+        )
 
     ds.add_particle_filter("low_x")
 

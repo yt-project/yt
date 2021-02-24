@@ -16,7 +16,7 @@ def _IDFIELD(field, data):
     width = data.ds.domain_right_edge - data.ds.domain_left_edge
     min_dx = YTArray(1.0 / 8192, units="code_length", registry=data.ds.unit_registry)
     delta = width / min_dx
-    x = data["x"] - min_dx / 2.0
+    x = data[("gas", "x")] - min_dx / 2.0
     y = data["y"] - min_dx / 2.0
     z = data["z"] - min_dx / 2.0
     xi = x / min_dx

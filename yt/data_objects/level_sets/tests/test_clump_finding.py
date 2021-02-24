@@ -42,9 +42,9 @@ def test_clump_finding():
     master_clump.add_validator("min_cells", 1)
 
     def _total_volume(clump):
-        total_vol = clump.data.quantities.total_quantity(["cell_volume"]).in_units(
-            "cm**3"
-        )
+        total_vol = clump.data.quantities.total_quantity(
+            [("gas", "cell_volume")]
+        ).in_units("cm**3")
         return "Cell Volume: %6e cm**3.", total_vol
 
     add_clump_info("total_volume", _total_volume)

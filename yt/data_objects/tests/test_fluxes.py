@@ -17,7 +17,7 @@ def setup():
 def test_flux_calculation():
     ds = fake_random_ds(64, nprocs=4)
     dd = ds.all_data()
-    surf = ds.surface(dd, "x", 0.51)
+    surf = ds.surface(dd, ("gas", "x"), 0.51)
     assert_equal(surf["x"], 0.51)
     flux = surf.calculate_flux("ones", "zeros", "zeros", "ones")
     assert_almost_equal(flux.value, 1.0, 12)
@@ -126,7 +126,7 @@ def test_correct_output_unit_fake_ds():
     ds = fake_random_ds(64, nprocs=4, particles=16 ** 3)
     x = y = z = 0.5
     sp1 = ds.sphere((x, y, z), (300, "kpc"))
-    Nmax = sp1.max("density")
+    Nmax = sp1.max(("gas", "density"))
     sur = ds.surface(sp1, "density", 0.5 * Nmax)
     sur["x"][0]
 
