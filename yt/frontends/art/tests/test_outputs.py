@@ -40,12 +40,12 @@ def test_d9p():
                         yield PixelizedProjectionValuesTest(
                             d9p, axis, field, weight_field, dobj_name
                         )
-            yield FieldValuesTest(
-                d9p,
-                field,
-                obj_type=dobj_name,
-                particle_type=field[0] in ds.particle_types,
-            )
+                yield FieldValuesTest(
+                    d9p,
+                    field,
+                    obj_type=dobj_name,
+                    particle_type=field[0] in ds.particle_types,
+                )
 
 
 @requires_ds(d9p, big_data=True)
