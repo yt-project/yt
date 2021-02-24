@@ -16,6 +16,7 @@ class AmbiguousResolvePlugin(Plugin):
 
     name = "auto-update-ambiguous-fields"
     enabled = True
+    _my_version = None
 
     def configure(self, options, conf):
         pass
@@ -61,7 +62,8 @@ class AmbiguousResolvePlugin(Plugin):
 
         lineno = ft_err.f_lineno - 1
 
-        suggested_ftype = v.possible_ftypes[-1]
+        suggested_ftype = " OR ".join(v.possible_ftypes)
+
         corrected = lines.copy()
         corrected[lineno] = (
             corrected[lineno]
