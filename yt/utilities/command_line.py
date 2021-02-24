@@ -1911,7 +1911,7 @@ class YTDownloadData(YTCommand):
         data_url = f"http://yt-project.org/data/{args.filename}"
         if args.location in ["test_data_dir", "supp_data_dir"]:
             data_dir = ytcfg.get("yt", args.location)
-            if data_dir == "/does/not/exist":
+            if data_dir == r"/0<>?*:|/\_impossible_directory_name":
                 raise RuntimeError(f"'{args.location}' is not configured!")
         else:
             data_dir = args.location

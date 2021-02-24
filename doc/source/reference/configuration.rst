@@ -112,7 +112,7 @@ used internally.
 * ``plugin_filename``  (default ``my_plugins.py``) The name of our plugin file.
 * ``log_level`` (default: ``20``): What is the threshold (0 to 50) for
   outputting log files?
-* ``test_data_dir`` (default: ``/does/not/exist``): The default path the
+* ``test_data_dir`` (default: ``/0<>?*:|/\_impossible_directory_name``): The default path the
   ``load()`` function searches for datasets when it cannot find a dataset in the
   current directory.
 * ``reconstruct_index`` (default: ``True``): If true, grid edges for patch AMR
@@ -139,7 +139,7 @@ used internally.
   to stdout rather than stderr
 * ``skip_dataset_cache`` (default: ``False``): If true, automatic caching of datasets
   is turned off.
-* ``supp_data_dir`` (default: ``/does/not/exist``): The default path certain
+* ``supp_data_dir`` (default: ``/0<>?*:|/\_impossible_directory_name``): The default path certain
   submodules of yt look in for supplemental data files.
 
 

@@ -330,7 +330,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
         # set download destination to tdir or ./ if tdir isnt defined
         # ----------------------------------------------
-        if tdir == "/does/not/exist":
+        if tdir == r"/0<>?*:|/\_impossible_directory_name":
             data_dir = "./"
         else:
             data_dir = tdir
