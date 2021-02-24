@@ -98,8 +98,10 @@ file. Note that a log level of 1 means that all log messages are printed to
 stdout.  To disable logging, set the log level to 50.
 
 
-Available Configuration Options
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+.. _global-config:
+
+Available Global Configuration Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 The following external parameters are available.  A number of parameters are
 used internally.
@@ -141,6 +143,42 @@ used internally.
   is turned off.
 * ``supp_data_dir`` (default: ``/does/not/exist``): The default path certain
   submodules of yt look in for supplemental data files.
+
+
+.. _per-field-config:
+
+Available per-field Configuration Options
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+It is possible to customize the default behaviour of plots using per-field configuration.
+The default options for plotting a given field can be specified in the configuration file
+in ``[field_type.field_name]`` blocks. The available keys are
+
+* ``cmap`` (default: ``yt.default_colormap``, see :ref:`global-config`): the colormap to
+  use for the field.
+* ``log`` (default: ``True``): use a log scale (or symlog if linthresh is also set).
+* ``linthresh`` (default: None): the linear threshold for symlog plots.
+* ``units`` (defaults to the units of the field): the units to use to represent the field.
+* ``path_length_units`` (default: ``cm``): the unit of the integration length when doing
+  e.g. projections. For projections, the final units will be the product of ``units*path_length_units``.
+
+You can also set defaults for all field of a given field type by omitting the field name,
+as illustrated below.
+
+.. code-block:: toml
+
+  [gas.density]
+  cmap = "plasma"
+  log = true
+  units = "mp/cm**3"
+
+  [gas.velocity_divergence]
+  cmap = "bwr"  # use a diverging colormap
+  log = false   # and a linear scale
+
+  [deposit]
+  path_length_units = "kpc"  # use kpc for deposition projections
+
 
 .. _plugin-file:
 
