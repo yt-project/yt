@@ -1314,6 +1314,22 @@ def sglob(pattern):
 
 
 def dictWithFactory(factory: Callable[[Any], Any]) -> dict:
+    """
+    Create a dictionary class with a default factory function.
+    Contrary to `collections.defaultdict`, the factory takes
+    the missing key as input parameter.
+
+    Parameters
+    ----------
+    factory : callable(key) -> value
+        The factory to call when hitting a missing key
+
+    Returns
+    -------
+    DictWithFactory class
+        A class to create new dictionaries handling missing keys.
+    """
+
     class DictWithFactory(dict):
         def __init__(self, *args, **kwargs):
             self.factory = factory
