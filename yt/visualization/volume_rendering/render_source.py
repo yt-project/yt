@@ -901,7 +901,7 @@ class MeshSource(OpaqueSource):
         if color is None:
             color = np.array([0, 0, 0, alpha])
 
-        locs = [self.sampler.amesh_lines == 1]
+        locs = (self.sampler.amesh_lines == 1,)
 
         self.current_image[:, :, 0][locs] = color[0]
         self.current_image[:, :, 1][locs] = color[1]
