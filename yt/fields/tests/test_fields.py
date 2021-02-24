@@ -240,7 +240,7 @@ def test_add_gradient_fields():
 
 def test_add_gradient_fields_by_fname():
     ds = fake_amr_ds(fields=("density", "temperature"))
-    actual = ds.add_gradient_fields("density")
+    actual = ds.add_gradient_fields(("gas", "density"))
     expected = [
         ("gas", "density_gradient_x"),
         ("gas", "density_gradient_y"),
@@ -266,7 +266,7 @@ def test_add_gradient_multiple_fields():
     assert_equal(actual, expected)
 
     ds = fake_amr_ds(fields=("density", "temperature"))
-    actual = ds.add_gradient_fields(["density", "temperature"])
+    actual = ds.add_gradient_fields([("gas", "density"), ("gas", "temperature")])
     assert_equal(actual, expected)
 
 
@@ -306,7 +306,7 @@ def test_add_field_unit_semantics():
     ad = ds.all_data()
 
     def density_alias(field, data):
-        return data["density"].in_cgs()
+        return data[("gas", "density")].in_cgs()
 
     def unitless_data(field, data):
         return np.ones(data["density"].shape)

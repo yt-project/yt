@@ -56,7 +56,7 @@ def test_projection(pf):
             xax = ds.coordinates.x_axis[ax]
             yax = ds.coordinates.y_axis[ax]
             for wf in ["density", ("gas", "density"), None]:
-                proj = ds.proj(["ones", "density"], ax, weight_field=wf)
+                proj = ds.proj(["ones", ("gas", "density")], ax, weight_field=wf)
                 if wf is None:
                     assert_equal(proj["ones"].sum(), LENGTH_UNIT * proj["ones"].size)
                     assert_equal(proj["ones"].min(), LENGTH_UNIT)

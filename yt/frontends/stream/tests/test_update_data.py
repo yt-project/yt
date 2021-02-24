@@ -12,7 +12,7 @@ def test_update_data_grid():
         {"temperature": np.random.uniform(size=dims)} for i in range(ds.index.num_grids)
     ]
     ds.index.update_data(grid_data)
-    prj = ds.proj("temperature", 2)
+    prj = ds.proj(("gas", "temperature"), 2)
     prj["temperature"]
     dd = ds.all_data()
     profile = create_profile(dd, "density", "temperature", 10)

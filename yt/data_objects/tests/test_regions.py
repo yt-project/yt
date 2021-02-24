@@ -11,7 +11,7 @@ def test_box_creation():
     dens_units = reg[("gas", "density")]
 
     reg = ds.box([0, 0, 0], [1, 1, 1])
-    dens_no_units = reg["density"]
+    dens_no_units = reg[("gas", "density")]
 
     assert_array_equal(dens_units, dens_no_units)
 
