@@ -22,7 +22,7 @@ from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from math import ceil, floor
 from numbers import Number as numeric_type
-from typing import Any, Callable
+from typing import Any, Callable, Type
 
 import matplotlib
 import numpy as np
@@ -1313,7 +1313,7 @@ def sglob(pattern):
     return sorted(glob.glob(pattern))
 
 
-def dictWithFactory(factory: Callable[[Any], Any]) -> dict:
+def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
     """
     Create a dictionary class with a default factory function.
     Contrary to `collections.defaultdict`, the factory takes
