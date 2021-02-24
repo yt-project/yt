@@ -55,6 +55,7 @@ jobs:
         testsuite: ${{ matrix.tests-type }}
       run: python -m nose -c nose_${testsuite}.cfg --traverse-namespace
     - uses: actions/upload-artifact@v2
+      if: failure()
       with:
         name: diff.txt ${{ matrix.node-version }}
         path: diff.txt
