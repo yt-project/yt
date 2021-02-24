@@ -254,8 +254,7 @@ class PlotContainer:
                 ]
                 if len(ret) == 1:
                     return ret[0]
-                else:
-                    return ret
+                return ret
 
             return getter
 
