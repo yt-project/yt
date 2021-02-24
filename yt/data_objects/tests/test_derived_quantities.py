@@ -31,7 +31,7 @@ def test_extrema():
             assert_equal(mi, np.nanmin(sp[("gas", "density")]))
             assert_equal(ma, np.nanmax(sp[("gas", "density")]))
             dd = ds.all_data()
-            mi, ma = dd.quantities["Extrema"]("density")
+            mi, ma = dd.quantities["Extrema"](("gas", "density"))
             assert_equal(mi, np.nanmin(dd[("gas", "density")]))
             assert_equal(ma, np.nanmax(dd[("gas", "density")]))
             sp = ds.sphere("max", (0.25, "unitary"))
@@ -51,7 +51,9 @@ def test_average():
             )
             assert_rel_equal(my_mean, ad[("gas", "density")].mean(), 12)
 
-            my_mean = ad.quantities["WeightedAverageQuantity"]("density", "cell_mass")
+            my_mean = ad.quantities["WeightedAverageQuantity"](
+                ("gas", "density"), "cell_mass"
+            )
             a_mean = (ad[("gas", "density")] * ad["cell_mass"]).sum() / ad[
                 "cell_mass"
             ].sum()
@@ -69,7 +71,9 @@ def test_variance():
             assert_rel_equal(my_mean, ad[("gas", "density")].mean(), 12)
             assert_rel_equal(my_std, ad[("gas", "density")].std(), 12)
 
-            my_std, my_mean = ad.quantities["WeightedVariance"]("density", "cell_mass")
+            my_std, my_mean = ad.quantities["WeightedVariance"](
+                ("gas", "density"), "cell_mass"
+            )
             a_mean = (ad[("gas", "density")] * ad["cell_mass"]).sum() / ad[
                 "cell_mass"
             ].sum()
@@ -140,7 +144,7 @@ def test_sample_at_max_field_values():
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             mv, temp, vm = ad.quantities.sample_at_max_field_values(
-                ("gas", "density"), [("gas", "temperature"), "velocity_x"]
+                ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")]
             )
 
             assert_equal(mv, ad[("gas", "density")].max())
@@ -164,7 +168,7 @@ def test_in_memory_sph_derived_quantities():
     com = ad.quantities.center_of_mass()
     assert_equal(com, [1 / 7, (1 + 2) / 7, (1 + 2 + 3) / 7])
 
-    ex = ad.quantities.extrema(["x", "y", "z"])
+    ex = ad.quantities.extrema([("gas OR stream OR io OR all", "x"), "y", "z"])
     for fex, ans in zip(ex, [[0, 1], [0, 2], [0, 3]]):
         assert_equal(fex, ans)
 

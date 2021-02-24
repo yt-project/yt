@@ -13,7 +13,7 @@ def test_update_data_grid():
     ]
     ds.index.update_data(grid_data)
     prj = ds.proj(("gas", "temperature"), 2)
-    prj["temperature"]
+    prj[("gas", "temperature")]
     dd = ds.all_data()
     profile = create_profile(dd, "density", "temperature", 10)
     profile["temperature"]

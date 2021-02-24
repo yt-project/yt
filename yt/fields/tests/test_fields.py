@@ -309,7 +309,7 @@ def test_add_field_unit_semantics():
         return data[("gas", "density")].in_cgs()
 
     def unitless_data(field, data):
-        return np.ones(data["density"].shape)
+        return np.ones(data[("gas", "density")].shape)
 
     ds.add_field(
         ("gas", "density_alias_no_units"), sampling_type="cell", function=density_alias

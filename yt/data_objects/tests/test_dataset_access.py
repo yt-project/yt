@@ -53,7 +53,7 @@ def test_region_from_d():
     # Now, string units in some -- 1.0 == cm
     reg1 = ds.r[(0.1, "cm"):(0.5, "cm"), :, 0.25:0.35]
     reg2 = ds.region([0.3, 0.5, 0.3], [0.1, 0.0, 0.25], [0.5, 1.0, 0.35])
-    assert_equal(reg1["density"], reg2["density"])
+    assert_equal(reg1[("gas", "density")], reg2[("gas", "density")])
 
     # And, lots of : usage!
     reg1 = ds.r[:, :, :]
@@ -87,7 +87,7 @@ def test_accessing_all_data():
     # Now let's assert that it's the same object
     rho = ds.r[("gas", "density")]
     rho *= 2.0
-    assert_equal(dd["density"] * 2.0, ds.r["density"])
+    assert_equal(dd[("gas", "density")] * 2.0, ds.r[("gas", "density")])
     assert_equal(dd["gas", "density"] * 2.0, ds.r["gas", "density"])
 
 
@@ -106,7 +106,7 @@ def test_slice_from_r():
 
     sl3 = ds.r[0.5, 0.25:0.75, 0.25:0.75]
     sl4 = ds.slice("x", 0.5, data_source=box)
-    assert_equal(sl3["density"], sl4["density"])
+    assert_equal(sl3[("gas", "density")], sl4[("gas", "density")])
 
     frb3 = sl3.to_frb(width=0.5, height=0.5, resolution=(1024, 512))
     frb4 = ds.r[0.5, 0.25:0.75:1024j, 0.25:0.75:512j]
@@ -141,7 +141,7 @@ def test_ray_from_r():
     start_arr = [ds.quan(0.1, "cm"), ds.quan(0.2, "cm"), ds.quan(0.3, "cm")]
     end_arr = [ds.quan(0.5, "cm"), ds.quan(0.4, "cm"), ds.quan(0.6, "cm")]
     ray6 = ds.ray(start_arr, end_arr)
-    assert_equal(ray5["density"], ray6["density"])
+    assert_equal(ray5[("gas", "density")], ray6[("gas", "density")])
 
     ray7 = ds.r[start:end:500j]
     ray8 = LineBuffer(ds, [0.1, 0.2, 0.3], [0.5, 0.4, 0.6], 500)
@@ -163,7 +163,7 @@ def test_ortho_ray_from_r():
     box = ds.box([0.25, 0.0, 0.0], [0.75, 1.0, 1.0])
     ray5 = ds.r[0.25:0.75, 0.3, 0.2]
     ray6 = ds.ortho_ray("x", [0.3, 0.2], data_source=box)
-    assert_equal(ray5["density"], ray6["density"])
+    assert_equal(ray5[("gas", "density")], ray6[("gas", "density")])
 
     # Test fixed-resolution rays
     ray7 = ds.r[0.25:0.75:100j, 0.3, 0.2]

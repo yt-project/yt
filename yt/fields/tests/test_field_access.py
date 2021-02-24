@@ -17,7 +17,7 @@ def test_field_access():
     scg = ds.smoothed_covering_grid(0, ds.domain_left_edge, ds.domain_dimensions)
     sl = ds.slice(0, ds.domain_center[0])
     proj = ds.proj(("gas", "density"), 0)
-    prof = create_profile(ad, "radius", "density")
+    prof = create_profile(ad, "radius", ("gas", "density"))
 
     for data_object in [ad, sp, cg, scg, sl, proj, prof]:
         assert_equal(data_object["gas", "density"], data_object[ds.fields.gas.density])

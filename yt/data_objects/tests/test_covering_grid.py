@@ -150,7 +150,7 @@ def test_smoothed_covering_grid():
                         dn * di[1] + i : dn * (di[1] + dd[1]) + i : dn,
                         dn * di[2] + i : dn * (di[2] + dd[2]) + i : dn,
                     ]
-                    assert_equal(f, g["density"])
+                    assert_equal(f, g[("gas", "density")])
 
 
 def test_arbitrary_grid():

@@ -70,5 +70,5 @@ def test_multi_field():
     sl = SlicePlot(ds, "z", ("connect1", "test"))
     sl.annotate_mesh_lines()
 
-    sl = SlicePlot(ds, "z", "testAgain")
+    sl = SlicePlot(ds, "z", ("connect1", "testAgain"))
     sl.annotate_mesh_lines()

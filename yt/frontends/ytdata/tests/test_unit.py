@@ -59,7 +59,7 @@ def test_plot_data():
     os.chdir(tmpdir)
     ds = fake_random_ds(16)
 
-    plot = SlicePlot(ds, "z", "density")
+    plot = SlicePlot(ds, "z", ("gas", "density"))
     fn = plot.data_source.save_as_dataset("slice.h5")
     ds_slice = load(fn)
     p = SlicePlot(ds_slice, "z", "density")
@@ -109,7 +109,7 @@ def test_non_square_frb():
     height = ds.domain_right_edge[yax] - ds.domain_left_edge[yax]  # = 9 code_length
     frb = slc.to_frb(width=width, height=height, resolution=res, center=center)
     fname = "test_frb_roundtrip.h5"
-    frb.save_as_dataset(fname, fields=["density"])
+    frb.save_as_dataset(fname, fields=[("gas", "density")])
 
     expected_vals = arr[:, :, 5].T
     print(

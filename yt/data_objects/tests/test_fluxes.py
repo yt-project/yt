@@ -128,7 +128,7 @@ def test_correct_output_unit_fake_ds():
     sp1 = ds.sphere((x, y, z), (300, "kpc"))
     Nmax = sp1.max(("gas", "density"))
     sur = ds.surface(sp1, ("gas", "density"), 0.5 * Nmax)
-    sur["x"][0]
+    sur[("gas", "x")][0]
 
 
 def test_radius_surface():

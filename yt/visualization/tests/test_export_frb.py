@@ -14,7 +14,7 @@ def test_export_frb():
     test_ds = fake_random_ds(128)
     slc = test_ds.slice(0, 0.5)
     frb = slc.to_frb((0.5, "unitary"), 64)
-    frb_ds = frb.export_dataset(fields=["density"], nprocs=8)
+    frb_ds = frb.export_dataset(fields=[("gas", "density")], nprocs=8)
     dd_frb = frb_ds.all_data()
 
     assert_equal(frb_ds.domain_left_edge.v, np.array([0.25, 0.25, 0.0]))

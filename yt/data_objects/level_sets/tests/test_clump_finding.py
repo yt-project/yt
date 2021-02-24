@@ -69,7 +69,9 @@ def test_clump_finding():
 
     # check some clump fields
     assert_equal(master_clump.children[0][("gas", "density")][0].size, 1)
-    assert_equal(master_clump.children[0]["density"][0], ad["density"].max())
+    assert_equal(
+        master_clump.children[0][("gas", "density")][0], ad[("gas", "density")].max()
+    )
     assert_equal(master_clump.children[0]["particle_mass"].size, 1)
     assert_array_equal(master_clump.children[0]["particle_mass"], ad["particle_mass"])
     assert_equal(master_clump.children[1]["density"][0].size, 1)

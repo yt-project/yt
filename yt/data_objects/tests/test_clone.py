@@ -20,7 +20,7 @@ def test_clone_sphere():
 
     sp1[("gas", "density")]
 
-    assert_array_equal(sp0["density"], sp1["density"])
+    assert_array_equal(sp0[("gas", "density")], sp1[("gas", "density")])
 
 
 def test_clone_cut_region():

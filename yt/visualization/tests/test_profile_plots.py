@@ -193,7 +193,9 @@ def test_set_units():
 def test_set_labels():
     ds = fake_random_ds(16)
     ad = ds.all_data()
-    plot = yt.ProfilePlot(ad, "radius", ["velocity_x", "density"], weight_field=None)
+    plot = yt.ProfilePlot(
+        ad, "radius", [("gas", "velocity_x"), ("gas", "density")], weight_field=None
+    )
     # make sure we can set the labels without erroring out
     plot.set_ylabel("all", "test ylabel")
     plot.set_xlabel("test xlabel")
@@ -201,17 +203,27 @@ def test_set_labels():
 
 def test_create_from_dataset():
     ds = fake_random_ds(16)
-    plot1 = yt.ProfilePlot(ds, "radius", ["velocity_x", "density"], weight_field=None)
-    plot2 = yt.ProfilePlot(
-        ds.all_data(), "radius", ["velocity_x", "density"], weight_field=None
+    plot1 = yt.ProfilePlot(
+        ds, "radius", [("gas", "velocity_x"), ("gas", "density")], weight_field=None
     )
-    assert_allclose_units(plot1.profiles[0]["density"], plot2.profiles[0]["density"])
+    plot2 = yt.ProfilePlot(
+        ds.all_data(),
+        "radius",
+        [("gas", "velocity_x"), ("gas", "density")],
+        weight_field=None,
+    )
     assert_allclose_units(
-        plot1.profiles[0]["velocity_x"], plot2.profiles[0]["velocity_x"]
+        plot1.profiles[0]["gas", "density"], plot2.profiles[0]["gas", "density"]
+    )
+    assert_allclose_units(
+        plot1.profiles[0][("gas", "velocity_x")],
+        plot2.profiles[0][("gas", "velocity_x")],
     )
 
-    plot1 = yt.PhasePlot(ds, "density", "velocity_x", "cell_mass")
-    plot2 = yt.PhasePlot(ds.all_data(), "density", "velocity_x", "cell_mass")
+    plot1 = yt.PhasePlot(ds, ("gas", "density"), ("gas", "velocity_x"), "cell_mass")
+    plot2 = yt.PhasePlot(
+        ds.all_data(), ["gas", "density"], ("gas", "velocity_x"), "cell_mass"
+    )
     assert_allclose_units(plot1.profile["cell_mass"], plot2.profile["cell_mass"])
 
 
@@ -224,7 +236,11 @@ class TestAnnotations(unittest.TestCase):
 
         ds = fake_random_ds(16)
         ad = ds.all_data()
-        cls.fields = ["velocity_x", "velocity_y", "velocity_z"]
+        cls.fields = [
+            ("gas", "velocity_x"),
+            ("gas", "velocity_y"),
+            ("gas", "velocity_z"),
+        ]
         cls.plot = yt.ProfilePlot(ad, "radius", cls.fields, weight_field=None)
 
     @classmethod
@@ -271,8 +287,8 @@ def test_phaseplot_set_log():
     assert not p2.y_log
 
     # make sure we can set the log-scaling using a string without erroring out
-    p1.set_log("density", True)
-    p2.set_log("temperature", True)
+    p1.set_log(("gas", "density"), True)
+    p2.set_log(("gas", "temperature"), True)
     assert p1.y_log["gas", "density"]
     assert p2.y_log
 
