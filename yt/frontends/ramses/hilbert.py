@@ -308,7 +308,7 @@ def get_cpu_list(ds, X):
     if bit_length > 0:
         ndom = 8
 
-    idom, jdom, kdom = [np.zeros(8, dtype=int) for _ in range(3)]
+    idom, jdom, kdom = [np.zeros(8, dtype="int64") for _ in range(3)]
 
     idom[0], idom[1] = imin, imax
     idom[2], idom[3] = imin, imax
@@ -338,7 +338,7 @@ def get_cpu_list(ds, X):
     for icpu in range(1, ncpu + 1):
         bound_key[icpu - 1], bound_key[icpu] = ds.hilbert_indices[icpu]
 
-    cpu_min, cpu_max = [np.zeros(ncpu + 1, dtype=np.int) for _ in range(2)]
+    cpu_min, cpu_max = [np.zeros(ncpu + 1, dtype="int64") for _ in range(2)]
     for icpu in range(1, ncpu + 1):
         for i in range(ndom):
             if (
@@ -354,7 +354,7 @@ def get_cpu_list(ds, X):
 
     ncpu_read = 0
     cpu_list = []
-    cpu_read = np.zeros(ncpu, dtype=np.bool)
+    cpu_read = np.zeros(ncpu, dtype="bool")
     for i in range(ndom):
         for j in range(cpu_min[i], cpu_max[i]):
             if not cpu_read[j]:

@@ -22,10 +22,10 @@ from yt.funcs import (
     enable_plugins,
     ensure_dir,
     ensure_dir_exists,
-    get_hg_or_git_version,
+    get_git_version,
     get_yt_version,
     mylog,
-    update_hg_or_git,
+    update_git,
 )
 from yt.loaders import load
 from yt.utilities.configure import set_config
@@ -133,7 +133,7 @@ def _print_installation_information(path):
     print()
     print("---")
     print(f"Version = {yt.__version__}")
-    vstring = get_hg_or_git_version(path)
+    vstring = get_git_version(path)
     if vstring is not None:
         print(f"Changeset = {vstring.strip()}")
     print("---")
@@ -930,7 +930,7 @@ class YTInstInfoCmd(YTCommand):
         if vstring is not None:
             print("This installation CAN be automatically updated.")
             if opts.update_source:
-                update_hg_or_git(path)
+                update_git(path)
         elif opts.update_source:
             _print_failed_source_update()
         if vstring is not None and opts.outputfile is not None:
@@ -1523,7 +1523,7 @@ class YTUpdateCmd(YTCommand):
         if vstring is not None:
             print()
             print("This installation CAN be automatically updated.")
-            update_hg_or_git(path)
+            update_git(path)
         else:
             _print_failed_source_update(opts.reinstall)
 

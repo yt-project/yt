@@ -134,7 +134,7 @@ class YTStreamline(YTSelectionContainer1D):
             self.positions <= grid.RightEdge, axis=1
         )
         pids = np.where(points_in_grid)[0]
-        mask = np.zeros(points_in_grid.sum(), dtype="int")
+        mask = np.zeros(points_in_grid.sum(), dtype="int64")
         dts = np.zeros(points_in_grid.sum(), dtype="float64")
         ts = np.zeros(points_in_grid.sum(), dtype="float64")
         for mi, (i, pos) in enumerate(zip(pids, self.positions[points_in_grid])):
@@ -1112,7 +1112,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
     def _get_grid_bounds_size(self):
         dd = self.ds.domain_width / 2 ** self.level
-        bounds = np.zeros(6, dtype=float)
+        bounds = np.zeros(6, dtype="float64")
 
         bounds[0] = self.left_edge[0].in_base("code")
         bounds[1] = bounds[0] + dd[0].d * self.ActiveDimensions[0]
@@ -1120,7 +1120,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
         bounds[3] = bounds[2] + dd[1].d * self.ActiveDimensions[1]
         bounds[4] = self.left_edge[2].in_base("code")
         bounds[5] = bounds[4] + dd[2].d * self.ActiveDimensions[2]
-        size = np.ones(3, dtype=int) * 2 ** self.level
+        size = np.ones(3, dtype="int64") * 2 ** self.level
 
         return bounds, size
 
@@ -1224,7 +1224,7 @@ class YTArbitraryGrid(YTCoveringGrid):
             self[field] = self.ds.arr(dest, fi.units)
 
     def _get_grid_bounds_size(self):
-        bounds = np.empty(6, dtype=float)
+        bounds = np.empty(6, dtype="float64")
         bounds[0] = self.left_edge[0].in_base("code")
         bounds[2] = self.left_edge[1].in_base("code")
         bounds[4] = self.left_edge[2].in_base("code")
@@ -1400,7 +1400,7 @@ class YTSmoothedCoveringGrid(YTCoveringGrid):
                 self.ds.__class__,
                 category=RuntimeWarning,
             )
-            mylog.debug(f"Caught {runtime_errors_count} runtime errors.")
+            mylog.debug("Caught %d runtime errors.", runtime_errors_count)
         for name, v in zip(fields, ls.fields):
             if self.level > 0:
                 v = v[1:-1, 1:-1, 1:-1]
@@ -2567,8 +2567,8 @@ class YTSurface(YTSelectionContainer3D):
 
         try:
             r = requests.post(SKETCHFAB_API_URL, data=data, files=files, verify=False)
-        except requests.exceptions.RequestException as e:
-            mylog.error("An error occured: %s", e)
+        except requests.exceptions.RequestException:
+            mylog.exception("An error has occured")
             return
 
         result = r.json()

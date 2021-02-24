@@ -287,7 +287,7 @@ class IOHandlerOrion2HDF5(IOHandlerChomboHDF5):
 
         def read(line, field):
             entry = line.strip().split(" ")[self.particle_field_index[field]]
-            return np.float(entry)
+            return float(entry)
 
         try:
             lines = self._cached_lines

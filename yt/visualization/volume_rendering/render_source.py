@@ -621,7 +621,7 @@ class OctreeVolumeSource(VolumeSource):
             1, len(dx), 14, 1
         )
         mask = np.full(dt.shape[1:], 1, dtype=np.uint8)
-        dims = np.array([1, 1, 1], dtype=int)
+        dims = np.array([1, 1, 1], dtype="int64")
         pg = PartitionedGrid(0, dt, mask, LE.flatten(), RE.flatten(), dims, n_fields=1)
 
         mylog.debug("Casting rays")

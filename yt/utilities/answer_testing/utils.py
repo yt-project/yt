@@ -222,6 +222,7 @@ def _compare_result(data, outputFile):
     # Load the saved data
     with open(outputFile) as f:
         savedData = yaml.safe_load(f)
+
     # Define the comparison function
     def _check_vals(newVals, oldVals):
         for key, value in newVals.items():

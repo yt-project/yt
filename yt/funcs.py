@@ -120,8 +120,8 @@ def compare_dicts(dict1, dict2):
                 else:
                     return False
             try:
-                comparison = (dict1[key] == dict2[key]).all()
-            except AttributeError:
+                comparison = np.array_equal(dict1[key], dict2[key])
+            except TypeError:
                 comparison = dict1[key] == dict2[key]
             if not comparison:
                 return False
@@ -519,13 +519,6 @@ class YTEmptyClass:
     pass
 
 
-def update_hg_or_git(path):
-    if os.path.exists(os.sep.join([path, ".hg"])):
-        update_hg(path)
-    elif os.path.exists(os.sep.join([path, ".git"])):
-        update_git(path)
-
-
 def update_git(path):
     try:
         import git
@@ -580,40 +573,6 @@ def update_git(path):
     print("Updated successfully")
 
 
-def update_hg(path):
-    try:
-        import hglib
-    except ImportError:
-        print("Updating requires python-hglib to be installed.")
-        print("Try: pip install python-hglib")
-        return -1
-    f = open(os.path.join(path, "yt_updater.log"), "a")
-    with hglib.open(path) as repo:
-        repo.pull(b"https://bitbucket.org/yt_analysis/yt")
-        ident = repo.identify().decode("utf-8")
-        if "+" in ident:
-            print("Changes have been made to the yt source code so I won't ")
-            print("update the code. You will have to do this yourself.")
-            print("Here's a set of sample commands:")
-            print("")
-            print(f"    $ cd {path}")
-            print("    $ hg up -C yt  # This will delete any unsaved changes")
-            print(f"    $ {sys.executable} setup.py develop")
-            print("")
-            return 1
-        print("Updating the repository")
-        f.write("Updating the repository\n\n")
-        books = repo.bookmarks()[0]
-        books = [b[0].decode("utf8") for b in books]
-        if "main" in books:
-            repo.update("main", check=True)
-        else:
-            repo.update("yt", check=True)
-        f.write(f"Updated from {ident} to {repo.identify()}\n\n")
-        rebuild_modules(path, f)
-    print("Updated successfully.")
-
-
 def rebuild_modules(path, f):
     f.write("Rebuilding modules\n\n")
     p = subprocess.Popen(
@@ -629,14 +588,6 @@ def rebuild_modules(path, f):
         print(f"BROKEN: See {os.path.join(path, 'yt_updater.log')}")
         sys.exit(1)
     f.write("Successful!\n")
-
-
-def get_hg_or_git_version(path):
-    if os.path.exists(os.sep.join([path, ".hg"])):
-        return get_hg_version(path)
-    elif os.path.exists(os.sep.join([path, ".git"])):
-        return get_git_version(path)
-    return None
 
 
 def get_git_version(path):
@@ -655,29 +606,7 @@ def get_git_version(path):
         return None
 
 
-def get_hg_version(path):
-    try:
-        import hglib
-    except ImportError:
-        print("Updating and precise version information requires ")
-        print("python-hglib to be installed.")
-        print("Try: pip install python-hglib")
-        return None
-    try:
-        with hglib.open(path) as repo:
-            return repo.identify().decode("utf-8")
-    except hglib.error.ServerError:
-        # path is not an hg repository
-        return None
-
-
 def get_yt_version():
-    try:
-        from yt.__hg_version__ import hg_version
-
-        return hg_version
-    except ImportError:
-        pass
     import pkg_resources
 
     yt_provider = pkg_resources.get_provider("yt")
@@ -772,38 +701,6 @@ def bb_apicall(endpoint, data, use_pass=True):
         upw = f"{username}:{password}"
         req.add_header("Authorization", f"Basic {base64.b64encode(upw).strip()}")
     return urllib.request.urlopen(req).read()
-
-
-def get_yt_supp():
-    import hglib
-
-    supp_path = os.path.join(os.environ["YT_DEST"], "src", "yt-supplemental")
-    # Now we check that the supplemental repository is checked out.
-    if not os.path.isdir(supp_path):
-        print()
-        print("*** The yt-supplemental repository is not checked ***")
-        print("*** out.  I can do this for you, but because this ***")
-        print("*** is a delicate act, I require you to respond   ***")
-        print("*** to the prompt with the word 'yes'.            ***")
-        print()
-        response = input("Do you want me to try to check it out? ")
-        if response != "yes":
-            print()
-            print("Okay, I understand.  You can check it out yourself.")
-            print("This command will do it:")
-            print()
-            print(
-                "$ hg clone http://bitbucket.org/yt_analysis/yt-supplemental/ ", end=" "
-            )
-            print(f"{supp_path}")
-            print()
-            sys.exit(1)
-        rv = hglib.clone("http://bitbucket.org/yt_analysis/yt-supplemental/", supp_path)
-        if rv:
-            print("Something has gone wrong.  Quitting.")
-            sys.exit(1)
-    # Now we think we have our supplemental repository.
-    return supp_path
 
 
 def fix_length(length, ds):

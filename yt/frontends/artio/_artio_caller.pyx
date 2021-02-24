@@ -459,7 +459,7 @@ cdef class artio_fileset :
         if not self.has_particles: return
 
         data = {}
-        accessed_species = np.zeros( self.num_species, dtype="int")
+        accessed_species = np.zeros( self.num_species, dtype="int64")
         selected_mass = [ None for i in range(self.num_species)]
         selected_pid = [ None for i in range(self.num_species)]
         selected_species = [ None for i in range(self.num_species)]

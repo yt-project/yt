@@ -94,6 +94,7 @@ class AthenaPPFieldInfo(FieldInfoContainer):
                 function=_thermal_energy,
                 units=unit_system["specific_energy"],
             )
+
         # Add temperature field
         def _temperature(field, data):
             return (

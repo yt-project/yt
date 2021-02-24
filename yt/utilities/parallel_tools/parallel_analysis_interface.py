@@ -872,7 +872,7 @@ class Communicator:
     @parallel_passthrough
     def mpi_allreduce(self, data, dtype=None, op="sum"):
         op = op_names[op]
-        if isinstance(data, np.ndarray) and data.dtype != np.bool:
+        if isinstance(data, np.ndarray) and data.dtype != bool:
             if dtype is None:
                 dtype = data.dtype
             if dtype != data.dtype:
