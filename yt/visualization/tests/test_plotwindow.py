@@ -408,6 +408,70 @@ class TestPlotWindowSave(unittest.TestCase):
             assert_true(aun == plot._axes_unit_names)
 
 
+class TestPerFieldConfig(unittest.TestCase):
+
+    ds = None
+
+    def setUp(self):
+        from yt.config import ytcfg
+
+        newConfig = {
+            ("yt", "default_colormap"): "viridis",
+            ("gas", "log"): False,
+            ("gas", "density", "units"): "lb/yard**3",
+            ("gas", "density", "cmap"): "plasma",
+            ("gas", "temperature", "log"): True,
+            ("gas", "temperature", "linthresh"): 100,
+            ("gas", "temperature", "cmap"): "hot",
+            ("gas", "pressure", "log"): True,
+        }
+        # Backup the old config
+        oldConfig = {}
+        for key in newConfig.keys():
+            try:
+                val = ytcfg[key]
+                oldConfig[key] = val
+            except KeyError:
+                pass
+        for key, val in newConfig.items():
+            ytcfg[key] = val
+
+        self.oldConfig = oldConfig
+        self.newConfig = newConfig
+
+        fields = [("gas", "density"), ("gas", "temperature"), ("gas", "pressure")]
+        units = ["g/cm**3", "K", "dyn/cm**2"]
+        if self.ds is None:
+            self.ds = fake_random_ds(64, fields=fields, units=units)
+            self.slc = SlicePlot(self.ds, 0, fields)
+
+    def tearDown(self):
+        from yt.config import ytcfg
+
+        del self.ds
+        del self.slc
+        for key in self.newConfig.keys():
+            ytcfg.remove(*key)
+        for key, val in self.oldConfig.items():
+            ytcfg[key] = val
+
+    def test_units(self):
+        assert_true(str(self.slc.frb["gas", "density"].units) == "lb/yd**3")
+        assert_true(str(self.slc.frb["gas", "temperature"].units) == "K")
+        assert_true(str(self.slc.frb["gas", "pressure"].units) == "dyn/cm**2")
+
+    def test_scale(self):
+        assert_true(self.slc._field_transform["gas", "density"].name == "linear")
+        assert_true(self.slc._field_transform["gas", "temperature"].name == "symlog")
+        assert_true(self.slc._field_transform["gas", "temperature"].func == 100)
+        assert_true(self.slc._field_transform["gas", "pressure"].name == "log10")
+
+    def test_cmap(self):
+        assert_true(self.slc._colormap_config["gas", "density"] == "plasma")
+        assert_true(self.slc._colormap_config["gas", "temperature"] == "hot")
+        assert_true(self.slc._colormap_config["gas", "pressure"] == "viridis")
+
+
 def test_on_off_compare():
     # fake density field that varies in the x-direction only
     den = np.arange(32 ** 3) / 32 ** 2 + 1
