@@ -160,7 +160,8 @@ in ``[field_type.field_name]`` blocks. The available keys are
 * ``linthresh`` (default: None): the linear threshold for symlog plots.
 * ``units`` (defaults to the units of the field): the units to use to represent the field.
 * ``path_length_units`` (default: ``cm``): the unit of the integration length when doing
-  e.g. projections. For projections, the final units will be the product of ``units*path_length_units``.
+  e.g. projections. Note that this will only be used if ``units`` is also set for the field.
+  The final units will then be ``units*path_length_units``.
 
 You can also set defaults for all field of a given field type by omitting the field name,
 as illustrated below.
