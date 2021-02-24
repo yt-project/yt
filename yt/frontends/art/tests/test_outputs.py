@@ -33,7 +33,7 @@ def test_d9p():
     assert_equal(str(ds), "10MpcBox_HartGal_csf_a0.500.d")
     dso = [None, ("sphere", ("max", (0.1, "unitary")))]
     for field in _fields:
-        for axis in [0, 1, 2]:
+        for axis in [0, 1]:
             for dobj_name in dso:
                 for weight_field in [None, "density"]:
                     if field[0] not in ds.particle_types:
