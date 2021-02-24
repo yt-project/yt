@@ -4,6 +4,8 @@
 
 import os
 
+import numpy as np
+
 # This next item will handle most of the actual startup procedures, but it will
 # also attempt to parse the command line and set up the global state of various
 # operations.  The variable unparsed_args is not used internally but is
