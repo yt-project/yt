@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 
-from yt.config import DEFAULT_INVALID_DIRNAME, ytcfg
+from yt.config import ytcfg
 from yt.fields.species_fields import (
     add_species_field_by_density,
     add_species_field_by_fraction,
@@ -330,7 +330,7 @@ class OWLSFieldInfo(SPHFieldInfo):
 
         # set download destination to cwd if test_data_dir is undefined
         # ----------------------------------------------
-        if data_dir == DEFAULT_INVALID_DIRNAME:
+        if not os.path.isdir(data_dir):
             data_dir = os.getcwd()
 
         # check for owls_ion_data directory in data_dir
