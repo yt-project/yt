@@ -2,9 +2,10 @@ import contextlib
 import os
 
 import numpy as np
+import requests
 
 from yt.data_objects.static_output import ParticleDataset, ParticleFile
-from yt.funcs import get_requests, setdefaultattr
+from yt.funcs import setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.sdf import HTTPSDFRead, SDFIndex, SDFRead
@@ -185,9 +186,6 @@ class SDFDataset(ParticleDataset):
     def _is_valid(cls, filename, *args, **kwargs):
         sdf_header = kwargs.get("sdf_header", filename)
         if sdf_header.startswith("http"):
-            requests = get_requests()
-            if requests is None:
-                return False
             hreq = requests.get(sdf_header, stream=True)
             if hreq.status_code != 200:
                 return False

@@ -25,6 +25,7 @@ from numbers import Number as numeric_type
 
 import matplotlib
 import numpy as np
+import requests
 from more_itertools import always_iterable, collapse, first
 from tqdm import tqdm
 
@@ -644,14 +645,6 @@ def get_script_contents():
 
 
 def download_file(url, filename):
-    requests = get_requests()
-    if requests is None:
-        return simple_download_file(url, filename)
-    else:
-        return fancy_download_file(url, filename, requests)
-
-
-def fancy_download_file(url, filename, requests=None):
     response = requests.get(url, stream=True)
     total_length = response.headers.get("content-length")
 
@@ -674,16 +667,15 @@ def fancy_download_file(url, filename, requests=None):
     return filename
 
 
-def simple_download_file(url, filename):
-    class MyURLopener(urllib.request.FancyURLopener):
-        def http_error_default(self, url, fp, errcode, errmsg, headers):
-            raise RuntimeError(
-                "Attempt to download file from %s failed with error %s: %s."
-                % (url, errcode, errmsg)
-            )
+def fancy_download_file(url, filename):
+    from yt._maintenance.deprecation import issue_deprecation_warning
 
-    fn, h = MyURLopener().retrieve(url, filename)
-    return fn
+    issue_deprecation_warning(
+        "`yt.funcs.fancy_downwload_file` is now an alias of `yt.funcs.download_file`.",
+        since="4.0.0",
+        removal="4.1.0",
+    )
+    return download_file(url, filename)
 
 
 # This code snippet is modified from Georg Brandl
@@ -1080,14 +1072,6 @@ def get_brewer_cmap(cmap):
     else:
         raise RuntimeError("Please install palettable to use colorbrewer colormaps")
     return bmap.get_mpl_colormap(N=cmap[2])
-
-
-def get_requests():
-    try:
-        import requests
-    except ImportError:
-        requests = None
-    return requests
 
 
 @contextlib.contextmanager

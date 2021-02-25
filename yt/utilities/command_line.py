@@ -13,6 +13,7 @@ import urllib.request
 from urllib.parse import urlparse
 
 import numpy as np
+import requests
 from more_itertools import always_iterable
 from tqdm import tqdm
 
@@ -802,10 +803,6 @@ class YTHubRegisterCmd(YTCommand):
         """
 
     def __call__(self, args):
-        try:
-            import requests
-        except ImportError as e:
-            raise YTCommandRequiresModule("requests") from e
         hub_api_key, config_file = ytcfg.get(
             "yt",
             "hub_api_key",
@@ -1617,11 +1614,6 @@ class YTUploadFileCmd(YTCommand):
     name = "upload"
 
     def __call__(self, args):
-        try:
-            import requests
-        except ImportError as e:
-            raise YTCommandRequiresModule("requests") from e
-
         fs = iter(FileStreamer(open(args.file, "rb")))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")
         r = requests.put(upload_url + "/" + os.path.basename(args.file), data=fs)

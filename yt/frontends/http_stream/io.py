@@ -1,6 +1,7 @@
 import numpy as np
+import requests
 
-from yt.funcs import get_requests, mylog
+from yt.funcs import mylog
 from yt.utilities.io_handler import BaseIOHandler
 
 
@@ -9,8 +10,6 @@ class IOHandlerHTTPStream(BaseIOHandler):
     _vector_fields = ("Coordinates", "Velocity", "Velocities")
 
     def __init__(self, ds):
-        if get_requests() is None:
-            raise ImportError("This functionality depends on the requests package")
         self._url = ds.base_url
         # This should eventually manage the IO and cache it
         self.total_bytes = 0
@@ -21,7 +20,6 @@ class IOHandlerHTTPStream(BaseIOHandler):
         ftype, fname = field
         s = f"{self._url}/{data_file.file_id}/{ftype}/{fname}"
         mylog.info("Loading URL %s", s)
-        requests = get_requests()
         resp = requests.get(s)
         if resp.status_code != 200:
             raise RuntimeError

@@ -2,10 +2,10 @@ import json
 import time
 
 import numpy as np
+import requests
 
 from yt.data_objects.static_output import ParticleDataset, ParticleFile
 from yt.frontends.sph.fields import SPHFieldInfo
-from yt.funcs import get_requests
 from yt.geometry.particle_geometry_handler import ParticleIndex
 
 
@@ -30,8 +30,6 @@ class HTTPStreamDataset(ParticleDataset):
         index_order=None,
         index_filename=None,
     ):
-        if get_requests() is None:
-            raise ImportError("This functionality depends on the requests package")
         self.base_url = base_url
         super().__init__(
             "",
@@ -50,7 +48,6 @@ class HTTPStreamDataset(ParticleDataset):
         self.parameters["HydroMethod"] = "sph"
 
         # Here's where we're going to grab the JSON index file
-        requests = get_requests()
         hreq = requests.get(self.base_url + "/yt_index.json")
         if hreq.status_code != 200:
             raise RuntimeError
@@ -97,9 +94,7 @@ class HTTPStreamDataset(ParticleDataset):
     def _is_valid(cls, filename, *args, **kwargs):
         if not filename.startswith("http://"):
             return False
-        requests = get_requests()
-        if requests is None:
-            return False
+
         hreq = requests.get(filename + "/yt_index.json")
         if hreq.status_code == 200:
             return True

@@ -8,6 +8,7 @@ from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
+import requests
 from tqdm import tqdm
 
 from yt.config import ytcfg
@@ -2559,8 +2560,6 @@ class YTSurface(YTSelectionContainer3D):
 
     @parallel_root_only
     def _upload_to_sketchfab(self, data, files):
-        import requests
-
         SKETCHFAB_DOMAIN = "sketchfab.com"
         SKETCHFAB_API_URL = f"https://api.{SKETCHFAB_DOMAIN}/v2/models"
         SKETCHFAB_MODEL_URL = f"https://{SKETCHFAB_DOMAIN}/models/"
