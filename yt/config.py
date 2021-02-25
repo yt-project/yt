@@ -7,6 +7,8 @@ from more_itertools import always_iterable
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.utilities.configuration_tree import ConfigLeaf, ConfigNode
 
+DEFAULT_INVALID_DIRNAME = r"/0<>?*:|/\_impossible_directory_name"
+
 ytcfg_defaults = {}
 
 ytcfg_defaults["yt"] = dict(
@@ -28,8 +30,8 @@ ytcfg_defaults["yt"] = dict(
     parallel_traceback=False,
     pasteboard_repo="",
     reconstruct_index=True,
-    test_storage_dir=r"/0<>?*:|/\_impossible_directory_name",
-    test_data_dir=r"/0<>?*:|/\_impossible_directory_name",
+    test_storage_dir=DEFAULT_INVALID_DIRNAME,
+    test_data_dir=DEFAULT_INVALID_DIRNAME,
     enzo_db="",
     hub_url="https://girder.hub.yt/api/v1",
     hub_api_key="",
@@ -48,8 +50,8 @@ ytcfg_defaults["yt"] = dict(
     thread_field_detection=False,
     ignore_invalid_unit_operation_errors=False,
     chunk_size=1000,
-    xray_data_dir=r"/0<>?*:|/\_impossible_directory_name",
-    supp_data_dir=r"/0<>?*:|/\_impossible_directory_name",
+    xray_data_dir=DEFAULT_INVALID_DIRNAME,
+    supp_data_dir=DEFAULT_INVALID_DIRNAME,
     default_colormap="arbre",
     ray_tracing_engine="embree",
     internals=dict(

@@ -16,7 +16,7 @@ import numpy as np
 from more_itertools import always_iterable
 from tqdm import tqdm
 
-from yt.config import YTConfig, ytcfg
+from yt.config import DEFAULT_INVALID_DIRNAME, YTConfig, ytcfg
 from yt.funcs import (
     download_file,
     enable_plugins,
@@ -1911,7 +1911,7 @@ class YTDownloadData(YTCommand):
         data_url = f"http://yt-project.org/data/{args.filename}"
         if args.location in ["test_data_dir", "supp_data_dir"]:
             data_dir = ytcfg.get("yt", args.location)
-            if data_dir == r"/0<>?*:|/\_impossible_directory_name":
+            if data_dir == DEFAULT_INVALID_DIRNAME:
                 raise RuntimeError(f"'{args.location}' is not configured!")
         else:
             data_dir = args.location
