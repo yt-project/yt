@@ -93,7 +93,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
 
                     pn = _particle_position_names.get(ptype,
                             r"particle_position_%s")
-                    x, y, z = (np.asarray(pds.get(pn % ax).[()], dtype="=f8")
+                    x, y, z = (np.asarray(pds.get(pn % ax)[()], dtype="=f8")
                                for ax in 'xyz')
 
                     if selector is None:
