@@ -599,9 +599,9 @@ class TestBadProfiles(unittest.TestCase):
         cell_mass = np.random.random((128, 128))
 
         my_data = {
-            "density": density,
-            "temperature": temperature,
-            "cell_mass": cell_mass,
+            ("gas", "density"): density,
+            ("gas", "temperature"): temperature,
+            ("gas", "cell_mass"): cell_mass,
         }
         fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
         yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data)
@@ -624,9 +624,9 @@ class TestBadProfiles(unittest.TestCase):
         cell_mass = np.random.random((128, 128))
 
         my_data = {
-            "density": density,
-            "temperature": temperature,
-            "cell_mass": cell_mass,
+            ("gas", "density"): density,
+            ("gas", "temperature"): temperature,
+            ("gas", "cell_mass"): cell_mass,
         }
         fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
         yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data)

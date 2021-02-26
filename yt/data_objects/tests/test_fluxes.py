@@ -30,7 +30,7 @@ def test_sampling():
     ds = fake_random_ds(64, nprocs=4)
     dd = ds.all_data()
     for i, ax in enumerate("xyz"):
-        surf = ds.surface(dd, ax, 0.51)
+        surf = ds.surface(dd, ("index", ax), 0.51)
         surf.get_data(ax, "vertex")
         assert_equal(surf.vertex_samples[ax], surf.vertices[i, :])
         assert_equal(str(surf.vertices.units), "code_length")

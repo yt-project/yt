@@ -18,8 +18,8 @@ def test_point_creation():
 
     # ensure all three points are really at the same position
     for fname in "xyz":
-        assert_equal(p1[fname], p2[fname])
-        assert_equal(p1[fname], p3[fname])
+        assert_equal(p1["index", fname], p2["index", fname])
+        assert_equal(p1["index", fname], p3["index", fname])
 
 
 def test_domain_point():
