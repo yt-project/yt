@@ -47,7 +47,10 @@ def test_domain_sphere():
     # Set the bulk velocity field parameter
     sp1.set_field_parameter("bulk_velocity", bulk_vel)
 
-    assert_equal(np.any(sp0["radial_velocity"] == sp1["radial_velocity"]), False)
+    assert_equal(
+        np.any(sp0[("gas", "radial_velocity")] == sp1[("gas", "radial_velocity")]),
+        False,
+    )
 
     # Radial profile without correction
     # Note we set n_bins = 8 here.

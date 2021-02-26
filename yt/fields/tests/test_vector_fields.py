@@ -28,36 +28,38 @@ def compare_vector_conversions(data_source):
         data_source.set_field_parameter("bulk_velocity", bulk_velocity)
         data_source.clear_data()
 
-        vmag = data_source["velocity_magnitude"]
-        vrad = data_source["velocity_spherical_radius"]
+        vmag = data_source[("gas", "velocity_magnitude")]
+        vrad = data_source[("gas", "velocity_spherical_radius")]
 
         for normal in normals:
             data_source.set_field_parameter("normal", normal)
             data_source.clear_data()
 
-            assert_allclose_units(vrad, data_source["velocity_spherical_radius"])
+            assert_allclose_units(
+                vrad, data_source[("gas", "velocity_spherical_radius")]
+            )
 
-            vmag_new = data_source["velocity_magnitude"]
+            vmag_new = data_source[("gas", "velocity_magnitude")]
             assert_allclose_units(vmag, vmag_new)
 
             vmag_cart = np.sqrt(
                 (data_source["velocity_x"] - bulk_velocity[0]) ** 2
                 + (data_source["velocity_y"] - bulk_velocity[1]) ** 2
-                + (data_source["velocity_z"] - bulk_velocity[2]) ** 2
+                + (data_source[("gas", "velocity_z")] - bulk_velocity[2]) ** 2
             )
             assert_allclose_units(vmag, vmag_cart)
 
             vmag_cyl = np.sqrt(
                 data_source["velocity_cylindrical_radius"] ** 2
                 + data_source["velocity_cylindrical_theta"] ** 2
-                + data_source["velocity_cylindrical_z"] ** 2
+                + data_source[("gas", "velocity_cylindrical_z")] ** 2
             )
             assert_allclose_units(vmag, vmag_cyl)
 
             vmag_sph = np.sqrt(
                 data_source["velocity_spherical_radius"] ** 2
                 + data_source["velocity_spherical_theta"] ** 2
-                + data_source["velocity_spherical_phi"] ** 2
+                + data_source[("gas", "velocity_spherical_phi")] ** 2
             )
             assert_allclose_units(vmag, vmag_sph)
 
@@ -71,21 +73,24 @@ def compare_vector_conversions(data_source):
             data_source.set_field_parameter("axis", i)
             data_source.clear_data()
             assert_allclose_units(
-                data_source["velocity_los"], data_source[f"relative_velocity_{ax}"]
+                data_source[("gas", "velocity_los")],
+                data_source[f"relative_velocity_{ax}"],
             )
 
         for i, ax in enumerate("xyz"):
-            prj = data_source.ds.proj("velocity_los", i, weight_field="density")
-            assert_allclose_units(prj["velocity_los"], prj[f"velocity_{ax}"])
+            prj = data_source.ds.proj(
+                ("gas", "velocity_los"), i, weight_field=("gas", "density")
+            )
+            assert_allclose_units(prj[("gas", "velocity_los")], prj[f"velocity_{ax}"])
 
         data_source.clear_data()
         ax = [0.1, 0.2, -0.3]
         data_source.set_field_parameter("axis", ax)
         ax /= np.sqrt(np.dot(ax, ax))
-        vlos = data_source["relative_velocity_x"] * ax[0]
-        vlos += data_source["relative_velocity_y"] * ax[1]
-        vlos += data_source["relative_velocity_z"] * ax[2]
-        assert_allclose_units(data_source["velocity_los"], vlos)
+        vlos = data_source[("gas", "relative_velocity_x")] * ax[0]
+        vlos += data_source[("gas", "relative_velocity_y")] * ax[1]
+        vlos += data_source[("gas", "relative_velocity_z")] * ax[2]
+        assert_allclose_units(data_source[("gas", "velocity_los")], vlos)
 
 
 def test_vector_component_conversions_fake():

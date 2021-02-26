@@ -59,24 +59,24 @@ def test_plot_data():
     os.chdir(tmpdir)
     ds = fake_random_ds(16)
 
-    plot = SlicePlot(ds, "z", "density")
+    plot = SlicePlot(ds, ("index", "z"), ("gas", "density"))
     fn = plot.data_source.save_as_dataset("slice.h5")
     ds_slice = load(fn)
-    p = SlicePlot(ds_slice, "z", "density")
+    p = SlicePlot(ds_slice, ("index", "z"), ("gas", "density"))
     fn = p.save()
     assert_fname(fn[0])
 
     plot = ProjectionPlot(ds, "z", "density")
     fn = plot.data_source.save_as_dataset("proj.h5")
     ds_proj = load(fn)
-    p = ProjectionPlot(ds_proj, "z", "density")
+    p = ProjectionPlot(ds_proj, ("index", "z"), ("gas", "density"))
     fn = p.save()
     assert_fname(fn[0])
 
-    plot = SlicePlot(ds, [1, 1, 1], "density")
+    plot = SlicePlot(ds, [1, 1, 1], ("gas", "density"))
     fn = plot.data_source.save_as_dataset("oas.h5")
     ds_oas = load(fn)
-    p = SlicePlot(ds_oas, [1, 1, 1], "density")
+    p = SlicePlot(ds_oas, [1, 1, 1], ("gas", "density"))
     fn = p.save()
     assert_fname(fn[0])
 
@@ -109,20 +109,22 @@ def test_non_square_frb():
     height = ds.domain_right_edge[yax] - ds.domain_left_edge[yax]  # = 9 code_length
     frb = slc.to_frb(width=width, height=height, resolution=res, center=center)
     fname = "test_frb_roundtrip.h5"
-    frb.save_as_dataset(fname, fields=["density"])
+    frb.save_as_dataset(fname, fields=[("gas", "density")])
 
     expected_vals = arr[:, :, 5].T
     print(
         "\nConfirmation that initial frb results are expected:",
-        (expected_vals == frb["density"].v).all(),
+        (expected_vals == frb[("gas", "density")].v).all(),
         "\n",
     )
 
     # yt-reload:
     reloaded_ds = load(fname)
 
-    assert_array_equal(frb["density"].shape, reloaded_ds.data["density"].shape)
-    assert_array_equal(frb["density"], reloaded_ds.data["density"])
+    assert_array_equal(
+        frb[("grid", "density")].shape, reloaded_ds.data[("grid", "density")].shape
+    )
+    assert_array_equal(frb[("grid", "density")], reloaded_ds.data[("grid", "density")])
 
     os.chdir(curdir)
     if tmpdir != ".":

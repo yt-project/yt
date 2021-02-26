@@ -68,13 +68,13 @@ def test_timestamp_callback():
         ax = "z"
         vector = [1.0, 1.0, 1.0]
         ds = fake_amr_ds(fields=("density",))
-        p = ProjectionPlot(ds, ax, "density")
+        p = ProjectionPlot(ds, ax, ("gas", "density"))
         p.annotate_timestamp()
         assert_fname(p.save(prefix)[0])
-        p = SlicePlot(ds, ax, "density")
+        p = SlicePlot(ds, ax, ("gas", "density"))
         p.annotate_timestamp()
         assert_fname(p.save(prefix)[0])
-        p = OffAxisSlicePlot(ds, vector, "density")
+        p = OffAxisSlicePlot(ds, vector, ("gas", "density"))
         p.annotate_timestamp()
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
@@ -97,19 +97,19 @@ def test_scale_callback():
         ax = "z"
         vector = [1.0, 1.0, 1.0]
         ds = fake_amr_ds(fields=("density",))
-        p = ProjectionPlot(ds, ax, "density")
+        p = ProjectionPlot(ds, ax, ("gas", "density"))
         p.annotate_scale()
         assert_fname(p.save(prefix)[0])
-        p = ProjectionPlot(ds, ax, "density", width=(0.5, 1.0))
+        p = ProjectionPlot(ds, ax, ("gas", "density"), width=(0.5, 1.0))
         p.annotate_scale()
         assert_fname(p.save(prefix)[0])
-        p = ProjectionPlot(ds, ax, "density", width=(1.0, 1.5))
+        p = ProjectionPlot(ds, ax, ("gas", "density"), width=(1.0, 1.5))
         p.annotate_scale()
         assert_fname(p.save(prefix)[0])
-        p = SlicePlot(ds, ax, "density")
+        p = SlicePlot(ds, ax, ("gas", "density"))
         p.annotate_scale()
         assert_fname(p.save(prefix)[0])
-        p = OffAxisSlicePlot(ds, vector, "density")
+        p = OffAxisSlicePlot(ds, vector, ("gas", "density"))
         p.annotate_scale()
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
@@ -138,13 +138,13 @@ def test_line_callback():
         ax = "z"
         vector = [1.0, 1.0, 1.0]
         ds = fake_amr_ds(fields=("density",))
-        p = ProjectionPlot(ds, ax, "density")
+        p = ProjectionPlot(ds, ax, ("gas", "density"))
         p.annotate_line([0.1, 0.1, 0.1], [0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
-        p = SlicePlot(ds, ax, "density")
+        p = SlicePlot(ds, ax, ("gas", "density"))
         p.annotate_line([0.1, 0.1, 0.1], [0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
-        p = OffAxisSlicePlot(ds, vector, "density")
+        p = OffAxisSlicePlot(ds, vector, ("gas", "density"))
         p.annotate_line([0.1, 0.1, 0.1], [0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
@@ -171,15 +171,15 @@ def test_ray_callback():
         ds = fake_amr_ds(fields=("density",))
         ray = ds.ray((0.1, 0.2, 0.3), (0.6, 0.8, 0.5))
         oray = ds.ortho_ray(0, (0.3, 0.4))
-        p = ProjectionPlot(ds, ax, "density")
+        p = ProjectionPlot(ds, ax, ("gas", "density"))
         p.annotate_ray(oray)
         p.annotate_ray(ray)
         assert_fname(p.save(prefix)[0])
-        p = SlicePlot(ds, ax, "density")
+        p = SlicePlot(ds, ax, ("gas", "density"))
         p.annotate_ray(oray)
         p.annotate_ray(ray)
         assert_fname(p.save(prefix)[0])
-        p = OffAxisSlicePlot(ds, vector, "density")
+        p = OffAxisSlicePlot(ds, vector, ("gas", "density"))
         p.annotate_ray(oray)
         p.annotate_ray(ray)
         assert_fname(p.save(prefix)[0])
@@ -206,13 +206,13 @@ def test_arrow_callback():
         ax = "z"
         vector = [1.0, 1.0, 1.0]
         ds = fake_amr_ds(fields=("density",))
-        p = ProjectionPlot(ds, ax, "density")
+        p = ProjectionPlot(ds, ax, ("gas", "density"))
         p.annotate_arrow([0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
-        p = SlicePlot(ds, ax, "density")
+        p = SlicePlot(ds, ax, ("gas", "density"))
         p.annotate_arrow([0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
-        p = OffAxisSlicePlot(ds, vector, "density")
+        p = OffAxisSlicePlot(ds, vector, ("gas", "density"))
         p.annotate_arrow([0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
@@ -252,13 +252,13 @@ def test_marker_callback():
         ax = "z"
         vector = [1.0, 1.0, 1.0]
         ds = fake_amr_ds(fields=("density",))
-        p = ProjectionPlot(ds, ax, "density")
+        p = ProjectionPlot(ds, ax, ("gas", "density"))
         p.annotate_marker([0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
-        p = SlicePlot(ds, ax, "density")
+        p = SlicePlot(ds, ax, ("gas", "density"))
         p.annotate_marker([0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
-        p = OffAxisSlicePlot(ds, vector, "density")
+        p = OffAxisSlicePlot(ds, vector, ("gas", "density"))
         p.annotate_marker([0.5, 0.5, 0.5])
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
@@ -290,10 +290,10 @@ def test_particles_callback():
     with _cleanup_fname() as prefix:
         ax = "z"
         ds = fake_amr_ds(fields=("density",), particles=1)
-        p = ProjectionPlot(ds, ax, "density")
+        p = ProjectionPlot(ds, ax, ("gas", "density"))
         p.annotate_particles((10, "Mpc"))
         assert_fname(p.save(prefix)[0])
-        p = SlicePlot(ds, ax, "density")
+        p = SlicePlot(ds, ax, ("gas", "density"))
         p.annotate_particles((10, "Mpc"))
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
@@ -323,13 +323,13 @@ def test_sphere_callback():
         ax = "z"
         vector = [1.0, 1.0, 1.0]
         ds = fake_amr_ds(fields=("density",))
-        p = ProjectionPlot(ds, ax, "density")
+        p = ProjectionPlot(ds, ax, ("gas", "density"))
         p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
         assert_fname(p.save(prefix)[0])
-        p = SlicePlot(ds, ax, "density")
+        p = SlicePlot(ds, ax, ("gas", "density"))
         p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
         assert_fname(p.save(prefix)[0])
-        p = OffAxisSlicePlot(ds, vector, "density")
+        p = OffAxisSlicePlot(ds, vector, ("gas", "density"))
         p.annotate_sphere([0.5, 0.5, 0.5], 0.1)
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
@@ -352,13 +352,13 @@ def test_text_callback():
         ax = "z"
         vector = [1.0, 1.0, 1.0]
         ds = fake_amr_ds(fields=("density",))
-        p = ProjectionPlot(ds, ax, "density")
+        p = ProjectionPlot(ds, ax, ("gas", "density"))
         p.annotate_text([0.5, 0.5, 0.5], "dinosaurs!")
         assert_fname(p.save(prefix)[0])
-        p = SlicePlot(ds, ax, "density")
+        p = SlicePlot(ds, ax, ("gas", "density"))
         p.annotate_text([0.5, 0.5, 0.5], "dinosaurs!")
         assert_fname(p.save(prefix)[0])
-        p = OffAxisSlicePlot(ds, vector, "density")
+        p = OffAxisSlicePlot(ds, vector, ("gas", "density"))
         p.annotate_text([0.5, 0.5, 0.5], "dinosaurs!")
         assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
@@ -871,7 +871,7 @@ def test_line_integral_convolution_callback():
 def test_accepts_all_fields_decorator():
     fields = ["density", "velocity_x", "pressure", "temperature"]
     ds = fake_random_ds(16, fields=fields)
-    plot = SlicePlot(ds, "z", fields=fields)
+    plot = SlicePlot(ds, ("index", "z"), fields=fields)
 
     # mocking a class method
     plot.fake_attr = {("gas", f): "not set" for f in fields}

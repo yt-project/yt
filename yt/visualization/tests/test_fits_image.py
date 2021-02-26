@@ -31,7 +31,7 @@ def test_fits_image():
     )
     ds = fake_random_ds(64, fields=fields, units=units, nprocs=16, length_unit=100.0)
 
-    prj = ds.proj("density", 2)
+    prj = ds.proj(("gas", "density"), 2)
     prj_frb = prj.to_frb((0.5, "unitary"), 128)
 
     fid1 = prj_frb.to_fits_data(
@@ -127,7 +127,7 @@ def test_fits_image():
     assert new_fid3.wcs.wcs.ctype[1] == "DEC--TAN"
 
     buf = off_axis_projection(
-        ds, ds.domain_center, [0.1, 0.2, -0.9], 0.5, 128, "density"
+        ds, ds.domain_center, [0.1, 0.2, -0.9], 0.5, 128, ("gas", "density")
     ).swapaxes(0, 1)
     fid4 = FITSImageData(buf, fields="density", width=100.0)
     fits_oap = FITSOffAxisProjection(
@@ -155,9 +155,9 @@ def test_fits_image():
         ds.index.max_level,
         [0.25, 0.25, 0.25],
         [32, 32, 32],
-        fields=["density", "temperature"],
+        fields=[("gas", "density"), ("gas", "temperature")],
     )
-    fid5 = cvg.to_fits_data(fields=["density", "temperature"])
+    fid5 = cvg.to_fits_data(fields=[("gas", "density"), ("gas", "temperature")])
     assert fid5.dimensionality == 3
 
     fid5.update_header("density", "time", 0.1)

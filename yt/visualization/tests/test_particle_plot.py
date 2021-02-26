@@ -334,7 +334,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
     def test_particle_plot(self):
         test_ds = fake_particle_ds()
         for dim in range(3):
-            pplot = ParticleProjectionPlot(test_ds, dim, "particle_mass")
+            pplot = ParticleProjectionPlot(test_ds, dim, ("all", "particle_mass"))
             with mock.patch(
                 "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
             ), mock.patch(
@@ -350,7 +350,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         ds_region = test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3)
         for dim in range(3):
             pplot_ds = ParticleProjectionPlot(
-                test_ds, dim, "particle_mass", data_source=ds_region
+                test_ds, dim, ("all", "particle_mass"), data_source=ds_region
             )
             with mock.patch(
                 "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
@@ -362,7 +362,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         for center in CENTER_SPECS:
             for dim in range(3):
                 pplot_c = ParticleProjectionPlot(
-                    test_ds, dim, "particle_mass", center=center
+                    test_ds, dim, ("all", "particle_mass"), center=center
                 )
                 with mock.patch(
                     "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
@@ -374,7 +374,7 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
         for dim in range(3):
             for weight_field in WEIGHT_FIELDS:
                 pplot_wf = ParticleProjectionPlot(
-                    test_ds, dim, "particle_mass", weight_field=weight_field
+                    test_ds, dim, ("all", "particle_mass"), weight_field=weight_field
                 )
                 with mock.patch(
                     "yt.visualization._mpl_imports.FigureCanvasAgg.print_figure"
@@ -384,7 +384,9 @@ class TestParticleProjectionPlotSave(unittest.TestCase):
     def test_creation_with_width(self):
         test_ds = fake_particle_ds()
         for width, (xlim, ylim, pwidth, _aun) in WIDTH_SPECS.items():
-            plot = ParticleProjectionPlot(test_ds, 0, "particle_mass", width=width)
+            plot = ParticleProjectionPlot(
+                test_ds, 0, ("all", "particle_mass"), width=width
+            )
 
             xlim = [plot.ds.quan(el[0], el[1]) for el in xlim]
             ylim = [plot.ds.quan(el[0], el[1]) for el in ylim]

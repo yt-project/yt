@@ -151,7 +151,7 @@ class TestNonGeoProjections(unittest.TestCase):
 
     def test_projection_setup(self):
         axis = "x"
-        self.slc = yt.SlicePlot(self.ds, axis, "Density", origin="native")
+        self.slc = yt.SlicePlot(self.ds, axis, ("gas", "density"), origin="native")
 
         assert self.ds.coordinates.data_projection[axis] is None
         assert self.ds.coordinates.data_transform[axis] is None

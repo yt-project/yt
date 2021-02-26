@@ -94,7 +94,7 @@ def test_covering_grid():
 @requires_module("xarray")
 def test_xarray_export():
     def _run_tests(cg):
-        xarr = cg.to_xarray(fields=["density", "temperature"])
+        xarr = cg.to_xarray(fields=[("gas", "density"), ("gas", "temperature")])
         assert "density" in xarr.variables
         assert "temperature" in xarr.variables
         assert "thermal_energy" not in xarr.variables
@@ -104,9 +104,9 @@ def test_xarray_export():
         assert xarr.dims["x"] == dn * ds.domain_dimensions[0]
         assert xarr.dims["y"] == dn * ds.domain_dimensions[1]
         assert xarr.dims["z"] == dn * ds.domain_dimensions[2]
-        assert_equal(xarr.x, cg["x"][:, 0, 0])
-        assert_equal(xarr.y, cg["y"][0, :, 0])
-        assert_equal(xarr.z, cg["z"][0, 0, :])
+        assert_equal(xarr.x, cg[("index", "x")][:, 0, 0])
+        assert_equal(xarr.y, cg[("index", "y")][0, :, 0])
+        assert_equal(xarr.z, cg[("index", "z")][0, 0, :])
 
     for level in [0, 1, 2]:
         ds = fake_random_ds(16, fields=["density", "temperature", "thermal_energy"])
@@ -136,21 +136,21 @@ def test_smoothed_covering_grid():
             cg = ds.smoothed_covering_grid(
                 level, [0.0, 0.0, 0.0], dn * ds.domain_dimensions
             )
-            assert_equal(cg["ones"].max(), 1.0)
-            assert_equal(cg["ones"].min(), 1.0)
-            assert_equal(cg["cell_volume"].sum(), ds.domain_width.prod())
+            assert_equal(cg[("index", "ones")].max(), 1.0)
+            assert_equal(cg[("index", "ones")].min(), 1.0)
+            assert_equal(cg[("index", "cell_volume")].sum(), ds.domain_width.prod())
             for g in ds.index.grids:
                 if level != g.Level:
                     continue
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions
                 for i in range(dn):
-                    f = cg["density"][
+                    f = cg[("gas", "density")][
                         dn * di[0] + i : dn * (di[0] + dd[0]) + i : dn,
                         dn * di[1] + i : dn * (di[1] + dd[1]) + i : dn,
                         dn * di[2] + i : dn * (di[2] + dd[2]) + i : dn,
                     ]
-                    assert_equal(f, g["density"])
+                    assert_equal(f, g[("gas", "density")])
 
 
 def test_arbitrary_grid():
@@ -199,7 +199,7 @@ def test_arbitrary_grid():
             ag = ds.arbitrary_grid(
                 [0.0, 0.0, 0.0], [1.0, 1.0, 1.0], 2 ** ref_level * ds.domain_dimensions
             )
-            assert_almost_equal(cg["density"], ag["density"])
+            assert_almost_equal(cg[("gas", "density")], ag[("gas", "density")])
 
 
 def test_octree_cg():
@@ -207,7 +207,7 @@ def test_octree_cg():
     cgrid = ds.covering_grid(
         0, left_edge=ds.domain_left_edge, dims=ds.domain_dimensions
     )
-    density_field = cgrid["density"]
+    density_field = cgrid[("gas", "density")]
     assert_equal((density_field == 0.0).sum(), 0)
 
 
@@ -215,7 +215,7 @@ def test_smoothed_covering_grid_2d_dataset():
     ds = fake_random_ds([32, 32, 1], nprocs=4)
     ds.force_periodicity()
     scg = ds.smoothed_covering_grid(1, [0.0, 0.0, 0.0], [32, 32, 1])
-    assert_equal(scg["density"].shape, [32, 32, 1])
+    assert_equal(scg[("gas", "density")].shape, [32, 32, 1])
 
 
 def test_arbitrary_grid_derived_field():
@@ -232,7 +232,7 @@ def test_arbitrary_grid_derived_field():
     )
 
     def _tracerf(field, data):
-        return data["Metal_Density"] / data["gas", "density"]
+        return data[("gas", "Metal_Density")] / data["gas", "density"]
 
     ds.add_field(
         ("gas", "tracerf"),
@@ -243,7 +243,7 @@ def test_arbitrary_grid_derived_field():
     )
 
     galgas = ds.arbitrary_grid([0.4, 0.4, 0.4], [0.99, 0.99, 0.99], dims=[32, 32, 32])
-    galgas["tracerf"]
+    galgas[("gas", "tracerf")]
 
 
 def test_arbitrary_field_parameters():
@@ -307,4 +307,4 @@ def test_arbitrary_grid_edge():
         assert np.array_equal(ag.right_edge, re_ans)
         assert ag.left_edge.units.registry == ds.unit_registry
         assert ag.right_edge.units.registry == ds.unit_registry
-        ag["density"]
+        ag[("gas", "density")]

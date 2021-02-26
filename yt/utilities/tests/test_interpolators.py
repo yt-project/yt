@@ -78,7 +78,9 @@ def test_ghost_zone_extrapolation():
     ds = fake_random_ds(16)
 
     g = ds.index.grids[0]
-    vec = g.get_vertex_centered_data(["x", "y", "z"], no_ghost=True)
+    vec = g.get_vertex_centered_data(
+        [("index", "x"), ("index", "y"), ("index", "z")], no_ghost=True
+    )
     for i, ax in enumerate("xyz"):
         xc = g[ax]
 
@@ -125,7 +127,7 @@ def test_get_vertex_centered_data():
     vec_list = g.get_vertex_centered_data([("gas", "density")], no_ghost=True)
     with warnings.catch_warnings(record=True) as w:
         warnings.simplefilter("always")
-        vec_str = g.get_vertex_centered_data("density", no_ghost=True)
+        vec_str = g.get_vertex_centered_data(("gas", "density"), no_ghost=True)
         assert len(w) == 1
         assert issubclass(w[-1].category, DeprecationWarning)
         assert "requires list of fields" in str(w[-1].message)

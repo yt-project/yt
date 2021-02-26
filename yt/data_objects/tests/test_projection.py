@@ -46,7 +46,7 @@ def test_projection(pf):
         uc = [np.unique(c) for c in coords]
         # test if projections inherit the field parameters of their data sources
         dd.set_field_parameter("bulk_velocity", np.array([0, 1, 2]))
-        proj = ds.proj("density", 0, data_source=dd)
+        proj = ds.proj(("gas", "density"), 0, data_source=dd)
         assert_equal(
             dd.field_parameters["bulk_velocity"], proj.field_parameters["bulk_velocity"]
         )
@@ -56,20 +56,27 @@ def test_projection(pf):
             xax = ds.coordinates.x_axis[ax]
             yax = ds.coordinates.y_axis[ax]
             for wf in ["density", ("gas", "density"), None]:
-                proj = ds.proj(["ones", "density"], ax, weight_field=wf)
+                proj = ds.proj(
+                    [("index", "ones"), ("gas", "density")], ax, weight_field=wf
+                )
                 if wf is None:
-                    assert_equal(proj["ones"].sum(), LENGTH_UNIT * proj["ones"].size)
-                    assert_equal(proj["ones"].min(), LENGTH_UNIT)
-                    assert_equal(proj["ones"].max(), LENGTH_UNIT)
+                    assert_equal(
+                        proj[("index", "ones")].sum(),
+                        LENGTH_UNIT * proj[("index", "ones")].size,
+                    )
+                    assert_equal(proj[("index", "ones")].min(), LENGTH_UNIT)
+                    assert_equal(proj[("index", "ones")].max(), LENGTH_UNIT)
                 else:
-                    assert_equal(proj["ones"].sum(), proj["ones"].size)
-                    assert_equal(proj["ones"].min(), 1.0)
-                    assert_equal(proj["ones"].max(), 1.0)
+                    assert_equal(
+                        proj[("index", "ones")].sum(), proj[("index", "ones")].size
+                    )
+                    assert_equal(proj[("index", "ones")].min(), 1.0)
+                    assert_equal(proj[("index", "ones")].max(), 1.0)
                 assert_equal(np.unique(proj["px"]), uc[xax])
                 assert_equal(np.unique(proj["py"]), uc[yax])
                 assert_equal(np.unique(proj["pdx"]), 1.0 / (dims[xax] * 2.0))
                 assert_equal(np.unique(proj["pdy"]), 1.0 / (dims[yax] * 2.0))
-                plots = [proj.to_pw(fields="density"), proj.to_pw()]
+                plots = [proj.to_pw(fields=("gas", "density")), proj.to_pw()]
                 for pw in plots:
                     for p in pw.plots.values():
                         tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
@@ -111,16 +118,16 @@ def test_projection(pf):
                         )
             # wf == None
             assert_equal(wf, None)
-            v1 = proj["density"].sum()
-            v2 = (dd["density"] * dd[f"d{an}"]).sum()
+            v1 = proj[("gas", "density")].sum()
+            v2 = (dd[("gas", "density")] * dd[f"d{an}"]).sum()
             assert_rel_equal(v1, v2.in_units(v1.units), 10)
     teardown_func(fns)
 
 
 def test_max_level():
     ds = fake_amr_ds()
-    proj = ds.proj("Density", 2, method="mip", max_level=2)
-    assert proj["grid_level"].max() == 2
+    proj = ds.proj(("gas", "density"), 2, method="mip", max_level=2)
+    assert proj[("index", "grid_level")].max() == 2
 
-    proj = ds.proj("Density", 2, method="mip")
-    assert proj["grid_level"].max() == ds.index.max_level
+    proj = ds.proj(("gas", "density"), 2, method="mip")
+    assert proj[("index", "grid_level")].max() == ds.index.max_level

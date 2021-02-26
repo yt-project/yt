@@ -384,8 +384,10 @@ class WithDensityParticleGenerator(ParticleGenerator):
 
         super().__init__(ds, num_particles, field_list, ptype=ptype)
 
-        num_cells = len(data_source["x"].flat)
-        max_mass = (data_source[density_field] * data_source["cell_volume"]).max()
+        num_cells = len(data_source[("index", "x")].flat)
+        max_mass = (
+            data_source[density_field] * data_source[("gas", "cell_volume")]
+        ).max()
         num_particles_left = num_particles
         all_x = []
         all_y = []
@@ -400,27 +402,27 @@ class WithDensityParticleGenerator(ParticleGenerator):
             idxs = np.random.random_integers(
                 low=0, high=num_cells - 1, size=num_particles_left
             )
-            m_true = (data_source[density_field] * data_source["cell_volume"]).flat[
-                idxs
-            ]
+            m_true = (
+                data_source[density_field] * data_source[("gas", "cell_volume")]
+            ).flat[idxs]
             accept = m <= m_true
             num_accepted = accept.sum()
             accepted_idxs = idxs[accept]
 
             xpos = (
-                data_source["x"].flat[accepted_idxs]
+                data_source[("index", "x")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source["dx"].flat[accepted_idxs]
+                * data_source[("gas", "dx")].flat[accepted_idxs]
             )
             ypos = (
-                data_source["y"].flat[accepted_idxs]
+                data_source[("index", "y")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source["dy"].flat[accepted_idxs]
+                * data_source[("index", "dy")].flat[accepted_idxs]
             )
             zpos = (
-                data_source["z"].flat[accepted_idxs]
+                data_source[("index", "z")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source["dz"].flat[accepted_idxs]
+                * data_source[("index", "dz")].flat[accepted_idxs]
             )
 
             all_x.append(xpos)

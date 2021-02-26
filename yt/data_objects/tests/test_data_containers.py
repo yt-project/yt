@@ -43,14 +43,14 @@ class TestDataContainers(unittest.TestCase):
 
         # Test if field_data key exists
         ds = fake_random_ds(5)
-        proj = ds.proj("density", 0, data_source=ds.all_data())
+        proj = ds.proj(("gas", "density"), 0, data_source=ds.all_data())
         assert_equal("px" in proj.keys(), True)
         assert_equal("pz" in proj.keys(), False)
 
         # Delete the key and check if exits
         del proj["px"]
         assert_equal("px" in proj.keys(), False)
-        del proj["density"]
+        del proj[("gas", "density")]
         assert_equal("density" in proj.keys(), False)
 
         # Delete a non-existent field
@@ -63,7 +63,7 @@ class TestDataContainers(unittest.TestCase):
         filename = "sphere.txt"
         ds = fake_random_ds(16)
         sp = ds.sphere(ds.domain_center, 0.25)
-        sp.write_out(filename, fields=["cell_volume"])
+        sp.write_out(filename, fields=[("gas", "cell_volume")])
 
         with open(filename) as file:
             file_row_1 = file.readline()
@@ -101,14 +101,19 @@ class TestDataContainers(unittest.TestCase):
 
     def test_std(self):
         ds = fake_random_ds(3)
-        ds.all_data().std("density", weight="velocity_z")
+        ds.all_data().std(("gas", "density"), weight=("gas", "velocity_z"))
 
     def test_to_frb(self):
         # Test cylindrical geometry
         fields = ["density", "cell_mass"]
         ds = fake_amr_ds(fields=fields, geometry="cylindrical", particles=16 ** 3)
         dd = ds.all_data()
-        proj = ds.proj("density", weight_field="cell_mass", axis=1, data_source=dd)
+        proj = ds.proj(
+            ("gas", "density"),
+            weight_field=("gas", "cell_mass"),
+            axis=1,
+            data_source=dd,
+        )
         frb = proj.to_frb((1.0, "unitary"), 64)
         assert_equal(frb.radius, (1.0, "unitary"))
         assert_equal(frb.buff_size, 64)
@@ -118,15 +123,22 @@ class TestDataContainers(unittest.TestCase):
         ds = fake_amr_ds(fields=["density", "cell_mass"], particles=16 ** 3)
         dd = ds.all_data()
         q = dd.quantities["WeightedAverageQuantity"]
-        rho = q("density", weight="cell_mass")
-        dd.extract_isocontours("density", rho, "triangles.obj", True)
-        dd.calculate_isocontour_flux("density", rho, "x", "y", "z", "dx")
+        rho = q(("gas", "density"), weight=("gas", "cell_mass"))
+        dd.extract_isocontours(("gas", "density"), rho, "triangles.obj", True)
+        dd.calculate_isocontour_flux(
+            ("gas", "density"),
+            rho,
+            ("index", "x"),
+            ("index", "y"),
+            ("index", "z"),
+            ("index", "dx"),
+        )
 
         # Test error in case of ParticleData
         ds = fake_particle_ds()
         dd = ds.all_data()
         q = dd.quantities["WeightedAverageQuantity"]
-        rho = q("particle_velocity_x", weight="particle_mass")
+        rho = q(("all", "particle_velocity_x"), weight=("all", "particle_mass"))
         with assert_raises(NotImplementedError):
             dd.extract_isocontours("density", rho, sample_values="x")
 

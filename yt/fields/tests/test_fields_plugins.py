@@ -82,7 +82,7 @@ class TestPluginFile(unittest.TestCase):
 
         ds = fake_random_ds(16)
         dd = ds.all_data()
-        self.assertEqual(str(dd["random"].units), "dimensionless")
-        self.assertEqual(dd["random"].shape, dd["density"].shape)
+        self.assertEqual(str(dd[("gas", "random")].units), "dimensionless")
+        self.assertEqual(dd[("gas", "random")].shape, dd[("gas", "density")].shape)
         assert yt.myfunc() == 12
         assert_raises(AttributeError, getattr, yt, "foobar")

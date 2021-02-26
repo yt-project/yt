@@ -44,14 +44,14 @@ def test_slice(pf):
             yax = ds.coordinates.y_axis[ax]
             slc = ds.slice(ax, slc_pos)
             shifted_slc = ds.slice(ax, slc_pos + grid_eps)
-            assert_equal(slc["ones"].sum(), slc["ones"].size)
-            assert_equal(slc["ones"].min(), 1.0)
-            assert_equal(slc["ones"].max(), 1.0)
+            assert_equal(slc[("index", "ones")].sum(), slc[("index", "ones")].size)
+            assert_equal(slc[("index", "ones")].min(), 1.0)
+            assert_equal(slc[("index", "ones")].max(), 1.0)
             assert_equal(np.unique(slc["px"]), uc[xax])
             assert_equal(np.unique(slc["py"]), uc[yax])
             assert_equal(np.unique(slc["pdx"]), 0.5 / dims[xax])
             assert_equal(np.unique(slc["pdy"]), 0.5 / dims[yax])
-            pw = slc.to_pw(fields="density")
+            pw = slc.to_pw(fields=("gas", "density"))
             for p in pw.plots.values():
                 tmpfd, tmpname = tempfile.mkstemp(suffix=".png")
                 os.close(tmpfd)
@@ -77,13 +77,13 @@ def test_slice(pf):
 def test_slice_over_edges():
     ds = fake_random_ds(64, nprocs=8, fields=["density"], negative=[False])
     slc = ds.slice(0, 0.0)
-    slc["density"]
+    slc[("gas", "density")]
     slc = ds.slice(1, 0.5)
-    slc["density"]
+    slc[("gas", "density")]
 
 
 def test_slice_over_outer_boundary():
     ds = fake_random_ds(64, nprocs=8, fields=["density"], negative=[False])
     slc = ds.slice(2, 1.0)
-    slc["density"]
-    assert_equal(slc["density"].size, 0)
+    slc[("gas", "density")]
+    assert_equal(slc[("gas", "density")].size, 0)

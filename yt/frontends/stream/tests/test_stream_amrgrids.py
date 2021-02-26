@@ -24,7 +24,9 @@ def test_qt_overflow():
     spf = load_amr_grids(grid_data, domain_dimensions)
 
     def make_proj():
-        p = ProjectionPlot(spf, "x", ["density"], center="c", origin="native")
+        p = ProjectionPlot(
+            spf, ("index", "x"), [("gas", "density")], center="c", origin="native"
+        )
         return p
 
     assert_raises(YTIntDomainOverflow, make_proj)

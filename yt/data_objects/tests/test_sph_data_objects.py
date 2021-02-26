@@ -276,7 +276,7 @@ def test_gather_slice():
     c = np.array([1.5, 1.5, 0.5])
     width = 3.0
 
-    p = SlicePlot(ds, "z", field, center=c, width=width)
+    p = SlicePlot(ds, ("index", "z"), field, center=c, width=width)
     p.set_buff_size(3)
     buff_scatter = p.frb.data[field].d
 

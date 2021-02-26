@@ -27,18 +27,18 @@ def test_extrema():
             fields=("density", "velocity_x", "velocity_y", "velocity_z"),
         )
         for sp in [ds.sphere("c", (0.25, "unitary")), ds.r[0.5, :, :]]:
-            mi, ma = sp.quantities["Extrema"]("density")
-            assert_equal(mi, np.nanmin(sp["density"]))
-            assert_equal(ma, np.nanmax(sp["density"]))
+            mi, ma = sp.quantities["Extrema"](("gas", "density"))
+            assert_equal(mi, np.nanmin(sp[("gas", "density")]))
+            assert_equal(ma, np.nanmax(sp[("gas", "density")]))
             dd = ds.all_data()
-            mi, ma = dd.quantities["Extrema"]("density")
-            assert_equal(mi, np.nanmin(dd["density"]))
-            assert_equal(ma, np.nanmax(dd["density"]))
+            mi, ma = dd.quantities["Extrema"](("gas", "density"))
+            assert_equal(mi, np.nanmin(dd[("gas", "density")]))
+            assert_equal(ma, np.nanmax(dd[("gas", "density")]))
             sp = ds.sphere("max", (0.25, "unitary"))
-            assert_equal(np.any(np.isnan(sp["radial_velocity"])), False)
-            mi, ma = dd.quantities["Extrema"]("radial_velocity")
-            assert_equal(mi, np.nanmin(dd["radial_velocity"]))
-            assert_equal(ma, np.nanmax(dd["radial_velocity"]))
+            assert_equal(np.any(np.isnan(sp[("gas", "radial_velocity")])), False)
+            mi, ma = dd.quantities["Extrema"](("gas", "radial_velocity"))
+            assert_equal(mi, np.nanmin(dd[("gas", "radial_velocity")]))
+            assert_equal(ma, np.nanmax(dd[("gas", "radial_velocity")]))
 
 
 def test_average():
@@ -46,11 +46,17 @@ def test_average():
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
-            my_mean = ad.quantities["WeightedAverageQuantity"]("density", "ones")
-            assert_rel_equal(my_mean, ad["density"].mean(), 12)
+            my_mean = ad.quantities["WeightedAverageQuantity"](
+                ("gas", "density"), ("index", "ones")
+            )
+            assert_rel_equal(my_mean, ad[("gas", "density")].mean(), 12)
 
-            my_mean = ad.quantities["WeightedAverageQuantity"]("density", "cell_mass")
-            a_mean = (ad["density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
+            my_mean = ad.quantities["WeightedAverageQuantity"](
+                ("gas", "density"), ("gas", "cell_mass")
+            )
+            a_mean = (ad[("gas", "density")] * ad[("gas", "cell_mass")]).sum() / ad[
+                ("gas", "cell_mass")
+            ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
 
 
@@ -59,16 +65,24 @@ def test_variance():
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
-            my_std, my_mean = ad.quantities["WeightedVariance"]("density", "ones")
-            assert_rel_equal(my_mean, ad["density"].mean(), 12)
-            assert_rel_equal(my_std, ad["density"].std(), 12)
+            my_std, my_mean = ad.quantities["WeightedVariance"](
+                ("gas", "density"), ("index", "ones")
+            )
+            assert_rel_equal(my_mean, ad[("gas", "density")].mean(), 12)
+            assert_rel_equal(my_std, ad[("gas", "density")].std(), 12)
 
-            my_std, my_mean = ad.quantities["WeightedVariance"]("density", "cell_mass")
-            a_mean = (ad["density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
+            my_std, my_mean = ad.quantities["WeightedVariance"](
+                ("gas", "density"), ("gas", "cell_mass")
+            )
+            a_mean = (ad[("gas", "density")] * ad[("gas", "cell_mass")]).sum() / ad[
+                ("gas", "cell_mass")
+            ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
             a_std = np.sqrt(
-                (ad["cell_mass"] * (ad["density"] - a_mean) ** 2).sum()
-                / ad["cell_mass"].sum()
+                (
+                    ad[("gas", "cell_mass")] * (ad[("gas", "density")] - a_mean) ** 2
+                ).sum()
+                / ad[("gas", "cell_mass")].sum()
             )
             assert_rel_equal(my_std, a_std, 12)
 
@@ -80,13 +94,13 @@ def test_max_location():
 
             mv, x, y, z = ad.quantities.max_location(("gas", "density"))
 
-            assert_equal(mv, ad["density"].max())
+            assert_equal(mv, ad[("gas", "density")].max())
 
-            mi = np.argmax(ad["density"])
+            mi = np.argmax(ad[("gas", "density")])
 
-            assert_equal(ad["x"][mi], x)
-            assert_equal(ad["y"][mi], y)
-            assert_equal(ad["z"][mi], z)
+            assert_equal(ad[("index", "x")][mi], x)
+            assert_equal(ad[("index", "y")][mi], y)
+            assert_equal(ad[("index", "z")][mi], z)
 
 
 def test_min_location():
@@ -96,13 +110,13 @@ def test_min_location():
 
             mv, x, y, z = ad.quantities.min_location(("gas", "density"))
 
-            assert_equal(mv, ad["density"].min())
+            assert_equal(mv, ad[("gas", "density")].min())
 
-            mi = np.argmin(ad["density"])
+            mi = np.argmin(ad[("gas", "density")])
 
-            assert_equal(ad["x"][mi], x)
-            assert_equal(ad["y"][mi], y)
-            assert_equal(ad["z"][mi], z)
+            assert_equal(ad[("index", "x")][mi], x)
+            assert_equal(ad[("index", "y")][mi], y)
+            assert_equal(ad[("index", "z")][mi], z)
 
 
 def test_sample_at_min_field_values():
@@ -113,15 +127,15 @@ def test_sample_at_min_field_values():
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             mv, temp, vm = ad.quantities.sample_at_min_field_values(
-                "density", ["temperature", "velocity_x"]
+                ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")]
             )
 
-            assert_equal(mv, ad["density"].min())
+            assert_equal(mv, ad[("gas", "density")].min())
 
-            mi = np.argmin(ad["density"])
+            mi = np.argmin(ad[("gas", "density")])
 
-            assert_equal(ad["temperature"][mi], temp)
-            assert_equal(ad["velocity_x"][mi], vm)
+            assert_equal(ad[("gas", "temperature")][mi], temp)
+            assert_equal(ad[("gas", "velocity_x")][mi], vm)
 
 
 def test_sample_at_max_field_values():
@@ -132,15 +146,15 @@ def test_sample_at_max_field_values():
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             mv, temp, vm = ad.quantities.sample_at_max_field_values(
-                "density", ["temperature", "velocity_x"]
+                ("gas", "density"), [("gas", "temperature"), ("gas", "velocity_x")]
             )
 
-            assert_equal(mv, ad["density"].max())
+            assert_equal(mv, ad[("gas", "density")].max())
 
-            mi = np.argmax(ad["density"])
+            mi = np.argmax(ad[("gas", "density")])
 
-            assert_equal(ad["temperature"][mi], temp)
-            assert_equal(ad["velocity_x"][mi], vm)
+            assert_equal(ad[("gas", "temperature")][mi], temp)
+            assert_equal(ad[("gas", "velocity_x")][mi], vm)
 
 
 def test_in_memory_sph_derived_quantities():
@@ -156,7 +170,7 @@ def test_in_memory_sph_derived_quantities():
     com = ad.quantities.center_of_mass()
     assert_equal(com, [1 / 7, (1 + 2) / 7, (1 + 2 + 3) / 7])
 
-    ex = ad.quantities.extrema(["x", "y", "z"])
+    ex = ad.quantities.extrema([("io", "x"), ("io", "y"), ("io", "z")])
     for fex, ans in zip(ex, [[0, 1], [0, 2], [0, 3]]):
         assert_equal(fex, ans)
 
@@ -173,7 +187,7 @@ def test_in_memory_sph_derived_quantities():
     tot_m = ad.quantities.total_mass()
     assert_equal(tot_m, [7, 0])
 
-    weighted_av_z = ad.quantities.weighted_average_quantity("z", "z")
+    weighted_av_z = ad.quantities.weighted_average_quantity(("io", "z"), ("io", "z"))
     assert_equal(weighted_av_z, 7 / 3)
 
 
@@ -204,7 +218,7 @@ def test_derived_quantities_with_particle_types():
 
     @particle_filter(requires=["particle_position_x"], filtered_type="all")
     def low_x(pfilter, data):
-        return data["particle_position_x"].in_units("code_length") < 0.5
+        return data[("low_x", "particle_position_x")].in_units("code_length") < 0.5
 
     ds.add_particle_filter("low_x")
 

@@ -167,7 +167,7 @@ class Clump(TreeContainer):
                 [f"obj['contours_{contour_key}'] == {cid}"],
                 {(f"contour_slices_{contour_key}"): cids},
             )
-            if new_clump["ones"].size == 0:
+            if new_clump[("index", "ones")].size == 0:
                 # This is to skip possibly duplicate clumps.
                 # Using "ones" here will speed things up.
                 continue
