@@ -412,7 +412,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
             xpos = (
                 data_source[("index", "x")].flat[accepted_idxs]
                 + np.random.uniform(low=-0.5, high=0.5, size=num_accepted)
-                * data_source[("gas", "dx")].flat[accepted_idxs]
+                * data_source[("index", "dx")].flat[accepted_idxs]
             )
             ypos = (
                 data_source[("index", "y")].flat[accepted_idxs]

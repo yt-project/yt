@@ -164,5 +164,5 @@ def test_compose_max_level_min_level():
     slc = ds.slice("x", 0.5, data_source=ad)
     assert slc[("index", "grid_level")].max() == 2
     frb = slc.to_frb(1.0, 128)
-    assert np.all(frb[("gas", "density")] > 0)
+    assert np.all(frb[("stream", "Density")] > 0)
     assert frb[("index", "grid_level")].max() == 2

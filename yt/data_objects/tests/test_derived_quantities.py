@@ -218,7 +218,10 @@ def test_derived_quantities_with_particle_types():
 
     @particle_filter(requires=["particle_position_x"], filtered_type="all")
     def low_x(pfilter, data):
-        return data[("low_x", "particle_position_x")].in_units("code_length") < 0.5
+        return (
+            data[(pfilter.filtered_type, "particle_position_x")].in_units("code_length")
+            < 0.5
+        )
 
     ds.add_particle_filter("low_x")
 

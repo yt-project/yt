@@ -28,7 +28,7 @@ def test_profiles():
     nv = ds.domain_dimensions.prod()
     dd = ds.all_data()
     rt, tt, dt = dd.quantities["TotalQuantity"](
-        [("gas", "density"), ("gas", "temperature"), ("gas", "dinosaurs")]
+        [("gas", "density"), ("gas", "temperature"), ("stream", "dinosaurs")]
     )
 
     e1, e2 = 0.9, 1.1
@@ -40,7 +40,7 @@ def test_profiles():
                     [
                         ("gas", "density"),
                         ("gas", "temperature"),
-                        ("gas", "dinosaurs"),
+                        ("stream", "dinosaurs"),
                     ]
                 )
             ]
@@ -352,8 +352,8 @@ def test_mixed_particle_mesh_profiles():
         YTIllDefinedProfile,
         ProfilePlot,
         ad,
-        "particle_radius",
-        "particle_mass",
+        ("all", "particle_radius"),
+        ("all", "particle_mass"),
         ("gas", "cell_mass"),
     )
     assert_raises(
@@ -371,15 +371,15 @@ def test_mixed_particle_mesh_profiles():
         ad,
         ("index", "radius"),
         ("all", "particle_mass"),
-        ("gas", "velocity_x"),
+        "velocity_x",  # FIXME: cannot replace by `("gas", "...")`
     )
     assert_raises(
         YTIllDefinedProfile,
         PhasePlot,
         ad,
-        "particle_radius",
-        "particle_mass",
-        ("gas", "cell_mass"),
+        ("all", "particle_radius"),
+        ("all", "particle_mass"),
+        "cell_mass",  # FIXME: cannot replace by `("gas", "...")`
     )
     assert_raises(
         YTIllDefinedProfile,
@@ -387,15 +387,15 @@ def test_mixed_particle_mesh_profiles():
         ad,
         ("index", "radius"),
         ("gas", "cell_mass"),
-        ("all", "particle_ones"),
+        [("all", "particle_ones")],
     )
     assert_raises(
         YTIllDefinedProfile,
         PhasePlot,
         ad,
-        "particle_radius",
-        "particle_mass",
-        ("all", "particle_ones"),
+        ("all", "particle_radius"),
+        ("all", "particle_mass"),
+        [("all", "particle_ones")],
     )
 
 
@@ -556,7 +556,7 @@ def test_profile_override_limits():
         [("gas", "temperature")],
         override_bins={
             ("gas", "density"): (obins, "g/cm**3"),
-            ("gas", "dinosaurs"): obins,
+            ("stream", "dinosaurs"): obins,
         },
     )
     assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
@@ -564,12 +564,12 @@ def test_profile_override_limits():
 
     profile = yt.create_profile(
         sp,
-        [("gas", "density"), ("gas", "dinosaurs"), ("gas", "tribbles")],
+        [("gas", "density"), (("stream", "dinosaurs")), ("stream", "tribbles")],
         [("gas", "temperature")],
         override_bins={
             ("gas", "density"): (obins, "g/cm**3"),
-            ("gas", "dinosaurs"): obins,
-            ("gas", "tribbles"): (obins, "erg"),
+            (("stream", "dinosaurs")): obins,
+            ("stream", "tribbles"): (obins, "erg"),
         },
     )
     assert_equal(ds.arr(obins, "g/cm**3"), profile.x_bins)
@@ -614,7 +614,7 @@ class TestBadProfiles(unittest.TestCase):
             ds.data,
             "temperature",
             "density",
-            ("data", "cell_mass"),
+            "cell_mass",  # FIXME: does not work with `("gas", "cell_mass")`
         )
 
     @requires_module("h5py")
@@ -639,7 +639,7 @@ class TestBadProfiles(unittest.TestCase):
             ds.data,
             "temperature",
             "density",
-            ("data", "cell_mass"),
+            "cell_mass",  # FIXME: does not work with `("gas", "cell_mass")`
         )
 
 
@@ -678,20 +678,17 @@ def test_export_astropy():
     assert "density" in at1.colnames
     assert "velocity_x" in at1.colnames
     assert_equal(prof.x.d, at1["radius"].value)
-    assert_equal(prof[("gas", "density")].d, at1[("gas", "density")].value)
+    assert_equal(prof[("gas", "density")].d, at1["density"].value)
     assert_equal(prof["velocity_x"].d, at1["velocity_x"].value)
     assert prof.x.units == YTArray.from_astropy(at1["radius"]).units
-    assert (
-        prof[("gas", "density")].units
-        == YTArray.from_astropy(at1[("gas", "density")]).units
-    )
+    assert prof[("gas", "density")].units == YTArray.from_astropy(at1["density"]).units
     assert prof["velocity_x"].units == YTArray.from_astropy(at1["velocity_x"]).units
-    assert np.all(at1.mask[("gas", "density")] == prof.used)
+    assert np.all(at1.mask["density"] == prof.used)
     at2 = prof.to_astropy_table(fields=("gas", "density"), only_used=True)
     assert "radius" in at2.colnames
     assert "velocity_x" not in at2.colnames
     assert_equal(prof.x.d[prof.used], at2["radius"].value)
-    assert_equal(prof[("gas", "density")].d[prof.used], at2[("gas", "density")].value)
+    assert_equal(prof[("gas", "density")].d[prof.used], at2["density"].value)
 
 
 @requires_module("pandas")
@@ -710,10 +707,10 @@ def test_export_pandas():
     assert "density" in df1.columns
     assert "velocity_x" in df1.columns
     assert_equal(prof.x.d, df1["radius"])
-    assert_equal(prof[("gas", "density")].d, np.nan_to_num(df1[("gas", "density")]))
+    assert_equal(prof[("gas", "density")].d, np.nan_to_num(df1["density"]))
     assert_equal(prof["velocity_x"].d, np.nan_to_num(df1["velocity_x"]))
     df2 = prof.to_dataframe(fields=("gas", "density"), only_used=True)
     assert "radius" in df2.columns
     assert "velocity_x" not in df2.columns
     assert_equal(prof.x.d[prof.used], df2["radius"])
-    assert_equal(prof[("gas", "density")].d[prof.used], df2[("gas", "density")])
+    assert_equal(prof[("gas", "density")].d[prof.used], df2["density"])

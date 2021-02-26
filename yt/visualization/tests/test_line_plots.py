@@ -67,7 +67,7 @@ def test_line_buffer():
     lb = yt.LineBuffer(ds, (0, 0, 0), (1, 1, 1), 512, label="diag")
     lb[("gas", "density")]
     lb[("gas", "velocity_x")]
-    assert_equal(lb["density"].size, 512)
+    assert_equal(lb[("gas", "density")].size, 512)
     lb["density"] = 0
     assert_equal(lb["density"], 0)
     assert_equal(set(lb.keys()), {"density", "velocity_x"})

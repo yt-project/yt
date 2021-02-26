@@ -39,12 +39,12 @@ def test_cutting_plane():
             fns.append(tmpname)
         for width in [(1.0, "unitary"), 1.0, ds.quan(0.5, "code_length")]:
             frb = cut.to_frb(width, 64)
-            for cut_field in ["ones", "density"]:
+            for cut_field in [("index", "ones"), ("gas", "density")]:
                 fi = ds._get_field_info("unknown", cut_field)
                 data = frb[cut_field]
                 assert_equal(data.info["data_source"], cut.__str__())
                 assert_equal(data.info["axis"], 4)
-                assert_equal(data.info["field"], cut_field)
+                assert_equal(data.info["field"], str(cut_field))
                 assert_equal(data.units, Unit(fi.units))
                 assert_equal(data.info["xlim"], frb.bounds[:2])
                 assert_equal(data.info["ylim"], frb.bounds[2:])

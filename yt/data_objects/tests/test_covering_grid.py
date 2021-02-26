@@ -95,9 +95,9 @@ def test_covering_grid():
 def test_xarray_export():
     def _run_tests(cg):
         xarr = cg.to_xarray(fields=[("gas", "density"), ("gas", "temperature")])
-        assert "density" in xarr.variables
-        assert "temperature" in xarr.variables
-        assert "thermal_energy" not in xarr.variables
+        assert ("gas", "density") in xarr.variables
+        assert ("gas", "temperature") in xarr.variables
+        assert ("gas", "thermal_energy") not in xarr.variables
         assert "x" in xarr.coords
         assert "y" in xarr.coords
         assert "z" in xarr.coords
