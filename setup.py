@@ -133,8 +133,7 @@ if __name__ == "__main__":
                 "yt = yt.utilities.command_line:run_main",
             ],
             "nose.plugins.0.10": [
-                "answer-testing = yt.utilities.answer_testing.framework:AnswerTesting",
-                "auto-update-ambiguous-fields = yt.auto_update_ambiguous:AmbiguousResolvePlugin",
+                "answer-testing = yt.utilities.answer_testing.framework:AnswerTesting"
             ],
         },
         packages=find_packages(),

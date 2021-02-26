@@ -1,8 +1,10 @@
 import abc
 import functools
+import inspect
 import itertools
 import os
 import pickle
+import re
 import time
 import weakref
 from collections import defaultdict
@@ -37,8 +39,7 @@ from yt.units.unit_registry import UnitRegistry
 from yt.units.unit_systems import create_code_unit_system, unit_system_registry
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
-from yt.utilities.exceptions import (
-    YTAmbiguousFieldName,
+from yt.utilities.exceptions import (  # YTAmbiguousFieldName,
     YTFieldNotFound,
     YTGeometryNotSupported,
     YTIllDefinedParticleFilter,
@@ -52,6 +53,9 @@ from yt.utilities.parameter_file_storage import NoParameterShelf, ParameterFileS
 # We want to support the movie format in the future.
 # When such a thing comes to pass, I'll move all the stuff that is constant up
 # to here, and then have it instantiate EnzoDatasets as appropriate.
+
+
+diff_file = open("diff.txt", mode="w")
 
 _cached_datasets = weakref.WeakValueDictionary()
 _ds_store = ParameterFileStore()
@@ -804,7 +808,8 @@ class Dataset(abc.ABC):
     _last_freq = (None, None)
     _last_finfo = None
 
-    def _get_field_info(self, ftype, fname=None):
+    # @autoFixer
+    def _get_field_info_0(self, ftype, fname=None):
         self.index
 
         # store the original inputs in case we need to raise an error
@@ -818,10 +823,11 @@ class Dataset(abc.ABC):
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
-            if fname in self.field_info._ambiguous_field_names:
-                raise YTAmbiguousFieldName(
-                    fname, self.field_info._ambiguous_field_names[fname]
-                )
+            # if fname in self.field_info._ambiguous_field_names:
+            #     autoFixer(fname, ftype)
+            #    raise YTAmbiguousFieldName(
+            #        fname, self.field_info._ambiguous_field_namesname]
+            #    )
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
 
@@ -869,6 +875,60 @@ class Dataset(abc.ABC):
                     self._last_finfo = self.field_info[(ftype, fname)]
                     return self._last_finfo
         raise YTFieldNotFound(field=INPUT, ds=self)
+
+    def _get_field_info(self, ftype, fname=None):
+        finfo = self._get_field_info_0(ftype, fname=fname)
+        out_ftype, out_fname = finfo.name
+
+        def autoFix(ftype, fname):
+            def match(lines):
+                test = (f'"{fname}"', f"'{fname}'")
+                for t in test:
+                    for l in lines:
+                        if t in l:
+                            return True
+                return False
+
+            for stack in inspect.stack():
+                if not match(stack.code_context):
+                    continue
+                lineno = stack.lineno
+                filename = stack.filename
+                with open(filename) as f:
+                    lines = f.readlines()
+
+                corrected_lines = lines.copy()
+                nlines = len(stack.code_context)
+                line_to_fix = corrected_lines[lineno - 1 : lineno - 1 + nlines]
+
+                r = re.compile(f'(?<!\\w", )("{fname}")')
+
+                def fix(line):
+                    return re.sub(r, f'("{ftype}", "{fname}")', line)
+
+                line_to_fix = [fix(l) for l in line_to_fix]
+                for i in range(nlines):
+                    corrected_lines[lineno - 1 + i] = line_to_fix[i]
+
+                with open(filename, mode="w") as f:
+                    f.writelines(corrected_lines)
+                # diff_file.writelines(
+                #     unified_diff(lines, corrected_lines, fromfile=rel_path, tofile=rel_path)
+                # )
+                # diff_file.flush()
+                # return
+
+        in_ftype, in_fname = ftype, fname
+
+        guessed = in_fname is None or out_ftype != in_ftype
+
+        if guessed:
+            try:
+                autoFix(out_ftype, out_fname)
+            except TypeError:  # happens when line cannot be found
+                pass
+
+        return finfo
 
     def _setup_classes(self):
         # Called by subclass
