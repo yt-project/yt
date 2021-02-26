@@ -184,14 +184,16 @@ def generate_hash(data):
     # make it so here
     if isinstance(data, np.ndarray):
         data = np.ascontiguousarray(data)
+    elif isinstance(data, str):
+        data = data.encode("utf-8")
     # Try to hash. Some tests return hashable types (like ndarrays) and
     # others don't (such as dictionaries)
     try:
         hd = hashlib.md5(data).hexdigest()
-    # Handle those tests that return non-hashable types. This is done
-    # here instead of in the tests themselves to try and reduce boilerplate
-    # and provide a central location where all of this is done in case it needs
-    # to be changed
+        # Handle those tests that return non-hashable types. This is done
+        # here instead of in the tests themselves to try and reduce boilerplate
+        # and provide a central location where all of this is done in case it needs
+        # to be changed
     except TypeError:
         if isinstance(data, dict):
             hd = _hash_dict(data)
