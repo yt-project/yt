@@ -53,9 +53,11 @@ jobs:
     - name: Run Tests
       env:
         testsuite: ${{ matrix.tests-type }}
-      run: python -m nose -c nose_${testsuite}.cfg --traverse-namespace
+      run: |
+        python -m nose -c nose_${testsuite}.cfg --traverse-namespace
+        git diff --patch > ${{ github.workspace }}/diff.txt
     - uses: actions/upload-artifact@v2
-      if: failure()
+      if: ${{ always() }}
       with:
         name: diff.txt ${{ matrix.node-version }}
-        path: diff.txt
+        path: ${{ github.workspace }}/diff.txt
