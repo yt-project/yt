@@ -692,6 +692,24 @@ class YTSelectionContainer3D(YTSelectionContainer):
         )
         return cr
 
+    def _operation_helper(self, operation, field, value, units=None):
+        ftype, fname = self._determine_fields(field)[0]
+        if units is None:
+            field_cuts = f'obj["{ftype}", "{fname}"] {operation} {value}'
+        else:
+            field_cuts = (
+                f'obj["{ftype}", "{fname}"].in_units("{units}") {operation} {value}'
+            )
+        return self.cut_region(field_cuts)
+
+    def _function_helper(self, function, field, units=None, **kwargs):
+        ftype, fname = self._determine_fields(field)[0]
+        if units is None:
+            field_cuts = f'{function}(obj["{ftype}", "{fname}"])'
+        else:
+            field_cuts = f'{function}(obj["{ftype}", "{fname}"].in_units("{units}"))'
+        return self.cut_region(field_cuts, **kwargs)
+
     def exclude_above(self, field, value, units=None):
         """
         This function will return a YTCutRegion where all of the regions
@@ -725,14 +743,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
 
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] <= ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") <= ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._operation_helper("<=", field, value, units)
 
     def include_above(self, field, value, units=None):
         """
@@ -769,14 +780,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
 
-        if units is None:
-            field_cuts = 'obj["' + field + '"] > ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") > ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._operation_helper(">", field, value, units)
 
     def exclude_equal(self, field, value, units=None):
         """
@@ -807,14 +811,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.exclude_equal('temperature', 1e6)
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] != ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") != ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._operation_helper("!=", field, value, units)
 
     def include_equal(self, field, value, units=None):
         """
@@ -844,14 +841,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.include_equal('temperature', 1e6)
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] == ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") == ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._operation_helper("==", field, value, units)
 
     def exclude_inside(self, field, min_value, max_value, units=None):
         """
@@ -882,33 +872,16 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.exclude_inside('temperature', 1e5, 1e6)
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
+        ftype, fname = self._determine_fields(field)[0]
         if units is None:
             field_cuts = (
-                '(obj["'
-                + field
-                + '"] <= '
-                + str(min_value)
-                + ') | (obj["'
-                + field
-                + '"] >= '
-                + str(max_value)
-                + ")"
+                f'(obj["{ftype}", "{fname}"] <= {min_value}) | '
+                f'(obj["{ftype}", "{fname}"] >= {max_value})'
             )
         else:
             field_cuts = (
-                '(obj["'
-                + field
-                + '"].in_units("'
-                + units
-                + '") <= '
-                + str(min_value)
-                + ') | (obj["'
-                + field
-                + '"].in_units("'
-                + units
-                + '") >= '
-                + str(max_value)
-                + ")"
+                f'(obj["{ftype}", "{fname}"].in_units("{units}") <= {min_value}) | '
+                f'(obj["{ftype}", "{fname}"].in_units("{units}") >= {max_value})'
             )
         cr = self.cut_region(field_cuts)
         return cr
@@ -943,33 +916,16 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.include_inside('temperature', 1e5, 1e6)
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
+        ftype, fname = self._determine_fields(field)[0]
         if units is None:
             field_cuts = (
-                '(obj["'
-                + field
-                + '"] > '
-                + str(min_value)
-                + ') & (obj["'
-                + field
-                + '"] < '
-                + str(max_value)
-                + ")"
+                f'(obj["{ftype}", "{fname}"] > {min_value}) & '
+                f'(obj["{ftype}", "{fname}"] < {max_value})'
             )
         else:
             field_cuts = (
-                '(obj["'
-                + field
-                + '"].in_units("'
-                + units
-                + '") > '
-                + str(min_value)
-                + ') & (obj["'
-                + field
-                + '"].in_units("'
-                + units
-                + '") < '
-                + str(max_value)
-                + ")"
+                f'(obj["{ftype}", "{fname}"].in_units("{units}") > {min_value}) & '
+                f'(obj["{ftype}", "{fname}"].in_units("{units}") < {max_value})'
             )
         cr = self.cut_region(field_cuts)
         return cr
@@ -1068,14 +1024,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.exclude_below('temperature', 1e6)
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] >= ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") >= ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._operation_helper(">=", field, value, units)
 
     def exclude_nan(self, field, units=None):
         """
@@ -1105,12 +1054,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.exclude_nan('temperature')
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
-        if units is None:
-            field_cuts = '~np.isnan(obj["' + field + '"])'
-        else:
-            field_cuts = '~np.isnan(obj["' + field + '"].in_units("' + units + '"))'
-        cr = self.cut_region(field_cuts, locals={"np": np})
-        return cr
+        return self._function_helper("~np.isnan", field, units, locals={"np": np})
 
     def include_below(self, field, value, units=None):
         """
@@ -1141,14 +1085,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.include_below('temperature', 1e5, 1e6)
         >>> print cr.quantities.total_quantity("cell_mass").in_units('Msun')
         """
-        if units is None:
-            field_cuts = 'obj["' + field + '"] < ' + str(value)
-        else:
-            field_cuts = (
-                'obj["' + field + '"].in_units("' + units + '") < ' + str(value)
-            )
-        cr = self.cut_region(field_cuts)
-        return cr
+        return self._operation_helper("<", field, value, units)
 
     def extract_isocontours(
         self, field, value, filename=None, rescale=False, sample_values=None
