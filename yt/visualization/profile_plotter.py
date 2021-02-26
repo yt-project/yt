@@ -954,13 +954,17 @@ class PhasePlot(ImagePlotContainer):
 
         data_source = data_object_or_all_data(data_source)
 
+        if isinstance(z_fields, tuple):
+            z_fields = [z_fields]
+        z_fields = list(always_iterable(z_fields))
+
         if isinstance(data_source.ds, YTProfileDataset):
             profile = data_source.ds.profile
         else:
             profile = create_profile(
                 data_source,
                 [x_field, y_field],
-                list(always_iterable(z_fields)),
+                z_fields,
                 n_bins=[x_bins, y_bins],
                 weight_field=weight_field,
                 accumulation=accumulation,

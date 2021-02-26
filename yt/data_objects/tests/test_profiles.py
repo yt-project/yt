@@ -371,7 +371,7 @@ def test_mixed_particle_mesh_profiles():
         ad,
         ("index", "radius"),
         ("all", "particle_mass"),
-        "velocity_x",  # FIXME: cannot replace by `("gas", "...")`
+        ("gas", "velocity_x"),
     )
     assert_raises(
         YTIllDefinedProfile,
@@ -379,7 +379,7 @@ def test_mixed_particle_mesh_profiles():
         ad,
         ("all", "particle_radius"),
         ("all", "particle_mass"),
-        "cell_mass",  # FIXME: cannot replace by `("gas", "...")`
+        ("gas", "cell_mass"),
     )
     assert_raises(
         YTIllDefinedProfile,
@@ -387,7 +387,7 @@ def test_mixed_particle_mesh_profiles():
         ad,
         ("index", "radius"),
         ("gas", "cell_mass"),
-        [("all", "particle_ones")],
+        ("all", "particle_ones"),
     )
     assert_raises(
         YTIllDefinedProfile,
@@ -395,7 +395,7 @@ def test_mixed_particle_mesh_profiles():
         ad,
         ("all", "particle_radius"),
         ("all", "particle_mass"),
-        [("all", "particle_ones")],
+        ("all", "particle_ones"),
     )
 
 
