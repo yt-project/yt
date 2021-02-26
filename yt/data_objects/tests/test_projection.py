@@ -55,7 +55,7 @@ def test_projection(pf):
         for ax, an in enumerate("xyz"):
             xax = ds.coordinates.x_axis[ax]
             yax = ds.coordinates.y_axis[ax]
-            for wf in ["density", ("gas", "density"), None]:
+            for wf in [("gas", "density"), None]:
                 proj = ds.proj(
                     [("index", "ones"), ("gas", "density")], ax, weight_field=wf
                 )

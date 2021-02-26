@@ -23,7 +23,7 @@ def get_position_fields(field, data):
             ftype = finfo.name[0]
         position_fields = [(ftype, f"particle_position_{d}") for d in axis_names]
     else:
-        position_fields = axis_names
+        position_fields = [("index", ax_name) for ax_name in axis_names]
 
     return position_fields
 

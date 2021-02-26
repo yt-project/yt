@@ -462,10 +462,13 @@ class YTDataContainer:
         if self._key_fields is None:
             raise ValueError
 
-        field_order = self._key_fields
+        field_order = [("index", k) for k in self._key_fields]
         diff_fields = [field for field in fields if field not in field_order]
         field_order += diff_fields
-        field_order = sorted(self._determine_fields(field_order))
+
+        field_order = sorted(
+            self._determine_fields([("index", f) for f in field_order])
+        )
         field_types = {u for u, v in field_order}
 
         if len(field_types) != 1:

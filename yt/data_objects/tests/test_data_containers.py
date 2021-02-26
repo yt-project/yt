@@ -79,7 +79,7 @@ class TestDataContainers(unittest.TestCase):
 
     @requires_module("pandas")
     def test_to_dataframe(self):
-        fields = ["density", "velocity_z"]
+        fields = [("gas", "density"), ("gas", "velocity_z")]
         ds = fake_random_ds(6)
         dd = ds.all_data()
         df = dd.to_dataframe(fields)
@@ -90,7 +90,7 @@ class TestDataContainers(unittest.TestCase):
     def test_to_astropy_table(self):
         from yt.units.yt_array import YTArray
 
-        fields = ["density", "velocity_z"]
+        fields = [("gas", "density"), ("gas", "velocity_z")]
         ds = fake_random_ds(6)
         dd = ds.all_data()
         at1 = dd.to_astropy_table(fields)
