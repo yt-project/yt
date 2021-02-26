@@ -71,7 +71,7 @@ answer_tests:
     - yt/frontends/gamer/tests/test_outputs.py:test_mhdvortex
 
   local_gdf_001:
-    - yt/frontends/gdf/tests/test_outputs.py:test_sedov_tunnel
+    - yt/frontends/gdf/tests/test_outputs_nose.py:test_sedov_tunnel
 
   local_gizmo_006:  # PR 2909
     - yt/frontends/gizmo/tests/test_outputs.py:test_gizmo_64
