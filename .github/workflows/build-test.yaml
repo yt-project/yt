@@ -55,6 +55,7 @@ jobs:
         testsuite: ${{ matrix.tests-type }}
       run: python -m nose -c nose_${testsuite}.cfg --traverse-namespace
     - name: Compute diff
+      if: ${{ always() }}
       run: git diff --patch > ${{ github.workspace }}/diff.txt
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
