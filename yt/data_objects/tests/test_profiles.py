@@ -112,7 +112,7 @@ def test_profiles():
                     tmi * e1,
                     tma * e2,
                     lf,
-                    "dinosaurs",
+                    ("stream", "dinosaurs"),
                     nb,
                     dmi * e1,
                     dma * e2,
@@ -244,8 +244,8 @@ def test_profiles():
         assert_equal(p2d.x_bins[-1], rma + np.spacing(rma))
 
 
-extrema_s = {"particle_position_x": (0, 1)}
-logs_s = {"particle_position_x": False}
+extrema_s = {("all", "particle_position_x"): (0, 1)}
+logs_s = {("all", "particle_position_x"): False}
 
 extrema_t = {("all", "particle_position_x"): (0, 1)}
 logs_t = {("all", "particle_position_x"): False}
@@ -260,18 +260,18 @@ def test_particle_profiles():
             dd, ("all", "particle_position_x"), 128, 0.0, 1.0, False, weight_field=None
         )
         p1d.add_fields([("all", "particle_ones")])
-        assert_equal(p1d["particle_ones"].sum(), 32 ** 3)
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p1d = create_profile(
             dd,
-            ["particle_position_x"],
-            ["particle_ones"],
+            [("all", "particle_position_x")],
+            [("all", "particle_ones")],
             weight_field=None,
             n_bins=128,
             extrema=extrema_s,
             logs=logs_s,
         )
-        assert_equal(p1d["particle_ones"].sum(), 32 ** 3)
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p1d = create_profile(
             dd,
@@ -282,16 +282,16 @@ def test_particle_profiles():
             extrema=extrema_t,
             logs=logs_t,
         )
-        assert_equal(p1d["particle_ones"].sum(), 32 ** 3)
+        assert_equal(p1d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p2d = Profile2D(
             dd,
-            "particle_position_x",
+            ("all", "particle_position_x"),
             128,
             0.0,
             1.0,
             False,
-            "particle_position_y",
+            ("all", "particle_position_y"),
             128,
             0.0,
             1.0,
@@ -299,21 +299,21 @@ def test_particle_profiles():
             weight_field=None,
         )
         p2d.add_fields([("all", "particle_ones")])
-        assert_equal(p2d["particle_ones"].sum(), 32 ** 3)
+        assert_equal(p2d[("all", "particle_ones")].sum(), 32 ** 3)
 
         p3d = Profile3D(
             dd,
-            "particle_position_x",
+            ("all", "particle_position_x"),
             128,
             0.0,
             1.0,
             False,
-            "particle_position_y",
+            ("all", "particle_position_y"),
             128,
             0.0,
             1.0,
             False,
-            "particle_position_z",
+            ("all", "particle_position_z"),
             128,
             0.0,
             1.0,
@@ -321,7 +321,7 @@ def test_particle_profiles():
             weight_field=None,
         )
         p3d.add_fields([("all", "particle_ones")])
-        assert_equal(p3d["particle_ones"].sum(), 32 ** 3)
+        assert_equal(p3d[("all", "particle_ones")].sum(), 32 ** 3)
 
 
 def test_mixed_particle_mesh_profiles():
@@ -423,26 +423,26 @@ def test_particle_profile_negative_field():
 
     profile = yt.create_profile(
         ad,
-        ["particle_position_x", "particle_position_y"],
-        "particle_velocity_x",
+        [("all", "particle_position_x"), ("all", "particle_position_y")],
+        ("all", "particle_velocity_x"),
         logs={
-            "particle_position_x": True,
-            "particle_position_y": True,
-            "particle_position_z": True,
+            ("all", "particle_position_x"): True,
+            ("all", "particle_position_y"): True,
+            ("all", "particle_position_z"): True,
         },
         weight_field=None,
     )
-    assert profile["particle_velocity_x"].min() < 0
+    assert profile[("all", "particle_velocity_x")].min() < 0
     assert profile.x_bins.min() > 0
     assert profile.y_bins.min() > 0
 
     profile = yt.create_profile(
         ad,
-        ["particle_position_x", "particle_position_y"],
-        "particle_velocity_x",
+        [("all", "particle_position_x"), ("all", "particle_position_y")],
+        ("all", "particle_velocity_x"),
         weight_field=None,
     )
-    assert profile["particle_velocity_x"].min() < 0
+    assert profile[("all", "particle_velocity_x")].min() < 0
     assert profile.x_bins.min() < 0
     assert profile.y_bins.min() < 0
 
@@ -450,12 +450,12 @@ def test_particle_profile_negative_field():
     with assert_raises(RuntimeError):
         yt.create_profile(
             ad,
-            ["particle_position_x", "particle_position_y"],
-            "particle_velocity_x",
+            [("all", "particle_position_x"), ("all", "particle_position_y")],
+            ("all", "particle_velocity_x"),
             logs={
-                "particle_position_x": True,
-                "particle_position_y": False,
-                "particle_position_z": False,
+                ("all", "particle_position_x"): True,
+                ("all", "particle_position_y"): False,
+                ("all", "particle_position_z"): False,
             },
             weight_field=None,
             deposition="cic",
@@ -465,12 +465,12 @@ def test_particle_profile_negative_field():
     with assert_raises(RuntimeError):
         yt.create_profile(
             ad,
-            ["particle_position_x", "particle_position_y"],
-            "particle_velocity_x",
+            [("all", "particle_position_x"), ("all", "particle_position_y")],
+            ("all", "particle_velocity_x"),
             logs={
-                "particle_position_x": False,
-                "particle_position_y": False,
-                "particle_position_z": False,
+                ("all", "particle_position_x"): False,
+                ("all", "particle_position_y"): False,
+                ("all", "particle_position_z"): False,
             },
             weight_field=None,
             deposition="cic",
@@ -552,7 +552,7 @@ def test_profile_override_limits():
 
     profile = yt.create_profile(
         sp,
-        [("gas", "density"), "dinosaurs"],
+        [("gas", "density"), ("stream", "dinosaurs")],
         [("gas", "temperature")],
         override_bins={
             ("gas", "density"): (obins, "g/cm**3"),
@@ -612,9 +612,9 @@ class TestBadProfiles(unittest.TestCase):
             YTProfileDataShape,
             yt.PhasePlot,
             ds.data,
-            "temperature",
-            "density",
-            "cell_mass",  # FIXME: does not work with `("gas", "cell_mass")`
+            ("gas", "temperature"),
+            ("gas", "density"),
+            ("gas", "cell_mass"),
         )
 
     @requires_module("h5py")
@@ -637,9 +637,9 @@ class TestBadProfiles(unittest.TestCase):
             YTProfileDataShape,
             yt.PhasePlot,
             ds.data,
-            "temperature",
-            "density",
-            "cell_mass",  # FIXME: does not work with `("gas", "cell_mass")`
+            ("gas", "temperature"),
+            ("gas", "density"),
+            ("gas", "cell_mass"),
         )
 
 
@@ -652,7 +652,7 @@ def test_index_field_units():
     gcv_units = ad["gas", "cell_volume"].units
     assert str(gcv_units) == "cm**3"
     prof = ad.profile(
-        [("gas", "density"), "velocity_x"],
+        [("gas", "density"), ("gas", "velocity_x")],
         [("gas", "cell_volume"), ("index", "cell_volume")],
         weight_field=None,
     )

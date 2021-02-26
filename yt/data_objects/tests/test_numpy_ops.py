@@ -128,11 +128,11 @@ def test_min_max():
 
         # Test that we can get multiple in a single pass
 
-        qrho, qtemp = ad.max([("gas", "density"), ("stream", "temperature")])
+        qrho, qtemp = ad.max([("gas", "density"), ("gas", "temperature")])
         assert_equal(qrho, ad[("gas", "density")].max())
         assert_equal(qtemp, ad[("gas", "temperature")].max())
 
-        qrho, qtemp = ad.min(["density", "temperature"])
+        qrho, qtemp = ad.min([("gas", "density"), ("gas", "temperature")])
         assert_equal(qrho, ad[("gas", "density")].min())
         assert_equal(qtemp, ad[("gas", "temperature")].min())
 

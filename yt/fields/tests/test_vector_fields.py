@@ -43,30 +43,30 @@ def compare_vector_conversions(data_source):
             assert_allclose_units(vmag, vmag_new)
 
             vmag_cart = np.sqrt(
-                (data_source["velocity_x"] - bulk_velocity[0]) ** 2
-                + (data_source["velocity_y"] - bulk_velocity[1]) ** 2
+                (data_source[("gas", "velocity_x")] - bulk_velocity[0]) ** 2
+                + (data_source[("gas", "velocity_y")] - bulk_velocity[1]) ** 2
                 + (data_source[("gas", "velocity_z")] - bulk_velocity[2]) ** 2
             )
             assert_allclose_units(vmag, vmag_cart)
 
             vmag_cyl = np.sqrt(
-                data_source["velocity_cylindrical_radius"] ** 2
-                + data_source["velocity_cylindrical_theta"] ** 2
+                data_source[("gas", "velocity_cylindrical_radius")] ** 2
+                + data_source[("gas", "velocity_cylindrical_theta")] ** 2
                 + data_source[("gas", "velocity_cylindrical_z")] ** 2
             )
             assert_allclose_units(vmag, vmag_cyl)
 
             vmag_sph = np.sqrt(
-                data_source["velocity_spherical_radius"] ** 2
-                + data_source["velocity_spherical_theta"] ** 2
+                data_source[("gas", "velocity_spherical_radius")] ** 2
+                + data_source[("gas", "velocity_spherical_theta")] ** 2
                 + data_source[("gas", "velocity_spherical_phi")] ** 2
             )
             assert_allclose_units(vmag, vmag_sph)
 
             for i, d in enumerate("xyz"):
                 assert_allclose_units(
-                    data_source[f"velocity_{d}"] - bulk_velocity[i],
-                    data_source[f"relative_velocity_{d}"],
+                    data_source[("gas", f"velocity_{d}")] - bulk_velocity[i],
+                    data_source[("gas", f"relative_velocity_{d}")],
                 )
 
         for i, ax in enumerate("xyz"):
@@ -74,7 +74,7 @@ def compare_vector_conversions(data_source):
             data_source.clear_data()
             assert_allclose_units(
                 data_source[("gas", "velocity_los")],
-                data_source[f"relative_velocity_{ax}"],
+                data_source[("gas", f"relative_velocity_{ax}")],
             )
 
         for i, ax in enumerate("xyz"):

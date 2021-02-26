@@ -47,22 +47,22 @@ def test_magnetic_fields():
     assert ds3.fields.gas.magnetic_field_toroidal.units == "code_magnetic"
 
     emag1 = (
-        dd1["magnetic_field_x"] ** 2
-        + dd1["magnetic_field_y"] ** 2
+        dd1[("gas", "magnetic_field_x")] ** 2
+        + dd1[("gas", "magnetic_field_y")] ** 2
         + dd1[("gas", "magnetic_field_z")] ** 2
     ) / (8.0 * np.pi)
     emag1.convert_to_units("dyne/cm**2")
 
     emag2 = (
-        dd2["magnetic_field_x"] ** 2
-        + dd2["magnetic_field_y"] ** 2
+        dd2[("gas", "magnetic_field_x")] ** 2
+        + dd2[("gas", "magnetic_field_y")] ** 2
         + dd2[("gas", "magnetic_field_z")] ** 2
     ) / (2.0 * mu_0)
     emag2.convert_to_units("Pa")
 
     emag3 = (
-        dd3["magnetic_field_x"] ** 2
-        + dd3["magnetic_field_y"] ** 2
+        dd3[("gas", "magnetic_field_x")] ** 2
+        + dd3[("gas", "magnetic_field_y")] ** 2
         + dd3[("gas", "magnetic_field_z")] ** 2
     ) / (2.0 * mu_0)
     emag3.convert_to_units("code_pressure")
