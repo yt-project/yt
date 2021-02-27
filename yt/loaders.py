@@ -2,7 +2,7 @@
 This module gathers all user-facing functions with a `load_` prefix.
 
 """
-
+import pathlib
 import os
 
 import numpy as np
@@ -81,8 +81,9 @@ def load(fn, *args, **kwargs):
             fn = alt_fn
         else:
             msg = f"No such file or directory: '{fn}'."
-            if os.path.exists(data_dir):
-                msg += f"\n(Also tried '{alt_fn}')."
+            msg += f"\nalt_fn = {alt_fn}"
+            msg += f"\ndata_dir = {data_dir}"
+            msg += f"\nPath.is_dir = {pathlib.Path(data_dir).is_dir()}"
             raise FileNotFoundError(msg)
 
     candidates = []
