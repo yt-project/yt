@@ -2,8 +2,8 @@
 This module gathers all user-facing functions with a `load_` prefix.
 
 """
-import pathlib
 import os
+import pathlib
 
 import numpy as np
 from more_itertools import always_iterable
