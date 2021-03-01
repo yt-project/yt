@@ -12,10 +12,10 @@ sedov = "sedov/sedov_tst_0004.h5"
 # {test1: {param1 : [(val1, val2,...), (id1, id2,...)], param2 : ...}, test2: ...}
 test_params = {
     "test_sedov_tunnel": {
-        "a": [(0, 1, 2), ("0", "1", "2")],
-        "d": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
-        "w": [(None, "density"), ("None", "density")],
-        "f": [("density", "velocity_x"), ("density", "vx")],
+        "axis": [(0, 1, 2), ("0", "1", "2")],
+        "dobj": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
+        "weight": [(None, "density"), ("None", "density")],
+        "field": [("density", "velocity_x"), ("density", "vx")],
     }
 }
 

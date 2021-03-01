@@ -15,8 +15,8 @@ class TestGDF:
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [sedov], indirect=True)
-    def test_sedov_tunnel(self, a, d, w, f, ds):
-        self.hashes.update(small_patch_amr(ds, f, w, a, d))
+    def test_sedov_tunnel(self, axis, dobj, weight, field, ds):
+        self.hashes.update(small_patch_amr(ds, field, weight, axis, dobj))
 
     @pytest.mark.parametrize("ds", [sedov], indirect=True)
     def test_GDFDataset(self, ds):

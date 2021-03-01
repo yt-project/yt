@@ -204,7 +204,7 @@ def generate_hash(data):
     return hd
 
 
-def _save_result(data, outputFile):
+def _save_result(data, output_file):
     r"""
     Saves the test results to the desired answer file.
 
@@ -213,28 +213,11 @@ def _save_result(data, outputFile):
     data : dict
         Test results to be saved.
 
-    outputFile : str
+    output_file : str
         Name of file to save results to.
     """
-    with open(outputFile, "a") as f:
+    with open(output_file, "a") as f:
         yaml.dump(data, f)
-
-
-def _compare_result(new_data, old_data):
-    r"""
-    Compares the just-generated test results to those that are already
-    saved.
-
-    Parameters
-    ----------
-    new_data : dict
-        Just-generated hashed test results.
-
-    old_data : dict
-        Previously saved hashed test results.
-    """
-    for key, value in new_data.items():
-        assert value == old_data[key]
 
 
 def _save_raw_arrays(arrays, answer_file, func_name):
@@ -278,16 +261,12 @@ def _save_raw_arrays(arrays, answer_file, func_name):
 
 
 def _parse_raw_answer_dict(d, h5grp):
-    """
-    Doc string.
-    """
     for k, v in d.items():
         if isinstance(v, dict):
             h5_sub_grp = h5grp.create_group(k)
             _parse_raw_answer_dict(v, h5_sub_grp)
         else:
-            if not isinstance(k, str):
-                k = str(k)
+            k = str(k)
             h5grp.create_dataset(k, data=v)
 
 
@@ -476,7 +455,7 @@ def fake_halo_catalog(data):
     return filename
 
 
-def _create_plot_window_attribute_plot(ds, ptype, field, axis, pkwargs=None):
+def _create_plot_window_attribute_plot(ds, plot_type, field, axis, pkwargs=None):
     r"""
     Convenience function used in plot_window_attribute_test.
 
@@ -485,7 +464,7 @@ def _create_plot_window_attribute_plot(ds, ptype, field, axis, pkwargs=None):
     ds : Dataset
         The Dataset object from which the plotting data is taken.
 
-    ptype : string
+    plot_type : string
         Type of plot to make (e.g., SlicePlot).
 
     field : yt field
@@ -497,12 +476,12 @@ def _create_plot_window_attribute_plot(ds, ptype, field, axis, pkwargs=None):
     pkwargs : dict
         Any keywords to be passed when creating the plot.
     """
-    if ptype is None:
+    if plot_type is None:
         raise RuntimeError("Must explicitly request a plot type")
-    cls = getattr(pw, ptype, None)
+    cls = getattr(pw, plot_type, None)
     if cls is None:
-        cls = getattr(particle_plots, ptype)
-    plot = cls(*(ds, axis, field), **pkwargs)
+        cls = getattr(particle_plots, plot_type)
+    plot = cls(ds, axis, field, **pkwargs)
     return plot
 
 
@@ -542,6 +521,16 @@ def _create_phase_plot_attribute_plot(
 
 
 def get_parameterization(fname):
+    """
+    Returns a dataset's field list to make test parameterizationn easier.
+
+    Some tests (such as those that use the toro1d dataset in enzo) check
+    every field in a dataset. In order to parametrize the tests without
+    having to hardcode a list of every field, this function is used.
+    Additionally, if the dataset cannot be found, this function enables
+    pytest to mark the test as failed without the whole test run crashing,
+    since the parameterization happens at import time.
+    """
     try:
         ds = data_dir_load(fname)
         return ds.field_list

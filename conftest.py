@@ -1,23 +1,21 @@
 import os
 import shutil
-import sys
 import tempfile
+import typing
+from pathlib import Path
 
 import pytest
 import yaml
 
-import yt
 from yt.config import ytcfg
 from yt.utilities.answer_testing.testing_utilities import (
     _compare_raw_arrays,
-    _compare_result,
     _hash_results,
     _save_raw_arrays,
     _save_result,
     _streamline_for_io,
     data_dir_load,
 )
-from yt.utilities.logger import ytLogger
 
 
 def pytest_addoption(parser):
@@ -30,10 +28,6 @@ def pytest_addoption(parser):
     )
     parser.addoption(
         "--answer-store",
-        action="store_true",
-    )
-    parser.addoption(
-        "--answer-big-data",
         action="store_true",
     )
     parser.addoption(
@@ -55,16 +49,15 @@ def pytest_addoption(parser):
     parser.addoption("--local-dir", default=None, help="Where answers are saved.")
     # Tell pytest about the local-dir option in the ini files. This
     # option is used for creating the answer directory on CI
-    parser.addini("local-dir", default="../answer-store", help="answer directory.")
+    parser.addini(
+        "local-dir",
+        default=os.path.join("..", "answer-store"),
+        help="answer directory.",
+    )
     parser.addini(
         "test_data_dir",
         default=ytcfg.get("yt", "test_data_dir"),
         help="Directory where data for tests is stored.",
-    )
-    parser.addini(
-        "answer_file_list",
-        default="./tests/tests_pytest.yaml",
-        help="Contains answer file names",
     )
 
 
@@ -73,10 +66,7 @@ def pytest_configure(config):
     Reads in the tests/tests.yaml file. This file contains a list of
     each answer test's answer file (including the changeset number).
     """
-    yt._called_from_pytest = True
-    # Read the list of answer test classes and their associated answer file
-    with open(config.getini("answer_file_list")) as f:
-        pytest.answer_files = yaml.safe_load(f)
+    ytcfg["yt", "internals", "within_pytest"] = True
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
     config.addinivalue_line(
@@ -152,16 +142,8 @@ def _get_answer_files(request):
     """
     Gets the path to where the hashed and raw answers are saved.
     """
-    try:
-        answer_file, raw_answer_file = pytest.answer_files[request.cls.__name__]
-    except KeyError:
-        ytLogger.error(f"Answer files for `{request.cls.__name__}` not found.")
-        sys.exit()
-    except ValueError:
-        msg = "Missing either hashed file name or raw file name for "
-        msg += f"`{request.cls.__name__}`in "
-        msg += f"`{request.config.getini('answer_file_list')}`."
-        ytLogger.error(msg)
+    answer_file = f"{request.cls.__name__}.yaml"
+    raw_answer_file = f"{request.cls.__name__}.h5"
     # Add the local-dir aspect of the path. If there's a command line value,
     # have that override the ini file value
     clLocalDir = request.config.getoption("--local-dir")
@@ -243,7 +225,10 @@ def hashing(request):
         _save_result(hashes, request.cls.answer_file)
     # Compare hashes
     elif not no_hash and not store_hash:
-        _compare_result(hashes, request.cls.saved_hashes)
+        try:
+            assert hashes == request.cls.saved_hashes
+        except AssertionError:
+            pytest.fail(f"Comparison failure: {request.node.name}", pytrace=False)
     # Save raw data
     if raw and raw_store:
         _save_raw_arrays(
@@ -277,26 +262,24 @@ def temp_dir():
 
 @pytest.fixture(scope="class")
 def ds(request):
+    # data_dir_load can take the cls, args, and kwargs. These optional
+    # arguments, if present,  are given in a dictionary as the second
+    # element of the list
+    if isinstance(request.param, typing.Sequence):
+        ds_fn, opts = request.param
+    else:
+        ds_fn = request.param
+        opts = {}
     try:
-        if isinstance(request.param, list):
-            # data_dir_load can take the cls, args, and kwargs. These optional
-            # arguments are given in a dictionary as the second element of the
-            # list
-            ds_fn = request.param[0]
-            opts = request.param[1]
-            cls = None if "cls" not in opts.keys() else opts["cls"]
-            args = None if "args" not in opts.keys() else opts["args"]
-            kwargs = None if "kwargs" not in opts.keys() else opts["kwargs"]
-            dataset = data_dir_load(ds_fn, cls=cls, args=args, kwargs=kwargs)
-        else:
-            dataset = data_dir_load(request.param)
-        return dataset
+        return data_dir_load(
+            ds_fn, cls=opts.get("cls"), args=opts.get("args"), kwargs=opts.get("kwargs")
+        )
     except FileNotFoundError:
         return pytest.skip(f"Data file: `{request.param}` not found.")
 
 
 @pytest.fixture(scope="class")
-def f(request):
+def field(request):
     """
     Fixture for returning the field. Needed because indirect=True is
     used for loading the datasets.
@@ -305,7 +288,7 @@ def f(request):
 
 
 @pytest.fixture(scope="class")
-def d(request):
+def dobj(request):
     """
     Fixture for returning the ds_obj. Needed because indirect=True is
     used for loading the datasets.
@@ -314,7 +297,7 @@ def d(request):
 
 
 @pytest.fixture(scope="class")
-def a(request):
+def axis(request):
     """
     Fixture for returning the axis. Needed because indirect=True is
     used for loading the datasets.
@@ -323,7 +306,7 @@ def a(request):
 
 
 @pytest.fixture(scope="class")
-def w(request):
+def weight(request):
     """
     Fixture for returning the weight_field. Needed because
     indirect=True is used for loading the datasets.
@@ -341,22 +324,9 @@ def ds_repr(request):
 
 
 @pytest.fixture(scope="class")
-def N(request):
+def Npart(request):
     """
     Fixture for returning the number of particles in a dataset.
     Needed because indirect=True is used for loading the datasets.
     """
     return request.param
-
-
-@pytest.fixture(scope="class")
-def big_data(request):
-    """
-    There isn't a way to access command-line options given to pytest from
-    an actual test, so we need a fixture that retrieves and returns its
-    value. In this case, the --answer-big-data option.
-    """
-    if request.config.getoption("--answer-big-data"):
-        return True
-    else:
-        return False
