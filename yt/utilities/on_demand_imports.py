@@ -628,7 +628,6 @@ class f90nml_imports:
 
 _f90nml = f90nml_imports()
 
-
 class requests_imports:
     _name = "requests"
     _module = None
@@ -646,3 +645,21 @@ class requests_imports:
 
 
 _requests = requests_imports()
+
+class xmltodict_imports:
+    _name = "xmltodict"
+    _module = None
+
+    def __init__(self):
+        try:
+            import xmltodict as xmltodict
+
+            self._module = xmltodict
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_xmltodict = xmltodict_imports()

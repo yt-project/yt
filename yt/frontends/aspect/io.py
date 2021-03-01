@@ -1,9 +1,12 @@
 import os
 
-import xmltodict
 import numpy as np
-from .util import decode_binary, type_decider, decode_piece
+
 from yt.utilities.io_handler import BaseIOHandler
+from yt.utilities.on_demand_imports import _xmltodict as xmltodict
+
+from .util import decode_binary, decode_piece, type_decider
+
 
 class IOHandlerASPECT(BaseIOHandler):
     _particle_reader = False
@@ -12,7 +15,7 @@ class IOHandlerASPECT(BaseIOHandler):
 
     def __init__(self, ds):
         self.filename = ds.index_filename
-        super(IOHandlerASPECT, self).__init__(ds)
+        super().__init__(ds)
         self.node_fields = ds._get_nod_names()
         self.elem_fields = ds._get_elem_names()
 
@@ -38,8 +41,8 @@ class IOHandlerASPECT(BaseIOHandler):
             rv[field] = []
             ftype_list.append(ftype)
 
-        xyz_to_dim = {'x': 0, 'y': 1, 'z': 2}  # should come from ds parameters...
-        vel_vectors = ['velocity_'+dimstr for dimstr in xyz_to_dim.keys()]
+        xyz_to_dim = {"x": 0, "y": 1, "z": 2}  # should come from ds parameters...
+        vel_vectors = ["velocity_" + dimstr for dimstr in xyz_to_dim.keys()]
         for chunk_id, chunk in enumerate(chunks):
             mesh = chunk.objs[0]
             npc = mesh.nodes_per_cell
@@ -58,12 +61,11 @@ class IOHandlerASPECT(BaseIOHandler):
                 # mask here is the **element** mask. i.e., shape(mask) = (n_elments,)
                 # rather than (n_elements, n_verts). These apply to all fields, so
                 # pull them out here:
-                mask = selector.fill_mesh_cell_mask(mesh) # global mask
+                mask = selector.fill_mesh_cell_mask(mesh)  # global mask
                 if mask is not None:
                     # each mesh piece will pull the connectivity and mask values
                     # for the indices corresponding to each vtu file
                     for vtu_id, vtu_filename in enumerate(mesh.filenames):
-
 
                         # the element mask for this piece
                         element_offset_start = el_counts[0:vtu_id].sum()
@@ -75,7 +77,7 @@ class IOHandlerASPECT(BaseIOHandler):
                         f2id = self.ds.field_to_piece_id[vtu_file]
                         with open(vtu_file) as data:
                             xml = xmltodict.parse(data.read())
-                            xmlPieces = xml['VTKFile']['UnstructuredGrid']['Piece']
+                            xmlPieces = xml["VTKFile"]["UnstructuredGrid"]["Piece"]
 
                         if type(xmlPieces) != list:
                             xmlPieces = [xmlPieces]
@@ -85,10 +87,12 @@ class IOHandlerASPECT(BaseIOHandler):
 
                             vdim = -1
                             if fname in vel_vectors:
-                                vdim = xyz_to_dim[fname.split('_')[-1]]
-                                fname = 'velocity'
+                                vdim = xyz_to_dim[fname.split("_")[-1]]
+                                fname = "velocity"
 
-                            vtu_field, vtu_conn1d = self._read_single_vtu_field(xmlPieces, fname, f2id, vectordim=vdim)
+                            vtu_field, vtu_conn1d = self._read_single_vtu_field(
+                                xmlPieces, fname, f2id, vectordim=vdim
+                            )
                             vtu_field = vtu_field[vtu_conn1d]
                             vtu_field = vtu_field.reshape((vtu_conn1d.size // npc, npc))
                             vtu_field = vtu_field[vtu_mask, :]
@@ -99,7 +103,9 @@ class IOHandlerASPECT(BaseIOHandler):
 
         return rv
 
-    def _read_single_vtu_field(self, xmlPieces, fieldname, field_to_piece_id, vectordim=-1, ndims=3):
+    def _read_single_vtu_field(
+        self, xmlPieces, fieldname, field_to_piece_id, vectordim=-1, ndims=3
+    ):
         vtu_data = []
         pieceoff = 0
         vtu_conns = []
@@ -107,11 +113,13 @@ class IOHandlerASPECT(BaseIOHandler):
         for piece_id in range(0, len(xmlPieces)):
             field_id = field_to_piece_id[piece_id][fieldname]
             xmlPiece = xmlPieces[piece_id]
-            data_array = xmlPiece['PointData']['DataArray'][field_id]
-            names = data_array['@Name']
+            data_array = xmlPiece["PointData"]["DataArray"][field_id]
+            names = data_array["@Name"]
             if names == fieldname:
-                types = type_decider[data_array['@type']]
-                metadata, data_field = decode_binary(data_array['#text'].encode(), dtype=types)
+                types = type_decider[data_array["@type"]]
+                metadata, data_field = decode_binary(
+                    data_array["#text"].encode(), dtype=types
+                )
                 if vectordim >= 0:
                     # extract the dimension of the vector we want
                     data_field = data_field.reshape((data_field.size // ndims, ndims))
