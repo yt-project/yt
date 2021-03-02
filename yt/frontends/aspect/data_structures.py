@@ -136,37 +136,18 @@ class ASPECTDataset(Dataset):
     def __init__(
         self,
         filename,
-        step=0,
-        displacements=None,
         dataset_type="aspect",
         storage_filename=None,
         units_override=None,
     ):
         """
 
-        A class used to represent an on-disk ASPECT dataset. The initializer takes
-        two extra optional parameters, "step" and "displacements."
-
-        Parameters
-        ----------
-
-        step : integer
-            The step tells which time index to slice at. It throws an Error if
-            the index is larger than the number of time outputs in the ExodusII
-            file. Passing step=-1 picks out the last dataframe.
-            Default is 0.
-
-
+        A class used to represent a single timestep of a on-disk ASPECT dataset
 
         """
         self.parameter_filename = filename
         self.data_dir = os.path.dirname(filename)
         self.fluid_types += self._get_fluid_types()
-        self.step = step
-        if displacements is None:
-            self.displacements = {}
-        else:
-            self.displacements = displacements
         super().__init__(filename, dataset_type, units_override=units_override)
         self.index_filename = filename
         self.storage_filename = storage_filename
@@ -213,6 +194,13 @@ class ASPECTDataset(Dataset):
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "m/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
+
+    def _setup_coordinate_handler(self):
+        # ensure correct ordering of axes so plots aren't rotated (z should always be
+        # on the vertical axis).
+        super()._setup_coordinate_handler()
+        self.coordinates._x_pairs = (("x", "y"), ("y", "x"), ("z", "x"))
+        self.coordinates._y_pairs = (("x", "z"), ("y", "z"), ("z", "y"))
 
     def _parse_parameter_file(self):
 
