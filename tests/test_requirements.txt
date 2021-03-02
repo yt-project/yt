@@ -33,3 +33,4 @@ nose-exclude
 more_itertools>=8.4
 tqdm>=3.4.0
 toml>=0.10.2
+xmltodict>=0.12.0

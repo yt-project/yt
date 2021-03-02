@@ -224,7 +224,11 @@ class ASPECTDataset(Dataset):
         if not isinstance(pieces, list):
             pieces = [pieces]
         self.parameters["vtu_files"] = [piece["@Source"] for piece in pieces]
-        self.periodicity = (False, False, False)  # might not be true...
+
+        # periodicity: setting to False. Info is not in the pvtu files. Might
+        # be able to check original.prm file if it exists.
+        self._periodicity = (False, False, False)
+
         self.unique_identifier = self._get_unique_identifier()
         self.dimensionality = int(
             self.parameters["pXML"]["VTKFile"]["PUnstructuredGrid"]["PPoints"][
