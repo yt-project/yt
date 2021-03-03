@@ -1,31 +1,37 @@
+import base64
 import re
 import string
+import zlib
 from collections import OrderedDict
 from itertools import takewhile
-import zlib
-import base64
+
 import numpy as np
 
 type_decider = {"Float32": "<f4", "Float64": "<f8"}
 
 
 def decode_piece(xmlPiece):
-    coord_type = type_decider[xmlPiece["Points"]["DataArray"]['@type']]
+    coord_type = type_decider[xmlPiece["Points"]["DataArray"]["@type"]]
 
-    _, coords = decode_binary(xmlPiece["Points"]["DataArray"]["#text"].encode(),
-                              dtype=coord_type)
-    _, conn = decode_binary(xmlPiece["Cells"]["DataArray"][0]["#text"].encode(),
-                            dtype="u4")
-    _, offsets = decode_binary(xmlPiece["Cells"]["DataArray"][1]["#text"].encode(),
-                               dtype="u4")
-    _, cell_types = decode_binary(xmlPiece["Cells"]["DataArray"][2]["#text"].encode(),
-                                  dtype="u1")
+    _, coords = decode_binary(
+        xmlPiece["Points"]["DataArray"]["#text"].encode(), dtype=coord_type
+    )
+    _, conn = decode_binary(
+        xmlPiece["Cells"]["DataArray"][0]["#text"].encode(), dtype="u4"
+    )
+    _, offsets = decode_binary(
+        xmlPiece["Cells"]["DataArray"][1]["#text"].encode(), dtype="u4"
+    )
+    _, cell_types = decode_binary(
+        xmlPiece["Cells"]["DataArray"][2]["#text"].encode(), dtype="u1"
+    )
 
     coords = coords.reshape((coords.size // 3, 3))
 
     return coords, conn, offsets, cell_types
 
-def decode_binary(blob, use_zlib = True, dtype="<f4"):
+
+def decode_binary(blob, use_zlib=True, dtype="<f4"):
     split_location = blob.find(b"==") + 2
     first = base64.decodebytes(blob[:split_location])
     second = base64.decodebytes(blob[split_location:])
@@ -40,7 +46,7 @@ def get_num_pseudo_dims(coords):
 
 
 def sanitize_string(s):
-    _printable = set([ord(_) for _ in string.printable])
+    _printable = {ord(_) for _ in string.printable}
     return "".join([chr(_) for _ in takewhile(lambda a: a in _printable, s)])
 
 
@@ -84,7 +90,7 @@ def group_by_sections(info_records):
 def get_top_levels(info_records):
     top_levels = []
     for idx, line in enumerate(info_records):
-        pattern = re.compile("###[a-zA-Z\s]+")
+        pattern = re.compile(r"###[a-zA-Z\s]+")
         if pattern.match(line):
             clean_line = re.sub(r"[^\w\s]", "", line).lstrip().rstrip()
             top_levels.append([idx, clean_line])
