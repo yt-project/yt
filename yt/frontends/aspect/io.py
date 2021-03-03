@@ -75,7 +75,6 @@ class IOHandlerASPECT(BaseIOHandler):
                         # load this vtu's part of the mesh
                         vtu_file = os.path.join(self.ds.data_dir, vtu_filename)
                         f2id = self.ds.parameters["field_to_piece_index"][vtu_file]
-                        # f2id = self.ds.field_to_piece_id[vtu_file]
                         with open(vtu_file) as data:
                             xml = xmltodict.parse(data.read())
                             xmlPieces = xml["VTKFile"]["UnstructuredGrid"]["Piece"]

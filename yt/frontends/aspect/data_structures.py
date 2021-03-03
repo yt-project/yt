@@ -191,18 +191,9 @@ class ASPECTDataset(Dataset):
             json.dump([self.parameter_info], shandle)
 
     def _set_code_unit_attributes(self):
-        # This is where quantities are created that represent the various
-        # on-disk units.  These are the currently available quantities which
-        # should be set, along with examples of how to set them to standard
-        # values.
-        #
         setdefaultattr(self, "length_unit", self.quan(1.0, "m"))
         setdefaultattr(self, "mass_unit", self.quan(1.0, "kg"))
         setdefaultattr(self, "time_unit", self.quan(1.0, "s"))
-        #
-        # These can also be set:
-        # self.velocity_unit = self.quan(1.0, "m/s")
-        # self.magnetic_unit = self.quan(1.0, "gauss")
 
     def _setup_coordinate_handler(self):
         # ensure correct ordering of axes so plots aren't rotated (z should always be
@@ -213,7 +204,7 @@ class ASPECTDataset(Dataset):
 
     def _parse_parameter_file(self):
 
-        # store the top level info
+        # store the top level pvtu info
         with open(self.parameter_filename) as pvtu_fi:
             self.parameters["pXML"] = xmltodict.parse(pvtu_fi.read())
 
@@ -294,7 +285,44 @@ class ASPECTDataset(Dataset):
         ]
         return [field["@Name"] for field in fields]
 
-    def _read_single_vtu_pieces(self, src_file):
+    def _add_piece_to_field_map(self, src_file, xmlPieces):
+        """
+        This constructs a look-up dictionary, field_to_piece_index:
+
+        field_to_piece_index[vtufilename][piece_id][fieldname] --> piece index
+
+        where piece index is the index of xmlPiece["PointData"]["DataArray"]
+        for the desired field for a given vtu file and piece of the vtu file.
+        Allows quick lookup of the field rather than looping through
+        xmlPiece["PointData"]["DataArray"] until the desired field is found.
+        Used in aspect.io._read_fluid_selection
+
+        Parameters:
+            src_file : str
+                vtu filename
+            xmlPieces : list
+                list containing the pieces of the mesh for this vtu file
+
+        stores field_to_piece_index in the self.parameters dictionary.
+        """
+
+        if "field_to_piece_index" not in self.parameters.keys():
+            self.parameters["field_to_piece_index"] = {}
+
+        if src_file not in self.parameters["field_to_piece_index"].keys():
+            src_map = {}
+            for piece_id in range(0, len(xmlPieces)):
+                src_map[piece_id] = {}
+                xmlPiece = xmlPieces[piece_id]
+                for field_id, data_array in enumerate(
+                    xmlPiece["PointData"]["DataArray"]
+                ):
+                    fname = data_array["@Name"]
+                    src_map[piece_id][fname] = field_id
+
+            self.parameters["field_to_piece_index"][src_file] = src_map
+
+    def _read_pieces_from_single_vtu(self, src_file):
         with open(src_file) as data:
             xml = xmltodict.parse(data.read())
             xmlPieces = xml["VTKFile"]["UnstructuredGrid"]["Piece"]
@@ -359,43 +387,6 @@ class ASPECTDataset(Dataset):
 
         return coords, conns, alloffs, npc
 
-    def _add_piece_to_field_map(self, src_file, xmlPieces):
-        """
-        This constructs a look-up dictionary, field_to_piece_index:
-
-        field_to_piece_index[vtufilename][piece_id][fieldname] --> piece index
-
-        where piece index is the index of xmlPiece["PointData"]["DataArray"]
-        for the desired field for a given vtu file and piece of the vtu file.
-        Allows quick lookup of the field rather than looping through
-        xmlPiece["PointData"]["DataArray"] until the desired field is found.
-        Used in aspect.io._read_fluid_selection
-
-        Parameters:
-            src_file : str
-                vtu filename
-            xmlPieces : list
-                list containing the pieces of the mesh for this vtu file
-
-        stores field_to_piece_index in the self.parameters dictionary.
-        """
-
-        if "field_to_piece_index" not in self.parameters.keys():
-            self.parameters["field_to_piece_index"] = {}
-
-        if src_file not in self.parameters["field_to_piece_index"].keys():
-            src_map = {}
-            for piece_id in range(0, len(xmlPieces)):
-                src_map[piece_id] = {}
-                xmlPiece = xmlPieces[piece_id]
-                for field_id, data_array in enumerate(
-                    xmlPiece["PointData"]["DataArray"]
-                ):
-                    fname = data_array["@Name"]
-                    src_map[piece_id][fname] = field_id
-
-            self.parameters["field_to_piece_index"][src_file] = src_map
-
     def _read_pieces(self):
         # reads coordinates and connectivity from pieces, returns the mesh
         # concatenated across all pieces.
@@ -417,7 +408,7 @@ class ASPECTDataset(Dataset):
         current_offset = 0  # the current NODE offset to global coordinate index
         for src in vtu_pieces:
             src_file = os.path.join(self.data_dir, src["@Source"])
-            coord, con, all_offs, npc = self._read_single_vtu_pieces(src_file)
+            coord, con, all_offs, npc = self._read_pieces_from_single_vtu(src_file)
             nodes_per_cell.append(npc)
 
             node_offsets.append(current_offset)
@@ -434,8 +425,10 @@ class ASPECTDataset(Dataset):
         # check that we have the same cell types across vtu files
         nodes_per_cell = np.unique(nodes_per_cell)
         if len(nodes_per_cell) > 1:
-            mylog.error("Found different cell types across vtu files")
-            raise NotImplementedError("can only handle single cell types at present")
+            raise NotImplementedError(
+                "Found different cell types across vtu files, can only "
+                "handle single cell types at present"
+            )
         nodes_per_cell = nodes_per_cell[-1]
         if nodes_per_cell > 8:
             mylog.info(
