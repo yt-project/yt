@@ -12,7 +12,8 @@ from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import ParticleBitmap
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.logger import ytLogger as mylog
-
+from yt.utilities.parallel_tools.parallel_analysis_interface import \
+    parallel_objects
 
 class ParticleIndex(Index):
     """The Index subclass for particle datasets"""
@@ -195,8 +196,8 @@ class ParticleIndex(Index):
 
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
-        for i, data_file in enumerate(self.data_files):
-            pb.update(i)
+        for i, data_file in parallel_objects(enumerate(self.data_files)):
+            pb.update(i+1)
             for ptype, pos in self.io._yield_coordinates(data_file):
                 ds = self.ds
                 if hasattr(ds, "_sph_ptypes") and ptype == ds._sph_ptypes[0]:
@@ -206,8 +207,10 @@ class ParticleIndex(Index):
                 else:
                     hsml = None
                 self.regions._coarse_index_data_file(pos, hsml, data_file.file_id)
-            self.regions._set_coarse_index_data_file(data_file.file_id)
         pb.finish()
+        self.regions.masks = self.comm.mpi_allreduce(self.regions.masks, op="sum")
+        for data_file in self.data_files:
+            self.regions._set_coarse_index_data_file(data_file.file_id)
         self.regions.find_collisions_coarse()
 
     def _initialize_refined_index(self):
