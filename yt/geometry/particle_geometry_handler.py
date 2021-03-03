@@ -13,8 +13,8 @@ from yt.geometry.particle_oct_container import ParticleBitmap
 from yt.utilities.lib.ewah_bool_wrap import BoolArrayCollection
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
+
 
 class ParticleIndex(Index):
     """The Index subclass for particle datasets"""
@@ -237,8 +237,9 @@ class ParticleIndex(Index):
             100 * total_coarse_refined / mask.size,
         )
         storage = {}
-        for sto, (i, data_file) in parallel_objects(enumerate(self.data_files),
-                                                    storage=storage):
+        for sto, (i, data_file) in parallel_objects(
+            enumerate(self.data_files), storage=storage
+        ):
             coll = None
             pb.update(i + 1)
             nsub_mi = 0
