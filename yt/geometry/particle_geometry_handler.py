@@ -198,7 +198,7 @@ class ParticleIndex(Index):
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in parallel_objects(enumerate(self.data_files)):
-            pb.update(i+1)
+            pb.update(i + 1)
             for ptype, pos in self.io._yield_coordinates(data_file):
                 ds = self.ds
                 if hasattr(ds, "_sph_ptypes") and ptype == ds._sph_ptypes[0]:
@@ -240,7 +240,7 @@ class ParticleIndex(Index):
         for sto, (i, data_file) in parallel_objects(enumerate(self.data_files),
                                                     storage=storage):
             coll = None
-            pb.update(i+1)
+            pb.update(i + 1)
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if pos.size == 0:
@@ -267,7 +267,8 @@ class ParticleIndex(Index):
             sto.result_id = i
             sto.result = (data_file.file_id, coll.dumps())
         pb.finish()
-        for i, (file_id, coll_str) in sorted(storage.items()):
+        for i in sorted(storage):
+            file_id, coll_str = storage[i]
             coll = BoolArrayCollection()
             coll.loads(coll_str)
             self.regions.bitmasks.append(file_id, coll)
