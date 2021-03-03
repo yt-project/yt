@@ -266,7 +266,11 @@ class ParticleIndex(Index):
                 )
                 total_refined += nsub_mi
             sto.result_id = i
-            sto.result = (data_file.file_id, coll.dumps())
+            if coll is None:
+                coll_str = b""
+            else:
+                coll_str = coll.dumps()
+            sto.result = (data_file.file_id, coll_str)
         pb.finish()
         for i in sorted(storage):
             file_id, coll_str = storage[i]
