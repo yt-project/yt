@@ -13,8 +13,8 @@ from yt.geometry.particle_oct_container import ParticleBitmap
 from yt.utilities.lib.ewah_bool_wrap import BoolArrayCollection
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.parallel_tools.parallel_analysis_interface import \
-    parallel_objects
+from yt.utilities.parallel_tools.parallel_analysis_interface import parallel_objects
+
 
 class ParticleIndex(Index):
     """The Index subclass for particle datasets"""
@@ -198,7 +198,7 @@ class ParticleIndex(Index):
     def _initialize_coarse_index(self):
         pb = get_pbar("Initializing coarse index ", len(self.data_files))
         for i, data_file in parallel_objects(enumerate(self.data_files)):
-            pb.update(i+1)
+            pb.update(i + 1)
             for ptype, pos in self.io._yield_coordinates(data_file):
                 ds = self.ds
                 if hasattr(ds, "_sph_ptypes") and ptype == ds._sph_ptypes[0]:
@@ -237,10 +237,11 @@ class ParticleIndex(Index):
             100 * total_coarse_refined / mask.size,
         )
         storage = {}
-        for sto, (i, data_file) in parallel_objects(enumerate(self.data_files),
-                                                    storage=storage):
+        for sto, (i, data_file) in parallel_objects(
+            enumerate(self.data_files), storage=storage
+        ):
             coll = None
-            pb.update(i+1)
+            pb.update(i + 1)
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if pos.size == 0:
