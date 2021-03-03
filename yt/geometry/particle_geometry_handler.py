@@ -10,6 +10,7 @@ from yt.data_objects.index_subobjects.particle_container import ParticleContaine
 from yt.funcs import get_pbar, only_on_root
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import ParticleBitmap
+from yt.utilities.lib.ewah_bool_wrap import BoolArrayCollection
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.parallel_tools.parallel_analysis_interface import \
@@ -235,9 +236,11 @@ class ParticleIndex(Index):
             total_coarse_refined,
             100 * total_coarse_refined / mask.size,
         )
-        for i, data_file in enumerate(self.data_files):
+        storage = {}
+        for sto, (i, data_file) in parallel_objects(enumerate(self.data_files),
+                                                    storage=storage):
             coll = None
-            pb.update(i)
+            pb.update(i+1)
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if pos.size == 0:
@@ -261,8 +264,13 @@ class ParticleIndex(Index):
                     mask_threshold=mask_threshold,
                 )
                 total_refined += nsub_mi
-            self.regions.bitmasks.append(data_file.file_id, coll)
+            sto.result_id = i
+            sto.result = (data_file.file_id, coll.dumps())
         pb.finish()
+        for i, (file_id, coll_str) in sorted(storage.items()):
+            coll = BoolArrayCollection()
+            coll.loads(coll_str)
+            self.regions.bitmasks.append(file_id, coll)
         self.regions.find_collisions_refined()
 
     def _detect_output_fields(self):
