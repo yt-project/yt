@@ -74,7 +74,8 @@ class IOHandlerASPECT(BaseIOHandler):
 
                         # load this vtu's part of the mesh
                         vtu_file = os.path.join(self.ds.data_dir, vtu_filename)
-                        f2id = self.ds.field_to_piece_id[vtu_file]
+                        f2id = self.ds.parameters["field_to_piece_index"][vtu_file]
+                        # f2id = self.ds.field_to_piece_id[vtu_file]
                         with open(vtu_file) as data:
                             xml = xmltodict.parse(data.read())
                             xmlPieces = xml["VTKFile"]["UnstructuredGrid"]["Piece"]
@@ -104,14 +105,14 @@ class IOHandlerASPECT(BaseIOHandler):
         return rv
 
     def _read_single_vtu_field(
-        self, xmlPieces, fieldname, field_to_piece_id, vectordim=-1, ndims=3
+        self, xmlPieces, fieldname, field_to_piece_index, vectordim=-1, ndims=3
     ):
         vtu_data = []
         pieceoff = 0
         vtu_conns = []
 
         for piece_id in range(0, len(xmlPieces)):
-            field_id = field_to_piece_id[piece_id][fieldname]
+            field_id = field_to_piece_index[piece_id][fieldname]
             xmlPiece = xmlPieces[piece_id]
             data_array = xmlPiece["PointData"]["DataArray"][field_id]
             names = data_array["@Name"]

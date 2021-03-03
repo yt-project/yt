@@ -154,18 +154,25 @@ class ASPECTDataset(Dataset):
         self.default_field = [f for f in self.field_list if f[0] == "connect1"][-1]
         self.parameter_info = self._read_sidecar()
 
+    def _init_sidecar(self):
+        # initializes a json sidecar file to store dataset info to speed up
+        # reloading. Very basic... always reads/writes the whole sidecar. Should
+        # be improved to parse single fields, may warrant a new class to use
+        # across frontends?
+        with open(self._get_sidecar_file(), "w") as shandle:
+            json.dump([{"pvtu": self.parameter_filename}], shandle)
+
     def _get_sidecar_file(self):
+        # returns the sidecar filename
         param_file = os.path.basename(self.parameter_filename)
         return os.path.join(
             self.data_dir, "." + os.path.splitext(param_file)[0] + ".json"
         )
 
-    def _init_sidecar(self):
-        with open(self._get_sidecar_file(), "w") as shandle:
-            json.dump([{"pvtu": self.parameter_filename}], shandle)
-
     def _read_sidecar(self):
-        # initialize the hidden sidecar file for this .pvtu if it is not there
+        # reads in sidecar file, will first initialize if it doesnt exist.
+
+        # initialize for this .pvtu if it is not there
         sidecar = self._get_sidecar_file()
         if not os.path.isfile(sidecar):
             self._init_sidecar()
@@ -177,7 +184,9 @@ class ASPECTDataset(Dataset):
         return param_info[0]
 
     def _write_sidecar(self):
-        # writes current parameter_info to json file
+        # writes current parameter_info to json file. will overwrite everything
+        # so make sure you always _read_sidecar before calling this... obviously
+        # could be improved!
         with open(self._get_sidecar_file(), "w") as shandle:
             json.dump([self.parameter_info], shandle)
 
@@ -223,6 +232,14 @@ class ASPECTDataset(Dataset):
                 "PDataArray"
             ]["@NumberOfComponents"]
         )
+        self.domain_dimensions = np.ones(3, "int32")
+        if self.dimensionality != 3:
+            raise NotImplementedError(
+                "The ASPECT frontend currently only "
+                "supports 3D datasets, but this dataset "
+                f"has {self.dimensionality} dimensions."
+            )
+
         self.parameters["nod_names"] = self._get_nod_names()
         self.parameters["elem_names"] = self._get_elem_names()
         self.parameters["num_meshes"] = len(pieces)
@@ -233,10 +250,8 @@ class ASPECTDataset(Dataset):
         self._set_dummy_parameters()
 
     def _set_dummy_parameters(self):
-        # These attributes don't really make sense for unstructured
-        # mesh data, but yt warns if they are not present, so we set
-        # them to dummy values here.
-        self.domain_dimensions = np.ones(3, "int32")
+        # These attributes don't really make sense for ASPECT data, but yt warns
+        # if they are not present, so we set them to dummy values here.
         self.cosmological_simulation = 0
         self.current_redshift = 0
         self.omega_lambda = 0
@@ -280,29 +295,33 @@ class ASPECTDataset(Dataset):
         return [field["@Name"] for field in fields]
 
     def _read_single_vtu_pieces(self, src_file):
-
         with open(src_file) as data:
             xml = xmltodict.parse(data.read())
             xmlPieces = xml["VTKFile"]["UnstructuredGrid"]["Piece"]
 
-        conns = []
-        alloffs = []
-        x = []
-        y = []
-        z = []
-        pieceoff = 0
-        n_p_cells = []
+        # initialize the containers for each piece of this vtu file. These get
+        # combined into single arrays after reading each piece.
+        conns = []  # connectivity (node --> index of coordinate arrays)
+        alloffs = []  # element offsets
+        x, y, z = [], [], []  # node coordinates
+        n_p_cells = []  # nodes per cell of each piece
+        pieceoff = 0  # connectivity index offset between pieces
 
+        # do some piece sanitization and documentation
         if type(xmlPieces) != list:
+            # handles the case where we have a single piece in this vtu file
             xmlPieces = [xmlPieces]
+        self._add_piece_to_field_map(src_file, xmlPieces)
 
+        # loop over pieces of this vtu, decode and add to containers
         for piece_id in range(0, len(xmlPieces)):
             coords, conn, offsets, cell_types = decode_piece(xmlPieces[piece_id])
 
             if len(np.unique(cell_types)) > 1:
+                # check for multiple cell types within a single piece
                 raise NotImplementedError(
                     f"multiple cell types in piece {piece_id} of vtu {src_file}. "
-                    f" yt can only handle single cell types at present."
+                    f"The ASPECT frontend can only handle single cell types at present."
                 )
 
             n_nodes = conn.size
@@ -312,38 +331,27 @@ class ASPECTDataset(Dataset):
             x.extend(coords[:, 0])
             y.extend(coords[:, 1])
             z.extend(coords[:, 2])
-            conns.extend(conn + pieceoff)
+            alloffs.extend(offsets)
+            conns.extend(conn + pieceoff)  # connectivity across pieces
 
             # the connectivity array can repeat index references to coordinates
-            # update the offset number by the number of coords points:
-            pieceoff = pieceoff + coords.shape[0]
-            alloffs.extend(offsets)
+            # so update the offset number by the number of coords points
+            # rather than the number of elements in conn:
+            pieceoff += coords.shape[0]
 
-        if hasattr(self, "field_to_piece_id") is False:
-            self.field_to_piece_id = {}
-
-        if src_file not in self.field_to_piece_id.keys():
-            self.field_to_piece_id[src_file] = {}
-            for piece_id in range(0, len(xmlPieces)):
-                self.field_to_piece_id[src_file][piece_id] = {}
-                xmlPiece = xmlPieces[piece_id]
-                for field_id, data_array in enumerate(
-                    xmlPiece["PointData"]["DataArray"]
-                ):
-                    fname = data_array["@Name"]
-                    self.field_to_piece_id[src_file][piece_id][fname] = field_id
-
+        # concatenate some of the containers
         coords = np.array(np.column_stack([x, y, z]))
         alloffs = np.array(alloffs)
         conns = np.array(conns)
 
-        # check that cell types are the same, otherwise we have a problem...
-        # but ASPECT does not mix elements, so should be ok.
+        # check that cell types are the same across the pieces. Not handling
+        # multiple cell types right now as ASPECT generally does not mix
+        # elements. May want to generalize this for wider vtu applicability...
         n_p_cell_vals = np.unique(n_p_cells)
         if len(n_p_cell_vals) > 1:
             raise NotImplementedError(
-                f"{src_file} contains multiple cell types. "
-                f"yt can only handle single cell types at present"
+                f"{src_file} contains multiple cell types. The ASPECT frontend "
+                f"can only handle a single cell type at present"
             )
         npc = n_p_cell_vals[0]
 
@@ -351,36 +359,79 @@ class ASPECTDataset(Dataset):
 
         return coords, conns, alloffs, npc
 
+    def _add_piece_to_field_map(self, src_file, xmlPieces):
+        """
+        This constructs a look-up dictionary, field_to_piece_index:
+
+        field_to_piece_index[vtufilename][piece_id][fieldname] --> piece index
+
+        where piece index is the index of xmlPiece["PointData"]["DataArray"]
+        for the desired field for a given vtu file and piece of the vtu file.
+        Allows quick lookup of the field rather than looping through
+        xmlPiece["PointData"]["DataArray"] until the desired field is found.
+        Used in aspect.io._read_fluid_selection
+
+        Parameters:
+            src_file : str
+                vtu filename
+            xmlPieces : list
+                list containing the pieces of the mesh for this vtu file
+
+        stores field_to_piece_index in the self.parameters dictionary.
+        """
+
+        if "field_to_piece_index" not in self.parameters.keys():
+            self.parameters["field_to_piece_index"] = {}
+
+        if src_file not in self.parameters["field_to_piece_index"].keys():
+            src_map = {}
+            for piece_id in range(0, len(xmlPieces)):
+                src_map[piece_id] = {}
+                xmlPiece = xmlPieces[piece_id]
+                for field_id, data_array in enumerate(
+                    xmlPiece["PointData"]["DataArray"]
+                ):
+                    fname = data_array["@Name"]
+                    src_map[piece_id][fname] = field_id
+
+            self.parameters["field_to_piece_index"][src_file] = src_map
+
     def _read_pieces(self):
         # reads coordinates and connectivity from pieces, returns the mesh
         # concatenated across all pieces.
         with open(self.parameter_filename) as pvtu_fi:
             pXML = xmltodict.parse(pvtu_fi.read())
 
-        # the separate files
-        pieces = pXML["VTKFile"]["PUnstructuredGrid"]["Piece"]
-        if not isinstance(pieces, list):
-            pieces = [pieces]
+        # the separate vtu files
+        vtu_pieces = pXML["VTKFile"]["PUnstructuredGrid"]["Piece"]
+        if not isinstance(vtu_pieces, list):
+            vtu_pieces = [vtu_pieces]
 
-        conlist = []  # list of 2D connectivity arrays
-        coordlist = []  # global, concatenated coordinate array
-        node_offsets = []
-        element_count = []
-        current_offset = 0  # the NODE offset to global coordinate index
-        nodes_per_cell = []
-        for src in pieces:
+        # containers that will be concatenated across vtu files
+        conlist = []  # list of 2D connectivity arrays for each vtu
+        coordlist = []  # global coordinates in each vtu
+        node_offsets = []  # the offset within each vtu
+        element_count = []  # total elements in each vtu
+        nodes_per_cell = []  # nodes per cell for each vtu
+
+        current_offset = 0  # the current NODE offset to global coordinate index
+        for src in vtu_pieces:
             src_file = os.path.join(self.data_dir, src["@Source"])
-            # print(src_file)
             coord, con, all_offs, npc = self._read_single_vtu_pieces(src_file)
             nodes_per_cell.append(npc)
 
             node_offsets.append(current_offset)
             element_count.append(con.shape[0])
             con = con + current_offset  # offset to global
-            current_offset = coord.shape[0] + current_offset  # off set by COORD
             conlist.append(con.astype("i8"))
             coordlist.append(coord.astype("f8"))
 
+            # the connectivity array can repeat index references to coordinates
+            # so update the offset number by the number of coords points
+            # rather than the number of elements in conn:
+            current_offset += coord.shape[0]
+
+        # check that we have the same cell types across vtu files
         nodes_per_cell = np.unique(nodes_per_cell)
         if len(nodes_per_cell) > 1:
             mylog.error("Found different cell types across vtu files")
@@ -403,7 +454,6 @@ class ASPECTDataset(Dataset):
         """
 
         # check our sidecar file first:
-        # self._init_sidecar()  # uncomment to force sidecar reinit. remove before PR
         self.parameter_info = self._read_sidecar()
         left_edge = self.parameter_info.get("domain_left_edge", None)
         right_edge = self.parameter_info.get("domain_right_edge", None)
