@@ -9,8 +9,8 @@ class ASPECTFieldInfo(FieldInfoContainer):
 
     known_other_fields = (
         ("T", ("K", [], None)),
-        ("p", ("K", [], None)),
-        ("viscosity", ("Pa", [], None)),
+        ("p", ("Pa", [], None)),
+        ("viscosity", ("Pa*s", [], None)),
         ("velocity_x", ("m/s", [], None)),
         ("velocity_y", ("m/s", [], None)),
         ("velocity_z", ("m/s", [], None)),
@@ -41,7 +41,7 @@ class ASPECTFieldInfo(FieldInfoContainer):
             self.known_other_fields += (("shear_stress_" + xx, ("Pa", [], None)),)
             self.known_other_fields += (("stress_" + xx, ("Pa", [], None)),)
 
-        super(ASPECTFieldInfo, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
         for name in self:
             if name not in self.log_fields:
                 self[name].take_log = False
