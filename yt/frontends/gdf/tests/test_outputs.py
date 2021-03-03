@@ -12,6 +12,7 @@ sedov = "sedov/sedov_tst_0004.h5"
 class TestGDF:
     answer_file = None
     saved_hashes = None
+    answer_version = "000"
 
     @pytest.mark.usefixtures("hashing")
     @pytest.mark.parametrize("ds", [sedov], indirect=True)

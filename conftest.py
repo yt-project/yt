@@ -142,8 +142,8 @@ def _get_answer_files(request):
     """
     Gets the path to where the hashed and raw answers are saved.
     """
-    answer_file = f"{request.cls.__name__}.yaml"
-    raw_answer_file = f"{request.cls.__name__}.h5"
+    answer_file = f"{request.cls.__name__}_{request.cls.answer_version}.yaml"
+    raw_answer_file = f"{request.cls.__name__}_{request.cls.answer_version}.h5"
     # Add the local-dir aspect of the path. If there's a command line value,
     # have that override the ini file value
     clLocalDir = request.config.getoption("--local-dir")
