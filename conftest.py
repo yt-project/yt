@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import shutil
 import tempfile
 import typing
@@ -51,7 +52,7 @@ def pytest_addoption(parser):
     # option is used for creating the answer directory on CI
     parser.addini(
         "local-dir",
-        default=os.path.join("..", "answer-store"),
+        default=str(Path(__file__).parent / "answer-store"),
         help="answer directory.",
     )
     parser.addini(
