@@ -10,12 +10,14 @@ import numpy as np
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
 from yt.data_objects.time_series import DatasetSeries
-from yt.funcs import ensure_dir, get_image_suffix, is_sequence, iter_fields, mylog
+from yt.funcs import ensure_dir, is_sequence, iter_fields, mylog
 from yt.units import YTQuantity
 from yt.units.unit_object import Unit
 from yt.utilities.definitions import formatted_length_unit_names
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.visualization.color_maps import yt_colormaps
+
+from ._commons import validate_image_name
 
 latex_prefixes = {
     "u": r"\mu",
@@ -459,7 +461,7 @@ class PlotContainer:
         return self
 
     @validate_plot
-    def save(self, name=None, suffix=None, mpl_kwargs=None):
+    def save(self, name=None, suffix=".png", mpl_kwargs=None):
         """saves the plot to disk.
 
         Parameters
@@ -490,37 +492,42 @@ class PlotContainer:
             ensure_dir(name)
         if os.path.isdir(name) and name != str(self.ds):
             name = name + (os.sep if name[-1] != os.sep else "") + str(self.ds)
-        if suffix is None:
-            suffix = get_image_suffix(name)
-            if suffix != "":
-                for v in self.plots.values():
-                    names.append(v.save(name, mpl_kwargs))
-                return names
+
+        new_name = validate_image_name(name, suffix)
+        if new_name == name:
+            for v in self.plots.values():
+                out_name = v.save(name, mpl_kwargs)
+                names.append(out_name)
+            return names
+
+        name = new_name
+        prefix, suffix = os.path.splitext(name)
+
         if hasattr(self.data_source, "axis"):
             axis = self.ds.coordinates.axis_name.get(self.data_source.axis, "")
         else:
             axis = None
         weight = None
-        type = self._plot_type
-        if type in ["Projection", "OffAxisProjection"]:
+        plot_type = self._plot_type
+        if plot_type in ["Projection", "OffAxisProjection"]:
             weight = self.data_source.weight_field
             if weight is not None:
                 weight = weight[1].replace(" ", "_")
         if "Cutting" in self.data_source.__class__.__name__:
-            type = "OffAxisSlice"
+            plot_type = "OffAxisSlice"
         for k, v in self.plots.items():
             if isinstance(k, tuple):
                 k = k[1]
+
+            name_elements = [prefix, plot_type]
             if axis:
-                n = f"{name}_{type}_{axis}_{k.replace(' ', '_')}"
-            else:
-                # for cutting planes
-                n = f"{name}_{type}_{k.replace(' ', '_')}"
+                name_elements.append(axis)
+            name_elements.append(k.replace(" ", "_"))
             if weight:
-                n += f"_{weight}"
-            if suffix != "":
-                n = ".".join([n, suffix])
-            names.append(v.save(n, mpl_kwargs))
+                name_elements.append(weight)
+
+            name = "_".join(name_elements) + suffix
+            names.append(v.save(name, mpl_kwargs))
         return names
 
     @invalidate_data
