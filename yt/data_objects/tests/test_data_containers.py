@@ -16,7 +16,7 @@ from yt.testing import (
     fake_random_ds,
     requires_module,
 )
-from yt.utilities.exceptions import YTFieldNotFound
+from yt.utilities.exceptions import YTException, YTFieldNotFound
 
 
 class TestDataContainers(unittest.TestCase):
@@ -61,8 +61,12 @@ class TestDataContainers(unittest.TestCase):
 
     def test_write_out(self):
         filename = "sphere.txt"
-        ds = fake_random_ds(16)
+        ds = fake_random_ds(16, particles=10)
         sp = ds.sphere(ds.domain_center, 0.25)
+
+        with assert_raises(YTException):
+            sp.write_out(filename, fields=[("all", "particle_ones")])
+
         sp.write_out(filename, fields=[("gas", "cell_volume")])
 
         with open(filename) as file:

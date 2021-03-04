@@ -465,25 +465,21 @@ class YTDataContainer:
         field_order = [("index", k) for k in self._key_fields]
         diff_fields = [field for field in fields if field not in field_order]
         field_order += diff_fields
+        field_order = sorted(self._determine_fields(field_order))
 
-        field_order = sorted(
-            self._determine_fields([("index", f) for f in field_order])
-        )
-        field_types = {u for u, v in field_order}
-
-        if len(field_types) != 1:
-            diff_fields = self._determine_fields(diff_fields)
-            req_ftype = self._determine_fields(self._key_fields[0])[0][0]
-            f_type = {f for f in diff_fields if f[0] != req_ftype}
-            msg = (
-                "Field type %s of the supplied field %s is inconsistent"
-                " with field type '%s'."
-                % ([f[0] for f in f_type], [f[1] for f in f_type], req_ftype)
-            )
-            raise YTException(msg)
-
+        field_shapes = {}
         for field in field_order:
-            self[field]
+            field_shapes[field] = self[field].shape
+
+        # Check all fields have the same shape
+        all_field_shapes = {shape for shape in field_shapes.values()}
+        if len(all_field_shapes) != 1:
+            err_msg = ["Got fields with different number of elements:\n"]
+            for shape in all_field_shapes:
+                these_fields = [field for field, val in all_field_shapes.items()]
+                err_msg.append(f"\t {these_fields} with shape {shape}")
+            raise YTException("\n".join(err_msg))
+
         with open(filename, "w") as fid:
             field_header = [str(f) for f in field_order]
             fid.write("\t".join(["#"] + field_header + ["\n"]))
