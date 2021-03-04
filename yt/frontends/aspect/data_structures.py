@@ -152,15 +152,7 @@ class ASPECTDataset(Dataset):
         self.index_filename = filename
         self.storage_filename = storage_filename
         self.default_field = ("all", "T")
-        self.parameter_info = self._read_sidecar()
-
-    def _init_sidecar(self):
-        # initializes a json sidecar file to store dataset info to speed up
-        # reloading. Very basic... always reads/writes the whole sidecar. Should
-        # be improved to parse single fields, may warrant a new class to use
-        # across frontends?
-        with open(self._get_sidecar_file(), "w") as shandle:
-            json.dump([{"pvtu": self.parameter_filename}], shandle)
+        self.sidecar_info = self._read_sidecar()
 
     def _get_sidecar_file(self):
         # returns the sidecar filename
@@ -170,25 +162,20 @@ class ASPECTDataset(Dataset):
         )
 
     def _read_sidecar(self):
-        # reads in sidecar file, will first initialize if it doesnt exist.
+        # reads in sidecar file, returns empty dict if no file.
 
         # initialize for this .pvtu if it is not there
         sidecar = self._get_sidecar_file()
-        if not os.path.isfile(sidecar):
-            self._init_sidecar()
-
-        # read in parameter info
-        with open(sidecar) as shandle:
-            param_info = json.load(shandle)
-
-        return param_info[0]
+        if os.path.isfile(sidecar):
+            with open(sidecar) as shandle:
+                return json.load(shandle)[0]
+        else:
+            return {}
 
     def _write_sidecar(self):
-        # writes current parameter_info to json file. will overwrite everything
-        # so make sure you always _read_sidecar before calling this... obviously
-        # could be improved!
+        # writes current sidecar_info to json file (overwrite everything)
         with open(self._get_sidecar_file(), "w") as shandle:
-            json.dump([self.parameter_info], shandle)
+            json.dump([self.sidecar_info], shandle)
 
     def _set_code_unit_attributes(self):
         setdefaultattr(self, "length_unit", self.quan(1.0, "m"))
@@ -447,16 +434,16 @@ class ASPECTDataset(Dataset):
         """
 
         # check our sidecar file first:
-        self.parameter_info = self._read_sidecar()
-        left_edge = self.parameter_info.get("domain_left_edge", None)
-        right_edge = self.parameter_info.get("domain_right_edge", None)
+        self.sidecar_info = self._read_sidecar()
+        left_edge = self.sidecar_info.get("domain_left_edge", None)
+        right_edge = self.sidecar_info.get("domain_right_edge", None)
 
-        if not left_edge:
+        if not left_edge or not right_edge:
             _, coord, _, _, _ = self._read_pieces()
             left_edge = [coord[:, i].min() for i in range(self.dimensionality)]
             right_edge = [coord[:, i].max() for i in range(self.dimensionality)]
-            self.parameter_info["domain_left_edge"] = left_edge
-            self.parameter_info["domain_right_edge"] = right_edge
+            self.sidecar_info["domain_left_edge"] = left_edge
+            self.sidecar_info["domain_right_edge"] = right_edge
             self._write_sidecar()
 
         return np.array(left_edge), np.array(right_edge)
