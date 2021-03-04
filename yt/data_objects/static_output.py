@@ -1623,7 +1623,7 @@ class Dataset(abc.ABC):
         return self.index._add_mesh_sampling_particle_field(sample_field, ftype, ptype)
 
     def add_deposited_particle_field(
-        self, deposit_field, method, kernel_name="cubic", weight_field="particle_mass"
+        self, deposit_field, method, kernel_name="cubic", weight_field=None
     ):
         """Add a new deposited particle field
 
@@ -1646,8 +1646,9 @@ class Dataset(abc.ABC):
            the `simple_smooth` method and is otherwise ignored. Current
            supported kernel names include `cubic`, `quartic`, `quintic`,
            `wendland2`, `wendland4`, and `wendland6`.
-        weight_field : string, default 'particle_mass'
+        weight_field : (field_type, field_name) or None
            Weighting field name for deposition method `weighted_mean`.
+           If None, use the particle mass.
 
         Returns
         -------
@@ -1660,6 +1661,8 @@ class Dataset(abc.ABC):
         else:
             raise RuntimeError
 
+        if weight_field is None:
+            weight_field = (ptype, "particle_mass")
         units = self.field_info[ptype, deposit_field].output_units
         take_log = self.field_info[ptype, deposit_field].take_log
         name_map = {

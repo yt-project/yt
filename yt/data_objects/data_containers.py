@@ -1099,7 +1099,7 @@ class YTDataContainer:
         extrema=None,
         logs=None,
         units=None,
-        weight_field="cell_mass",
+        weight_field=("gas", "cell_mass"),
         accumulation=False,
         fractional=False,
         deposition="ngp",

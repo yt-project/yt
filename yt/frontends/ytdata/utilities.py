@@ -23,8 +23,8 @@ def save_as_dataset(ds, filename, data, field_types=None, extra_attrs=None):
         A dictionary of field arrays to be saved.
     field_types: dict, optional
         A dictionary denoting the group name to which each field is to
-        be saved.  When the resulting dataset is reloaded, this will be
-        the field type for this field.  If not given, "data" will be
+        be saved. When the resulting dataset is reloaded, this will be
+        the field type for this field. If not given, "data" will be
         used.
     extra_attrs: dict, optional
         A dictionary of additional attributes to be saved.

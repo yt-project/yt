@@ -108,7 +108,9 @@ def test_old_profile_data():
     os.chdir(tmpdir)
     ds = data_dir_load(enzotiny)
     ad = ds.all_data()
-    profile_1d = create_profile(ad, "density", "temperature", weight_field="cell_mass")
+    profile_1d = create_profile(
+        ad, "density", "temperature", weight_field=("gas", "cell_mass")
+    )
     fn = "DD0046_Profile1D.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     prof_1d_ds = data_dir_load(full_fn)
@@ -122,7 +124,7 @@ def test_old_profile_data():
         )
 
     p1 = ProfilePlot(
-        prof_1d_ds.data, "density", "temperature", weight_field="cell_mass"
+        prof_1d_ds.data, "density", "temperature", weight_field=("gas", "cell_mass")
     )
     p1.save()
 

@@ -818,9 +818,9 @@ def standard_particle_fields(
     )
 
 
-def add_particle_average(
-    registry, ptype, field_name, weight="particle_mass", density=True
-):
+def add_particle_average(registry, ptype, field_name, weight=None, density=True):
+    if weight is None:
+        weight = (ptype, "particle_mass")
     field_units = registry[ptype, field_name].units
 
     def _pfunc_avg(field, data):

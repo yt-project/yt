@@ -17,7 +17,7 @@ profile = yt.create_profile(
     n_bins=256,
     units=dict(radius="kpc", cylindrical_tangential_velocity_absolute="km/s"),
     logs=dict(radius=False),
-    weight_field="cell_mass",
+    weight_field=("gas", "cell_mass"),
     extrema=dict(radius=(0, 40)),
 )
 

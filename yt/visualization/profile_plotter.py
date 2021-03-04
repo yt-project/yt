@@ -203,7 +203,7 @@ class ProfilePlot:
     >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
     >>> ad = ds.all_data()
     >>> plot = yt.ProfilePlot(ad, "density", ["temperature", "velocity_x"],
-    ...                    weight_field="cell_mass",
+    ...                    weight_field=("gas", "cell_mass"),
     ...                    plot_spec=dict(color='red', linestyle="--"))
     >>> plot.save()
 
@@ -242,7 +242,7 @@ class ProfilePlot:
         data_source,
         x_field,
         y_fields,
-        weight_field="cell_mass",
+        weight_field=("gas", "cell_mass"),
         n_bins=64,
         accumulation=False,
         fractional=False,
@@ -942,7 +942,7 @@ class PhasePlot(ImagePlotContainer):
         x_field,
         y_field,
         z_fields,
-        weight_field="cell_mass",
+        weight_field=("gas", "cell_mass"),
         x_bins=128,
         y_bins=128,
         accumulation=False,
