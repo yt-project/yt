@@ -6,13 +6,6 @@ CyOctree building, loading and refining routines
 
 """
 
-#-----------------------------------------------------------------------------
-# Copyright (c) 2019, yt Development Team.
-#
-# Distributed under the terms of the Modified BSD License.
-#
-# The full license is in the file COPYING.txt, distributed with this software.
-#-----------------------------------------------------------------------------
 
 cimport cython
 cimport libc.math as math
