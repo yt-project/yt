@@ -604,18 +604,18 @@ class TestBadProfiles(unittest.TestCase):
             ("gas", "cell_mass"): cell_mass,
         }
         fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
-        yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data)
+        field_types = {field: "gas" for field in my_data.keys()}
+        yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data, field_types=field_types)
 
         ds = yt.load("mydata.h5")
 
-        assert_raises(
-            YTProfileDataShape,
-            yt.PhasePlot,
-            ds.data,
-            ("gas", "temperature"),
-            ("gas", "density"),
-            ("gas", "cell_mass"),
-        )
+        with assert_raises(YTProfileDataShape):
+            yt.PhasePlot(
+                ds.data,
+                ("gas", "temperature"),
+                ("gas", "density"),
+                ("gas", "cell_mass"),
+            )
 
     @requires_module("h5py")
     def test_unequal_bin_field_profile(self):
@@ -629,18 +629,18 @@ class TestBadProfiles(unittest.TestCase):
             ("gas", "cell_mass"): cell_mass,
         }
         fake_ds_med = {"current_time": yt.YTQuantity(10, "Myr")}
-        yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data)
+        field_types = {field: "gas" for field in my_data.keys()}
+        yt.save_as_dataset(fake_ds_med, "mydata.h5", my_data, field_types=field_types)
 
         ds = yt.load("mydata.h5")
 
-        assert_raises(
-            YTProfileDataShape,
-            yt.PhasePlot,
-            ds.data,
-            ("gas", "temperature"),
-            ("gas", "density"),
-            ("gas", "cell_mass"),
-        )
+        with assert_raises(YTProfileDataShape):
+            yt.PhasePlot(
+                ds.data,
+                ("gas", "temperature"),
+                ("gas", "density"),
+                ("gas", "cell_mass"),
+            )
 
 
 def test_index_field_units():
