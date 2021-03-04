@@ -306,7 +306,7 @@ cdef class CyOctree:
             Particles positions in the format (num_particles, 3)
         {left,right}_edge : array of length 3
             xyz coordinates of the lower left (upper right) corner of the octree.
-        n_ref : 
+        n_ref :
             The maximum number of particles per leaf, if more, the oct
             will refine
         max_depth :
