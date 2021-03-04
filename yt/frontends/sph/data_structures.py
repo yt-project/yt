@@ -110,7 +110,7 @@ class SPHParticleIndex(ParticleIndex):
             self._kdtree = None
             return
         positions = np.concatenate(positions)
-        mylog.info("Allocating KDTree for %s particles" % positions.shape[0])
+        mylog.info("Allocating KDTree for %s particles", positions.shape[0])
         num_neighbors = getattr(self.ds, "num_neighbors", 32)
         self._kdtree = PyKDTree(
             positions.astype("float64"),
