@@ -265,7 +265,7 @@ def test_2d_grid_shape():
     # returns a 3D array with a dummy dimension.
     ds = data_dir_load(kh2d)
     g = ds.index.grids[1]
-    assert g["density"].shape == (128, 100, 1)
+    assert g[("gas", "density")].shape == (128, 100, 1)
 
 
 @requires_file(p3mini)
