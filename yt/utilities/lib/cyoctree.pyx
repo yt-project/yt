@@ -171,6 +171,19 @@ cdef int octree_allocate(Octree * octree, long int num_nodes):
 cdef int octree_reallocate(Octree * octree, long int num_nodes):
     """
     This function re-allocates all of the arrays malloc'd in `octree_allocate`
+    See Notes for when we want to re-allocate.
+    
+    Parameters
+    ----------
+    octree : A pointer to the octree
+    num_nodes : The maximum number of nodes to (re)allocate for
+
+    Returns
+    ------
+    0
+
+    Notes
+    -----
     Why do we want to re-allocate?
 
     Well 2 cases:
@@ -181,13 +194,6 @@ cdef int octree_reallocate(Octree * octree, long int num_nodes):
     Case 2: We have finished building the octree and we have used less nodes
     than we originally allocated. We are now shrinking the octree and giving
     the spare memory back.
-
-    Args:
-        octree: A pointer to the octree
-        num_nodes: The maximum number of nodes to (re)allocate for
-
-    Returns:
-        0
     """
     cdef np.float64_t * old_arr
     cdef np.int64_t * old_arr_int
