@@ -297,7 +297,7 @@ cdef class CyOctree:
         refine the octree until every leaf has either less particles than n_ref
         or is at the maximum depth.
 
-        Finally, we re-alloacte all of the memory required by tree to ensure we
+        Finally, we re-allocate all of the memory required by tree to ensure we
         do not use more memory than required.
 
         Args:
