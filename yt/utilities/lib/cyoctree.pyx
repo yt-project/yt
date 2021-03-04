@@ -300,16 +300,19 @@ cdef class CyOctree:
         Finally, we re-allocate all of the memory required by tree to ensure we
         do not use more memory than required.
 
-        Args:
-            input_pos: A memory view of 2D dimensional array which stores the
-                particles positions in the format (num_particles, 3)
-            <>_edge: A 3 element array with the xyz of the lower left
-                (upper right) corner of the octree.
-            n_ref: The maximum number of particles per leaf, if more, the oct
-                will refine
-            max_depth: The maximum depth the octree will refine to. If we set
-                this too high then we may hit a stack overflow due to the
-                recursive nature of the build
+        Parameters
+        ----------
+        input_pos : 2D memory view
+            Particles positions in the format (num_particles, 3)
+        {left,right}_edge : array of length 3
+            xyz coordinates of the lower left (upper right) corner of the octree.
+        n_ref : 
+            The maximum number of particles per leaf, if more, the oct
+            will refine
+        max_depth :
+            The maximum depth the octree will refine to. If we set
+            this too high then we may hit a stack overflow due to the
+            recursive nature of the build
         """
 
         self.n_ref = n_ref
