@@ -273,18 +273,9 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
         units="",
     )
 
-    def _disk_angle(field, data):
-        """This field is dprecated and will be removed in a future release"""
-        return data["index", "spherical_theta"]
-
-    registry.add_field(
-        ("index", "disk_angle"),
-        sampling_type="cell",
-        function=_disk_angle,
-        take_log=False,
-        display_field=False,
-        validators=[ValidateParameter("center"), ValidateParameter("normal")],
-        units="",
+    registry.alias(
+        ("index", "disk_angle"), ("index", "spherical_theta"), deprecate=True
     )
 
     registry.alias(("index", "height"), ("index", "cylindrical_z"), deprecate=True)
+
