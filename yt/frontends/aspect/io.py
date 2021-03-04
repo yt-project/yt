@@ -47,16 +47,9 @@ class IOHandlerASPECT(BaseIOHandler):
             mesh = chunk.objs[0]
             npc = mesh.nodes_per_cell
             el_counts = np.array(mesh.element_count)
-            # operations here should not offset mesh indeces as the indices for
-            # a chunk's mesh are not global. need to temporarily
-            # zero the mesh index for use within the selector objects, then
-            # reset after for places where global concatenation of the indices
-            # is required.
-            # orig_offset = mesh._index_offset
-            # mesh._index_offset = 0
 
             # for now, we have all file info in single chunk
-            mesh_name = f"connect{chunk_id+1}"
+            mesh_name = f"connect{chunk_id}"
             if "all" in ftype_list or mesh_name in ftype_list:
                 # mask here is the **element** mask. i.e., shape(mask) = (n_elments,)
                 # rather than (n_elements, n_verts). These apply to all fields, so

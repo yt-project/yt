@@ -102,7 +102,7 @@ class ASPECTUnstructuredIndex(UnstructuredIndex):
                 fnames.append("velocity_" + dim)
 
         self.field_list = []
-        for i in range(1, len(self.meshes) + 1):
+        for i in range(0, len(self.meshes)):
             self.field_list += [("connect%d" % i, fname) for fname in fnames]
         self.field_list += [("all", fname) for fname in fnames]
 
@@ -151,7 +151,7 @@ class ASPECTDataset(Dataset):
         super().__init__(filename, dataset_type, units_override=units_override)
         self.index_filename = filename
         self.storage_filename = storage_filename
-        self.default_field = [f for f in self.field_list if f[0] == "connect1"][-1]
+        self.default_field = ("all", "T")
         self.parameter_info = self._read_sidecar()
 
     def _init_sidecar(self):
@@ -254,7 +254,7 @@ class ASPECTDataset(Dataset):
         with open(self.parameter_filename) as pvtu_fi:
             pXML = xmltodict.parse(pvtu_fi.read())
         n_pieces = len(pXML["VTKFile"]["PUnstructuredGrid"]["Piece"])
-        fluid_types = tuple([f"connect{pcid}" for pcid in range(n_pieces)])
+        fluid_types = tuple([f"connect{pcid}" for pcid in range(0, n_pieces)])
         fluid_types += ("all",)
         return fluid_types
 
@@ -475,6 +475,7 @@ class ASPECTDataset(Dataset):
             except OSError:
                 return False
 
+        # now we check if xmltodict is available
         if is_aspect:
             try:
                 _ = hasattr(xmltodict, "parse")

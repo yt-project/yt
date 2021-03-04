@@ -24,7 +24,7 @@ def test_box_convect():
         dso = [None, ("sphere", (ic, (0.25, "unitary")))]
         for field in _fields:
             for dobj_name in dso:
-                yield AllFieldValuesTest(ds, field, dobj_name)
+                yield AllFieldValuesTest(ds, ("connect0", field), dobj_name)
 
 
 @requires_ds(box_convect_par)
@@ -39,4 +39,4 @@ def test_box_convect_par():
         dso = [None, ("sphere", (ic, (0.25, "unitary")))]
         for field in _fields:
             for dobj_name in dso:
-                yield AllFieldValuesTest(ds, field, dobj_name)
+                yield AllFieldValuesTest(ds, ("connect0", field), dobj_name)
