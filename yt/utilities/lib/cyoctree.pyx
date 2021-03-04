@@ -143,12 +143,14 @@ cdef int octree_allocate(Octree * octree, long int num_nodes):
     This is the main allocation function in the octree. We allocate all of the
     arrays we require to store information about every single oct in the tree
 
-    Args:
-        octree: A pointer to the octree
-        num_nodes: The maximum number of nodes to allocate for
+    Parameters
+    ----------
+    octree : A pointer to the octree
+    num_nodes : The maximum number of nodes to allocate for
 
-    Returns:
-        0
+    Returns
+    -------
+    0
     """
     octree.node_positions = <np.float64_t *> malloc(num_nodes * 3 * sizeof(np.float64_t))
 
