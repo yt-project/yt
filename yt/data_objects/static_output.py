@@ -39,7 +39,8 @@ from yt.units.unit_registry import UnitRegistry
 from yt.units.unit_systems import create_code_unit_system, unit_system_registry
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.cosmology import Cosmology
-from yt.utilities.exceptions import (  # YTAmbiguousFieldName,
+from yt.utilities.exceptions import (
+    YTAmbiguousFieldName,
     YTFieldNotFound,
     YTGeometryNotSupported,
     YTIllDefinedParticleFilter,
@@ -823,11 +824,10 @@ class Dataset(abc.ABC):
         # storing this condition before altering it
         guessing_type = ftype == "unknown"
         if guessing_type:
-            # if fname in self.field_info._ambiguous_field_names:
-            #     autoFixer(fname, ftype)
-            #    raise YTAmbiguousFieldName(
-            #        fname, self.field_info._ambiguous_field_namesname]
-            #    )
+            if fname in self.field_info._ambiguous_field_names:
+                raise YTAmbiguousFieldName(
+                    fname, self.field_info._ambiguous_field_names[fname]
+                )
             ftype = self._last_freq[0] or ftype
         field = (ftype, fname)
 
