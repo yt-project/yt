@@ -59,17 +59,17 @@ def test_plot_data():
     os.chdir(tmpdir)
     ds = fake_random_ds(16)
 
-    plot = SlicePlot(ds, ("index", "z"), ("gas", "density"))
+    plot = SlicePlot(ds, "z", ("gas", "density"))
     fn = plot.data_source.save_as_dataset("slice.h5")
     ds_slice = load(fn)
-    p = SlicePlot(ds_slice, ("index", "z"), ("gas", "density"))
+    p = SlicePlot(ds_slice, "z", ("gas", "density"))
     fn = p.save()
     assert_fname(fn[0])
 
     plot = ProjectionPlot(ds, "z", "density")
     fn = plot.data_source.save_as_dataset("proj.h5")
     ds_proj = load(fn)
-    p = ProjectionPlot(ds_proj, ("index", "z"), ("gas", "density"))
+    p = ProjectionPlot(ds_proj, "z", ("gas", "density"))
     fn = p.save()
     assert_fname(fn[0])
 

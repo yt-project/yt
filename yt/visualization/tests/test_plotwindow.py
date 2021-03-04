@@ -417,7 +417,7 @@ def test_on_off_compare():
     bbox = np.array([[-1.5, 1.5], [-1.5, 1.5], [-1.5, 1.5]])
     ds = load_uniform_grid(data, den.shape, length_unit="Mpc", bbox=bbox, nprocs=64)
 
-    sl_on = SlicePlot(ds, ("index", "z"), [("gas", "density")])
+    sl_on = SlicePlot(ds, "z", [("gas", "density")])
 
     L = [0, 0, 1]
     north_vector = [0, 1, 0]
@@ -543,14 +543,14 @@ def test_frb_regen():
 def test_set_background_color():
     ds = fake_random_ds(32)
     plot = SlicePlot(ds, 2, ("gas", "density"))
-    for field in ["density", ("gas", "density")]:
-        plot.set_background_color(field, "red")
-        plot._setup_plots()
-        ax = plot.plots[field].axes
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            assert_equal(ax.get_axis_bgcolor(), "red")
-        else:
-            assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
+    field = ("gas", "density")
+    plot.set_background_color(field, "red")
+    plot._setup_plots()
+    ax = plot.plots[field].axes
+    if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
+        assert_equal(ax.get_axis_bgcolor(), "red")
+    else:
+        assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
 
 
 def test_set_unit():
@@ -666,7 +666,7 @@ def test_nan_data():
 
     ds = load_uniform_grid(data, [16, 16, 16])
 
-    plot = SlicePlot(ds, ("index", "z"), ("gas", "density"))
+    plot = SlicePlot(ds, "z", ("gas", "density"))
 
     with tempfile.NamedTemporaryFile(suffix="png") as f:
         plot.save(f.name)
