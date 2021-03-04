@@ -172,7 +172,7 @@ cdef int octree_reallocate(Octree * octree, long int num_nodes):
     """
     This function re-allocates all of the arrays malloc'd in `octree_allocate`
     See Notes for when we want to re-allocate.
-    
+
     Parameters
     ----------
     octree : A pointer to the octree
@@ -250,7 +250,7 @@ cdef int octree_deallocate(Octree * octree):
     Parameter
     ---------
     octree : pointer to the octree
-    
+
     Returns
     -------
     0
