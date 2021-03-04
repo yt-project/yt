@@ -190,7 +190,12 @@ def amrspace(extent, levels=7, cells=8):
 def fake_random_ds(
     ndims,
     peak_value=1.0,
-    fields=("density", "velocity_x", "velocity_y", "velocity_z"),
+    fields=(
+        ("gas", "density"),
+        ("gas", "velocity_x"),
+        ("gas", "velocity_y"),
+        ("gas", "velocity_z"),
+    ),
     units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
     particle_fields=None,
     particle_field_units=None,

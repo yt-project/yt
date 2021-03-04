@@ -568,7 +568,9 @@ def get_box_grids_below_level(
 @cython.boundscheck(False)
 @cython.wraparound(False)
 def obtain_position_vector(
-    data, field_names = ('x', 'y', 'z')):
+    data,
+    field_names = (("index", "x"), ("index", "y"), ("index", "z"))
+):
     # This is just to let the pointers exist and whatnot.  We can't cdef them
     # inside conditionals.
     cdef np.ndarray[np.float64_t, ndim=1] xf
