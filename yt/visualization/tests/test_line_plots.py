@@ -68,11 +68,11 @@ def test_line_buffer():
     lb[("gas", "density")]
     lb[("gas", "velocity_x")]
     assert_equal(lb[("gas", "density")].size, 512)
-    lb["density"] = 0
-    assert_equal(lb["density"], 0)
-    assert_equal(set(lb.keys()), {"density", "velocity_x"})
-    del lb["velocity_x"]
-    assert_equal(set(lb.keys()), {"density"})
+    lb[("gas", "density")] = 0
+    assert_equal(lb[("gas", "density")], 0)
+    assert_equal(set(lb.keys()), {("gas", "density"), ("gas", "velocity_x")})
+    del lb[("gas", "velocity_x")]
+    assert_equal(set(lb.keys()), {("gas", "density")})
 
 
 def test_validate_point():
