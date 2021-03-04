@@ -2690,8 +2690,8 @@ class YTOctree(YTSelectionContainer3D):
             right_edge=self.right_edge.to("code_length").d,
             n_ref=self.n_ref,
         )
-        mylog.info("Allocated %s nodes in octree" % self._octree.num_nodes)
-        mylog.info("Octree bound %s particles" % self._octree.bound_particles)
+        mylog.info("Allocated %s nodes in octree", self._octree.num_nodes)
+        mylog.info("Octree bound %s particles", self._octree.bound_particles)
 
         # Now we store the index data about the octree in the python container
         ds = self.ds
