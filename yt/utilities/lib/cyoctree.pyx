@@ -247,10 +247,13 @@ cdef int octree_deallocate(Octree * octree):
     """
     Just free-ing every array we allocated to ensure we don't leak.
 
-    Args:
-        octree: A pointer to the octree
-    Returns:
-        0
+    Parameter
+    ---------
+    octree : pointer to the octree
+    
+    Returns
+    -------
+    0
     """
     free(octree.node_positions)
     free(octree.size)
