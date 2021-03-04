@@ -6,7 +6,8 @@ import warnings
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
-from yt.funcs import iter_fields, mylog
+from yt.funcs import iter_fields
+from yt.utilities.logging import ytLogger as mylog
 from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
 
