@@ -84,11 +84,15 @@ def test_projection(pf):
                         p.save(name=tmpname)
                         fns.append(tmpname)
                 frb = proj.to_frb((1.0, "unitary"), 64)
-                for proj_field in ["ones", "density", "temperature"]:
+                for proj_field in [
+                    ("index", "ones"),
+                    ("gas", "density"),
+                    ("gas", "temperature"),
+                ]:
                     fi = ds._get_field_info(proj_field)
                     assert_equal(frb[proj_field].info["data_source"], proj.__str__())
                     assert_equal(frb[proj_field].info["axis"], ax)
-                    assert_equal(frb[proj_field].info["field"], proj_field)
+                    assert_equal(frb[proj_field].info["field"], str(proj_field))
                     field_unit = Unit(fi.units)
                     if wf is not None:
                         assert_equal(
@@ -119,13 +123,13 @@ def test_projection(pf):
             # wf == None
             assert_equal(wf, None)
             v1 = proj[("gas", "density")].sum()
-            v2 = (dd[("gas", "density")] * dd[f"d{an}"]).sum()
+            v2 = (dd[("gas", "density")] * dd[("index", f"d{an}")]).sum()
             assert_rel_equal(v1, v2.in_units(v1.units), 10)
     teardown_func(fns)
 
 
 def test_max_level():
-    ds = fake_amr_ds()
+    ds = fake_amr_ds(fields=[("gas", "density")])
     proj = ds.proj(("gas", "density"), 2, method="mip", max_level=2)
     assert proj[("index", "grid_level")].max() == 2
 
