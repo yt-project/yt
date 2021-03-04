@@ -1,9 +1,6 @@
 # distutils: libraries = STD_LIBS
 """
 CyOctree building, loading and refining routines
-
-
-
 """
 
 
@@ -18,6 +15,7 @@ from libc.stdlib cimport free, malloc
 from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
 
 np.import_array()
+
 
 cdef struct Octree:
     # Array of 3*num_nodes [x1, y1, z1, x2, y2, z2, ...]
@@ -76,11 +74,11 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
 
     Returns
     -------
-    0
+    Success of tree build
     """
     cdef np.int64_t splits[9]
     cdef np.int64_t i, j, k, n, start, end
-    cdef np.float64_t lx, ly, lz, sz
+    cdef np.float64_t lx, ly, lz, sz, inv_size
 
     if (
         (tree.pend[node_idx] - tree.pstart[node_idx] > tree.n_ref) and
@@ -89,7 +87,7 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
         # If we are running out of space in our tree, then we *try* to
         # relloacate a tree of double the size
         if tree.num_nodes > tree.max_num_nodes - 16:
-            octree_reallocate(tree, tree.max_num_nodes * 2)
+            if octree_reallocate(tree, tree.max_num_nodes * 2): return 1
 
         tree.refined[node_idx] = 1
 
@@ -98,12 +96,13 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
         split_helper(tree, node_idx, splits)
 
         # Figure out the size of the current oct
-        sx = tree.size[0] / (2**tree.depth[node_idx])
-        sy = tree.size[1] / (2**tree.depth[node_idx])
-        sz = tree.size[2] / (2**tree.depth[node_idx])
-        lx = tree.node_positions[(3*node_idx)] - sx/2
-        ly = tree.node_positions[(3*node_idx)+1] - sy/2
-        lz = tree.node_positions[(3*node_idx)+2] - sz/2
+        inv_size = 1. / 2.**tree.depth[node_idx]
+        sx = tree.size[0] * inv_size
+        sy = tree.size[1] * inv_size
+        sz = tree.size[2] * inv_size
+        lx = tree.node_positions[(3*node_idx)] - sx/2.
+        ly = tree.node_positions[(3*node_idx)+1] - sy/2.
+        lz = tree.node_positions[(3*node_idx)+2] - sz/2.
 
         # Loop through and generate the children AND recursively refine...
         n = 0
@@ -129,8 +128,7 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
                     tree.num_nodes += 1
 
                     # Recursively refine child
-                    octree_build_node(tree, child)
-
+                    if octree_build_node(tree, child): return 1
                     n += 1
 
     return 0
@@ -150,18 +148,28 @@ cdef int octree_allocate(Octree * octree, long int num_nodes):
 
     Returns
     -------
-    0
+    Success of allocation
     """
     octree.node_positions = <np.float64_t *> malloc(num_nodes * 3 * sizeof(np.float64_t))
+    if octree.node_positions == NULL: return 1
 
     octree.size = <np.float64_t *> malloc(3 *sizeof(np.float64_t))
+    if octree.size == NULL: return 1
+
     octree.children = <np.int64_t *> malloc(8 * num_nodes * sizeof(np.int64_t))
+    if octree.children == NULL: return 1
 
     octree.pstart = <np.int64_t *> malloc(num_nodes * sizeof(np.int64_t))
+    if octree.pstart == NULL: return 1
+
     octree.pend = <np.int64_t *> malloc(num_nodes * sizeof(np.int64_t))
+    if octree.pend == NULL: return 1
 
     octree.refined = <np.uint8_t *> malloc(num_nodes * sizeof(np.int8_t))
+    if octree.refined == NULL: return 1
+
     octree.depth = <np.uint8_t *> malloc(num_nodes * sizeof(np.int8_t))
+    if octree.depth == NULL: return 1
 
     return 0
 
@@ -180,18 +188,17 @@ cdef int octree_reallocate(Octree * octree, long int num_nodes):
 
     Returns
     ------
-    0
+    Success of the reallocation
 
     Notes
     -----
     Why do we want to re-allocate?
 
-    Well 2 cases:
-
-    Case 1: The octree is still building and we have ran out of space, so we
+    Well 2 cases,
+    1) The octree is still building and we have ran out of space, so we
     have asked for an increased number of nodes and are reallocating each array
 
-    Case 2: We have finished building the octree and we have used less nodes
+    2) We have finished building the octree and we have used less nodes
     than we originally allocated. We are now shrinking the octree and giving
     the spare memory back.
     """
@@ -202,36 +209,42 @@ cdef int octree_reallocate(Octree * octree, long int num_nodes):
 
     old_arr = octree.node_positions
     octree.node_positions = <np.float64_t *> malloc(num_nodes * 3 * sizeof(np.float64_t))
+    if octree.node_positions == NULL: return 1
     for i in range(3*octree.num_nodes):
         octree.node_positions[i] = old_arr[i]
     free(old_arr)
 
     old_arr_int = octree.children
     octree.children = <np.int64_t *> malloc(num_nodes * 8 * sizeof(np.int64_t))
+    if octree.children == NULL: return 1
     for i in range(8*octree.num_nodes):
         octree.children[i] = old_arr_int[i]
     free(old_arr_int)
 
     old_arr_int = octree.pstart
     octree.pstart = <np.int64_t *> malloc(num_nodes * sizeof(np.int64_t))
+    if octree.pstart == NULL: return 1
     for i in range(octree.num_nodes):
         octree.pstart[i] = old_arr_int[i]
     free(old_arr_int)
 
     old_arr_int = octree.pend
     octree.pend = <np.int64_t *> malloc(num_nodes * sizeof(np.int64_t))
+    if octree.pend == NULL: return 1
     for i in range(octree.num_nodes):
         octree.pend[i] = old_arr_int[i]
     free(old_arr_int)
 
     old_arr_uint = octree.refined
     octree.refined = <np.uint8_t *> malloc(num_nodes * sizeof(np.int8_t))
+    if octree.refined == NULL: return 1
     for i in range(octree.num_nodes):
         octree.refined[i] = old_arr_uint[i]
     free(old_arr_uint)
 
     old_arr_uint = octree.depth
     octree.depth = <np.uint8_t *> malloc(num_nodes * sizeof(np.int8_t))
+    if octree.depth == NULL: return 1
     for i in range(octree.num_nodes):
         octree.depth[i] = old_arr_uint[i]
     free(old_arr_uint)
@@ -243,17 +256,13 @@ cdef int octree_reallocate(Octree * octree, long int num_nodes):
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
-cdef int octree_deallocate(Octree * octree):
+cdef void octree_deallocate(Octree * octree):
     """
     Just free-ing every array we allocated to ensure we don't leak.
 
     Parameter
     ---------
     octree : pointer to the octree
-
-    Returns
-    -------
-    0
     """
     free(octree.node_positions)
     free(octree.size)
@@ -266,8 +275,6 @@ cdef int octree_deallocate(Octree * octree):
     free(octree.depth)
 
     free(octree.pidx)
-
-    return 0
 
 
 @cython.boundscheck(False)
@@ -314,17 +321,20 @@ cdef class CyOctree:
             this too high then we may hit a stack overflow due to the
             recursive nature of the build
         """
-
         self.n_ref = n_ref
         self.max_depth = max_depth
         self.input_positions = np.asfortranarray(input_pos, dtype="float64")
 
-        self._allocate_octree()
+        if self._allocate_octree():
+            raise MemoryError("Unable to allocate memory required for octree build.")
+
         self._make_root(left_edge, right_edge)
 
-        octree_build_node(self.c_octree, 0)
+        if octree_build_node(self.c_octree, 0):
+            raise MemoryError("Unable to allocate memory required for octree build.")
 
-        octree_reallocate(self.c_octree, self.c_octree.num_nodes)
+        if octree_reallocate(self.c_octree, self.c_octree.num_nodes):
+            raise MemoryError("Unable to allocate memory required for octree build.")
 
     def __del__(self):
         """
@@ -336,9 +346,9 @@ cdef class CyOctree:
     @property
     def bound_particles(self):
         """
-        The yt particle selection may select SPH particles with smoothing
-        lengths which is in the octree domains. However, if the particle center
-        is NOT in the octree, they are not included.
+        The particle selection may select SPH particles with smoothing lengths
+        which is in the octree domains. However, if the particle center is NOT
+        in the octree, they are not included.
 
         So the number of particles passed to the tree *may* not be equal to the
         number of particles which are bound by the tree.
@@ -361,7 +371,7 @@ cdef class CyOctree:
         shape[0] = <np.npy_intp> self.c_octree.num_nodes
         shape[1] = 3
         arr = np.PyArray_SimpleNewFromData(2, &shape[0], np.NPY_FLOAT64, <void *>self.c_octree.node_positions)
-        return arr
+        return np.copy(arr)
 
     @property
     def node_refined(self):
@@ -381,10 +391,9 @@ cdef class CyOctree:
         The depth for each node in the tree. The root node is defined as a
         depth of 0.
         """
-        cdef np.npy_intp shape
-        shape = <np.npy_intp> self.c_octree.num_nodes
+        cdef np.npy_intp shape = <np.npy_intp> self.c_octree.num_nodes
         arr = np.PyArray_SimpleNewFromData(1, &shape, np.NPY_UINT8, <void *>self.c_octree.depth)
-        return arr
+        return np.copy(arr)
 
     @property
     def node_sizes(self):
@@ -514,7 +523,7 @@ cdef class CyOctree:
         # This is sort of an arbitrary guess but it doesn't matter because
         # we will increase this value and attempt to reallocate if it is too
         # small
-        self.c_octree.max_num_nodes = 1_000_000
+        self.c_octree.max_num_nodes = max(self.input_positions.shape[0] / self.n_ref, 1)
         self.c_octree.max_depth = self.max_depth
 
         # Fast C pointers to the particle coordinates
@@ -522,7 +531,7 @@ cdef class CyOctree:
         self.c_octree.pposy = &self.input_positions[0, 1]
         self.c_octree.pposz = &self.input_positions[0, 2]
 
-        octree_allocate(self.c_octree, self.c_octree.max_num_nodes)
+        if octree_allocate(self.c_octree, self.c_octree.max_num_nodes): return 1
 
     cdef void smooth_onto_cells(self,
             np.float64_t[:] buff, np.float64_t[:] buff_den, np.float64_t posx, np.float64_t posy,
@@ -534,17 +543,24 @@ cdef class CyOctree:
         leaf. A leaf just means that an oct has not refined, and thus has no
         children.
 
-        Args:
-            buff: The array which we are depositing the field onto, it has the
-                length of the number of leaves.
-            buff_den: The array we deposit just mass onto to allow normalization
-            pos<>: The x, y, and z coordinates of the particle we are depositing
-            hsml: The smoothing length of the particle
-            prefactor(_norm): This is a pre-computed value, based on the particles
+        Parameters
+        ----------
+        buff :
+            The array which we are depositing the field onto, it has the
+            length of the number of leaves.
+        buff_den :
+            The array we deposit just mass onto to allow normalization
+        pos<> :
+            The x, y, and z coordinates of the particle we are depositing
+        hsml :
+            The smoothing length of the particle
+        prefactor(_norm) :
+            This is a pre-computed value, based on the particles
                 properties used in the deposition
-            num_node: The current node we are checking to see if refined or not
-            use_normalization: Do we want a normalized sph field? If so, fill
-                the buff_den.
+        num_node :
+            The current node we are checking to see if refined or not
+        use_normalization :
+            Do we want a normalized sph field? If so, fill the buff_den.
         """
 
         cdef Octree * tree = self.c_octree
@@ -561,25 +577,28 @@ cdef class CyOctree:
             q_ij /= hsml
 
             buff[num_node] += (prefactor * self.kernel(q_ij))
-
             if use_normalization:
                 buff_den[num_node] += (prefactor_norm * self.kernel(q_ij))
 
         else:
+            # All direct children of the current node are the same size, thus
+            # we can compute their size once, outside of the loop
+            sz_factor = 1.0 / 2.0**(tree.depth[num_node] + 1)
+            sqrt_sz_factor = math.sqrt(sz_factor)
+            sx = tree.size[0]
+            sy = tree.size[1]
+            sz = tree.size[2]
+            child_node_size = sqrt_sz_factor * math.sqrt(sx*sx + sy*sy + sz*sz)
+
             for i in range(8):
                 child_node = tree.children[8*num_node + i]
-
                 diff_x = tree.node_positions[3*child_node] - posx
                 diff_y = tree.node_positions[3*child_node+1] - posy
                 diff_z = tree.node_positions[3*child_node+2] - posz
                 diff = math.sqrt(diff_x*diff_x + diff_y*diff_y + diff_z*diff_z)
 
-                sx = tree.size[0] / (2**tree.depth[child_node])
-                sy = tree.size[1] / (2**tree.depth[child_node])
-                sz = tree.size[2] / (2**tree.depth[child_node])
-                size = math.sqrt(sx*sx + sy*sy + sz*sz)
-
-                if diff - size - hsml < 0:
+                # Could the current particle possibly intersect this child node?
+                if diff - child_node_size - hsml < 0:
                     self.smooth_onto_cells(buff, buff_den, posx, posy, posz,
                                     hsml, prefactor, prefactor_norm,
                                     child_node, use_normalization=use_normalization)
@@ -593,17 +612,25 @@ cdef class CyOctree:
         We loop through every particle in the simulation and begin to deposit
         the particle properties onto all of the leaves that it intersects
 
-        Args:
-            buff: The array which we are depositing the field onto, it has the
-                length of the number of leaves.
-            buff_den: The array we deposit just mass onto to allow normalization
-            pos<>: The x, y, and z coordinates of all the partciles
-            pmass: The mass of the particles
-            pdens: The density of the particles
-            hsml: The smoothing lengths of the particles
-            field: The field we are depositing for each particle
-            use_normalization: Do we want a normalized sph field? If so, fill
-                the buff_den.
+        Parameters
+        ----------
+        buff :
+            The array which we are depositing the field onto, it has the
+            length of the number of leaves.
+        buff_den :
+            The array we deposit just mass onto to allow normalization
+        pos<> :
+            The x, y, and z coordinates of all the partciles
+        pmass :
+            The mass of the particles
+        pdens :
+            The density of the particles
+        hsml :
+            The smoothing lengths of the particles
+        field :
+            The field we are depositing for each particle
+        use_normalization :
+            Do we want a normalized sph field? If so, fill the buff_den.
         """
 
         self.kernel = get_kernel_func(kernel_name)
@@ -623,83 +650,36 @@ cdef class CyOctree:
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int seperate_x(Octree * octree, double value, np.int64_t start, np.int64_t end) nogil except -1:
+cdef np.int64_t separate(np.float64_t * pos, np.int64_t * pidx, double value, np.int64_t start, np.int64_t end) nogil:
     """
     This is a simple utility function which takes a selection of particles and
     re-arranges them such that values below `value` are to the left of split and
     values above are to the right.
 
-    e.g.
-    value = 5
-    [1., 2., 3., 4., 8., 9.]
-    split = 3
-
-    Args:
-        octree: A pointer to the octree where coordinates and IDs are stored
-        value: The value to split the data along
-        start: The first particle in the current node we are splitting
-        end: The last particle in the current node we are spliting
+    Parameters
+    ----------
+    octree :
+        A pointer to the octree where coordinates and IDs are stored
+    value :
+        The value to split the data along
+    start :
+        The first particle in the current node we are splitting
+    end :
+        The last particle in the current node we are spliting
     """
     cdef np.int64_t index
     cdef np.int64_t split = start
-
-    cdef np.float64_t * pos = octree.pposx
-    cdef np.int64_t * pidx = octree.pidx
-
     for index in range(start, end):
         if pos[pidx[index]] < value:
             pidx[split], pidx[index] = pidx[index], pidx[split]
-            split+=1
+            split +=  1
 
     return split
-
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int seperate_y(Octree * octree, double value, np.int64_t start, np.int64_t end) nogil except -1:
-    """
-    The same as seperate_x but along the y-axis.
-    """
-    cdef np.int64_t index
-    cdef np.int64_t split = start
-
-    cdef np.float64_t * pos = octree.pposy
-    cdef np.int64_t * pidx = octree.pidx
-
-    for index in range(start, end):
-        if pos[pidx[index]] < value:
-            pidx[split], pidx[index] = pidx[index], pidx[split]
-            split+=1
-
-    return split
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef int seperate_z(Octree * octree, double value, np.int64_t start, np.int64_t end) nogil except -1:
-    """
-    The same as seperate_x but along the z-axis.
-    """
-    cdef np.int64_t index
-    cdef np.int64_t split = start
-
-    cdef np.float64_t * pos = octree.pposz
-    cdef np.int64_t * pidx = octree.pidx
-
-    for index in range(start, end):
-        if pos[pidx[index]] < value:
-            pidx[split], pidx[index] = pidx[index], pidx[split]
-            split+=1
-
-    return split
-
-
-@cython.boundscheck(False)
-@cython.wraparound(False)
-@cython.cdivision(True)
-cdef int split_helper(Octree * tree, np.int64_t node_idx, np.int64_t * splits):
+cdef void split_helper(Octree * tree, np.int64_t node_idx, np.int64_t * splits):
     """
     A utility function to split a collection of particles along the x, y and z
     direction such that we identify the particles within the 8 children of an
@@ -713,42 +693,52 @@ cdef int split_helper(Octree * tree, np.int64_t node_idx, np.int64_t * splits):
     The splits[1] and splits[2] tell oct two the start and last particle and so
     on
 
-    Args:
-        tree: A pointer to the octree
-        node_idx: The index of the oct we are splitting
-        splits: The split array which stores the start and end indices. It needs
-            to be N+1 long where N is the number of children
+    Parameters
+    ----------
+    tree :
+        A pointer to the octree
+    node_idx :
+        The index of the oct we are splitting
+    splits :
+        The split array which stores the start and end indices. It needs
+        to be N+1 long where N is the number of children
     """
     splits[0] = tree.pstart[node_idx]
     splits[8] = tree.pend[node_idx]
 
-    splits[4] = seperate_x(tree, tree.node_positions[(3*node_idx)], splits[0], splits[8])
+    splits[4] = separate(tree.pposx, tree.pidx, tree.node_positions[(3*node_idx)], splits[0], splits[8])
 
-    splits[2] = seperate_y(tree, tree.node_positions[(3*node_idx)+1], splits[0], splits[4])
-    splits[6] = seperate_y(tree, tree.node_positions[(3*node_idx)+1], splits[4], splits[8])
+    splits[2] = separate(tree.pposy, tree.pidx, tree.node_positions[(3*node_idx)+1], splits[0], splits[4])
+    splits[6] = separate(tree.pposy, tree.pidx, tree.node_positions[(3*node_idx)+1], splits[4], splits[8])
 
-    splits[1] = seperate_z(tree, tree.node_positions[(3*node_idx)+2], splits[0], splits[2])
-    splits[3] = seperate_z(tree, tree.node_positions[(3*node_idx)+2], splits[2], splits[4])
-    splits[5] = seperate_z(tree, tree.node_positions[(3*node_idx)+2], splits[4], splits[6])
-    splits[7] = seperate_z(tree, tree.node_positions[(3*node_idx)+2], splits[6], splits[8])
+    splits[1] = separate(tree.pposz, tree.pidx, tree.node_positions[(3*node_idx)+2], splits[0], splits[2])
+    splits[3] = separate(tree.pposz, tree.pidx, tree.node_positions[(3*node_idx)+2], splits[2], splits[4])
+    splits[5] = separate(tree.pposz, tree.pidx, tree.node_positions[(3*node_idx)+2], splits[4], splits[6])
+    splits[7] = separate(tree.pposz, tree.pidx, tree.node_positions[(3*node_idx)+2], splits[6], splits[8])
 
 
 @cython.boundscheck(False)
 @cython.wraparound(False)
 @cython.cdivision(True)
-cdef int select(Octree * octree, np.float64_t[::1] left_edge, np.float64_t[::1] right_edge,
-        np.int64_t start, np.int64_t end) nogil except -1:
+cdef np.int64_t select(Octree * octree, np.float64_t[::1] left_edge, np.float64_t[::1] right_edge,
+        np.int64_t start, np.int64_t end) nogil:
     """
     Re-arrange the input particles such that those outside the bounds of the
     tree occur after the split index and can thus be ignored for the remainder
     of the tree construction
 
-    Args:
-        tree: A pointer to the octree
-        left_edge: The coords of the lower left corner of the box
-        right_edge: The coords of the upper right corner of the box
-        start: The first particle in the bounds (0)
-        end: The last particle in the bounds
+    Parameters
+    ----------
+    tree :
+        A pointer to the octree
+    left_edge :
+        The coords of the lower left corner of the box
+    right_edge :
+        The coords of the upper right corner of the box
+    start :
+        The first particle in the bounds (0)
+    end :
+        The last particle in the bounds
     """
     cdef np.int64_t index
     cdef np.int64_t split = start
@@ -767,3 +757,4 @@ cdef int select(Octree * octree, np.float64_t[::1] left_edge, np.float64_t[::1] 
                     split+=1
 
     return split
+
