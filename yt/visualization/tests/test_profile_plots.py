@@ -257,7 +257,11 @@ class TestAnnotations(unittest.TestCase):
 
         ds = fake_random_ds(16)
         ad = ds.all_data()
-        cls.fields = ["velocity_x", "velocity_y", "velocity_z"]
+        cls.fields = [
+            ("gas", "velocity_x"),
+            ("gas", "velocity_y"),
+            ("gas", "velocity_z"),
+        ]
         cls.plot = yt.ProfilePlot(
             ad, ("index", "radius"), cls.fields, weight_field=None
         )

@@ -693,7 +693,7 @@ def test_grids_callback():
 @requires_file(cyl_2d)
 def test_cell_edges_callback():
     with _cleanup_fname() as prefix:
-        ds = fake_amr_ds(fields=("density",))
+        ds = fake_amr_ds(fields=(("gas", "density"),))
         for ax in "xyz":
             p = ProjectionPlot(ds, ax, ("gas", "density"))
             p.annotate_cell_edges()

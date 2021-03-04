@@ -82,7 +82,7 @@ def test_ghost_zone_extrapolation():
         [("index", "x"), ("index", "y"), ("index", "z")], no_ghost=True
     )
     for i, ax in enumerate("xyz"):
-        xc = g[ax]
+        xc = g[("index", ax)]
 
         tf = lin.TrilinearFieldInterpolator(
             xc,

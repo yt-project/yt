@@ -608,50 +608,70 @@ def test_plot_2d():
     # Cartesian
     ds = fake_random_ds((32, 32, 1), fields=("temperature",), units=("K",))
     slc = SlicePlot(
-        ds, "z", ["temperature"], width=(0.2, "unitary"), center=[0.4, 0.3, 0.5]
+        ds,
+        "z",
+        [("gas", "temperature")],
+        width=(0.2, "unitary"),
+        center=[0.4, 0.3, 0.5],
     )
-    slc2 = plot_2d(ds, "temperature", width=(0.2, "unitary"), center=[0.4, 0.3])
+    slc2 = plot_2d(
+        ds, ("gas", "temperature"), width=(0.2, "unitary"), center=[0.4, 0.3]
+    )
     slc3 = plot_2d(
-        ds, "temperature", width=(0.2, "unitary"), center=ds.arr([0.4, 0.3], "cm")
+        ds,
+        ("gas", "temperature"),
+        width=(0.2, "unitary"),
+        center=ds.arr([0.4, 0.3], "cm"),
     )
-    assert_array_equal(slc.frb["temperature"], slc2.frb["temperature"])
-    assert_array_equal(slc.frb["temperature"], slc3.frb["temperature"])
+    assert_array_equal(
+        slc.frb[("gas", "temperature")], slc2.frb[("gas", "temperature")]
+    )
+    assert_array_equal(
+        slc.frb[("gas", "temperature")], slc3.frb[("gas", "temperature")]
+    )
     # Cylindrical
     ds = data_dir_load(WD)
-    slc = SlicePlot(ds, "theta", ["density"], width=(30000.0, "km"))
-    slc2 = plot_2d(ds, "density", width=(30000.0, "km"))
-    assert_array_equal(slc.frb["density"], slc2.frb["density"])
+    slc = SlicePlot(ds, "theta", [("gas", "density")], width=(30000.0, "km"))
+    slc2 = plot_2d(ds, ("gas", "density"), width=(30000.0, "km"))
+    assert_array_equal(slc.frb[("gas", "density")], slc2.frb[("gas", "density")])
 
     # Spherical
     ds = data_dir_load(blast_wave)
-    slc = SlicePlot(ds, "phi", ["density"], width=(1, "unitary"))
-    slc2 = plot_2d(ds, "density", width=(1, "unitary"))
-    assert_array_equal(slc.frb["density"], slc2.frb["density"])
+    slc = SlicePlot(ds, "phi", [("gas", "density")], width=(1, "unitary"))
+    slc2 = plot_2d(ds, ("gas", "density"), width=(1, "unitary"))
+    assert_array_equal(slc.frb[("gas", "density")], slc2.frb[("gas", "density")])
 
 
 def test_symlog_colorbar():
     ds = fake_random_ds(16)
 
     def _thresh_density(field, data):
-        wh = data["density"] < 0.5
-        ret = data["density"]
+        wh = data[("gas", "density")] < 0.5
+        ret = data[("gas", "density")]
         ret[wh] = 0
         return ret
 
     def _neg_density(field, data):
-        return -data["threshold_density"]
+        return -data[("gas", "threshold_density")]
 
     ds.add_field(
-        "threshold_density",
+        ("gas", "threshold_density"),
         function=_thresh_density,
         units="g/cm**3",
         sampling_type="cell",
     )
     ds.add_field(
-        "negative_density", function=_neg_density, units="g/cm**3", sampling_type="cell"
+        ("gas", "negative_density"),
+        function=_neg_density,
+        units="g/cm**3",
+        sampling_type="cell",
     )
 
-    for field in ["density", "threshold_density", "negative_density"]:
+    for field in [
+        ("gas", "density"),
+        ("gas", "threshold_density"),
+        ("gas", "negative_density"),
+    ]:
         plot = SlicePlot(ds, 2, field)
         plot.set_log(field, True, linthresh=0.1)
         with tempfile.NamedTemporaryFile(suffix="png") as f:
