@@ -69,12 +69,14 @@ cdef int octree_build_node(Octree * tree, long int node_idx):
     in each of the subocts. We then recursively call this function on each of
     the subocts.
 
-    Args:
-        tree: A pointer to the octree
-        node_idx: The index of the current node we are processing
+    Parameters
+    ----------
+    tree : A pointer to the octree
+    node_idx : The index of the current node we are processing
 
-    Returns:
-        0
+    Returns
+    -------
+    0
     """
     cdef np.int64_t splits[9]
     cdef np.int64_t i, j, k, n, start, end
