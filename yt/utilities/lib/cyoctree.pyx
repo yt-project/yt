@@ -415,9 +415,11 @@ cdef class CyOctree:
         However, if they are defined then we need to loop through and find out
         which particles are actually in the tree.
 
-        Args:
-            <>_edge: A 3 element array with the xyz of the lower left
-                (upper right) corner of the octree or NONE
+        Parameters
+        ----------
+        {left,right}_edge : array of size 3 or None
+            xyz coordinates of the lower left (upper right) corner of the octree.
+            If None, the tree will be made large enough to encompass all particles.
         """
         cdef int i = 0
 
