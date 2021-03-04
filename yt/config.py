@@ -13,7 +13,6 @@ ytcfg_defaults["yt"] = dict(
     serialize=False,
     only_deserialize=False,
     time_functions=False,
-    log_file=False,
     colored_logs=False,
     suppress_stream_logging=False,
     stdout_stream_logging=False,

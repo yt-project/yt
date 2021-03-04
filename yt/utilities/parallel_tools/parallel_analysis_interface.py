@@ -112,10 +112,6 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     ytcfg["yt", "internals", "parallel"] = True
     if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):
         ytcfg["yt", "inline"] = True
-    if communicator.rank > 0:
-        if ytcfg.get("yt", "log_file"):
-            ytcfg["yt", "log_file"] = False
-            yt.utilities.logger.disable_file_logging()
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.

@@ -108,8 +108,6 @@ used internally.
 * ``default_colormap`` (default: ``arbre``): What colormap should be used by
   default for yt-produced images?
 * ``plugin_filename``  (default ``my_plugins.py``) The name of our plugin file.
-* ``log_file`` (default: ``False``): Should we output to a log file in the
-  filesystem?
 * ``log_level`` (default: ``20``): What is the threshold (0 to 50) for
   outputting log files?
 * ``test_data_dir`` (default: ``/does/not/exist``): The default path the
