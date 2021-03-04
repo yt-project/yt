@@ -435,8 +435,10 @@ class FieldInfoContainer(dict):
         self.field_aliases[alias_name] = original_name
         function = TranslationFunc(original_name)
         if deprecate:
-            function = DeprecatedFunc(original_name, function)
-        self.add_field(
+            method = self.add_deprecated_field
+        else:
+            method = self.add_field
+        method(
             alias_name,
             function=function,
             sampling_type=self[original_name].sampling_type,
