@@ -411,8 +411,8 @@ class MagFieldCallback(PlotCallback):
                     % plot.data.ds.geometry
                 )
             qcb = CuttingQuiverCallback(
-                "cutting_plane_magnetic_field_x",
-                "cutting_plane_magnetic_field_y",
+                ("gas", "cutting_plane_magnetic_field_x"),
+                ("gas", "cutting_plane_magnetic_field_y"),
                 self.factor,
                 scale=self.scale,
                 scale_units=self.scale_units,
@@ -430,13 +430,13 @@ class MagFieldCallback(PlotCallback):
             ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
-                xv = "magnetic_field_cartesian_x"
-                yv = "magnetic_field_cartesian_y"
+                xv = ("gas", "magnetic_field_cartesian_x")
+                yv = ("gas", "magnetic_field_cartesian_y")
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = f"magnetic_field_{axis_names[xax]}"
-                yv = f"magnetic_field_{axis_names[yax]}"
+                xv = ("gas", f"magnetic_field_{axis_names[xax]}")
+                yv = ("gas", f"magnetic_field_{axis_names[yax]}")
 
             qcb = QuiverCallback(
                 xv,
