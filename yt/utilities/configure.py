@@ -4,6 +4,8 @@ import sys
 
 from yt.config import OLD_CONFIG_FILE, YTConfig, ytcfg_defaults
 
+# this is the content of the user defined file only
+# default values are left unspecified
 CONFIG = YTConfig()
 
 
@@ -29,18 +31,28 @@ def _cast_value_helper(value, types=(_cast_bool_helper, int, float, _expand_all)
             pass
 
 
-def get_config(section, option):
-    *option_path, option_name = option.split(".")
-    return CONFIG.get(section, *option_path, option_name)
+def get_config(option):
+    return CONFIG.get("yt", *option.split("."))
 
 
-def set_config(section, option, value, config_file):
-    if not CONFIG.has_section(section):
-        CONFIG.add_section(section)
+def get_default(option):
+    fullkey = ["yt", *option.split(".")]
+    return ytcfg_defaults[fullkey]
 
+
+def set_config(option, value, config_file) -> int:
+    if not CONFIG.has_section("yt"):
+        CONFIG.add_section("yt")
+
+    try:
+        get_default(option)
+    except KeyError:
+        print(f"Error: unknown parameter `{option}`.", file=sys.stderr)
+        return 1
     option_path = option.split(".")
-    CONFIG.set(section, *option_path, _cast_value_helper(value))
+    CONFIG.set("yt", *option_path, _cast_value_helper(value))
     write_config(config_file)
+    return 0
 
 
 def write_config(config_file):
@@ -114,7 +126,7 @@ def migrate_config():
     os.rename(OLD_CONFIG_FILE, OLD_CONFIG_FILE + ".bak")
 
 
-def rm_config(section, option, config_file):
+def rm_config(option, config_file):
     option_path = option.split(".")
-    CONFIG.remove(section, *option_path)
+    CONFIG.remove("yt", *option_path)
     write_config(config_file)

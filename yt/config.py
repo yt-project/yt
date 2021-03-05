@@ -3,6 +3,7 @@ import os
 import warnings
 
 import toml
+from benedict import benedict
 from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -25,7 +26,7 @@ def loglevel_str2int(level: str) -> int:
     return logging._nameToLevel[level]
 
 
-ytcfg_defaults = {}
+ytcfg_defaults = benedict()
 
 ytcfg_defaults["yt"] = dict(
     serialize=False,
@@ -101,10 +102,11 @@ if not os.path.exists(CONFIG_DIR):
 
 
 class YTConfig:
-    def __init__(self, defaults=None):
+    def __init__(self, defaults=None, metadata=None):
         if defaults is None:
             defaults = {}
-        self.config_root = ConfigNode(None)
+        self.config_root = ConfigNode(key=None, parent=None, metadata=metadata)
+        self.update(defaults, metadata=metadata)
 
     def get(self, section, *keys, callback=None, **kwargs):
         if callback is None:
@@ -259,8 +261,9 @@ if not os.path.exists(_global_config_file):
 
 
 # Load the config
-ytcfg = YTConfig()
-ytcfg.update(ytcfg_defaults, metadata={"source": "defaults"})
+# ytcfg = YTConfig()
+# ytcfg.update(ytcfg_defaults, metadata={"source": "defaults"})
+ytcfg = YTConfig(ytcfg_defaults, metadata={"source": "defaults"})
 
 # Try loading the local config first, otherwise fall back to global config
 if os.path.exists(_local_config_file):
@@ -268,4 +271,4 @@ if os.path.exists(_local_config_file):
 elif os.path.exists(_global_config_file):
     ytcfg.read(_global_config_file)
 
-ytcfg._convert_legacy_logging_parameters()
+# ytcfg._convert_legacy_logging_parameters()

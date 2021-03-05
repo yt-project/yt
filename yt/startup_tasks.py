@@ -95,7 +95,11 @@ class YTParser(argparse.ArgumentParser):
         and then exits.
         """
         self.print_help(sys.stderr)
-        self.exit(2, f"{self.prog}: error: {message}\n")
+
+        # raise an error that can be caught in the main CLI function
+        # to keep it testable
+        raise RuntimeError(f"{self.prog}: error: {message}\n")
+        # self.exit(2, f"{self.prog}: error: {message}\n")
 
 
 parser = YTParser(description="yt command line arguments")

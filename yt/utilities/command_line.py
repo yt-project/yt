@@ -28,7 +28,7 @@ from yt.funcs import (
     update_git,
 )
 from yt.loaders import load
-from yt.utilities.configure import set_config
+from yt.utilities.configure import get_default, set_config
 from yt.utilities.exceptions import (
     YTCommandRequiresModule,
     YTFieldNotParseable,
@@ -223,7 +223,7 @@ class YTCommand(metaclass=YTCommandSubtype):
     subparser = None
 
     @classmethod
-    def run(cls, args):
+    def run(cls, args) -> int:
         self = cls()
         # Check for some things we know; for instance, comma separated
         # field names should be parsed as tuples.
@@ -239,20 +239,20 @@ class YTCommand(metaclass=YTCommandSubtype):
         # In fact, this is the rule and the opposite is the exception
         # BUT, we only want to parse the arguments once.
         if cls.ndatasets > 1:
-            self(args)
+            return self(args)
         else:
             ds_args = getattr(args, "ds", [])
             if len(ds_args) > 1:
                 datasets = args.ds
                 for ds in datasets:
                     args.ds = ds
-                    self(args)
+                    return self(args)
             elif len(ds_args) == 0:
                 datasets = []
-                self(args)
+                return self(args)
             else:
                 args.ds = getattr(args, "ds", [None])[0]
-                self(args)
+                return self(args)
 
 
 class GetParameterFiles(argparse.Action):
@@ -267,6 +267,7 @@ class GetParameterFiles(argparse.Action):
         else:
             datasets = values
         namespace.ds = [_fix_ds(ds) for ds in datasets]
+        return 0
 
 
 _common_options = dict(
@@ -792,6 +793,7 @@ class YTBugreportCmd(YTCommand):
         print()
         print("Keep in touch!")
         print()
+        return 0
 
 
 class YTHubRegisterCmd(YTCommand):
@@ -817,7 +819,7 @@ class YTHubRegisterCmd(YTCommand):
                 f"{config_file} . Delete this if you want to force a "
                 "new user registration."
             )
-            sys.exit()
+            return 1
         print("Awesome!  Let's start by registering a new user for you.")
         print("Here's the URL, for reference: http://hub.yt/ ")
         print()
@@ -827,23 +829,23 @@ class YTHubRegisterCmd(YTCommand):
         print()
         username = input("Username? ")
         if len(username) == 0:
-            sys.exit(1)
+            return 1
         print()
         print("To start out, what's your name?")
         print()
         first_name = input("First Name? ")
         if len(first_name) == 0:
-            sys.exit(1)
+            return 1
         print()
         last_name = input("Last Name? ")
         if len(last_name) == 0:
-            sys.exit(1)
+            return 1
         print()
         print("And your email address?")
         print()
         email = input("Email? ")
         if len(email) == 0:
-            sys.exit(1)
+            return 1
         print()
         print("Please choose a password:")
         print()
@@ -879,7 +881,7 @@ class YTHubRegisterCmd(YTCommand):
             if req.status_code == 400:
                 print("Registration failed with 'Bad request':")
                 print(req.json()["message"])
-            exit(1)
+            return 1
         print("User registration successful")
         print("Obtaining API key...")
         req = requests.post(
@@ -895,6 +897,7 @@ class YTHubRegisterCmd(YTCommand):
         print()
         print("SUCCESS!")
         print()
+        return 0
 
 
 class YTInstInfoCmd(YTCommand):
@@ -935,6 +938,7 @@ class YTInstInfoCmd(YTCommand):
             _print_failed_source_update()
         if vstring is not None and opts.outputfile is not None:
             open(opts.outputfile, "w").write(vstring)
+        return 0
 
 
 class YTLoadCmd(YTCommand):
@@ -948,8 +952,8 @@ class YTLoadCmd(YTCommand):
 
     def __call__(self, args):
         if args.ds is None:
-            print("Could not load file.")
-            sys.exit()
+            print("Could not load file.", file=sys.stderr)
+            return 1
         import IPython
 
         import yt
@@ -970,6 +974,7 @@ class YTLoadCmd(YTCommand):
         # prepend sys.path with current working directory
         sys.path.insert(0, "")
         IPython.embed(config=cfg, user_ns=local_ns)
+        return 0
 
 
 class YTMapserverCmd(YTCommand):
@@ -1076,6 +1081,7 @@ class YTMapserverCmd(YTCommand):
             bottle.run(server="auto", host=args.host, port=port)
         else:
             bottle.run(server="auto")
+        return 0
 
 
 class YTPastebinCmd(YTCommand):
@@ -1149,6 +1155,7 @@ class YTPastebinCmd(YTCommand):
             private=args.private,
             clipboard=args.clipboard,
         )
+        return 0
 
 
 class YTPastebinGrabCmd(YTCommand):
@@ -1162,6 +1169,7 @@ class YTPastebinGrabCmd(YTCommand):
         from yt.utilities import lodgeit as lo
 
         lo.main(None, download=args.number)
+        return 0
 
 
 class YTHubStartNotebook(YTCommand):
@@ -1190,9 +1198,11 @@ class YTHubStartNotebook(YTCommand):
             print("Launched! Please visit this URL:")
             print("    https://tmpnb.hub.yt" + resp["url"])
             print()
+            return 0
         except (KeyError, TypeError):
             print("Something went wrong. The yt Hub responded with : ")
             print(resp)
+            return 1
 
 
 class YTNotebookUploadCmd(YTCommand):
@@ -1225,6 +1235,7 @@ class YTNotebookUploadCmd(YTCommand):
             )
         )
         print()
+        return 0
 
 
 class YTPlotCmd(YTCommand):
@@ -1326,6 +1337,7 @@ class YTPlotCmd(YTCommand):
                 plt.set_zlim(args.field, *args.zlim)
             ensure_dir_exists(args.output)
             plt.save(os.path.join(args.output, f"{ds}"))
+        return 0
 
 
 class YTRPDBCmd(YTCommand):
@@ -1352,6 +1364,7 @@ class YTRPDBCmd(YTCommand):
         from . import rpdb
 
         rpdb.run_rpdb(int(args.task))
+        return 0
 
 
 class YTNotebookCmd(YTCommand):
@@ -1442,6 +1455,7 @@ class YTNotebookCmd(YTCommand):
         print("***************************************************************")
         print()
         app.start()
+        return 0
 
 
 class YTStatsCmd(YTCommand):
@@ -1504,6 +1518,7 @@ class YTStatsCmd(YTCommand):
                         "Maximum %s is %0.5e at %s\n"
                         % (args.field, vals["max"][0], vals["max"][1])
                     )
+        return 0
 
 
 class YTUpdateCmd(YTCommand):
@@ -1526,6 +1541,7 @@ class YTUpdateCmd(YTCommand):
             update_git(path)
         else:
             _print_failed_source_update(opts.reinstall)
+        return 0
 
 
 class YTDeleteImageCmd(YTCommand):
@@ -1559,6 +1575,7 @@ class YTDeleteImageCmd(YTCommand):
             print("Something has gone wrong!  Here is the server response:")
             print()
             pprint.pprint(rv)
+        return 0
 
 
 class YTUploadImageCmd(YTCommand):
@@ -1606,6 +1623,7 @@ class YTUploadImageCmd(YTCommand):
             print("Something has gone wrong!  Here is the server response:")
             print()
             pprint.pprint(rv)
+        return 0
 
 
 class YTUploadFileCmd(YTCommand):
@@ -1627,6 +1645,7 @@ class YTUploadFileCmd(YTCommand):
         r = requests.put(upload_url + "/" + os.path.basename(args.file), data=fs)
         print()
         print(r.text)
+        return 0
 
 
 class YTConfigLocalConfigHandler:
@@ -1664,7 +1683,8 @@ class YTConfigLocalConfigHandler:
                         "Specify which one you want to use using the `--local` or the "
                         "`--global` flags."
                     )
-                sys.exit(s)
+                print(s)
+                return 1
             elif local_exists:
                 config_file = local_config_file
             else:
@@ -1702,7 +1722,6 @@ class YTConfigGetCmd(YTCommand, YTConfigLocalConfigHandler):
     name = "get"
     description = "get a config value"
     args = (
-        dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to retrieve."),
         *_global_local_args,
     )
@@ -1712,7 +1731,20 @@ class YTConfigGetCmd(YTCommand, YTConfigLocalConfigHandler):
 
         self.load_config(args)
 
-        print(get_config(args.section, args.option))
+        try:
+            val = get_config(args.option)
+        except KeyError:
+            try:
+                val = get_default(args.option)
+                print(
+                    f"`{args.option}` not found in configuration file. Falling back to default value.",
+                    file=sys.stderr,
+                )
+            except KeyError:
+                print(f"Error: unknown parameter `{args.option}`.", file=sys.stderr)
+                return 1
+        print(val)
+        return 0
 
 
 class YTConfigSetCmd(YTCommand, YTConfigLocalConfigHandler):
@@ -1720,7 +1752,6 @@ class YTConfigSetCmd(YTCommand, YTConfigLocalConfigHandler):
     name = "set"
     description = "set a config value"
     args = (
-        dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to set."),
         dict(short="value", help="The value to set the option to."),
         *_global_local_args,
@@ -1730,8 +1761,12 @@ class YTConfigSetCmd(YTCommand, YTConfigLocalConfigHandler):
         from yt.utilities.configure import set_config
 
         self.load_config(args)
-
-        set_config(args.section, args.option, args.value, self.config_file)
+        try:
+            retcode = set_config(args.option, args.value, self.config_file)
+        except TypeError as err:
+            print("".join(err.args), file=sys.stderr)
+            return 1
+        return retcode
 
 
 class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigHandler):
@@ -1739,7 +1774,6 @@ class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigHandler):
     name = "rm"
     description = "remove a config option"
     args = (
-        dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to remove."),
         *_global_local_args,
     )
@@ -1749,7 +1783,8 @@ class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigHandler):
 
         self.load_config(args)
 
-        rm_config(args.section, args.option, self.config_file)
+        rm_config(args.option, self.config_file)
+        return 0
 
 
 class YTConfigListCmd(YTCommand, YTConfigLocalConfigHandler):
@@ -1764,6 +1799,7 @@ class YTConfigListCmd(YTCommand, YTConfigLocalConfigHandler):
         self.load_config(args)
 
         write_config(sys.stdout)
+        return 0
 
 
 class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigHandler):
@@ -1778,6 +1814,7 @@ class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigHandler):
         self.load_config(args)
 
         migrate_config()
+        return 0
 
 
 class YTConfigPrintPath(YTCommand, YTConfigLocalConfigHandler):
@@ -1790,6 +1827,7 @@ class YTConfigPrintPath(YTCommand, YTConfigLocalConfigHandler):
         self.load_config(args)
 
         print(self.config_file)
+        return 0
 
 
 class YTSearchCmd(YTCommand):
@@ -1853,6 +1891,7 @@ class YTSearchCmd(YTCommand):
         with open(args.output, "w") as f:
             json.dump(records, f, indent=4)
         print(f"Identified {len(records)} records output to {args.output}")
+        return 0
 
 
 class YTDownloadData(YTCommand):
@@ -1932,6 +1971,7 @@ class YTDownloadData(YTCommand):
         if not os.path.exists(fn):
             raise OSError(f"The file '{args.filename}' did not download!!")
         print(f"File: {args.filename} downloaded successfully to {data_file}")
+        return 0
 
     def get_list(self):
         data = (
@@ -1948,19 +1988,25 @@ class YTDownloadData(YTCommand):
                     print("\t", line)
 
 
-def run_main():
-    args = parser.parse_args()
+def run_main(argv=None):
+    # argparse.ArgumentParser.parse_args is smart:
+    # when passed `None`, it will parse from sys.argv
+    # but explicitly adding a keyword argument here helps
+    # testing the function with pytest
+    try:
+        args = parser.parse_args(argv)
+    except RuntimeError:
+        return 2
     # The following is a workaround for a nasty Python 3 bug:
     # http://bugs.python.org/issue16308
     # http://bugs.python.org/issue9253
     try:
         args.func
     except AttributeError:
-        parser.print_help()
-        sys.exit(0)
-
-    args.func(args)
+        parser.print_help(file=sys.stderr)
+        return 1
+    return args.func(args)
 
 
 if __name__ == "__main__":
-    run_main()
+    sys.exit(run_main())

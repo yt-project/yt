@@ -381,7 +381,6 @@ Changing a single config value:
 
    $ yt config set logging.level DEBUG
 
-
 Removing a single config entry:
 
 .. code-block:: bash

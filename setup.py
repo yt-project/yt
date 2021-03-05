@@ -149,6 +149,7 @@ if __name__ == "__main__":
             "more_itertools>=8.4",
             "tqdm>=3.4.0",
             "toml>=0.10.2",
+            "python-benedict>=0.23.2",
             "rich>=9.12.0",
         ],
         extras_require={"hub": ["girder_client"], "mapserver": ["bottle"]},

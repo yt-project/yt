@@ -1,7 +1,8 @@
 class ConfigNode:
-    def __init__(self, key, parent=None):
+    def __init__(self, key, parent=None, metadata=None):
         self.key = key
         self.children = {}
+        self.metadata = metadata
         self.parent = parent
 
     def add(self, key, child):
@@ -43,6 +44,8 @@ class ConfigNode:
                     key, parent=self, value=value, extra_data=extra_data
                 ),
             )
+            # I don't get why the following two lines are necessary (they seem redundant)
+            # but if you remove them the code explodes.
             leaf.value = value
             leaf.extra_data = extra_data
             if not isinstance(leaf, ConfigLeaf):
@@ -141,9 +144,9 @@ class ConfigNode:
 class ConfigLeaf:
     def __init__(self, key, parent: ConfigNode, value, extra_data=None):
         self.key = key  # the name of the config leaf
-        self._value = value
         self.parent = parent
         self.extra_data = extra_data
+        self.value = value
 
     def serialize(self):
         return self.value
@@ -163,20 +166,27 @@ class ConfigLeaf:
 
     @value.setter
     def value(self, new_value):
+        if not hasattr(self, "_value"):
+            from benedict import benedict
+
+            from yt.config import ytcfg_defaults
+
+            fullkey = [node.key for node in self.get_tree() if node.key]
+            self._value = benedict(ytcfg_defaults)[fullkey]
         if type(self.value) == type(new_value):
             self._value = new_value
-        else:
-            tree = self.get_tree()
-            tree_str = ".".join(node.key for node in tree if node.key)
-            msg = f"Error when setting {tree_str}.\n"
-            msg += (
-                "Tried to assign a value of type "
-                f"{type(new_value)}, expected type {type(self.value)}."
-            )
-            source = self.extra_data.get("source", None)
-            if source:
-                msg += f"\nThis entry was last modified in {source}."
-            raise TypeError(msg)
+            return
+
+        tree_str = ".".join([node.key for node in self.get_tree() if node.key])
+        msg = f"Error: tried to assign a value with type `{type(new_value)}`'"
+        # if "level" in self.key:
+        #    breakpoint()
+        msg += f" to `{tree_str}`. Excepted type `{type(self.value)}`."
+
+        source = self.extra_data.get("source", None)
+        if source:
+            msg += f"\nThis entry was last set in {source}."
+        raise TypeError(msg)
 
     def __repr__(self):
         return f"<Leaf {self.key}: {self.value}>"
