@@ -23,10 +23,10 @@ jobs:
             python-version: 3.6
             dependencies: minimal
             tests-type: unit
-          - os: ubuntu-18.04
-            python-version: 3.7
-            dependencies: full
-            tests-type: answer
+          # - os: ubuntu-18.04
+          #   python-version: 3.7
+          #   dependencies: full
+          #   tests-type: answer
 
     runs-on: ${{ matrix.os }}
     steps:
