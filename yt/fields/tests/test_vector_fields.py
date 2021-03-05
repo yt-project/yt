@@ -81,7 +81,9 @@ def compare_vector_conversions(data_source):
             prj = data_source.ds.proj(
                 ("gas", "velocity_los"), i, weight_field=("gas", "density")
             )
-            assert_allclose_units(prj[("gas", "velocity_los")], prj[f"velocity_{ax}"])
+            assert_allclose_units(
+                prj[("gas", "velocity_los")], prj[("gas", f"velocity_{ax}")]
+            )
 
         data_source.clear_data()
         ax = [0.1, 0.2, -0.3]
