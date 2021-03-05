@@ -154,6 +154,12 @@ class YTDataContainer:
         except AttributeError:
             return self.ds.arr(arr, units=units)
 
+    def _first_matching_field(self, field):
+        # FIXME? Should be moved elsewhere?
+        for ftype, fname in self.ds.derived_field_list:
+            if fname == field:
+                return (ftype, fname)
+
     def _set_center(self, center):
         if center is None:
             self.center = None
@@ -174,11 +180,13 @@ class YTDataContainer:
             elif center.lower() in ("max", "m"):
                 self.center = self.ds.find_max(("gas", "density"))[1]
             elif center.startswith("max_"):
-                self.center = self.ds.find_max(center[4:])[1]
+                field = self._first_matching_field(center[4:])
+                self.center = self.ds.find_max(field)[1]
             elif center.lower() == "min":
                 self.center = self.ds.find_min(("gas", "density"))[1]
             elif center.startswith("min_"):
-                self.center = self.ds.find_min(center[4:])[1]
+                field = self._first_matching_field(center[4:])
+                self.center = self.ds.find_min(field)[1]
         else:
             self.center = self.ds.arr(center, "code_length", dtype="float64")
 
