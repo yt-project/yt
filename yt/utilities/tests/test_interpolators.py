@@ -115,7 +115,7 @@ def test_ghost_zone_extrapolation():
         )
 
         ii = (lx, ly, lz)[i]
-        assert_array_equal(ii, vec[ax])
+        assert_array_equal(ii, vec[("index", ax)])
         assert_array_equal(ii, xi)
         assert_array_equal(ii, xz)
 
