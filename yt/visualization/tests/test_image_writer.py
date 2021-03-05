@@ -43,8 +43,8 @@ class TestImageWriter(unittest.TestCase):
         ma = ds.quan(0.9, "code_length")
         multi_image_composite(
             "multi_channel2.png",
-            (frb["x"], mi, ma),
-            [frb["y"], mi, None],
+            (frb[("index", "x")], mi, ma),
+            [frb[("index", "y")], mi, None],
             green_channel=frb[("index", "z")],
             alpha_channel=frb[("gas", "density")],
         )
