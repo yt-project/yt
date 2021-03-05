@@ -36,13 +36,13 @@ def setup():
 #  override some of the plotwindow ATTR_ARGS
 PROJ_ATTR_ARGS = ATTR_ARGS.copy()
 PROJ_ATTR_ARGS["set_cmap"] = [
-    (("particle_mass", "RdBu"), {}),
-    (("particle_mass", "kamae"), {}),
+    ((("all", "particle_mass"), "RdBu"), {}),
+    ((("all", "particle_mass"), "kamae"), {}),
 ]
 PROJ_ATTR_ARGS["set_log"] = [(("particle_mass", False), {})]
 PROJ_ATTR_ARGS["set_zlim"] = [
-    (("particle_mass", 1e39, 1e42), {}),
-    (("particle_mass", 1e39, None), {"dynamic_range": 4}),
+    ((("all", "particle_mass"), 1e39, 1e42), {}),
+    ((("all", "particle_mass"), 1e39, None), {"dynamic_range": 4}),
 ]
 
 PHASE_ATTR_ARGS = {
@@ -50,9 +50,9 @@ PHASE_ATTR_ARGS = {
         (((5e-29, 5e7), "Hello YT"), {}),
         (((5e-29, 5e7), "Hello YT"), {"color": "b"}),
     ],
-    "set_title": [(("particle_mass", "A phase plot."), {})],
-    "set_log": [(("particle_mass", False), {})],
-    "set_unit": [(("particle_mass", "Msun"), {})],
+    "set_title": [((("all", "particle_mass"), "A phase plot."), {})],
+    "set_log": [((("all", "particle_mass"), False), {})],
+    "set_unit": [((("all", "particle_mass"), "Msun"), {})],
     "set_xlim": [((-4e7, 4e7), {})],
     "set_ylim": [((-4e7, 4e7), {})],
 }
@@ -69,12 +69,24 @@ CENTER_SPECS = (
     YTArray([0.3, 0.4, 0.7], "cm"),
 )
 
-WEIGHT_FIELDS = (None, "particle_ones", ("all", "particle_mass"))
+WEIGHT_FIELDS = (None, ("all", "particle_ones"), ("all", "particle_mass"))
 
 PHASE_FIELDS = [
-    ("particle_velocity_x", "particle_position_z", "particle_mass"),
-    ("particle_position_x", "particle_position_y", "particle_ones"),
-    ("particle_velocity_x", "particle_velocity_y", ["particle_mass", "particle_ones"]),
+    (
+        ("all", "particle_velocity_x"),
+        ("all", "particle_position_z"),
+        ("all", "particle_mass"),
+    ),
+    (
+        ("all", "particle_position_x"),
+        ("all", "particle_position_y"),
+        ("all", "particle_ones"),
+    ),
+    (
+        ("all", "particle_velocity_x"),
+        ("all", "particle_velocity_y"),
+        [("all", "particle_mass"), ("all", "particle_ones")],
+    ),
 ]
 
 
@@ -202,9 +214,9 @@ class TestParticlePhasePlotSave(unittest.TestCase):
                 particle_phases.append(
                     ParticlePhasePlot(
                         source,
-                        ("all", x_field),
-                        ("all", y_field),
-                        ("all", z_fields),
+                        x_field,
+                        y_field,
+                        z_fields,
                         x_bins=16,
                         y_bins=16,
                     )
@@ -213,9 +225,9 @@ class TestParticlePhasePlotSave(unittest.TestCase):
                 particle_phases.append(
                     ParticlePhasePlot(
                         source,
-                        ("all", x_field),
-                        ("all", y_field),
-                        ("all", z_fields),
+                        x_field,
+                        y_field,
+                        z_fields,
                         x_bins=16,
                         y_bins=16,
                         deposition="cic",
@@ -224,8 +236,8 @@ class TestParticlePhasePlotSave(unittest.TestCase):
 
                 pp = create_profile(
                     source,
-                    [("all", x_field), ("all", y_field)],
-                    ("all", z_fields),
+                    [x_field, y_field],
+                    z_fields,
                     weight_field=("all", "particle_ones"),
                     n_bins=[16, 16],
                 )
