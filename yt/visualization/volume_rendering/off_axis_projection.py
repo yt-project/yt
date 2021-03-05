@@ -223,7 +223,7 @@ def off_axis_projection(
             # Assure that the path length unit is in the default length units
             # for the dataset by scaling the units of the smoothing length
             path_length_unit = data_source.ds._get_field_info(
-                (ptype, ("io", "smoothing_length"))
+                (ptype, "smoothing_length")
             ).units
             path_length_unit = Unit(
                 path_length_unit, registry=data_source.ds.unit_registry
