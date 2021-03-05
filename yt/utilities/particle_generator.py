@@ -343,7 +343,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
         data_source,
         num_particles,
         field_list,
-        density_field="density",
+        density_field=("gas", "density"),
         ptype="io",
     ):
         r"""
@@ -360,7 +360,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
             The number of particles to be generated
         field_list : list of strings
             A list of particle fields
-        density_field : string, optional
+        density_field : tuple, optional
             A density field which will serve as the distribution function for the
             particle positions. Theoretically, this could be any 'per-volume' field.
         ptype : string, optional
