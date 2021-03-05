@@ -42,7 +42,7 @@ def test_output_00080():
     for dobj_name in dso:
         for field in _fields:
             for axis in [0, 1, 2]:
-                for weight_field in [None, "density"]:
+                for weight_field in [None, ("gas", "density")]:
                     yield PixelizedProjectionValuesTest(
                         output_00080, axis, field, weight_field, dobj_name
                     )
@@ -193,9 +193,9 @@ def test_ramses_rt():
     for specie in species:
         special_fields.extend(
             [
-                ("gas", specie + "_fraction"),
-                ("gas", specie + "_density"),
-                ("gas", specie + "_mass"),
+                ("gas", f"{specie}_fraction"),
+                ("gas", f"{specie}_density"),
+                ("gas", f"{specie}_mass"),
             ]
         )
 
@@ -426,14 +426,14 @@ def test_formation_time():
     assert ("io", "particle_metallicity") in ds.field_list
 
     ad = ds.all_data()
-    whstars = ad["conformal_birth_time"] != 0
-    assert np.all(ad["star_age"][whstars] > 0)
+    whstars = ad[("io", "conformal_birth_time")] != 0
+    assert np.all(ad[("io", "star_age")][whstars] > 0)
 
     # test semantics for non-cosmological new-style output format
     ds = yt.load(ramses_new_format)
     ad = ds.all_data()
     assert ("io", "particle_birth_time") in ds.field_list
-    assert np.all(ad["particle_birth_time"] > 0)
+    assert np.all(ad[("io", "particle_birth_time")] > 0)
 
     # test semantics for non-cosmological old-style output format
     ds = yt.load(ramsesNonCosmo, extra_particle_fields=extra_particle_fields)
@@ -441,9 +441,9 @@ def test_formation_time():
     assert ("io", "particle_birth_time") in ds.field_list
     # the dataset only includes particles with arbitrarily old ages
     # and particles that formed in the very first timestep
-    assert np.all(ad["particle_birth_time"] <= 0)
-    whdynstars = ad["particle_birth_time"] == 0
-    assert np.all(ad["star_age"][whdynstars] == ds.current_time)
+    assert np.all(ad[("io", "particle_birth_time")] <= 0)
+    whdynstars = ad[("io", "particle_birth_time")] == 0
+    assert np.all(ad[("io", "star_age")][whdynstars] == ds.current_time)
 
 
 @requires_file(ramses_new_format)
