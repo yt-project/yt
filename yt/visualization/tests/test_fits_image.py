@@ -40,7 +40,7 @@ def test_fits_image():
     fits_prj = FITSProjection(
         ds,
         "z",
-        [ds.fields.gas.density, "temperature"],
+        [ds.fields.gas.density, ("gas", "temperature")],
         image_res=128,
         width=(0.5, "unitary"),
     )
@@ -108,7 +108,7 @@ def test_fits_image():
     fits_cut = FITSOffAxisSlice(
         ds,
         [0.1, 0.2, -0.9],
-        ["density", "temperature"],
+        [("gas", "density"), ("gas", "temperature")],
         image_res=128,
         center=[0.5, 0.42, 0.6],
         width=(0.5, "unitary"),
@@ -129,11 +129,11 @@ def test_fits_image():
     buf = off_axis_projection(
         ds, ds.domain_center, [0.1, 0.2, -0.9], 0.5, 128, ("gas", "density")
     ).swapaxes(0, 1)
-    fid4 = FITSImageData(buf, fields="density", width=100.0)
+    fid4 = FITSImageData(buf, fields=[("gas", "density")], width=100.0)
     fits_oap = FITSOffAxisProjection(
         ds,
         [0.1, 0.2, -0.9],
-        "density",
+        ("gas", "density"),
         width=(0.5, "unitary"),
         image_res=128,
         depth=(0.5, "unitary"),

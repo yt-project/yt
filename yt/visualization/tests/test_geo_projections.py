@@ -73,14 +73,15 @@ class TestGeoProjections(unittest.TestCase):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
 
         axis = "altitude"
-        self.slc = yt.SlicePlot(self.ds, axis, "Density", origin="native")
+        self.slc = yt.SlicePlot(self.ds, axis, ("stream", "Density"), origin="native")
 
         assert isinstance(self.slc._projection, cartopy.crs.Mollweide)
         assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
         assert self.ds.coordinates.data_projection[axis] == "Mollweide"
         assert self.ds.coordinates.data_transform[axis] == "PlateCarree"
         assert isinstance(
-            self.slc._projection, type(self.slc.plots["Density"].axes.projection)
+            self.slc._projection,
+            type(self.slc.plots[("stream", "Density")].axes.projection),
         )
 
     @requires_module("cartopy")
@@ -101,7 +102,9 @@ class TestGeoProjections(unittest.TestCase):
 
             assert isinstance(self.slc._projection, proj_type)
             assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
-            assert isinstance(self.slc.plots["Density"].axes.projection, proj_type)
+            assert isinstance(
+                self.slc.plots[("stream", "Density")].axes.projection, proj_type
+            )
 
     @requires_module("cartopy")
     def test_projection_object(self):
@@ -125,7 +128,7 @@ class TestGeoProjections(unittest.TestCase):
 
         axis = "altitude"
         self.ds.coordinates.data_transform[axis] = "Miller"
-        self.slc = yt.SlicePlot(self.ds, axis, "Density", origin="native")
+        self.slc = yt.SlicePlot(self.ds, axis, ("stream", "Density"), origin="native")
 
         shortlist = ["Orthographic", "PlateCarree", "Mollweide"]
 
@@ -138,7 +141,9 @@ class TestGeoProjections(unittest.TestCase):
             assert isinstance(self.slc._transform, cartopy.crs.Miller)
             assert self.ds.coordinates.data_projection[axis] == "Mollweide"
             assert self.ds.coordinates.data_transform[axis] == "Miller"
-            assert isinstance(self.slc.plots["Density"].axes.projection, proj_type)
+            assert isinstance(
+                self.slc.plots[("stream", "Density")].axes.projection, proj_type
+            )
 
 
 class TestNonGeoProjections(unittest.TestCase):
@@ -151,7 +156,7 @@ class TestNonGeoProjections(unittest.TestCase):
 
     def test_projection_setup(self):
         axis = "x"
-        self.slc = yt.SlicePlot(self.ds, axis, ("gas", "density"), origin="native")
+        self.slc = yt.SlicePlot(self.ds, axis, ("stream", "Density"), origin="native")
 
         assert self.ds.coordinates.data_projection[axis] is None
         assert self.ds.coordinates.data_transform[axis] is None
