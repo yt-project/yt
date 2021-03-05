@@ -434,16 +434,18 @@ def test_on_off_compare():
     sl_off.set_buff_size((800, 400))
     sl_off._recreate_frb()
 
-    assert_array_almost_equal(sl_on.frb["density"], sl_off.frb["density"])
+    assert_array_almost_equal(
+        sl_on.frb[("gas", "density")], sl_off.frb[("gas", "density")]
+    )
 
 
 def test_plot_particle_field_error():
     ds = fake_random_ds(32, particles=100)
 
     field_names = [
-        "particle_mass",
-        ["particle_mass", "density"],
-        ["density", "particle_mass"],
+        ("all", "particle_mass"),
+        [("all", "particle_mass"), ("gas", "density")],
+        [("gas", "density"), ("all", "particle_mass")],
     ]
 
     objects_normals = [
