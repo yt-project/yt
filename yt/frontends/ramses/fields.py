@@ -148,7 +148,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
                 formation_time = convert_ramses_ages(data.ds, conformal_age)
                 formation_time = data.ds.arr(formation_time, "code_time")
             else:
-                formation_time = data["particle_birth_time"]
+                formation_time = data[ptype, "particle_birth_time"]
             return data.ds.current_time - formation_time
 
         self.add_field(
@@ -186,8 +186,8 @@ class RAMSESFieldInfo(FieldInfoContainer):
         def mag_field(ax):
             def _mag_field(field, data):
                 return (
-                    data[f"magnetic_field_{ax}_left"]
-                    + data[f"magnetic_field_{ax}_right"]
+                    data[("gas", f"magnetic_field_{ax}_left")]
+                    + data[("gas", f"magnetic_field_{ax}_right")]
                 ) / 2
 
             return _mag_field
@@ -205,10 +205,10 @@ class RAMSESFieldInfo(FieldInfoContainer):
             out = np.zeros_like(data[("gas", "magnetic_field_x_right")])
             for ax in data.ds.coordinates.axis_order:
                 out += (
-                    data[f"magnetic_field_{ax}_right"]
-                    - data[f"magnetic_field_{ax}_left"]
+                    data[("gas", f"magnetic_field_{ax}_right")]
+                    - data[("gas", f"magnetic_field_{ax}_left")]
                 )
-            return out / data["dx"]
+            return out / data[("gas", "dx")]
 
         self.add_field(
             ("gas", "magnetic_field_divergence"),
@@ -242,7 +242,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         for species in ["H_p1", "He_p1", "He_p2"]:
 
             def _species_density(field, data):
-                return data["gas", species + "_fraction"] * data["gas", "density"]
+                return data["gas", f"{species}_fraction"] * data["gas", "density"]
 
             self.add_field(
                 ("gas", species + "_density"),
@@ -252,7 +252,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
             )
 
             def _species_mass(field, data):
-                return data["gas", species + "_density"] * data["index", "cell_volume"]
+                return data["gas", f"{species}_density"] * data["index", "cell_volume"]
 
             self.add_field(
                 ("gas", species + "_mass"),
