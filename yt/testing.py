@@ -360,7 +360,7 @@ def fake_tetrahedral_ds():
     return ds
 
 
-def fake_hexahedral_ds():
+def fake_hexahedral_ds(fields=()):
     from yt.frontends.stream.sample_data.hexahedral_mesh import (
         _connectivity,
         _coordinates,
@@ -372,6 +372,9 @@ def fake_hexahedral_ds():
     node_data = {}
     dist = np.sum(_coordinates ** 2, 1)
     node_data[("connect1", "test")] = dist[_connectivity - 1]
+
+    for field in fields:
+        node_data[("connect1", field)] = dist[_connectivity - 1]
 
     # each element gets a random number
     elem_data = {}

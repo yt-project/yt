@@ -1263,7 +1263,7 @@ def load_unstructured_mesh(
     sds._node_fields = flatten([[f[1] for f in m] for m in node_data if m])
     sds._elem_fields = flatten([[f[1] for f in m] for m in elem_data if m])
     sds.default_field = [f for f in sds.field_list if f[0] == "connect1"][-1]
-
+    sds.default_fluid_type = sds.default_field[0]
     return sds
 
 

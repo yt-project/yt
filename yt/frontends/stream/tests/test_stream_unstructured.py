@@ -66,7 +66,6 @@ def test_multi_field():
     )
 
     ds = load_unstructured_mesh(connect, coords, data)
-
     sl = SlicePlot(ds, "z", "test")
     sl.annotate_mesh_lines()
 
