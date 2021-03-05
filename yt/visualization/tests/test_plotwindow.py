@@ -131,7 +131,6 @@ WIDTH_SPECS = {
 
 WEIGHT_FIELDS = (
     None,
-    "density",
     ("gas", "density"),
 )
 
@@ -154,7 +153,7 @@ def simple_streamlines(test_obj, plot):
     yax = test_obj.ds.coordinates.y_axis[ax]
     xn = test_obj.ds.coordinates.axis_name[xax]
     yn = test_obj.ds.coordinates.axis_name[yax]
-    plot.annotate_streamlines(f"velocity_{xn}", f"velocity_{yn}")
+    plot.annotate_streamlines(("gas", f"velocity_{xn}"), ("gas", f"velocity_{yn}"))
 
 
 CALLBACK_TESTS = (
@@ -168,7 +167,7 @@ CALLBACK_TESTS = (
 @requires_ds(M7)
 def test_attributes():
     """Test plot member functions that aren't callbacks"""
-    plot_field = "density"
+    plot_field = ("gas", "density")
     decimals = 12
 
     ds = data_dir_load(M7)
@@ -195,7 +194,7 @@ def test_attributes():
 
 @requires_ds(WT)
 def test_attributes_wt():
-    plot_field = "density"
+    plot_field = ("gas", "density")
     decimals = 12
 
     ds = data_dir_load(WT)

@@ -394,11 +394,11 @@ ISOGAL = "IsolatedGalaxy/galaxy0030/galaxy0030"
 def test_array_like_field_output_units():
     ds = load(ISOGAL)
     ad = ds.all_data()
-    u1 = ad["particle_mass"].units
+    u1 = ad[("all", "particle_mass")].units
     u2 = array_like_field(ad, 1.0, ("all", "particle_mass")).units
     assert u1 == u2
     assert str(u1) == ds.fields.all.particle_mass.output_units
-    u1 = ad["gas", "x"].units
+    u1 = ad["index", "x"].units
     u2 = array_like_field(ad, 1.0, ("index", "x")).units
     assert u1 == u2
     assert str(u1) == ds.fields.gas.x.units
