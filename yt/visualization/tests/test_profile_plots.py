@@ -24,9 +24,9 @@ ATTR_ARGS = {
         (((5e-29, 5e7), "Hello YT"), {}),
         (((5e-29, 5e7), "Hello YT"), {"color": "b"}),
     ],
-    "set_title": [(("cell_mass", "A phase plot."), {})],
-    "set_log": [(("cell_mass", False), {})],
-    "set_unit": [(("cell_mass", "Msun"), {})],
+    "set_title": [((("gas", "cell_mass"), "A phase plot."), {})],
+    "set_log": [((("gas", "cell_mass"), False), {})],
+    "set_unit": [((("gas", "cell_mass"), "Msun"), {})],
     "set_xlim": [((1e-27, 1e-24), {})],
     "set_ylim": [((1e2, 1e6), {})],
 }
@@ -54,9 +54,9 @@ def test_phase_plot_attributes():
 
     """
 
-    x_field = "density"
-    y_field = "temperature"
-    z_field = "cell_mass"
+    x_field = ("gas", "density")
+    y_field = ("gas", "temperature")
+    z_field = ("gas", "cell_mass")
     decimals = 12
     ds = fake_random_ds(16, fields=("density", "temperature"))
     for attr_name in ATTR_ARGS.keys():
@@ -76,11 +76,11 @@ def test_profile_plot():
     test_ds = fake_random_ds(16, fields=fields, units=units)
     regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
     pr_fields = [
-        ("density", "temperature"),
-        ("density", "velocity_x"),
-        ("temperature", "cell_mass"),
-        ("density", "radius"),
-        ("velocity_magnitude", "cell_mass"),
+        [("gas", "density"), ("gas", "temperature")],
+        [("gas", "density"), ("gas", "velocity_x")],
+        [("gas", "temperature"), ("gas", "cell_mass")],
+        [("gas", "density"), ("gas", "radius")],
+        [("gas", "velocity_magnitude"), ("gas", "cell_mass")],
     ]
     profiles = []
     for reg in regions:
@@ -110,9 +110,9 @@ def test_phase_plot():
     regions = [test_ds.region([0.5] * 3, [0.4] * 3, [0.6] * 3), test_ds.all_data()]
     phases = []
     ph_fields = [
-        ("density", "temperature", "cell_mass"),
-        ("density", "velocity_x", "cell_mass"),
-        ("radius", "temperature", "velocity_magnitude"),
+        [("gas", "density"), ("gas", "temperature"), ("gas", "cell_mass")],
+        [("gas", "density"), ("gas", "velocity_x"), ("gas", "cell_mass")],
+        [("gas", "radius"), ("gas", "temperature"), ("gas", "velocity_magnitude")],
     ]
     for reg in regions:
         for x_field, y_field, z_field in ph_fields:
