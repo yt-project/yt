@@ -171,7 +171,7 @@ answer_tests:
   local_nc4_cm1_000: # PR  2176
     - yt/frontends/nc4_cm1/tests/test_outputs.py:test_cm1_mesh_fields
 
-  local_aspect_000: # PR 3109
+  local_aspect_001: # PR 3109
     - yt/frontends/aspect/tests/test_outputs.py:test_box_convect
     - yt/frontends/aspect/tests/test_outputs.py:test_box_convect_par
 
