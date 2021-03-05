@@ -92,15 +92,15 @@ class DeprecatedFieldFilter(logging.Filter):
         super().__init__(name=name)
 
     def filter(self, record):
-        if record.msg.startswith("The Derived Field"):
-            field = record.args[0]
-            if field in self.logged_fields:
-                return False
-            else:
-                self.logged_fields.append(field)
-                return True
-        else:
+        if not record.msg.startswith("The Derived Field"):
             return True
+
+        field = record.args[0]
+        if field in self.logged_fields:
+            return False
+
+        self.logged_fields.append(field)
+        return True
 
 
 ytLogger.addFilter(DeprecatedFieldFilter())

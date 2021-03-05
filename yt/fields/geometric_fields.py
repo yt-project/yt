@@ -278,4 +278,3 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
     )
 
     registry.alias(("index", "height"), ("index", "cylindrical_z"), deprecate=True)
-
