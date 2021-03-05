@@ -66,7 +66,7 @@ def test_plot_data():
     fn = p.save()
     assert_fname(fn[0])
 
-    plot = ProjectionPlot(ds, "z", "density")
+    plot = ProjectionPlot(ds, "z", ("gas", "density"))
     fn = plot.data_source.save_as_dataset("proj.h5")
     ds_proj = load(fn)
     p = ProjectionPlot(ds_proj, "z", ("gas", "density"))
@@ -122,9 +122,9 @@ def test_non_square_frb():
     reloaded_ds = load(fname)
 
     assert_array_equal(
-        frb[("grid", "density")].shape, reloaded_ds.data[("grid", "density")].shape
+        frb[("gas", "density")].shape, reloaded_ds.data[("gas", "density")].shape
     )
-    assert_array_equal(frb[("grid", "density")], reloaded_ds.data[("grid", "density")])
+    assert_array_equal(frb[("gas", "density")], reloaded_ds.data[("gas", "density")])
 
     os.chdir(curdir)
     if tmpdir != ".":
