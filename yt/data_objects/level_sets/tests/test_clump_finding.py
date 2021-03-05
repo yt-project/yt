@@ -111,7 +111,13 @@ def test_clump_tree_save():
     leaf_clumps = master_clump.leaves
 
     fn = master_clump.save_as_dataset(
-        fields=["density", "x", "y", "z", "particle_mass"]
+        fields=[
+            ("gas", "density"),
+            ("index", "x"),
+            ("index", "y"),
+            ("index", "z"),
+            ("all", "particle_mass"),
+        ]
     )
     ds2 = load(fn)
 
@@ -154,11 +160,11 @@ def test_clump_field_parameters():
 
     def _also_density(field, data):
         factor = data.get_field_parameter("factor")
-        return factor * data["density"]
+        return factor * data[("gas", "density")]
 
     ds = data_dir_load(i30)
     ds.add_field(
-        "also_density",
+        ("gas", "also_density"),
         function=_also_density,
         units=ds.fields.gas.density.units,
         sampling_type="cell",

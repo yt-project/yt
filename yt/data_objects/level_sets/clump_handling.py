@@ -428,7 +428,7 @@ def find_clumps(clump, min_val, max_val, d_clump):
             else:
                 mylog.info(
                     "Eliminating invalid, childless clump with %d cells.",
-                    len(child.data["ones"]),
+                    len(child.data[("index", "ones")]),
                 )
         if len(these_children) > 1:
             mylog.info(
