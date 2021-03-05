@@ -67,17 +67,17 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
         return _mom, _momd
 
-    for v in "xyz":
+    for v in registry.ds.coordinates.axis_order:
         _mom, _momd = momentum_xyz(v)
         registry.add_field(
             ("gas", f"momentum_{v}"),
-            sampling_type="cell",
+            sampling_type="local",
             function=_mom,
             units=unit_system["momentum"],
         )
         registry.add_field(
             ("gas", f"momentum_density_{v}"),
-            sampling_type="cell",
+            sampling_type="local",
             function=_momd,
             units=unit_system["density"] * unit_system["velocity"],
         )
