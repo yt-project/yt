@@ -327,8 +327,8 @@ class VelocityCallback(PlotCallback):
                 )
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback(
-                "cutting_plane_velocity_x",
-                "cutting_plane_velocity_y",
+                ("gas", "cutting_plane_velocity_x"),
+                ("gas", "cutting_plane_velocity_y"),
                 self.factor,
                 scale=self.scale,
                 normalize=self.normalize,
@@ -353,13 +353,13 @@ class VelocityCallback(PlotCallback):
             ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
-                xv = "velocity_cartesian_x"
-                yv = "velocity_cartesian_y"
+                xv = ("gas", "velocity_cartesian_x")
+                yv = ("gas", "velocity_cartesian_y")
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = f"velocity_{axis_names[xax]}"
-                yv = f"velocity_{axis_names[yax]}"
+                xv = ("gas", f"velocity_{axis_names[xax]}")
+                yv = ("gas", f"velocity_{axis_names[yax]}")
 
             qcb = QuiverCallback(
                 xv,
@@ -1125,15 +1125,15 @@ class CuttingQuiverCallback(PlotCallback):
         xx0, xx1, yy0, yy1 = self._plot_bounds(plot)
         nx = plot.image._A.shape[1] // self.factor
         ny = plot.image._A.shape[0] // self.factor
-        indices = np.argsort(plot.data["dx"])[::-1].astype(np.int_)
+        indices = np.argsort(plot.data["index", "dx"])[::-1].astype(np.int_)
 
         pixX = np.zeros((ny, nx), dtype="f8")
         pixY = np.zeros((ny, nx), dtype="f8")
         pixelize_off_axis_cartesian(
             pixX,
-            plot.data["x"].to("code_length"),
-            plot.data["y"].to("code_length"),
-            plot.data["z"].to("code_length"),
+            plot.data[("index", "x")].to("code_length"),
+            plot.data[("index", "y")].to("code_length"),
+            plot.data[("index", "z")].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],
@@ -1147,9 +1147,9 @@ class CuttingQuiverCallback(PlotCallback):
         )
         pixelize_off_axis_cartesian(
             pixY,
-            plot.data["x"].to("code_length"),
-            plot.data["y"].to("code_length"),
-            plot.data["z"].to("code_length"),
+            plot.data[("index", "x")].to("code_length"),
+            plot.data[("index", "y")].to("code_length"),
+            plot.data[("index", "z")].to("code_length"),
             plot.data["px"],
             plot.data["py"],
             plot.data["pdx"],

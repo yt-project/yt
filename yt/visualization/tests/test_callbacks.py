@@ -424,7 +424,7 @@ def test_velocity_callback():
             fields=("density", "velocity_r", "velocity_theta", "velocity_phi"),
             geometry="spherical",
         )
-        p = ProjectionPlot(ds, "r", "density")
+        p = ProjectionPlot(ds, "r", ("gas", "density"))
         p.annotate_velocity(factor=40, normalize=True)
         assert_raises(YTDataTypeUnsupported, p.save, prefix)
 
@@ -500,20 +500,22 @@ def test_quiver_callback():
     with _cleanup_fname() as prefix:
         ds = fake_amr_ds(fields=("density", "velocity_x", "velocity_y", "velocity_z"))
         for ax in "xyz":
-            p = ProjectionPlot(ds, ax, "density")
-            p.annotate_quiver("velocity_x", "velocity_y")
+            p = ProjectionPlot(ds, ax, ("gas", "density"))
+            p.annotate_quiver(("gas", "velocity_x"), ("gas", "velocity_y"))
             assert_fname(p.save(prefix)[0])
-            p = ProjectionPlot(ds, ax, "density", weight_field="density")
-            p.annotate_quiver("velocity_x", "velocity_y")
+            p = ProjectionPlot(
+                ds, ax, ("gas", "density"), weight_field=("gas", "density")
+            )
+            p.annotate_quiver(("gas", "velocity_x"), ("gas", "velocity_y"))
             assert_fname(p.save(prefix)[0])
-            p = SlicePlot(ds, ax, "density")
-            p.annotate_quiver("velocity_x", "velocity_y")
+            p = SlicePlot(ds, ax, ("gas", "density"))
+            p.annotate_quiver(("gas", "velocity_x"), ("gas", "velocity_y"))
             assert_fname(p.save(prefix)[0])
         # Now we'll check a few additional minor things
-        p = SlicePlot(ds, "x", "density")
+        p = SlicePlot(ds, "x", ("gas", "density"))
         p.annotate_quiver(
-            "velocity_x",
-            "velocity_y",
+            ("gas", "velocity_x"),
+            ("gas", "velocity_y"),
             factor=8,
             scale=0.5,
             scale_units="inches",
@@ -526,19 +528,21 @@ def test_quiver_callback():
     with _cleanup_fname() as prefix:
         ds = load(cyl_2d)
         slc = SlicePlot(ds, "theta", ("gas", "density"))
-        slc.annotate_quiver("velocity_r", "velocity_z")
+        slc.annotate_quiver(("gas", "velocity_r"), ("gas", "velocity_z"))
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
         ds = load(cyl_3d)
         slc = SlicePlot(ds, "r", ("gas", "velocity_magnitude"))
-        slc.annotate_quiver("velocity_theta", "velocity_z")
+        slc.annotate_quiver(("gas", "velocity_theta"), ("gas", "velocity_z"))
         assert_fname(slc.save(prefix)[0])
         slc = SlicePlot(ds, "z", ("gas", "velocity_magnitude"))
-        slc.annotate_quiver("velocity_cartesian_x", "velocity_cartesian_y")
+        slc.annotate_quiver(
+            ("gas", "velocity_cartesian_x"), ("gas", "velocity_cartesian_y")
+        )
         assert_fname(slc.save(prefix)[0])
         slc = SlicePlot(ds, "theta", ("gas", "velocity_magnitude"))
-        slc.annotate_quiver("velocity_r", "velocity_z")
+        slc.annotate_quiver(("gas", "velocity_r"), ("gas", "velocity_z"))
         assert_fname(slc.save(prefix)[0])
 
     with _cleanup_fname() as prefix:
@@ -546,10 +550,10 @@ def test_quiver_callback():
             fields=("density", "velocity_x", "velocity_theta", "velocity_phi"),
             geometry="spherical",
         )
-        p = ProjectionPlot(ds, "r", "density")
+        p = ProjectionPlot(ds, "r", ("gas", "density"))
         p.annotate_quiver(
-            "velocity_theta",
-            "velocity_phi",
+            ("gas", "velocity_theta"),
+            ("gas", "velocity_phi"),
             factor=8,
             scale=0.5,
             scale_units="inches",
@@ -776,7 +780,7 @@ def test_streamline_callback():
             p.annotate_streamlines(
                 ("gas", "velocity_x"),
                 ("gas", "velocity_y"),
-                field_color=("gas", "magvel"),
+                field_color=("stream", "magvel"),
             )
             assert_fname(p.save(prefix)[0])
 
@@ -784,7 +788,7 @@ def test_streamline_callback():
             p.annotate_streamlines(
                 ("gas", "velocity_x"),
                 ("gas", "velocity_y"),
-                field_color="magvel",
+                field_color=("stream", "magvel"),
                 display_threshold=0.5,
                 plot_args={
                     "cmap": ytcfg.get("yt", "default_colormap"),
@@ -794,6 +798,7 @@ def test_streamline_callback():
             assert_fname(p.save(prefix)[0])
 
     # Axisymmetric dataset
+
     with _cleanup_fname() as prefix:
 
         ds = load(cyl_2d)
