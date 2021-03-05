@@ -222,8 +222,8 @@ def test_load_particles_with_data_source():
 
     # Load from dataset
     ad = ds1.all_data()
-    fields = ["particle_mass"]
-    fields += [f"particle_position_{ax}" for ax in "xyz"]
+    fields = [("all", "particle_mass")]
+    fields += [("all", f"particle_position_{ax}") for ax in "xyz"]
     data = {field: ad[field] for field in fields}
     ds2 = load_particles(data, data_source=ad)
 
