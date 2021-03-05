@@ -17,8 +17,8 @@ def test_point_selector():
     assert all(ds.periodicity)
 
     dd = ds.all_data()
-    positions = np.array([dd[ax] for ax in "xyz"]).T
-    delta = 0.5 * np.array([dd["d" + ax] for ax in "xyz"]).T
+    positions = np.array([dd[("index", ax)] for ax in "xyz"]).T
+    delta = 0.5 * np.array([dd[("index", f"d{ax}")] for ax in "xyz"]).T
     # ensure cell centers and corners always return one and
     # only one point object
     for p in positions:
@@ -50,7 +50,7 @@ def test_sphere_selector():
             data[("index", "radius")].size + n_outside, dd[("index", "radius")].size
         )
 
-        positions = np.array([data[ax] for ax in "xyz"])
+        positions = np.array([data[("index", ax)] for ax in "xyz"])
         centers = (
             np.tile(data.center, data[("index", "x")].shape[0])
             .reshape(data[("index", "x")].shape[0], 3)
@@ -88,7 +88,7 @@ def test_ellipsoid_selector():
             data[("index", "radius")].size + n_outside, dd[("index", "radius")].size
         )
 
-        positions = np.array([data[ax] for ax in "xyz"])
+        positions = np.array([data[("index", ax)] for ax in "xyz"])
         centers = (
             np.tile(data.center, data.shape[0]).reshape(data.shape[0], 3).transpose()
         )
@@ -110,7 +110,7 @@ def test_ellipsoid_selector():
 
         # hack to compute elliptic distance
         dist2 = np.zeros(data[("index", "ones")].shape[0])
-        for i, ax in enumerate("xyz"):
+        for i, ax in enumerate(("index", k) for k in "xyz"):
             positions = np.zeros((3, data[("index", "ones")].shape[0]))
             positions[i, :] = data[ax]
             centers = np.zeros((3, data[("index", "ones")].shape[0]))
@@ -133,7 +133,7 @@ def test_slice_selector():
     ds = fake_random_ds(64, nprocs=51)
     assert all(ds.periodicity)
 
-    for i, d in enumerate("xyz"):
+    for i, d in enumerate(("index", k) for k in "xyz"):
         for coord in np.arange(0.0, 1.0, 0.1):
             data = ds.slice(i, coord)
             data.get_data()
@@ -171,7 +171,7 @@ def test_cutting_plane_selector():
                 (data2[("index", "x")], data2[("index", "y")], data2[("index", "z")])
             )
             for d2 in "xyz":
-                assert_equal(data[d2][cells1], data2[d2][cells2])
+                assert_equal(data[("index", d2)][cells1], data2[("index", d2)][cells2])
 
 
 # def test_region_selector():
