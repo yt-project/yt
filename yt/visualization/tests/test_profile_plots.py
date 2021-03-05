@@ -79,7 +79,7 @@ def test_profile_plot():
         [("gas", "density"), ("gas", "temperature")],
         [("gas", "density"), ("gas", "velocity_x")],
         [("gas", "temperature"), ("gas", "cell_mass")],
-        [("gas", "density"), ("gas", "radius")],
+        [("gas", "density"), ("index", "radius")],
         [("gas", "velocity_magnitude"), ("gas", "cell_mass")],
     ]
     profiles = []
@@ -112,7 +112,7 @@ def test_phase_plot():
     ph_fields = [
         [("gas", "density"), ("gas", "temperature"), ("gas", "cell_mass")],
         [("gas", "density"), ("gas", "velocity_x"), ("gas", "cell_mass")],
-        [("gas", "radius"), ("gas", "temperature"), ("gas", "velocity_magnitude")],
+        [("index", "radius"), ("gas", "temperature"), ("gas", "velocity_magnitude")],
     ]
     for reg in regions:
         for x_field, y_field, z_field in ph_fields:
