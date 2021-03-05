@@ -9,8 +9,8 @@ TEST_PLUGIN_FILE = """
 import numpy as np
 
 def _myfunc(field, data):
-    return np.random.random(data['density'].shape)
-add_field('random', dimensions='dimensionless',
+    return np.random.random(data[('gas', 'density')].shape)
+add_field(('gas', 'random'), dimensions='dimensionless',
           function=_myfunc, units='auto', sampling_type='local')
 constant = 3
 def myfunc():
