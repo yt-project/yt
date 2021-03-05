@@ -499,12 +499,12 @@ class CartesianCoordinateHandler(CoordinateHandler):
                     num_neighbors = getattr(self.ds, "num_neighbors", 32)
                     interpolate_sph_grid_gather(
                         buff_temp,
-                        all_fields[ptype, "particle_position"].to("code_length"),
+                        all_fields["particle_position"].to("code_length"),
                         buff_bounds,
-                        all_fields[ptype, "smoothing_length"].to("code_length"),
-                        all_fields[ptype, "mass"].to("code_mass"),
-                        all_fields[ptype, "density"].to("code_density"),
-                        all_fields[field].in_units(ounits),
+                        all_fields["smoothing_length"].to("code_length"),
+                        all_fields["mass"].to("code_mass"),
+                        all_fields["density"].to("code_density"),
+                        all_fields[field[1]].in_units(ounits),
                         self.ds.index.kdtree,
                         num_neigh=num_neighbors,
                         use_normalization=normalize,
