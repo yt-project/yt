@@ -60,11 +60,11 @@ def test_slice(pf):
             for width in [(1.0, "unitary"), 1.0, ds.quan(0.5, "code_length")]:
                 frb = slc.to_frb(width, 64)
                 shifted_frb = shifted_slc.to_frb(width, 64)
-                for slc_field in ["ones", "density"]:
+                for slc_field in [("index", "ones"), ("gas", "density")]:
                     fi = ds._get_field_info(slc_field)
                     assert_equal(frb[slc_field].info["data_source"], slc.__str__())
                     assert_equal(frb[slc_field].info["axis"], ax)
-                    assert_equal(frb[slc_field].info["field"], slc_field)
+                    assert_equal(frb[slc_field].info["field"], str(slc_field))
                     assert_equal(frb[slc_field].units, Unit(fi.units))
                     assert_equal(frb[slc_field].info["xlim"], frb.bounds[:2])
                     assert_equal(frb[slc_field].info["ylim"], frb.bounds[2:])
