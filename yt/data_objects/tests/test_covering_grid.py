@@ -35,58 +35,58 @@ def test_covering_grid():
             dn = ds.refine_by ** level
             cg = ds.covering_grid(level, [0.0, 0.0, 0.0], dn * ds.domain_dimensions)
             # Test coordinate generation
-            assert_equal(np.unique(cg[f"d{axis_name[0]}"]).size, 1)
-            xmi = cg[axis_name[0]].min()
-            xma = cg[axis_name[0]].max()
-            dx = cg[f"d{axis_name[0]}"].flat[0:1]
+            assert_equal(np.unique(cg[("index", f"d{axis_name[0]}")]).size, 1)
+            xmi = cg[("index", axis_name[0])].min()
+            xma = cg[("index", axis_name[0])].max()
+            dx = cg[("index", f"d{axis_name[0]}")].flat[0:1]
             edges = ds.arr([[0, 1], [0, 1], [0, 1]], "code_length")
             assert_equal(xmi, edges[0, 0] + dx / 2.0)
-            assert_equal(xmi, cg[axis_name[0]][0, 0, 0])
-            assert_equal(xmi, cg[axis_name[0]][0, 1, 1])
+            assert_equal(xmi, cg[("index", axis_name[0])][0, 0, 0])
+            assert_equal(xmi, cg[("index", axis_name[0])][0, 1, 1])
             assert_equal(xma, edges[0, 1] - dx / 2.0)
-            assert_equal(xma, cg[axis_name[0]][-1, 0, 0])
-            assert_equal(xma, cg[axis_name[0]][-1, 1, 1])
-            assert_equal(np.unique(cg[f"d{axis_name[1]}"]).size, 1)
-            ymi = cg[axis_name[1]].min()
-            yma = cg[axis_name[1]].max()
-            dy = cg[f"d{axis_name[1]}"][0]
+            assert_equal(xma, cg[("index", axis_name[0])][-1, 0, 0])
+            assert_equal(xma, cg[("index", axis_name[0])][-1, 1, 1])
+            assert_equal(np.unique(cg[("index", f"d{axis_name[1]}")]).size, 1)
+            ymi = cg[("index", axis_name[1])].min()
+            yma = cg[("index", axis_name[1])].max()
+            dy = cg[("index", f"d{axis_name[1]}")][0]
             assert_equal(ymi, edges[1, 0] + dy / 2.0)
-            assert_equal(ymi, cg[axis_name[1]][0, 0, 0])
-            assert_equal(ymi, cg[axis_name[1]][1, 0, 1])
+            assert_equal(ymi, cg[("index", axis_name[1])][0, 0, 0])
+            assert_equal(ymi, cg[("index", axis_name[1])][1, 0, 1])
             assert_equal(yma, edges[1, 1] - dy / 2.0)
-            assert_equal(yma, cg[axis_name[1]][0, -1, 0])
-            assert_equal(yma, cg[axis_name[1]][1, -1, 1])
-            assert_equal(np.unique(cg[f"d{axis_name[2]}"]).size, 1)
-            zmi = cg[axis_name[2]].min()
-            zma = cg[axis_name[2]].max()
-            dz = cg[f"d{axis_name[2]}"][0]
+            assert_equal(yma, cg[("index", axis_name[1])][0, -1, 0])
+            assert_equal(yma, cg[("index", axis_name[1])][1, -1, 1])
+            assert_equal(np.unique(cg[("index", f"d{axis_name[2]}")]).size, 1)
+            zmi = cg[("index", axis_name[2])].min()
+            zma = cg[("index", axis_name[2])].max()
+            dz = cg[("index", f"d{axis_name[2]}")][0]
             assert_equal(zmi, edges[2, 0] + dz / 2.0)
-            assert_equal(zmi, cg[axis_name[2]][0, 0, 0])
-            assert_equal(zmi, cg[axis_name[2]][1, 1, 0])
+            assert_equal(zmi, cg[("index", axis_name[2])][0, 0, 0])
+            assert_equal(zmi, cg[("index", axis_name[2])][1, 1, 0])
             assert_equal(zma, edges[2, 1] - dz / 2.0)
-            assert_equal(zma, cg[axis_name[2]][0, 0, -1])
-            assert_equal(zma, cg[axis_name[2]][1, 1, -1])
+            assert_equal(zma, cg[("index", axis_name[2])][0, 0, -1])
+            assert_equal(zma, cg[("index", axis_name[2])][1, 1, -1])
             # Now we test other attributes
-            assert_equal(cg["ones"].max(), 1.0)
-            assert_equal(cg["ones"].min(), 1.0)
-            assert_equal(cg["grid_level"], level)
-            assert_equal(cg["cell_volume"].sum(), ds.domain_width.prod())
+            assert_equal(cg[("index", "ones")].max(), 1.0)
+            assert_equal(cg[("index", "ones")].min(), 1.0)
+            assert_equal(cg[("index", "grid_level")], level)
+            assert_equal(cg[("index", "cell_volume")].sum(), ds.domain_width.prod())
             for g in ds.index.grids:
                 di = g.get_global_startindex()
                 dd = g.ActiveDimensions
                 for i in range(dn):
-                    f = cg["density"][
+                    f = cg[("gas", "density")][
                         dn * di[0] + i : dn * (di[0] + dd[0]) + i : dn,
                         dn * di[1] + i : dn * (di[1] + dd[1]) + i : dn,
                         dn * di[2] + i : dn * (di[2] + dd[2]) + i : dn,
                     ]
-                    assert_equal(f, g["density"])
+                    assert_equal(f, g[("gas", "density")])
 
     # More tests for cylindrical geometry
     for fn in [cyl_2d, cyl_3d]:
         ds = load(fn)
         ad = ds.all_data()
-        upper_ad = ad.cut_region(["obj['z'] > 0"])
+        upper_ad = ad.cut_region(["obj['index', 'z'] > 0"])
         sp = ds.sphere((0, 0, 0), 0.5 * ds.domain_width[0], data_source=upper_ad)
         sp.quantities.total_mass()
 
