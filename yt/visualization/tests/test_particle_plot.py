@@ -201,16 +201,21 @@ class TestParticlePhasePlotSave(unittest.TestCase):
             for x_field, y_field, z_fields in PHASE_FIELDS:
                 particle_phases.append(
                     ParticlePhasePlot(
-                        source, x_field, y_field, z_fields, x_bins=16, y_bins=16
+                        source,
+                        ("all", x_field),
+                        ("all", y_field),
+                        ("all", z_fields),
+                        x_bins=16,
+                        y_bins=16,
                     )
                 )
 
                 particle_phases.append(
                     ParticlePhasePlot(
                         source,
-                        x_field,
-                        y_field,
-                        z_fields,
+                        ("all", x_field),
+                        ("all", y_field),
+                        ("all", z_fields),
                         x_bins=16,
                         y_bins=16,
                         deposition="cic",
@@ -219,9 +224,9 @@ class TestParticlePhasePlotSave(unittest.TestCase):
 
                 pp = create_profile(
                     source,
-                    [x_field, y_field],
-                    z_fields,
-                    weight_field="particle_ones",
+                    [("all", x_field), ("all", y_field)],
+                    ("all", z_fields),
+                    weight_field=("all", "particle_ones"),
                     n_bins=[16, 16],
                 )
 
