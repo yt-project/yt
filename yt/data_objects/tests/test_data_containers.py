@@ -64,9 +64,6 @@ class TestDataContainers(unittest.TestCase):
         ds = fake_random_ds(16, particles=10)
         sp = ds.sphere(ds.domain_center, 0.25)
 
-        with assert_raises(YTException):
-            sp.write_out(filename, fields=[("all", "particle_ones")])
-
         sp.write_out(filename, fields=[("gas", "cell_volume")])
 
         with open(filename) as file:
@@ -80,6 +77,14 @@ class TestDataContainers(unittest.TestCase):
 
         assert_equal(keys, file_row_1)
         assert_array_equal(data, file_row_2)
+
+    def test_invalid_write_out(self):
+        filename = "sphere.txt"
+        ds = fake_random_ds(16, particles=10)
+        sp = ds.sphere(ds.domain_center, 0.25)
+
+        with assert_raises(YTException):
+            sp.write_out(filename, fields=[("all", "particle_ones")])
 
     @requires_module("pandas")
     def test_to_dataframe(self):

@@ -476,7 +476,7 @@ class YTDataContainer:
         if len(all_field_shapes) != 1:
             err_msg = ["Got fields with different number of elements:\n"]
             for shape in all_field_shapes:
-                these_fields = [field for field, val in all_field_shapes.items()]
+                these_fields = [field for field, val in field_shapes.items()]
                 err_msg.append(f"\t {these_fields} with shape {shape}")
             raise YTException("\n".join(err_msg))
 
