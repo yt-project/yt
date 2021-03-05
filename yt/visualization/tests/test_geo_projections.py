@@ -120,7 +120,9 @@ class TestGeoProjections(unittest.TestCase):
 
             assert isinstance(self.slc._projection, proj_type)
             assert isinstance(self.slc._transform, cartopy.crs.PlateCarree)
-            assert isinstance(self.slc.plots["Density"].axes.projection, proj_type)
+            assert isinstance(
+                self.slc.plots[("stream", "Density")].axes.projection, proj_type
+            )
 
     @requires_module("cartopy")
     def test_nondefault_transform(self):

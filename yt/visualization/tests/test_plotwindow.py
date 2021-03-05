@@ -555,7 +555,7 @@ def test_set_background_color():
 
 
 def test_set_unit():
-    ds = fake_random_ds(32, fields=("temperature",), units=("K",))
+    ds = fake_random_ds(32, fields=(("gas", "temperature"),), units=("K",))
     slc = SlicePlot(ds, 2, ("gas", "temperature"))
 
     orig_array = slc.frb["gas", "temperature"].copy()
