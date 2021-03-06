@@ -152,6 +152,7 @@ class ASPECTDataset(Dataset):
         self.index_filename = filename
         self.storage_filename = storage_filename
         self.default_field = ("all", "T")
+        self.default_fluid_type = self.default_field[0]
         self.sidecar_info = self._read_sidecar()
 
     def _get_sidecar_file(self):
