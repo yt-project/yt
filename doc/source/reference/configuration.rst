@@ -28,7 +28,7 @@ like:
 .. code-block:: none
 
    [yt]
-   log_level = 1
+   logging.level = "ALL"
    maximum_stored_datasets = 10000
 
 This configuration file would set the logging threshold much lower, enabling
@@ -41,7 +41,7 @@ options from the configuration file, e.g.:
 
    $ yt config -h
    $ yt config list
-   $ yt config set yt log_level 1
+   $ yt config set logging.level ALL
    $ yt config rm yt maximum_stored_datasets
 
 
@@ -60,8 +60,8 @@ options, and display the path to the local configuration file, e.g.:
 
    $ yt config -h
    $ yt config list --local
-   $ yt config set --local yt log_level 1
-   $ yt config rm --local yt maximum_stored_datasets
+   $ yt config set --local logging.level ALL
+   $ yt config rm --local maximum_stored_datasets
    $ yt config print-path --local
 
 If no local configuration file is present, these commands will create an (empty) one
@@ -93,7 +93,7 @@ Here is an example script, where we adjust the logging at startup:
    ds = yt.load("my_data0001")
    ds.print_stats()
 
-This has the same effect as setting ``log_level = 1`` in the configuration
+This has the same effect as setting ``logging.level = "ALL"`` in the configuration
 file. Note that a log level of 1 means that all log messages are printed to
 stdout.  To disable logging, set the log level to 50.
 
@@ -104,12 +104,9 @@ Available Configuration Options
 The following external parameters are available.  A number of parameters are
 used internally.
 
-* ``colored_logs`` (default: ``False``): Should logs be colored?
 * ``default_colormap`` (default: ``arbre``): What colormap should be used by
   default for yt-produced images?
 * ``plugin_filename``  (default ``my_plugins.py``) The name of our plugin file.
-* ``log_level`` (default: ``20``): What is the threshold (0 to 50) for
-  outputting log files?
 * ``test_data_dir`` (default: ``/does/not/exist``): The default path the
   ``load()`` function searches for datasets when it cannot find a dataset in the
   current directory.
@@ -131,14 +128,43 @@ used internally.
   :ref:`object serialization <object-serialization>`
 * ``sketchfab_api_key`` (default: empty): API key for https://sketchfab.com/ for
   uploading AMRSurface objects.
-* ``suppress_stream_logging`` (default: ``False``): If true, execution mode will be
-  quiet.
-* ``stdout_stream_logging`` (default: ``False``): If true, logging is directed
-  to stdout rather than stderr
 * ``skip_dataset_cache`` (default: ``False``): If true, automatic caching of datasets
   is turned off.
 * ``supp_data_dir`` (default: ``/does/not/exist``): The default path certain
   submodules of yt look in for supplemental data files.
+
+Logging-related arguments are gathered in a dedicated section
+* ``logging.use_color`` (default: ``False``). In a future version of yt, the default value will be changed to ``True``.
+* ``logging.stream`` (default: ``stderr``): select the stream where logs should be outputed
+(choices ``stderr``, ``stdout`` or ``none`` to suppress logs completely)
+* ``logging.handler`` (default: ``"legacy"``. This default value will be changed to ``"rich"``
+in a follow up release): select the logging handler. ``rich`` is the prefered option and future
+default value but is considered experimental for now. Use ``legacy`` if you need backwards compatibility
+in your logs' format.
+* ``logging.level`` (default: ``"INFO"``): select the minimal level of logs you want displayed (lower levels might be pretty verbose).
+Choices by increasing level of concern: ``"ALL"``,  ``"DEBUG"``,  ``"INFO"`` (default),  ``"WARNING"``,  ``"ERROR"``,  ``"CRITICAL"``.
+This option is case-insensitive.
+
+The options hereafter are only available with ``logging.handler = "rich"``
+* ``logging.format`` (default: ``"%(message)s"``): customize the log message format. For instance,
+if your application uses a separate logger, you might want to change this to ``"%(name)s: %(message)s``
+so that each log from yt will be signed (``"yt:  "``).
+* ``data_format`` (default: ``"[%m/%d/%Y %H:%M:%S]"``): customize the date format. Note that brackets
+in the default value are purely stylistic and are not required.
+* ``logging.custom_theme`` (default: ``""``): Specify a path to an arbitrary ``rich`` theme file to override the default.
+See `Rich's documentation<https://rich.readthedocs.io/en/stable/style.html#loading-themes>`_.
+* ``logging.width`` (default: ``-1``, meaning "automatic"): set the total width (in columns/characters)
+of logs, including timestamps, level, and source path. A realistic minimal value of ~80 is recommended.
+
+The following options are still usable for backward compatibility as of yt 4.0.0, but they
+will be removed in a following release
+* ``colored_logs`` (default: ``False``): Should logs be colored? (use ``logging.use_color`` instead)
+* ``log_level`` (default: ``20``): What is the threshold (0 to 50) for
+outputting log files? (use ``logging.level`` instead)
+* ``suppress_stream_logging`` (default: ``False``): If true, execution mode will be
+   quiet. (use ``logging.stream`` instead)
+* ``stdout_stream_logging`` (default: ``False``): If true, logging is directed
+   to stdout rather than stderr (use ``logging.stream`` instead)
 
 .. _plugin-file:
 
