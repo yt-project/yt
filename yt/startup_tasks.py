@@ -14,7 +14,6 @@ from yt.funcs import (
     signal_print_traceback,
 )
 from yt.utilities import rpdb
-from yt.utilities.logger import set_log_level
 
 exe_name = os.path.basename(sys.executable)
 # At import time, we determined whether or not we're being run in parallel.
@@ -76,17 +75,6 @@ class SetExceptionHandling(argparse.Action):
             mylog.debug("Enabling remote debugging")
 
 
-class SetConfigOption(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        param, val = values.split("=")
-        mylog.debug("Overriding config: %s = %s", param, val)
-        ytcfg["yt", param] = val
-
-        # TODO: check this
-        if param == "logging.level":  # special case
-            set_log_level(val)
-
-
 class YTParser(argparse.ArgumentParser):
     def error(self, message):
         """error(message: string)
@@ -103,11 +91,6 @@ class YTParser(argparse.ArgumentParser):
 
 
 parser = YTParser(description="yt command line arguments")
-parser.add_argument(
-    "--config",
-    action=SetConfigOption,
-    help="Set configuration option, in the form param=value",
-)
 parser.add_argument(
     "--paste",
     action=SetExceptionHandling,
@@ -147,8 +130,6 @@ unparsed_args = []
 parallel_capable = False
 if not ytcfg.get("yt", "internals", "command_line"):
     opts, unparsed_args = parser.parse_known_args()
-    # THIS IS NOT SUCH A GOOD IDEA:
-    # sys.argv = [a for a in unparsed_args]
     if opts.parallel:
         parallel_capable = turn_on_parallelism()
     subparsers = parser.add_subparsers(
