@@ -331,24 +331,25 @@ Listing current content of the config file:
 .. code-block:: bash
 
    $ yt config list
-   [yt]
-   log_level = 50
+   [logging]
+   level = "CRITICAL"
 
 Obtaining a single config value by name:
 
 .. code-block:: bash
 
-   $ yt config get yt log_level
-   50
+   $ yt config get logging.level
+   "CRITICAL"
 
 Changing a single config value:
 
 .. code-block:: bash
 
-   $ yt config set yt log_level 10
+   $ yt config set logging.level DEBUG
+
 
 Removing a single config entry:
 
 .. code-block:: bash
 
-   $ yt config rm yt log_level
+   $ yt config rm logging.level
