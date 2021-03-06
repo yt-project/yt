@@ -48,6 +48,8 @@ def write_config(config_file):
 
 
 def migrate_config():
+    from yt.utilities.logger import ytLogger as mylog
+
     if not os.path.exists(OLD_CONFIG_FILE):
         print("Old config not found.")
         sys.exit(1)
@@ -93,10 +95,13 @@ def migrate_config():
             cast_value = _cast_value_helper(value)
 
             # Normalize the key (if present in the defaults)
-            if normalize_key(key) in old_keys_to_new and section == "yt":
-                new_key = old_keys_to_new[normalize_key(key)]
-            else:
+            if not (normalize_key(key) in old_keys_to_new and section == "yt"):
+                mylog.warning(
+                    "Found unknown option `%s` while migrating. Conserving it.", key
+                )
                 new_key = key
+            else:
+                new_key = old_keys_to_new[normalize_key(key)]
 
             config_as_dict[section][new_key] = cast_value
 
