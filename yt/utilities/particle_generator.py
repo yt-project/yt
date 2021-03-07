@@ -155,9 +155,8 @@ class ParticleGenerator:
         ... }
         >>> particles.map_grid_fields_to_particles(field_map)
         """
-        pbar = get_pbar("Mapping fields to particles", self.num_grids)
+        pbar = get_pbar(title="Mapping fields to particles", maxval=self.num_grids)
         for i, grid in enumerate(self.ds.index.grids):
-            pbar.update(i + 1)
             if self.NumberOfParticles[i] > 0:
                 start = self.ParticleGridIndices[i]
                 end = self.ParticleGridIndices[i + 1]
@@ -179,6 +178,7 @@ class ParticleGenerator:
                         dims,
                         grid.dds[0],
                     )
+            pbar.update(advance=1)
         pbar.finish()
 
     def apply_to_stream(self, overwrite=False, **kwargs):
@@ -403,8 +403,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
         all_y = []
         all_z = []
 
-        pbar = get_pbar("Generating Particles", num_particles)
-        tot_num_accepted = int(0)
+        pbar = get_pbar(title="Generating Particles", maxval=num_particles)
 
         while num_particles_left > 0:
 
@@ -438,8 +437,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
             all_z.append(zpos)
 
             num_particles_left -= num_accepted
-            tot_num_accepted += num_accepted
-            pbar.update(tot_num_accepted)
+            pbar.update(advance=num_accepted)
 
         pbar.finish()
 

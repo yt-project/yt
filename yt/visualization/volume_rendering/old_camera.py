@@ -704,8 +704,6 @@ class Camera(ParallelAnalysisInterface):
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
-        pbar = get_pbar("Ray casting", ncells)
-        total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
@@ -715,10 +713,10 @@ class Camera(ParallelAnalysisInterface):
         view_pos = (
             self.front_center + self.orienter.unit_vectors[2] * 1.0e6 * self.width[2]
         )
+        pbar = get_pbar(title="Ray casting", maxval=ncells)
         for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
-            total_cells += brick.source_mask.size
-            pbar.update(total_cells)
+            pbar.update(advance=brick.source_mask.size)
 
         pbar.finish()
         image = sampler.aimage
@@ -1367,20 +1365,18 @@ class PerspectiveCamera(Camera):
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
-        pbar = get_pbar("Ray casting", ncells)
-        total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
                     if np.any(np.isnan(data)):
                         raise RuntimeError
 
+        pbar = get_pbar(title="Ray casting", maxval=ncells)
         for brick in self.volume.traverse(self.front_center):
             sampler(brick, num_threads=num_threads)
-            total_cells += brick.source_mask.size
-            pbar.update(total_cells)
-
+            pbar.update(advance=brick.source_mask.size)
         pbar.finish()
+
         image = self.finalize_image(sampler.aimage)
         return image
 
@@ -1533,10 +1529,6 @@ class HEALpixCamera(Camera):
         return args, {}
 
     def _render(self, double_check, num_threads, image, sampler):
-        pbar = get_pbar(
-            "Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum()
-        )
-        total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
@@ -1544,14 +1536,16 @@ class HEALpixCamera(Camera):
                         raise RuntimeError
 
         view_pos = self.center
+        pbar = get_pbar(
+            title="Ray casting",
+            maxval=(self.volume.brick_dimensions + 1).prod(axis=-1).sum(),
+        )
         for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
-            total_cells += np.prod(brick.my_data[0].shape)
-            pbar.update(total_cells)
-
+            pbar.update(advance=np.prod(brick.my_data[0].shape))
         pbar.finish()
-        image = sampler.aimage
 
+        image = sampler.aimage
         self.finalize_image(image)
 
         return image
@@ -1756,10 +1750,6 @@ class FisheyeCamera(Camera):
         image.shape = self.resolution, self.resolution, 4
 
     def _render(self, double_check, num_threads, image, sampler):
-        pbar = get_pbar(
-            "Ray casting", (self.volume.brick_dimensions + 1).prod(axis=-1).sum()
-        )
-        total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
@@ -1767,14 +1757,16 @@ class FisheyeCamera(Camera):
                         raise RuntimeError
 
         view_pos = self.center
+        pbar = get_pbar(
+            title="Ray casting",
+            maxval=(self.volume.brick_dimensions + 1).prod(axis=-1).sum(),
+        )
         for brick in self.volume.traverse(view_pos):
             sampler(brick, num_threads=num_threads)
-            total_cells += np.prod(brick.my_data[0].shape)
-            pbar.update(total_cells)
-
+            pbar.update(advance=np.prod(brick.my_data[0].shape))
         pbar.finish()
-        image = sampler.aimage
 
+        image = sampler.aimage
         self.finalize_image(image)
 
         return image
@@ -2298,20 +2290,18 @@ class SphericalCamera(Camera):
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
-        pbar = get_pbar("Ray casting", ncells)
-        total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
                     if np.any(np.isnan(data)):
                         raise RuntimeError
 
+        pbar = get_pbar(title="Ray casting", maxval=ncells)
         for brick in self.volume.traverse(self.front_center):
             sampler(brick, num_threads=num_threads)
-            total_cells += brick.source_mask.size
-            pbar.update(total_cells)
-
+            pbar.update(advance=brick.source_mask.size)
         pbar.finish()
+
         image = self.finalize_image(sampler.aimage)
         return image
 
@@ -2427,19 +2417,16 @@ class StereoSphericalCamera(Camera):
 
     def _render(self, double_check, num_threads, image, sampler, msg):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
-        pbar = get_pbar("Ray casting " + msg, ncells)
-        total_cells = 0
         if double_check:
             for brick in self.volume.bricks:
                 for data in brick.my_data:
                     if np.any(np.isnan(data)):
                         raise RuntimeError
 
+        pbar = get_pbar(title=f"Ray casting {msg}", maxval=ncells)
         for brick in self.volume.traverse(self.front_center):
             sampler(brick, num_threads=num_threads)
-            total_cells += brick.source_mask.size
-            pbar.update(total_cells)
-
+            pbar.update(advance=brick.source_mask.size)
         pbar.finish()
 
         image = sampler.aimage.copy()

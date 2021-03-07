@@ -96,7 +96,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         num_meshes = len(bc)
 
         self.meshes = []
-        pbar = get_pbar("Constructing meshes", num_meshes)
+        pbar = get_pbar(title="Constructing meshes", maxval=num_meshes)
         for i in range(num_meshes):
             ob = bc[i][0]
             x = x1f[ob, :]
@@ -130,7 +130,7 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
                 np.array([nxm - 1, nym - 1, nzm - 1]),
             )
             self.meshes.append(mesh)
-            pbar.update(i + 1)
+            pbar.update(advance=1)
         pbar.finish()
         mylog.debug("Done setting up meshes.")
 

@@ -20,13 +20,23 @@ import urllib.request
 import warnings
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
-from typing import Any, Callable, Type
+from typing import Any, Callable, Type, Optional, Sequence, Union
 
 import matplotlib
 import numpy as np
 from more_itertools import always_iterable, collapse, first
 from packaging.version import parse as parse_version
-from tqdm import tqdm
+from rich.progress import (
+    BarColumn,
+    Progress,
+    ProgressColumn,
+    SpinnerColumn,
+    Task,
+    Text,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
@@ -307,22 +317,72 @@ def insert_ipython(num_up=1):
 #
 
 
-class TqdmProgressBar:
-    # This is a drop in replacement for pbar
-    # called tqdm
-    def __init__(self, title, maxval):
-        self._pbar = tqdm(leave=True, total=maxval, desc=title)
-        self.i = 0
+class CompletionColumn(ProgressColumn):
+    """Renders the current number of iterations completed."""
 
-    def update(self, i=None):
-        if i is None:
-            i = self.i + 1
-        n = i - self.i
-        self.i = i
-        self._pbar.update(n)
+    def render(self, task: Task) -> Text:
+        return Text(f"{task.completed} it", style="progress.percentage")
+
+
+class CompletionSpeedColumn(ProgressColumn):
+    """Renders human readable completion speed."""
+
+    # This is based off rich.progress.TransferSpeedColumn
+
+    def render(self, task: Task) -> Text:
+        """Show data transfer speed."""
+        speed = task.finished_speed or task.speed
+        if speed is None:
+            return Text("?", style="progress.data.speed")
+        data_speed = int(speed)
+        return Text(f"{data_speed} it/s", style="progress.data.speed")
+
+
+class RichProgressBar:
+    """A thin wrapper around rich.progress.Progress"""
+
+    def __init__(
+        self,
+        title: str,
+        maxval: Optional[int] = None,
+        columns: Optional[Sequence[ProgressColumn]] = None,
+    ):
+        if columns is None:
+            columns = [
+                SpinnerColumn(),
+                TextColumn("[progress.description]{task.description}"),
+            ]
+            if maxval is None:
+                columns += [
+                    CompletionColumn(),
+                    TextColumn("[progress.data.speed]@"),
+                    CompletionSpeedColumn(),
+                ]
+                # this is a workaround. As of rich 9.13.0, some of the columns
+                # we're using here require a non-None value in `task.total` to render
+                maxval = np.inf
+            else:
+                columns += [
+                    BarColumn(),
+                    TextColumn("[progress.percentage]{task.percentage:>3.0f}%"),
+                    TimeRemainingColumn(),
+                ]
+            columns += [TimeElapsedColumn()]
+        self._pbar = Progress(*columns)
+
+        self._pbar.start()
+        self.task = self._pbar.add_task(title, total=maxval)
+
+    def update(
+        self, *, completed: Optional[int] = None, advance: Optional[int] = None
+    ) -> None:
+        # We only expose the relevant subset of keyword arguments
+        # supported by `rich.progress.Progress.update`
+        # note that they should NOT be combined (use either `completed` or `advance` but not both)
+        self._pbar.update(self.task, completed=completed, advance=advance)
 
     def finish(self):
-        self._pbar.close()
+        self._pbar.stop()
 
 
 class DummyProgressBar:
@@ -338,22 +398,25 @@ class DummyProgressBar:
         return
 
 
-def get_pbar(title, maxval):
+def get_pbar(
+    *,
+    title: str,
+    maxval: Optional[int] = None,
+    columns: Optional[Sequence[ProgressColumn]] = None,
+) -> Union[RichProgressBar, DummyProgressBar]:
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
     """
-    maxval = max(maxval, 1)
     from yt.config import ytcfg
 
     if (
         ytcfg.get("yt", "suppress_stream_logging")
         or ytcfg.get("yt", "internals", "within_testing")
-        or maxval == 1
         or not is_root()
     ):
         return DummyProgressBar()
-    return TqdmProgressBar(title, maxval)
+    return RichProgressBar(title, maxval, columns)
 
 
 def only_on_root(func, *args, **kwargs):
@@ -611,16 +674,14 @@ def fancy_download_file(url, filename, requests=None):
             fh.write(response.content)
         else:
             blocksize = 4 * 1024 ** 2
-            iterations = int(float(total_length) / float(blocksize))
 
             pbar = get_pbar(
-                "Downloading %s to %s " % os.path.split(filename)[::-1], iterations
+                title="Downloading %s to %s " % os.path.split(filename)[::-1],
+                maxval=int(float(total_length) / float(blocksize)),
             )
-            iteration = 0
             for chunk in response.iter_content(chunk_size=blocksize):
                 fh.write(chunk)
-                iteration += 1
-                pbar.update(iteration)
+                pbar.update(advance=1)
             pbar.finish()
     return filename
 
@@ -979,18 +1040,18 @@ def get_hash(infile, algorithm="md5", BLOCKSIZE=65536):
         ) from e
 
     filesize = os.path.getsize(infile)
-    iterations = int(float(filesize) / float(BLOCKSIZE))
 
-    pbar = get_pbar(f"Generating {algorithm} hash", iterations)
+    pbar = get_pbar(
+        title=f"Generating {algorithm} hash",
+        maxval=int(float(filesize) / float(BLOCKSIZE)),
+    )
 
-    iter = 0
     with open(infile, "rb") as f:
         buf = f.read(BLOCKSIZE)
         while len(buf) > 0:
             hasher.update(buf)
             buf = f.read(BLOCKSIZE)
-            iter += 1
-            pbar.update(iter)
+            pbar.update(advance=1)
         pbar.finish()
 
     return hasher.hexdigest()

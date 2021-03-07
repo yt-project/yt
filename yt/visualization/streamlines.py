@@ -142,7 +142,7 @@ class Streamlines(ParallelAnalysisInterface):
         my_rank = self.comm.rank
         self.streamlines[my_rank::nprocs, 0, :] = self.start_positions[my_rank::nprocs]
 
-        pbar = get_pbar("Streamlining", self.N)
+        pbar = get_pbar(title="Streamlining", maxval=self.N)
         for i, stream in enumerate(self.streamlines[my_rank::nprocs]):
             thismag = None
             if self.get_magnitude:
@@ -153,7 +153,7 @@ class Streamlines(ParallelAnalysisInterface):
                 step = self._integrate_through_brick(
                     this_node, stream, step, mag=thismag
                 )
-            pbar.update(i + 1)
+            pbar.update(advance=1)
         pbar.finish()
 
         self._finalize_parallel(None)

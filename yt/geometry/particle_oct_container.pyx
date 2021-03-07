@@ -1079,14 +1079,14 @@ cdef class ParticleBitmap:
                     "Number of bitmasks ({}) conflicts with number of files "
                     "({})".format(nfiles, self.nfiles))
         # Read bitmap for each file
-        pb = get_pbar("Loading particle index", nfiles)
+        pbar = get_pbar(title="Loading particle index", maxval=nfiles)
         for ifile in range(nfiles):
-            pb.update(ifile+1)
             size_serial, = struct.unpack('Q', f.read(struct.calcsize('Q')))
             irflag = self.bitmasks._loads(ifile, f.read(size_serial))
             if irflag == 0:
                 read_flag = 0
-        pb.finish()
+            pbar.update(advance=1)
+        pbar.finish()
         # Collisions
         size_serial, = struct.unpack('Q',f.read(struct.calcsize('Q')))
         irflag = self.collisions._loads(f.read(size_serial))

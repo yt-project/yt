@@ -94,10 +94,10 @@ class ParticleTrajectories:
         # Note: we explicitly pass dynamic=False to prevent any change in piter from
         # breaking the assumption that the same processors load the same datasets
         my_storage = {}
-        pbar = get_pbar("Constructing trajectory information", len(self.data_series))
-        for i, (sto, ds) in enumerate(
-            self.data_series.piter(storage=my_storage, dynamic=False)
-        ):
+        pbar = get_pbar(
+            title="Constructing trajectory information", maxval=len(self.data_series)
+        )
+        for sto, ds in self.data_series.piter(storage=my_storage, dynamic=False):
             dd = ds.all_data()
             newtags = dd[fds["particle_index"]].d.astype("int64")
             mask = np.in1d(newtags, indices, assume_unique=True)
@@ -113,7 +113,7 @@ class ParticleTrajectories:
 
             sto.result_id = ds.parameter_filename
             sto.result = (ds.current_time, array_indices, pfields)
-            pbar.update(i + 1)
+            pbar.update(advance=1)
         pbar.finish()
 
         if self.suppress_logging:
@@ -242,11 +242,10 @@ class ParticleTrajectories:
         grid_fields = [
             field for field in missing_fields if field not in self.particle_fields
         ]
-        step = int(0)
         fields_str = ", ".join(str(f) for f in missing_fields)
         pbar = get_pbar(
-            f"Generating [{fields_str}] fields in trajectories",
-            self.num_steps,
+            title=f"Generating [{fields_str}] fields in trajectories",
+            maxval=self.num_steps,
         )
 
         # Note: we explicitly pass dynamic=False to prevent any change in piter from
@@ -269,9 +268,9 @@ class ParticleTrajectories:
                 # This is hard... must loop over grids
                 for field in grid_fields:
                     pfield[field] = np.zeros(self.num_indices)
-                x = self["particle_position_x"][:, step].d
-                y = self["particle_position_y"][:, step].d
-                z = self["particle_position_z"][:, step].d
+                x = self["particle_position_x"][:, i].d
+                y = self["particle_position_y"][:, i].d
+                z = self["particle_position_z"][:, i].d
                 particle_grids, particle_grid_inds = ds.index._find_points(x, y, z)
 
                 # This will fail for non-grid index objects
@@ -291,8 +290,7 @@ class ParticleTrajectories:
                         )
             sto.result_id = ds.parameter_filename
             sto.result = (self.array_indices[i], pfield)
-            pbar.update(step)
-            step += 1
+            pbar.update(advance=1)
         pbar.finish()
 
         output_field = np.empty((self.num_indices, self.num_steps))

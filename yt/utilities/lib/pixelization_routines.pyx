@@ -1267,7 +1267,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
                     if prog % 10000 == 0:
                         with gil:
                             PyErr_CheckSignals()
-                            pbar.update(prog)
+                            pbar.update(completed=prog)
 
                     queue.size = 0
 
@@ -1303,6 +1303,7 @@ def interpolate_sph_grid_gather(np.float64_t[:, :, :] buff,
                         if use_normalization:
                             buff_den[i, j, k] += prefactor_j * kernel_func(q_ij)
 
+    pbar.finish()
     if use_normalization:
         normalization_3d_utility(buff, buff_den)
 
@@ -1505,7 +1506,7 @@ def pixelize_sph_kernel_arbitrary_grid(np.float64_t[:, :, :] buff,
             if j % 50000 == 0:
                 with gil:
                     if(pbar is not None):
-                        pbar.update(50000)
+                        pbar.update(advance=50000)
                     PyErr_CheckSignals()
 
             xiter[1] = yiter[1] = ziter[1] = 999

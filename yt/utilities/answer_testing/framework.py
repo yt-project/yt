@@ -242,15 +242,15 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         pyrax.set_credential_file(credentials)
         cf = pyrax.cloudfiles
         c = cf.get_container("yt-answer-tests")
-        pb = get_pbar("Storing results ", len(result_storage))
-        for i, ds_name in enumerate(result_storage):
-            pb.update(i + 1)
+        pb = get_pbar(title="Storing results ", maxval=len(result_storage))
+        for ds_name in result_storage:
             rs = pickle.dumps(result_storage[ds_name])
             object_name = f"{self.answer_name}_{ds_name}"
             if object_name in c.get_object_names():
                 obj = c.get_object(object_name)
                 c.delete_object(obj)
             c.store_object(object_name, rs)
+            pb.update(advance=1)
         pb.finish()
 
 

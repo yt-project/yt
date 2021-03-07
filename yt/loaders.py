@@ -1352,6 +1352,12 @@ def load_sample(
     - Corresponding sample data live at https://yt-project.org/data
 
     """
+    if pbar:
+        try:
+            import tqdm  # noqa F401
+        except ImportError:
+            mylog.warning("`pbar=True` requires tqdm to be installed. Turning it off.")
+            pbar = False
 
     if fn is None:
         print(

@@ -51,14 +51,14 @@ def identify_contours(data_source, field, min_val, max_val, cached_fields=None):
     # tree.add_joins(joins)
     joins = tree.export()
     contour_ids = defaultdict(list)
-    pbar = get_pbar("Updating joins ... ", len(contours))
+    pbar = get_pbar(title="Updating joins ... ", maxval=len(contours))
     final_joins = np.unique(joins[:, 1])
-    for i, nid in enumerate(sorted(contours)):
+    for nid in sorted(contours):
         level, node_ind, pg, sl = contours[nid]
         ff = pg.my_data[0].view("int64")
         update_joins(joins, ff, final_joins)
         contour_ids[pg.parent_grid_id].append((sl, ff))
-        pbar.update(i + 1)
+        pbar.update(advance=1)
     pbar.finish()
     rv = dict()
     rv.update(contour_ids)

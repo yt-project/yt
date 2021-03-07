@@ -8,8 +8,6 @@ from re import finditer
 from tempfile import NamedTemporaryFile, TemporaryFile
 
 import numpy as np
-from more_itertools import always_iterable
-from tqdm import tqdm
 
 from yt.config import ytcfg
 from yt.data_objects.field_data import YTFieldData
@@ -20,7 +18,14 @@ from yt.data_objects.selection_objects.data_selection_objects import (
 )
 from yt.fields.field_exceptions import NeedsGridType, NeedsOriginalGrid
 from yt.frontends.sph.data_structures import ParticleDataset
-from yt.funcs import get_memory_usage, is_sequence, iter_fields, mylog, only_on_root
+from yt.funcs import (
+    get_memory_usage,
+    get_pbar,
+    is_sequence,
+    iter_fields,
+    mylog,
+    only_on_root,
+)
 from yt.geometry import particle_deposit as particle_deposit
 from yt.geometry.coordinates.cartesian_coordinates import all_data
 from yt.loaders import load_uniform_grid
@@ -903,7 +908,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 if normalize:
                     buff_den = np.zeros(size, dtype="float64")
 
-                pbar = tqdm(desc=f"Interpolating SPH field {field}")
+                pbar = get_pbar(title=f"Interpolating SPH field {field}")
                 for chunk in self._data_source.chunks([field], "io"):
                     px = chunk[(ptype, "particle_position_x")].in_base("code").d
                     py = chunk[(ptype, "particle_position_y")].in_base("code").d
@@ -947,7 +952,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
                     normalization_3d_utility(buff, buff_den)
 
                 self[field] = self.ds.arr(buff, fi.units)
-                pbar.close()
+                pbar.finish()
 
         if smoothing_style == "gather":
             num_neighbors = getattr(self.ds, "num_neighbors", 32)
@@ -2885,7 +2890,8 @@ class YTOctree(YTSelectionContainer3D):
             buff_den = np.empty(0)
 
         ptype = fields[0]
-        pbar = tqdm(desc=f"Interpolating (scatter) SPH field {fields[0]}")
+
+        pbar = get_pbar(title=f"Interpolating (scatter) SPH field {fields[0]}")
         for chunk in self._data_source.chunks([fields], "io"):
             px = chunk[(ptype, "particle_position_x")].to("code_length").d
             py = chunk[(ptype, "particle_position_y")].to("code_length").d
@@ -2909,8 +2915,8 @@ class YTOctree(YTSelectionContainer3D):
                     use_normalization=normalize,
                 )
 
-            pbar.update(1)
-        pbar.close()
+            pbar.update(advance=1)
+        pbar.finish()
 
         if normalize:
             normalization_1d_utility(buff, buff_den)

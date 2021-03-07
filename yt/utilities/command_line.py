@@ -11,7 +11,15 @@ import urllib.request
 
 import numpy as np
 from more_itertools import always_iterable
-from tqdm import tqdm
+from rich.progress import (
+    BarColumn,
+    DownloadColumn,
+    SpinnerColumn,
+    TextColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+    TransferSpeedColumn,
+)
 
 from yt.config import ytcfg
 from yt.funcs import (
@@ -20,6 +28,7 @@ from yt.funcs import (
     ensure_dir,
     ensure_dir_exists,
     get_git_version,
+    get_pbar,
     mylog,
     update_git,
 )
@@ -144,12 +153,22 @@ class FileStreamer:
         self.f = f
 
     def __iter__(self):
-        with tqdm(
-            total=self.final_size, desc="Uploading file", unit="B", unit_scale=True
-        ) as pbar:
-            while self.f.tell() < self.final_size:
-                yield self.f.read(self.chunksize)
-                pbar.update(self.chunksize)
+        columns = (
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            DownloadColumn(),
+            TextColumn("[progress.data.speed]@"),
+            TransferSpeedColumn(),
+            TimeRemainingColumn(),
+            TimeElapsedColumn(),
+        )
+
+        pbar = get_pbar(title="Uploading file", maxval=self.final_size, columns=columns)
+        while self.f.tell() < self.final_size:
+            yield self.f.read(self.chunksize)
+            pbar.update(advance=self.chunksize)
+        pbar.finish()
 
 
 _subparsers = {None: subparsers}

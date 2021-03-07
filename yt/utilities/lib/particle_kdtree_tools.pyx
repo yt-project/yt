@@ -86,24 +86,24 @@ def generate_smoothing_length(np.float64_t[:, ::1] tree_positions,
     cdef axes_range axes
     set_axes_range(&axes, -1)
 
-    pbar = get_pbar("Generate smoothing length", n_particles)
+    pbar = get_pbar(title="Generate smoothing length", maxval=n_particles)
     with nogil:
         for i in range(n_particles):
             # Reset queue to "empty" state, doing it this way avoids
             # needing to reallocate memory
             queue.size = 0
 
-            if i % CHUNKSIZE == 0:
-                with gil:
-                    pbar.update(i-1)
-                    PyErr_CheckSignals()
-
             pos = &(tree_positions[i, 0])
             find_neighbors(pos, tree_positions, queue, c_tree, i, &axes)
 
             smoothing_length[i] = sqrt(queue.heap_ptr[0])
 
-    pbar.update(n_particles-1)
+            if i % CHUNKSIZE == 0:
+                with gil:
+                    pbar.update(advance=CHUNKSIZE)
+                    PyErr_CheckSignals()
+
+    pbar.update(completed=n_particles)
     pbar.finish()
     return np.asarray(smoothing_length)
 
@@ -150,17 +150,13 @@ def estimate_density(np.float64_t[:, ::1] tree_positions, np.float64_t[:] mass,
     cdef axes_range axes
     set_axes_range(&axes, -1)
 
-    pbar = get_pbar("Estimating density", n_particles)
+    pbar = get_pbar(title="Estimating density", maxval=n_particles)
     with nogil:
         for i in range(n_particles):
             # Reset list to "empty" state, doing it this way avoids
             # needing to reallocate memory
             nblist.size = 0
 
-            if i % CHUNKSIZE == 0:
-                with gil:
-                    pbar.update(i - 1)
-                    PyErr_CheckSignals()
 
             pos = &(tree_positions[i, 0])
             h_i2 = smoothing_length[i] ** 2
@@ -174,7 +170,12 @@ def estimate_density(np.float64_t[:, ::1] tree_positions, np.float64_t[:] mass,
                 q_ij = sqrt(nblist.data[k] * ih_i2)
                 density[i] += mass[j] * kernel(q_ij)
 
-    pbar.update(n_particles - 1)
+            if i % CHUNKSIZE == 0:
+                with gil:
+                    pbar.update(advance=CHUNKSIZE)
+                    PyErr_CheckSignals()
+
+    pbar.update(completed=n_particles)
     pbar.finish()
     return np.asarray(density)
 

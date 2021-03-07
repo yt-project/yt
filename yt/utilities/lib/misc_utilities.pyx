@@ -981,8 +981,10 @@ def gravitational_binding_energy(
     cdef np.float64_t this_potential
 
     n_q = mass.size
-    pbar = get_pbar("Calculating potential for %d cells with %d thread(s)" % (n_q,num_threads),
-        n_q)
+    pbar = get_pbar(
+            title="Calculating potential for %d cells with %d thread(s)" % (n_q,num_threads),
+            maxval=n_q,
+           )
 
     # using reversed iterator in order to make use of guided scheduling
     # (inner loop is getting more and more expensive)
@@ -1010,7 +1012,7 @@ def gravitational_binding_energy(
         with gil:
             PyErr_CheckSignals()
             # this call is not thread safe, but it gives a reasonable approximation
-            pbar.update()
+            pbar.update(advance=1)
 
     pbar.finish()
     return total_potential

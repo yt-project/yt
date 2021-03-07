@@ -200,10 +200,9 @@ class ParticleIndex(Index):
             rflag = self.regions.check_bitmasks()
 
     def _initialize_coarse_index(self):
-        pb = get_pbar("Initializing coarse index ", len(self.data_files))
+        pbar = get_pbar(title="Initializing coarse index ", maxval=len(self.data_files))
         max_hsml = 0.0
-        for i, data_file in enumerate(self.data_files):
-            pb.update(i + 1)
+        for data_file in self.data_files:
             for ptype, pos in self.io._yield_coordinates(data_file):
                 ds = self.ds
                 if hasattr(ds, "_sph_ptypes") and ptype == ds._sph_ptypes[0]:
@@ -216,7 +215,8 @@ class ParticleIndex(Index):
                     hsml = None
                 self.regions._coarse_index_data_file(pos, hsml, data_file.file_id)
             self.regions._set_coarse_index_data_file(data_file.file_id)
-        pb.finish()
+            pbar.update(advance=1)
+        pbar.finish()
         self.regions.find_collisions_coarse()
         if max_hsml > 0.0 and len(self.data_files) > 1:
             # By passing this in, we only allow index_order2 to be increased by
@@ -238,7 +238,6 @@ class ParticleIndex(Index):
         max_npart = max(sum(d.total_particles.values()) for d in self.data_files) * 28
         sub_mi1 = np.zeros(max_npart, "uint64")
         sub_mi2 = np.zeros(max_npart, "uint64")
-        pb = get_pbar("Initializing refined index", len(self.data_files))
         mask_threshold = getattr(self, "_index_mask_threshold", 2)
         count_threshold = getattr(self, "_index_count_threshold", 256)
         mylog.debug(
@@ -255,9 +254,9 @@ class ParticleIndex(Index):
             total_coarse_refined,
             100 * total_coarse_refined / mask.size,
         )
-        for i, data_file in enumerate(self.data_files):
+        pbar = get_pbar(title="Initializing refined index", maxval=len(self.data_files))
+        for data_file in self.data_files:
             coll = None
-            pb.update(i + 1)
             nsub_mi = 0
             for ptype, pos in self.io._yield_coordinates(data_file):
                 if pos.size == 0:
@@ -282,7 +281,8 @@ class ParticleIndex(Index):
                 )
                 total_refined += nsub_mi
             self.regions.bitmasks.append(data_file.file_id, coll)
-        pb.finish()
+            pbar.update(advance=1)
+        pbar.finish()
         self.regions.find_collisions_refined()
 
     def _detect_output_fields(self):

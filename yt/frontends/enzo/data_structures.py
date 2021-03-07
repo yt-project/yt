@@ -229,7 +229,7 @@ class EnzoHierarchy(GridIndex):
         self.grids = [self.grid(1, self)]
         self.grids[0].Level = 0
         si, ei, LE, RE, fn, npart = [], [], [], [], [], []
-        pbar = get_pbar("Parsing Hierarchy ", self.num_grids)
+        pbar = get_pbar(title="Parsing Hierarchy ", maxval=self.num_grids)
         version = self.dataset.parameters.get("VersionNumber", None)
         params = self.dataset.parameters
         if version is None and "Internal" in params:
@@ -251,8 +251,7 @@ class EnzoHierarchy(GridIndex):
             else:
                 nap = None
                 active_particles = False
-        for grid_id in range(self.num_grids):
-            pbar.update(grid_id + 1)
+        for _i in range(self.num_grids):
             # We will unroll this list
             si.append(_next_token_line("GridStartIndex", f))
             ei.append(_next_token_line("GridEndIndex", f))
@@ -281,6 +280,7 @@ class EnzoHierarchy(GridIndex):
                 if line.startswith("Pointer:"):
                     vv = patt.findall(line)[0]
                     self.__pointer_handler(vv)
+            pbar.update(advance=1)
         pbar.finish()
         self._fill_arrays(ei, si, LE, RE, npart, nap)
         temp_grids = np.empty(self.num_grids, dtype="object")
