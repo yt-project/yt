@@ -20,7 +20,6 @@ import urllib.request
 import warnings
 from distutils.version import LooseVersion
 from functools import lru_cache, wraps
-from math import ceil, floor
 from numbers import Number as numeric_type
 
 import matplotlib
@@ -350,32 +349,6 @@ class ParallelProgressBar:
 
     def finish(self):
         mylog.info("Finishing '%s'", self.title)
-
-
-class GUIProgressBar:
-    def __init__(self, title, maxval):
-        import wx
-
-        self.maxval = maxval
-        self.last = 0
-        self._pbar = wx.ProgressDialog(
-            "Working...",
-            title,
-            maximum=maxval,
-            style=wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_APP_MODAL,
-        )
-
-    def update(self, val):
-        # An update is only meaningful if it's on the order of 1/100 or greater
-        if (
-            ceil(100 * self.last / self.maxval) + 1 == floor(100 * val / self.maxval)
-            or val == self.maxval
-        ):
-            self._pbar.Update(val)
-            self.last = val
-
-    def finish(self):
-        self._pbar.Destroy()
 
 
 def get_pbar(title, maxval, parallel=False):
