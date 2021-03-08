@@ -155,6 +155,7 @@ class EnzoPHierarchy(GridIndex):
     def _parse_index(self):
         self.grids = np.empty(self.num_grids, dtype="object")
 
+        c = 1
         pbar = get_pbar("Parsing Hierarchy", self.num_grids)
         f = open(self.ds.parameter_filename)
         fblock_size = 32768
@@ -234,7 +235,8 @@ class EnzoPHierarchy(GridIndex):
                     self.grids[parent_id].add_child(my_grid)
 
                 bnl = nnl + 1
-                pbar.update(1)
+                pbar.update(c)
+                c += 1
             lstr = buff[bnl:]
             offset += fblock
 

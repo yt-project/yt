@@ -155,7 +155,7 @@ class ParticleGenerator:
         """
         pbar = get_pbar("Mapping fields to particles", self.num_grids)
         for i, grid in enumerate(self.ds.index.grids):
-            pbar.update(i)
+            pbar.update(i+1)
             if self.NumberOfParticles[i] > 0:
                 start = self.ParticleGridIndices[i]
                 end = self.ParticleGridIndices[i + 1]
