@@ -4,9 +4,8 @@ import numpy as np
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
-from yt.funcs import mylog, only_on_root
 from yt.fields.field_exceptions import NeedsConfiguration
-from yt.funcs import issue_deprecation_warning, mylog, only_on_root
+from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
 from yt.units.unit_object import Unit
