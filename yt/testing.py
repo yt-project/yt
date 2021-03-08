@@ -373,7 +373,7 @@ def fake_hexahedral_ds(fields=None):
     dist = np.sum(_coordinates ** 2, 1)
     node_data[("connect1", "test")] = dist[_connectivity - 1]
 
-    for field in fields:
+    for field in always_iterable(fields):
         node_data[("connect1", field)] = dist[_connectivity - 1]
 
     # each element gets a random number
