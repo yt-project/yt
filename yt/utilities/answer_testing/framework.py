@@ -245,7 +245,7 @@ class AnswerTestCloudStorage(AnswerTestStorage):
         c = cf.get_container("yt-answer-tests")
         pb = get_pbar("Storing results ", len(result_storage))
         for i, ds_name in enumerate(result_storage):
-            pb.update(i+1)
+            pb.update(i + 1)
             rs = pickle.dumps(result_storage[ds_name])
             object_name = f"{self.answer_name}_{ds_name}"
             if object_name in c.get_object_names():
