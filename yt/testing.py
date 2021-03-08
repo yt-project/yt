@@ -10,6 +10,7 @@ import unittest
 
 import matplotlib
 import numpy as np
+from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
@@ -360,7 +361,7 @@ def fake_tetrahedral_ds():
     return ds
 
 
-def fake_hexahedral_ds():
+def fake_hexahedral_ds(fields=None):
     from yt.frontends.stream.sample_data.hexahedral_mesh import (
         _connectivity,
         _coordinates,
@@ -372,6 +373,9 @@ def fake_hexahedral_ds():
     node_data = {}
     dist = np.sum(_coordinates ** 2, 1)
     node_data[("connect1", "test")] = dist[_connectivity - 1]
+
+    for field in always_iterable(fields):
+        node_data[("connect1", field)] = dist[_connectivity - 1]
 
     # each element gets a random number
     elem_data = {}
