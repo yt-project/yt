@@ -360,7 +360,7 @@ def fake_tetrahedral_ds():
     return ds
 
 
-def fake_hexahedral_ds(fields=()):
+def fake_hexahedral_ds(fields=None):
     from yt.frontends.stream.sample_data.hexahedral_mesh import (
         _connectivity,
         _coordinates,
