@@ -10,6 +10,7 @@ import unittest
 
 import matplotlib
 import numpy as np
+from more_itertools import always_iterable
 from numpy.random import RandomState
 from unyt.exceptions import UnitOperationError
 
