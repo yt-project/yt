@@ -211,21 +211,12 @@ class ASPECTDataset(Dataset):
                 "PDataArray"
             ]["@NumberOfComponents"]
         )
-        self.domain_dimensions = np.ones(3, "int32")
-        if self.dimensionality != 3:
-            raise NotImplementedError(
-                "The ASPECT frontend currently only "
-                "supports 3D datasets, but this dataset "
-                f"has {self.dimensionality} dimensions."
-            )
 
         self.parameters["nod_names"] = self._get_nod_names()
         self.parameters["elem_names"] = self._get_elem_names()
         self.parameters["num_meshes"] = len(pieces)
         self.current_time = self._get_current_time()
-        self.domain_left_edge, self.domain_right_edge = self._load_domain_edge()
-        # self.parameters["info_records"] = self._load_info_records()
-        # self.num_steps = len(ds.variables["time_whole"])
+        self._set_domain_dims()
         self._set_dummy_parameters()
 
     def _set_dummy_parameters(self):
@@ -356,7 +347,11 @@ class ASPECTDataset(Dataset):
             pieceoff += coords.shape[0]
 
         # concatenate some of the containers
-        coords = np.array(np.column_stack([x, y, z]))
+        # adjust if we have 2d
+        if self.dimensionality == 2:
+            coords = np.array(np.column_stack([x, y]))
+        else:
+            coords = np.array(np.column_stack([x, y, z]))
         alloffs = np.array(alloffs)
         conns = np.array(conns)
 
@@ -428,7 +423,7 @@ class ASPECTDataset(Dataset):
         conlist = np.vstack(conlist).astype("i8")
         return conlist, coordlist, node_offsets, element_count, nodes_per_cell
 
-    def _load_domain_edge(self):
+    def _set_domain_dims(self):
         """
         Loads the global boundaries for the domain edge
 
@@ -441,13 +436,29 @@ class ASPECTDataset(Dataset):
 
         if not left_edge or not right_edge:
             _, coord, _, _, _ = self._read_pieces()
-            left_edge = [coord[:, i].min() for i in range(self.dimensionality)]
-            right_edge = [coord[:, i].max() for i in range(self.dimensionality)]
+            # vtu always has a z, even for 2D
+            left_edge = [coord[:, i].min() for i in range(3)]
+            right_edge = [coord[:, i].max() for i in range(3)]
             self.sidecar_info["domain_left_edge"] = left_edge
             self.sidecar_info["domain_right_edge"] = right_edge
             self._write_sidecar()
 
-        return np.array(left_edge), np.array(right_edge)
+        left_edge = np.array(left_edge)
+        right_edge = np.array(right_edge)
+
+        # domain_width not set yet, calculate it:
+        dwidth = right_edge - left_edge
+        has_dim = np.array([wid > 0.0 for wid in dwidth])
+        self.dimensionality = has_dim.sum()
+
+        # set up pseudo-3D for 2d datasets here
+        for idim in range(self.dimensionality, 3):
+            right_edge[idim] = 1.0
+            left_edge[idim] = 0.0
+
+        self.domain_left_edge = left_edge
+        self.domain_right_edge = right_edge
+        self.domain_dimensions = np.ones(self.dimensionality, "int32")
 
     @classmethod
     def _is_valid(self, datafile, *args, **kwargs):
