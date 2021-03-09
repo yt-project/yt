@@ -481,8 +481,8 @@ def test_profile_sph_data():
     # test we create a profile without raising YTIllDefinedProfile
     yt.create_profile(
         ds.all_data(),
-        ["density", "temperature"],
-        ["kinetic_energy_density"],
+        [("gas", "density"), ("gas", "temperature")],
+        [("gas", "kinetic_energy_density")],
         weight_field=None,
     )
 

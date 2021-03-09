@@ -43,8 +43,9 @@ class EnzoPFieldInfo(FieldInfoContainer):
     def setup_fluid_fields(self):
         super().setup_fluid_fields()
         self.alias(
-            ("gas", "total_energy"), ("gas", "specific_total_energy"), 
-            deprecate=("4.0", "4.1")
+            ("gas", "total_energy"),
+            ("gas", "specific_total_energy"),
+            deprecate=("4.0.0", "4.1.0"),
         )
 
     def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):

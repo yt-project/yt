@@ -494,7 +494,7 @@ def standard_particle_fields(
     registry.alias(
         (ptype, "particle_spherical_position_radius"),
         (ptype, "particle_position_spherical_radius"),
-        deprecate=("4.0", "4.1"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_position_spherical_theta(field, data):
@@ -518,7 +518,7 @@ def standard_particle_fields(
     registry.alias(
         (ptype, "particle_spherical_position_theta"),
         (ptype, "particle_position_spherical_theta"),
-        deprecate=("4.0", "4.1"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_position_spherical_phi(field, data):
@@ -542,7 +542,7 @@ def standard_particle_fields(
     registry.alias(
         (ptype, "particle_spherical_position_phi"),
         (ptype, "particle_position_spherical_phi"),
-        deprecate=("4.0", "4.1"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_velocity_spherical_radius(field, data):
@@ -571,13 +571,12 @@ def standard_particle_fields(
     registry.alias(
         (ptype, "particle_spherical_velocity_radius"),
         (ptype, "particle_velocity_spherical_radius"),
-        deprecate=("4.0", "4.1"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     registry.alias(
         (ptype, "particle_radial_velocity"),
         (ptype, "particle_velocity_spherical_radius"),
-        deprecate=("4.0", "4.1"),
     )
 
     def _particle_velocity_spherical_theta(field, data):
@@ -606,7 +605,7 @@ def standard_particle_fields(
     registry.alias(
         (ptype, "particle_spherical_velocity_theta"),
         (ptype, "particle_velocity_spherical_theta"),
-        deprecate=("4.0", "4.1"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_velocity_spherical_phi(field, data):
@@ -633,7 +632,7 @@ def standard_particle_fields(
     registry.alias(
         (ptype, "particle_spherical_velocity_phi"),
         (ptype, "particle_velocity_spherical_phi"),
-        deprecate=("4.0", "4.1"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_position_cylindrical_radius(field, data):
@@ -737,7 +736,7 @@ def standard_particle_fields(
     registry.alias(
         (ptype, "particle_cylindrical_velocity_theta"),
         (ptype, "particle_velocity_cylindrical_theta"),
-        deprecate=("4.0", "4.1"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
     def _particle_velocity_cylindrical_z(field, data):
@@ -762,7 +761,7 @@ def standard_particle_fields(
     registry.alias(
         (ptype, "particle_cylindrical_velocity_z"),
         (ptype, "particle_velocity_cylindrical_z"),
-        deprecate=("4.0", "4.1"),
+        deprecate=("4.0.0", "4.1.0"),
     )
 
 

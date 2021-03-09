@@ -2,6 +2,7 @@ import contextlib
 import inspect
 import re
 import warnings
+
 from more_itertools import always_iterable
 
 import yt.units.dimensions as ytdims
@@ -34,19 +35,23 @@ def NullFunc(field, data):
     raise YTFieldNotFound(field.name)
 
 
-def DeprecatedFunc(ret_field, func, since, removal):
-    def _DeprecatedFunc(field, data):
+def DeprecatedFieldFunc(ret_field, func, since, removal):
+    def _DeprecatedFieldFunc(field, data):
+        # Only log a warning if we've already done
+        # field detection
         if data.ds.fields_detected:
             args = [field.name, since, removal]
-            msg = "The Derived Field %s is deprecated as of yt v%s " \
-                  "and will be removed in yt v%s. "
+            msg = (
+                "The Derived Field %s is deprecated as of yt v%s "
+                "and will be removed in yt v%s. "
+            )
             if ret_field != field.name:
                 msg += "Use %s instead."
                 args.append(ret_field)
             mylog.warning(msg, *args)
         return func(field, data)
 
-    return _DeprecatedFunc
+    return _DeprecatedFieldFunc
 
 
 class DerivedField:

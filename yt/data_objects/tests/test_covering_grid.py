@@ -109,8 +109,12 @@ def test_xarray_export():
         assert_equal(xarr.z, cg["z"][0, 0, :])
 
     for level in [0, 1, 2]:
-        fields = ["density", "temperature", "specific_thermal_energy"]
-        units = ["g/cm*3", "K", "erg/g"]
+        fields = [
+            ("gas", "density"),
+            ("gas", "temperature"),
+            ("gas", "specific_thermal_energy"),
+        ]
+        units = ["g/cm**3", "K", "erg/g"]
         ds = fake_random_ds(16, fields=fields, units=units)
         dn = ds.refine_by ** level
         rcg = ds.covering_grid(level, [0.0, 0.0, 0.0], dn * ds.domain_dimensions)
