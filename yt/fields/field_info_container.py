@@ -480,13 +480,16 @@ class FieldInfoContainer(dict):
         return keys
 
     def check_derived_fields(self, fields_to_check=None):
-        # define
+
+        # The following exceptions lists were obtained by expanding an
+        # all-catching `except Exception`.
+        # We define
         # - a blacklist (exceptions that we know should be caught)
         # - a whitelist (exceptions that should be handled)
-        # - a greylist (excpetions that may hide bugs but should be checked)
-
+        # - a greylist (exceptions that may be covering bugs but should be checked)
+        # See https://github.com/yt-project/yt/issues/2853
         # in the long run, the greylist should be removed
-        blacklist = (RecursionError,)
+        blacklist = ()
         whitelist = (NotImplementedError,)
         greylist = (
             YTFieldNotFound,
@@ -500,6 +503,9 @@ class FieldInfoContainer(dict):
             KeyError,
             # code smells -> those are very likely bugs
             UnitConversionError,  # solved in GH PR 2897 ?
+            # RecursionError is clearly a bug, and was already solved once
+            # in GH PR 2851
+            RecursionError,
         )
 
         deps = {}
@@ -508,15 +514,6 @@ class FieldInfoContainer(dict):
         for field in fields_to_check:
             fi = self[field]
             try:
-                # Here we except a very large number of unrelated exceptions.
-                # This is a code smell and indicates that the single line in the try
-                # block does too much, or has an impredictible behaviour.
-                # Each exception caught is likely covering a bug somewhere in the test
-                # suite. They are sorted so it's easier to keep track of.
-                # In order to solve these, open a PR with one (and preferably only one)
-                # of those deactivated, then see which tests fail and solve the
-                # underlying issues locally.
-
                 # fd: field detector
                 fd = fi.get_dependencies(ds=self.ds)
             except blacklist as err:
