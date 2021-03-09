@@ -163,7 +163,8 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
     )
 
     registry.alias(
-        ("index", "spherical_r"), ("index", "spherical_radius"), deprecate=True
+        ("index", "spherical_r"), ("index", "spherical_radius"), 
+        deprecate=("4.0", "4.1")
     )
 
     def _spherical_theta(field, data):
@@ -229,7 +230,8 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
     )
 
     registry.alias(
-        ("index", "cylindrical_r"), ("index", "cylindrical_radius"), deprecate=True
+        ("index", "cylindrical_r"), ("index", "cylindrical_radius"), 
+        deprecate=("4.0", "4.1")
     )
 
     def _cylindrical_z(field, data):
@@ -274,7 +276,9 @@ def setup_geometric_fields(registry, ftype="gas", slice_info=None):
     )
 
     registry.alias(
-        ("index", "disk_angle"), ("index", "spherical_theta"), deprecate=True
+        ("index", "disk_angle"), ("index", "spherical_theta"), 
+        deprecate=("4.0", "4.1")
     )
 
-    registry.alias(("index", "height"), ("index", "cylindrical_z"), deprecate=True)
+    registry.alias(("index", "height"), ("index", "cylindrical_z"), 
+                   deprecate=("4.0", "4.1"))

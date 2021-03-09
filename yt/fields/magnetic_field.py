@@ -57,7 +57,8 @@ def setup_magnetic_field_fields(registry, ftype="gas", slice_info=None):
     )
 
     registry.alias(
-        (ftype, "magnetic_energy"), (ftype, "magnetic_energy_density"), deprecate=True
+        (ftype, "magnetic_energy"), (ftype, "magnetic_energy_density"), 
+        deprecate=("4.0", "4.1")
     )
 
     def _plasma_beta(field, data):

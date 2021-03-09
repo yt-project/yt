@@ -405,7 +405,7 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         registry.alias(
             (ftype, f"cylindrical_radial_{basename}"),
             (ftype, f"{basename}_cylindrical_radius"),
-            deprecate=True,
+            deprecate=("4.0", "4.1"),
         )
 
         def _cylindrical_radial_absolute(field, data):
@@ -414,8 +414,10 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
 
         registry.add_deprecated_field(
             (ftype, f"cylindrical_radial_{basename}_absolute"),
-            sampling_type="local",
             function=_cylindrical_radial_absolute,
+            sampling_type="local",
+            since="4.0",
+            removal="4.1",
             units=field_units,
             validators=[ValidateParameter("normal")],
         )
@@ -453,13 +455,15 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
         registry.alias(
             (ftype, f"cylindrical_tangential_{basename}"),
             (ftype, f"{basename}_cylindrical_theta"),
-            deprecate=True,
+            deprecate=("4.0", "4.1"),
         )
 
         registry.add_deprecated_field(
             (ftype, f"cylindrical_tangential_{basename}_absolute"),
-            sampling_type="local",
             function=_cylindrical_tangential_absolute,
+            sampling_type="local",
+            since="4.0",
+            removal="4.1",
             units=field_units,
         )
 

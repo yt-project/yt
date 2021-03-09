@@ -421,7 +421,7 @@ class FieldInfoContainer(dict):
         kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
-    def alias(self, alias_name, original_name, units=None, deprecate=False):
+    def alias(self, alias_name, original_name, units=None, deprecate=None):
         if original_name not in self:
             return
         if units is None:
@@ -434,22 +434,33 @@ class FieldInfoContainer(dict):
                 units = self[original_name].units
         self.field_aliases[alias_name] = original_name
         function = TranslationFunc(original_name)
-        if deprecate:
-            method = self.add_deprecated_field
+        if deprecate is not None:
+            self.add_deprecated_field(
+                alias_name,
+                function=function,
+                sampling_type=self[original_name].sampling_type,
+                display_name=self[original_name].display_name,
+                units=units,
+                since=deprecate[0],
+                removal=deprecate[1],
+                ret_name=original_name,
+            )
         else:
-            method = self.add_field
-        method(
-            alias_name,
-            function=function,
-            sampling_type=self[original_name].sampling_type,
-            display_name=self[original_name].display_name,
-            units=units,
-        )
+            self.add_field(
+                alias_name,
+                function=function,
+                sampling_type=self[original_name].sampling_type,
+                display_name=self[original_name].display_name,
+                units=units,
+            )
 
-    def add_deprecated_field(self, name, function, sampling_type, **kwargs):
+    def add_deprecated_field(self, name, function, sampling_type, since, 
+                             removal, ret_name=None, **kwargs):
+        if ret_name is None:
+            ret_name = name
         self.add_field(
             name,
-            function=DeprecatedFunc(name, function),
+            function=DeprecatedFunc(ret_name, function, since, removal),
             sampling_type=sampling_type,
             **kwargs,
         )

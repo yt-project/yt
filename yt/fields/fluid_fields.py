@@ -118,11 +118,13 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     )
 
     registry.alias(
-        (ftype, "kinetic_energy"), (ftype, "kinetic_energy_density"), deprecate=True
+        (ftype, "kinetic_energy"), (ftype, "kinetic_energy_density"), 
+        deprecate=("4.0", "4.1")
     )
 
     registry.alias(
-        (ftype, "thermal_energy"), (ftype, "specific_thermal_energy"), deprecate=True
+        (ftype, "thermal_energy"), (ftype, "specific_thermal_energy"), 
+        deprecate=("4.0", "4.1")
     )
 
     def _mach_number(field, data):
