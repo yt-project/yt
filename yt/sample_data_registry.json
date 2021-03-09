@@ -729,7 +729,7 @@
   "output_00080_halos.tar.gz": {
     "hash": "fb8f573ea7cb183e1531091b3fce91cf7015cfdf5ccbce9ef2742e3135b52d4c",
     "load_kwargs": {},
-    "load_name": null,
+    "load_name": "tree_bricks080",
     "url": "https://yt-project.org/data/output_00080_halos.tar.gz"
   },
   "output_00101.tar.gz": {
