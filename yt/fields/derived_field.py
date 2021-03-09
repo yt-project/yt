@@ -9,7 +9,7 @@ import yt.units.dimensions as ytdims
 from yt.funcs import iter_fields
 from yt.units.unit_object import Unit
 from yt.utilities.exceptions import YTFieldNotFound
-from yt.utilities.logging import ytLogger as mylog
+from yt.utilities.logger import ytLogger as mylog
 
 from .field_detector import FieldDetector
 from .field_exceptions import (
