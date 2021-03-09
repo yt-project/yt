@@ -12,6 +12,9 @@ class IOHandlerASPECT(BaseIOHandler):
     _particle_reader = False
     _dataset_type = "aspect"
     _INDEX_OFFSET = 1
+    _vector_fields = ("Coordinates", "velocity")
+    _xyz_to_dim = {"x": 0, "y": 1, "z": 2}
+    _vel_vectors = ["velocity_" + dim for dim in ["x", "y", "z"]]
 
     def __init__(self, ds):
         self.filename = ds.index_filename
@@ -41,8 +44,6 @@ class IOHandlerASPECT(BaseIOHandler):
             rv[field] = []
             ftype_list.append(ftype)
 
-        xyz_to_dim = {"x": 0, "y": 1, "z": 2}  # should come from ds parameters...
-        vel_vectors = ["velocity_" + dimstr for dimstr in xyz_to_dim.keys()]
         for chunk_id, chunk in enumerate(chunks):
             mesh = chunk.objs[0]
             npc = mesh.nodes_per_cell
@@ -78,9 +79,10 @@ class IOHandlerASPECT(BaseIOHandler):
                         for field in fields:
                             ftype, fname = field
 
+                            # check if we are dealing with a velocity component
                             vdim = -1
-                            if fname in vel_vectors:
-                                vdim = xyz_to_dim[fname.split("_")[-1]]
+                            if fname in self._vel_vectors:
+                                vdim = self._xyz_to_dim[fname.split("_")[-1]]
                                 fname = "velocity"
 
                             vtu_field, vtu_conn1d = self._read_single_vtu_field(
