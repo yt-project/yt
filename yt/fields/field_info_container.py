@@ -1,13 +1,19 @@
 from numbers import Number as numeric_type
 
 import numpy as np
+from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.fields.field_exceptions import NeedsConfiguration
 from yt.funcs import mylog, only_on_root
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.units.dimensions import dimensionless
 from yt.units.unit_object import Unit
-from yt.utilities.exceptions import YTFieldNotFound
+from yt.utilities.exceptions import (
+    YTCoordinateNotImplemented,
+    YTDomainOverflow,
+    YTFieldNotFound,
+)
 
 from .derived_field import DerivedField, NullFunc, TranslationFunc
 from .field_plugin_registry import field_plugins
@@ -474,6 +480,34 @@ class FieldInfoContainer(dict):
         return keys
 
     def check_derived_fields(self, fields_to_check=None):
+
+        # The following exceptions lists were obtained by expanding an
+        # all-catching `except Exception`.
+        # We define
+        # - a blacklist (exceptions that we know should be caught)
+        # - a whitelist (exceptions that should be handled)
+        # - a greylist (exceptions that may be covering bugs but should be checked)
+        # See https://github.com/yt-project/yt/issues/2853
+        # in the long run, the greylist should be removed
+        blacklist = ()
+        whitelist = (NotImplementedError,)
+        greylist = (
+            YTFieldNotFound,
+            YTDomainOverflow,
+            YTCoordinateNotImplemented,
+            NeedsConfiguration,
+            TypeError,
+            ValueError,
+            IndexError,
+            AttributeError,
+            KeyError,
+            # code smells -> those are very likely bugs
+            UnitConversionError,  # solved in GH PR 2897 ?
+            # RecursionError is clearly a bug, and was already solved once
+            # in GH PR 2851
+            RecursionError,
+        )
+
         deps = {}
         unavailable = []
         fields_to_check = fields_to_check or list(self.keys())
@@ -482,7 +516,10 @@ class FieldInfoContainer(dict):
             try:
                 # fd: field detector
                 fd = fi.get_dependencies(ds=self.ds)
-            except (NotImplementedError, Exception) as e:  # noqa: B014
+            except blacklist as err:
+                print(f"{err.__class__} raised for field {field}")
+                raise SystemExit(1) from err
+            except (*whitelist, *greylist) as e:
                 if field in self._show_field_errors:
                     raise
                 if not isinstance(e, YTFieldNotFound):
