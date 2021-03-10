@@ -11,7 +11,7 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import \
+from yt.data_objects.index_subobjects.grid_patch import \
     AMRGridPatch
 from yt.funcs import mylog
 from yt.geometry.grid_geometry_handler import \
