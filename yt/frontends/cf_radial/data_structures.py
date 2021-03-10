@@ -124,22 +124,23 @@ class CFRadialDataset(Dataset):
         self.fluid_types += ('cf_radial',)
         self._handle = xr.open_dataset(filename)
         self.refine_by = 2
+        new_filename = filename[:-3] + '_grid.nc'
         if 'x' not in self._handle.coords:
-            from yt.utilities.on_demand_imports import _pyart as pyart
-            radar = pyart.io.read_cfradial(filename)
-            self.grid_shape = grid_shape
-            self.grid_limits = grid_limits
-            grid = pyart.map.grid_from_radars(
-                (radar, ), grid_shape=self.grid_shape,
-                grid_limits=self.grid_limits)
-            new_filename = filename[:-3] + '_grid.nc'
-            mylog.warn(
-                'Saving a cartesian grid for file "%s" at "%s". '
-                'Data will be loaded from the cartesian grid.' % (
-                    filename, new_filename))
-            grid.write(new_filename)
-            self._handle = xarray.open_dataset(new_filename)
-            filename = new_filename
+            if not os.path.isfile(new_filename):
+                from yt.utilities.on_demand_imports import _pyart as pyart
+                radar = pyart.io.read_cfradial(filename)
+                self.grid_shape = grid_shape
+                self.grid_limits = grid_limits
+                grid = pyart.map.grid_from_radars(
+                    (radar, ), grid_shape=self.grid_shape,
+                    grid_limits=self.grid_limits)
+                mylog.warn(
+                    'Saving a cartesian grid for file "%s" at "%s". '
+                    'Data will be loaded from the cartesian grid.' % (
+                        filename, new_filename))
+                grid.write(new_filename)
+        self._handle = xarray.open_dataset(new_filename)
+        filename = new_filename
         super(CFRadialDataset, self).__init__(
             filename, dataset_type,
             units_override=units_override)
