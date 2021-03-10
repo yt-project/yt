@@ -251,6 +251,44 @@ class pooch_imports:
 _pooch = pooch_imports()
 
 
+class pyart_imports:
+    _name = "pyart"
+
+    _pyart = None
+
+    @property
+    def pyart(self):
+        if self._pyart is None:
+            try:
+                import pyart as pyart
+            except ImportError:
+                pyart = NotAModule(self._name)
+            self._pyart = pyart
+        return self._pyart
+
+
+_pyart = pyart_imports()
+
+
+class xarray_imports:
+    _name = "xarray"
+
+    _xarray = None
+
+    @property
+    def xarray(self):
+        if self._xarray is None:
+            try:
+                import xarray as xr
+            except ImportError:
+                xarray = NotAModule(self._name)
+            self._xarray = xarray
+        return self._xarray
+
+
+_xarray = xarray_imports()
+
+
 class scipy_imports:
     _name = "scipy"
     _integrate = None

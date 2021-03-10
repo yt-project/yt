@@ -10,7 +10,6 @@ import stat
 import weakref
 
 import numpy as np
-import xarray
 
 from yt.data_objects.grid_patch import \
     AMRGridPatch
@@ -19,6 +18,7 @@ from yt.geometry.grid_geometry_handler import \
     GridIndex
 from yt.data_objects.static_output import \
     Dataset
+from yt.utilities.on_demand_imports import _xarray as xr
 from .fields import CFRadialFieldInfo
 
 try:
@@ -117,18 +117,21 @@ class CFRadialDataset(Dataset):
     _field_info_class = CFRadialFieldInfo
 
     def __init__(self, filename, dataset_type='cf_radial',
+                 grid_shape=(40, 200, 200),
+                 grid_limits=((0., 2000.), (-1e5, 1e5), (-1e5, 1e5)),
                  storage_filename=None,
                  units_override=None):
         self.fluid_types += ('cf_radial',)
-        self._handle = xarray.open_dataset(filename)
+        self._handle = xr.open_dataset(filename)
         self.refine_by = 2
         if 'x' not in self._handle.coords:
-            import pyart
+            from yt.utilities.on_demand_imports import pyart
             radar = pyart.io.read_cfradial(filename)
+            self.grid_shape = grid_shape
+            self.grid_limits = grid_limits
             grid = pyart.map.grid_from_radars(
-                (radar, ), grid_shape=(40, 200, 200),
-                grid_limits=((0., 2000.), (-1e5, 1e5), (-1e5, 1e5)),
-                fields=['reflectivity'])
+                (radar, ), grid_shape=self.grid_shape,
+                grid_limits=grid_limits=self.grid_limits)
             new_filename = filename[:-3] + '_grid.nc'
             mylog.warn(
                 'Saving a cartesian grid for file "%s" at "%s". '
@@ -193,7 +196,7 @@ class CFRadialDataset(Dataset):
         dims = [self._handle.dims[d] for d in 'xyz']
         self.domain_dimensions = np.array(dims, dtype='int64')
         #   self.periodicity            <= three-element tuple of booleans
-        self.periodicity = (False, False, False)
+        self._periodicity = (False, False, False)
         #   self.current_time           <= simulation time in code units
         self.current_time = float(self._handle.time.values)
         #
@@ -212,7 +215,7 @@ class CFRadialDataset(Dataset):
         self.hubble_constant = 0.0
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(self, filename, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
         try:
@@ -221,7 +224,7 @@ class CFRadialDataset(Dataset):
             return False
 
         try:
-            ds = xarray.open_dataset(args[0])
+            ds = xarray.open_dataset(filename)
         except (FileNotFoundError, OSError):
             return False
 
