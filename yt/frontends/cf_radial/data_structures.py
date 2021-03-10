@@ -11,14 +11,12 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.index_subobjects.grid_patch import \
-    AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.static_output import Dataset
 from yt.funcs import mylog
-from yt.geometry.grid_geometry_handler import \
-    GridIndex
-from yt.data_objects.static_output import \
-    Dataset
+from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.on_demand_imports import _xarray as xr
+
 from .fields import CFRadialFieldInfo
 
 try:
@@ -31,8 +29,7 @@ class CFRadialGrid(AMRGridPatch):
     _id_offset = 0
 
     def __init__(self, id, index, level, dimensions):
-        super(CFRadialGrid, self).__init__(
-            id, filename=index.index_filename, index=index)
+        super().__init__(id, filename=index.index_filename, index=index)
         self.Parent = None
         self.Children = []
         self.Level = level
@@ -45,7 +42,7 @@ class CFRadialGrid(AMRGridPatch):
 class CFRadialHierarchy(GridIndex):
     grid = CFRadialGrid
 
-    def __init__(self, ds, dataset_type='cf_radial'):
+    def __init__(self, ds, dataset_type="cf_radial"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         # for now, the index file is the dataset!
@@ -53,11 +50,10 @@ class CFRadialHierarchy(GridIndex):
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
         self.float_type = np.float64
-        super(CFRadialHierarchy, self).__init__(
-            ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def _initialize_state_variables(self):
-        super(CFRadialHierarchy, self)._initialize_state_variables()
+        super()._initialize_state_variables()
         self.num_grids = 1
 
     def _detect_output_fields(self):
@@ -69,9 +65,11 @@ class CFRadialHierarchy(GridIndex):
         # (for a single population of particles) is "io".
         self.field_list = []
         for key in self.ds._handle.variables.keys():
-            if all(x in self.ds._handle[key].dims for x
-                   in ['time', 'z', 'y', 'x']) is True:
-                field_tup = ('cf_radial', key)
+            if (
+                all(x in self.ds._handle[key].dims for x in ["time", "z", "y", "x"])
+                is True
+            ):
+                field_tup = ("cf_radial", key)
                 self.field_list.append(field_tup)
 
     def _count_grids(self):
@@ -90,10 +88,9 @@ class CFRadialHierarchy(GridIndex):
         self.grid_left_edge[0][:] = self.ds.domain_left_edge[:]
         self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
         self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
-        self.grids = np.empty(self.num_grids, dtype='object')
+        self.grids = np.empty(self.num_grids, dtype="object")
         for i in range(self.num_grids):
-            g = self.grid(i, self, self.grid_levels.flat[i],
-                          self.grid_dimensions[i])
+            g = self.grid(i, self, self.grid_levels.flat[i], self.grid_dimensions[i])
             g._prepare_grid()
             g._setup_dx()
             self.grids[i] = g
@@ -116,34 +113,38 @@ class CFRadialDataset(Dataset):
     _index_class = CFRadialHierarchy
     _field_info_class = CFRadialFieldInfo
 
-    def __init__(self, filename, dataset_type='cf_radial',
-                 grid_shape=(40, 200, 200),
-                 grid_limits=((0., 2000.), (-1e5, 1e5), (-1e5, 1e5)),
-                 storage_filename=None,
-                 units_override=None):
-        self.fluid_types += ('cf_radial',)
+    def __init__(
+        self,
+        filename,
+        dataset_type="cf_radial",
+        grid_shape=(40, 200, 200),
+        grid_limits=((0.0, 2000.0), (-1e5, 1e5), (-1e5, 1e5)),
+        storage_filename=None,
+        units_override=None,
+    ):
+        self.fluid_types += ("cf_radial",)
         self._handle = xr.open_dataset(filename)
         self.refine_by = 2
-        new_filename = filename[:-3] + '_grid.nc'
-        if 'x' not in self._handle.coords:
+        new_filename = filename[:-3] + "_grid.nc"
+        if "x" not in self._handle.coords:
             if not os.path.isfile(new_filename):
                 from yt.utilities.on_demand_imports import _pyart as pyart
+
                 radar = pyart.io.read_cfradial(filename)
                 self.grid_shape = grid_shape
                 self.grid_limits = grid_limits
                 grid = pyart.map.grid_from_radars(
-                    (radar, ), grid_shape=self.grid_shape,
-                    grid_limits=self.grid_limits)
+                    (radar,), grid_shape=self.grid_shape, grid_limits=self.grid_limits
+                )
                 mylog.warn(
                     'Saving a cartesian grid for file "%s" at "%s". '
-                    'Data will be loaded from the cartesian grid.' % (
-                        filename, new_filename))
+                    "Data will be loaded from the cartesian grid."
+                    % (filename, new_filename)
+                )
                 grid.write(new_filename)
         self._handle = xarray.open_dataset(new_filename)
         filename = new_filename
-        super(CFRadialDataset, self).__init__(
-            filename, dataset_type,
-            units_override=units_override)
+        super().__init__(filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
         # self.refine_by = 2
@@ -159,11 +160,10 @@ class CFRadialDataset(Dataset):
         # These can also be set:
         # self.velocity_unit = self.quan(1.0, "cm/s")
         # self.magnetic_unit = self.quan(1.0, "gauss")
-        length_unit = self._handle.variables['x'].attrs['units']
+        length_unit = self._handle.variables["x"].attrs["units"]
         self.length_unit = self.quan(1.0, length_unit)
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
-
 
     def _parse_parameter_file(self):
         # This needs to set up the following items.  Note that these are all
@@ -174,13 +174,12 @@ class CFRadialDataset(Dataset):
         #
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME)
-        self.unique_identifier = int(os.stat(
-            self.parameter_filename)[stat.ST_CTIME])
+        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         #   self.parameters             <= full of code-specific items of use
         self.parameters = {}
 
         coords = self._handle.coords
-        x, y, z = [coords[d] for d in 'xyz']
+        x, y, z = [coords[d] for d in "xyz"]
 
         self.origin_latitude = self._handle.origin_latitude[0]
         self.origin_longitude = self._handle.origin_longitude[0]
@@ -194,8 +193,8 @@ class CFRadialDataset(Dataset):
         #   self.dimensionality         <= int
         self.dimensionality = 3
         #   self.domain_dimensions      <= array of int64
-        dims = [self._handle.dims[d] for d in 'xyz']
-        self.domain_dimensions = np.array(dims, dtype='int64')
+        dims = [self._handle.dims[d] for d in "xyz"]
+        self.domain_dimensions = np.array(dims, dtype="int64")
         #   self.periodicity            <= three-element tuple of booleans
         self._periodicity = (False, False, False)
         #   self.current_time           <= simulation time in code units
@@ -230,11 +229,11 @@ class CFRadialDataset(Dataset):
             return False
 
         try:
-            conventions = ds.attrs['Conventions']
+            conventions = ds.attrs["Conventions"]
         except KeyError:
             return False
 
-        if 'CF/Radial' in conventions:
+        if "CF/Radial" in conventions:
             return True
 
         return False

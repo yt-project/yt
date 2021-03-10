@@ -5,8 +5,7 @@ CF-radial-specific fields
 
 """
 
-from yt.fields.field_info_container import \
-    FieldInfoContainer
+from yt.fields.field_info_container import FieldInfoContainer
 
 # We need to specify which fields we might have in our dataset.  The field info
 # container subclass here will define which fields it knows about.  There are
@@ -20,9 +19,7 @@ class CFRadialFieldInfo(FieldInfoContainer):
         ("reflectivity", ("dBZ", [], None)),
         ("correct_reflectivity", ("dBZ", [], None)),
         ("total_power", ("dBZ", [], None)),
-        ("velocity", (
-            "m/s",
-            ["mean_doppler_velocity", "doppler_velocity"], None)),
+        ("velocity", ("m/s", ["mean_doppler_velocity", "doppler_velocity"], None)),
         ("corrected_velocity", ("m/s", [], None)),
         ("simulated_velocity", ("m/s", [], None)),
         ("spectrum_width", ("m/s", [], None)),
@@ -46,7 +43,7 @@ class CFRadialFieldInfo(FieldInfoContainer):
         ("differential_phase_texture", ("degree", [], None)),
         ("eastward_wind_component", ("m/s", [], None)),
         ("northward_wind_component", ("m/s", [], None)),
-        ("vertical_wind_component", ("m/s", [], None))
+        ("vertical_wind_component", ("m/s", [], None)),
     )
 
     known_particle_fields = (
@@ -55,7 +52,7 @@ class CFRadialFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list):
-        super(CFRadialFieldInfo, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
         # If you want, you can check self.field_list
 
     def setup_fluid_fields(self):
@@ -65,5 +62,5 @@ class CFRadialFieldInfo(FieldInfoContainer):
         pass
 
     def setup_particle_fields(self, ptype):
-        super(CFRadialFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
         # This will get called for every particle type.

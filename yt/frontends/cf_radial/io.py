@@ -7,13 +7,12 @@ CF-Radial-specific IO functions
 
 import numpy as np
 
-from yt.utilities.io_handler import \
-    BaseIOHandler
+from yt.utilities.io_handler import BaseIOHandler
 
 
 class CFRadialIOHandler(BaseIOHandler):
     _particle_reader = False
-    _dataset_type = 'cf_radial'
+    _dataset_type = "cf_radial"
 
     def _read_particle_coords(self, chunks, ptf):
         # This needs to *yield* a series of tuples of (ptype, (x, y, z)).
@@ -47,7 +46,7 @@ class CFRadialIOHandler(BaseIOHandler):
 
         rv = {}
         for field in fields:
-            rv[field] = np.empty(size, dtype='float64')
+            rv[field] = np.empty(size, dtype="float64")
 
         offset = 0
 
@@ -57,10 +56,8 @@ class CFRadialIOHandler(BaseIOHandler):
                     ds = self.ds._handle
                     variable = ds.variables[field[1]]
                     data = variable.values[0, ...].T
-                    offset += grid.select(
-                        selector, data, rv[field], offset)
+                    offset += grid.select(selector, data, rv[field], offset)
         return rv
-
 
     def _read_chunk_data(self, chunk, fields):
         # This reads the data from a single chunk without doing any selection,
