@@ -361,6 +361,10 @@ class VelocityCallback(PlotCallback):
                 xv = f"velocity_{axis_names[xax]}"
                 yv = f"velocity_{axis_names[yax]}"
 
+            # determine the full fields including field type
+            xv = plot.data._determine_fields(xv)[0]
+            yv = plot.data._determine_fields(yv)[0]
+
             qcb = QuiverCallback(
                 xv,
                 yv,

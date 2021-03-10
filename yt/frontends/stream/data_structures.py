@@ -666,7 +666,9 @@ class StreamOctreeSubset(OctreeSubset):
 
         if num_ghost_zones > 0:
             if not all(ds.periodicity):
-                mylog.warn("Ghost zones will wrongly assume the domain to be periodic.")
+                mylog.warning(
+                    "Ghost zones will wrongly assume the domain to be periodic."
+                )
             base_grid = StreamOctreeSubset(
                 base_region, ds, oct_handler, over_refine_factor
             )
