@@ -253,18 +253,18 @@ _pooch = pooch_imports()
 
 class pyart_imports:
     _name = "pyart"
+    _module = None
 
-    _pyart = None
+    def __init__(self):
+        try:
+            import pyart as myself
 
-    @property
-    def pyart(self):
-        if self._pyart is None:
-            try:
-                import pyart as pyart
-            except ImportError:
-                pyart = NotAModule(self._name)
-            self._pyart = pyart
-        return self._pyart
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
 
 
 _pyart = pyart_imports()
@@ -272,18 +272,18 @@ _pyart = pyart_imports()
 
 class xarray_imports:
     _name = "xarray"
+    _module = None
 
-    _xarray = None
+    def __init__(self):
+        try:
+            import xarray as myself
 
-    @property
-    def xarray(self):
-        if self._xarray is None:
-            try:
-                import xarray as xr
-            except ImportError:
-                xarray = NotAModule(self._name)
-            self._xarray = xarray
-        return self._xarray
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
 
 
 _xarray = xarray_imports()

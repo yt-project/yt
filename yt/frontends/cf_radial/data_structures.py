@@ -125,13 +125,13 @@ class CFRadialDataset(Dataset):
         self._handle = xr.open_dataset(filename)
         self.refine_by = 2
         if 'x' not in self._handle.coords:
-            from yt.utilities.on_demand_imports import pyart
+            from yt.utilities.on_demand_imports import _pyart as pyart
             radar = pyart.io.read_cfradial(filename)
             self.grid_shape = grid_shape
             self.grid_limits = grid_limits
             grid = pyart.map.grid_from_radars(
                 (radar, ), grid_shape=self.grid_shape,
-                grid_limits=grid_limits=self.grid_limits)
+                grid_limits=self.grid_limits)
             new_filename = filename[:-3] + '_grid.nc'
             mylog.warn(
                 'Saving a cartesian grid for file "%s" at "%s". '
