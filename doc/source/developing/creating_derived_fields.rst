@@ -50,7 +50,12 @@ look at the most basic ones needed for a simple scalar baryon field.
 
 .. code-block:: python
 
-   yt.add_field(("gas", "pressure"), function=_pressure, units="dyne/cm**2")
+    yt.add_field(
+        name=("gas", "pressure"),
+        function=_pressure,
+        sampling_type="cell",
+        units="dyne/cm**2",
+    )
 
 We feed it the name of the field, the name of the function, and the
 units.  Note that the units parameter is a "raw" string, in the format that yt
@@ -106,6 +111,7 @@ the dimensionality of the returned array and the field are the same:
     yt.add_field(
         ("gas", "pressure"),
         function=_pressure,
+        sampling_type="cell",
         units="auto",
         dimensions=dimensions.pressure,
     )
@@ -123,7 +129,7 @@ the previous example:
    from yt import derived_field
 
 
-   @derived_field(name="pressure", units="dyne/cm**2")
+   @derived_field(name="pressure", sampling_type="cell", units="dyne/cm**2")
    def _pressure(field, data):
        return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
 
@@ -141,7 +147,9 @@ dataset objects. The calling syntax is the same:
 .. code-block:: python
 
    ds = yt.load("GasSloshing/sloshing_nomag2_hdf5_plt_cnt_0100")
-   ds.add_field(("gas", "pressure"), function=_pressure, units="dyne/cm**2")
+   ds.add_field(
+       ("gas", "pressure"), function=_pressure, sampling_type="cell", units="dyne/cm**2"
+   )
 
 If you specify fields in this way, you can take advantage of the dataset's
 :ref:`unit system <unit_systems>` to define the units for you, so that
@@ -149,7 +157,12 @@ the units will be returned in the units of that system:
 
 .. code-block:: python
 
-    ds.add_field(("gas", "pressure"), function=_pressure, units=ds.unit_system["pressure"])
+    ds.add_field(
+        ("gas", "pressure"),
+        function=_pressure,
+        sampling_type="cell",
+        units=ds.unit_system["pressure"],
+    )
 
 Since the :class:`yt.units.unit_systems.UnitSystem` object returns a :class:`yt.units.unit_object.Unit` object when
 queried, you're not limited to specifying units in terms of those already available. You can specify units for fields
@@ -160,6 +173,7 @@ using basic arithmetic if necessary:
     ds.add_field(
         ("gas", "my_acceleration"),
         function=_my_acceleration,
+        sampling_type="cell",
         units=ds.unit_system["length"] / ds.unit_system["time"] ** 2,
     )
 
@@ -204,6 +218,7 @@ transparent and simple example).
    yt.add_field(
        ("gas", "my_radial_velocity"),
        function=_my_radial_velocity,
+       sampling_type="cell",
        units="cm/s",
        take_log=False,
        validators=[ValidateParameter(["center", "bulk_velocity"])],

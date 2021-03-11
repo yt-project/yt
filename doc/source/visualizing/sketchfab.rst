@@ -249,7 +249,7 @@ to output one more type of variable on your surfaces.  For example:
         return data["density"] * data["density"] * np.sqrt(data["temperature"])
 
 
-    add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
+    add_field("emissivity", function=_Emissivity, sampling_type="cell", units=r"g*K/cm**6")
 
     sphere = ds.sphere("max", (1.0, "Mpc"))
     for i, r in enumerate(rho):
