@@ -304,6 +304,10 @@ class ParticleIndex(Index):
                     nfiles = len(file_masks)
                 dobj._chunk_info = [None for _ in range(nfiles)]
 
+                # The following was moved here from ParticleContainer in order
+                # to make the ParticleContainer object pickleable. By having
+                # the base_selector as its own argument, we avoid having to
+                # rebuild the index on unpickling a ParticleContainer.
                 if hasattr(dobj, "base_selector"):
                     base_selector = dobj.base_selector
                     base_region = dobj.base_region
