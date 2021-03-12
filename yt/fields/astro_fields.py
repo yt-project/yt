@@ -2,6 +2,7 @@ import numpy as np
 
 from .derived_field import ValidateParameter
 from .field_plugin_registry import register_field_plugin
+from .vector_operations import create_magnitude_field
 
 
 @register_field_plugin
@@ -161,4 +162,11 @@ def setup_astro_fields(registry, ftype="gas", slice_info=None):
         sampling_type="local",
         function=_four_velocity_t,
         units=unit_system["velocity"],
+    )
+
+    create_magnitude_field(
+        registry,
+        "four_velocity",
+        unit_system["velocity"],
+        ftype=ftype,
     )
