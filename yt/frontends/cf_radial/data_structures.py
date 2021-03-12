@@ -136,14 +136,15 @@ class CFRadialDataset(Dataset):
                 grid = pyart.map.grid_from_radars(
                     (radar,), grid_shape=self.grid_shape, grid_limits=self.grid_limits
                 )
-                mylog.warn(
-                    'Saving a cartesian grid for file "%s" at "%s". '
-                    "Data will be loaded from the cartesian grid."
-                    % (filename, new_filename)
+                mylog.warning(
+                    "Saving a cartesian grid for file %s at %s. Data will be loaded "
+                    "from the cartesian grid.",
+                    filename,
+                    new_filename,
                 )
                 grid.write(new_filename)
-        self._handle = xarray.open_dataset(new_filename)
-        filename = new_filename
+            self._handle = xr.open_dataset(new_filename)
+            filename = new_filename
         super().__init__(filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
         # refinement factor between a grid and its subgrid
@@ -225,7 +226,7 @@ class CFRadialDataset(Dataset):
 
         try:
             ds = xarray.open_dataset(filename)
-        except (FileNotFoundError, OSError):
+        except OSError:
             return False
 
         try:
