@@ -40,10 +40,6 @@ class ParticleContainer(YTSelectionContainer):
         self._current_particle_type = "all"
         # self._current_fluid_type = self.ds.default_fluid_type
 
-        if isinstance(base_region, tuple):
-            # when unpickling, base_region comes in as tuple.
-            base_region = base_region[-1]
-
         self.base_region = base_region
         self.base_selector = base_selector
         self._octree = None
