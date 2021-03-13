@@ -694,3 +694,21 @@ class firefly_imports:
 
 
 _firefly = firefly_imports()
+
+class inifix_imports:
+    _name = "inifix"
+    _module = None
+
+    def __init__(self):
+        try:
+            import inifix as myself
+
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_inifix = inifix_imports()

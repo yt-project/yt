@@ -12,7 +12,6 @@ from yt.frontends.idefix.dmpfile_io import (
     read_header,
     read_idefix_dmpfile,
 )
-from yt.frontends.idefix.inifile_io import IdefixConf
 from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 
@@ -127,6 +126,8 @@ class IdefixDataset(Dataset):
             setdefaultattr(self, key, self.quan(1, unit))
 
     def _parse_parameter_file(self):
+        from yt.utilities.on_demand_imports import _inifix as inifix
+
         # first pass in the dmpfile: read everything except large arrays
         fprops, fdata = read_idefix_dmpfile(self.parameter_filename, skip_data=True)
         self._detected_field_list = [k for k in fprops if re.match(r"^V[sc]-", k)]
@@ -137,7 +138,7 @@ class IdefixDataset(Dataset):
         self.parameters["idefix version"] = re.findall(version_exp, header)[0]
 
         if self.inifile is not None:
-            self.parameters.update(IdefixConf(self.inifile))
+            self.parameters.update(inifix.load(self.inifile))
             grid_ini = self.parameters["Grid"]
             for ax, vals in grid_ini.items():
                 if vals[0] > 1:
