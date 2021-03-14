@@ -77,7 +77,10 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
 
     def _set_code_unit_attributes(self):
         self._unit_base = self._get_uvals()
-        self._unit_base["cmcm"] = 1.0 / self._unit_base["UnitLength_in_cm"]
+        if "UnitLength_in_cm" in self._unit_base:
+            # We assume this is comoving, because in the absence of comoving
+            # integration the redshift will be zero.
+            self._unit_base["cmcm"] = 1.0 / self._unit_base["UnitLength_in_cm"]
         super()._set_code_unit_attributes()
         munit = np.sqrt(self.mass_unit / (self.time_unit ** 2 * self.length_unit)).to(
             "gauss"
