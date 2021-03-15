@@ -109,7 +109,7 @@ def test_xarray_export():
         assert_equal(xarr.z, cg["z"][0, 0, :])
 
     fields = ("density", "temperature", "specific_thermal_energy")
-    units = ("g/cm**3", "K", "dyn/cm**2")
+    units = ("g/cm**3", "K", "erg/g")
     for level in [0, 1, 2]:
         ds = fake_random_ds(16, fields=fields, units=units)
         dn = ds.refine_by ** level
