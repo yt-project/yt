@@ -24,7 +24,7 @@ class IOHandlerAthenaPP(BaseIOHandler):
     _dataset_type = "athena_pp"
 
     def __init__(self, ds):
-        super(IOHandlerAthenaPP, self).__init__(ds)
+        super().__init__(ds)
         self._handle = ds._handle
 
     def _read_particles(
@@ -48,10 +48,12 @@ class IOHandlerAthenaPP(BaseIOHandler):
             [f2 for f1, f2 in fields],
             ng,
         )
+        last_dname = None
         for field in fields:
             ftype, fname = field
             dname, fdi = self.ds._field_map[fname]
-            ds = f[f"/{dname}"]
+            if dname != last_dname:
+                ds = f[f"/{dname}"]
             ind = 0
             for chunk in chunks:
                 if self.ds.logarithmic:
@@ -72,6 +74,7 @@ class IOHandlerAthenaPP(BaseIOHandler):
                         data = ds[fdi, start:end, :, :, :].transpose()
                         for i, g in enumerate(gs):
                             ind += g.select(selector, data[..., i], rv[field], ind)
+            last_dname = dname
         return rv
 
     def _read_chunk_data(self, chunk, fields):

@@ -12,7 +12,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Velocity", ("code_velocity", ["particle_velocity"], None)),
         ("Velocities", ("code_velocity", ["particle_velocity"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),
-        ("InternalEnergy", ("code_specific_energy", ["thermal_energy"], None)),
+        ("InternalEnergy", ("code_specific_energy", ["specific_thermal_energy"], None)),
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("Density", ("code_mass / code_length**3", ["density"], None)),
         ("MaximumTemperature", ("K", [], None)),
@@ -27,7 +27,7 @@ class SPHFieldInfo(FieldInfoContainer):
     )
 
     def setup_particle_fields(self, ptype, *args, **kwargs):
-        super(SPHFieldInfo, self).setup_particle_fields(ptype, *args, **kwargs)
+        super().setup_particle_fields(ptype, *args, **kwargs)
         setup_species_fields(self, ptype)
 
     def setup_fluid_index_fields(self):

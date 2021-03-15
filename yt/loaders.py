@@ -6,9 +6,10 @@ This module gathers all user-facing functions with a `load_` prefix.
 import os
 
 import numpy as np
+from more_itertools import always_iterable
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.funcs import ensure_list, issue_deprecation_warning, mylog
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
@@ -18,6 +19,7 @@ from yt.utilities.exceptions import (
 )
 from yt.utilities.hierarchy_inspection import find_lowest_subclasses
 from yt.utilities.lib.misc_utilities import get_box_grids_level
+from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.object_registries import (
     output_type_registry,
     simulation_time_series_registry,
@@ -140,11 +142,11 @@ def load_simulation(fn, simulation_type, find_outputs=False):
 
 
 def simulation(fn, simulation_type, find_outputs=False):
-    from yt.funcs import issue_deprecation_warning
-
     issue_deprecation_warning(
         "yt.simulation is a deprecated alias for yt.load_simulation"
-        "and will be removed in a future version of yt."
+        "and will be removed in a future version of yt.",
+        since="4.0.0",
+        removal="4.1.0",
     )
     return load_simulation(
         fn=fn, simulation_type=simulation_type, find_outputs=find_outputs
@@ -220,7 +222,7 @@ def load_uniform_grid(
 
     Examples
     --------
-
+    >>> np.random.seed(int(0x4D3D3D3))
     >>> bbox = np.array([[0., 1.0], [-1.5, 1.5], [1.0, 2.5]])
     >>> arr = np.random.random((128, 128, 128))
     >>> data = dict(density=arr)
@@ -228,8 +230,8 @@ def load_uniform_grid(
     ...                        bbox=bbox, nprocs=12)
     >>> dd = ds.all_data()
     >>> dd['density']
-    YTArray([ 0.87568064,  0.33686453,  0.70467189, ...,  0.70439916,
-            0.97506269,  0.03047113]) g/cm**3
+    unyt_array([0.76017901, 0.96855994, 0.49205428, ..., 0.78798258,
+                0.97569432, 0.99453904], 'g/cm**3')
     """
     from yt.frontends.stream.data_structures import (
         StreamDataset,
@@ -255,7 +257,9 @@ def load_uniform_grid(
             "the number of particles in the data "
             "dict. The number of particles is "
             "determined from the sizes of the "
-            "particle fields."
+            "particle fields.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         data.pop("number_of_particles")
     # First we fix our field names, apply units to data
@@ -481,7 +485,9 @@ def load_amr_grids(
                 "the number of particles in the data "
                 "dict. The number of particles is "
                 "determined from the sizes of the "
-                "particle fields."
+                "particle fields.",
+                since="4.0.0",
+                removal="4.1.0",
             )
             g.pop("number_of_particles")
         field_units, data, n_particles = process_data(
@@ -933,7 +939,6 @@ def load_octree(
     Example
     -------
 
-    >>> import yt
     >>> import numpy as np
     >>> oct_mask = [8, 0, 0, 0, 0, 8, 0, 8,
     ...             0, 0, 0, 0, 0, 0, 0, 0,
@@ -942,14 +947,14 @@ def load_octree(
     >>>
     >>> octree_mask = np.array(oct_mask, dtype=np.uint8)
     >>> quantities = {}
-    >>> quantities['gas', 'density'] = np.random.random((22, 1), dtype='f8')
+    >>> quantities['gas', 'density'] = np.random.random((22, 1))
     >>> bbox = np.array([[-10., 10.], [-10., 10.], [-10., 10.]])
     >>>
-    >>> ds = yt.load_octree(octree_mask=octree_mask,
-    ...                     data=quantities,
-    ...                     bbox=bbox,
-    ...                     over_refine_factor=0,
-    ...                     partial_coverage=0)
+    >>> ds = load_octree(octree_mask=octree_mask,
+    ...                  data=quantities,
+    ...                  bbox=bbox,
+    ...                  over_refine_factor=0,
+    ...                  partial_coverage=0)
 
     """
     from yt.frontends.stream.data_structures import (
@@ -1133,9 +1138,9 @@ def load_unstructured_mesh(
       ...                                           [0.0, 1.0, 2.0, 3.0]])
       ... }
       >>>
-      >>> ds = yt.load_unstructured_mesh(connectivity, coordinates,
-      ...                                elem_data=elem_data,
-      ...                                node_data=node_data)
+      >>> ds = load_unstructured_mesh(connectivity, coordinates,
+      ...                             elem_data=elem_data,
+      ...                             node_data=node_data)
     """
     from yt.frontends.exodus_ii.util import get_num_pseudo_dims
     from yt.frontends.stream.data_structures import (
@@ -1152,19 +1157,11 @@ def load_unstructured_mesh(
     if elem_data is None and node_data is None:
         raise RuntimeError("No data supplied in load_unstructured_mesh.")
 
-    if isinstance(connectivity, list):
-        num_meshes = len(connectivity)
-    else:
-        num_meshes = 1
-    connectivity = ensure_list(connectivity)
+    connectivity = list(always_iterable(connectivity, base_type=np.ndarray))
+    num_meshes = max(1, len(connectivity))
 
-    if elem_data is None:
-        elem_data = [{} for i in range(num_meshes)]
-    elem_data = ensure_list(elem_data)
-
-    if node_data is None:
-        node_data = [{} for i in range(num_meshes)]
-    node_data = ensure_list(node_data)
+    elem_data = list(always_iterable(elem_data, base_type=dict)) or [{}] * num_meshes
+    node_data = list(always_iterable(node_data, base_type=dict)) or [{}] * num_meshes
 
     data = [{} for i in range(num_meshes)]
     for elem_dict, data_dict in zip(elem_data, data):
@@ -1173,7 +1170,6 @@ def load_unstructured_mesh(
     for node_dict, data_dict in zip(node_data, data):
         for field, values in node_dict.items():
             data_dict[field] = values
-    data = ensure_list(data)
 
     if bbox is None:
         bbox = [
@@ -1211,15 +1207,7 @@ def load_unstructured_mesh(
         field_units.update(_f_unit)
         sfh[i] = _data
         particle_types.update(set_particle_types(d))
-    # Simple check for axis length correctness
-    if 0 and len(data) > 0:
-        fn = list(sorted(data))[0]
-        array_values = data[fn]
-        if array_values.size != connectivity.shape[0]:
-            mylog.error(
-                "Dimensions of array must be one fewer than the coordinate set."
-            )
-            raise RuntimeError
+
     grid_left_edges = domain_left_edge
     grid_right_edges = domain_right_edge
     grid_dimensions = domain_dimensions.reshape(nprocs, 3).astype("int32")
@@ -1275,7 +1263,7 @@ def load_unstructured_mesh(
     sds._node_fields = flatten([[f[1] for f in m] for m in node_data if m])
     sds._elem_fields = flatten([[f[1] for f in m] for m in elem_data if m])
     sds.default_field = [f for f in sds.field_list if f[0] == "connect1"][-1]
-
+    sds.default_fluid_type = sds.default_field[0]
     return sds
 
 
@@ -1329,12 +1317,7 @@ def load_sample(fn=None, specific_file=None, pbar=True):
 
     downloader = None
     if pbar:
-        try:
-            import tqdm  # noqa: F401
-
-            downloader = pooch.pooch.HTTPDownloader(progressbar=True)
-        except ImportError:
-            mylog.warning("tqdm is not installed, progress bar can not be displayed.")
+        downloader = pooch.pooch.HTTPDownloader(progressbar=True)
 
     if extension != "h5":
         # we are going to assume most files that exist on the hub are

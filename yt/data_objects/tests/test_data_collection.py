@@ -6,7 +6,7 @@ from yt.testing import assert_equal, assert_rel_equal, fake_random_ds
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def test_data_collection():

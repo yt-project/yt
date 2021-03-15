@@ -1,7 +1,7 @@
-import yt
-
 # For this example we will use h5py to write to our output file.
 import h5py
+
+import yt
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 

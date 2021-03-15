@@ -78,7 +78,7 @@ def line_integral_convolution_2d(
             y = j
             fx = 0.5
             fy = 0.5
-            
+
             l = kernellen//2
             result[i,j] += kernel[l]*texture[x,y]
             while l<kernellen-1:
@@ -86,12 +86,12 @@ def line_integral_convolution_2d(
                         &x, &y, &fx, &fy, w, h)
                 l+=1
                 result[i,j] += kernel[l]*texture[x,y]
-            
+
             x = i
             y = j
             fx = 0.5
             fy = 0.5
-            
+
             while l>0:
                 _advance_2d(-vectors[x,y,0],-vectors[x,y,1],
                         &x, &y, &fx, &fy, w, h)

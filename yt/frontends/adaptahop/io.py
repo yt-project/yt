@@ -11,11 +11,8 @@ from operator import attrgetter
 
 import numpy as np
 
-from yt.funcs import mylog
 from yt.utilities.cython_fortran_utils import FortranFile
-from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 
 from .definitions import HALO_ATTRIBUTES, HEADER_ATTRIBUTES
 
@@ -38,7 +35,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
@@ -58,7 +55,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
@@ -69,8 +66,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
         def iterate_over_attributes(attr_list):
             for attr, *_ in attr_list:
                 if isinstance(attr, tuple):
-                    for a in attr:
-                        yield a
+                    yield from attr
                 else:
                     yield attr
 
@@ -119,38 +115,6 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
                 i = field_list.index(field)
                 yield (ptype, field), data[mask, i]
 
-    def _initialize_index(self, data_file, regions):
-        pcount = data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
-        morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
-            "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
-        )
-        if pcount == 0:
-            return morton
-        ind = 0
-
-        pos = self._get_particle_positions()
-
-        if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or np.any(
-            pos.max(axis=0) > self.ds.domain_right_edge
-        ):
-            raise YTDomainOverflow(
-                pos.min(axis=0),
-                pos.max(axis=0),
-                self.ds.domain_left_edge,
-                self.ds.domain_right_edge,
-            )
-        regions.add_data_file(pos, data_file.file_id)
-        morton[ind : ind + pos.shape[0]] = compute_morton(
-            pos[:, 0],
-            pos[:, 1],
-            pos[:, 2],
-            data_file.ds.domain_left_edge,
-            data_file.ds.domain_right_edge,
-        )
-
-        return morton
-
     def _count_particles(self, data_file):
         nhalos = data_file.ds.parameters["nhalos"] + data_file.ds.parameters["nsubs"]
         return {"halos": nhalos}
@@ -187,7 +151,7 @@ class IOHandlerAdaptaHOPBinary(BaseIOHandler):
 
             nhalos = params["nhalos"] + params["nsubs"]
             data = np.zeros((nhalos, 3))
-            offset_map = np.zeros((nhalos, 2), dtype=int)
+            offset_map = np.zeros((nhalos, 2), dtype="int64")
             for ihalo in range(nhalos):
                 ipos = fpu.tell()
                 for it in todo:

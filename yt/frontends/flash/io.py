@@ -4,7 +4,6 @@ import numpy as np
 
 from yt.geometry.selection_routines import AlwaysSelector
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 
 
 # http://stackoverflow.com/questions/2361945/detecting-consecutive-integers-in-a-list
@@ -27,9 +26,7 @@ def determine_particle_fields(handle):
         particle_fields = [
             s[0].decode("ascii", "ignore").strip() for s in handle["/particle names"][:]
         ]
-        _particle_fields = dict(
-            [("particle_" + s, i) for i, s in enumerate(particle_fields)]
-        )
+        _particle_fields = {"particle_" + s: i for i, s in enumerate(particle_fields)}
     except KeyError:
         _particle_fields = {}
     return _particle_fields
@@ -40,7 +37,7 @@ class IOHandlerFLASH(BaseIOHandler):
     _dataset_type = "flash_hdf5"
 
     def __init__(self, ds):
-        super(IOHandlerFLASH, self).__init__(ds)
+        super().__init__(ds)
         # Now we cache the particle fields
         self._handle = ds._handle
         self._particle_handle = ds._particle_handle
@@ -157,21 +154,24 @@ class IOHandlerFLASHParticle(BaseIOHandler):
     _dataset_type = "flash_particle_hdf5"
 
     def __init__(self, ds):
-        super(IOHandlerFLASHParticle, self).__init__(ds)
+        super().__init__(ds)
         # Now we cache the particle fields
         self._handle = ds._handle
         self._particle_fields = determine_particle_fields(self._handle)
         self._position_fields = [
             self._particle_fields[f"particle_pos{ax}"] for ax in "xyz"
         ]
-        self._chunksize = 32 ** 3
+
+    @property
+    def chunksize(self):
+        return 32 ** 3
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         for chunk in chunks:
             for obj in chunk.objs:
@@ -180,7 +180,7 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         p_fields = self._handle["/tracer particles"]
         for data_file in sorted(data_files, key=lambda x: (x.filename, x.start)):
             pxyz = np.asarray(
-                p_fields[data_file.start : data_file.end, (px, py, pz)], dtype="=f8"
+                p_fields[data_file.start : data_file.end, [px, py, pz]], dtype="=f8"
             )
             yield "io", pxyz.T
 
@@ -188,13 +188,13 @@ class IOHandlerFLASHParticle(BaseIOHandler):
         px, py, pz = self._position_fields
         p_fields = self._handle["/tracer particles"]
         pxyz = np.asarray(
-            p_fields[data_file.start : data_file.end, (px, py, pz)], dtype="=f8"
+            p_fields[data_file.start : data_file.end, [px, py, pz]], dtype="=f8"
         )
         yield ("io", pxyz)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         assert len(ptf) == 1
         for chunk in chunks:
             for obj in chunk.objs:
@@ -216,29 +216,6 @@ class IOHandlerFLASHParticle(BaseIOHandler):
                     fi = self._particle_fields[field]
                     data = p_fields[si:ei, fi]
                     yield (ptype, field), data[mask]
-
-    def _initialize_index(self, data_file, regions):
-        p_fields = self._handle["/tracer particles"]
-        px, py, pz = self._position_fields
-        pcount = self._count_particles(data_file)["io"]
-        morton = np.empty(pcount, dtype="uint64")
-        ind = 0
-        while ind < pcount:
-            npart = min(self._chunksize, pcount - ind)
-            pos = np.empty((npart, 3), dtype="=f8")
-            pos[:, 0] = p_fields[ind : ind + npart, px]
-            pos[:, 1] = p_fields[ind : ind + npart, py]
-            pos[:, 2] = p_fields[ind : ind + npart, pz]
-            regions.add_data_file(pos, data_file.file_id)
-            morton[ind : ind + npart] = compute_morton(
-                pos[:, 0],
-                pos[:, 1],
-                pos[:, 2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-            )
-            ind += self._chunksize
-        return morton
 
     _pcount = None
 

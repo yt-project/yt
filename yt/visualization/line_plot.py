@@ -2,7 +2,7 @@ from collections import defaultdict
 
 import numpy as np
 
-from yt.funcs import iterable, mylog
+from yt.funcs import is_sequence, mylog
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray
 from yt.visualization.base_plot_types import PlotMPL
@@ -76,7 +76,7 @@ class LineBuffer:
 
 class LinePlotDictionary(PlotDictionary):
     def __init__(self, data_source):
-        super(LinePlotDictionary, self).__init__(data_source)
+        super().__init__(data_source)
         self.known_dimensions = {}
 
     def _sanitize_dimensions(self, item):
@@ -94,15 +94,15 @@ class LinePlotDictionary(PlotDictionary):
 
     def __getitem__(self, item):
         ret_item = self._sanitize_dimensions(item)
-        return super(LinePlotDictionary, self).__getitem__(ret_item)
+        return super().__getitem__(ret_item)
 
     def __setitem__(self, item, value):
         ret_item = self._sanitize_dimensions(item)
-        super(LinePlotDictionary, self).__setitem__(ret_item, value)
+        super().__setitem__(ret_item, value)
 
     def __contains__(self, item):
         ret_item = self._sanitize_dimensions(item)
-        return super(LinePlotDictionary, self).__contains__(ret_item)
+        return super().__contains__(ret_item)
 
 
 class LinePlot(PlotContainer):
@@ -261,7 +261,7 @@ class LinePlot(PlotContainer):
         y_axis_size = 0.7 * fontscale
         right_buff_size = 0.2 * fontscale
 
-        if iterable(self.figure_size):
+        if is_sequence(self.figure_size):
             figure_size = self.figure_size
         else:
             figure_size = (self.figure_size, self.figure_size)
@@ -437,7 +437,7 @@ class LinePlot(PlotContainer):
 
 
 def _validate_point(point, ds, start=False):
-    if not iterable(point):
+    if not is_sequence(point):
         raise RuntimeError("Input point must be array-like")
     if not isinstance(point, YTArray):
         point = ds.arr(point, "code_length", dtype=np.float64)

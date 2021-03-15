@@ -5,21 +5,21 @@ import numpy as np
 
 def create_spline(old_x, old_y, new_x, tension=0.5, sorted=False):
     """
-Inputs:
-  old_x: array of floats
-    Original x-data to be fit with a Catmull-Rom spline
-  old_y: array of floats
-    Original y-data to be fit with a Catmull-Rom spline
-  new_x: array of floats
-    interpolate to these x-coordinates
-  tension: float, optional
-    controls the tension at the specified coordinates
-  sorted: boolean, optional
-    If True, then the old_x and old_y arrays are sorted, and then this routine
-    does not try to sort the coordinates
-Outputs:
-  result: array of floats
-    interpolated y-coordinates
+    Inputs:
+      old_x: array of floats
+        Original x-data to be fit with a Catmull-Rom spline
+      old_y: array of floats
+        Original y-data to be fit with a Catmull-Rom spline
+      new_x: array of floats
+        interpolate to these x-coordinates
+      tension: float, optional
+        controls the tension at the specified coordinates
+      sorted: boolean, optional
+        If True, then the old_x and old_y arrays are sorted, and then this routine
+        does not try to sort the coordinates
+    Outputs:
+      result: array of floats
+        interpolated y-coordinates
     """
     ndata = len(old_x)
     N = len(new_x)

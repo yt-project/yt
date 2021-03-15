@@ -28,11 +28,11 @@ class ChomboFieldInfo(FieldInfoContainer):
 class Orion2FieldInfo(ChomboFieldInfo):
     known_other_fields = (
         ("density", (rho_units, ["density"], None)),
-        ("energy-density", (eden_units, ["energy_density"], None)),
+        ("energy-density", (eden_units, ["total_energy_density"], None)),
         ("radiation-energy-density", (eden_units, ["radiation_energy_density"], None)),
-        ("X-momentum", (mom_units, ["momentum_x"], None)),
-        ("Y-momentum", (mom_units, ["momentum_y"], None)),
-        ("Z-momentum", (mom_units, ["momentum_z"], None)),
+        ("X-momentum", (mom_units, ["momentum_density_x"], None)),
+        ("Y-momentum", (mom_units, ["momentum_density_y"], None)),
+        ("Z-momentum", (mom_units, ["momentum_density_z"], None)),
         ("temperature", ("K", ["temperature"], None)),
         ("X-magnfield", (b_units, [], None)),
         ("Y-magnfield", (b_units, [], None)),
@@ -79,7 +79,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
                 units="code_length/code_time",
             )
 
-        super(Orion2FieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
 
     def setup_fluid_fields(self):
         from yt.fields.magnetic_field import setup_magnetic_field_aliases
@@ -90,16 +90,16 @@ class Orion2FieldInfo(ChomboFieldInfo):
             try:
                 return (
                     data["energy-density"]
-                    - data["kinetic_energy"]
-                    - data["magnetic_energy"]
+                    - data["kinetic_energy_density"]
+                    - data["magnetic_energy_density"]
                 )
             except YTFieldNotFound:
-                return data["energy-density"] - data["kinetic_energy"]
+                return data["energy-density"] - data["kinetic_energy_density"]
 
-        def _thermal_energy(field, data):
+        def _specific_thermal_energy(field, data):
             return data["thermal_energy_density"] / data["density"]
 
-        def _magnetic_energy(field, data):
+        def _magnetic_energy_density(field, data):
             ret = data["X-magnfield"] ** 2
             if data.ds.dimensionality > 1:
                 ret = ret + data["Y-magnfield"] ** 2
@@ -110,7 +110,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
         def _specific_magnetic_energy(field, data):
             return data["specific_magnetic_energy"] / data["density"]
 
-        def _kinetic_energy(field, data):
+        def _kinetic_energy_density(field, data):
             p2 = data["X-momentum"] ** 2
             if data.ds.dimensionality > 1:
                 p2 = p2 + data["Y-momentum"] ** 2
@@ -119,15 +119,15 @@ class Orion2FieldInfo(ChomboFieldInfo):
             return 0.5 * p2 / data["density"]
 
         def _specific_kinetic_energy(field, data):
-            return data["kinetic_energy"] / data["density"]
+            return data["kinetic_energy_density"] / data["density"]
 
         def _temperature(field, data):
             c_v = data.ds.quan(data.ds.parameters["radiation.const_cv"], "erg/g/K")
-            return data["thermal_energy"] / c_v
+            return data["specific_thermal_energy"] / c_v
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"momentum_{axis}"] / data["density"]
+                return data[f"momentum_density_{axis}"] / data["density"]
 
             return velocity
 
@@ -139,9 +139,9 @@ class Orion2FieldInfo(ChomboFieldInfo):
                 units=unit_system["velocity"],
             )
         self.add_field(
-            ("gas", "thermal_energy"),
+            ("gas", "specific_thermal_energy"),
             sampling_type="cell",
-            function=_thermal_energy,
+            function=_specific_thermal_energy,
             units=unit_system["specific_energy"],
         )
         self.add_field(
@@ -151,9 +151,9 @@ class Orion2FieldInfo(ChomboFieldInfo):
             units=unit_system["pressure"],
         )
         self.add_field(
-            ("gas", "kinetic_energy"),
+            ("gas", "kinetic_energy_density"),
             sampling_type="cell",
-            function=_kinetic_energy,
+            function=_kinetic_energy_density,
             units=unit_system["pressure"],
         )
         self.add_field(
@@ -163,9 +163,9 @@ class Orion2FieldInfo(ChomboFieldInfo):
             units=unit_system["specific_energy"],
         )
         self.add_field(
-            ("gas", "magnetic_energy"),
+            ("gas", "magnetic_energy_density"),
             sampling_type="cell",
-            function=_magnetic_energy,
+            function=_magnetic_energy_density,
             units=unit_system["pressure"],
         )
         self.add_field(
@@ -291,7 +291,7 @@ class ChomboPICFieldInfo2D(ChomboPICFieldInfo3D):
     )
 
     def __init__(self, ds, field_list):
-        super(ChomboPICFieldInfo2D, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
         for ftype in fluid_field_types:
             self.add_field(
@@ -333,7 +333,7 @@ class ChomboPICFieldInfo1D(ChomboPICFieldInfo3D):
     )
 
     def __init__(self, ds, field_list):
-        super(ChomboPICFieldInfo1D, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
         for ftype in fluid_field_types:
             self.add_field(

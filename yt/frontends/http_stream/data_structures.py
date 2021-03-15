@@ -33,7 +33,7 @@ class HTTPStreamDataset(ParticleDataset):
         if get_requests() is None:
             raise ImportError("This functionality depends on the requests package")
         self.base_url = base_url
-        super(HTTPStreamDataset, self).__init__(
+        super().__init__(
             "",
             dataset_type=dataset_type,
             unit_system=unit_system,
@@ -55,16 +55,16 @@ class HTTPStreamDataset(ParticleDataset):
         if hreq.status_code != 200:
             raise RuntimeError
         header = json.loads(hreq.content)
-        header["particle_count"] = dict(
-            (int(k), header["particle_count"][k]) for k in header["particle_count"]
-        )
+        header["particle_count"] = {
+            int(k): header["particle_count"][k] for k in header["particle_count"]
+        }
         self.parameters = header
 
         # Now we get what we need
         self.domain_left_edge = np.array(header["domain_left_edge"], "float64")
         self.domain_right_edge = np.array(header["domain_right_edge"], "float64")
         self.domain_dimensions = np.ones(3, "int32")
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
         self.current_time = header["current_time"]
         self.unique_identifier = header.get("unique_identifier", time.time())
@@ -88,19 +88,19 @@ class HTTPStreamDataset(ParticleDataset):
         self._unit_base = {}
         self._unit_base["cm"] = 1.0 / length_unit
         self._unit_base["s"] = 1.0 / time_unit
-        super(HTTPStreamDataset, self)._set_units()
+        super()._set_units()
         self.conversion_factors["velocity"] = velocity_unit
         self.conversion_factors["mass"] = mass_unit
         self.conversion_factors["density"] = density_unit
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].startswith("http://"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.startswith("http://"):
             return False
         requests = get_requests()
         if requests is None:
             return False
-        hreq = requests.get(args[0] + "/yt_index.json")
+        hreq = requests.get(filename + "/yt_index.json")
         if hreq.status_code == 200:
             return True
         return False

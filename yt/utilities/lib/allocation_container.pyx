@@ -46,14 +46,14 @@ cdef class ObjectPool:
         specified as con_id.  Return value is a view on them."""
         self.allocate_objs(n_objs, con_id)
         return self[self.n_con - 1]
-        
+
     cdef void allocate_objs(self, int n_objs, np.int64_t con_id = -1) except *:
         cdef AllocationContainer *n_cont
         cdef AllocationContainer *prev
         cdef int n, i, j, k
         cdef char *obj # char so we can do pointer math
         self.containers = <AllocationContainer*> realloc(
-              self.containers, 
+              self.containers,
               sizeof(AllocationContainer) * (self.n_con + 1))
         n_cont = &self.containers[self.n_con]
         if self.n_con == 0:

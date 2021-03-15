@@ -3,9 +3,9 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
-from yt.funcs import ensure_tuple, just_one, setdefaultattr
+from yt.funcs import just_one, setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.units.dimensions import dimensionless as sympy_one
 from yt.units.unit_object import Unit
@@ -202,7 +202,7 @@ class GDFDataset(Dataset):
         if "dataset_units" in h5f:
             for unit_name in h5f["/dataset_units"]:
                 current_unit = h5f[f"/dataset_units/{unit_name}"]
-                value = current_unit.value
+                value = current_unit[()]
                 unit = current_unit.attrs["unit"]
                 # need to convert to a Unit object and check dimensions
                 # because unit can be things like
@@ -264,8 +264,7 @@ class GDFDataset(Dataset):
         self.num_ghost_zones = sp["num_ghost_zones"]
         self.field_ordering = sp["field_ordering"]
         self.boundary_conditions = sp["boundary_conditions"][:]
-        p = [bnd == 0 for bnd in self.boundary_conditions[::2]]
-        self.periodicity = ensure_tuple(p)
+        self._periodicity = tuple(bnd == 0 for bnd in self.boundary_conditions[::2])
         if self.cosmological_simulation:
             self.current_redshift = sp["current_redshift"]
             self.omega_lambda = sp["omega_lambda"]
@@ -284,9 +283,9 @@ class GDFDataset(Dataset):
         del self._handle
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         try:
-            fileh = h5py.File(args[0], mode="r")
+            fileh = h5py.File(filename, mode="r")
             if "gridded_data_format" in fileh:
                 fileh.close()
                 return True

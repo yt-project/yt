@@ -1,5 +1,6 @@
 import re
 import subprocess
+
 from docutils import statemachine
 from docutils.parsers.rst import Directive
 
@@ -28,7 +29,7 @@ class GetConfigHelp(Directive):
             .split("\n")
         )
         ind = next(
-            (i for i, val in enumerate(data) if re.match("\s{0,3}\{.*\}\s*$", val))
+            (i for i, val in enumerate(data) if re.match(r"\s{0,3}\{.*\}\s*$", val))
         )
         lines = [".. code-block:: none", ""] + data[ind + 1 :]
         self.state_machine.insert_input(

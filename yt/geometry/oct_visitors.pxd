@@ -9,6 +9,7 @@ Oct visitor definitions file
 
 cimport numpy as np
 
+
 cdef struct Oct
 cdef struct Oct:
     np.int64_t file_ind     # index with respect to the order in which it was
@@ -144,6 +145,7 @@ cdef inline int cind(int i, int j, int k) nogil:
 
 from oct_container cimport OctreeContainer
 
+
 cdef class StoreIndex(OctVisitor):
     cdef np.int64_t[:,:,:,:] cell_inds
 
@@ -156,6 +158,7 @@ cdef class BaseNeighbourVisitor(OctVisitor):
     cdef Oct *neighbour
     cdef OctreeContainer octree
     cdef OctInfo oi
+    cdef int n_ghost_zones
 
     cdef void set_neighbour_info(self, Oct *o, int ishift[3])
 
@@ -172,4 +175,3 @@ cdef class NeighbourCellVisitor(BaseNeighbourVisitor):
     cdef np.int64_t[::1] file_inds
     cdef np.uint8_t[::1] cell_inds
     cdef np.int32_t[::1] domains
-

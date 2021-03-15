@@ -7,8 +7,8 @@ AMRVAC-specific IO functions
 import os
 
 import numpy as np
+from more_itertools import always_iterable
 
-from yt.funcs import ensure_list
 from yt.geometry.selection_routines import GridSelector
 from yt.utilities.io_handler import BaseIOHandler
 from yt.utilities.on_demand_imports import _f90nml as f90nml
@@ -35,7 +35,7 @@ def read_amrvac_namelist(parfiles):
         A single namelist object. The class inherits from ordereddict.
 
     """
-    parfiles = [os.path.expanduser(pf) for pf in ensure_list(parfiles)]
+    parfiles = (os.path.expanduser(pf) for pf in always_iterable(parfiles))
 
     # first merge the namelists
     namelists = [f90nml.read(parfile) for parfile in parfiles]
@@ -150,7 +150,7 @@ class AMRVACIOHandler(BaseIOHandler):
                 data_dict[ftype, fname] = self._read_data(grid, fname)
         else:
             if size is None:
-                size = sum((g.count(selector) for chunk in chunks for g in chunk.objs))
+                size = sum(g.count(selector) for chunk in chunks for g in chunk.objs)
 
             for field in fields:
                 data_dict[field] = np.empty(size, dtype="float64")

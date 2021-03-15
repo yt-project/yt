@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import camelcase_to_underscore, ensure_list
+from yt.funcs import camelcase_to_underscore, iter_fields
 from yt.units.yt_array import array_like_field
 from yt.utilities.exceptions import YTParticleTypeNotFound
 from yt.utilities.object_registries import derived_quantity_registry
@@ -47,7 +47,9 @@ class DerivedQuantity(ParallelAnalysisInterface):
         # create the index if it doesn't exist yet
         self.data_source.ds.index
         self.count_values(*args, **kwargs)
-        chunks = self.data_source.chunks([], chunking_style="io")
+        chunks = self.data_source.chunks(
+            [], chunking_style=self.data_source._derived_quantity_chunking
+        )
         storage = {}
         for sto, ds in parallel_objects(chunks, -1, storage=storage):
             sto.result = self.process_chunk(ds, *args, **kwargs)
@@ -124,8 +126,8 @@ class WeightedAverageQuantity(DerivedQuantity):
         self.num_vals = len(fields) + 1
 
     def __call__(self, fields, weight):
-        fields = ensure_list(fields)
-        rv = super(WeightedAverageQuantity, self).__call__(fields, weight)
+        fields = list(iter_fields(fields))
+        rv = super().__call__(fields, weight)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -163,8 +165,8 @@ class TotalQuantity(DerivedQuantity):
         self.num_vals = len(fields)
 
     def __call__(self, fields):
-        fields = ensure_list(fields)
-        rv = super(TotalQuantity, self).__call__(fields)
+        fields = list(iter_fields(fields))
+        rv = super().__call__(fields)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -196,11 +198,11 @@ class TotalMass(TotalQuantity):
         self.data_source.ds.index
         fi = self.data_source.ds.field_info
         if ("gas", "mass") in fi:
-            gas = super(TotalMass, self).__call__([("gas", "mass")])
+            gas = super().__call__([("gas", "mass")])
         else:
             gas = self.data_source.ds.arr([0], "g")
         if ("nbody", "particle_mass") in fi:
-            part = super(TotalMass, self).__call__([("nbody", "particle_mass")])
+            part = super().__call__([("nbody", "particle_mass")])
         else:
             part = self.data_source.ds.arr([0], "g")
         return self.data_source.ds.arr([gas, part])
@@ -406,9 +408,9 @@ class WeightedVariance(DerivedQuantity):
         self.num_vals = 2 * len(fields) + 1
 
     def __call__(self, fields, weight):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         units = [self.data_source.ds._get_field_info(field).units for field in fields]
-        rv = super(WeightedVariance, self).__call__(fields, weight)
+        rv = super().__call__(fields, weight)
         rv = [self.data_source.ds.arr(v, u) for v, u in zip(rv, units)]
         if len(rv) == 1:
             rv = rv[0]
@@ -586,8 +588,8 @@ class Extrema(DerivedQuantity):
         self.num_vals = len(fields) * 2
 
     def __call__(self, fields, non_zero=False):
-        fields = ensure_list(fields)
-        rv = super(Extrema, self).__call__(fields, non_zero)
+        fields = list(iter_fields(fields))
+        rv = super().__call__(fields, non_zero)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -644,7 +646,7 @@ class SampleAtMaxFieldValues(DerivedQuantity):
         self.num_vals = 1 + len(sample_fields)
 
     def __call__(self, field, sample_fields):
-        rv = super(SampleAtMaxFieldValues, self).__call__(field, sample_fields)
+        rv = super().__call__(field, sample_fields)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -691,7 +693,7 @@ class MaxLocation(SampleAtMaxFieldValues):
         # Make sure we have an index
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
-        rv = super(MaxLocation, self).__call__(field, sample_fields)
+        rv = super().__call__(field, sample_fields)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -747,7 +749,7 @@ class MinLocation(SampleAtMinFieldValues):
         # Make sure we have an index
         self.data_source.index
         sample_fields = get_position_fields(field, self.data_source)
-        rv = super(MinLocation, self).__call__(field, sample_fields)
+        rv = super().__call__(field, sample_fields)
         if len(rv) == 1:
             rv = rv[0]
         return rv
@@ -808,7 +810,7 @@ class SpinParameter(DerivedQuantity):
         j = data.ds.quan(0.0, "g*cm**2/s")
         m = data.ds.quan(0.0, "g")
         if use_gas:
-            e += (data["gas", "kinetic_energy"] * data["gas", "volume"]).sum(
+            e += (data["gas", "kinetic_energy_density"] * data["gas", "volume"]).sum(
                 dtype=np.float64
             )
             j += data["gas", "angular_momentum_magnitude"].sum(dtype=np.float64)

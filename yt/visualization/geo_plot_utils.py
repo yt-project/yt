@@ -30,8 +30,7 @@ transform_list = [
 
 
 def cartopy_importer(transform_name):
-    r"""Convenience function to import cartopy projection types
-    """
+    r"""Convenience function to import cartopy projection types"""
 
     def _func(*args, **kwargs):
         from yt.utilities.on_demand_imports import _cartopy as cartopy

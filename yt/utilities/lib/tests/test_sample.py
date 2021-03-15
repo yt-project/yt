@@ -25,12 +25,12 @@ def test_sample():
     yp = np.random.uniform(low=1.0, high=63.0, size=num_particles)
     zp = np.random.uniform(low=1.0, high=63.0, size=num_particles)
 
-    xfield = np.zeros((num_particles))
-    yfield = np.zeros((num_particles))
-    zfield = np.zeros((num_particles))
+    xfield = np.zeros(num_particles)
+    yfield = np.zeros(num_particles)
+    zfield = np.zeros(num_particles)
 
     dx = 1.0
-    le = np.zeros((3))
+    le = np.zeros(3)
 
     CICSample_3(xp, yp, zp, xfield, num_particles, grid["x"], le, dims, dx)
     CICSample_3(xp, yp, zp, yfield, num_particles, grid["y"], le, dims, dx)

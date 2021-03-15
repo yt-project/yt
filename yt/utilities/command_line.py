@@ -1,4 +1,3 @@
-# isort: skip-file
 import argparse
 import base64
 import getpass
@@ -14,19 +13,19 @@ import urllib.request
 from urllib.parse import urlparse
 
 import numpy as np
+from more_itertools import always_iterable
+from tqdm import tqdm
 
-from yt.config import CURRENT_CONFIG_FILE, ytcfg
-from yt.extern.tqdm import tqdm
+from yt.config import YTConfig, ytcfg
 from yt.funcs import (
     download_file,
     enable_plugins,
     ensure_dir,
     ensure_dir_exists,
-    ensure_list,
-    get_hg_or_git_version,
+    get_git_version,
     get_yt_version,
     mylog,
-    update_hg_or_git,
+    update_git,
 )
 from yt.loaders import load
 from yt.utilities.configure import set_config
@@ -40,7 +39,7 @@ from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
 # isort: off
 # This needs to be set before importing startup_tasks
-ytcfg["yt", "__command_line"] = "True"  # isort: skip
+ytcfg["yt", "internals", "command_line"] = True  # isort: skip
 from yt.startup_tasks import parser, subparsers  # isort: skip # noqa: E402
 
 # isort: on
@@ -54,6 +53,7 @@ except FileNotFoundError:
     pass
 
 _default_colormap = ytcfg.get("yt", "default_colormap")
+_arg_groups = {}
 
 
 def _fix_ds(arg, *args, **kwargs):
@@ -71,6 +71,15 @@ def _fix_ds(arg, *args, **kwargs):
 def _add_arg(sc, arg):
     if isinstance(arg, str):
         arg = _common_options[arg].copy()
+    elif isinstance(arg, tuple):
+        exclusive, *args = arg
+        if exclusive:
+            grp = sc.add_mutually_exclusive_group()
+        else:
+            grp = sc.add_argument_group()
+        for arg in args:
+            _add_arg(grp, arg)
+        return
     argc = dict(arg.items())
     argnames = []
     if "short" in argc:
@@ -124,7 +133,7 @@ def _print_installation_information(path):
     print()
     print("---")
     print(f"Version = {yt.__version__}")
-    vstring = get_hg_or_git_version(path)
+    vstring = get_git_version(path)
     if vstring is not None:
         print(f"Changeset = {vstring.strip()}")
     print("---")
@@ -180,31 +189,29 @@ _subparsers_description = {
 class YTCommandSubtype(type):
     def __init__(cls, name, b, d):
         type.__init__(cls, name, b, d)
-        if cls.name is not None:
-            names = ensure_list(cls.name)
-            if cls.subparser not in _subparsers:
-                try:
-                    description = _subparsers_description[cls.subparser]
-                except KeyError:
-                    description = cls.subparser
-                parent_parser = argparse.ArgumentParser(add_help=False)
-                p = subparsers.add_parser(
-                    cls.subparser,
-                    help=description,
-                    description=description,
-                    parents=[parent_parser],
-                )
-                _subparsers[cls.subparser] = p.add_subparsers(
-                    title=cls.subparser, dest=cls.subparser
-                )
-            sp = _subparsers[cls.subparser]
-            for name in names:
-                sc = sp.add_parser(
-                    name, description=cls.description, help=cls.description
-                )
-                sc.set_defaults(func=cls.run)
-                for arg in cls.args:
-                    _add_arg(sc, arg)
+        if cls.name is None:
+            return
+        if cls.subparser not in _subparsers:
+            try:
+                description = _subparsers_description[cls.subparser]
+            except KeyError:
+                description = cls.subparser
+            parent_parser = argparse.ArgumentParser(add_help=False)
+            p = subparsers.add_parser(
+                cls.subparser,
+                help=description,
+                description=description,
+                parents=[parent_parser],
+            )
+            _subparsers[cls.subparser] = p.add_subparsers(
+                title=cls.subparser, dest=cls.subparser
+            )
+        sp = _subparsers[cls.subparser]
+        for name in always_iterable(cls.name):
+            sc = sp.add_parser(name, description=cls.description, help=cls.description)
+            sc.set_defaults(func=cls.run)
+            for arg in cls.args:
+                _add_arg(sc, arg)
 
 
 class YTCommand(metaclass=YTCommandSubtype):
@@ -795,14 +802,19 @@ class YTHubRegisterCmd(YTCommand):
         """
 
     def __call__(self, args):
-        try:
-            import requests
-        except ImportError as e:
-            raise YTCommandRequiresModule("requests") from e
-        if ytcfg.get("yt", "hub_api_key") != "":
-            print("You seem to already have an API key for the hub in")
-            print(f"{CURRENT_CONFIG_FILE} . Delete this if you want to force a")
-            print("new user registration.")
+        from yt.utilities.on_demand_imports import _requests as requests
+
+        hub_api_key, config_file = ytcfg.get(
+            "yt",
+            "hub_api_key",
+            callback=lambda leaf: (leaf.value, leaf.extra_data.get("source", None)),
+        )
+        if hub_api_key:
+            print(
+                "You seem to already have an API key for the hub in "
+                f"{config_file} . Delete this if you want to force a "
+                "new user registration."
+            )
             sys.exit()
         print("Awesome!  Let's start by registering a new user for you.")
         print("Here's the URL, for reference: http://hub.yt/ ")
@@ -876,7 +888,7 @@ class YTHubRegisterCmd(YTCommand):
         apiKey = req.json()["key"]
 
         print("Storing API key in configuration file")
-        set_config("yt", "hub_api_key", apiKey)
+        set_config("yt", "hub_api_key", apiKey, YTConfig.get_global_config_file())
 
         print()
         print("SUCCESS!")
@@ -916,7 +928,7 @@ class YTInstInfoCmd(YTCommand):
         if vstring is not None:
             print("This installation CAN be automatically updated.")
             if opts.update_source:
-                update_hg_or_git(path)
+                update_git(path)
         elif opts.update_source:
             _print_failed_source_update()
         if vstring is not None and opts.outputfile is not None:
@@ -1269,11 +1281,11 @@ class YTPlotCmd(YTCommand):
         center = np.array(center)
         if ds.dimensionality < 3:
             dummy_dimensions = np.nonzero(ds.index.grids[0].ActiveDimensions <= 1)
-            axes = ensure_list(dummy_dimensions[0][0])
+            axes = dummy_dimensions[0][0]
         elif args.axis == 4:
             axes = range(3)
         else:
-            axes = [args.axis]
+            axes = args.axis
 
         unit = args.unit
         if unit is None:
@@ -1283,7 +1295,7 @@ class YTPlotCmd(YTCommand):
         else:
             width = (args.width, args.unit)
 
-        for ax in axes:
+        for ax in always_iterable(axes):
             mylog.info("Adding plot for axis %i", ax)
             if args.projection:
                 plt = ProjectionPlot(
@@ -1395,7 +1407,7 @@ class YTNotebookCmd(YTCommand):
             pw = IPython.lib.passwd()
             print("If you would like to use this password in the future,")
             print("place a line like this inside the [yt] section in your")
-            print("yt configuration file at ~/.config/yt/ytrc")
+            print("yt configuration file at ~/.config/yt/yt.toml")
             print()
             print(f"notebook_password = {pw}")
             print()
@@ -1469,19 +1481,17 @@ class YTStatsCmd(YTCommand):
             if args.max:
                 vals["min"] = ds.find_max(args.field)
                 print(
-                    "Maximum %s: %0.5e at %s"
-                    % (args.field, vals["min"][0], vals["min"][1])
+                    f"Maximum {args.field}: {vals['min'][0]:0.5e} at {vals['min'][1]}"
                 )
             if args.min:
                 vals["max"] = ds.find_min(args.field)
                 print(
-                    "Minimum %s: %0.5e at %s"
-                    % (args.field, vals["max"][0], vals["max"][1])
+                    f"Minimum {args.field}: {vals['max'][0]:0.5e} at {vals['max'][1]}"
                 )
         if args.output is not None:
             t = ds.current_time * ds["years"]
             with open(args.output, "a") as f:
-                f.write("%s (%0.5e years)\n" % (ds, t))
+                f.write(f"{ds} ({t:0.5e} years)\n")
                 if "min" in vals:
                     f.write(
                         "Minimum %s is %0.5e at %s\n"
@@ -1511,7 +1521,7 @@ class YTUpdateCmd(YTCommand):
         if vstring is not None:
             print()
             print("This installation CAN be automatically updated.")
-            update_hg_or_git(path)
+            update_git(path)
         else:
             _print_failed_source_update(opts.reinstall)
 
@@ -1605,10 +1615,7 @@ class YTUploadFileCmd(YTCommand):
     name = "upload"
 
     def __call__(self, args):
-        try:
-            import requests
-        except ImportError as e:
-            raise YTCommandRequiresModule("requests") from e
+        from yt.utilities.on_demand_imports import _requests as requests
 
         fs = iter(FileStreamer(open(args.file, "rb")))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")
@@ -1617,22 +1624,93 @@ class YTUploadFileCmd(YTCommand):
         print(r.text)
 
 
-class YTConfigGetCmd(YTCommand):
+class YTConfigLocalConfigHandler:
+    def load_config(self, args):
+        import os
+
+        from yt.config import YTConfig
+        from yt.utilities.configure import CONFIG
+
+        local_config_file = YTConfig.get_local_config_file()
+        global_config_file = YTConfig.get_global_config_file()
+
+        local_exists = os.path.exists(local_config_file)
+        global_exists = os.path.exists(global_config_file)
+
+        local_arg_exists = hasattr(args, "local")
+        global_arg_exists = hasattr(args, "global")
+
+        if getattr(args, "local", False):
+            config_file = local_config_file
+        elif getattr(args, "global", False):
+            config_file = global_config_file
+        else:
+            if local_exists and global_exists:
+                s = (
+                    "Yt detected a local and a global configuration file, refusing "
+                    "to proceed.\n"
+                    f"Local config file: {local_config_file}\n"
+                    f"Global config file: {global_config_file}"
+                )
+                # Only print the info about "--global" and "--local" if they exist
+                if local_arg_exists and global_arg_exists:
+                    s += (
+                        "\n"  # missing eol from previous string
+                        "Specify which one you want to use using the `--local` or the "
+                        "`--global` flags."
+                    )
+                sys.exit(s)
+            elif local_exists:
+                config_file = local_config_file
+            else:
+                config_file = global_config_file
+            sys.stderr.write(f"INFO: using configuration file: {config_file}.\n")
+
+        if not os.path.exists(config_file):
+            with open(config_file, "w") as f:
+                f.write("[yt]\n")
+
+        CONFIG.read(config_file)
+
+        self.config_file = config_file
+
+
+_global_local_args = [
+    (
+        "exclusive",
+        dict(
+            short="--local",
+            action="store_true",
+            help="Store the configuration in the global configuration file.",
+        ),
+        dict(
+            short="--global",
+            action="store_true",
+            help="Store the configuration in the global configuration file.",
+        ),
+    ),
+]
+
+
+class YTConfigGetCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "get"
     description = "get a config value"
     args = (
         dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to retrieve."),
+        *_global_local_args,
     )
 
     def __call__(self, args):
         from yt.utilities.configure import get_config
 
+        self.load_config(args)
+
         print(get_config(args.section, args.option))
 
 
-class YTConfigSetCmd(YTCommand):
+class YTConfigSetCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "set"
     description = "set a config value"
@@ -1640,42 +1718,50 @@ class YTConfigSetCmd(YTCommand):
         dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to set."),
         dict(short="value", help="The value to set the option to."),
+        *_global_local_args,
     )
 
     def __call__(self, args):
         from yt.utilities.configure import set_config
 
-        set_config(args.section, args.option, args.value)
+        self.load_config(args)
+
+        set_config(args.section, args.option, args.value, self.config_file)
 
 
-class YTConfigRemoveCmd(YTCommand):
+class YTConfigRemoveCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "rm"
     description = "remove a config option"
     args = (
         dict(short="section", help="The section containing the option."),
         dict(short="option", help="The option to remove."),
+        *_global_local_args,
     )
 
     def __call__(self, args):
         from yt.utilities.configure import rm_config
 
-        rm_config(args.section, args.option)
+        self.load_config(args)
+
+        rm_config(args.section, args.option, self.config_file)
 
 
-class YTConfigListCmd(YTCommand):
+class YTConfigListCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "list"
     description = "show the config content"
-    args = ()
+    args = _global_local_args
 
     def __call__(self, args):
         from yt.utilities.configure import write_config
 
+        self.load_config(args)
+
         write_config(sys.stdout)
 
 
-class YTConfigMigrateCmd(YTCommand):
+class YTConfigMigrateCmd(YTCommand, YTConfigLocalConfigHandler):
     subparser = "config"
     name = "migrate"
     description = "migrate old config file"
@@ -1684,7 +1770,21 @@ class YTConfigMigrateCmd(YTCommand):
     def __call__(self, args):
         from yt.utilities.configure import migrate_config
 
+        self.load_config(args)
+
         migrate_config()
+
+
+class YTConfigPrintPath(YTCommand, YTConfigLocalConfigHandler):
+    subparser = "config"
+    name = "print-path"
+    description = "show path to the config file"
+    args = _global_local_args
+
+    def __call__(self, args):
+        self.load_config(args)
+
+        print(self.config_file)
 
 
 class YTSearchCmd(YTCommand):
@@ -1820,12 +1920,12 @@ class YTDownloadData(YTCommand):
             ensure_dir(data_dir)
         data_file = os.path.join(data_dir, args.filename)
         if os.path.exists(data_file) and not args.overwrite:
-            raise IOError(f"File '{data_file}' exists and overwrite=False!")
+            raise OSError(f"File '{data_file}' exists and overwrite=False!")
         print(f"Attempting to download file: {args.filename}")
         fn = download_file(data_url, data_file)
 
         if not os.path.exists(fn):
-            raise IOError(f"The file '{args.filename}' did not download!!")
+            raise OSError(f"The file '{args.filename}' did not download!!")
         print(f"File: {args.filename} downloaded successfully to {data_file}")
 
     def get_list(self):

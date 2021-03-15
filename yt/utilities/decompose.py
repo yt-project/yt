@@ -18,15 +18,15 @@ def decompose_to_primes(max_prime):
 
 
 def decompose_array(shape, psize, bbox):
-    """ Calculate list of product(psize) subarrays of arr, along with their
-        left and right edges
+    """Calculate list of product(psize) subarrays of arr, along with their
+    left and right edges
     """
     return split_array(bbox[:, 0], bbox[:, 1], shape, psize)
 
 
 def evaluate_domain_decomposition(n_d, pieces, ldom):
-    """ Evaluate longest to shortest edge ratio
-        BEWARE: lot's of magic here """
+    """Evaluate longest to shortest edge ratio
+    BEWARE: lot's of magic here"""
     eff_dim = (n_d > 1).sum()
     exp = float(eff_dim - 1) / float(eff_dim)
     ideal_bsize = eff_dim * pieces ** (1.0 / eff_dim) * np.product(n_d) ** exp
@@ -50,8 +50,8 @@ def evaluate_domain_decomposition(n_d, pieces, ldom):
 
 
 def factorize_number(pieces):
-    """ Return array consisting of prime, its power and number of different
-        decompositions in three dimensions for this prime
+    """Return array consisting of prime, its power and number of different
+    decompositions in three dimensions for this prime
     """
     factors = [factor for factor in decompose_to_primes(pieces)]
     temp = np.bincount(factors)
@@ -64,9 +64,9 @@ def factorize_number(pieces):
 
 
 def get_psize(n_d, pieces):
-    """ Calculate the best division of array into px*py*pz subarrays.
-        The goal is to minimize the ratio of longest to shortest edge
-        to minimize the amount of inter-process communication.
+    """Calculate the best division of array into px*py*pz subarrays.
+    The goal is to minimize the ratio of longest to shortest edge
+    to minimize the amount of inter-process communication.
     """
     fac = factorize_number(pieces)
     nfactors = len(fac[:, 2])

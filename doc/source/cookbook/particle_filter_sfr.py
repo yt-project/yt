@@ -1,7 +1,8 @@
-import yt
 import numpy as np
-from yt.data_objects.particle_filters import add_particle_filter
 from matplotlib import pyplot as plt
+
+import yt
+from yt.data_objects.particle_filters import add_particle_filter
 
 
 def formed_star(pfilter, data):
@@ -23,7 +24,11 @@ formation_time = ad["formed_star", "creation_time"].in_units("yr")
 
 time_range = [0, 5e8]  # years
 n_bins = 1000
-hist, bins = np.histogram(formation_time, bins=n_bins, range=time_range,)
+hist, bins = np.histogram(
+    formation_time,
+    bins=n_bins,
+    range=time_range,
+)
 inds = np.digitize(formation_time, bins=bins)
 time = (bins[:-1] + bins[1:]) / 2
 
@@ -34,5 +39,5 @@ sfr[sfr == 0] = np.nan
 
 plt.plot(time / 1e6, sfr)
 plt.xlabel("Time  [Myr]")
-plt.ylabel("SFR  [M$_\odot$ yr$^{-1}$]")
+plt.ylabel(r"SFR  [M$_\odot$ yr$^{-1}$]")
 plt.savefig("filter_sfr.png")

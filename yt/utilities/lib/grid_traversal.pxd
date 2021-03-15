@@ -8,8 +8,10 @@ Definitions for the traversal code
 
 
 import numpy as np
-cimport numpy as np
+
 cimport cython
+cimport numpy as np
+
 from .image_samplers cimport ImageSampler
 from .volume_container cimport VolumeContainer, vc_index, vc_pos_index
 
@@ -33,12 +35,12 @@ ctypedef void sampler_function(
 #    max_t     np.float64_t      : The maximum value of t that the ray is allowed to travel. Defaulted to 1.0 (no restriction).
 #
 #    Note: 't' is not time here. Rather, it is a factor representing the difference between the initial point 'v_pos'
-#             and the end point, which we might call v_end. It is scaled such that v_pos + v * t = v_pos at t = 0.0, and 
+#             and the end point, which we might call v_end. It is scaled such that v_pos + v * t = v_pos at t = 0.0, and
 #             v_end at t = 1.0. Therefore, if max_t is set to 1.0, there is no restriction on t.
 #
 # Written by the yt Development Team.
 # Encapsulates the Amanatides & Woo "Fast Traversal Voxel Algorithm" to walk over a volume container 'vc'
-# The function occurs in two phases, initialization and traversal. 
+# The function occurs in two phases, initialization and traversal.
 # See: https://www.researchgate.net/publication/2611491_A_Fast_Voxel_Traversal_Algorithm_for_Ray_Tracing
 # Returns: The number of voxels hit during the traversal phase. If the traversal phase is not reached, returns 0.
 #-----------------------------------------------------------------------------

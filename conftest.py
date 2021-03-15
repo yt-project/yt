@@ -30,16 +30,23 @@ def pytest_addoption(parser):
     Lets options be passed to test functions.
     """
     parser.addoption(
-        "--with-answer-testing", action="store_true", default=False,
+        "--with-answer-testing",
+        action="store_true",
+        default=False,
     )
     parser.addoption(
-        "--answer-store", action="store_true", default=False,
+        "--answer-store",
+        action="store_true",
+        default=False,
     )
     parser.addoption(
-        "--answer-big-data", action="store_true", default=False,
+        "--answer-big-data",
+        action="store_true",
+        default=False,
     )
     parser.addoption(
-        "--save-answer-arrays", action="store_true",
+        "--save-answer-arrays",
+        action="store_true",
     )
 
 
@@ -49,14 +56,15 @@ def pytest_configure(config):
     each answer test's answer file (including the changeset number).
     """
 
-    ytcfg["yt", "__withinpytest"] = "True"
+    ytcfg["yt", "internals", "within_pytest"] = True
     # Make sure that the answers dir exists. If not, try to make it
     if not os.path.isdir(answer_dir):
         os.mkdir(answer_dir)
     # Read the list of answer test classes and their associated answer
     # file
-    with open(answer_file_list, "r") as f:
-        answer_files = yaml.safe_load(f)
+    with open(answer_file_list) as f:
+        # devnote: this is never used, likely a bug
+        answer_files = yaml.safe_load(f)  # noqa F841
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
     config.addinivalue_line(
@@ -148,7 +156,7 @@ def answer_file(request):
                     "set the `--force-override-answers` option".format(answer_file)
                 )
     else:
-        assert False
+        raise AssertionError
     request.cls.answer_file = answer_file
 
 
@@ -229,7 +237,7 @@ def hashing(request):
     if request.cls is not None:
         request.cls.hashes = {}
     else:
-        assert False
+        raise AssertionError
     # Yield to the caller in order to actually perform the tests
     yield
     # Get param list

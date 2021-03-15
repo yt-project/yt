@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 # Load the dataset
 ds = yt.load("Enzo_64/DD0043/data0043")
@@ -9,7 +10,8 @@ sc = yt.create_scene(ds, field=("gas", "density"))
 
 # Modify the transfer function
 
-# First get the render source, in this case the entire domain, with field ('gas','density')
+# First get the render source, in this case the entire domain,
+# with field ('gas','density')
 render_source = sc.get_source()
 
 # Clear the transfer function

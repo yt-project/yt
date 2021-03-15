@@ -1,13 +1,12 @@
 from yt.funcs import mylog
 from yt.utilities.exceptions import YTSceneFieldNotFound
 
-from .render_source import MeshSource, VolumeSource
-from .scene import Scene
+from .api import MeshSource, Scene, create_volume_source
 from .utils import data_source_or_all
 
 
 def create_scene(data_source, field=None, lens_type="plane-parallel"):
-    r""" Set up a scene object with sensible defaults for use in volume
+    r"""Set up a scene object with sensible defaults for use in volume
     rendering.
 
     A helper function that creates a default camera view, transfer
@@ -63,7 +62,7 @@ def create_scene(data_source, field=None, lens_type="plane-parallel"):
     if hasattr(data_source.ds.index, "meshes"):
         source = MeshSource(data_source, field=field)
     else:
-        source = VolumeSource(data_source, field=field)
+        source = create_volume_source(data_source, field=field)
 
     sc.add_source(source)
     sc.add_camera(data_source=data_source, lens_type=lens_type)
@@ -73,7 +72,7 @@ def create_scene(data_source, field=None, lens_type="plane-parallel"):
 def volume_render(
     data_source, field=None, fname=None, sigma_clip=None, lens_type="plane-parallel"
 ):
-    r""" Create a simple volume rendering of a data source.
+    r"""Create a simple volume rendering of a data source.
 
     A helper function that creates a default camera view, transfer
     function, and image size. Using these, it returns an image and

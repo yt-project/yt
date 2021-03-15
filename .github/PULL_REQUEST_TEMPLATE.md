@@ -6,7 +6,7 @@ http://yt-project.org/docs/dev/developing/index.html-->
 example "Raises ValueError on Non-Numeric Input to set_xlim".  Please avoid
 non-descriptive titles such as "Addresses issue #8576".-->
 
-<!--If you are able to do so, please do not create the PR out of master, but out
+<!--If you are able to do so, please do not create the PR out of main, but out
 of a separate branch. -->
 
 ## PR Summary
@@ -19,11 +19,6 @@ detail.  Why is this change required?  What problem does it solve?-->
 ## PR Checklist
 
 <!-- Note that some of these check boxes may not apply to all pull requests -->
-
-- [ ] pass `black --check yt/`
-- [ ] pass `isort . --check --diff`
-- [ ] pass `flake8 yt/`
-- [ ] pass `flynt yt/ --fail-on-change --dry-run -e yt/extern`
 - [ ] New features are documented, with docstrings and narrative docs
 - [ ] Adds a test for any bugs fixed. Adds tests for new features.
 

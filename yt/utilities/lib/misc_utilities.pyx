@@ -1,6 +1,7 @@
 # distutils: libraries = STD_LIBS
-# distutils: extra_compile_args = OMP_ARGS
-# distutils: extra_link_args = OMP_ARGS
+# distutils: language = c++
+# distutils: extra_compile_args = CPP14_FLAG OMP_ARGS
+# distutils: extra_link_args = CPP14_FLAG OMP_ARGS
 """
 Simple utilities that don't fit anywhere else
 
@@ -628,11 +629,12 @@ def obtain_relative_velocity_vector(
     cdef np.ndarray[np.float64_t, ndim=3] vzg
     cdef np.ndarray[np.float64_t, ndim=4] rvg
     cdef np.float64_t bv[3]
-    cdef int i, j, k
+    cdef int i, j, k, dim
 
     units = data[field_names[0]].units
     bulk_vector = data.get_field_parameter(bulk_vector).to(units)
-    if len(data[field_names[0]].shape) == 1:
+    dim = data[field_names[0]].ndim
+    if dim == 1:
         # One dimensional data
         vxf = data[field_names[0]].astype("float64")
         vyf = data[field_names[1]].astype("float64")
@@ -652,7 +654,7 @@ def obtain_relative_velocity_vector(
             rvf[1, i] = vyf[i] - bv[1]
             rvf[2, i] = vzf[i] - bv[2]
         return rvf
-    else:
+    elif dim == 3:
         # Three dimensional data
         vxg = data[field_names[0]].astype("float64")
         vyg = data[field_names[1]].astype("float64")
@@ -675,6 +677,8 @@ def obtain_relative_velocity_vector(
                     rvg[1,i,j,k] = vyg[i,j,k] - bv[1]
                     rvg[2,i,j,k] = vzg[i,j,k] - bv[2]
         return rvg
+    else:
+        raise NotImplementedError(f"Unsupported dimensionality `{dim}`.")
 
 def grow_flagging_field(oofield):
     cdef np.ndarray[np.uint8_t, ndim=3] ofield = oofield.astype("uint8")
@@ -784,7 +788,7 @@ def fill_region(input_fields, output_fields,
 @cython.wraparound(False)
 @cython.cdivision(True)
 def flip_bitmask(np.ndarray[np.float64_t, ndim=1] vals,
-                 np.float64_t left_edge, np.float64_t right_edge, 
+                 np.float64_t left_edge, np.float64_t right_edge,
                  np.uint64_t nbins):
     cdef np.uint64_t i, bin_id
     cdef np.float64_t idx = nbins / (right_edge - left_edge)
@@ -886,7 +890,7 @@ def fill_region_float(np.ndarray[np.float64_t, ndim=2] fcoords,
         box_idds[i] = 1.0/box_dds[i]
         diter[i][0] = diter[i][1] = 0
         diterv[i][0] = diterv[i][1] = 0.0
-        overlap[i] = 1.0 
+        overlap[i] = 1.0
     with nogil:
         for p in range(fcoords.shape[0]):
             for i in range(3):
@@ -974,7 +978,7 @@ def gravitational_binding_energy(
     pbar = get_pbar("Calculating potential for %d cells with %d thread(s)" % (n_q,num_threads),
         n_q)
 
-    # using reversed iterator in order to make use of guided scheduling 
+    # using reversed iterator in order to make use of guided scheduling
     # (inner loop is getting more and more expensive)
     for q_outer in prange(n_q - 1,-1,-1,
         nogil=True,schedule='guided',num_threads=num_threads):
@@ -984,7 +988,7 @@ def gravitational_binding_energy(
         x_o = x[q_outer]
         y_o = y[q_outer]
         z_o = z[q_outer]
-        for q_inner in range(q_outer + 1, n_q): 
+        for q_inner in range(q_outer + 1, n_q):
             mass_i = mass[q_inner]
             x_i = x[q_inner]
             y_i = y[q_inner]
@@ -1001,7 +1005,7 @@ def gravitational_binding_energy(
             PyErr_CheckSignals()
             # this call is not thread safe, but it gives a reasonable approximation
             pbar.update()
-    
+
     pbar.finish()
     return total_potential
 

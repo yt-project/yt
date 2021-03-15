@@ -19,14 +19,14 @@ dtMovieDump           = 0
 TracerParticleOn           = 0
 TimeLastTracerParticleDump = 0.81651316219217
 dtTracerParticleDump       = 0
-MovieRegionLeftEdge   = 0 0 0 
-MovieRegionRightEdge  = 1 1 1 
+MovieRegionLeftEdge   = 0 0 0
+MovieRegionRightEdge  = 1 1 1
 
-NewMovieLeftEdge   = 0 0 0 
-NewMovieRightEdge  = 1 1 1 
+NewMovieLeftEdge   = 0 0 0
+NewMovieRightEdge  = 1 1 1
 MovieSkipTimestep = -99999
 NewMovieParticleOn = 0
-MovieDataField = -99999 
+MovieDataField = -99999
 NewMovieDumpNumber = 0
 NewMovieName = MoviePack
 
@@ -64,7 +64,7 @@ RedshiftDumpDir     = RD
 GlobalDir           = /rmount/users08/stanford/mturk/data
 StaticHierarchy     = 0
 TopGridRank         = 3
-TopGridDimensions   = 16 16 16 
+TopGridDimensions   = 16 16 16
 
 TopGridGravityBoundary = 0
 ParticleBoundaryType   = 3
@@ -84,7 +84,7 @@ RefineBy               = 2
 MaximumRefinementLevel = 9
 MaximumGravityRefinementLevel = 9
 MaximumParticleRefinementLevel = -1
-CellFlaggingMethod     = 2 -99999 -99999 -99999 -99999 -99999 -99999 
+CellFlaggingMethod     = 2 -99999 -99999 -99999 -99999 -99999 -99999
 FluxCorrection         = 1
 InterpolationMethod    = 3
 ConservativeInterpolation = 0
@@ -96,13 +96,13 @@ NumberOfBufferZones    = 1
 MustRefineRegionMinRefinementLevel = -1
 MetallicityRefinementMinLevel = -1
 MetallicityRefinementMinMetallicity      = 1e-05
-DomainLeftEdge         = 0 0 0 
-DomainRightEdge        = 1 1 1 
-GridVelocity           = 0 0 0 
-RefineRegionLeftEdge   = 0.2 0.2 0.2 
-RefineRegionRightEdge  = 0.9 0.9 0.9 
-MustRefineRegionLeftEdge   = 0 0 0 
-MustRefineRegionRightEdge  = 1 1 1 
+DomainLeftEdge         = 0 0 0
+DomainRightEdge        = 1 1 1
+GridVelocity           = 0 0 0
+RefineRegionLeftEdge   = 0.2 0.2 0.2
+RefineRegionRightEdge  = 0.9 0.9 0.9
+MustRefineRegionLeftEdge   = 0 0 0
+MustRefineRegionRightEdge  = 1 1 1
 
 DataLabel[0]              = Density
 DataUnits[0]              = none
@@ -124,7 +124,7 @@ UniformGravity             = 0
 UniformGravityDirection    = 0
 UniformGravityConstant     = 1
 PointSourceGravity           = 0
-PointSourceGravityPosition   = 0.5 0.5 0.5 
+PointSourceGravityPosition   = 0.5 0.5 0.5
 PointSourceGravityConstant   = 0.02
 PointSourceGravityCoreRadius = 0
 
@@ -154,7 +154,7 @@ GloverRadiationBackground      = 0
 GloverOpticalDepth             = 0
 CloudyCooling                  = 0
 CloudyCoolingGridRank          = 0
-CloudyCoolingGridRunFile       = 
+CloudyCoolingGridRunFile       =
 IncludeCloudyHeating           = 0
 CMBTemperatureFloor            = 0
 CloudyMetallicityNormalization = 0.018477
@@ -200,8 +200,8 @@ StarEnergyToStellarUV                 = 3e-06
 StarEnergyToQuasarUV                  = 5e-06
 
 MultiMetals                           = 0
-LeftFaceBoundaryCondition  = 3 3 3 
-RightFaceBoundaryCondition = 3 3 3 
+LeftFaceBoundaryCondition  = 3 3 3
+RightFaceBoundaryCondition = 3 3 3
 BoundaryConditionName      = /rmount/users08/stanford/mturk/data/DD0010/moving7_0010.boundary
 
 CosmologyHubbleConstantNow = 0.5
@@ -214,4 +214,3 @@ CosmologyFinalRedshift     = 0.3
 CosmologyCurrentRedshift   = 9.9910277956689
 
 VersionNumber              = 1.300000
-

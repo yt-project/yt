@@ -15,7 +15,7 @@ class EnzoPIOHandler(BaseIOHandler):
     _sep = "_"
 
     def __init__(self, *args, **kwargs):
-        super(EnzoPIOHandler, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._base = self.ds.dimensionality * (
             slice(self.ds.ghost_zones, -self.ds.ghost_zones),
         )
@@ -67,8 +67,7 @@ class EnzoPIOHandler(BaseIOHandler):
         return fields, ptypes
 
     def _read_particle_coords(self, chunks, ptf):
-        for rv in self._read_particle_fields(chunks, ptf, None):
-            yield rv
+        yield from self._read_particle_fields(chunks, ptf, None)
 
     def _read_particle_fields(self, chunks, ptf, selector):
         chunks = list(chunks)
@@ -81,14 +80,14 @@ class EnzoPIOHandler(BaseIOHandler):
                 if f is None:
                     f = h5py.File(g.filename, mode="r")
                 if g.particle_count is None:
-                    fnstr = "%s/%s" % (
+                    fnstr = "{}/{}".format(
                         g.block_name,
                         self._sep.join(["particle", "%s", "%s"]),
                     )
-                    g.particle_count = dict(
-                        (ptype, f.get(fnstr % (ptype, self.sample_pfields[ptype])).size)
+                    g.particle_count = {
+                        ptype: f.get(fnstr % (ptype, self.sample_pfields[ptype])).size
                         for ptype in self.sample_pfields
-                    )
+                    }
                     g.total_particles = sum(g.particle_count.values())
                 if g.total_particles == 0:
                     continue

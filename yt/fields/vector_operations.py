@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import iterable, just_one
+from yt.funcs import is_sequence, just_one
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 from yt.utilities.math_utils import (
@@ -105,7 +105,7 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
         else:
             fns = field_comps
         ax = data.get_field_parameter("axis")
-        if iterable(ax):
+        if is_sequence(ax):
             # Make sure this is a unit vector
             ax /= np.sqrt(np.dot(ax, ax))
             ret = data[fns[0]] * ax[0] + data[fns[1]] * ax[1] + data[fns[2]] * ax[2]
@@ -402,25 +402,22 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             validators=[ValidateParameter("normal")],
         )
 
-        def _cylindrical_radial(field, data):
-            """This field is deprecated and will be removed in a future version"""
-            return data[ftype, f"{basename}_cylindrical_radius"]
-
-        registry.add_field(
+        registry.alias(
             (ftype, f"cylindrical_radial_{basename}"),
-            sampling_type="local",
-            function=_cylindrical_radial,
-            units=field_units,
+            (ftype, f"{basename}_cylindrical_radius"),
+            deprecate=("4.0.0", "4.1.0"),
         )
 
         def _cylindrical_radial_absolute(field, data):
             """This field is deprecated and will be removed in a future version"""
             return np.abs(data[ftype, f"{basename}_cylindrical_radius"])
 
-        registry.add_field(
+        registry.add_deprecated_field(
             (ftype, f"cylindrical_radial_{basename}_absolute"),
-            sampling_type="local",
             function=_cylindrical_radial_absolute,
+            sampling_type="local",
+            since="4.0.0",
+            removal="4.1.0",
             units=field_units,
             validators=[ValidateParameter("normal")],
         )
@@ -451,25 +448,22 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             ],
         )
 
-        def _cylindrical_tangential(field, data):
-            """This field is deprecated and will be removed in a future release"""
-            return data[ftype, f"{basename}_cylindrical_theta"]
-
         def _cylindrical_tangential_absolute(field, data):
             """This field is deprecated and will be removed in a future release"""
             return np.abs(data[ftype, f"cylindrical_tangential_{basename}"])
 
-        registry.add_field(
+        registry.alias(
             (ftype, f"cylindrical_tangential_{basename}"),
-            sampling_type="local",
-            function=_cylindrical_tangential,
-            units=field_units,
+            (ftype, f"{basename}_cylindrical_theta"),
+            deprecate=("4.0.0", "4.1.0"),
         )
 
-        registry.add_field(
+        registry.add_deprecated_field(
             (ftype, f"cylindrical_tangential_{basename}_absolute"),
-            sampling_type="local",
             function=_cylindrical_tangential_absolute,
+            sampling_type="local",
+            since="4.0.0",
+            removal="4.1.0",
             units=field_units,
         )
 

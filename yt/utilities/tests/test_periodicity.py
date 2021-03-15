@@ -7,7 +7,7 @@ from yt.utilities.math_utils import euclidean_dist, periodic_dist
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def test_periodicity():

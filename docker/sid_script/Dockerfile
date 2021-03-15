@@ -20,4 +20,4 @@ RUN wget https://bitbucket.org/yt_analysis/yt/raw/tip/doc/install_script.sh && \
 RUN apt-get install -qy `grep -oP '(?<=apt-get install ).*?(?="|$)' install_script.sh`
 
 USER ytuser
-RUN echo "" | bash install_script.sh 
+RUN echo "" | bash install_script.sh

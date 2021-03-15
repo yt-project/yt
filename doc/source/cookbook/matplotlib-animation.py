@@ -1,6 +1,7 @@
-import yt
-from matplotlib.animation import FuncAnimation
 from matplotlib import rc_context
+from matplotlib.animation import FuncAnimation
+
+import yt
 
 ts = yt.load("GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_*")
 

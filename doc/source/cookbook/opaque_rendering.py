@@ -1,5 +1,6 @@
-import yt
 import numpy as np
+
+import yt
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 

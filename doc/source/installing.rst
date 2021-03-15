@@ -63,23 +63,23 @@ will work best for you depends on your precise situation:
 
 .. _branches-of-yt:
 
-Branches of yt: ``master``, ``stable``, and ``yt-2.x``
+Branches of yt: ``main``, ``stable``, and ``yt-2.x``
 ++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 Before you install yt, you must decide which branch (i.e. version) of the code
 you prefer to use:
 
-* ``master`` -- The most up-to-date *development* version with the most current
+* ``main`` -- The most up-to-date *development* version with the most current
   features but sometimes unstable (the development version of the next release).
 * ``stable`` -- The latest stable release of ``yt-3.x``.
 * ``yt-2.x`` -- The last stable release of ``yt-2.x``.
 
 If this is your first time using the code, we recommend using ``stable``, unless
 you specifically need some piece of brand-new functionality only available in
-``master`` or need to run an old script developed for ``yt-2.x``.  There were major
+``main`` or need to run an old script developed for ``yt-2.x``.  There were major
 API and functionality changes made in yt for version 3.0.  For a detailed
 description of the changes between versions 2.x (e.g. branch ``yt-2.x``) and 3.x
-(e.g. branches ``master`` and ``stable``) see :ref:`yt3differences`.  Lastly, don't
+(e.g. branches ``main`` and ``stable``) see :ref:`yt3differences`.  Lastly, don't
 feel like you're locked into one branch when you install yt, because you can
 easily change the active branch by following the instructions in
 :ref:`switching-between-yt-versions`.
@@ -113,13 +113,13 @@ You can download the installation script with the following command:
 
 .. code-block:: bash
 
-  $ wget https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
+  $ wget https://raw.githubusercontent.com/yt-project/yt/main/doc/install_script.sh
 
 If you do not have ``wget``, the following should also work:
 
 .. code-block:: bash
 
-  $ curl -OL https://raw.githubusercontent.com/yt-project/yt/master/doc/install_script.sh
+  $ curl -OL https://raw.githubusercontent.com/yt-project/yt/main/doc/install_script.sh
 
 By default, the bash install script will create a python environment based on
 the `miniconda python distribution <https://docs.conda.io/en/latest/miniconda.html>`_,
@@ -334,7 +334,7 @@ you to see the tip of the development branch.
 
 .. code-block:: bash
 
-  $ git checkout master
+  $ git checkout main
   $ pip install -e .
 
 This will make sure you are running a version of yt corresponding to the
@@ -379,14 +379,14 @@ source include:
 
 - ``git``
 - A C compiler such as ``gcc`` or ``clang``
-- ``Python >= 3.5``
+- ``Python >= 3.6``
 
 In addition, building yt from source requires ``numpy`` and ``cython``
 which can be installed with ``pip``:
 
 .. code-block:: bash
 
-  $ pip install numpy cython
+  $ pip install --upgrade numpy cython
 
 You may also want to install some of yt's optional dependencies, including
 ``jupyter``, ``h5py`` (which in turn depends on the HDF5 library), ``scipy``,
@@ -400,7 +400,7 @@ development version of yt instead of the latest stable release, you will need
 
   $ git clone https://github.com/yt-project/yt
   $ cd yt
-  $ git checkout master
+  $ git checkout main
   $ pip install . --user --install-option="--prefix="
 
 .. note::
@@ -432,7 +432,7 @@ repository the "active" installed copy:
 
   $ git clone https://github.com/yt-project/yt
   $ cd yt
-  $ git checkout master
+  $ git checkout main
   $ pip install -e . --user --install-option="--prefix="
 
 As above, you can leave off ``--user --install-option="--prefix="`` if you want to install yt into
@@ -502,7 +502,7 @@ for more details.
 
 .. _switching-between-yt-versions:
 
-Switching versions of yt: ``yt-2.x``, ``stable``, and ``master`` branches
+Switching versions of yt: ``yt-2.x``, ``stable``, and ``main`` branches
 -------------------------------------------------------------------------
 
 Here we explain how to switch between different development branches of yt.

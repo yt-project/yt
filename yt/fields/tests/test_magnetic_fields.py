@@ -8,7 +8,7 @@ from yt.utilities.physical_constants import mu_0
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def test_magnetic_fields():
@@ -67,13 +67,13 @@ def test_magnetic_fields():
     ) / (2.0 * mu_0)
     emag3.convert_to_units("code_pressure")
 
-    assert_almost_equal(emag1, dd1["magnetic_energy"])
-    assert_almost_equal(emag2, dd2["magnetic_energy"])
-    assert_almost_equal(emag3, dd3["magnetic_energy"])
+    assert_almost_equal(emag1, dd1["magnetic_energy_density"])
+    assert_almost_equal(emag2, dd2["magnetic_energy_density"])
+    assert_almost_equal(emag3, dd3["magnetic_energy_density"])
 
-    assert str(emag1.units) == str(dd1["magnetic_energy"].units)
-    assert str(emag2.units) == str(dd2["magnetic_energy"].units)
-    assert str(emag3.units) == str(dd3["magnetic_energy"].units)
+    assert str(emag1.units) == str(dd1["magnetic_energy_density"].units)
+    assert str(emag2.units) == str(dd2["magnetic_energy_density"].units)
+    assert str(emag3.units) == str(dd3["magnetic_energy_density"].units)
 
     assert_almost_equal(emag1.in_cgs(), emag2.in_cgs())
     assert_almost_equal(emag1.in_cgs(), emag3.in_cgs())

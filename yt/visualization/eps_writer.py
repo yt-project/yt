@@ -2,8 +2,8 @@ import numpy as np
 import pyx
 from matplotlib import cm, pyplot as plt
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.funcs import issue_deprecation_warning
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
@@ -67,8 +67,7 @@ class DualEPS:
         self.axes_drawn = False
 
     def hello_world(self):
-        r"""A simple test.
-        """
+        r"""A simple test."""
         if self.canvas is None:
             self.canvas = pyx.canvas.canvas()
         p = pyx.path.line(0, 0, 1, 1)
@@ -437,10 +436,10 @@ class DualEPS:
                 YTQuantity(xlimits[0], "m"),
                 YTQuantity(xlimits[1], "m"),
             )  # unit hardcoded but afaik it is not used anywhere so it doesn't matter
-            if list(plot.axes.ylim.viewvalues())[0][0] is None:
+            if list(plot.axes.ylim.values())[0][0] is None:
                 ylimits = subplot.get_ylim()
             else:
-                ylimits = list(plot.axes.ylim.viewvalues())[0]
+                ylimits = list(plot.axes.ylim.values())[0]
             _yrange = (
                 YTQuantity(ylimits[0], "m"),
                 YTQuantity(ylimits[1], "m"),
@@ -725,7 +724,6 @@ class DualEPS:
             imsize = (256, 1)
         else:
             raise RuntimeError(f"orientation {orientation} unknown")
-            return
 
         # If shrink is a scalar, then convert into tuple
         if not isinstance(shrink, (tuple, list)):
@@ -884,7 +882,7 @@ class DualEPS:
             else:
                 _, _, z_title = plot._get_field_title(self.field, plot.profile)
                 _zlabel = pyxize_label(z_title)
-            _zlabel = _zlabel.replace("_", "\;")
+            _zlabel = _zlabel.replace("_", r"\;")
             _zlog = plot.get_log(self.field)[self.field]
             if plot.plots[self.field].zmin is None:
                 zmin = plot.plots[self.field].image._A.min()
@@ -896,7 +894,7 @@ class DualEPS:
                 zmax = plot.plots[self.field].zmax
             _zrange = (zmin, zmax)
         else:
-            _zlabel = plot._z_label.replace("_", "\;")
+            _zlabel = plot._z_label.replace("_", r"\;")
             _zlog = plot._log_z
             _zrange = (plot.norm.vmin, plot.norm.vmax)
         if cb_labels is not None:  # Overrides deduced labels
@@ -1271,10 +1269,8 @@ def multiplot(
                 "Number of images (%d) doesn't match nrow(%d)"
                 " x ncol(%d)." % (len(images), nrow, ncol)
             )
-            return
     if yt_plots is None and images is None:
         raise RuntimeError("Must supply either yt_plots or image filenames.")
-        return
     if yt_plots is not None and images is not None:
         mylog.warning("Given both images and yt plots.  Ignoring images.")
     if yt_plots is not None:
@@ -1427,7 +1423,6 @@ def multiplot(
                             raise RuntimeError(
                                 f"{fields[index]} not found in cb_location dict"
                             )
-                            return
                         orientation = cb_location[fields[index]]
                     elif isinstance(cb_location, list):
                         orientation = cb_location[index]
@@ -1525,22 +1520,19 @@ def multiplot_yt(ncol, nrow, plots, fields=None, **kwargs):
             fields = plots.fields
         if len(fields) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({0}) is less "
-                "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
+                "Number of plots ({}) is less "
+                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
             )
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     elif isinstance(plots, list) and isinstance(plots[0], (PlotWindow, PhasePlot)):
         if len(plots) < nrow * ncol:
             raise RuntimeError(
-                "Number of plots ({0}) is less "
-                "than nrow({1}) x ncol({2}).".format(len(fields), nrow, ncol)
+                "Number of plots ({}) is less "
+                "than nrow({}) x ncol({}).".format(len(fields), nrow, ncol)
             )
-            return
         figure = multiplot(ncol, nrow, yt_plots=plots, fields=fields, **kwargs)
     else:
         raise RuntimeError("Unknown plot type in multiplot_yt")
-        return
     return figure
 
 
@@ -1597,7 +1589,9 @@ def single_plot(
 
 # =============================================================================
 def return_cmap(cmap=None, label="", range=(0, 1), log=False):
-    issue_deprecation_warning("Deprecated alias. Use return_colormap instead.")
+    issue_deprecation_warning(
+        "Deprecated alias. Use return_colormap instead.", removal="4.1.0"
+    )
     return return_colormap(cmap=cmap, label=label, crange=range, log=log)
 
 

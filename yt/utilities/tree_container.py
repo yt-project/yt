@@ -14,5 +14,4 @@ class TreeContainer:
         if children is None:
             return
         for child in children:
-            for a_node in child:
-                yield a_node
+            yield from child

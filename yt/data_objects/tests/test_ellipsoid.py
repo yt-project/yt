@@ -6,8 +6,8 @@ from yt.testing import assert_array_less, fake_random_ds
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "loglevel"] = "50"
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "log_level"] = 50
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def _difference(x1, x2, dw):

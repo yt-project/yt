@@ -2,8 +2,8 @@ import os
 import shutil
 import tempfile
 import unittest
+from unittest import mock
 
-import mock
 import numpy as np
 
 from yt.data_objects.particle_filters import add_particle_filter
@@ -30,7 +30,7 @@ def setup():
     """Test specific setup."""
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 #  override some of the plotwindow ATTR_ARGS
@@ -41,8 +41,8 @@ PROJ_ATTR_ARGS["set_cmap"] = [
 ]
 PROJ_ATTR_ARGS["set_log"] = [(("particle_mass", False), {})]
 PROJ_ATTR_ARGS["set_zlim"] = [
-    (("particle_mass", 1e-25, 1e-23), {}),
-    (("particle_mass", 1e-25, None), {"dynamic_range": 4}),
+    (("particle_mass", 1e39, 1e42), {}),
+    (("particle_mass", 1e39, None), {"dynamic_range": 4}),
 ]
 
 PHASE_ATTR_ARGS = {

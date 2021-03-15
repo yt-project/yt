@@ -10,16 +10,16 @@ class GizmoDataset(GadgetHDF5Dataset):
     _field_info_class = GizmoFieldInfo
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         need_groups = ["Header"]
         veto_groups = ["FOF", "Group", "Subhalo"]
         valid = True
-        valid_fname = args[0]
+        valid_fname = filename
         # If passed arg is a directory, look for the .0 file in that dir
-        if os.path.isdir(args[0]):
+        if os.path.isdir(filename):
             valid_files = []
-            for f in os.listdir(args[0]):
-                fname = os.path.join(args[0], f)
+            for f in os.listdir(filename):
+                fname = os.path.join(filename, f)
                 fext = os.path.splitext(fname)[-1]
                 if (
                     (".0" in f)
@@ -48,5 +48,5 @@ class GizmoDataset(GadgetHDF5Dataset):
         return valid
 
     def _set_code_unit_attributes(self):
-        super(GizmoDataset, self)._set_code_unit_attributes()
+        super()._set_code_unit_attributes()
         self.magnetic_unit = self.quan(1.0, "gauss")

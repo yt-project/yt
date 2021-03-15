@@ -198,7 +198,7 @@ and build it using Sphinx:
 If all of the dependencies are installed and all of the test data is in the
 testing directory, this should churn away for a while (several hours) and
 eventually generate a docs build.  We suggest setting
-:code:`suppressStreamLogging = True` in your yt configuration (See
+:code:`suppress_stream_logging = True` in your yt configuration (See
 :ref:`configuration-file`) to suppress large amounts of debug output from
 yt.
 

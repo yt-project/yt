@@ -186,7 +186,7 @@ class DataStruct:
 
     def __getitem__(self, key):
         mask = None
-        if isinstance(key, (int, np.int, np.integer)):
+        if isinstance(key, (int, np.integer)):
             if key == -1:
                 key = slice(-1, None)
             else:
@@ -230,7 +230,7 @@ class HTTPDataStruct(DataStruct):
     """docstring for HTTPDataStruct"""
 
     def __init__(self, *args, **kwargs):
-        super(HTTPDataStruct, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         HTTPArray, PageCacheURL = get_thingking_deps()
         self.HTTPArray = HTTPArray
         self.pcu = PageCacheURL(self.filename)
@@ -262,7 +262,7 @@ class SDFRead(dict):
     _data_struct = DataStruct
 
     def __init__(self, filename=None, header=None):
-        r""" Read an SDF file, loading parameters and variables.
+        r"""Read an SDF file, loading parameters and variables.
 
         Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
         ASCII header and construct numpy memmap array
@@ -358,7 +358,7 @@ class SDFRead(dict):
     def parse_header(self):
         """docstring for parse_header"""
         # Pre-process
-        ascfile = open(self.header, "r")
+        ascfile = open(self.header)
         while True:
             l = ascfile.readline()
             if self._eof in l:
@@ -413,8 +413,8 @@ class SDFRead(dict):
             for v in vnames:
                 str_types.append((v, vtype))
             l = ascfile.readline()
-        num = l.strip("}[]")
-        num = num.strip("\;\\\n]")  # NOQA B005
+        spec_chars = r"{}[]\;\n\\"
+        num = l.strip(spec_chars)
         if len(num) == 0:
             # We need to compute the number of records.  The DataStruct will
             # handle this.
@@ -439,7 +439,7 @@ class SDFRead(dict):
 
 class HTTPSDFRead(SDFRead):
 
-    r""" Read an SDF file hosted on the internet.
+    r"""Read an SDF file hosted on the internet.
 
     Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
     ASCII header and construct numpy memmap array
@@ -479,7 +479,7 @@ class HTTPSDFRead(SDFRead):
     def __init__(self, *args, **kwargs):
         HTTPArray, _ = get_thingking_deps()
         self.HTTPArray = HTTPArray
-        super(HTTPSDFRead, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
 
     def parse_header(self):
         """docstring for parse_header"""
@@ -501,7 +501,7 @@ class HTTPSDFRead(SDFRead):
 
 
 def load_sdf(filename, header=None):
-    r""" Load an SDF file.
+    r"""Load an SDF file.
 
     Given an SDF file (see https://bitbucket.org/JohnSalmon/sdf), parse the
     ASCII header and construct numpy memmap array access. The file can
@@ -570,7 +570,7 @@ class SDFIndex:
     """
 
     def __init__(self, sdfdata, indexdata, level=None):
-        super(SDFIndex, self).__init__()
+        super().__init__()
         self.sdfdata = sdfdata
         self.indexdata = indexdata
         if level is None:
@@ -1117,8 +1117,7 @@ class SDFIndex:
         # right = right.astype('float32')
 
         # my_filter = bbox_filter(left, right, self.true_domain_width)
-        for dd in self.filter_bbox(left, right, self.iter_data(inds, fields)):
-            yield dd
+        yield from self.filter_bbox(left, right, self.iter_data(inds, fields))
         # for dd in self.filter_particles(
         #    self.iter_data(inds, fields),
         #    my_filter):
@@ -1133,8 +1132,7 @@ class SDFIndex:
         mylog.debug("MIDX Loading spherical region %s to %s", center, radius)
         inds = self.get_bbox(center - radius, center + radius)
 
-        for dd in self.filter_sphere(center, radius, self.iter_data(inds, fields)):
-            yield dd
+        yield from self.filter_sphere(center, radius, self.iter_data(inds, fields))
 
     def iter_ibbox_data(self, left, right, fields):
         mylog.debug("MIDX Loading region from %s to %s", left, right)
@@ -1407,8 +1405,7 @@ class SDFIndex:
 
         # Need to get all of these
         low_key, high_key = self.get_key_bounds(level, cell_iarr)
-        for k in range(low_key, high_key):
-            yield k
+        yield from range(low_key, high_key)
 
         # Bottom & Top
         pbox = bbox.copy()
@@ -1418,13 +1415,11 @@ class SDFIndex:
         pbox[1, 1] += pad[1]
         pbox[2, 0] -= pad[2]
         pbox[2, 1] = bbox[2, 0]
-        for k in self.get_bbox(pbox[:, 0], pbox[:, 1]):
-            yield k
+        yield from self.get_bbox(pbox[:, 0], pbox[:, 1])
 
         pbox[2, 0] = bbox[2, 1]
         pbox[2, 1] = pbox[2, 0] + pad[2]
-        for k in self.get_bbox(pbox[:, 0], pbox[:, 1]):
-            yield k
+        yield from self.get_bbox(pbox[:, 0], pbox[:, 1])
 
         # Front & Back
         pbox = bbox.copy()
@@ -1432,20 +1427,16 @@ class SDFIndex:
         pbox[0, 1] += pad[0]
         pbox[1, 0] -= pad[1]
         pbox[1, 1] = bbox[1, 0]
-        for k in self.get_bbox(pbox[:, 0], pbox[:, 1]):
-            yield k
+        yield from self.get_bbox(pbox[:, 0], pbox[:, 1])
         pbox[1, 0] = bbox[1, 1]
         pbox[1, 1] = pbox[1, 0] + pad[1]
-        for k in self.get_bbox(pbox[:, 0], pbox[:, 1]):
-            yield k
+        yield from self.get_bbox(pbox[:, 0], pbox[:, 1])
 
         # Left & Right
         pbox = bbox.copy()
         pbox[0, 0] -= pad[0]
         pbox[0, 1] = bbox[0, 0]
-        for k in self.get_bbox(pbox[:, 0], pbox[:, 1]):
-            yield k
+        yield from self.get_bbox(pbox[:, 0], pbox[:, 1])
         pbox[0, 0] = bbox[0, 1]
         pbox[0, 1] = pbox[0, 0] + pad[0]
-        for k in self.get_bbox(pbox[:, 0], pbox[:, 1]):
-            yield k
+        yield from self.get_bbox(pbox[:, 0], pbox[:, 1])

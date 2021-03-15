@@ -4,11 +4,10 @@ from itertools import chain, product
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.data_objects.static_output import Dataset
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh
-from yt.funcs import ensure_tuple, get_pbar, mylog
-from yt.geometry.geometry_handler import YTDataChunk
+from yt.funcs import get_pbar, mylog
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.utilities.chemical_formulas import default_mu
@@ -46,7 +45,7 @@ class AthenaPPLogarithmicMesh(SemiStructuredMesh):
         blocks,
         dims,
     ):
-        super(AthenaPPLogarithmicMesh, self).__init__(
+        super().__init__(
             mesh_id, filename, connectivity_indices, connectivity_coords, index
         )
         self.mesh_blocks = blocks
@@ -56,7 +55,7 @@ class AthenaPPLogarithmicMesh(SemiStructuredMesh):
 class AthenaPPLogarithmicIndex(UnstructuredIndex):
     def __init__(self, ds, dataset_type="athena_pp"):
         self._handle = ds._handle
-        super(AthenaPPLogarithmicIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
         self.index_filename = self.dataset.filename
         self.directory = os.path.dirname(self.dataset.filename)
         self.dataset_type = dataset_type
@@ -72,8 +71,8 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
         nbx, nby, nbz = tuple(np.max(log_loc, axis=0) + 1)
         nlevel = self._handle.attrs["MaxLevel"] + 1
 
-        nb = np.array([nbx, nby, nbz], dtype="int")
-        self.mesh_factors = np.ones(3, dtype="int") * ((nb > 1).astype("int") + 1)
+        nb = np.array([nbx, nby, nbz], dtype="int64")
+        self.mesh_factors = np.ones(3, dtype="int64") * ((nb > 1).astype("int") + 1)
 
         block_grid = -np.ones((nbx, nby, nbz, nlevel), dtype=np.int)
         block_grid[log_loc[:, 0], log_loc[:, 1], log_loc[:, 2], levels[:]] = np.arange(
@@ -138,13 +137,6 @@ class AthenaPPLogarithmicIndex(UnstructuredIndex):
     def _detect_output_fields(self):
         self.field_list = [("athena_pp", k) for k in self.ds._field_map]
 
-    def _chunk_io(self, dobj, cache=True, local_only=False):
-        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for subset in gobjs:
-            yield YTDataChunk(
-                dobj, "io", [subset], self._count_selection(dobj, [subset]), cache=cache
-            )
-
 
 class AthenaPPGrid(AMRGridPatch):
     _id_offset = 0
@@ -199,13 +191,21 @@ class AthenaPPHierarchy(GridIndex):
         self.grid_right_edge = np.zeros((num_grids, 3), dtype="float64")
         self.grid_dimensions = np.zeros((num_grids, 3), dtype="int32")
 
+        # TODO: In an unlikely case this would use too much memory, implement
+        #       chunked read along 1 dim
+        x = self._handle["x1f"][:, :]
+        y = self._handle["x2f"][:, :]
+        z = self._handle["x3f"][:, :]
+        mesh_block_size = self._handle.attrs["MeshBlockSize"]
+
         for i in range(num_grids):
-            x = self._handle["x1f"][i, :]
-            y = self._handle["x2f"][i, :]
-            z = self._handle["x3f"][i, :]
-            self.grid_left_edge[i] = np.array([x[0], y[0], z[0]], dtype="float64")
-            self.grid_right_edge[i] = np.array([x[-1], y[-1], z[-1]], dtype="float64")
-            self.grid_dimensions[i] = self._handle.attrs["MeshBlockSize"]
+            self.grid_left_edge[i] = np.array(
+                [x[i, 0], y[i, 0], z[i, 0]], dtype="float64"
+            )
+            self.grid_right_edge[i] = np.array(
+                [x[i, -1], y[i, -1], z[i, -1]], dtype="float64"
+            )
+            self.grid_dimensions[i] = mesh_block_size
         levels = self._handle["Levels"][:]
 
         self.grid_left_edge = self.ds.arr(self.grid_left_edge, "code_length")
@@ -226,13 +226,6 @@ class AthenaPPHierarchy(GridIndex):
             g._prepare_grid()
             g._setup_dx()
         self.max_level = self._handle.attrs["MaxLevel"]
-
-    def _chunk_io(self, dobj, cache=True, local_only=False):
-        gobjs = getattr(dobj._current_chunk, "objs", dobj._chunk_info)
-        for subset in gobjs:
-            yield YTDataChunk(
-                dobj, "io", [subset], self._count_selection(dobj, [subset]), cache=cache
-            )
 
 
 class AthenaPPDataset(Dataset):
@@ -318,7 +311,7 @@ class AthenaPPDataset(Dataset):
         self._field_map = {}
         k = 0
         for dname, num_var in zip(
-            self._handle.attrs["DatasetNames"], self._handle.attrs["NumVariables"],
+            self._handle.attrs["DatasetNames"], self._handle.attrs["NumVariables"]
         ):
             for j in range(num_var):
                 fname = self._handle.attrs["VariableNames"][k].decode("ascii", "ignore")
@@ -338,14 +331,9 @@ class AthenaPPDataset(Dataset):
         self.num_ghost_zones = 0
         self.field_ordering = "fortran"
         self.boundary_conditions = [1] * 6
-        if "periodicity" in self.specified_parameters:
-            self.periodicity = ensure_tuple(self.specified_parameters["periodicity"])
-        else:
-            self.periodicity = (
-                True,
-                True,
-                True,
-            )
+        self._periodicity = tuple(
+            self.specified_parameters.get("periodicity", (True, True, True))
+        )
         if "gamma" in self.specified_parameters:
             self.gamma = float(self.specified_parameters["gamma"])
         else:
@@ -367,9 +355,9 @@ class AthenaPPDataset(Dataset):
         self.mu = self.specified_parameters.get("mu", default_mu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         try:
-            if args[0].endswith("athdf"):
+            if filename.endswith("athdf"):
                 return True
         except Exception:
             pass

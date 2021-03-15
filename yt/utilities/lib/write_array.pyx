@@ -29,7 +29,7 @@ def write_3D_array(np.ndarray[DTYPE_t, ndim=3] data, fhandle):
                 fhandle.write(str(data[k, j, i]) + '\n')
 
 @cython.boundscheck(False)
-def write_3D_vector_array(np.ndarray[DTYPE_t, ndim=3] data_x, 
+def write_3D_vector_array(np.ndarray[DTYPE_t, ndim=3] data_x,
                           np.ndarray[DTYPE_t, ndim=3] data_y,
                           np.ndarray[DTYPE_t, ndim=3] data_z,
                           fhandle):

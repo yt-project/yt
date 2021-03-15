@@ -2,7 +2,7 @@ import os
 from copy import deepcopy
 from pathlib import Path
 
-from yt.frontends.amrvac import read_amrvac_namelist
+from yt.frontends.amrvac.api import read_amrvac_namelist
 from yt.testing import requires_module
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 

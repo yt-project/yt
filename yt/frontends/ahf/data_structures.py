@@ -21,7 +21,7 @@ class AHFHalosFile(HaloCatalogFile):
         else:
             raise ValueError("Too many AHF_halos files.")
         self.col_names = self._read_column_names(filename)
-        super(AHFHalosFile, self).__init__(ds, io, filename, file_id, range)
+        super().__init__(ds, io, filename, file_id, range)
 
     def read_data(self, usecols=None):
         return np.genfromtxt(self.filename, names=self.col_names, usecols=usecols)
@@ -70,7 +70,7 @@ class AHFHalosDataset(Dataset):
 
         self.n_ref = n_ref
         self.over_refine_factor = over_refine_factor
-        super(AHFHalosDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type=dataset_type,
             units_override=units_override,
@@ -103,7 +103,7 @@ class AHFHalosDataset(Dataset):
         self.domain_left_edge = np.array([0.0, 0.0, 0.0])
         # Note that boxsize is in Mpc but particle positions are in kpc.
         self.domain_right_edge = np.array([simu["boxsize"]] * 3) * 1000
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
 
         # Set up cosmological information.
         self.cosmological_simulation = 1
@@ -118,11 +118,10 @@ class AHFHalosDataset(Dataset):
         self.current_time = cosmo.lookback_time(param["z"], 1e6).in_units("s")
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        filename = args[0]
+    def _is_valid(cls, filename, *args, **kwargs):
         if not filename.endswith(".parameter"):
             return False
-        with open(filename, "r") as f:
+        with open(filename) as f:
             if f.readlines()[11].startswith("AHF"):
                 return True
         return False

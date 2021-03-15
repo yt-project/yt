@@ -1,8 +1,10 @@
-cimport pyembree.rtcore as rtc
-cimport pyembree.rtcore_ray as rtcr
-cimport pyembree.rtcore_geometry as rtcg
-from .mesh_construction cimport Patch, Tet_Patch
 cimport cython
+cimport pyembree.rtcore as rtc
+cimport pyembree.rtcore_geometry as rtcg
+cimport pyembree.rtcore_ray as rtcr
+
+from .mesh_construction cimport Patch, Tet_Patch
+
 
 cdef void patchIntersectFunc(Patch* patches,
                              rtcr.RTCRay& ray,

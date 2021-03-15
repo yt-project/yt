@@ -1,8 +1,5 @@
-from pyembree.rtcore cimport \
-    Vertex, \
-    Triangle, \
-    Vec3f
 cimport numpy as np
+from pyembree.rtcore cimport Triangle, Vec3f, Vertex
 
 ctypedef struct MeshDataContainer:
     Vertex* vertices       # array of triangle vertices

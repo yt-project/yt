@@ -2,10 +2,7 @@ import os
 
 import numpy as np
 
-from yt.funcs import mylog
-from yt.utilities.exceptions import YTDomainOverflow
 from yt.utilities.io_handler import BaseIOHandler
-from yt.utilities.lib.geometry_utils import compute_morton
 
 from .definitions import halo_dts
 
@@ -14,7 +11,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
     _dataset_type = "rockstar_binary"
 
     def __init__(self, *args, **kwargs):
-        super(IOHandlerRockstarBinary, self).__init__(*args, **kwargs)
+        super().__init__(*args, **kwargs)
         self._halo_dt = halo_dts[self.ds.parameters["format_revision"]]
 
     def _read_fluid_selection(self, chunks, selector, fields, size):
@@ -23,7 +20,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
@@ -42,7 +39,7 @@ class IOHandlerRockstarBinary(BaseIOHandler):
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         # Only support halo reading for now.
         assert len(ptf) == 1
         assert list(ptf.keys())[0] == "halos"
@@ -79,38 +76,6 @@ class IOHandlerRockstarBinary(BaseIOHandler):
             pos[:, 1] = halos["particle_position_y"]
             pos[:, 2] = halos["particle_position_z"]
             yield "halos", pos
-
-    def _initialize_index(self, data_file, regions):
-        pcount = data_file.header["num_halos"]
-        morton = np.empty(pcount, dtype="uint64")
-        mylog.debug(
-            "Initializing index % 5i (% 7i particles)", data_file.file_id, pcount
-        )
-        if pcount == 0:
-            return morton
-        ind = 0
-        ptype = "halos"
-        with open(data_file.filename, "rb") as f:
-            pos = data_file._get_particle_positions(ptype, f=f)
-            pos = data_file.ds.arr(pos, "code_length")
-            if np.any(pos.min(axis=0) < self.ds.domain_left_edge) or np.any(
-                pos.max(axis=0) > self.ds.domain_right_edge
-            ):
-                raise YTDomainOverflow(
-                    pos.min(axis=0),
-                    pos.max(axis=0),
-                    self.ds.domain_left_edge,
-                    self.ds.domain_right_edge,
-                )
-            regions.add_data_file(pos, data_file.file_id)
-            morton[ind : ind + pos.shape[0]] = compute_morton(
-                pos[:, 0],
-                pos[:, 1],
-                pos[:, 2],
-                data_file.ds.domain_left_edge,
-                data_file.ds.domain_right_edge,
-            )
-        return morton
 
     def _count_particles(self, data_file):
         nhalos = data_file.header["num_halos"]
