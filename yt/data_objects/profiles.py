@@ -420,8 +420,8 @@ class ProfileNDFromDataset(ProfileND):
             self.field_info[field_name] = ds.field_info[field_name]
             setattr(self, ax_log, ds.parameters.get(ax_log, False))
             exclude_fields.extend([ax, ax_bins, field_name[1]])
-        self.weight = ds.data["weight"]
-        self.used = ds.data["used"].d.astype(bool)
+        self.weight = ds.data[("data", "weight")]
+        self.used = ds.data[("data", "used")].d.astype(bool)
         profile_fields = [
             f
             for f in ds.field_list

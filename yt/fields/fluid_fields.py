@@ -83,7 +83,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
         )
 
     def _sound_speed(field, data):
-        tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, "density"]
+        tr = data.ds.gamma * data[ftype, "pressure"] / data[ftype, ("gas", "density")]
         return np.sqrt(tr)
 
     registry.add_field(
@@ -139,7 +139,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
 
     def _courant_time_step(field, data):
         t1 = data[ftype, "dx"] / (
-            data[ftype, "sound_speed"] + np.abs(data[ftype, "velocity_x"])
+            data[ftype, "sound_speed"] + np.abs(data[ftype, ("gas", "velocity_x")])
         )
         t2 = data[ftype, "dy"] / (
             data[ftype, "sound_speed"] + np.abs(data[ftype, "velocity_y"])
@@ -160,7 +160,7 @@ def setup_fluid_fields(registry, ftype="gas", slice_info=None):
     def _pressure(field, data):
         """ M{(Gamma-1.0)*rho*E} """
         tr = (data.ds.gamma - 1.0) * (
-            data[ftype, "density"] * data[ftype, "specific_thermal_energy"]
+            data[ftype, ("gas", "density")] * data[ftype, "specific_thermal_energy"]
         )
         return tr
 

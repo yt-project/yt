@@ -35,6 +35,6 @@ def test_AHFHalosDataset():
     ds = load(ahf_halos)
     assert isinstance(ds, AHFHalosDataset)
     ad = ds.all_data()
-    ad["particle_mass"]
+    ad[("all", "particle_mass")]
     psc = ParticleSelectionComparison(ds)
     psc.run_defaults()

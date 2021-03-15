@@ -48,7 +48,7 @@ def test_output_00080():
                     )
             yield FieldValuesTest(output_00080, field, dobj_name)
         dobj = create_obj(ds, dobj_name)
-        s1 = dobj["ones"].sum()
+        s1 = dobj[("index", "ones")].sum()
         s2 = sum(mask.sum() for block, mask in dobj.blocks)
         assert_equal(s1, s2)
 

@@ -44,7 +44,7 @@ def test_old_plot_data():
     fn = "oas.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     ds_oas = data_dir_load(full_fn)
-    p = SlicePlot(ds_oas, [1, 1, 1], "density")
+    p = SlicePlot(ds_oas, [1, 1, 1], ("gas", "density"))
     fn = p.save()
     assert_fname(fn[0])
 

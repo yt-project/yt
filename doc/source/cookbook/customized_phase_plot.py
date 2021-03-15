@@ -22,6 +22,6 @@ profile = yt.create_profile(
 )
 
 plot = yt.PhasePlot.from_profile(profile)
-plot.set_cmap("cell_mass", "YlOrRd")
+plot.set_cmap(("gas", "cell_mass"), "YlOrRd")
 
 plot.save()

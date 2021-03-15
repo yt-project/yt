@@ -89,15 +89,18 @@ uo_sloshing = {
 def test_nprocs():
     ds1 = load(sloshing, units_override=uo_sloshing)
     sp1 = ds1.sphere("c", (100.0, "kpc"))
-    prj1 = ds1.proj("density", 0)
+    prj1 = ds1.proj(("gas", "density"), 0)
     ds2 = load(sloshing, units_override=uo_sloshing, nprocs=8)
     sp2 = ds2.sphere("c", (100.0, "kpc"))
-    prj2 = ds1.proj("density", 0)
+    prj2 = ds1.proj(("athena", "density"), 0)
 
-    assert_equal(sp1.quantities.extrema("pressure"), sp2.quantities.extrema("pressure"))
+    assert_equal(
+        sp1.quantities.extrema(("athena", "pressure")),
+        sp2.quantities.extrema(("athena", "pressure")),
+    )
     assert_allclose_units(
-        sp1.quantities.total_quantity("pressure"),
-        sp2.quantities.total_quantity("pressure"),
+        sp1.quantities.total_quantity(("gas", "pressure")),
+        sp2.quantities.total_quantity(("gas", "pressure")),
     )
     for ax in "xyz":
         assert_equal(
@@ -107,7 +110,7 @@ def test_nprocs():
     assert_allclose_units(
         sp1.quantities.bulk_velocity(), sp2.quantities.bulk_velocity()
     )
-    assert_equal(prj1["density"], prj2["density"])
+    assert_equal(prj1[("gas", "density")], prj2[("gas", "density")])
 
 
 @requires_file(cloud)

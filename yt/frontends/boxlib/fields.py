@@ -22,24 +22,24 @@ def _thermal_energy_density(field, data):
     ke = (
         0.5
         * (
-            data["momentum_density_x"] ** 2
-            + data["momentum_density_y"] ** 2
-            + data["momentum_density_z"] ** 2
+            data[("gas", "momentum_density_x")] ** 2
+            + data[("gas", "momentum_density_y")] ** 2
+            + data[("gas", "momentum_density_z")] ** 2
         )
-        / data["density"]
+        / data[("boxlib", "density")]
     )
-    return data["eden"] - ke
+    return data[("boxlib", "eden")] - ke
 
 
 def _specific_thermal_energy(field, data):
     # This is little e, so we take thermal_energy_density and divide by density
-    return data["thermal_energy_density"] / data["density"]
+    return data[("gas", "thermal_energy_density")] / data[("boxlib", "density")]
 
 
 def _temperature(field, data):
     mu = data.ds.parameters["mu"]
     gamma = data.ds.parameters["gamma"]
-    tr = data["thermal_energy_density"] / data["density"]
+    tr = data[("gas", "thermal_energy_density")] / data[("boxlib", "density")]
     tr *= mu * amu_cgs / boltzmann_constant_cgs
     tr *= gamma - 1.0
     return tr
@@ -97,7 +97,9 @@ class WarpXFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         def get_mass(field, data):
             species_mass = data.ds.index.parameters[ptype + "_mass"]
-            return data["particle_weight"] * YTQuantity(species_mass, "kg")
+            return data[("particle0", "particle_weight")] * YTQuantity(
+                species_mass, "kg"
+            )
 
         self.add_field(
             (ptype, "particle_mass"),
@@ -108,7 +110,9 @@ class WarpXFieldInfo(FieldInfoContainer):
 
         def get_charge(field, data):
             species_charge = data.ds.index.parameters[ptype + "_charge"]
-            return data["particle_weight"] * YTQuantity(species_charge, "C")
+            return data[("particle0", "particle_weight")] * YTQuantity(
+                species_charge, "C"
+            )
 
         self.add_field(
             (ptype, "particle_charge"),
@@ -228,7 +232,9 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"particle_momentum_{axis}"] / data["particle_mass"]
+                return (
+                    data[f"particle_momentum_{axis}"] / data[("all", "particle_mass")]
+                )
 
             return velocity
 

@@ -405,7 +405,7 @@ def test_velocity_callback():
 
     with _cleanup_fname() as prefix:
         ds = fake_hexahedral_ds(fields=(f"velocity_{ax}" for ax in ["x", "y", "z"]))
-        sl = SlicePlot(ds, 1, "test")
+        sl = SlicePlot(ds, 1, ("all", "test"))
         sl.annotate_velocity()
         assert_fname(sl.save(prefix)[0])
 

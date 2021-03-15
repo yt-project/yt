@@ -77,17 +77,17 @@ def test_nyx_particle_io():
 
     grid = ds.index.grids[0]
     npart_grid_0 = 7908  # read directly from the header
-    assert_equal(grid["particle_position_x"].size, npart_grid_0)
+    assert_equal(grid[("all", "particle_position_x")].size, npart_grid_0)
     assert_equal(grid["DM", "particle_position_y"].size, npart_grid_0)
     assert_equal(grid["all", "particle_position_z"].size, npart_grid_0)
 
     ad = ds.all_data()
     npart = 32768  # read directly from the header
-    assert_equal(ad["particle_velocity_x"].size, npart)
+    assert_equal(ad[("all", "particle_velocity_x")].size, npart)
     assert_equal(ad["DM", "particle_velocity_y"].size, npart)
     assert_equal(ad["all", "particle_velocity_z"].size, npart)
 
-    assert np.all(ad["particle_mass"] == ad["particle_mass"][0])
+    assert np.all(ad[("all", "particle_mass")] == ad[("all", "particle_mass")][0])
 
     left_edge = ds.arr([0.0, 0.0, 0.0], "code_length")
     right_edge = ds.arr([4.0, 4.0, 4.0], "code_length")
@@ -97,22 +97,22 @@ def test_nyx_particle_io():
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_x"] <= right_edge[0],
-            reg["particle_position_x"] >= left_edge[0],
+            reg[("all", "particle_position_x")] <= right_edge[0],
+            reg[("all", "particle_position_x")] >= left_edge[0],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_y"] <= right_edge[1],
-            reg["particle_position_y"] >= left_edge[1],
+            reg[("all", "particle_position_y")] <= right_edge[1],
+            reg[("all", "particle_position_y")] >= left_edge[1],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_z"] <= right_edge[2],
-            reg["particle_position_z"] >= left_edge[2],
+            reg[("all", "particle_position_z")] <= right_edge[2],
+            reg[("all", "particle_position_z")] >= left_edge[2],
         )
     )
 
@@ -135,13 +135,13 @@ def test_castro_particle_io():
 
     grid = ds.index.grids[2]
     npart_grid_2 = 49  # read directly from the header
-    assert_equal(grid["particle_position_x"].size, npart_grid_2)
+    assert_equal(grid[("all", "particle_position_x")].size, npart_grid_2)
     assert_equal(grid["Tracer", "particle_position_y"].size, npart_grid_2)
     assert_equal(grid["all", "particle_position_y"].size, npart_grid_2)
 
     ad = ds.all_data()
     npart = 49  # read directly from the header
-    assert_equal(ad["particle_velocity_x"].size, npart)
+    assert_equal(ad[("all", "particle_velocity_x")].size, npart)
     assert_equal(ad["Tracer", "particle_velocity_y"].size, npart)
     assert_equal(ad["all", "particle_velocity_y"].size, npart)
 
@@ -153,15 +153,15 @@ def test_castro_particle_io():
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_x"] <= right_edge[0],
-            reg["particle_position_x"] >= left_edge[0],
+            reg[("all", "particle_position_x")] <= right_edge[0],
+            reg[("all", "particle_position_x")] >= left_edge[0],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_y"] <= right_edge[1],
-            reg["particle_position_y"] >= left_edge[1],
+            reg[("all", "particle_position_y")] <= right_edge[1],
+            reg[("all", "particle_position_y")] >= left_edge[1],
         )
     )
 
@@ -239,22 +239,22 @@ def test_warpx_particle_io():
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_x"] <= right_edge[0],
-            reg["particle_position_x"] >= left_edge[0],
+            reg[("all", "particle_position_x")] <= right_edge[0],
+            reg[("all", "particle_position_x")] >= left_edge[0],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_y"] <= right_edge[1],
-            reg["particle_position_y"] >= left_edge[1],
+            reg[("all", "particle_position_y")] <= right_edge[1],
+            reg[("all", "particle_position_y")] >= left_edge[1],
         )
     )
 
     assert np.all(
         np.logical_and(
-            reg["particle_position_z"] <= right_edge[2],
-            reg["particle_position_z"] >= left_edge[2],
+            reg[("all", "particle_position_z")] <= right_edge[2],
+            reg[("all", "particle_position_z")] >= left_edge[2],
         )
     )
 

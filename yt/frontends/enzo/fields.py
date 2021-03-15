@@ -253,12 +253,14 @@ class EnzoFieldInfo(FieldInfoContainer):
 
             # Subtract off B-field energy
             def _sub_b(field, data):
-                ret = data[te_name] - 0.5 * data["velocity_x"] ** 2.0
+                ret = data[te_name] - 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
-                    ret -= 0.5 * data["velocity_y"] ** 2.0
+                    ret -= 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:
-                    ret -= 0.5 * data["velocity_z"] ** 2.0
-                ret -= data["magnetic_energy_density"] / data["density"]
+                    ret -= 0.5 * data[("gas", "velocity_z")] ** 2.0
+                ret -= (
+                    data[("gas", "magnetic_energy_density")] / data[("gas", "density")]
+                )
                 return ret
 
             self.add_field(
@@ -278,9 +280,9 @@ class EnzoFieldInfo(FieldInfoContainer):
             )
 
             def _tot_minus_kin(field, data):
-                ret = data[te_name] - 0.5 * data["velocity_x"] ** 2.0
+                ret = data[te_name] - 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
-                    ret -= 0.5 * data["velocity_y"] ** 2.0
+                    ret -= 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:
                     ret -= 0.5 * data["velocity_z"] ** 2.0
                 return ret
