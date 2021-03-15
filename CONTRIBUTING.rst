@@ -731,10 +731,10 @@ appending commits to your branch.
 
 Here's a list of the main automated formatters we use along with a short description
 
-- `black <https://black.readthedocs.io/en/stable/>_` (overall coding style)
-- `isort <https://pycqa.github.io/isort/>_` (import statements ordering)
-- `pyupgrade <https://github.com/asottile/pyupgrade>_` (enforce modern python idioms)
-- `flake8 <https://flake8.pycqa.org/en/latest/>_` + `bugbear <https://github.com/PyCQA/flake8-bugbear>_` (static code smells detection)
+- `black <https://black.readthedocs.io/en/stable/>`_ (overall coding style)
+- `isort <https://pycqa.github.io/isort/>`_ (import statements ordering)
+- `pyupgrade <https://github.com/asottile/pyupgrade>`_ (enforce modern python idioms)
+- `flake8 <https://flake8.pycqa.org/en/latest/>`_ + `bugbear <https://github.com/PyCQA/flake8-bugbear>`_ (static code smells detection)
 
 The complete configuration is located in ``.pre-commit-config.yaml``.
 

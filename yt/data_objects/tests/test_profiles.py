@@ -480,7 +480,10 @@ def test_profile_sph_data():
     ds = fake_sph_orientation_ds()
     # test we create a profile without raising YTIllDefinedProfile
     yt.create_profile(
-        ds.all_data(), ["density", "temperature"], ["kinetic_energy"], weight_field=None
+        ds.all_data(),
+        [("gas", "density"), ("gas", "temperature")],
+        [("gas", "kinetic_energy_density")],
+        weight_field=None,
     )
 
 

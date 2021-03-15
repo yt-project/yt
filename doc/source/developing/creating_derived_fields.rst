@@ -22,16 +22,16 @@ this approach.
 
 
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
+       return (data.ds.gamma - 1.0) * data["density"] * data["specific_thermal_energy"]
 
 Note that we do a couple different things here.  We access the ``gamma``
 parameter from the dataset, we access the ``density`` field and we access
-the ``thermal_energy`` field.  ``thermal_energy`` is, in fact, another derived
-field!  We don't do any loops, we don't do any type-checking, we can simply
-multiply the three items together.
+the ``specific_thermal_energy`` field.  ``specific_thermal_energy`` is, in
+fact, another derived field!  We don't do any loops, we don't do any
+type-checking, we can simply multiply the three items together.
 
 In this example, the ``density`` field will return data with units of
-``g/cm**3`` and the ``thermal_energy`` field will return data units of
+``g/cm**3`` and the ``specific_thermal_energy`` field will return data units of
 ``erg/g``, so the result will automatically have units of pressure,
 ``erg/cm**3``. This assumes the unit system is set to the default, which is
 CGS: if a different unit system is selected, the result will be in the same
@@ -100,7 +100,7 @@ the dimensionality of the returned array and the field are the same:
 
 
     def _pressure(field, data):
-        return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
+        return (data.ds.gamma - 1.0) * data["density"] * data["specific_thermal_energy"]
 
 
     yt.add_field(
@@ -125,7 +125,7 @@ the previous example:
 
    @derived_field(name="pressure", units="dyne/cm**2")
    def _pressure(field, data):
-       return (data.ds.gamma - 1.0) * data["density"] * data["thermal_energy"]
+       return (data.ds.gamma - 1.0) * data["density"] * data["specific_thermal_energy"]
 
 The :func:`derived_field` decorator takes the same arguments as
 :func:`add_field`, and is often a more convenient shorthand in cases where

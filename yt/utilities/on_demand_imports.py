@@ -627,3 +627,22 @@ class f90nml_imports:
 
 
 _f90nml = f90nml_imports()
+
+
+class requests_imports:
+    _name = "requests"
+    _module = None
+
+    def __init__(self):
+        try:
+            import requests as myself
+
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_requests = requests_imports()

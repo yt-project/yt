@@ -20,7 +20,7 @@ class YTFITSFieldInfo(FieldInfoContainer):
         ),
         ("number_density", ("1/code_length**3", ["number_density"], None)),
         ("pressure", ("dyne/code_length**2", ["pressure"], None)),
-        ("thermal_energy", ("erg / g", ["thermal_energy"], None)),
+        ("thermal_energy", ("erg / g", ["specific_thermal_energy"], None)),
         ("temperature", ("K", ["temperature"], None)),
         ("velocity_x", ("code_length/code_time", ["velocity_x"], None)),
         ("velocity_y", ("code_length/code_time", ["velocity_y"], None)),

@@ -20,7 +20,7 @@ answer_tests:
   local_artio_003:
     - yt/frontends/artio/tests/test_outputs.py:test_sizmbhloz
 
-  local_athena_008: # PR 2945
+  local_athena_009: # PR 3059
     - yt/frontends/athena/tests/test_outputs.py:test_cloud
     - yt/frontends/athena/tests/test_outputs.py:test_blast
     - yt/frontends/athena/tests/test_outputs.py:test_stripping

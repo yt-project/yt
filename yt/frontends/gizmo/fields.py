@@ -15,7 +15,7 @@ class GizmoFieldInfo(GadgetFieldInfo):
         ("Velocities", ("code_velocity", ["particle_velocity"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),
         ("Masses", ("code_mass", ["particle_mass"], None)),
-        ("InternalEnergy", ("code_specific_energy", ["thermal_energy"], None)),
+        ("InternalEnergy", ("code_specific_energy", ["specific_thermal_energy"], None)),
         ("Density", ("code_mass / code_length**3", ["density"], None)),
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("ElectronAbundance", ("", [], None)),

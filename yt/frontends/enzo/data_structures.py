@@ -852,7 +852,7 @@ class EnzoDataset(Dataset):
             else:
                 self.parameters[param] = vals
         self.refine_by = self.parameters["RefineBy"]
-        self._periodicity = tuple(
+        _periodicity = tuple(
             always_iterable(self.parameters["LeftFaceBoundaryCondition"] == 3)
         )
         self.dimensionality = self.parameters["TopGridRank"]
@@ -866,7 +866,7 @@ class EnzoDataset(Dataset):
                 tmp = self.domain_dimensions.tolist()
                 tmp.append(1)
                 self.domain_dimensions = np.array(tmp)
-                self.periodicity += (False,)
+                _periodicity += (False,)
             self.domain_left_edge = np.array(
                 self.parameters["DomainLeftEdge"], "float64"
             ).copy()
@@ -883,7 +883,9 @@ class EnzoDataset(Dataset):
             self.domain_dimensions = np.array(
                 [self.parameters["TopGridDimensions"], 1, 1]
             )
-            self.periodicity += (False, False)
+            _periodicity += (False, False)
+        assert len(_periodicity) == 3
+        self._periodicity = _periodicity
 
         self.gamma = self.parameters["Gamma"]
         if self.parameters["ComovingCoordinates"]:
