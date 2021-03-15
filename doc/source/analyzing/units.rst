@@ -210,8 +210,8 @@ Using parsec as an example,
   * ``pc/h``
     Proper parsecs, normalized by the scaled hubble constant, :math:`\rm{pc}/h`.
 
-Overriding Code Unit Defintions
--------------------------------
+Overriding Code Unit Definitions
+--------------------------------
 
 On occasion, you might have a dataset for a supported frontend that does not
 have the conversions to code units accessible or you may want to change them

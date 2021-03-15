@@ -532,7 +532,7 @@ def test_profile_sph_data():
     yt.create_profile(
         ds.all_data(),
         [("gas", "density"), ("gas", "temperature")],
-        [("gas", "kinetic_energy")],
+        [("gas", "kinetic_energy_density")],
         weight_field=None,
     )
 
