@@ -135,6 +135,5 @@ if __name__ == "__main__":
         num_jobs -= 1
 
     # REMOVE ME
-    p = subprocess.Popen("git diff --patch".split(), stdout=open("diff.patch", "w"))
+    p = subprocess.Popen("git diff --patch".split(), stdout=open("diff.patch.xml", "w"))
     p.wait()
-    subprocess.call("yt upload diff.patch".split())
