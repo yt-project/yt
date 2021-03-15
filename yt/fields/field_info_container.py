@@ -1,4 +1,5 @@
 from numbers import Number as numeric_type
+from typing import Optional, Tuple
 
 import numpy as np
 from unyt.exceptions import UnitConversionError
@@ -15,7 +16,7 @@ from yt.utilities.exceptions import (
     YTFieldNotFound,
 )
 
-from .derived_field import DerivedField, NullFunc, TranslationFunc
+from .derived_field import DeprecatedFieldFunc, DerivedField, NullFunc, TranslationFunc
 from .field_plugin_registry import field_plugins
 from .particle_fields import (
     add_union_field,
@@ -421,7 +422,32 @@ class FieldInfoContainer(dict):
         kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
 
-    def alias(self, alias_name, original_name, units=None):
+    def alias(
+        self,
+        alias_name,
+        original_name,
+        units=None,
+        deprecate: Optional[Tuple[str]] = None,
+    ):
+        """
+        Alias one field to another field.
+
+        Parameters
+        ----------
+        alias_name : Tuple[str]
+            The new field name.
+        original_name : Tuple[str]
+            The field to be aliased.
+        units : str
+           A plain text string encoding the unit.  Powers must be in
+           python syntax (** instead of ^). If set to "auto" the units
+           will be inferred from the return value of the field function.
+        deprecate : Tuple[str], optional
+            If this is set, then the tuple contains two string version
+            numbers: the first marking the version when the field was
+            deprecated, and the second marking when the field will be
+            removed.
+        """
         if original_name not in self:
             return
         if units is None:
@@ -433,12 +459,72 @@ class FieldInfoContainer(dict):
             else:
                 units = self[original_name].units
         self.field_aliases[alias_name] = original_name
+        function = TranslationFunc(original_name)
+        if deprecate is not None:
+            self.add_deprecated_field(
+                alias_name,
+                function=function,
+                sampling_type=self[original_name].sampling_type,
+                display_name=self[original_name].display_name,
+                units=units,
+                since=deprecate[0],
+                removal=deprecate[1],
+                ret_name=original_name,
+            )
+        else:
+            self.add_field(
+                alias_name,
+                function=function,
+                sampling_type=self[original_name].sampling_type,
+                display_name=self[original_name].display_name,
+                units=units,
+            )
+
+    def add_deprecated_field(
+        self, name, function, sampling_type, since, removal, ret_name=None, **kwargs
+    ):
+        """
+        Add a new field which is deprecated, along with supplemental metadata,
+        to the list of available fields.  This respects a number of arguments,
+        all of which are passed on to the constructor for
+        :class:`~yt.data_objects.api.DerivedField`.
+
+        Parameters
+        ----------
+        name : str
+           is the name of the field.
+        function : callable
+           A function handle that defines the field.  Should accept
+           arguments (field, data)
+        sampling_type : str
+           "cell" or "particle" or "local"
+        since : str
+            The version string marking when this field was deprecated.
+        removal : str
+            The version string marking when this field will be removed.
+        ret_name : str
+            The name of the field which will actually be returned, used
+            only by :meth:`~yt.fields.field_info_container.FieldInfoContainer.alias`.
+        units : str
+           A plain text string encoding the unit.  Powers must be in
+           python syntax (** instead of ^). If set to "auto" the units
+           will be inferred from the return value of the field function.
+        take_log : bool
+           Describes whether the field should be logged
+        validators : list
+           A list of :class:`FieldValidator` objects
+        vector_field : bool
+           Describes the dimensionality of the field.  Currently unused.
+        display_name : str
+           A name used in the plots
+        """
+        if ret_name is None:
+            ret_name = name
         self.add_field(
-            alias_name,
-            function=TranslationFunc(original_name),
-            sampling_type=self[original_name].sampling_type,
-            display_name=self[original_name].display_name,
-            units=units,
+            name,
+            function=DeprecatedFieldFunc(ret_name, function, since, removal),
+            sampling_type=sampling_type,
+            **kwargs,
         )
 
     def has_key(self, key):

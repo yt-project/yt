@@ -213,7 +213,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.add_output_field(
                 ("enzo", te_name), sampling_type="cell", units="code_velocity**2"
             )
-            self.alias(("gas", "thermal_energy"), ("enzo", te_name))
+            self.alias(("gas", "specific_thermal_energy"), ("enzo", te_name))
 
             def _ge_plus_kin(field, data):
                 ret = data[te_name] + 0.5 * data["velocity_x"] ** 2.0
@@ -224,7 +224,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 return ret
 
             self.add_field(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 sampling_type="cell",
                 function=_ge_plus_kin,
                 units=unit_system["specific_energy"],
@@ -234,7 +234,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("enzo", te_name), sampling_type="cell", units="code_velocity**2"
             )
             self.alias(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 ("enzo", te_name),
                 units=unit_system["specific_energy"],
             )
@@ -242,7 +242,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("enzo", ge_name), sampling_type="cell", units="code_velocity**2"
             )
             self.alias(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 ("enzo", ge_name),
                 units=unit_system["specific_energy"],
             )
@@ -258,11 +258,11 @@ class EnzoFieldInfo(FieldInfoContainer):
                     ret -= 0.5 * data["velocity_y"] ** 2.0
                 if data.ds.dimensionality > 2:
                     ret -= 0.5 * data["velocity_z"] ** 2.0
-                ret -= data["magnetic_energy"] / data["density"]
+                ret -= data["magnetic_energy_density"] / data["density"]
                 return ret
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
                 function=_sub_b,
                 units=unit_system["specific_energy"],
@@ -272,7 +272,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 ("enzo", te_name), sampling_type="cell", units="code_velocity**2"
             )
             self.alias(
-                ("gas", "total_energy"),
+                ("gas", "specific_total_energy"),
                 ("enzo", te_name),
                 units=unit_system["specific_energy"],
             )
@@ -286,7 +286,7 @@ class EnzoFieldInfo(FieldInfoContainer):
                 return ret
 
             self.add_field(
-                ("gas", "thermal_energy"),
+                ("gas", "specific_thermal_energy"),
                 sampling_type="cell",
                 function=_tot_minus_kin,
                 units=unit_system["specific_energy"],

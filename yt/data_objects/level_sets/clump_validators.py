@@ -42,7 +42,7 @@ def _gravitationally_bound(
     kinetic = (
         0.5
         * (
-            clump["gas", "cell_mass"]
+            clump["gas", "mass"]
             * (
                 (bulk_velocity[0] - clump["gas", "velocity_x"]) ** 2
                 + (bulk_velocity[1] - clump["gas", "velocity_y"]) ** 2
@@ -52,7 +52,9 @@ def _gravitationally_bound(
     )
 
     if use_thermal_energy:
-        kinetic += (clump["gas", "cell_mass"] * clump["gas", "thermal_energy"]).sum()
+        kinetic += (
+            clump["gas", "mass"] * clump["gas", "specific_thermal_energy"]
+        ).sum()
 
     if use_particles:
         kinetic += (
@@ -69,7 +71,7 @@ def _gravitationally_bound(
 
     if use_particles:
         m = np.concatenate(
-            [clump["gas", "cell_mass"].in_cgs(), clump["all", "particle_mass"].in_cgs()]
+            [clump["gas", "mass"].in_cgs(), clump["all", "particle_mass"].in_cgs()]
         )
         px = np.concatenate(
             [clump["index", "x"].in_cgs(), clump["all", "particle_position_x"].in_cgs()]
@@ -81,7 +83,7 @@ def _gravitationally_bound(
             [clump["index", "z"].in_cgs(), clump["all", "particle_position_z"].in_cgs()]
         )
     else:
-        m = clump["gas", "cell_mass"].in_cgs()
+        m = clump["gas", "mass"].in_cgs()
         px = clump["index", "x"].in_cgs()
         py = clump["index", "y"].in_cgs()
         pz = clump["index", "z"].in_cgs()
