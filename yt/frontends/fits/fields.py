@@ -61,7 +61,7 @@ class WCSFITSFieldInfo(FITSFieldInfo):
 
         def _get_2d_wcs(data, axis):
             w_coords = wcs_2d.wcs_pix2world(
-                data[("fits", "x")], data[("index", "y")], 1
+                data[("index", "x")], data[("index", "y")], 1
             )
             return w_coords[axis]
 

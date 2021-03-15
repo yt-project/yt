@@ -26,20 +26,20 @@ def _thermal_energy_density(field, data):
             + data[("gas", "momentum_density_y")] ** 2
             + data[("gas", "momentum_density_z")] ** 2
         )
-        / data[("boxlib", "density")]
+        / data[("gas", "density")]
     )
     return data[("boxlib", "eden")] - ke
 
 
 def _specific_thermal_energy(field, data):
     # This is little e, so we take thermal_energy_density and divide by density
-    return data[("gas", "thermal_energy_density")] / data[("boxlib", "density")]
+    return data[("gas", "thermal_energy_density")] / data[("gas", "density")]
 
 
 def _temperature(field, data):
     mu = data.ds.parameters["mu"]
     gamma = data.ds.parameters["gamma"]
-    tr = data[("gas", "thermal_energy_density")] / data[("boxlib", "density")]
+    tr = data[("gas", "thermal_energy_density")] / data[("gas", "density")]
     tr *= mu * amu_cgs / boltzmann_constant_cgs
     tr *= gamma - 1.0
     return tr
@@ -97,9 +97,7 @@ class WarpXFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         def get_mass(field, data):
             species_mass = data.ds.index.parameters[ptype + "_mass"]
-            return data[("particle0", "particle_weight")] * YTQuantity(
-                species_mass, "kg"
-            )
+            return data[(ptype, "particle_weight")] * YTQuantity(species_mass, "kg")
 
         self.add_field(
             (ptype, "particle_mass"),
@@ -110,9 +108,7 @@ class WarpXFieldInfo(FieldInfoContainer):
 
         def get_charge(field, data):
             species_charge = data.ds.index.parameters[ptype + "_charge"]
-            return data[("particle0", "particle_weight")] * YTQuantity(
-                species_charge, "C"
-            )
+            return data[(ptype, "particle_weight")] * YTQuantity(species_charge, "C")
 
         self.add_field(
             (ptype, "particle_charge"),
@@ -233,7 +229,8 @@ class BoxlibFieldInfo(FieldInfoContainer):
         def _get_vel(axis):
             def velocity(field, data):
                 return (
-                    data[f"particle_momentum_{axis}"] / data[("all", "particle_mass")]
+                    data[(ptype, f"particle_momentum_{axis}")]
+                    / data[(ptype, "particle_mass")]
                 )
 
             return velocity

@@ -92,11 +92,11 @@ def test_nprocs():
     prj1 = ds1.proj(("gas", "density"), 0)
     ds2 = load(sloshing, units_override=uo_sloshing, nprocs=8)
     sp2 = ds2.sphere("c", (100.0, "kpc"))
-    prj2 = ds1.proj(("athena", "density"), 0)
+    prj2 = ds1.proj(("gas", "density"), 0)
 
     assert_equal(
-        sp1.quantities.extrema(("athena", "pressure")),
-        sp2.quantities.extrema(("athena", "pressure")),
+        sp1.quantities.extrema(("gas", "pressure")),
+        sp2.quantities.extrema(("gas", "pressure")),
     )
     assert_allclose_units(
         sp1.quantities.total_quantity(("gas", "pressure")),
@@ -104,8 +104,8 @@ def test_nprocs():
     )
     for ax in "xyz":
         assert_equal(
-            sp1.quantities.extrema(f"velocity_{ax}"),
-            sp2.quantities.extrema(f"velocity_{ax}"),
+            sp1.quantities.extrema(("gas", f"velocity_{ax}")),
+            sp2.quantities.extrema(("gas", f"velocity_{ax}")),
         )
     assert_allclose_units(
         sp1.quantities.bulk_velocity(), sp2.quantities.bulk_velocity()

@@ -550,8 +550,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 
         indices = np.argsort(data_source[("all", "pdx")])[::-1].astype(np.int_)
-        buff = np.zeros((size[1], size[0]), dtype="f8")
         ftype = "index"
+        buff = np.zeros((size[1], size[0]), dtype="f8")
         if isinstance(data_source.ds, YTSpatialPlotDataset):
             ftype = "gas"
         pixelize_off_axis_cartesian(

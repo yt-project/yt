@@ -58,7 +58,9 @@ class ARTIOFieldInfo(FieldInfoContainer):
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"momentum_density_{axis}"] / data[("gas", "density")]
+                return (
+                    data[("gas", f"momentum_density_{axis}")] / data[("gas", "density")]
+                )
 
             return velocity
 

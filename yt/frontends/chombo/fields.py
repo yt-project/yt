@@ -68,7 +68,8 @@ class Orion2FieldInfo(ChomboFieldInfo):
         def _get_vel(axis):
             def velocity(field, data):
                 return (
-                    data[f"particle_momentum_{axis}"] / data[("all", "particle_mass")]
+                    data[(ptype, f"particle_momentum_{axis}")]
+                    / data[(ptype, "particle_mass")]
                 )
 
             return velocity
@@ -96,10 +97,13 @@ class Orion2FieldInfo(ChomboFieldInfo):
                     - data[("gas", "magnetic_energy_density")]
                 )
             except YTFieldNotFound:
-                return data["energy-density"] - data["kinetic_energy_density"]
+                return (
+                    data[("chombo", "energy-density")]
+                    - data[("gas", "kinetic_energy_density")]
+                )
 
         def _specific_thermal_energy(field, data):
-            return data[("gas", "thermal_energy_density")] / data[("chombo", "density")]
+            return data[("gas", "thermal_energy_density")] / data[("gas", "density")]
 
         def _magnetic_energy_density(field, data):
             ret = data[("chombo", "X-magnfield")] ** 2
@@ -110,7 +114,7 @@ class Orion2FieldInfo(ChomboFieldInfo):
             return ret / 8.0 / np.pi
 
         def _specific_magnetic_energy(field, data):
-            return data[("gas", "specific_magnetic_energy")] / data["density"]
+            return data[("gas", "specific_magnetic_energy")] / data[("gas", "density")]
 
         def _kinetic_energy_density(field, data):
             p2 = data[("chombo", "X-momentum")] ** 2
@@ -118,18 +122,20 @@ class Orion2FieldInfo(ChomboFieldInfo):
                 p2 = p2 + data[("chombo", "Y-momentum")] ** 2
             if data.ds.dimensionality > 2:
                 p2 = p2 + data[("chombo", "Z-momentum")] ** 2
-            return 0.5 * p2 / data[("chombo", "density")]
+            return 0.5 * p2 / data[("gas", "density")]
 
         def _specific_kinetic_energy(field, data):
-            return data[("gas", "kinetic_energy_density")] / data[("chombo", "density")]
+            return data[("gas", "kinetic_energy_density")] / data[("gas", "density")]
 
         def _temperature(field, data):
             c_v = data.ds.quan(data.ds.parameters["radiation.const_cv"], "erg/g/K")
-            return data["specific_thermal_energy"] / c_v
+            return data[("gas", "specific_thermal_energy")] / c_v
 
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"momentum_density_{axis}"] / data[("chombo", "density")]
+                return (
+                    data[("gas", f"momentum_density_{axis}")] / data[("gas", "density")]
+                )
 
             return velocity
 
