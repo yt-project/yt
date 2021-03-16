@@ -10,7 +10,7 @@ p = yt.ParticlePlot(
 
 # pick some appropriate units
 p.set_axes_unit("kpc")
-p.set_unit("particle_mass", "Msun")
+p.set_unit(("all", "particle_mass"), "Msun")
 
 # save result
 p.save()

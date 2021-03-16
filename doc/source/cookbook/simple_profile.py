@@ -10,7 +10,7 @@ sphere = ds.sphere("c", (100.0, "kpc"))
 plot = yt.ProfilePlot(
     sphere, "density", ["temperature", "velocity_x"], weight_field=("gas", "cell_mass")
 )
-plot.set_log("velocity_x", False)
+plot.set_log(("gas", "velocity_x"), False)
 
 # Save the image.
 # Optionally, give a string as an argument

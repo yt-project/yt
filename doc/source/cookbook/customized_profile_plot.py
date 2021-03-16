@@ -23,7 +23,7 @@ profile = yt.create_profile(
 
 plot = yt.ProfilePlot.from_profiles(profile)
 
-plot.set_log("cylindrical_tangential_velocity_absolute", False)
-plot.set_ylim("cylindrical_tangential_velocity_absolute", 60, 160)
+plot.set_log(("gas", "cylindrical_tangential_velocity_absolute"), False)
+plot.set_ylim(("gas", "cylindrical_tangential_velocity_absolute"), 60, 160)
 
 plot.save()

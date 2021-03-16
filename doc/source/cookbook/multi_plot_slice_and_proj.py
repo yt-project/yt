@@ -18,7 +18,11 @@ ds = yt.load(fn)  # load data
 #   bw is the base-width in inches, but 4 is about right for most cases.
 fig, axes, colorbars = get_multi_plot(3, 2, colorbar=orient, bw=4)
 
-slc = yt.SlicePlot(ds, "z", fields=["density", "temperature", "velocity_magnitude"])
+slc = yt.SlicePlot(
+    ds,
+    "z",
+    fields=[("gas", "density"), ("gas", "temperature"), ("gas", "velocity_magnitude")],
+)
 proj = yt.ProjectionPlot(ds, "z", "density", weight_field="density")
 
 slc_frb = slc.data_source.to_frb((1.0, "Mpc"), 512)

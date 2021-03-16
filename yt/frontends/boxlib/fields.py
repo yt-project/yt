@@ -275,7 +275,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_momentum_to_velocity(self):
         def _get_vel(axis):
             def velocity(field, data):
-                return data[f"{axis}mom"] / data["density"]
+                return data[("boxlib", f"{axis}mom")] / data[("boxlib", "density")]
 
             return velocity
 
@@ -290,7 +290,7 @@ class BoxlibFieldInfo(FieldInfoContainer):
     def setup_velocity_to_momentum(self):
         def _get_mom(axis):
             def momentum(field, data):
-                return data[f"{axis}vel"] * data["density"]
+                return data[("boxlib", f"{axis}vel")] * data[("boxlib", "density")]
 
             return momentum
 

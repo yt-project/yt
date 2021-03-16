@@ -8,7 +8,7 @@ fn = "Enzo_64/RD0006/RedshiftOutput0006"  # dataset to load
 
 # load data and get center value and center location as maximum density location
 ds = yt.load(fn)
-v, c = ds.find_max("density")
+v, c = ds.find_max(("gas", "density"))
 
 # set up our Fixed Resolution Buffer parameters: a width, resolution, and center
 width = (1.0, "unitary")
@@ -43,7 +43,7 @@ for ax in range(3):
 
     # converting our fixed resolution buffers to NDarray so matplotlib can
     # render them
-    dens = np.array(frb["density"])
+    dens = np.array(frb[("gas", "density")])
     temp = np.array(frb["temperature"])
 
     plots.append(den_axis.imshow(dens, norm=LogNorm()))
