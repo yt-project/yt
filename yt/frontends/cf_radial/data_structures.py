@@ -19,11 +19,6 @@ from yt.utilities.on_demand_imports import _xarray as xr
 
 from .fields import CFRadialFieldInfo
 
-try:
-    FileNotFoundError
-except NameError:
-    FileNotFoundError = IOError
-
 
 class CFRadialGrid(AMRGridPatch):
     _id_offset = 0
@@ -64,13 +59,42 @@ class CFRadialHierarchy(GridIndex):
         # fluid type is usually the dataset_type and the on-disk particle type
         # (for a single population of particles) is "io".
         self.field_list = []
+
+        # pull out some info for dynamically setting fields and units
+        fic = self.ds._field_info_class
+        known_fieldnames = [fld[0] for fld in fic.known_other_fields]
+
+        flds_to_add = tuple()  # entries to add to known_other_fields
+        warn_units = 0  # flag if we encounter units we cannot handle
         for key in self.ds._handle.variables.keys():
             if (
                 all(x in self.ds._handle[key].dims for x in ["time", "z", "y", "x"])
                 is True
             ):
                 field_tup = ("cf_radial", key)
+                warn_units += key in fic.dBz_fields
                 self.field_list.append(field_tup)
+                if key not in known_fieldnames:
+                    # this field is not in known fields, add it now after some
+                    # sanitization of the units
+                    units = self.ds._handle[key].units
+
+                    if units in fic.units_not_handled:
+                        units = ""
+                        warn_units += 1
+
+                    for findstr, repstr in fic.unit_subs:
+                        units = units.replace(findstr, repstr)
+
+                    flds_to_add += ((key, (units, [], self.ds._handle[key].long_name)),)
+
+        if flds_to_add:
+            self.ds._field_info_class.known_other_fields += flds_to_add
+
+        if warn_units:
+            mylog.warning(
+                "Some field units are not handled yet, loading as nondimensional"
+            )
 
     def _count_grids(self):
         # This needs to set self.num_grids
@@ -230,8 +254,11 @@ class CFRadialDataset(Dataset):
             return False
 
         try:
-            conventions = ds.attrs["Conventions"]
-        except KeyError:
+            # handle the different upper/lower case cases
+            conventions = ds.attrs.get("Conventions", "")
+            conventions += ds.attrs.get("conventions", "")
+        except AttributeError:
+            # either attrs does not exist or its not a dictionary, so not valid
             return False
 
         if "CF/Radial" in conventions:

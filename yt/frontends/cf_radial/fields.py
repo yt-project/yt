@@ -16,9 +16,9 @@ class CFRadialFieldInfo(FieldInfoContainer):
     known_other_fields = (
         # Each entry here is of the form
         # ( "name", ("units", ["fields", "to", "alias"], # "display_name")),
-        ("reflectivity", ("dBZ", [], None)),
-        ("correct_reflectivity", ("dBZ", [], None)),
-        ("total_power", ("dBZ", [], None)),
+        ("reflectivity", ("", [], None)),
+        ("correct_reflectivity", ("", [], None)),
+        ("total_power", ("", [], None)),
         ("velocity", ("m/s", ["mean_doppler_velocity", "doppler_velocity"], None)),
         ("corrected_velocity", ("m/s", [], None)),
         ("simulated_velocity", ("m/s", [], None)),
@@ -45,6 +45,15 @@ class CFRadialFieldInfo(FieldInfoContainer):
         ("northward_wind_component", ("m/s", [], None)),
         ("vertical_wind_component", ("m/s", [], None)),
     )
+
+    # fields that should have units of dBz, but treated as nondimensional for now
+    dBz_fields = ("reflectivity", "correct_reflectivity", "total_power")
+
+    # units to set as nondimensional if found in _detect_output_fields
+    units_not_handled = ("dBz", "dBZ", "ratio")
+
+    # (find, replace) pairs for sanitizing:
+    unit_subs = (("degrees", "degree"),)
 
     known_particle_fields = (
         # Identical form to above
