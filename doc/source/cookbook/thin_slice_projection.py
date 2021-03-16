@@ -28,7 +28,7 @@ region = ds.box(left_corner, right_corner)
 # Only cells within the region will be included in the projection.
 # Try with another data container, like a sphere or disk.
 plot = yt.ProjectionPlot(
-    ds, "x", "density", weight_field=("gas", "density"), data_source=region
+    ds, "x", ("gas", "density"), weight_field=("gas", "density"), data_source=region
 )
 
 # Save the image with the keyword.

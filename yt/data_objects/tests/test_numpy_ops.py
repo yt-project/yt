@@ -101,7 +101,7 @@ def test_min_max():
         q = ad.min(("gas", "density")).v
         assert_equal(q, ad[("gas", "density")].min())
 
-        q = ad.max(("stream", "density")).v
+        q = ad.max(("gas", "density")).v
         assert_equal(q, ad[("gas", "density")].max())
 
         q = ad.min(("all", "particle_mass")).v
