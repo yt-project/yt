@@ -534,10 +534,10 @@ class CartesianCoordinateHandler(CoordinateHandler):
         else:
             pixelize_cartesian(
                 buff,
-                data_source[("all", "px")],
-                data_source[("all", "py")],
-                data_source[("all", "pdx")],
-                data_source[("all", "pdy")],
+                data_source["px"],
+                data_source["py"],
+                data_source["pdx"],
+                data_source["pdy"],
                 data_source[field],
                 bounds,
                 int(antialias),
@@ -549,9 +549,9 @@ class CartesianCoordinateHandler(CoordinateHandler):
     def _oblique_pixelize(self, data_source, field, bounds, size, antialias):
         from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 
-        indices = np.argsort(data_source[("all", "pdx")])[::-1].astype(np.int_)
-        ftype = "index"
+        indices = np.argsort(data_source["pdx"])[::-1].astype(np.int_)
         buff = np.zeros((size[1], size[0]), dtype="f8")
+        ftype = "index"
         if isinstance(data_source.ds, YTSpatialPlotDataset):
             ftype = "gas"
         pixelize_off_axis_cartesian(
@@ -559,11 +559,11 @@ class CartesianCoordinateHandler(CoordinateHandler):
             data_source[ftype, "x"],
             data_source[ftype, "y"],
             data_source[ftype, "z"],
-            data_source[("gas", "px")],
-            data_source[("all", "py")],
-            data_source[("all", "pdx")],
-            data_source[("all", "pdy")],
-            data_source[("all", "pdz")],
+            data_source["px"],
+            data_source["py"],
+            data_source["pdx"],
+            data_source["pdy"],
+            data_source["pdz"],
             data_source.center,
             data_source._inv_mat,
             indices,
