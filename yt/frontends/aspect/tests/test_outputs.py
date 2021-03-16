@@ -10,6 +10,7 @@ _node_names = ("velocity", "p", "T")
 _fields = ("T", "p", "velocity_x", "velocity_z", "velocity_y")
 box_convect = "aspect/output_convection_box_3d/nproc_1/solution/solution-00002.pvtu"
 box_convect_par = "aspect/output_convection_box_3d/nproc_4/solution/solution-00001.pvtu"
+shell_2d = "aspect/output_shell_simple_2d/solution/solution-00004.pvtu"
 
 
 @requires_ds(box_convect)
@@ -37,6 +38,20 @@ def test_box_convect_par():
     ic = ds.domain_center
     if can_run_ds(ds):
         dso = [None, ("sphere", (ic, (0.25, "unitary")))]
+        for field in _fields:
+            for dobj_name in dso:
+                yield AllFieldValuesTest(ds, ("connect0", field), dobj_name)
+
+
+@requires_ds(shell_2d)
+def test_2d_shell():
+    ds = data_dir_load(shell_2d)
+    assert_equal(str(ds), "solution-00004.pvtu")
+    assert_equal(ds.dimensionality, 2)
+    assert_equal(len(ds.parameters["vtu_files"]), 5)
+    assert_array_equal(ds.parameters["nod_names"], _node_names)
+    if can_run_ds(ds):
+        dso = [None, ("all_data", ())]
         for field in _fields:
             for dobj_name in dso:
                 yield AllFieldValuesTest(ds, ("connect0", field), dobj_name)
