@@ -525,7 +525,8 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
                         + data[(ftype, f"{basename}_theta")]
                         * np.cos(data[(ftype, "theta")])
                         * np.cos([(ftype, "phi")])
-                        - data[f"{basename}_phi"] * np.sin(data[(ftype, "phi")])
+                        - data[(ftype, f"{basename}_phi")]
+                        * np.sin(data[(ftype, "phi")])
                     )
 
         # it's redundant to define a cartesian x field for 1D data

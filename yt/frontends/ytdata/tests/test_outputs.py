@@ -178,7 +178,10 @@ def test_profile_data():
     ds = data_dir_load(enzotiny)
     ad = ds.all_data()
     profile_1d = create_profile(
-        ad, "density", "temperature", weight_field=("gas", "cell_mass")
+        ad,
+        ("gas", "density"),
+        ("gas", "temperature"),
+        weight_field=("gas", "cell_mass"),
     )
     fn = profile_1d.save_as_dataset()
     full_fn = os.path.join(tmpdir, fn)
@@ -193,7 +196,10 @@ def test_profile_data():
         )
 
     p1 = ProfilePlot(
-        prof_1d_ds.data, "density", "temperature", weight_field=("gas", "cell_mass")
+        prof_1d_ds.data,
+        ("gas", "density"),
+        ("gas", "temperature"),
+        weight_field=("gas", "cell_mass"),
     )
     p1.save()
 
@@ -202,8 +208,8 @@ def test_profile_data():
     yield YTDataFieldTest(full_fn, "density", geometric=False)
     profile_2d = create_profile(
         ad,
-        ["density", "temperature"],
-        "cell_mass",
+        [("gas", "density"), ("gas", "temperature")],
+        ("gas", "cell_mass"),
         weight_field=None,
         n_bins=(128, 128),
     )
@@ -214,7 +220,11 @@ def test_profile_data():
     assert isinstance(prof_2d_ds, YTProfileDataset)
 
     p2 = PhasePlot(
-        prof_2d_ds.data, "density", "temperature", "cell_mass", weight_field=None
+        prof_2d_ds.data,
+        ("gas", "density"),
+        ("gas", "temperature"),
+        ("gas", "cell_mass"),
+        weight_field=None,
     )
     p2.save()
 
