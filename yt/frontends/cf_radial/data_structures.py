@@ -152,7 +152,9 @@ class CFRadialDataset(Dataset):
         new_filename = filename[:-3] + "_grid.nc"
         if "x" not in self._handle.coords:
             if not os.path.isfile(new_filename):
-                from yt.utilities.on_demand_imports import _pyart as pyart
+                from yt.utilities.on_demand_imports import _pyart
+
+                pyart = _pyart.pyart
 
                 radar = pyart.io.read_cfradial(filename)
                 self.grid_shape = grid_shape

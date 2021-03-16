@@ -253,18 +253,17 @@ _pooch = pooch_imports()
 
 class pyart_imports:
     _name = "pyart"
-    _module = None
+    _pyart = None
 
-    def __init__(self):
-        try:
-            import pyart as myself
-
-            self._module = myself
-        except ImportError:
-            self._module = NotAModule(self._name)
-
-    def __getattr__(self, attr):
-        return getattr(self._module, attr)
+    @property
+    def pyart(self):
+        if self._pyart is None:
+            try:
+                import pyart as pyart
+            except ImportError:
+                pyart = NotAModule(self._name)
+            self._pyart = pyart
+        return self._pyart
 
 
 _pyart = pyart_imports()
