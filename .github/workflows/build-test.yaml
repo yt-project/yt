@@ -23,10 +23,10 @@ jobs:
             python-version: 3.6
             dependencies: minimal
             tests-type: unit
-          # - os: ubuntu-18.04
-          #   python-version: 3.7
-          #   dependencies: full
-          #   tests-type: answer
+          - os: ubuntu-18.04
+            python-version: 3.7
+            dependencies: full
+            tests-type: answer
 
     runs-on: ${{ matrix.os }}
     steps:
@@ -60,5 +60,5 @@ jobs:
     - uses: actions/upload-artifact@v2
       if: ${{ always() }}
       with:
-        name: diff.txt ${{ matrix.node-version }}
+        name: diff.${{ matrix.python-version }}.${{ matrix.tests-type }}
         path: ${{ github.workspace }}/diff.txt
