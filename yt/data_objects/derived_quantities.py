@@ -464,8 +464,7 @@ class WeightedVariance(WeightedStandardDeviation):
             since="4.0.0",
             removal="4.1.0",
         )
-        rv = super().__call__(fields, weight)
-        return rv
+        return super().__call__(fields, weight)
 
 
 class AngularMomentumVector(DerivedQuantity):
