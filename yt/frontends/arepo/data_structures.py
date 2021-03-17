@@ -73,6 +73,10 @@ class ArepoHDF5Dataset(GadgetHDF5Dataset):
         handle.close()
         if missing:
             uvals = None
+        else:
+            # We assume this is comoving, because in the absence of comoving
+            # integration the redshift will be zero.
+            uvals["cmcm"] = 1.0 / uvals["UnitLength_in_cm"]
         return uvals
 
     def _set_code_unit_attributes(self):
