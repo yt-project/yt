@@ -54,16 +54,20 @@ def test_average():
             assert_rel_equal(my_mean, a_mean, 12)
 
 
-def test_variance():
+def test_standard_deviation():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(16, nprocs=nprocs, fields=("density",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
-            my_std, my_mean = ad.quantities["WeightedVariance"]("density", "ones")
+            my_std, my_mean = ad.quantities["WeightedStandardDeviation"](
+                "density", "ones"
+            )
             assert_rel_equal(my_mean, ad["density"].mean(), 12)
             assert_rel_equal(my_std, ad["density"].std(), 12)
 
-            my_std, my_mean = ad.quantities["WeightedVariance"]("density", "cell_mass")
+            my_std, my_mean = ad.quantities["WeightedStandardDeviation"](
+                "density", "cell_mass"
+            )
             a_mean = (ad["density"] * ad["cell_mass"]).sum() / ad["cell_mass"].sum()
             assert_rel_equal(my_mean, a_mean, 12)
             a_std = np.sqrt(
