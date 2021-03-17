@@ -58,7 +58,7 @@ def test_phase_plot_attributes():
     y_field = "temperature"
     z_field = "cell_mass"
     decimals = 12
-    ds = fake_random_ds(16, fields=("density", "temperature"))
+    ds = fake_random_ds(16, fields=("density", "temperature"), units=("g/cm**3", "K"))
     for attr_name in ATTR_ARGS.keys():
         for args in ATTR_ARGS[attr_name]:
             test = PhasePlotAttributeTest(
@@ -153,7 +153,8 @@ def test_phase_plot():
 @attr(ANSWER_TEST_TAG)
 def test_profile_plot_multiple_field_multiple_plot():
     fields = ("density", "temperature", "dark_matter_density")
-    ds = fake_random_ds(16, fields=fields)
+    units = ("g/cm**3", "K", "g/cm**3")
+    ds = fake_random_ds(16, fields=fields, units=units)
     sphere = ds.sphere("max", (1.0, "Mpc"))
     profiles = []
     profiles.append(

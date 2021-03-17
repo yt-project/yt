@@ -25,6 +25,7 @@ def test_extrema():
             16,
             nprocs=nprocs,
             fields=("density", "velocity_x", "velocity_y", "velocity_z"),
+            units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
         )
         for sp in [ds.sphere("c", (0.25, "unitary")), ds.r[0.5, :, :]]:
             mi, ma = sp.quantities["Extrema"]("density")
@@ -43,7 +44,7 @@ def test_extrema():
 
 def test_average():
     for nprocs in [1, 2, 4, 8]:
-        ds = fake_random_ds(16, nprocs=nprocs, fields=("density",))
+        ds = fake_random_ds(16, nprocs=nprocs, fields=("density",), units=("g/cm**3",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             my_mean = ad.quantities["WeightedAverageQuantity"]("density", "ones")
@@ -56,7 +57,7 @@ def test_average():
 
 def test_variance():
     for nprocs in [1, 2, 4, 8]:
-        ds = fake_random_ds(16, nprocs=nprocs, fields=("density",))
+        ds = fake_random_ds(16, nprocs=nprocs, fields=("density",), units=("g/cm**3",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             my_std, my_mean = ad.quantities["WeightedVariance"]("density", "ones")
@@ -75,7 +76,7 @@ def test_variance():
 
 def test_max_location():
     for nprocs in [1, 2, 4, 8]:
-        ds = fake_random_ds(16, nprocs=nprocs, fields=("density",))
+        ds = fake_random_ds(16, nprocs=nprocs, fields=("density",), units=("g/cm**3",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             mv, x, y, z = ad.quantities.max_location(("gas", "density"))
@@ -91,7 +92,7 @@ def test_max_location():
 
 def test_min_location():
     for nprocs in [1, 2, 4, 8]:
-        ds = fake_random_ds(16, nprocs=nprocs, fields=("density",))
+        ds = fake_random_ds(16, nprocs=nprocs, fields=("density",), units=("g/cm**3",))
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
             mv, x, y, z = ad.quantities.min_location(("gas", "density"))
@@ -108,7 +109,10 @@ def test_min_location():
 def test_sample_at_min_field_values():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(
-            16, nprocs=nprocs, fields=("density", "temperature", "velocity_x")
+            16,
+            nprocs=nprocs,
+            fields=("density", "temperature", "velocity_x"),
+            units=("g/cm**3", "K", "cm/s"),
         )
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
@@ -127,7 +131,10 @@ def test_sample_at_min_field_values():
 def test_sample_at_max_field_values():
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(
-            16, nprocs=nprocs, fields=("density", "temperature", "velocity_x")
+            16,
+            nprocs=nprocs,
+            fields=("density", "temperature", "velocity_x"),
+            units=("g/cm**3", "K", "cm/s"),
         )
         for ad in [ds.all_data(), ds.r[0.5, :, :]]:
 
