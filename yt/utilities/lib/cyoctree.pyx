@@ -7,7 +7,9 @@ cimport libc.math as math
 cimport numpy as np
 
 import numpy as np
+
 from libc.stdlib cimport free, malloc
+
 from yt.geometry.particle_deposit cimport get_kernel_func, kernel_func
 
 np.import_array()
