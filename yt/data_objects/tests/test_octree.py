@@ -96,24 +96,45 @@ def test_octree_properties():
     """
     ds = fake_sph_grid_ds()
     octree = ds.octree(n_ref=n_ref)
-    
+
     depth = octree[("index", "depth")]
-    depth_ans = np.array([0, 1, 1, 1, 1, 1, 1, 1, 1, 2, 2, 2, 2, 2, 2, 2, 2,], dtype=np.int64)
+    depth_ans = np.array(
+        [
+            0,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            1,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+            2,
+        ],
+        dtype=np.int64,
+    )
     assert_equal(depth, depth_ans)
 
     size_ans = np.zeros((depth.shape[0], 3), dtype=np.float64)
     for i in range(size_ans.shape[0]):
-        size_ans[i, :] = (ds.domain_right_edge - ds.domain_left_edge) / 2.0**depth[i]
+        size_ans[i, :] = (ds.domain_right_edge - ds.domain_left_edge) / 2.0 ** depth[i]
 
     dx = octree[("index", "dx")].d
     assert_almost_equal(dx, size_ans[:, 0])
 
     dy = octree[("index", "dy")].d
     assert_almost_equal(dy, size_ans[:, 1])
-    
+
     dz = octree[("index", "dz")].d
     assert_almost_equal(dz, size_ans[:, 2])
 
     refined = octree[("index", "refined")]
-    refined_ans = np.array([True]+[False]*7+[True]+[False]*8, dtype=np.bool_)
+    refined_ans = np.array([True] + [False] * 7 + [True] + [False] * 8, dtype=np.bool_)
     assert_equal(refined, refined_ans)
