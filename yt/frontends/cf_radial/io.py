@@ -44,9 +44,7 @@ class CFRadialIOHandler(BaseIOHandler):
         # np_array.swapaxes(0,2)).
         chunks = list(chunks)
 
-        rv = {}
-        for field in fields:
-            rv[field] = np.empty(size, dtype="float64")
+        rv = {field: np.empty(size, dtype="float64") for field in fields}
 
         offset = 0
 

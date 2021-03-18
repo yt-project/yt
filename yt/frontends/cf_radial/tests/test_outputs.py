@@ -16,7 +16,7 @@ from yt.testing import (
 )
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds
 
-from ..data_structures import CFRadialDataset
+from yt.frontends.cf_radial.data_structures import CFRadialDataset
 
 cf = "CfRadialGrid/grid1.nc"
 

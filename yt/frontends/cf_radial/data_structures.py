@@ -49,7 +49,6 @@ class CFRadialHierarchy(GridIndex):
 
     def _initialize_state_variables(self):
         super()._initialize_state_variables()
-        self.num_grids = 1
 
     def _detect_output_fields(self):
         # This sets self.field_list, containing all the available on-disk fields and
@@ -68,8 +67,7 @@ class CFRadialHierarchy(GridIndex):
         self.ds.field_units.update(units)
 
     def _count_grids(self):
-        # This needs to set self.num_grids
-        pass
+        self.num_grids = 1
 
     def _parse_index(self):
         # This needs to fill the following arrays, where N is self.num_grids:
@@ -90,7 +88,6 @@ class CFRadialHierarchy(GridIndex):
             g._setup_dx()
             self.grids[i] = g
         self.max_level = 1
-        pass
 
     def _populate_grid_objects(self):
         # For each grid, this must call:
@@ -176,12 +173,10 @@ class CFRadialDataset(Dataset):
         #
         #   self.unique_identifier      <= unique identifier for the dataset
         #                                  being read (e.g., UUID or ST_CTIME)
-        self.unique_identifier = int(os.stat(self.parameter_filename)[stat.ST_CTIME])
         #   self.parameters             <= full of code-specific items of use
         self.parameters = {}
 
-        coords = self._handle.coords
-        x, y, z = [coords[d] for d in "xyz"]
+        x, y, z = [self._handle.coords[d] for d in "xyz"]
 
         self.origin_latitude = self._handle.origin_latitude[0]
         self.origin_longitude = self._handle.origin_longitude[0]
@@ -210,7 +205,7 @@ class CFRadialDataset(Dataset):
         #   self.omega_lambda               <= float
         #   self.omega_matter               <= float
         #   self.hubble_constant            <= float
-        self.cosmological_simulation = 0.0
+        self.cosmological_simulation = 0
         self.current_redshift = 0.0
         self.omega_lambda = 0.0
         self.omega_matter = 0.0
