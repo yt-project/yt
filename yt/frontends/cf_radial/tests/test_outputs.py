@@ -5,6 +5,8 @@ CF-Radial frontend tests
 
 """
 import os
+import shutil
+import tempfile
 
 from yt.testing import (
     assert_almost_equal,
@@ -123,16 +125,19 @@ cf_nongridded = "CfRadialGrid/swx_20120520_0641.nc"
 
 @requires_ds(cf_nongridded)
 def test_gridding():
-    # loads up a radial dataset, which triggers the gridding
-    ds = data_dir_load(cf_nongridded)
+    # loads up a radial dataset, which triggers the gridding.
 
-    # check that the gridded file exists now
-    full_fname = os.path.join(ds.fullpath, "swx_20120520_0641_grid.nc")
-    assert os.path.exists(full_fname)
+    # create temporary directory and grid file
+    tempdir = tempfile.mkdtemp()
+    grid_file = os.path.join(tempdir, "temp_grid.nc")
 
-    # check that the cartesian fields exist
+    # this load will trigger the re-gridding and write out the gridded file
+    # from which data will be loaded.
+    ds = data_dir_load(cf_nongridded, kwargs={"storage_filename": grid_file})
+    assert os.path.exists(grid_file)
+
+    # check that the cartesian fields exist now
     for field in ["x", "y", "z"]:
         check_xarray_fields(ds, field)
 
-    # cleanup
-    os.remove(full_fname)
+    shutil.rmtree(tempdir)
