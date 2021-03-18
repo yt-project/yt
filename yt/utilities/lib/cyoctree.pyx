@@ -814,6 +814,6 @@ cdef np.int64_t select(
                 if posz[pidx[index]] < right_edge[2] and posz[pidx[index]] > left_edge[2]:
                     if split < index:
                         pidx[split], pidx[index] = pidx[index], pidx[split]
-                    split+=1
+                    split += 1
 
     return split
