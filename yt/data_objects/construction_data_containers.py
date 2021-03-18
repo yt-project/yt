@@ -2683,7 +2683,7 @@ class YTOctree(YTSelectionContainer3D):
             self._octree = None
             return
 
-        mylog.info("Allocating Octree for %s particles" % positions.shape[0])
+        mylog.info("Allocating Octree for %s particles", positions.shape[0])
         self._octree = CyOctree(
             positions,
             left_edge=self.left_edge.to("code_length").d,
@@ -2754,12 +2754,11 @@ class YTOctree(YTSelectionContainer3D):
         mylog.info(
             (
                 "Allocating octree with spatial range "
-                + "[{0:.4e}, {1:.4e}, {2:.4e}] code_length to "
-                + "[{3:.4e}, {4:.4e}, {5:.4e}] code_length"
-            ).format(
-                *self.left_edge.to("code_length").d,
-                *self.right_edge.to("code_length").d,
-            )
+                "[%.4e, %.4e, %.4e] code_length to "
+                "[%.4e, %.4e, %.4e] code_length"
+            ),
+            *self.left_edge.to("code_length").d,
+            *self.right_edge.to("code_length").d,
         )
         self._data_source = self.ds.region(self.center, self.left_edge, self.right_edge)
 
