@@ -130,31 +130,12 @@ class CFRadialDataset(Dataset):
         self.refine_by = 2  # refinement factor between a grid and its subgrid
 
     def _set_code_unit_attributes(self):
-        # This is where quantities are created that represent the various
-        # on-disk units.  These are the currently available quantities which
-        # should be set, along with examples of how to set them to standard
-        # values.
-        #
-        # self.length_unit = self.quan(1.0, "cm")
-        #
-        # These can also be set:
-        # self.velocity_unit = self.quan(1.0, "cm/s")
-        # self.magnetic_unit = self.quan(1.0, "gauss")
         length_unit = self._handle.variables["x"].attrs["units"]
         self.length_unit = self.quan(1.0, length_unit)
         self.mass_unit = self.quan(1.0, "kg")
         self.time_unit = self.quan(1.0, "s")
 
     def _parse_parameter_file(self):
-        # This needs to set up the following items.  Note that these are all
-        # assumed to be in code units; domain_left_edge and domain_right_edge
-        # will be converted to YTArray automatically at a later time.
-        # This includes the cosmological parameters.
-
-        #
-        #   self.unique_identifier      <= unique identifier for the dataset
-        #                                  being read (e.g., UUID or ST_CTIME)
-        #   self.parameters             <= full of code-specific items of use
         self.parameters = {}
 
         x, y, z = [self._handle.coords[d] for d in "xyz"]
@@ -162,30 +143,15 @@ class CFRadialDataset(Dataset):
         self.origin_latitude = self._handle.origin_latitude[0]
         self.origin_longitude = self._handle.origin_longitude[0]
 
-        #   self.domain_left_edge       <= array of float64
-        dle = [x.min(), y.min(), z.min()]
-        self.domain_left_edge = np.array(dle)
-        #   self.domain_right_edge      <= array of float64
-        dre = [x.max(), y.max(), z.max()]
-        self.domain_right_edge = np.array(dre)
-        #   self.dimensionality         <= int
+        self.domain_left_edge = np.array([x.min(), y.min(), z.min()])
+        self.domain_right_edge = np.array([x.max(), y.max(), z.max()])
         self.dimensionality = 3
-        #   self.domain_dimensions      <= array of int64
         dims = [self._handle.dims[d] for d in "xyz"]
         self.domain_dimensions = np.array(dims, dtype="int64")
-        #   self.periodicity            <= three-element tuple of booleans
         self._periodicity = (False, False, False)
-        #   self.current_time           <= simulation time in code units
         self.current_time = float(self._handle.time.values)
-        #
-        # We also set up cosmological information.  Set these to zero if
-        # non-cosmological.
-        #
-        #   self.cosmological_simulation    <= int, 0 or 1
-        #   self.current_redshift           <= float
-        #   self.omega_lambda               <= float
-        #   self.omega_matter               <= float
-        #   self.hubble_constant            <= float
+
+        # Cosmological information set to zero (not in space).
         self.cosmological_simulation = 0
         self.current_redshift = 0.0
         self.omega_lambda = 0.0
