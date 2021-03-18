@@ -53,12 +53,17 @@ look at the most basic ones needed for a simple scalar baryon field.
     yt.add_field(
         name=("gas", "pressure"),
         function=_pressure,
-        sampling_type="cell",
+        sampling_type="local",
         units="dyne/cm**2",
     )
 
-We feed it the name of the field, the name of the function, and the
-units.  Note that the units parameter is a "raw" string, in the format that yt
+We feed it the name of the field, the name of the function, the sampling type,
+and the units. The ``sampling_type`` keyword controls how volume is sampled
+when calculating the field. It can be set to "cell" for grid/mesh fields,
+"particle" for particle and SPH fields, or "local" to use the primary format
+of the loaded dataset.
+
+The units parameter is a "raw" string, in the format that yt
 uses in its :ref:`symbolic units implementation <units>` (e.g., employing only
 unit names, numbers, and mathematical operators in the string, and using
 ``"**"`` for exponentiation). For cosmological datasets and fields, see
@@ -111,7 +116,7 @@ the dimensionality of the returned array and the field are the same:
     yt.add_field(
         ("gas", "pressure"),
         function=_pressure,
-        sampling_type="cell",
+        sampling_type="local",
         units="auto",
         dimensions=dimensions.pressure,
     )
