@@ -6,7 +6,6 @@ CF Radial data structures
 """
 
 import os
-import stat
 import weakref
 
 import numpy as np
@@ -70,35 +69,19 @@ class CFRadialHierarchy(GridIndex):
         self.num_grids = 1
 
     def _parse_index(self):
-        # This needs to fill the following arrays, where N is self.num_grids:
-        #   self.grid_left_edge         (N, 3) <= float64
-        #   self.grid_right_edge        (N, 3) <= float64
-        #   self.grid_dimensions        (N, 3) <= int
-        #   self.grid_particle_count    (N, 1) <= int
-        #   self.grid_levels            (N, 1) <= int
-        #   self.grids                  (N, 1) <= grid objects
-        #   self.max_level = self.grid_levels.max()
         self.grid_left_edge[0][:] = self.ds.domain_left_edge[:]
         self.grid_right_edge[0][:] = self.ds.domain_right_edge[:]
         self.grid_dimensions[0][:] = self.ds.domain_dimensions[:]
-        self.grids = np.empty(self.num_grids, dtype="object")
-        for i in range(self.num_grids):
-            g = self.grid(i, self, self.grid_levels.flat[i], self.grid_dimensions[i])
-            g._prepare_grid()
-            g._setup_dx()
-            self.grids[i] = g
+        self.grid_particle_count[0][0] = 0
+        self.grid_levels[0][0] = 1
         self.max_level = 1
 
     def _populate_grid_objects(self):
-        # For each grid, this must call:
-        #   grid._prepare_grid()
-        #   grid._setup_dx()
-        # This must also set:
-        #   grid.Children <= list of child grids
-        #   grid.Parent   <= parent grid
-        # This is handled by the frontend because often the children must be
-        # identified.
-        pass
+        # only a single grid, no need to loop
+        g = self.grid(0, self, self.grid_levels.flat[0], self.grid_dimensions[0])
+        g._prepare_grid()
+        g._setup_dx()
+        self.grids = np.array([g], dtype="object")
 
 
 class CFRadialDataset(Dataset):
@@ -116,7 +99,6 @@ class CFRadialDataset(Dataset):
     ):
         self.fluid_types += ("cf_radial",)
         self._handle = xr.open_dataset(filename)
-        self.refine_by = 2
 
         if "x" not in self._handle.coords:
             if storage_filename is None:
@@ -145,8 +127,7 @@ class CFRadialDataset(Dataset):
             filename = storage_filename
         super().__init__(filename, dataset_type, units_override=units_override)
         self.storage_filename = storage_filename
-        # refinement factor between a grid and its subgrid
-        # self.refine_by = 2
+        self.refine_by = 2  # refinement factor between a grid and its subgrid
 
     def _set_code_unit_attributes(self):
         # This is where quantities are created that represent the various
