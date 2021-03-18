@@ -37,7 +37,7 @@ def test_box_creation():
 
 
 def test_region_from_d():
-    ds = fake_amr_ds(fields=["density"])
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     # We'll do a couple here
 
     # First, no string units
@@ -81,7 +81,7 @@ def test_region_from_d():
 def test_accessing_all_data():
     # This will test first that we can access all_data, and next that we can
     # access it multiple times and get the *same object*.
-    ds = fake_amr_ds(fields=["density"])
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     dd = ds.all_data()
     assert_equal(ds.r["density"], dd["density"])
     # Now let's assert that it's the same object
@@ -92,7 +92,7 @@ def test_accessing_all_data():
 
 
 def test_slice_from_r():
-    ds = fake_amr_ds(fields=["density"])
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     sl1 = ds.r[0.5, :, :]
     sl2 = ds.slice("x", 0.5)
     assert_equal(sl1["density"], sl2["density"])
@@ -114,7 +114,7 @@ def test_slice_from_r():
 
 
 def test_point_from_r():
-    ds = fake_amr_ds(fields=["density"])
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     pt1 = ds.r[0.5, 0.3, 0.1]
     pt2 = ds.point([0.5, 0.3, 0.1])
     assert_equal(pt1["density"], pt2["density"])
@@ -126,7 +126,7 @@ def test_point_from_r():
 
 
 def test_ray_from_r():
-    ds = fake_amr_ds(fields=["density"])
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     ray1 = ds.r[(0.1, 0.2, 0.3):(0.4, 0.5, 0.6)]
     ray2 = ds.ray((0.1, 0.2, 0.3), (0.4, 0.5, 0.6))
     assert_equal(ray1["density"], ray2["density"])
@@ -149,7 +149,7 @@ def test_ray_from_r():
 
 
 def test_ortho_ray_from_r():
-    ds = fake_amr_ds(fields=["density"])
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"])
     ray1 = ds.r[:, 0.3, 0.2]
     ray2 = ds.ortho_ray("x", [0.3, 0.2])
     assert_equal(ray1["density"], ray2["density"])

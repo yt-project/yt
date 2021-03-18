@@ -12,9 +12,11 @@ def setup():
 def test_mean_sum_integrate():
     for nprocs in [-1, 1, 2, 16]:
         if nprocs == -1:
-            ds = fake_amr_ds(fields=("density",), particles=20)
+            ds = fake_amr_ds(fields=("density",), units=("g/cm**3",), particles=20)
         else:
-            ds = fake_random_ds(32, nprocs=nprocs, fields=("density",), particles=20)
+            ds = fake_random_ds(
+                32, nprocs=nprocs, fields=("density",), units=("g/cm**3",), particles=20
+            )
         ad = ds.all_data()
 
         # Sums
@@ -81,11 +83,13 @@ def test_mean_sum_integrate():
 
 def test_min_max():
     for nprocs in [-1, 1, 2, 16]:
+        fields = ["density", "temperature"]
+        units = ["g/cm**3", "K"]
         if nprocs == -1:
-            ds = fake_amr_ds(fields=("density", "temperature"), particles=20)
+            ds = fake_amr_ds(fields=fields, units=units, particles=20)
         else:
             ds = fake_random_ds(
-                32, nprocs=nprocs, fields=("density", "temperature"), particles=20
+                32, nprocs=nprocs, fields=fields, units=units, particles=20
             )
 
         ad = ds.all_data()
@@ -128,11 +132,18 @@ def test_min_max():
 
 
 def test_argmin():
+    fields = ["density", "temperature"]
+    units = ["g/cm**3", "K"]
     for nprocs in [-1, 1, 2, 16]:
         if nprocs == -1:
-            ds = fake_amr_ds(fields=("density", "temperature"))
+            ds = fake_amr_ds(fields=fields, units=units)
         else:
-            ds = fake_random_ds(32, nprocs=nprocs, fields=("density", "temperature"))
+            ds = fake_random_ds(
+                32,
+                nprocs=nprocs,
+                fields=fields,
+                units=units,
+            )
 
         ad = ds.all_data()
 
@@ -152,11 +163,18 @@ def test_argmin():
 
 
 def test_argmax():
+    fields = ["density", "temperature"]
+    units = ["g/cm**3", "K"]
     for nprocs in [-1, 1, 2, 16]:
         if nprocs == -1:
-            ds = fake_amr_ds(fields=("density", "temperature"))
+            ds = fake_amr_ds(fields=fields, units=units)
         else:
-            ds = fake_random_ds(32, nprocs=nprocs, fields=("density", "temperature"))
+            ds = fake_random_ds(
+                32,
+                nprocs=nprocs,
+                fields=fields,
+                units=units,
+            )
 
         ad = ds.all_data()
 
