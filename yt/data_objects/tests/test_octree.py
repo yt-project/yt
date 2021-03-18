@@ -92,7 +92,7 @@ def test_sph_interpolation_gather():
 
 def test_octree_properties():
     """
-    Generate an octree, and test the positions and sizes of the cells.
+    Generate an octree, and test the refinement, depth and sizes of the cells.
     """
     ds = fake_sph_grid_ds()
     octree = ds.octree(n_ref=n_ref)
