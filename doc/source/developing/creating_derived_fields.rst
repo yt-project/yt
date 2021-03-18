@@ -58,10 +58,13 @@ look at the most basic ones needed for a simple scalar baryon field.
     )
 
 We feed it the name of the field, the name of the function, the sampling type,
-and the units. The ``sampling_type`` keyword controls how volume is sampled
-when calculating the field. It can be set to "cell" for grid/mesh fields,
-"particle" for particle and SPH fields, or "local" to use the primary format
-of the loaded dataset.
+and the units. The ``sampling_type`` keyword determines which elements are
+used to make the field (i.e., grid cell or particles) and controls how volume
+is calculated. It can be set to "cell" for grid/mesh fields, "particle" for
+particle and SPH fields, or "local" to use the primary format of the loaded
+dataset. In most cases, "local" is sufficient, but "cell" and "particle"
+can be used to specify the source for datasets that have both grids and
+particles.
 
 The units parameter is a "raw" string, in the format that yt
 uses in its :ref:`symbolic units implementation <units>` (e.g., employing only
