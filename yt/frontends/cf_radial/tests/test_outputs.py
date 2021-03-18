@@ -8,6 +8,7 @@ import os
 import shutil
 import tempfile
 
+from yt.frontends.cf_radial.data_structures import CFRadialDataset
 from yt.testing import (
     assert_almost_equal,
     assert_equal,
@@ -15,8 +16,6 @@ from yt.testing import (
     units_override_check,
 )
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds
-
-from yt.frontends.cf_radial.data_structures import CFRadialDataset
 
 cf = "CfRadialGrid/grid1.nc"
 
