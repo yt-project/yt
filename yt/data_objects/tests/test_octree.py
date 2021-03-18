@@ -98,28 +98,7 @@ def test_octree_properties():
     octree = ds.octree(n_ref=n_ref)
 
     depth = octree[("index", "depth")]
-    depth_ans = np.array(
-        [
-            0,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            1,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-            2,
-        ],
-        dtype=np.int64,
-    )
+    depth_ans = np.array([0] + [1]*8 + [2]*8, dtype=np.int64)
     assert_equal(depth, depth_ans)
 
     size_ans = np.zeros((depth.shape[0], 3), dtype=np.float64)
