@@ -64,7 +64,9 @@ is calculated. It can be set to "cell" for grid/mesh fields, "particle" for
 particle and SPH fields, or "local" to use the primary format of the loaded
 dataset. In most cases, "local" is sufficient, but "cell" and "particle"
 can be used to specify the source for datasets that have both grids and
-particles.
+particles. In a dataset with both grids and particles, using "cell" will
+ensure a field is created with a value for every grid cell, while using
+"particle" will result in a field with a value for every particle.
 
 The units parameter is a "raw" string, in the format that yt
 uses in its :ref:`symbolic units implementation <units>` (e.g., employing only
