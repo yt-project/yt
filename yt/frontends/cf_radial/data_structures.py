@@ -217,7 +217,7 @@ class CFRadialDataset(Dataset):
         self.hubble_constant = 0.0
 
     @classmethod
-    def _is_valid(self, filename, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
         try:
@@ -230,15 +230,8 @@ class CFRadialDataset(Dataset):
         except OSError:
             return False
 
-        try:
-            # handle the different upper/lower case cases
-            conventions = ds.attrs.get("Conventions", "")
+        conventions = ""
+        if hasattr(ds, "attrs") and isinstance(ds.attrs, dict):
+            conventions += ds.attrs.get("Conventions", "")
             conventions += ds.attrs.get("conventions", "")
-        except AttributeError:
-            # either attrs does not exist or its not a dictionary, so not valid
-            return False
-
-        if "CF/Radial" in conventions:
-            return True
-
-        return False
+        return "CF/Radial" in conventions
