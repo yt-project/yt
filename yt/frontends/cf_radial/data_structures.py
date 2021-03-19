@@ -169,7 +169,7 @@ class CFRadialDataset(Dataset):
 
         try:
             ds = xarray.open_dataset(filename)
-        except OSError:
+        except (OSError, AttributeError):
             return False
 
         conventions = ""
