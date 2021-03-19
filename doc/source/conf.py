@@ -251,15 +251,16 @@ man_pages = [("index", "yt", "yt Documentation", ["The yt Project"], 1)]
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "https://docs.python.org/3/": None,
-    "https://ipython.readthedocs.io/en/stable/": None,
-    "https://docs.scipy.org/doc/numpy/": None,
-    "https://matplotlib.org/stable/": None,
-    "https://docs.astropy.org/en/stable": None,
-    "https://pandas.pydata.org/pandas-docs/stable": None,
+    "python": ("https://docs.python.org/3/", None),
+    "ipython": ("https://ipython.readthedocs.io/en/stable/", None),
+    "numpy": ("https://numpy.org/doc/stable", None),
+    "matplotlib": ("https://matplotlib.org/stable/", None),
+    "astropy": ("https://docs.astropy.org/en/stable", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/stable", None),
     "trident": ("https://trident.readthedocs.io/en/latest/", None),
     "yt_astro_analysis": ("https://yt-astro-analysis.readthedocs.io/en/latest/", None),
     "yt_attic": ("https://yt-attic.readthedocs.io/en/latest/", None),
+    "pytest": ("https://docs.pytest.org/en/stable", None),
 }
 
 if not on_rtd:

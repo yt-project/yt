@@ -25,7 +25,7 @@ What Do Unit Tests Do
 
 Unit tests are tests that operate on some small piece of machinery and verify
 that the machinery works. In
-practice, this means that we make assertions about a piece of machinery and then pytest runs the machinery, verifies that the assertions are true, and ensures that the code runs without crashing. An example of a unit test is ``test_all_fields`` in ``yt/fields/tests/test_fields.py``.
+practice, this means that we make assertions about a piece of machinery and then pytest runs the machinery, verifies that the assertions are true, and ensures that the code runs without crashing. An example of a unit test is :func:`~yt.fields.tests.test_fields.test_all_fields`.
 
 How to Run the Unit Tests
 ^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -73,7 +73,7 @@ in handy:
   relative allowable difference.
 * :func:`~yt.testing.assert_allclose_units` raises an error if two arrays are
   not equal up to a desired absolute or relative tolerance. This wraps numpy's
-  ``testing.assert_allclose`` to correctly verify unit consistency as well.
+  :py:func:`numpy.testing.assert_allclose` to correctly verify unit consistency as well.
 * :func:`~yt.testing.amrspace` provides the ability to create AMR grid
   structures.
 * :func:`~yt.testing.expand_keywords` provides the ability to iterate over
@@ -97,7 +97,8 @@ To create new unit tests:
 #. If a dataset is needed, use ``fake_random_ds`` and be sure to test for
    several combinations of ``nproc`` so that domain decomposition can be
    tested as well.
-#. To iterate over multiple options, or combinations of options, use the `pytest.mark.parametrize<https://docs.pytest.org/en/stable/reference.html?highlight=parametrize#pytest-mark-parametrize>`_ decorator.
+#. To iterate over multiple options, or combinations of options,
+   use the :ref:`@pytest.mark.parametrize <@pytest.mark.parametrize>` decorator.
 
 For an example of how to write unit tests, look at the file
 ``yt/data_objects/tests/test_covering_grid.py``, which covers a great deal of
@@ -245,8 +246,9 @@ To add a new answer test:
 
 #. Decorate the class with ``pytest.mark.answer_test``. This decorator is used to tell pytest which tests are answer tests.
 
-.. note::
-    Tests that do not have this decorator are considered to be unit tests.
+   .. note::
+
+      Tests that do not have this decorator are considered to be unit tests.
 
 #. Add the following three attributes to the class: ``answer_file=None``, ``saved_hashes=None``, and ``answer_version=000``. These attributes are used by the ``hashing`` fixture (discussed below) to automate the creation of new answer files as well as facilitate the comparison to existing answers.
 
@@ -260,8 +262,8 @@ There are several things that can make the test writing process easier:
 
 * ``yt/utilities/answer_testing/testing_utilities.py`` contains a large number of helper functions.
 * Most frontends end up needing to test much of the same functionality as other frontends. As such, a list of functions that perform such work can be found in ``yt/utilities/answer_testing/answer_tests.py``.
-* `Fixtures <https://docs.pytest.org/en/stable/fixture.html>`_! You can find the set of fixtures that have already been built for yt in ``$YT_GIT/conftest.py``. If you need/want to add additional fixtures, please add them there.
-* The `parametrize decorator <https://docs.pytest.org/en/stable/example/parametrize.html?highlight=parametrizing%20tests>`_ is extremely useful for performing iteration over various combinations of test parameters. It should be used whenever possible.
+* You can find the set of fixtures that have already been built for yt in ``$YT_GIT/conftest.py``. If you need/want to add additional fixtures, please add them there. See :std:doc:`fixture`.
+* :ref:`parametrize` is extremely useful for performing iteration over various combinations of test parameters. It should be used whenever possible.
 
 Here is what a minimal example might look like for a new frontend:
 
@@ -303,9 +305,7 @@ differences, if any. Image comparison tests are used in the plotting and volume
 rendering machinery.
 
 The easiest way to use the image comparison tests is to make use of the
-``generic_image`` function. As an argument, this function takes a function the test machinery can call which will save an image to disk. The
-  test will then find any images that get created and compare them with the
-  stored "correct" answer.
+``generic_image`` function. As an argument, this function takes a function the test machinery can call which will save an image to disk. The test will then find any images that get created and compare them with the  stored "correct" answer.
 
 Here is an example test function (from ``yt/visualization/tests/test_raw_field_slices.py``):
 
