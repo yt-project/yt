@@ -163,16 +163,14 @@ class CFRadialDataset(Dataset):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
 
-        conventions = ""
-        if xr._module:
-            try:
-                ds = xr.open_dataset(filename)
-            except (OSError, AttributeError, TypeError):
-                # catch all these to avoid errors when xarray cant handle a file
-                return False
+        if not xr._module:
+            return False
+        try:
+            ds = xr.open_dataset(filename)
+        except (OSError, AttributeError, TypeError):
+            # catch all these to avoid errors when xarray cant handle a file
+            return False
 
-            if hasattr(ds, "attrs") and isinstance(ds.attrs, dict):
-                conventions += ds.attrs.get("Conventions", "")
-                conventions += ds.attrs.get("conventions", "")
-
-        return "CF/Radial" in conventions
+        if hasattr(ds, "attrs") and isinstance(ds.attrs, dict):
+            return "CF/Radial" in ds.attrs.get("Conventions", "") + ds.attrs.get("conventions", "")
+        return False
