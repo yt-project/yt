@@ -253,17 +253,30 @@ _pooch = pooch_imports()
 
 class pyart_imports:
     _name = "pyart"
-    _pyart = None
+
+    _io = None
 
     @property
-    def pyart(self):
-        if self._pyart is None:
+    def io(self):
+        if self._io is None:
             try:
-                import pyart as pyart
+                from pyart import io
             except ImportError:
-                pyart = NotAModule(self._name)
-            self._pyart = pyart
-        return self._pyart
+                io = NotAModule(self._name)
+            self._io = io
+        return self._io
+
+    _map = None
+
+    @property
+    def map(self):
+        if self._map is None:
+            try:
+                from pyart import map
+            except ImportError:
+                map = NotAModule(self._name)
+            self._map = map
+        return self._map
 
 
 _pyart = pyart_imports()
@@ -271,18 +284,17 @@ _pyart = pyart_imports()
 
 class xarray_imports:
     _name = "xarray"
-    _module = None
+    _open_dataset = None
 
-    def __init__(self):
-        try:
-            import xarray as myself
-
-            self._module = myself
-        except ImportError:
-            self._module = NotAModule(self._name)
-
-    def __getattr__(self, attr):
-        return getattr(self._module, attr)
+    @property
+    def open_dataset(self):
+        if self._open_dataset is None:
+            try:
+                from xarray import open_dataset
+            except ImportError:
+                open_dataset = NotAModule(self._name)
+            self._open_dataset = open_dataset
+        return self._open_dataset
 
 
 _xarray = xarray_imports()

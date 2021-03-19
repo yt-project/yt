@@ -106,9 +106,7 @@ class CFRadialDataset(Dataset):
                 storage_filename = f_base + "_grid" + f_ext
 
             if not os.path.isfile(storage_filename):
-                from yt.utilities.on_demand_imports import _pyart
-
-                pyart = _pyart.pyart
+                from yt.utilities.on_demand_imports import _pyart as pyart
 
                 radar = pyart.io.read_cfradial(filename)
                 self.grid_shape = grid_shape
