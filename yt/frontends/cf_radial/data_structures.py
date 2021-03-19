@@ -163,7 +163,7 @@ class CFRadialDataset(Dataset):
 
         try:
             ds = xr.open_dataset(filename)
-        except (OSError, AttributeError, TypeError):
+        except (ImportError, OSError, AttributeError, TypeError):
             # catch all these to avoid errors when xarray cant handle a file
             return False
 
