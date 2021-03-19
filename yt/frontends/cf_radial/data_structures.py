@@ -163,8 +163,6 @@ class CFRadialDataset(Dataset):
         # This accepts a filename or a set of arguments and returns True or
         # False depending on if the file is of the type requested.
 
-        if not xr._module:
-            return False
         try:
             ds = xr.open_dataset(filename)
         except (OSError, AttributeError, TypeError):
@@ -172,7 +170,6 @@ class CFRadialDataset(Dataset):
             return False
 
         if hasattr(ds, "attrs") and isinstance(ds.attrs, dict):
-            return "CF/Radial" in ds.attrs.get("Conventions", "") + ds.attrs.get(
-                "conventions", ""
-            )
+            con = "Conventions"
+            return "CF/Radial" in ds.attrs.get(con, "") + ds.attrs.get(con.lower(), "")
         return False
