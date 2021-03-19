@@ -172,5 +172,7 @@ class CFRadialDataset(Dataset):
             return False
 
         if hasattr(ds, "attrs") and isinstance(ds.attrs, dict):
-            return "CF/Radial" in ds.attrs.get("Conventions", "") + ds.attrs.get("conventions", "")
+            return "CF/Radial" in ds.attrs.get("Conventions", "") + ds.attrs.get(
+                "conventions", ""
+            )
         return False
