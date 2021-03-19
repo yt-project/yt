@@ -20,7 +20,6 @@ class CFRadialIOHandler(BaseIOHandler):
         # have been masked using whatever selector method is appropriate.  The
         # dict gets returned at the end and it should be flat, with selected
         # data.
-        chunks = list(chunks)
 
         rv = {field: np.empty(size, dtype="float64") for field in fields}
 

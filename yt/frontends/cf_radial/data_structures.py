@@ -39,7 +39,7 @@ class CFRadialHierarchy(GridIndex):
     def __init__(self, ds, dataset_type="cf_radial"):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
-        # for now, the index file is the dataset!
+        # our index file is the dataset itself:
         self.index_filename = self.dataset.parameter_filename
         self.directory = os.path.dirname(self.index_filename)
         # float type for the simulation edges and must be float64 now
