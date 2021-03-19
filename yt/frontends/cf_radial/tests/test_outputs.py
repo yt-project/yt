@@ -13,6 +13,7 @@ from yt.testing import (
     assert_almost_equal,
     assert_equal,
     requires_file,
+    requires_module,
     units_override_check,
 )
 from yt.utilities.answer_testing.framework import data_dir_load, requires_ds
@@ -21,11 +22,13 @@ cf = "CfRadialGrid/grid1.nc"
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_units_override():
     units_override_check(cf)
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_CFRadialDataset():
     assert isinstance(data_dir_load(cf), CFRadialDataset)
 
@@ -34,6 +37,7 @@ _fields_xarray = ["reflectivity", "velocity", "gate_id", "differential_phase", "
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_xarray_fields():
     ds = data_dir_load(cf)
     for field in _fields_xarray:
@@ -48,6 +52,7 @@ _fields_cfradial = ["reflectivity", "velocity", "gate_id", "differential_phase",
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_cfradial_fields():
     ds = data_dir_load(cf)
     for field in _fields_cfradial:
@@ -68,6 +73,7 @@ _fields_units = {
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_units():
     ds = data_dir_load(cf)
     ad = ds.all_data()
@@ -80,18 +86,21 @@ def check_field_units(ad, field, value):
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_origin_latitude():
     ds = data_dir_load(cf)
     assert_almost_equal(ds.origin_latitude.values, 36.49120001)
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_origin_longitude():
     ds = data_dir_load(cf)
     assert_almost_equal(ds.origin_longitude.values, -97.5939)
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_domain_dimensions():
     ds = data_dir_load(cf)
     domain_dim_array = [251, 251, 46]
@@ -99,6 +108,7 @@ def test_domain_dimensions():
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_domain_center():
     ds = data_dir_load(cf)
     domain_center_array = [0.0, 0.0, 7500.0]
@@ -106,6 +116,7 @@ def test_domain_center():
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_domain_left_edge():
     ds = data_dir_load(cf)
     domain_left_array = [-50000.0, -50000.0, 0.0]
@@ -113,6 +124,7 @@ def test_domain_left_edge():
 
 
 @requires_file(cf)
+@requires_module("xarray")
 def test_domain_right_edge():
     ds = data_dir_load(cf)
     domain_right_array = [50000.0, 50000.0, 15000.0]
