@@ -103,7 +103,7 @@ For an example of how to write unit tests, look at the file
 ``yt/data_objects/tests/test_covering_grid.py``, which covers a great deal of
 functionality.
 
-Debugging failing tests
+Debugging Failing Tests
 ^^^^^^^^^^^^^^^^^^^^^^^
 
 When writing new tests, one often exposes bugs or writes a test incorrectly,
@@ -189,7 +189,7 @@ In order to run the answer tests locally:
 * Fill this directory with the required data
 
 Next, yt needs to be made aware of where it can find the data. This is done by setting the config parameter ``test_data_dir`` to the
-directory with the test data. For example,
+directory with the test data downloaded from https://yt-project.org/data/. For example,
 
 .. code-block:: bash
 
@@ -262,6 +262,8 @@ There are several things that can make the test writing process easier:
 * Most frontends end up needing to test much of the same functionality as other frontends. As such, a list of functions that perform such work can be found in ``yt/utilities/answer_testing/answer_tests.py``.
 * `Fixtures <https://docs.pytest.org/en/stable/fixture.html>`_! You can find the set of fixtures that have already been built for yt in ``$YT_GIT/conftest.py``. If you need/want to add additional fixtures, please add them there.
 * The `parametrize decorator <https://docs.pytest.org/en/stable/example/parametrize.html?highlight=parametrizing%20tests>`_ is extremely useful for performing iteration over various combinations of test parameters. It should be used whenever possible.
+    * The use of this decorator allows pytest to write the names and values of the test parameters to the generated answer files, which can make debugging failing tests easier, since one can easily see exactly which combination of parameters were used for a given test.
+    * It is also possible to employ the ``requires_ds`` decorator to ensure that a test does not run unless a specific dataset is found, but not necessary. If the dataset is parametrized over, then the ``ds`` fixture found in the root ``conftest.py`` file performs the same check and marks the test as failed if the dataset isn't found.
 
 Here is what a minimal example might look like for a new frontend:
 
@@ -370,7 +372,7 @@ the answers. This way, we can avoid accidentally covering up test breakages.
 
 .. _handling_dependencies:
 
-Handling yt dependencies
+Handling yt Dependencies
 ------------------------
 
 We attempt to make yt compatible with a wide variety of upstream software
@@ -394,4 +396,4 @@ dependency to the end of the file, along with a pin to the latest version
 number of the package. To update a package's version, simply update the version
 number in the entry for that package.
 
-Finally, we also run a set of tests with "minimal" dependencies installed. Please make sure any new tests you add that depend on an optional dependency are properly set up so that the test is not run if the dependency is not installed. If for some reason you need to update the listing of packages that are installed for the "minimal" dependency tests, you will need to edit ``tests/test_minimal_requirements.txt``.
+Finally, we also run a set of tests with "minimal" dependencies installed. When adding tests that depend on an optional dependency, you can wrap the test with the ``yt.testing.requires_module decorator`` to ensure it does not run during the minimal dependency tests (see yt/frontends/amrvac/tests/test_read_amrvac_namelist.py for a good example). If for some reason you need to update the listing of packages that are installed for the "minimal" dependency tests, you will need to edit ``tests/test_minimal_requirements.txt``.
