@@ -32,18 +32,18 @@ def read_next_field_properties(fh):
     ndim = struct.unpack(fmt, fh.read(struct.calcsize(fmt)))[0]
     if ndim > 3:
         raise ValueError(ndim)
-    fmt = "=" + ndim * "i"
+    fmt = f"={ndim}i"
     dim = np.array(struct.unpack(fmt, fh.read(struct.calcsize(fmt))))
     return field_name, dtype, ndim, dim
 
 
 def read_chunk(fh, ndim: int, dim: List[int], dtype, is_scalar=False, skip_data=False):
     assert ndim == len(dim)
-    fmt = "=" + np.product(dim) * dtype
+    fmt = f"={np.product(dim)}{dtype}"
     size = struct.calcsize(fmt)
     if skip_data:
         fh.seek(size, 1)
-        return
+        return None
     data = struct.unpack(fmt, fh.read(size))
 
     # note: this reversal may not be desirable in general
@@ -109,39 +109,39 @@ def read_single_field(fh, field_offset):
     return data
 
 
-def read_idefix_dmpfile(filepath_or_buffer, skip_data=False):
-    fprops = {}
-    fdata = {}
-    if "read" in filepath_or_buffer.__dir__():
-        fh = filepath_or_buffer
-        closeme = False
-    else:
-        fh = open(filepath_or_buffer, "rb")
-        closeme = True
+def read_idefix_dmpfile(filename, skip_data=False):
+    with open(filename, "rb") as fh:
+        return read_idefix_dump_from_buffer(fh, skip_data)
+
+
+def read_idefix_dump_from_buffer(fh, skip_data=False):
 
     # skip header
     fh.seek(HEADERSIZE)
 
+    fprops = {}
+    fdata = {}
     for _ in range(9):
         # read grid properties
         # (cell centers, left and right edges in 3D -> 9 arrays)
         field_name, dtype, ndim, dim = read_next_field_properties(fh)
         data = read_serial(fh, ndim, dim, dtype)
-        fprops.update({field_name: (dtype, ndim, dim)})
-        fdata.update({field_name: data})
+        fprops[field_name] = dtype, ndim, dim
+        fdata[field_name] = data
 
     field_name, dtype, ndim, dim = read_next_field_properties(fh)
     while field_name != "eof":
-        fprops.update({field_name: (dtype, ndim, dim)})
+        # note that this could likely be implemented using a call to
+        # `iter` with a sentinel value, to the condition that read_next_field_properties
+        # would be splitted into 2 parts (I don't the sentinel pattern works with tuples)
+        fprops[field_name] = dtype, ndim, dim
         if field_name.startswith("Vc-") or field_name.startswith("Vs-"):
             data = read_distributed(fh, dim, skip_data=skip_data)
         else:
             is_scalar = ndim == 1 and dim[0] == 1
             is_scalar &= field_name not in ("x1", "x2", "x3")
             data = read_serial(fh, ndim, dim, dtype, is_scalar=is_scalar)
-        fdata.update({field_name: data})
+        fdata[field_name] = data
         field_name, dtype, ndim, dim = read_next_field_properties(fh)
 
-    if closeme:
-        fh.close()
     return fprops, fdata

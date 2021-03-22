@@ -13,8 +13,7 @@ idefix_khi = os.path.join("idefix", "KHI", "dump.0001.dmp")
 @requires_file(idefix_khi)
 def test_read_dmp():
     fn = os.path.join(ytcfg.get("yt", "test_data_dir"), idefix_khi)
-    with open(fn, mode="rb") as fh:
-        fprops, fdata = read_idefix_dmpfile(fh)
+    fprops, fdata = read_idefix_dmpfile(fn)
 
     expected_fields = [
         "x1",
