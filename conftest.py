@@ -225,7 +225,9 @@ def hashing(request):
     # Compare hashes
     elif not no_hash and not store_hash:
         try:
-            assert hashes == request.cls.saved_hashes
+            for test_name, test_hash in hashes.items():
+                assert test_name in request.cls.saved_hashes
+                assert test_hash == request.cls.saved_hashes[test_name]
         except AssertionError:
             pytest.fail(f"Comparison failure: {request.node.name}", pytrace=False)
     # Save raw data
