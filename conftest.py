@@ -205,7 +205,10 @@ def hashing(request):
             # As such, if we're comparing and the file of saved hashes isn't
             # found, we just skip the test. We do the skip before the test
             # is run to save time
-            pytest.skip("Answer file not found.")
+            needs_answer = f"{request.function.__module__.replace('.', '/')}.py::{request.cls.__name__}"
+            with open(f"generate_test_{os.getpid()}.txt", "a") as fp:
+                fp.write(needs_answer + "\n")
+            pytest.skip(f"Answer file not found.")
     request.cls.hashes = {}
     # Load the saved answers if we're comparing. We don't do this for the raw
     # answers because those are huge
