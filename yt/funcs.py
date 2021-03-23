@@ -30,6 +30,7 @@ from tqdm import tqdm
 from yt.units import YTArray, YTQuantity
 from yt.utilities.exceptions import YTInvalidWidthError
 from yt.utilities.logger import ytLogger as mylog
+from yt.utilities.on_demand_imports import _requests as requests
 
 # Some functions for handling sequences and other types
 
@@ -617,11 +618,11 @@ def get_script_contents():
 
 
 def download_file(url, filename):
-    requests = get_requests()
-    if requests is None:
-        return simple_download_file(url, filename)
-    else:
+    try:
         return fancy_download_file(url, filename, requests)
+    except ImportError:
+        # fancy_download_file requires requests
+        return simple_download_file(url, filename)
 
 
 def fancy_download_file(url, filename, requests=None):
@@ -1042,14 +1043,6 @@ def get_brewer_cmap(cmap):
     else:
         raise RuntimeError("Please install palettable to use colorbrewer colormaps")
     return bmap.get_mpl_colormap(N=cmap[2])
-
-
-def get_requests():
-    try:
-        import requests
-    except ImportError:
-        requests = None
-    return requests
 
 
 @contextlib.contextmanager
