@@ -1,7 +1,6 @@
 import os
 import shutil
 import tempfile
-import typing
 from pathlib import Path
 
 import pytest
@@ -265,11 +264,11 @@ def ds(request):
     # data_dir_load can take the cls, args, and kwargs. These optional
     # arguments, if present,  are given in a dictionary as the second
     # element of the list
-    if isinstance(request.param, typing.Sequence):
-        ds_fn, opts = request.param
-    else:
+    if isinstance(request.param, str):
         ds_fn = request.param
         opts = {}
+    else:
+        ds_fn, opts = request.param
     try:
         return data_dir_load(
             ds_fn, cls=opts.get("cls"), args=opts.get("args"), kwargs=opts.get("kwargs")
