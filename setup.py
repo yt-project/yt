@@ -1,11 +1,8 @@
 import glob
 import os
-import sys
 from collections import defaultdict
 from distutils.ccompiler import get_default_compiler
-from distutils.version import LooseVersion
 
-import pkg_resources
 from setuptools import Distribution, find_packages, setup
 
 from setupext import (
@@ -17,18 +14,6 @@ from setupext import (
 )
 
 install_ccompiler()
-
-try:
-    distribute_ver = LooseVersion(pkg_resources.get_distribution("distribute").version)
-    if distribute_ver < LooseVersion("0.7.3"):
-        print("Distribute is a legacy package obsoleted by setuptools.")
-        print("We strongly recommend that you just uninstall it.")
-        print("If for some reason you cannot do it, you'll need to upgrade it")
-        print("to latest version before proceeding:")
-        print("    pip install -U distribute")
-        sys.exit(1)
-except pkg_resources.DistributionNotFound:
-    pass  # yay!
 
 VERSION = "4.0.dev0"
 
