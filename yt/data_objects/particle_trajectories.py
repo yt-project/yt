@@ -316,11 +316,11 @@ class ParticleTrajectories:
         Examples
         --------
         >>> from yt.mods import *
-        >>> import matplotlib.pylab as pl
+        >>> import matplotlib.pyplot as plt
         >>> trajs = ParticleTrajectories(my_fns, indices)
         >>> traj = trajs.trajectory_from_index(indices[0])
-        >>> pl.plot(traj["particle_time"], traj["particle_position_x"], "-x")
-        >>> pl.savefig("orbit")
+        >>> plt.plot(traj["particle_time"], traj["particle_position_x"], "-x")
+        >>> plt.savefig("orbit")
         """
         mask = np.in1d(self.indices, (index,), assume_unique=True)
         if not np.any(mask):
