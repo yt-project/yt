@@ -162,6 +162,20 @@ We have some community and documentation resources available.
  * You can also join us on Slack at yt-project.slack.com ([request an
    invite](https://yt-project.org/slack.html))
 
+Is your code compatible with yt ? Great ! Please consider giving us a shoutout as a shiny badge in your README
+
+- markdown
+```markdown
+[![yt-project](https://img.shields.io/endpoint?url=https%3A%2F%2Fyt-support-badge-wuxbnksagnpg.runkit.sh)](https://yt-project.org)
+```
+- rst
+```reStructuredText
+|yt-project|
+
+.. |yt-project| image:: https://img.shields.io/endpoint?url=https%3A%2F%2Fyt-support-badge-wuxbnksagnpg.runkit.sh
+   :target: https://yt-project.org
+```
+
 ## Powered by NumFOCUS
 
 yt is a fiscally sponsored project of [NumFOCUS](https://numfocus.org/).
