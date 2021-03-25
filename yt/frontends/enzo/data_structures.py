@@ -375,12 +375,10 @@ class EnzoHierarchy(GridIndex):
                 g = gs[0]
                 handle = h5py.File(g.filename, "r")
                 grid_group = handle[f"/Grid{g.id:08d}"]
-                found = False
                 for pname in ["Active Particles", "Particles"]:
                     if pname in grid_group:
-                        found = True
                         break
-                if not found:
+                else:
                     raise RuntimeError("Could not find active particle group in data.")
                 node = grid_group[pname]
                 for ptype in (str(p) for p in node):
