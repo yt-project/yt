@@ -93,7 +93,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                             pds = ds.get(f"{pname}/{ptype}")
                             if pds is not None:
                                 break
-                        if pds == None:
+                        if pds is None:
                             raise RuntimeError(
                                 "Could not find active particle group in data."
                             )
