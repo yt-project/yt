@@ -79,20 +79,24 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                 ds = f.get("/Grid%08i" % g.id)
                 for ptype, field_list in sorted(ptf.items()):
                     if ptype == "io":
-                        if g.NumberOfParticles == 0: continue
+                        if g.NumberOfParticles == 0:
+                            continue
                         pds = ds
                     elif ptype == "DarkMatter":
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        if g.NumberOfActiveParticles[ptype] == 0:
+                            continue
                         pds = ds
                     else:
-                        if g.NumberOfActiveParticles[ptype] == 0: continue
+                        if g.NumberOfActiveParticles[ptype] == 0:
+                            continue
                         for pname in ["Active Particles", "Particles"]:
-                            pds = ds.get("%s/%s" % (pname, ptype))
-                            if(pds != None):
+                            pds = ds.get(f"{pname}/{ptype}")
+                            if pds != None:
                                 break
-                        if(pds == None):
+                        if pds == None:
                             raise RuntimeError(
-                                "Could not find active particle group in data.")
+                                "Could not find active particle group in data."
+                            )
                     pn = _particle_position_names.get(ptype, r"particle_position_%s")
                     x, y, z = (
                         np.asarray(pds.get(pn % ax)[()], dtype="=f8") for ax in "xyz"

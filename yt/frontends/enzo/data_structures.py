@@ -381,8 +381,7 @@ class EnzoHierarchy(GridIndex):
                         found = True
                         break
                 if not found:
-                    raise RuntimeError(
-                        "Could not find active particle group in data.")
+                    raise RuntimeError("Could not find active particle group in data.")
                 node = grid_group[pname]
                 for ptype in (str(p) for p in node):
                     if ptype not in _fields:
