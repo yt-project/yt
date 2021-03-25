@@ -86,9 +86,9 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                         if g.NumberOfActiveParticles[ptype] == 0:
                             continue
                         pds = ds
+                    elif not g.NumberOfActiveParticles[ptype]:
+                        continue
                     else:
-                        if g.NumberOfActiveParticles[ptype] == 0:
-                            continue
                         for pname in ["Active Particles", "Particles"]:
                             pds = ds.get(f"{pname}/{ptype}")
                             if pds is not None:
