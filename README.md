@@ -166,13 +166,13 @@ Is your code compatible with yt ? Great ! Please consider giving us a shoutout a
 
 - markdown
 ```markdown
-[![yt-project](https://img.shields.io/endpoint?url=https%3A%2F%2Fyt-support-badge-wuxbnksagnpg.runkit.sh)](https://yt-project.org)
+[![yt-project](https://img.shields.io/static/v1?label="works%20with"&message="yt"&color="blueviolet")](https://yt-project.org)
 ```
 - rst
 ```reStructuredText
 |yt-project|
 
-.. |yt-project| image:: https://img.shields.io/endpoint?url=https%3A%2F%2Fyt-support-badge-wuxbnksagnpg.runkit.sh
+.. |yt-project| image:: https://img.shields.io/static/v1?label="works%20with"&message="yt"&color="blueviolet"
    :target: https://yt-project.org
 ```
 
