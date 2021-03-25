@@ -118,6 +118,7 @@ nc4-cm1 = ["yt[netCDF4]"]
 open-pmd = ["yt[HDF5]"]
 owls = ["yt[HDF5]"]
 owls-subfind = ["yt[HDF5]"]
+parthenon = ["yt[HDF5]"]
 ramses = ["yt[Fortran]"]
 rockstar = []
 sdf = ["requests>=2.20.0"]
@@ -174,6 +175,7 @@ full = [
     "yt[open_pmd]",
     "yt[owls]",
     "yt[owls_subfind]",
+    "yt[parthenon]",
     "yt[ramses]",
     "yt[rockstar]",
     "yt[sdf]",
@@ -374,6 +376,7 @@ addopts = '''
     --ignore='yt/frontends/open_pmd/tests/test_outputs.py'
     --ignore='yt/frontends/owls/tests/test_outputs.py'
     --ignore='yt/frontends/owls_subfind/tests/test_outputs.py'
+    --ignore='yt/frontends/parthenon/tests/test_outputs.py'
     --ignore='yt/frontends/ramses/tests/test_outputs.py'
     --ignore='yt/frontends/rockstar/tests/test_outputs.py'
     --ignore='yt/frontends/tipsy/tests/test_outputs.py'
