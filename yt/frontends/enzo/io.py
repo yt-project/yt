@@ -91,7 +91,7 @@ class IOHandlerPackedHDF5(BaseIOHandler):
                             continue
                         for pname in ["Active Particles", "Particles"]:
                             pds = ds.get(f"{pname}/{ptype}")
-                            if pds != None:
+                            if pds is not None:
                                 break
                         if pds == None:
                             raise RuntimeError(
