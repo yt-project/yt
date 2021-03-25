@@ -512,7 +512,7 @@ class YTDataContainer:
         >>> dd = ds.all_data()
         >>> df = dd.to_dataframe(["density", "temperature"])
         """
-        import pandas as pd
+        from yt.utilities.on_demand_imports import _pandas as pd
 
         data = {}
         fields = self._determine_fields(fields)

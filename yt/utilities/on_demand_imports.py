@@ -645,3 +645,22 @@ class requests_imports:
 
 
 _requests = requests_imports()
+
+
+class pandas_imports:
+    _name = "pandas"
+    _module = None
+
+    def __init__(self):
+        try:
+            import pandas as myself
+
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_pandas = pandas_imports()
