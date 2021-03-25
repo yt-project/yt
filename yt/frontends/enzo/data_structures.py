@@ -386,9 +386,8 @@ class EnzoHierarchy(GridIndex):
                         continue
                     for field in (str(f) for f in node[ptype]):
                         _fields[ptype].append(field)
-                        sh = node[ptype][field].shape
-                        if len(sh) > 1:
-                            self.io._array_fields[field] = (sh[1],)
+                        if node[ptype][field].ndim > 1:
+                            self.io._array_fields[field] = (node[ptype][field][1],)
                     fields += [(ptype, field) for field in _fields.pop(ptype)]
                 handle.close()
         return set(fields)
