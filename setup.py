@@ -124,7 +124,7 @@ if __name__ == "__main__":
         packages=find_packages(),
         include_package_data=True,
         install_requires=[
-            "matplotlib>=2.0.2",
+            "matplotlib>=2.0.2,<3.4",
             "setuptools>=19.6",
             "sympy>=1.2",
             "numpy>=1.10.4",
