@@ -20,7 +20,6 @@ import urllib.request
 import warnings
 from distutils.version import LooseVersion
 from functools import lru_cache, wraps
-from math import ceil, floor
 from numbers import Number as numeric_type
 
 import matplotlib
@@ -350,32 +349,6 @@ class ParallelProgressBar:
 
     def finish(self):
         mylog.info("Finishing '%s'", self.title)
-
-
-class GUIProgressBar:
-    def __init__(self, title, maxval):
-        import wx
-
-        self.maxval = maxval
-        self.last = 0
-        self._pbar = wx.ProgressDialog(
-            "Working...",
-            title,
-            maximum=maxval,
-            style=wx.PD_REMAINING_TIME | wx.PD_ELAPSED_TIME | wx.PD_APP_MODAL,
-        )
-
-    def update(self, val):
-        # An update is only meaningful if it's on the order of 1/100 or greater
-        if (
-            ceil(100 * self.last / self.maxval) + 1 == floor(100 * val / self.maxval)
-            or val == self.maxval
-        ):
-            self._pbar.Update(val)
-            self.last = val
-
-    def finish(self):
-        self._pbar.Destroy()
 
 
 def get_pbar(title, maxval, parallel=False):
@@ -775,16 +748,6 @@ def fix_axis(axis, ds):
     return ds.coordinates.axis_id.get(axis, axis)
 
 
-def get_image_suffix(name):
-    suffix = os.path.splitext(name)[1]
-    supported_suffixes = [".png", ".eps", ".ps", ".pdf", ".jpg", ".jpeg"]
-    if suffix in supported_suffixes or suffix == "":
-        return suffix
-    else:
-        mylog.warning("Unsupported image suffix requested (%s)", suffix)
-        return ""
-
-
 def get_output_filename(name, keyword, suffix):
     r"""Return an appropriate filename for output.
 
@@ -945,7 +908,7 @@ def enable_plugins(plugin_filename=None):
     file is shared with it.
     """
     import yt
-    from yt.config import CONFIG_DIR, ytcfg
+    from yt.config import config_dir, old_config_dir, ytcfg
     from yt.fields.my_plugin_fields import my_plugins_fields
 
     if plugin_filename is not None:
@@ -958,20 +921,19 @@ def enable_plugins(plugin_filename=None):
         # - CONFIG_DIR
         # - obsolete config dir.
         my_plugin_name = ytcfg.get("yt", "plugin_filename")
-        old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
-        for base_prefix in ("", CONFIG_DIR, old_config_dir):
+        for base_prefix in ("", config_dir(), old_config_dir()):
             if os.path.isfile(os.path.join(base_prefix, my_plugin_name)):
                 _fn = os.path.join(base_prefix, my_plugin_name)
                 break
         else:
             raise FileNotFoundError("Could not find a global system plugin file.")
 
-        if _fn.startswith(old_config_dir):
+        if _fn.startswith(old_config_dir()):
             mylog.warning(
                 "Your plugin file is located in a deprecated directory. "
                 "Please move it from %s to %s",
-                os.path.join(old_config_dir, my_plugin_name),
-                os.path.join(CONFIG_DIR, my_plugin_name),
+                os.path.join(old_config_dir(), my_plugin_name),
+                os.path.join(config_dir(), my_plugin_name),
             )
 
     mylog.info("Loading plugins from %s", _fn)

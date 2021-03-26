@@ -802,10 +802,8 @@ class YTHubRegisterCmd(YTCommand):
         """
 
     def __call__(self, args):
-        try:
-            import requests
-        except ImportError as e:
-            raise YTCommandRequiresModule("requests") from e
+        from yt.utilities.on_demand_imports import _requests as requests
+
         hub_api_key, config_file = ytcfg.get(
             "yt",
             "hub_api_key",
@@ -1617,10 +1615,7 @@ class YTUploadFileCmd(YTCommand):
     name = "upload"
 
     def __call__(self, args):
-        try:
-            import requests
-        except ImportError as e:
-            raise YTCommandRequiresModule("requests") from e
+        from yt.utilities.on_demand_imports import _requests as requests
 
         fs = iter(FileStreamer(open(args.file, "rb")))
         upload_url = ytcfg.get("yt", "curldrop_upload_url")

@@ -350,6 +350,37 @@ second sets the corresponding ``value``. Currently available format properties a
     * ``ionization_label``: sets how the ionization state of ions are labeled. Available
             options are ``"plus_minus"`` and ``"roman_numeral"``
 
+.. _efields:
+
+Energy and Momemtum Fields
+--------------------------
+
+Fields in yt representing energy and momentum quantities follow a specific
+naming convention (as of yt-4.x). In hydrodynamic simulations, the relevant
+quantities are often energy per unit mass or volume, momentum, or momentum
+density To distinguish clearly between the different types of fields, the
+following naming convention is adhered to:
+
+* Energy per unit mass fields are named as ``specific_*_energy``
+* Energy per unit volume fields are named as ``*_energy_density``
+* Momentum fields should be named ``momentum_density_*`` for momentum per
+  unit density, or ``momentum_*`` for momentum, where the ``*`` indicates
+  one of three coordinate axes in any supported coordinate system.
+
+For example, in the case of kinetic energy, the fields should be
+``kinetic_energy_density`` and ``specific_kinetic_energy``.
+
+In versions of yt previous to v4.0.0, these conventions were not adopted, and so
+energy fields in particular could be ambiguous with respect to units. For
+example, the ``kinetic_energy`` field was actually kinetic energy per unit
+volume, whereas the ``thermal_energy`` field, usually defined by various
+frontends, was typically thermal energy per unit mass. The above scheme
+rectifies these problems, but for the time being the previous field names are
+mapped to the current field naming scheme with a deprecation warning. These
+aliases will be removed in yt v4.1.0. Following this, new fields will be created
+which have dimensions of energy, which will simply be named ``*_energy`` as
+above.
+
 .. _bfields:
 
 Magnetic Fields

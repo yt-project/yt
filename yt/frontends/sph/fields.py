@@ -12,7 +12,7 @@ class SPHFieldInfo(FieldInfoContainer):
         ("Velocity", ("code_velocity", ["particle_velocity"], None)),
         ("Velocities", ("code_velocity", ["particle_velocity"], None)),
         ("ParticleIDs", ("", ["particle_index"], None)),
-        ("InternalEnergy", ("code_specific_energy", ["thermal_energy"], None)),
+        ("InternalEnergy", ("code_specific_energy", ["specific_thermal_energy"], None)),
         ("SmoothingLength", ("code_length", ["smoothing_length"], None)),
         ("Density", ("code_mass / code_length**3", ["density"], None)),
         ("MaximumTemperature", ("K", [], None)),

@@ -1,6 +1,5 @@
 import sys
-
-from pkg_resources import parse_version
+from distutils.version import LooseVersion
 
 
 class NotAModule:
@@ -361,7 +360,7 @@ class h5py_imports:
         try:
             import h5py
 
-            if parse_version(h5py.__version__) < parse_version("2.4.0"):
+            if LooseVersion(h5py.__version__) < LooseVersion("2.4.0"):
                 self._err = RuntimeError(
                     "yt requires h5py version 2.4.0 or newer, "
                     'please update h5py with e.g. "pip install -U h5py" '
@@ -627,3 +626,22 @@ class f90nml_imports:
 
 
 _f90nml = f90nml_imports()
+
+
+class requests_imports:
+    _name = "requests"
+    _module = None
+
+    def __init__(self):
+        try:
+            import requests as myself
+
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_requests = requests_imports()

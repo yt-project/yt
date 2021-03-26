@@ -4,9 +4,7 @@ import shutil
 import tempfile
 import unittest
 from collections import OrderedDict
-from distutils.version import LooseVersion
 
-import matplotlib
 import numpy as np
 from nose.tools import assert_true
 
@@ -545,10 +543,7 @@ def test_set_background_color():
         plot.set_background_color(field, "red")
         plot._setup_plots()
         ax = plot.plots[field].axes
-        if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-            assert_equal(ax.get_axis_bgcolor(), "red")
-        else:
-            assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
+        assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
 
 
 def test_set_unit():

@@ -4,13 +4,14 @@ import numpy as np
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.funcs import get_brewer_cmap, get_image_suffix, mylog
+from yt.funcs import get_brewer_cmap, mylog
 from yt.units.yt_array import YTQuantity
 from yt.utilities import png_writer as pw
 from yt.utilities.exceptions import YTNotInsideNotebook
 from yt.utilities.lib import image_utilities as au
 
 from . import _colormap_data as cmd
+from ._commons import get_canvas, validate_image_name
 from .color_maps import mcm
 
 
@@ -402,8 +403,6 @@ def write_projection(
     import matplotlib.colors
     import matplotlib.figure
 
-    from ._mpl_imports import FigureCanvasAgg, FigureCanvasPdf, FigureCanvasPS
-
     if limits is not None:
         if vmin is not None or vmax is not None:
             raise ValueError(
@@ -455,19 +454,10 @@ def write_projection(
         if colorbar_label:
             cbar.ax.set_ylabel(colorbar_label)
 
-    suffix = get_image_suffix(filename)
+    filename = validate_image_name(filename)
+    canvas = get_canvas(fig, filename)
 
-    if suffix == "":
-        suffix = ".png"
-        filename = f"{filename}{suffix}"
     mylog.info("Saving plot %s", filename)
-    if suffix == ".pdf":
-        canvas = FigureCanvasPdf(fig)
-    elif suffix in (".eps", ".ps"):
-        canvas = FigureCanvasPS(fig)
-    else:
-        canvas = FigureCanvasAgg(fig)
-
     fig.tight_layout()
 
     canvas.print_figure(filename, dpi=dpi)

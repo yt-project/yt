@@ -18,7 +18,7 @@ class AstroSimulation(DomainContext):
         ("density", "g/cm**3"),
         ("number_density", "1/cm**3"),
         ("pressure", "dyne / cm**2"),
-        ("thermal_energy", "erg / g"),
+        ("specific_thermal_energy", "erg / g"),
         ("temperature", "K"),
         ("velocity_x", "cm / s"),
         ("velocity_y", "cm / s"),

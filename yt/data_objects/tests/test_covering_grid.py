@@ -97,7 +97,7 @@ def test_xarray_export():
         xarr = cg.to_xarray(fields=["density", "temperature"])
         assert "density" in xarr.variables
         assert "temperature" in xarr.variables
-        assert "thermal_energy" not in xarr.variables
+        assert "specific_thermal_energy" not in xarr.variables
         assert "x" in xarr.coords
         assert "y" in xarr.coords
         assert "z" in xarr.coords
@@ -108,8 +108,10 @@ def test_xarray_export():
         assert_equal(xarr.y, cg["y"][0, :, 0])
         assert_equal(xarr.z, cg["z"][0, 0, :])
 
+    fields = ("density", "temperature", "specific_thermal_energy")
+    units = ("g/cm**3", "K", "erg/g")
     for level in [0, 1, 2]:
-        ds = fake_random_ds(16, fields=["density", "temperature", "thermal_energy"])
+        ds = fake_random_ds(16, fields=fields, units=units)
         dn = ds.refine_by ** level
         rcg = ds.covering_grid(level, [0.0, 0.0, 0.0], dn * ds.domain_dimensions)
         _run_tests(rcg)
