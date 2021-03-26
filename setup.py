@@ -125,7 +125,7 @@ if __name__ == "__main__":
         include_package_data=True,
         package_data={"yt": ["sample_data_registry.json"]},
         install_requires=[
-            "matplotlib>=2.0.2,<3.4",
+            "matplotlib>=2.0.2<3.5",
             "setuptools>=19.6",
             "sympy>=1.2",
             "numpy>=1.10.4",
