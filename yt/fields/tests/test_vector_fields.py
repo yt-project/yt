@@ -3,6 +3,7 @@ import numpy as np
 from yt.testing import assert_allclose_units, fake_random_ds, requires_file
 from yt.units import cm, s
 from yt.utilities.answer_testing.framework import data_dir_load
+from yt.visualization.volume_rendering.off_axis_projection import off_axis_projection
 
 
 def random_unit_vector(prng):
@@ -86,6 +87,50 @@ def compare_vector_conversions(data_source):
         vlos += data_source["relative_velocity_y"] * ax[1]
         vlos += data_source["relative_velocity_z"] * ax[2]
         assert_allclose_units(data_source["velocity_los"], vlos)
+
+        buf_los = off_axis_projection(
+            data_source,
+            data_source.ds.domain_center,
+            ax,
+            0.5,
+            128,
+            ("gas", "velocity_los"),
+            weight=("gas", "density"),
+        )
+
+        buf_x = off_axis_projection(
+            data_source,
+            data_source.ds.domain_center,
+            ax,
+            0.5,
+            128,
+            ("gas", "relative_velocity_x"),
+            weight=("gas", "density"),
+        )
+
+        buf_y = off_axis_projection(
+            data_source,
+            data_source.ds.domain_center,
+            ax,
+            0.5,
+            128,
+            ("gas", "relative_velocity_y"),
+            weight=("gas", "density"),
+        )
+
+        buf_z = off_axis_projection(
+            data_source,
+            data_source.ds.domain_center,
+            ax,
+            0.5,
+            128,
+            ("gas", "relative_velocity_z"),
+            weight=("gas", "density"),
+        )
+
+        vlos = buf_x * ax[0] + buf_y * ax[1] + buf_z * ax[2]
+
+        assert_allclose_units(buf_los, vlos, rtol=1.0e-6)
 
 
 def test_vector_component_conversions_fake():
