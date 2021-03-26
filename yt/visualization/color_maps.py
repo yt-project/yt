@@ -43,10 +43,7 @@ def add_colormap(name, cdict):
     yt_colormaps[name] = cc.LinearSegmentedColormap(name, cdict, 256)
     mcm.datad[name] = cdict
     mcm.__dict__[name] = cdict
-    try:  # API compatibility
-        mcm.register_cmap(name, yt_colormaps[name])
-    except AttributeError:
-        pass
+    mcm.register_cmap(name, yt_colormaps[name])
 
 
 # The format is as follows:
@@ -184,12 +181,7 @@ if cmocean is not None:
         if cmname in yt_colormaps:
             cmname = cmname + "_cmocean"
         yt_colormaps[cmname] = cm
-        try:
-            mcm.register_cmap(cmname, yt_colormaps[cmname])
-        except AttributeError:
-            # for old versions of matplotlib this won't work, so we avoid
-            # erroring out but don't worry about registering with matplotlib
-            pass
+        mcm.register_cmap(cmname, yt_colormaps[cmname])
 
 # Add colormaps in _colormap_data.py that weren't defined here
 _vs = np.linspace(0, 1, 256)
