@@ -38,7 +38,7 @@
   "CfRadialGrid.tar.gz": {
     "hash": "22a45b322773d4b2864ccab93c521d8e3d637d81c8d8c0852e1a67c7fa883e0c",
     "load_kwargs": {},
-    "load_name": "CfRadialGrid/grid1.nc",
+    "load_name": "grid1.nc",
     "url": "https://yt-project.org/data/CfRadialGrid.tar.gz"
   },
   "ClusterMerger.tar.gz": {

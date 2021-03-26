@@ -23,6 +23,29 @@ Updating to yt 4.0 from Old Versions (and going back)
 Converting Old Scripts to Work with yt 4.0
 ------------------------------------------
 
+Energy and Momentum Field Name Conventions
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Fields representing energy and momentum quantities are now given names which
+reflect their dimensionality. For example, the ``"gas", "kinetic_energy"``
+field was actually a field for kinetic energy density, and so it has been
+renamed to ``"gas", "kinetic_energy_density"``. The old name still exists
+as an alias as of yt v4.0.0, but it will be removed in yt v4.1.0. See
+:ref:`deprecated_field_names` below for more information.
+
+Other examples include ``"gas", "specific_thermal_energy"`` for thermal
+energy per unit mass, and ``"gas", "momentum_density_x"`` for the x-axis
+component of momentum density. See :ref:`efields` for more information.
+
+Deprecated Field Names
+^^^^^^^^^^^^^^^^^^^^^^
+Certain field names are deprecated within yt v4.0.0, and will be removed in
+yt v4.1.0. For example, ``"gas", "kinetic_energy"`` has been renamed to
+``"gas", "kinetic_energy_density"``, though the former name has been added
+as an alias. Other fields, such as ``"gas", "cylindrical_tangential_velocity_absolute"``,
+are being removed entirely. When the deprecated field names are used for the
+first time in a session, a warning will be logged, so it is advisable to set
+your logging level to ``WARNING`` at a minimum to catch these.
 
 Cool New Things
 ---------------

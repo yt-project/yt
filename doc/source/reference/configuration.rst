@@ -227,7 +227,13 @@ For example, if I created a plugin file containing:
        return np.random.random(data["density"].shape)
 
 
-   add_field("random", function=_myfunc, dimensions="dimensionless", units="auto")
+   add_field(
+       "random",
+       function=_myfunc,
+       sampling_type="cell",
+       dimensions="dimensionless",
+       units="auto",
+   )
 
 then all of my data objects would have access to the field ``random``.
 

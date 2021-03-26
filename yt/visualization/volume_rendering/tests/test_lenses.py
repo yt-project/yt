@@ -30,7 +30,7 @@ class LensTest(TestCase):
             self.curdir, self.tmpdir = None, None
 
         self.field = ("gas", "density")
-        self.ds = fake_random_ds(32, fields=self.field)
+        self.ds = fake_random_ds(32, fields=(self.field,), units=("g/cm**3",))
         self.ds.index
 
     def tearDown(self):

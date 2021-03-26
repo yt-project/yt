@@ -1105,10 +1105,7 @@ class PWViewerMPL(PlotWindow):
 
             color = self._background_color[f]
 
-            if LooseVersion(matplotlib.__version__) < LooseVersion("2.0.0"):
-                self.plots[f].axes.set_axis_bgcolor(color)
-            else:
-                self.plots[f].axes.set_facecolor(color)
+            self.plots[f].axes.set_facecolor(color)
 
             # Determine the units of the data
             units = Unit(self.frb[f].units, registry=self.ds.unit_registry)

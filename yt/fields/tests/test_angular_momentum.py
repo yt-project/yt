@@ -5,7 +5,9 @@ from yt.testing import assert_allclose_units, fake_amr_ds
 
 def test_AM_value():
     ds = fake_amr_ds(
-        fields=("Density", "velocity_x", "velocity_y", "velocity_z"), length_unit=0.5
+        fields=("Density", "velocity_x", "velocity_y", "velocity_z"),
+        units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
+        length_unit=0.5,
     )
 
     sp = ds.sphere([0.5] * 3, (0.1, "code_length"))

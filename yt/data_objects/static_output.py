@@ -127,6 +127,7 @@ class Dataset(abc.ABC):
     _particle_type_counts = None
     _proj_type = "quad_proj"
     _ionization_label_format = "roman_numeral"
+    fields_detected = False
 
     # these are set in self._parse_parameter_file()
     domain_left_edge = MutableAttribute(True)
@@ -602,6 +603,9 @@ class Dataset(abc.ABC):
         self.field_dependencies.update(deps)
         self.fields = FieldTypeContainer(self)
         self.index.field_list = sorted(self.field_list)
+        # Now that we've detected the fields, set this flag so that
+        # deprecated fields will be logged if they are used
+        self.fields_detected = True
         self._last_freq = (None, None)
 
     def set_field_label_format(self, format_property, value):

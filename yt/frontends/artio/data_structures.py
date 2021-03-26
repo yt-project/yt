@@ -502,12 +502,8 @@ class ARTIODataset(Dataset):
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
-        from sys import version
-
         # a valid artio header file starts with a prefix and ends with .art
-        if not filename.endswith(".art"):
+        name, _, ext = filename.rpartition(".")
+        if ext != "art":
             return False
-        if version < "3":
-            return artio_is_valid(filename[:-4])
-        else:
-            return artio_is_valid(bytes(filename[:-4], "utf-8"))
+        return artio_is_valid(bytes(name, "utf-8"))
