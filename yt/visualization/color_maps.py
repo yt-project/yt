@@ -173,38 +173,6 @@ cdict = {
 
 add_colormap("purple_mm", cdict)
 
-# This one comes from
-# http://permalink.gmane.org/gmane.comp.python.matplotlib.devel/10518
-# and is an implementation of http://arxiv.org/abs/1108.5083
-#
-
-# cubehelix parameters
-_gamma_cubehelix = 1.0
-_s_cubehelix = 0.5
-_r_cubehelix = -1.5
-_h_cubehelix = 1.0
-
-_cubehelix_data = {
-    "red": lambda x: x ** _gamma_cubehelix
-    + (_h_cubehelix * x ** _gamma_cubehelix * (1 - x ** _gamma_cubehelix) / 2)
-    * (
-        -0.14861 * np.cos(2 * np.pi * (_s_cubehelix / 3 + _r_cubehelix * x))
-        + 1.78277 * np.sin(2 * np.pi * (_s_cubehelix / 3 + _r_cubehelix * x))
-    ),
-    "green": lambda x: x ** _gamma_cubehelix
-    + (_h_cubehelix * x ** _gamma_cubehelix * (1 - x ** _gamma_cubehelix) / 2)
-    * (
-        -0.29227 * np.cos(2 * np.pi * (_s_cubehelix / 3 + _r_cubehelix * x))
-        - 0.90649 * np.sin(2 * np.pi * (_s_cubehelix / 3 + _r_cubehelix * x))
-    ),
-    "blue": lambda x: x ** _gamma_cubehelix
-    + (_h_cubehelix * x ** _gamma_cubehelix * (1 - x ** _gamma_cubehelix) / 2)
-    * (1.97294 * np.cos(2 * np.pi * (_s_cubehelix / 3 + _r_cubehelix * x))),
-}
-
-add_colormap("cubehelix", _cubehelix_data)
-
-
 # Add colormaps from cmocean, if it's installed
 if cmocean is not None:
     cmo_cmapnames = cmocean.cm.cmapnames
