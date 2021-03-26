@@ -311,7 +311,7 @@ class PlotWindow(ImagePlotContainer):
                     # Obtain config
                     path_length_units = Unit(
                         ytcfg.get_most_specific(
-                            *field, "path_length_units", fallback="cm"
+                            "plot", *field, "path_length_units", fallback="cm"
                         ),
                         registry=self.ds.unit_registry,
                     )

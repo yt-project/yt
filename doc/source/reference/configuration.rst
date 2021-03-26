@@ -150,7 +150,7 @@ Available per-field Configuration Options
 
 It is possible to customize the default behaviour of plots using per-field configuration.
 The default options for plotting a given field can be specified in the configuration file
-in ``[field_type.field_name]`` blocks. The available keys are
+in ``[plot.field_type.field_name]`` blocks. The available keys are
 
 * ``cmap`` (default: ``yt.default_colormap``, see :ref:`global-config`): the colormap to
   use for the field.
@@ -166,16 +166,16 @@ as illustrated below.
 
 .. code-block:: toml
 
-  [gas.density]
+  [plot.gas.density]
   cmap = "plasma"
   log = true
   units = "mp/cm**3"
 
-  [gas.velocity_divergence]
+  [plot.gas.velocity_divergence]
   cmap = "bwr"  # use a diverging colormap
   log = false   # and a linear scale
 
-  [deposit]
+  [plot.deposit]
   path_length_units = "kpc"  # use kpc for deposition projections
 
 

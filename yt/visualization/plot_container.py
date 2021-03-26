@@ -244,7 +244,7 @@ class PlotContainer:
             def getter(field):
                 ftype, fname = self.data_source._determine_fields(field)[0]
                 ret = [
-                    ytcfg.get_most_specific(ftype, fname, key, fallback=default)
+                    ytcfg.get_most_specific("plot", ftype, fname, key, fallback=default)
                     for key, default in zip(_keys, _defaults)
                 ]
                 if len(ret) == 1:

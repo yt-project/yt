@@ -417,14 +417,14 @@ class TestPerFieldConfig(unittest.TestCase):
 
         newConfig = {
             ("yt", "default_colormap"): "viridis",
-            ("gas", "log"): False,
-            ("gas", "density", "units"): "lb/yard**3",
-            ("gas", "density", "path_length_units"): "mile",
-            ("gas", "density", "cmap"): "plasma",
-            ("gas", "temperature", "log"): True,
-            ("gas", "temperature", "linthresh"): 100,
-            ("gas", "temperature", "cmap"): "hot",
-            ("gas", "pressure", "log"): True,
+            ("plot", "gas", "log"): False,
+            ("plot", "gas", "density", "units"): "lb/yard**3",
+            ("plot", "gas", "density", "path_length_units"): "mile",
+            ("plot", "gas", "density", "cmap"): "plasma",
+            ("plot", "gas", "temperature", "log"): True,
+            ("plot", "gas", "temperature", "linthresh"): 100,
+            ("plot", "gas", "temperature", "cmap"): "hot",
+            ("plot", "gas", "pressure", "log"): True,
         }
         # Backup the old config
         oldConfig = {}
