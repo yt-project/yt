@@ -118,8 +118,11 @@ The following exclude and include functions are supported:
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_below` - Exclude values below given value
 
 
-Cut regions can also operate on particle fields, but a single cut region object
-cannot operate on both particle fields and mesh fields at the same time.
+.. warning::
+
+    Cut regions can have unexpected results with particle fields, or often not work
+    at all with some operations. If you want to filter particle fields, see the
+    next section :ref:`filtering-particles` instead.
 
 .. _filtering-particles:
 
