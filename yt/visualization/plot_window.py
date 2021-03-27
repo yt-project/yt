@@ -318,7 +318,27 @@ class PlotWindow(ImagePlotContainer):
                     units = field_unit * path_length_units
                 else:
                     units = field_unit
-                self.frb[field].convert_to_units(units)
+                try:
+                    self.frb[field].convert_to_units(units)
+                except UnitConversionError:
+                    msg = (
+                        "Could not apply default units from configuration.\n"
+                        "Tried converting projected field %s from %s to %s:\n"
+                        "\tgot units for field: %s"
+                    )
+                    args = [
+                        field,
+                        self.frb[field].units,
+                        units,
+                        field_unit,
+                    ]
+                    if is_projected:
+                        msg += "\n\tgot units for integration length: %s"
+                        args += [path_length_units]
+
+                    msg += "\nCheck your configuration file."
+
+                    mylog.error(msg, *args)
         else:
             # Restore the old fields
             for key, units in zip(old_fields, old_units):
