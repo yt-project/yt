@@ -155,7 +155,7 @@ in ``[plot.field_type.field_name]`` blocks. The available keys are
 * ``cmap`` (default: ``yt.default_colormap``, see :ref:`global-config`): the colormap to
   use for the field.
 * ``log`` (default: ``True``): use a log scale (or symlog if ``linthresh`` is also set).
-* ``linthresh`` (default: None): if set to a float different than ``None`` and ``log`` is
+* ``linthresh`` (default: ``None``): if set to a float different than ``None`` and ``log`` is
   ``True``, use a symlog normalization with the given linear threshold.
 * ``units`` (defaults to the units of the field): the units to use to represent the field.
 * ``path_length_units`` (default: ``cm``): the unit of the integration length when doing
