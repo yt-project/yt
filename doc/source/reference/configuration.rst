@@ -161,8 +161,8 @@ in ``[plot.field_type.field_name]`` blocks. The available keys are
   e.g. projections. Note that this will only be used if ``units`` is also set for the field.
   The final units will then be ``units*path_length_units``.
 
-You can also set defaults for all field of a given field type by omitting the field name,
-as illustrated below.
+You can also set defaults for all fields of a given field type by omitting the field name,
+as illustrated below in the deposit block.
 
 .. code-block:: toml
 
