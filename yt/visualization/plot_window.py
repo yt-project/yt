@@ -231,7 +231,7 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = linear_transform
 
             log, linthresh = self._log_config[field]
-            if (log is not None and log is not finfo.take_log) or linthresh:
+            if log is not None:
                 self.set_log(field, log, linthresh=linthresh)
 
             # Access the dictionary to force the key to be created

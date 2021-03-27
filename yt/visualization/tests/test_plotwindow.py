@@ -423,6 +423,7 @@ class TestPerFieldConfig(unittest.TestCase):
             ("plot", "gas", "temperature", "linthresh"): 100,
             ("plot", "gas", "temperature", "cmap"): "hot",
             ("plot", "gas", "pressure", "log"): True,
+            ("plot", "index", "radius", "linthresh"): 1e3,
         }
         # Backup the old config
         oldConfig = {}
@@ -440,9 +441,10 @@ class TestPerFieldConfig(unittest.TestCase):
 
         fields = [("gas", "density"), ("gas", "temperature"), ("gas", "pressure")]
         units = ["g/cm**3", "K", "dyn/cm**2"]
+        fields_to_plot = fields + [("index", "radius")]
         if self.ds is None:
             self.ds = fake_random_ds(16, fields=fields, units=units)
-            self.slc = ProjectionPlot(self.ds, 0, fields)
+            self.slc = ProjectionPlot(self.ds, 0, fields_to_plot)
 
     def tearDown(self):
         from yt.config import ytcfg
@@ -466,6 +468,7 @@ class TestPerFieldConfig(unittest.TestCase):
         assert_equal(self.slc._field_transform["gas", "temperature"].name, "symlog")
         assert_equal(self.slc._field_transform["gas", "temperature"].func, 100)
         assert_equal(self.slc._field_transform["gas", "pressure"].name, "log10")
+        assert_equal(self.slc._field_transform["index", "radius"].name, "log10")
 
     def test_cmap(self):
         assert_equal(self.slc._colormap_config["gas", "density"], "plasma")
