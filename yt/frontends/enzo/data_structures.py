@@ -797,11 +797,11 @@ class EnzoDataset(Dataset):
             self.omega_matter = cosmo["OmegaMatterNow"]
             self.hubble_constant = cosmo["HubbleConstantNow"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
         self.particle_types = ["DarkMatter"] + phys["ActiveParticles"][
             "ActiveParticlesEnabled"
         ]
@@ -898,11 +898,11 @@ class EnzoDataset(Dataset):
             )
             self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
         self.particle_types = []
         self.current_time = self.parameters["InitialTime"]
         if (
@@ -1047,11 +1047,11 @@ class EnzoDatasetInMemory(EnzoDataset):
             self.omega_matter = self.parameters["CosmologyOmegaMatterNow"]
             self.hubble_constant = self.parameters["CosmologyHubbleConstantNow"]
         else:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
 
     def _obtain_enzo(self):
         import enzo
