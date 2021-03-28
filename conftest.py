@@ -1,7 +1,6 @@
 import os
 import shutil
 import tempfile
-import typing
 from pathlib import Path
 
 import pytest
@@ -199,14 +198,10 @@ def hashing(request):
             with open(request.cls.answer_file) as fd:
                 request.cls.saved_hashes = yaml.safe_load(fd)
         except FileNotFoundError:
-            # On travis and appveyor only a minimal set of answer tests are
-            # run, which means that, for most answer tests, there won't be
-            # an existing answer file when comparing. There is currently no
-            # list of the minimal answer tests, so they can't be marked.
-            # As such, if we're comparing and the file of saved hashes isn't
-            # found, we just skip the test. We do the skip before the test
-            # is run to save time
-            pytest.skip("Answer file not found.")
+            module_filename = f"{request.function.__module__.replace('.', os.sep)}.py"
+            with open(f"generate_test_{os.getpid()}.txt", "a") as fp:
+                fp.write(f"{module_filename}::{request.cls.__name__}\n")
+            pytest.fail(msg="Answer file not found.", pytrace=False)
     request.cls.hashes = {}
     # Load the saved answers if we're comparing. We don't do this for the raw
     # answers because those are huge
@@ -226,7 +221,9 @@ def hashing(request):
     # Compare hashes
     elif not no_hash and not store_hash:
         try:
-            assert hashes == request.cls.saved_hashes
+            for test_name, test_hash in hashes.items():
+                assert test_name in request.cls.saved_hashes
+                assert test_hash == request.cls.saved_hashes[test_name]
         except AssertionError:
             pytest.fail(f"Comparison failure: {request.node.name}", pytrace=False)
     # Save raw data
@@ -265,11 +262,11 @@ def ds(request):
     # data_dir_load can take the cls, args, and kwargs. These optional
     # arguments, if present,  are given in a dictionary as the second
     # element of the list
-    if isinstance(request.param, typing.Sequence):
-        ds_fn, opts = request.param
-    else:
+    if isinstance(request.param, str):
         ds_fn = request.param
         opts = {}
+    else:
+        ds_fn, opts = request.param
     try:
         return data_dir_load(
             ds_fn, cls=opts.get("cls"), args=opts.get("args"), kwargs=opts.get("kwargs")
