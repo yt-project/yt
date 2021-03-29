@@ -137,6 +137,9 @@ class ConfigNode:
     def __repr__(self):
         return f"<Node {self.key}>"
 
+    def _repr_json_(self):
+        return self.as_dict()
+
     def __contains__(self, item):
         return item in self.children
 
