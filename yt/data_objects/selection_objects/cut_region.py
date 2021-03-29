@@ -84,7 +84,7 @@ class YTCutRegion(YTSelectionContainer3D):
         for cond in self.conditionals:
             for field in re.findall(r"\[([A-Za-z0-9_,.'\"\(\)]+)\]", cond):
                 fd = field.replace('"', "").replace("'", "")
-                if "," in field:
+                if "," in fd:
                     fd = tuple(fd.strip("()").split(","))
                 fd = self.ds._get_field_info(fd)
                 if fd.sampling_type == "particle" or fd.is_sph_field:
