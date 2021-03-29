@@ -52,9 +52,10 @@ class FieldDetector(defaultdict):
             # required attrs
             ds = fake_dataset(lambda: 1)
             ds["Massarr"] = np.ones(6)
-            ds.current_redshift = (
-                ds.omega_lambda
-            ) = ds.omega_matter = ds.cosmological_simulation = 0.0
+            ds.current_redshift = 0.0
+            ds.omega_lambda = 0.0
+            ds.omega_matter = 0.0
+            ds.cosmological_simulation = 0
             ds.gamma = 5.0 / 3.0
             ds.hubble_constant = 0.7
             ds.domain_left_edge = np.zeros(3, "float64")

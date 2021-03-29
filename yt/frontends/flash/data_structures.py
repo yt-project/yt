@@ -447,11 +447,11 @@ class FLASHDataset(Dataset):
             self.hubble_constant = self.parameters["hubbleconstant"]
             self.hubble_constant *= cm_per_mpc * 1.0e-5 * 1.0e-2  # convert to 'h'
         except Exception:
-            self.current_redshift = (
-                self.omega_lambda
-            ) = (
-                self.omega_matter
-            ) = self.hubble_constant = self.cosmological_simulation = 0.0
+            self.current_redshift = 0.0
+            self.omega_lambda = 0.0
+            self.omega_matter = 0.0
+            self.hubble_constant = 0.0
+            self.cosmological_simulation = 0
 
     @classmethod
     def _is_valid(cls, filename, *args, **kwargs):
