@@ -149,11 +149,11 @@ class YTConfig:
         )
 
     def __setitem__(self, args, value):
-        section, *keys = args
+        section, *keys = always_iterable(args)
         self.set(section, *keys, value, metadata=None)
 
     def __getitem__(self, key):
-        section, *keys = key
+        section, *keys = always_iterable(key)
         return self.get(section, *keys)
 
     def remove(self, *args):
