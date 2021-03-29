@@ -195,6 +195,8 @@ class YTConfig:
     def __contains__(self, item):
         return item in self.config_root
 
+    # Add support for IPython rich display
+    # see https://ipython.readthedocs.io/en/stable/config/integrating.html
     def _repr_json_(self):
         return self.config_root._repr_json_()
 
