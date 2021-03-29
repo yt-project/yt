@@ -86,7 +86,7 @@ Alternatively, you can install yt in a
 ```shell
 # It is conventional to create virtualenvs at ~/.virtualenv/
 $ mkdir -p ~/.virtualenv
-# Assuming your version of Python 3 is 3.4 or higher,
+# Assuming your version of Python 3 meets the minimal requirement
 # create a virtualenv named yt-git
 $ python3 -m venv ~/.virtualenv/yt-git
 # Activate it
