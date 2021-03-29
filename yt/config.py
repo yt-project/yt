@@ -102,12 +102,10 @@ class YTConfig:
     def get(self, section, *keys, callback=None):
         node_or_leaf = self.config_root.get(section, *keys)
         if isinstance(node_or_leaf, ConfigLeaf):
-            if callback is None:
-                return node_or_leaf.value
-            else:
+            if callback is not None:
                 return callback(node_or_leaf)
-        else:
-            return node_or_leaf
+            return node_or_leaf.value
+        return node_or_leaf
 
     def get_most_specific(self, section, *keys, **kwargs):
         use_fallback = "fallback" in kwargs
