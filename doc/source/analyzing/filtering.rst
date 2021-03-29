@@ -120,9 +120,12 @@ The following exclude and include functions are supported:
 
 .. warning::
 
-    Cut regions can have unexpected results with particle fields, or often not work
-    at all with some operations. If you want to filter particle fields, see the
-    next section :ref:`filtering-particles` instead.
+    Cut regions are unstable when used on particle fields. Though you can create
+    a cut region using a mesh field or fields as a filter and then obtain a
+    particle field within that region, you cannot create a cut region using
+    particle fields in the filter, as yt will currently raise an error. If
+    you want to filter particle fields, see the next section
+    :ref:`filtering-particles` instead.
 
 .. _filtering-particles:
 
