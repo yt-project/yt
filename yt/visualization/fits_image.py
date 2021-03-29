@@ -395,7 +395,7 @@ class FITSImageData:
             if hasattr(self, "hubble_constant"):
                 # Don't store cosmology units
                 atoms = {str(a) for a in uq.units.expr.atoms()}
-                if "h" in atoms or "a" in atoms:
+                if str(uq.units).startswith("cm") or "h" in atoms or "a" in atoms:
                     uq.convert_to_cgs()
 
             if uq is not None and uq.units.is_code_unit:
