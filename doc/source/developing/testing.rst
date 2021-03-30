@@ -295,7 +295,7 @@ Here is what a minimal example might look like for a new frontend:
         @pytest.mark.parametrize("field", [field1, field2], indirect=True)
         @pytest.mark.parametrize("dobj", [obj1, obj2], indirect=True)
         def test_fields(self, ds, field, dobj):
-            self.hashes.update("field_values" : field_values(ds, field, dobj))
+            self.hashes.update({"field_values": field_values(ds, field, dobj)})
 
 Answer test examples can be found in ``yt/frontends/enzo/tests/test_outputs.py``.
 
