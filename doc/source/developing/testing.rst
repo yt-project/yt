@@ -284,6 +284,7 @@ Here is what a minimal example might look like for a new frontend:
     obj1 = None
     obj2 = ("sphere", ("c", (0.1, "unitary")))
 
+
     @pytest.mark.answer_test
     class TestNewFrontend:
         answer_file = None
@@ -322,6 +323,7 @@ Here is an example test function (from ``yt/visualization/tests/test_raw_field_s
     # Test data
     raw_fields = "Laser/plt00015"
 
+
     def compare(ds, field):
         def slice_image(im_name):
             sl = yt.SlicePlot(ds, "z", field)
@@ -333,6 +335,7 @@ Here is an example test function (from ``yt/visualization/tests/test_raw_field_s
         # generic_image returns a list. In this case, there's only one entry,
         # which is a np array with the data we want
         return gi[0]
+
 
     @pytest.mark.answer_test
     @pytest.mark.usefixtures("temp_dir")
