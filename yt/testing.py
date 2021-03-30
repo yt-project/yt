@@ -889,6 +889,47 @@ def requires_module(module):
         return ftrue
 
 
+def requires_module_pytest(*module_names):
+    """
+    This is a replacement for yt.testing.requires_module that's
+    compatible with pytest, and accepts an arbitrary number of requirements to
+    avoid stacking decorators
+
+    Important: this is meant to decorate test functions only, it won't work as a
+    decorator to fixture functions.
+    It's meant to be imported as
+    >>> from yt.testing import requires_module_pytest as requires_module
+
+    So that it can be later renamed to `requires_module`.
+    """
+    from pytest.mark import skipif
+
+    from yt.utilities import on_demand_imports as odi
+
+    def deco(func):
+        required_modules = {
+            name: getattr(odi, f"_{name}")._module for name in module_names
+        }
+        missing = [
+            name
+            for name, mod in required_modules.items()
+            if isinstance(mod, odi.NotAModule)
+        ]
+
+        # note that order between these two decorators matter
+        @skipif(
+            missing,
+            reason=f"missing requirement(s): {', '.join(missing)}",
+        )
+        @functools.wraps(func)
+        def inner_func(*args, **kwargs):
+            return func(*args, **kwargs)
+
+        return inner_func
+
+    return deco
+
+
 def requires_file(req_file):
     from nose import SkipTest
 
