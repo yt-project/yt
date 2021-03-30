@@ -132,7 +132,6 @@ def lookup_on_disk_data(fn):
     ------
     FileNotFoundError
     """
-    # this should be used in yt.loaders.load
 
     path = Path(fn).expanduser()
 

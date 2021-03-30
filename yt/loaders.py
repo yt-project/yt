@@ -12,6 +12,7 @@ from more_itertools import always_iterable
 
 from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
+from yt.sample_data.api import lookup_on_disk_data
 from yt.utilities.decompose import decompose_array, get_psize
 from yt.utilities.exceptions import (
     YTAmbiguousDataType,
@@ -73,18 +74,10 @@ def load(fn, *args, **kwargs):
 
         return DatasetSeries(fn, *args, **kwargs)
 
-    # Unless the dataset starts with http
-    # look for it using the path or relative to the data dir (in this order).
-    if not (os.path.exists(fn) or fn.startswith("http")):
-        data_dir = ytcfg.get("yt", "test_data_dir")
-        alt_fn = os.path.join(data_dir, fn)
-        if os.path.exists(alt_fn):
-            fn = alt_fn
-        else:
-            msg = f"No such file or directory: '{fn}'."
-            if os.path.exists(data_dir):
-                msg += f"\n(Also tried '{alt_fn}')."
-            raise FileNotFoundError(msg)
+    # This will raise FileNotFoundError if the path isn't matched
+    # either in the current dir or yt.config.ytcfg['data_dir_directory']
+    if not fn.startswith("http"):
+        fn = str(lookup_on_disk_data(fn))
 
     candidates = []
     for cls in output_type_registry.values():
@@ -1302,7 +1295,6 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
         _download_sample_data_file,
         _get_test_data_dir_path,
         get_data_registry_table,
-        lookup_on_disk_data,
     )
 
     pooch_logger = pooch.utils.get_logger()
