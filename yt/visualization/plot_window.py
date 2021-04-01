@@ -953,7 +953,7 @@ class PWViewerMPL(PlotWindow):
                     )
                 elif not np.any(np.isfinite(image)):
                     msg = f"Plot image for field {f} is filled with NaNs."
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) <= 0:
                     msg = (
                         "Plot image for field %s has both positive "
                         "and negative values. Min = %f, Max = %f."
