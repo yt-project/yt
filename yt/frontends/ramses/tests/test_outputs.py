@@ -380,14 +380,17 @@ def test_grav_detection():
             assert ("gas", f"acceleration_{k}") in ds.derived_field_list
 
         if has_potential:
-            assert ("gravity", "Potential") in ds.field_list
+            assert ("gravity", "Specific-Potential") in ds.field_list
+            assert ("gas", "specific_potential") in ds.derived_field_list
             assert ("gas", "potential") in ds.derived_field_list
 
         # Test access
         for k in "xyz":
             ds.r["gas", f"acceleration_{k}"].to("m/s**2")
+
         if has_potential:
-            ds.r["gas", "potential"].to("m**2/s**2")
+            ds.r["gas", "specific_potential"].to("m**2/s**2")
+            ds.r["gas", "potential"].to("kg*m**2/s**2")
 
 
 @requires_file(ramses_sink)

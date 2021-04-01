@@ -461,7 +461,9 @@ class GravFieldFileHandler(FieldFileHandler):
         ndim = ds.dimensionality
 
         if nvar == ndim + 1:
-            fields = ["Potential"] + [f"{k}-acceleration" for k in "xyz"[:ndim]]
+            fields = ["Specific-Potential"] + [
+                f"{k}-acceleration" for k in "xyz"[:ndim]
+            ]
         else:
             fields = [f"{k}-acceleration" for k in "xyz"[:ndim]]
         ndetected = len(fields)
