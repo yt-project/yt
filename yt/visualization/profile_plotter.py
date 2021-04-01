@@ -1118,10 +1118,7 @@ class PhasePlot(ImagePlotContainer):
 
             color = self._background_color[f]
 
-            if MPL_VERSION < LooseVersion("2.0.0"):
-                self.plots[f].axes.set_axis_bgcolor(color)
-            else:
-                self.plots[f].axes.set_facecolor(color)
+            self.plots[f].axes.set_facecolor(color)
 
             if f in self._plot_text:
                 self.plots[f].axes.text(

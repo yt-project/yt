@@ -337,21 +337,7 @@ class DummyProgressBar:
         return
 
 
-class ParallelProgressBar:
-    # This is just a simple progress bar
-    # that prints on start/stop
-    def __init__(self, title, maxval):
-        self.title = title
-        mylog.info("Starting '%s'", title)
-
-    def update(self, *args, **kwargs):
-        return
-
-    def finish(self):
-        mylog.info("Finishing '%s'", self.title)
-
-
-def get_pbar(title, maxval, parallel=False):
+def get_pbar(title, maxval):
     """
     This returns a progressbar of the most appropriate type, given a *title*
     and a *maxval*.
@@ -363,19 +349,10 @@ def get_pbar(title, maxval, parallel=False):
         ytcfg.get("yt", "suppress_stream_logging")
         or ytcfg.get("yt", "internals", "within_testing")
         or maxval == 1
+        or not is_root()
     ):
         return DummyProgressBar()
-    elif ytcfg.get("yt", "internals", "parallel"):
-        # If parallel is True, update progress on root only.
-        if parallel:
-            if is_root():
-                return TqdmProgressBar(title, maxval)
-            else:
-                return DummyProgressBar()
-        else:
-            return ParallelProgressBar(title, maxval)
-    pbar = TqdmProgressBar(title, maxval)
-    return pbar
+    return TqdmProgressBar(title, maxval)
 
 
 def only_on_root(func, *args, **kwargs):

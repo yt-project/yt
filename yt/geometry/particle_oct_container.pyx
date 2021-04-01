@@ -571,8 +571,8 @@ cdef class ParticleBitmap:
                 continue
             if hsml[p] < 0:
                 raise RuntimeError(
-                    "Smoothing length for particle %s is negative with "
-                    "value \"%s\"" % p, hsml[p])
+                    f"Smoothing length for particle {p} is negative with "
+                    f"value {hsml[p]}")
             radius = hsml[p]
             # We first check if we're bounded within the domain; this follows the logic in the
             # pixelize_cartesian routine.  We assume that no smoothing
@@ -610,9 +610,9 @@ cdef class ParticleBitmap:
                                     particle_counts[miex] += 1
                                     if miex >= msize:
                                         raise IndexError(
-                                            "Index for a softening region " +
-                                            "({}) exceeds ".format(miex) +
-                                            "max ({})".format(msize))
+                                            "Index for a softening region "
+                                            f"({miex}) exceeds "
+                                            f"max ({msize})")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)

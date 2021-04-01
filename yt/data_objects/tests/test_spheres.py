@@ -34,7 +34,9 @@ def test_domain_sphere():
 
     # Get the first sphere
     ds = fake_random_ds(
-        16, fields=("density", "velocity_x", "velocity_y", "velocity_z")
+        16,
+        fields=("density", "velocity_x", "velocity_y", "velocity_z"),
+        units=("g/cm**3", "cm/s", "cm/s", "cm/s"),
     )
     sp0 = ds.sphere(ds.domain_center, 0.25)
 
@@ -94,7 +96,12 @@ def test_domain_sphere():
 
 
 def test_sphere_center():
-    ds = fake_random_ds(16, nprocs=8, fields=("density", "temperature", "velocity_x"))
+    ds = fake_random_ds(
+        16,
+        nprocs=8,
+        fields=("density", "temperature", "velocity_x"),
+        units=("g/cm**3", "K", "cm/s"),
+    )
 
     # Test if we obtain same center in different ways
     sp1 = ds.sphere("max", (0.25, "unitary"))

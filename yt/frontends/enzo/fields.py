@@ -106,6 +106,10 @@ class EnzoFieldInfo(FieldInfoContainer):
         ("GridID", ("", [], None)),
         ("identifier", ("", ["particle_index"], None)),
         ("level", ("", [], None)),
+        ("AccretionRate", ("code_mass/code_time", [], None)),
+        ("AccretionRateTime", ("code_time", [], None)),
+        ("AccretionRadius", ("code_length", [], None)),
+        ("RadiationLifetime", ("code_time", [], None)),
     )
 
     def __init__(self, ds, field_list):

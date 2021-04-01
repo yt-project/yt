@@ -20,7 +20,10 @@ def test_cut_region():
     # We decompose in different ways
     for nprocs in [1, 2, 4, 8]:
         ds = fake_random_ds(
-            64, nprocs=nprocs, fields=("density", "temperature", "velocity_x")
+            64,
+            nprocs=nprocs,
+            fields=("density", "temperature", "velocity_x"),
+            units=("g/cm**3", "K", "cm/s"),
         )
         # We'll test two objects
         dd = ds.all_data()

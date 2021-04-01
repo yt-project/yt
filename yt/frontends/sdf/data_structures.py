@@ -1,4 +1,3 @@
-import contextlib
 import os
 
 import numpy as np
@@ -10,13 +9,6 @@ from yt.utilities.logger import ytLogger as mylog
 from yt.utilities.sdf import HTTPSDFRead, SDFIndex, SDFRead
 
 from .fields import SDFFieldInfo
-
-
-@contextlib.contextmanager
-def safeopen(*args, **kwargs):
-    with open(*args, **kwargs) as f:
-        yield f
-
 
 # currently specified by units_2HOT == 2 in header
 # in future will read directly from file
@@ -194,7 +186,7 @@ class SDFDataset(ParticleDataset):
             # Grab a whole 4k page.
             line = next(hreq.iter_content(4096))
         elif os.path.isfile(sdf_header):
-            with safeopen(sdf_header, "r", encoding="ISO-8859-1") as f:
+            with open(sdf_header, encoding="ISO-8859-1") as f:
                 line = f.read(10).strip()
         else:
             return False

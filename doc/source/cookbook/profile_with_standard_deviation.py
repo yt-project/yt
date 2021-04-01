@@ -30,7 +30,7 @@ std = prof.standard_deviation["gas", "velocity_magnitude"]
 
 # Plot the average velocity magnitude.
 plt.loglog(radius, mean, label="Mean")
-# Plot the variance of the velocity magnitude.
+# Plot the standard deviation of the velocity magnitude.
 plt.loglog(radius, std, label="Standard Deviation")
 plt.xlabel("r [kpc]")
 plt.ylabel("v [cm/s]")

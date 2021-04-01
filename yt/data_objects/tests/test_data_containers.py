@@ -115,7 +115,10 @@ class TestDataContainers(unittest.TestCase):
     def test_to_frb(self):
         # Test cylindrical geometry
         fields = ["density", "cell_mass"]
-        ds = fake_amr_ds(fields=fields, geometry="cylindrical", particles=16 ** 3)
+        units = ["g/cm**3", "g"]
+        ds = fake_amr_ds(
+            fields=fields, units=units, geometry="cylindrical", particles=16 ** 3
+        )
         dd = ds.all_data()
         proj = ds.proj(
             ("gas", "density"),
@@ -129,7 +132,9 @@ class TestDataContainers(unittest.TestCase):
 
     def test_extract_isocontours(self):
         # Test isocontour properties for AMRGridData
-        ds = fake_amr_ds(fields=["density", "cell_mass"], particles=16 ** 3)
+        fields = ["density", "cell_mass"]
+        units = ["g/cm**3", "g"]
+        ds = fake_amr_ds(fields=fields, units=units, particles=16 ** 3)
         dd = ds.all_data()
         q = dd.quantities["WeightedAverageQuantity"]
         rho = q(("gas", "density"), weight=("gas", "cell_mass"))

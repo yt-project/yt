@@ -101,7 +101,7 @@ filtering out unwanted regions. Such wrapper functions are methods of
    overpressure_and_fast = overpressure_and_fast.include_above('velocity_magnitude', 1e2, 'km/s')
 
    print('Density of all data: ad["density"] = \n%s' % ad['density'])
-   print('Density of "overpressure and fast" data: overpressure_and_fast['density'] = \n%s' %
+   print('Density of "overpressure and fast" data: overpressure_and_fast["density"] = \n%s' %
           overpressure_and_fast['density'])
 
 The following exclude and include functions are supported:
@@ -118,8 +118,14 @@ The following exclude and include functions are supported:
    - :func:`~yt.data_objects.data_containers.YTSelectionContainer3D.exclude_below` - Exclude values below given value
 
 
-Cut regions can also operate on particle fields, but a single cut region object
-cannot operate on both particle fields and mesh fields at the same time.
+.. warning::
+
+    Cut regions are unstable when used on particle fields. Though you can create
+    a cut region using a mesh field or fields as a filter and then obtain a
+    particle field within that region, you cannot create a cut region using
+    particle fields in the filter, as yt will currently raise an error. If
+    you want to filter particle fields, see the next section
+    :ref:`filtering-particles` instead.
 
 .. _filtering-particles:
 

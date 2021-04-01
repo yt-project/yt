@@ -71,7 +71,7 @@ answer_tests:
     - yt/frontends/gamer/tests/test_outputs.py:test_mhdvortex
 
   local_gdf_001:
-    - yt/frontends/gdf/tests/test_outputs.py:test_sedov_tunnel
+    - yt/frontends/gdf/tests/test_outputs_nose.py:test_sedov_tunnel
 
   local_gizmo_006:  # PR 2909
     - yt/frontends/gizmo/tests/test_outputs.py:test_gizmo_64
@@ -174,5 +174,7 @@ answer_tests:
 other_tests:
   unittests:
      - '--exclude=test_mesh_slices'  # disable randomly failing test
+     - '--ignore=test_outputs_pytest'
+     - '--exclude-test=yt.frontends.gdf.tests.test_outputs.TestGDF'
   cookbook:
      - 'doc/source/cookbook/tests/test_cookbook.py'

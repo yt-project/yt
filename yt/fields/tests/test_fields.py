@@ -239,7 +239,7 @@ def test_add_gradient_fields():
 
 
 def test_add_gradient_fields_by_fname():
-    ds = fake_amr_ds(fields=("density", "temperature"))
+    ds = fake_amr_ds(fields=("density", "temperature"), units=("g/cm**3", "K"))
     actual = ds.add_gradient_fields(("gas", "density"))
     expected = [
         ("gas", "density_gradient_x"),
@@ -251,7 +251,7 @@ def test_add_gradient_fields_by_fname():
 
 
 def test_add_gradient_multiple_fields():
-    ds = fake_amr_ds(fields=("density", "temperature"))
+    ds = fake_amr_ds(fields=("density", "temperature"), units=("g/cm**3", "K"))
     actual = ds.add_gradient_fields([("gas", "density"), ("gas", "temperature")])
     expected = [
         ("gas", "density_gradient_x"),
@@ -265,13 +265,13 @@ def test_add_gradient_multiple_fields():
     ]
     assert_equal(actual, expected)
 
-    ds = fake_amr_ds(fields=("density", "temperature"))
+    ds = fake_amr_ds(fields=("density", "temperature"), units=("g/cm**3", "K"))
     actual = ds.add_gradient_fields([("gas", "density"), ("gas", "temperature")])
     assert_equal(actual, expected)
 
 
 def test_add_gradient_fields_curvilinear():
-    ds = fake_amr_ds(fields=["density"], geometry="spherical")
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"], geometry="spherical")
     gfields = ds.add_gradient_fields(("gas", "density"))
     gfields += ds.add_gradient_fields(("index", "ones"))
     field_list = [

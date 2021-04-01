@@ -1056,25 +1056,25 @@ class YTDataContainer:
             raise NotImplementedError(f"Unknown axis {axis}")
 
     def std(self, field, weight=None):
-        """Compute the variance of a field.
+        """Compute the standard deviation of a field.
 
-        This will, in a parallel-ware fashion, compute the variance of
-        the given field.
+        This will, in a parallel-ware fashion, compute the standard
+        deviation of the given field.
 
         Parameters
         ----------
         field : string or tuple field name
-            The field to calculate the variance of
+            The field to calculate the standard deviation of
         weight : string or tuple field name
-            The field to weight the variance calculation by. Defaults to
-            unweighted if unset.
+            The field to weight the standard deviation calculation
+            by. Defaults to unweighted if unset.
 
         Returns
         -------
         Scalar
         """
         weight_field = sanitize_weight_field(self.ds, field, weight)
-        return self.quantities.weighted_variance(field, weight_field)[0]
+        return self.quantities.weighted_standard_deviation(field, weight_field)[0]
 
     def ptp(self, field):
         r"""Compute the range of values (maximum - minimum) of a field.
