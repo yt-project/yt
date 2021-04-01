@@ -24,9 +24,9 @@ ATTR_ARGS = {
         (((5e-29, 5e7), "Hello YT"), {}),
         (((5e-29, 5e7), "Hello YT"), {"color": "b"}),
     ],
-    "set_title": [((("gas", "cell_mass"), "A phase plot."), {})],
-    "set_log": [((("gas", "cell_mass"), False), {})],
-    "set_unit": [((("gas", "cell_mass"), "Msun"), {})],
+    "set_title": [(("cell_mass", "A phase plot."), {})],
+    "set_log": [(("cell_mass", False), {})],
+    "set_unit": [(("cell_mass", "Msun"), {})],
     "set_xlim": [((1e-27, 1e-24), {})],
     "set_ylim": [((1e2, 1e6), {})],
 }
