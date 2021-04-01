@@ -956,7 +956,7 @@ class PWViewerMPL(PlotWindow):
                 elif np.nanmax(image) > 0.0 and np.nanmin(image) <= 0:
                     msg = (
                         "Plot image for field %s has both positive "
-                        "and negative values. Min = %f, Max = %f."
+                        "and negative/zero values. Min = %f, Max = %f."
                         % (f, np.nanmin(image), np.nanmax(image))
                     )
                     use_symlog = True
@@ -964,8 +964,9 @@ class PWViewerMPL(PlotWindow):
                     mylog.warning(msg)
                     if use_symlog:
                         mylog.warning(
-                            "Switching to symlog colorbar scaling "
-                            "unless linear scaling is specified later"
+                            "Log-scaling specified: switching to symlog "
+                            "colorbar scaling unless linear scaling is "
+                            "specified later"
                         )
                         self._field_transform[f] = symlog_transform
                         self._field_transform[f].func = None
