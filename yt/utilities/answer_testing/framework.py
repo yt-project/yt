@@ -485,7 +485,11 @@ class AnswerTestingTest:
         # ("gas", "density") -> "density"
         for an in self._attrs:
             tmp = getattr(self, an)
-            if "field" in an and isinstance(tmp, tuple) and len(tmp) == 2:
+            if (
+                ("field" in an or an == "attr_args")
+                and isinstance(tmp, tuple)
+                and len(tmp) == 2
+            ):
                 tmp = tmp[1]
             args.append(str(tmp))
         suffix = getattr(self, "suffix", None)
