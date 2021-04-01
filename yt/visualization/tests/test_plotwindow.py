@@ -544,7 +544,7 @@ def test_set_background_color():
     plot = SlicePlot(ds, 2, ("gas", "density"))
     plot.set_background_color(("gas", "density"), "red")
     plot._setup_plots()
-    ax = plot.plots[field].axes
+    ax = plot.plots[("gas", "density")].axes
     assert_equal(ax.get_facecolor(), (1.0, 0.0, 0.0, 1.0))
 
 

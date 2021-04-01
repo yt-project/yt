@@ -129,7 +129,7 @@ def test_projection(pf):
 
 
 def test_max_level():
-    ds = fake_amr_ds(fields=[("gas", "density")])
+    ds = fake_amr_ds(fields=[("gas", "density")], units=["mp/cm**3"])
     proj = ds.proj(("gas", "density"), 2, method="mip", max_level=2)
     assert proj[("index", "grid_level")].max() == 2
 
