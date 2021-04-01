@@ -75,7 +75,9 @@ def test_standard_deviation():
             my_std, my_mean = ad.quantities["WeightedStandardDeviation"](
                 ("gas", "density"), ("gas", "cell_mass")
             )
-            a_mean = (ad[("gas", "density")] * ad[("gas", "cell_mass")]).sum() / ad[("gas", "cell_mass")].sum()
+            a_mean = (ad[("gas", "density")] * ad[("gas", "cell_mass")]).sum() / ad[
+                ("gas", "cell_mass")
+            ].sum()
             assert_rel_equal(my_mean, a_mean, 12)
             a_std = np.sqrt(
                 (
