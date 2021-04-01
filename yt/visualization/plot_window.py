@@ -323,7 +323,7 @@ class PlotWindow(ImagePlotContainer):
                 except UnitConversionError:
                     msg = (
                         "Could not apply default units from configuration.\n"
-                        "Tried converting projected field %s from %s to %s:\n"
+                        "Tried converting projected field %s from %s to %s, retaining units %s:\n"
                         "\tgot units for field: %s"
                     )
                     args = [
@@ -331,6 +331,7 @@ class PlotWindow(ImagePlotContainer):
                         self.frb[field].units,
                         units,
                         field_unit,
+                        units,
                     ]
                     if is_projected:
                         msg += "\n\tgot units for integration length: %s"
