@@ -23,7 +23,6 @@ rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2"
-spec_ener_units = "code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 cooling_function_units = " erg * cm**3 /s"
 cooling_function_prime_units = " erg * cm**3 /s/K"
@@ -91,7 +90,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-acceleration", (ra_units, ["acceleration_x"], None)),
         ("y-acceleration", (ra_units, ["acceleration_y"], None)),
         ("z-acceleration", (ra_units, ["acceleration_z"], None)),
-        ("Potential", (spec_ener_units, ["potential"], None)),
+        ("Potential", (ener_units, ["potential"], None)),
         ("B_x_left", (b_units, ["magnetic_field_x_left"], None)),
         ("B_x_right", (b_units, ["magnetic_field_x_right"], None)),
         ("B_y_left", (b_units, ["magnetic_field_y_left"], None)),
