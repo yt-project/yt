@@ -907,13 +907,18 @@ def test_line_integral_convolution_callback():
 
 
 def test_accepts_all_fields_decorator():
-    fields = ["density", "velocity_x", "pressure", "temperature"]
+    fields = [
+        ("gas", "density"),
+        ("gas", "velocity_x"),
+        ("gas", "pressure"),
+        ("gas", "temperature"),
+    ]
     units = ["g/cm**3", "cm/s", "dyn/cm**2", "K"]
     ds = fake_random_ds(16, fields=fields, units=units)
     plot = SlicePlot(ds, "z", fields=fields)
 
     # mocking a class method
-    plot.fake_attr = {("gas", f): "not set" for f in fields}
+    plot.fake_attr = {f: "not set" for f in fields}
 
     @accepts_all_fields
     def set_fake_field_attribute(self, field, value):
@@ -922,9 +927,7 @@ def test_accepts_all_fields_decorator():
 
     # test on a single field
     plot = set_fake_field_attribute(plot, field=fields[0], value=1)
-    assert_array_equal(
-        [plot.fake_attr["gas", f] for f in fields], [1] + ["not set"] * 3
-    )
+    assert_array_equal([plot.fake_attr[f] for f in fields], [1] + ["not set"] * 3)
 
     # test using "all" as a field
     plot = set_fake_field_attribute(plot, field="all", value=2)

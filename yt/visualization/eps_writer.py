@@ -859,7 +859,7 @@ class DualEPS:
         if field is not None:
             self.field = plot.data_source._determine_fields(field)[0]
         if isinstance(plot, (PlotWindow, PhasePlot)):
-            _cmap = plot._colormaps[self.field]
+            _cmap = plot._colormap_config[self.field]
         else:
             if plot.cmap is not None:
                 _cmap = plot.cmap.name

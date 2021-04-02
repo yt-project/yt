@@ -21,6 +21,7 @@ import warnings
 from distutils.version import LooseVersion
 from functools import lru_cache, wraps
 from numbers import Number as numeric_type
+from typing import Any, Callable, Type
 
 import matplotlib
 import numpy as np
@@ -1242,3 +1243,33 @@ def sglob(pattern):
     Return the results of a glob through the sorted() function.
     """
     return sorted(glob.glob(pattern))
+
+
+def dictWithFactory(factory: Callable[[Any], Any]) -> Type:
+    """
+    Create a dictionary class with a default factory function.
+    Contrary to `collections.defaultdict`, the factory takes
+    the missing key as input parameter.
+
+    Parameters
+    ----------
+    factory : callable(key) -> value
+        The factory to call when hitting a missing key
+
+    Returns
+    -------
+    DictWithFactory class
+        A class to create new dictionaries handling missing keys.
+    """
+
+    class DictWithFactory(dict):
+        def __init__(self, *args, **kwargs):
+            self.factory = factory
+            super().__init__(*args, **kwargs)
+
+        def __missing__(self, key):
+            val = self.factory(key)
+            self[key] = val
+            return val
+
+    return DictWithFactory
