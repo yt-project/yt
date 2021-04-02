@@ -916,7 +916,7 @@ def requires_module_pytest(*module_names):
             if isinstance(mod, odi.NotAModule)
         ]
 
-        # note that order between these two decorators matter
+        # note that order between these two decorators matters
         @skipif(
             missing,
             reason=f"missing requirement(s): {', '.join(missing)}",
