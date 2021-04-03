@@ -953,13 +953,32 @@ class PWViewerMPL(PlotWindow):
                     )
                 elif not np.any(np.isfinite(image)):
                     msg = f"Plot image for field {f} is filled with NaNs."
-                elif np.nanmax(image) > 0.0 and np.nanmin(image) <= 0:
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
                     msg = (
                         "Plot image for field %s has both positive "
                         "and negative/zero values. Min = %f, Max = %f."
                         % (f, np.nanmin(image), np.nanmax(image))
                     )
                     use_symlog = True
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) == 0:
+                    # normally, a LogNorm scaling would still be OK here because
+                    # LogNorm will mask 0 values when calculating vmin. But
+                    # due to a bug in matplotlib's imshow, if the data range
+                    # spans many orders of magnitude while containing zero points
+                    # vmin can get rescaled to 0, resulting in an error when the image
+                    # gets drawn. So here we switch to symlog to avoid that until
+                    # a fix is in -- see PR #3161 and linked issue.
+                    cutoff_sigdigs = 15
+                    if (
+                        np.log10(np.nanmax(image))
+                        - np.log10(np.nanmin(image[image > 0]))
+                        > cutoff_sigdigs
+                    ):
+                        msg = (
+                            "Plot image for field %s has both positive "
+                            "and zero values with large dynamic range." % (f,)
+                        )
+                        use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
                     if use_symlog:
