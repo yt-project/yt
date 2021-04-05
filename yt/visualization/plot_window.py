@@ -970,7 +970,7 @@ class PWViewerMPL(PlotWindow):
                     # a fix is in -- see PR #3161 and linked issue.
                     cutoff_sigdigs = 15
                     if (
-                        np.log10(np.nanmax(image[np.isfinite(image)]]))
+                        np.log10(np.nanmax(image[np.isfinite(image)]))
                         - np.log10(np.nanmin(image[image > 0]))
                         > cutoff_sigdigs
                     ):
