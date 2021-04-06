@@ -88,7 +88,9 @@ class TestGeoProjections(unittest.TestCase):
     def test_geo_projections(self):
         from yt.utilities.on_demand_imports import _cartopy as cartopy
 
-        self.slc = yt.SlicePlot(self.ds, "altitude", "Density", origin="native")
+        self.slc = yt.SlicePlot(
+            self.ds, "altitude", ("stream", "Density"), origin="native"
+        )
 
         for transform in transform_list:
             if transform == "UTM":
@@ -115,7 +117,9 @@ class TestGeoProjections(unittest.TestCase):
         for transform in shortlist:
             projection = get_mpl_transform(transform)
             proj_type = type(projection)
-            self.slc = yt.SlicePlot(self.ds, "altitude", "Density", origin="native")
+            self.slc = yt.SlicePlot(
+                self.ds, "altitude", ("stream", "Density"), origin="native"
+            )
             self.slc.set_mpl_projection(projection)
 
             assert isinstance(self.slc._projection, proj_type)
