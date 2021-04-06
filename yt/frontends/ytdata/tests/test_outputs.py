@@ -146,7 +146,7 @@ def test_grid_datacontainer_data():
     assert_array_equal(frb[("gas", "density")], frb_ds.data[("gas", "density")])
     compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)

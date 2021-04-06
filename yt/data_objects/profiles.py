@@ -410,11 +410,11 @@ class ProfileNDFromDataset(ProfileND):
         self.accumulation = ds.parameters.get("accumulation", False)
         exclude_fields = ["used", "weight"]
         for ax in "xyz"[: ds.dimensionality]:
-            setattr(self, ax, ds.data[ax])
+            setattr(self, ax, ds.data[("data", ax)])
             ax_bins = f"{ax}_bins"
             ax_field = f"{ax}_field"
             ax_log = f"{ax}_log"
-            setattr(self, ax_bins, ds.data[ax_bins])
+            setattr(self, ax_bins, ds.data[("data", ax_bins)])
             field_name = tuple(ds.parameters.get(ax_field, (None, None)))
             setattr(self, ax_field, field_name)
             self.field_info[field_name] = ds.field_info[field_name]
