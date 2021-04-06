@@ -32,4 +32,4 @@ f.close()
 
 # If we want to then access this datacube in the h5 file, we can now...
 f = h5py.File("my_data.h5", mode="r")
-print(f[("gas", "density")][()])
+print(f["density"][()])
