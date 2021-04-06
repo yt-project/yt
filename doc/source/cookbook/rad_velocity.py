@@ -21,20 +21,20 @@ sp1.set_field_parameter("bulk_velocity", bulk_vel)
 
 rp0 = yt.create_profile(
     sp0,
-    "radius",
+    ("index", "radius"),
     ("gas", "radial_velocity"),
-    units={"radius": "kpc"},
-    logs={"radius": False},
+    units={("index", "radius"): "kpc"},
+    logs={("index", "radius"): False},
 )
 
 # Radial profile with correction for bulk velocity
 
 rp1 = yt.create_profile(
     sp1,
-    "radius",
+    ("index", "radius"),
     ("gas", "radial_velocity"),
-    units={"radius": "kpc"},
-    logs={"radius": False},
+    units={("index", "radius"): "kpc"},
+    logs={("index", "radius"): False},
 )
 
 # Make a plot using matplotlib
