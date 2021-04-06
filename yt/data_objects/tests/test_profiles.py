@@ -667,7 +667,7 @@ def test_export_astropy():
     ds = fake_random_ds(64)
     ad = ds.all_data()
     prof = ad.profile(
-        "radius",
+        ("index", "radius"),
         [("gas", "density"), ("gas", "velocity_x")],
         weight_field=("index", "ones"),
         n_bins=32,
@@ -678,20 +678,20 @@ def test_export_astropy():
     assert "density" in at1.colnames
     assert "velocity_x" in at1.colnames
     assert_equal(prof.x.d, at1["radius"].value)
-    assert_equal(prof[("gas", "density")].d, at1[("gas", "density")].value)
-    assert_equal(prof["velocity_x"].d, at1["velocity_x"].value)
+    assert_equal(prof[("gas", "density")].d, at1["density"].value)
+    assert_equal(prof[("gas", "velocity_x")].d, at1["velocity_x"].value)
     assert prof.x.units == YTArray.from_astropy(at1["radius"]).units
+    assert prof[("gas", "density")].units == YTArray.from_astropy(at1["density"]).units
     assert (
-        prof[("gas", "density")].units
-        == YTArray.from_astropy(at1[("gas", "density")]).units
+        prof[("gas", "velocity_x")].units
+        == YTArray.from_astropy(at1["velocity_x"]).units
     )
-    assert prof["velocity_x"].units == YTArray.from_astropy(at1["velocity_x"]).units
-    assert np.all(at1.mask[("gas", "density")] == prof.used)
+    assert np.all(at1.mask["density"] == prof.used)
     at2 = prof.to_astropy_table(fields=("gas", "density"), only_used=True)
     assert "radius" in at2.colnames
     assert "velocity_x" not in at2.colnames
     assert_equal(prof.x.d[prof.used], at2["radius"].value)
-    assert_equal(prof[("gas", "density")].d[prof.used], at2[("gas", "density")].value)
+    assert_equal(prof[("gas", "density")].d[prof.used], at2["density"].value)
 
 
 @requires_module("pandas")
