@@ -14,14 +14,14 @@ from yt.utilities.answer_testing.framework import (
 )
 
 _fields = (
-    "particle_position_x",
-    "particle_position_y",
-    "particle_position_z",
-    "particle_velocity_x",
-    "particle_velocity_y",
-    "particle_velocity_z",
-    "particle_mass",
-    "particle_identifier",
+    ("all", "particle_position_x"),
+    ("all", "particle_position_y"),
+    ("all", "particle_position_z"),
+    ("all", "particle_velocity_x"),
+    ("all", "particle_velocity_y"),
+    ("all", "particle_velocity_z"),
+    ("all", "particle_mass"),
+    ("all", "particle_identifier"),
 )
 
 # a dataset with empty files
