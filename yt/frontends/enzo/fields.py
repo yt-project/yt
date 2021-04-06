@@ -220,7 +220,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             self.alias(("gas", "specific_thermal_energy"), ("enzo", te_name))
 
             def _ge_plus_kin(field, data):
-                ret = data[te_name] + 0.5 * data[("gas", "velocity_x")] ** 2.0
+                ret = data[("enzo", te_name)] + 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
                     ret += 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:
@@ -284,7 +284,7 @@ class EnzoFieldInfo(FieldInfoContainer):
             )
 
             def _tot_minus_kin(field, data):
-                ret = data[te_name] - 0.5 * data[("gas", "velocity_x")] ** 2.0
+                ret = data[("enzo", te_name)] - 0.5 * data[("gas", "velocity_x")] ** 2.0
                 if data.ds.dimensionality > 1:
                     ret -= 0.5 * data[("gas", "velocity_y")] ** 2.0
                 if data.ds.dimensionality > 2:

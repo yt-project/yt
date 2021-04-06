@@ -14,8 +14,8 @@ test_params = {
     "test_sedov_tunnel": {
         "axis": [(0, 1, 2), ("0", "1", "2")],
         "dobj": [(None, ("sphere", ("max", (0.1, "unitary")))), ("None", "sphere")],
-        "weight": [(None, "density"), ("None", "density")],
-        "field": [("density", "velocity_x"), ("density", "vx")],
+        "weight": [(None, ("gas", "density")), ("None", "density")],
+        "field": [(("gas", "density"), ("gas", "velocity_x")), ("density", "vx")],
     }
 }
 

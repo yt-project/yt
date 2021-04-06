@@ -30,14 +30,14 @@ def test_old_plot_data():
     fn = "slice.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     ds_slice = data_dir_load(full_fn)
-    p = SlicePlot(ds_slice, "z", "density")
+    p = SlicePlot(ds_slice, "z", ("gas", "density"))
     fn = p.save()
     assert_fname(fn[0])
 
     fn = "proj.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     ds_proj = data_dir_load(full_fn)
-    p = ProjectionPlot(ds_proj, "z", "density")
+    p = ProjectionPlot(ds_proj, "z", ("gas", "density"))
     fn = p.save()
     assert_fname(fn[0])
 

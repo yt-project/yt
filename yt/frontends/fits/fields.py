@@ -92,7 +92,7 @@ class WCSFITSFieldInfo(FITSFieldInfo):
             def _spec(field, data):
                 axis = "xyz"[data.ds.spec_axis]
                 sp = (
-                    data[axis].ndarray_view() - self.ds._p0
+                    data[("fits", axis)].ndarray_view() - self.ds._p0
                 ) * self.ds._dz + self.ds._z0
                 return data.ds.arr(sp, data.ds.spec_unit)
 
