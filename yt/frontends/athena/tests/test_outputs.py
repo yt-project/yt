@@ -12,7 +12,7 @@ from yt.utilities.answer_testing.framework import (
     small_patch_amr,
 )
 
-_fields_cloud = ("scalar[0]", "density", "total_energy")
+_fields_cloud = (("athena", "scalar[0]"), ("gas", "density"), ("gas", "total_energy"))
 
 cloud = "ShockCloud/id0/Cloud.0050.vtk"
 
@@ -26,7 +26,11 @@ def test_cloud():
         yield test
 
 
-_fields_blast = ("temperature", "density", "velocity_magnitude")
+_fields_blast = (
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+)
 
 blast = "MHDBlast/id0/Blast.0100.vtk"
 
@@ -61,7 +65,11 @@ uo_stripping = {
     "mass_unit": 9.999e-30 * 8.0236e22 ** 3,
 }
 
-_fields_stripping = ("temperature", "density", "specific_scalar[0]")
+_fields_stripping = (
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("athena", "specific_scalar[0]"),
+)
 
 stripping = "RamPressureStripping/id0/rps.0062.vtk"
 
