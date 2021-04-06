@@ -369,6 +369,18 @@ def sim_dir_load(sim_fn, path=None, sim_type="Enzo", find_outputs=False):
     )
 
 
+def lax_getter(key, dict_like):
+    tries = [key]
+    if isinstance(key, (tuple, list)):
+        tries.extend(key)
+
+    for t in tries:
+        if t in dict_like:
+            return dict_like[t]
+
+    raise AssertionError(f"{key} not in {dict_like}")
+
+
 class AnswerTestingTest:
     reference_storage = None
     result_storage = None
@@ -643,10 +655,10 @@ class ProjectionValuesTest(AnswerTestingTest):
         assert len(new_result) == len(old_result)
         nind, oind = None, None
         for k in new_result:
-            assert k in old_result
+            old_val = lax_getter(k, old_result)
             if oind is None:
-                oind = np.array(np.isnan(old_result[k]))
-            np.logical_or(oind, np.isnan(old_result[k]), oind)
+                oind = np.array(np.isnan(old_val))
+            np.logical_or(oind, np.isnan(old_val), oind)
             if nind is None:
                 nind = np.array(np.isnan(new_result[k]))
             np.logical_or(nind, np.isnan(new_result[k]), nind)
@@ -662,7 +674,8 @@ class ProjectionValuesTest(AnswerTestingTest):
                 # can do a unitful comparison for the other fields.  So we do
                 # not do the test here.
                 continue
-            nres, ores = new_result[k][nind], old_result[k][oind]
+            nres = new_result[k][nind]
+            ores = lax_getter(k, old_result)[oind]
             if hasattr(nres, "d"):
                 nres = nres.d
             if hasattr(ores, "d"):
@@ -711,28 +724,17 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             d[f"{f}_sum"] = proj.field_data[f].sum(dtype="float64")
         return d
 
-    def lax_getter(self, key, dict_like):
-        tries = [key]
-        if isinstance(key, (tuple, list)):
-            tries.extend(key)
-
-        for t in tries:
-            if t in dict_like:
-                return dict_like[t]
-
-        raise AssertionError(f"{key} not in {dict_like}")
-
     def compare(self, new_result, old_result):
         assert len(new_result) == len(old_result)
         for k in new_result:
-            self.lax_getter(k, old_result)
+            lax_getter(k, old_result)
 
         for k in new_result:
             # weight_field does not have units, so we do not directly compare them
             if k == "weight_field_sum":
                 continue
             try:
-                old_val = self.lax_getter(k, old_result)
+                old_val = lax_getter(k, old_result)
                 assert_allclose_units(new_result[k], old_val, 1e-10)
             except AssertionError:
                 dump_images(new_result[k], old_val)
@@ -765,13 +767,14 @@ class GridValuesTest(AnswerTestingTest):
     def compare(self, new_result, old_result):
         assert len(new_result) == len(old_result)
         for k in new_result:
-            assert k in old_result
+            lax_getter(k, old_result)
         for k in new_result:
             if hasattr(new_result[k], "d"):
                 new_result[k] = new_result[k].d
-            if hasattr(old_result[k], "d"):
-                old_result[k] = old_result[k].d
-            assert_equal(new_result[k], old_result[k])
+            old_val = lax_getter(k, old_result)
+            if hasattr(old_val, "d"):
+                old_val = old_val.d
+            assert_equal(new_result[k], old_val)
 
 
 class VerifySimulationSameTest(AnswerTestingTest):
@@ -818,9 +821,10 @@ class GridHierarchyTest(AnswerTestingTest):
         for k in new_result:
             if hasattr(new_result[k], "d"):
                 new_result[k] = new_result[k].d
-            if hasattr(old_result[k], "d"):
-                old_result[k] = old_result[k].d
-            assert_equal(new_result[k], old_result[k])
+            old_val = lax_getter(k, old_result)
+            if hasattr(old_val, "d"):
+                old_val = old_val
+            assert_equal(new_result[k], old_val)
 
 
 class ParentageRelationshipsTest(AnswerTestingTest):
@@ -1072,14 +1076,13 @@ class GenericArrayTest(AnswerTestingTest):
         for k in new_result:
             if hasattr(new_result[k], "d"):
                 new_result[k] = new_result[k].d
-            if hasattr(old_result[k], "d"):
-                old_result[k] = old_result[k].d
+            old_val = lax_getter(k, old_result)
+            if hasattr(old_val, "d"):
+                old_val = old_val.d
             if self.decimals is None:
-                assert_almost_equal(new_result[k], old_result[k])
+                assert_almost_equal(new_result[k], old_val)
             else:
-                assert_allclose_units(
-                    new_result[k], old_result[k], 10 ** (-self.decimals)
-                )
+                assert_allclose_units(new_result[k], old_val, 10 ** (-self.decimals))
 
 
 class GenericImageTest(AnswerTestingTest):
@@ -1160,14 +1163,13 @@ class AxialPixelizationTest(AnswerTestingTest):
         for k in new_result:
             if hasattr(new_result[k], "d"):
                 new_result[k] = new_result[k].d
-            if hasattr(old_result[k], "d"):
-                old_result[k] = old_result[k].d
+            old_val = lax_getter(k, old_result)
+            if hasattr(old_val, "d"):
+                old_val = old_val.d
             if self.decimals is None:
-                assert_almost_equal(new_result[k], old_result[k])
+                assert_almost_equal(new_result[k], old_val)
             else:
-                assert_allclose_units(
-                    new_result[k], old_result[k], 10 ** (-self.decimals)
-                )
+                assert_allclose_units(new_result[k], old_val, 10 ** (-self.decimals))
 
 
 def requires_sim(sim_fn, sim_type, big_data=False, file_check=False):
