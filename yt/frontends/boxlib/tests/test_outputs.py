@@ -18,10 +18,22 @@ from yt.utilities.answer_testing.framework import (
 
 # We don't do anything needing ghost zone generation right now, because these
 # are non-periodic datasets.
-_orion_fields = ("temperature", "density", "velocity_magnitude")
-_nyx_fields = ("Ne", "Temp", "particle_mass_density")
-_warpx_fields = ("Ex", "By", "jz")
-_castro_fields = ("Temp", "density", "particle_count")
+_orion_fields = (
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+)
+_nyx_fields = (
+    ("boxlib", "Ne"),
+    ("boxlib", "Temp"),
+    ("boxlib", "particle_mass_density"),
+)
+_warpx_fields = (("mesh", "Ex"), ("mesh", "By"), ("mesh", "jz"))
+_castro_fields = (
+    ("boxlib", "Temp"),
+    ("boxlib", "density"),
+    ("boxlib", "particle_count"),
+)
 
 radadvect = "RadAdvect/plt00000"
 
