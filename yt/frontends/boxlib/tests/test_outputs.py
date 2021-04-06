@@ -78,7 +78,9 @@ LyA = "Nyx_LyA/plt00000"
 def test_LyA():
     ds = data_dir_load(LyA)
     assert_equal(str(ds), "plt00000")
-    for test in small_patch_amr(ds, _nyx_fields, input_center="c", input_weight="Ne"):
+    for test in small_patch_amr(
+        ds, _nyx_fields, input_center="c", input_weight=("boxlib", "Ne")
+    ):
         test_LyA.__name__ = test.description
         yield test
 
@@ -185,7 +187,9 @@ langmuir = "LangmuirWave/plt00020_v2"
 def test_langmuir():
     ds = data_dir_load(langmuir)
     assert_equal(str(ds), "plt00020_v2")
-    for test in small_patch_amr(ds, _warpx_fields, input_center="c", input_weight="Ex"):
+    for test in small_patch_amr(
+        ds, _warpx_fields, input_center="c", input_weight=("mesh", "Ex")
+    ):
         test_langmuir.__name__ = test.description
         yield test
 
@@ -197,7 +201,9 @@ plasma = "PlasmaAcceleration/plt00030_v2"
 def test_plasma():
     ds = data_dir_load(plasma)
     assert_equal(str(ds), "plt00030_v2")
-    for test in small_patch_amr(ds, _warpx_fields, input_center="c", input_weight="Ex"):
+    for test in small_patch_amr(
+        ds, _warpx_fields, input_center="c", input_weight=("mesh", "Ex")
+    ):
         test_plasma.__name__ = test.description
         yield test
 
@@ -214,7 +220,9 @@ def test_beam():
         # these parameters are only populated if the config file attached to this
         # dataset is read correctly
         assert param in ds.parameters
-    for test in small_patch_amr(ds, _warpx_fields, input_center="c", input_weight="Ex"):
+    for test in small_patch_amr(
+        ds, _warpx_fields, input_center="c", input_weight=("mesh", "Ex")
+    ):
         test_beam.__name__ = test.description
         yield test
 
