@@ -104,7 +104,7 @@ def test_particle_projection_answers():
 
     """
 
-    plot_field = "particle_mass"
+    plot_field = ("all", "particle_mass")
     decimals = 12
     ds = data_dir_load(g30)
     for ax in "xyz":
@@ -171,9 +171,9 @@ def test_particle_phase_answers():
     decimals = 12
     ds = data_dir_load(g30)
 
-    x_field = "particle_velocity_x"
-    y_field = "particle_velocity_y"
-    z_field = "particle_mass"
+    x_field = ("all", "particle_velocity_x")
+    y_field = ("all", "particle_velocity_y")
+    z_field = ("all", "particle_mass")
     for attr_name in PHASE_ATTR_ARGS.keys():
         for args in PHASE_ATTR_ARGS[attr_name]:
             test = PhasePlotAttributeTest(
