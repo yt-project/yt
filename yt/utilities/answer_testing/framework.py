@@ -475,7 +475,7 @@ class AnswerTestingTest:
         This is a helper function to return the location of the most dense
         point.
         """
-        return self.ds.find_max("density")[1]
+        return self.ds.find_max(("gas", "density"))[1]
 
     @property
     def entire_simulation(self):
@@ -1245,7 +1245,7 @@ def requires_ds(ds_fn, big_data=False, file_check=False):
         return ftrue
 
 
-def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+def small_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):
     if not can_run_ds(ds_fn):
         return
     dso = [None, ("sphere", (input_center, (0.1, "unitary")))]
@@ -1262,7 +1262,7 @@ def small_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
                 yield FieldValuesTest(ds_fn, field, dobj_name)
 
 
-def big_patch_amr(ds_fn, fields, input_center="max", input_weight="density"):
+def big_patch_amr(ds_fn, fields, input_center="max", input_weight=("gas", "density")):
     if not can_run_ds(ds_fn):
         return
     dso = [None, ("sphere", (input_center, (0.1, "unitary")))]
