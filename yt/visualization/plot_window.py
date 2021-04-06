@@ -1677,7 +1677,7 @@ class ProjectionPlot(PWViewerMPL):
 
     >>> from yt import load
     >>> ds = load('IsolateGalaxygalaxy0030/galaxy0030')
-    >>> p = ProjectionPlot(ds, "z", "density", width=(20, "kpc"))
+    >>> p = ProjectionPlot(ds, "z", ("gas", "density"), width=(20, "kpc"))
 
     """
     _plot_type = "Projection"
@@ -2330,9 +2330,9 @@ def SlicePlot(ds, normal=None, fields=None, axis=None, *args, **kwargs):
 
     >>> from yt import load
     >>> ds = load("IsolatedGalaxy/galaxy0030/galaxy0030")
-    >>> slc = SlicePlot(ds, "x", "density", center=[0.2,0.3,0.4])
+    >>> slc = SlicePlot(ds, "x", ("gas", "density"), center=[0.2,0.3,0.4])
     >>>
-    >>> slc = SlicePlot(ds, [0.4, 0.2, -0.1], "pressure",
+    >>> slc = SlicePlot(ds, [0.4, 0.2, -0.1], ("gas", "pressure"),
     ...                 north_vector=[0.2,-0.3,0.1])
 
     """

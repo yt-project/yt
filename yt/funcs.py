@@ -59,7 +59,7 @@ def iter_fields(field_or_fields):
     Examples
     --------
 
-    >>> fields = "density"
+    >>> fields = ("gas", "density")
     >>> for field in iter_fields(fields):
     ...     print(field)
     density
@@ -69,7 +69,7 @@ def iter_fields(field_or_fields):
     ...     print(field)
     ('gas', 'density')
 
-    >>> fields = ["density", "temperature", ("index", "dx")]
+    >>> fields = [("gas", "density"), ("gas", "temperature"), ("index", "dx")]
     >>> for field in iter_fields(fields):
     ...     print(field)
     density

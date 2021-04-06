@@ -50,8 +50,8 @@ def test_etc_traj():
     sp = ds.sphere("max", (0.5, "Mpc"))
     indices = sp["particle_index"][sp["particle_type"] == 1][:5]
     traj = ts.particle_trajectories(indices, fields=fields, suppress_logging=True)
-    traj.add_fields(["density"])
-    for field in pfields + vfields + ["density"]:
+    traj.add_fields([("gas", "density")])
+    for field in pfields + vfields + [("gas", "density")]:
 
         def field_func(name):
             return traj[field]

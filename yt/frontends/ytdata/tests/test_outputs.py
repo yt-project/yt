@@ -93,7 +93,7 @@ def test_datacontainer_data():
     assert isinstance(sphere_ds, YTDataContainerDataset)
     yield YTDataFieldTest(full_fn, ("grid", "density"))
     yield YTDataFieldTest(full_fn, ("all", "particle_mass"))
-    cr = ds.cut_region(sphere, ['obj["temperature"] > 1e4'])
+    cr = ds.cut_region(sphere, ['obj[("gas", "temperature")] > 1e4'])
     fn = cr.save_as_dataset(fields=[("gas", "temperature")])
     full_fn = os.path.join(tmpdir, fn)
     cr_ds = load(full_fn)

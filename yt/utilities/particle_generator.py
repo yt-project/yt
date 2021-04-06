@@ -297,9 +297,9 @@ class LatticeParticleGenerator(ParticleGenerator):
         >>> dims = (128,128,128)
         >>> le = np.array([0.25,0.25,0.25])
         >>> re = np.array([0.75,0.75,0.75])
-        >>> fields = ["particle_position_x","particle_position_y",
-        ...           "particle_position_z",
-        ...           "particle_density","particle_temperature"]
+        >>> fields = [("all", "particle_position_x"),("all", "particle_position_y"),
+        ...           ("all", "particle_position_z"),
+        ...           ("all", "particle_density"),("all", "particle_temperature")]
         >>> particles = LatticeParticleGenerator(ds, dims, le, re, fields)
         """
 
@@ -370,9 +370,9 @@ class WithDensityParticleGenerator(ParticleGenerator):
         --------
         >>> sphere = ds.sphere(ds.domain_center, 0.5)
         >>> num_p = 100000
-        >>> fields = ["particle_position_x","particle_position_y",
-        >>>           "particle_position_z",
-        >>>           "particle_density","particle_temperature"]
+        >>> fields = [("all", "particle_position_x"),("all", "particle_position_y"),
+        >>>           ("all", "particle_position_z"),
+        >>>           ("all", "particle_density"),("all", "particle_temperature")]
         >>> particles = WithDensityParticleGenerator(
         ...                ds,
         ...                sphere,

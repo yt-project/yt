@@ -86,7 +86,7 @@ class YTStreamline(YTSelectionContainer1D):
     >>> streamlines = Streamlines(ds, [0.5]*3)
     >>> streamlines.integrate_through_volume()
     >>> stream = streamlines.path(0)
-    >>> matplotlib.pylab.semilogy(stream['t'], stream['density'], '-x')
+    >>> matplotlib.pylab.semilogy(stream['t'], stream[('gas', 'density')], '-x')
 
     """
 
@@ -455,8 +455,8 @@ class YTQuadTreeProj(YTProj):
     --------
 
     >>> ds = load("RedshiftOutput0005")
-    >>> prj = ds.proj("density", 0)
-    >>> print(proj["density"])
+    >>> prj = ds.proj(("gas", "density"), 0)
+    >>> print(proj[("gas", "density")])
     """
 
     _type_name = "quad_proj"
@@ -675,8 +675,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
         --------
 
         >>> dd = ds.r[::256j, ::256j, ::256j]
-        >>> xf1 = dd.to_xarray(["density", "temperature"])
-        >>> dd["velocity_magnitude"]
+        >>> xf1 = dd.to_xarray([("gas", "density"), ("gas", "temperature")])
+        >>> dd[("gas", "velocity_magnitude")]
         >>> xf2 = dd.to_xarray()
         """
         import xarray as xr
@@ -1085,7 +1085,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
 
         Examples
         --------
-        >>> cube.write_to_gdf("clumps.h5", ["density","temperature"], nprocs=16,
+        >>> cube.write_to_gdf("clumps.h5", [("gas", "density"),("gas", "temperature")], nprocs=16,
         ...                   overwrite=True)
         """
         data = {}
@@ -1518,8 +1518,8 @@ class YTSurface(YTSelectionContainer3D):
 
     >>> from yt.units import kpc
     >>> sp = ds.sphere("max", (10, "kpc")
-    >>> surf = ds.surface(sp, "density", 5e-27)
-    >>> print(surf["temperature"])
+    >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
+    >>> print(surf[("gas", "temperature")])
     >>> print(surf.vertices)
     >>> bounds = [(sp.center[i] - 5.0*kpc,
     ...            sp.center[i] + 5.0*kpc) for i in range(3)]
@@ -1672,9 +1672,9 @@ class YTSurface(YTSelectionContainer3D):
         calculate the metal flux over it.
 
         >>> sp = ds.sphere("max", (10, "kpc")
-        >>> surf = ds.surface(sp, "density", 5e-27)
+        >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
         >>> flux = surf.calculate_flux(
-        ...     "velocity_x", "velocity_y", "velocity_z", "metal_density")
+        ...     ("gas", "velocity_x"), ("gas", "velocity_y"), ("gas", "velocity_z"), ("gas", "metal_density"))
         """
         flux = 0.0
         mylog.info("Fluxing %s", fluxing_field)
@@ -1817,7 +1817,7 @@ class YTSurface(YTSelectionContainer3D):
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
-        >>> surf = ds.surface(sp, "density", 5e-27)
+        >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
         >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
@@ -1835,8 +1835,8 @@ class YTSurface(YTSelectionContainer3D):
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> def _Emissivity(field, data):
-        ...     return (data['density']*data['density'] *
-        ...             np.sqrt(data['temperature']))
+        ...     return (data[('gas', 'density')]*data[('gas', 'density')] *
+        ...             np.sqrt(data[('gas', 'temperature')]))
         >>> ds.add_field("emissivity", function=_Emissivity,
         ...              sampling_type='cell', units=r"g**2*sqrt(K)/cm**6")
         >>> for i, r in enumerate(rhos):
@@ -2152,7 +2152,7 @@ class YTSurface(YTSelectionContainer3D):
 
         >>> sp = ds.sphere("max", (10, "kpc"))
         >>> trans = 1.0
-        >>> surf = ds.surface(sp, "density", 5e-27)
+        >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
         >>> surf.export_obj("my_galaxy", transparency=trans)
 
         >>> sp = ds.sphere("max", (10, "kpc"))
@@ -2170,7 +2170,7 @@ class YTSurface(YTSelectionContainer3D):
         >>> rhos = [1e-24, 1e-25]
         >>> trans = [0.5, 1.0]
         >>> def _Emissivity(field, data):
-        ...     return (data['density']*data['density']*np.sqrt(data['temperature']))
+        ...     return (data[('gas', 'density')]*data[('gas', 'density')]*np.sqrt(data[('gas', 'temperature')]))
         >>> ds.add_field("emissivity", function=_Emissivity, units="g / cm**6")
         >>> for i, r in enumerate(rhos):
         ...     surf = ds.surface(sp,'density',r)
@@ -2319,8 +2319,8 @@ class YTSurface(YTSelectionContainer3D):
 
         >>> from yt.units import kpc
         >>> sp = ds.sphere("max", (10, "kpc")
-        >>> surf = ds.surface(sp, "density", 5e-27)
-        >>> print(surf["temperature"])
+        >>> surf = ds.surface(sp, ("gas", "density"), 5e-27)
+        >>> print(surf[("gas", "temperature")])
         >>> print(surf.vertices)
         >>> bounds = [(sp.center[i] - 5.0*kpc,
         ...            sp.center[i] + 5.0*kpc) for i in range(3)]
@@ -2502,7 +2502,7 @@ class YTSurface(YTSelectionContainer3D):
         >>> bounds = [(dd.center[i] - 100.0*kpc,
         ...            dd.center[i] + 100.0*kpc) for i in range(3)]
         ...
-        >>> surf = ds.surface(dd, "density", rho)
+        >>> surf = ds.surface(dd, ("gas", "density"), rho)
         >>> rv = surf.export_sketchfab(
         ...     title = "Testing Upload",
         ...     description = "A simple test of the uploader",

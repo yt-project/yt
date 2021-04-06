@@ -12,8 +12,8 @@ disk = ds.disk(center, [0, 0, 1], radius, height)
 
 profile = yt.create_profile(
     data_source=disk,
-    bin_fields=["radius"],
-    fields=["cylindrical_tangential_velocity_absolute"],
+    bin_fields=[("index", "radius")],
+    fields=[("gas", "cylindrical_tangential_velocity_absolute")],
     n_bins=256,
     units=dict(radius="kpc", cylindrical_tangential_velocity_absolute="km/s"),
     logs=dict(radius=False),

@@ -108,7 +108,7 @@ class FITSImageData:
 
         >>> # This example uses a FRB.
         >>> ds = load("sloshing_nomag2_hdf5_plt_cnt_0150")
-        >>> prj = ds.proj(2, "kT", weight_field="density")
+        >>> prj = ds.proj(2, "kT", weight_field=("gas", "density"))
         >>> frb = prj.to_frb((0.5, "Mpc"), 800)
         >>> # This example just uses the FRB and puts the coords in kpc.
         >>> f_kpc = FITSImageData(frb, fields="kT", length_unit="kpc",
@@ -472,7 +472,7 @@ class FITSImageData:
 
         Examples
         --------
-        >>> fid = FITSSlice(ds, "z", "density")
+        >>> fid = FITSSlice(ds, "z", ("gas", "density"))
         >>> fid.convolve("density", (3.0, "kpc"))
         """
         if self.dimensionality == 3:

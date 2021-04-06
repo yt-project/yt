@@ -331,19 +331,19 @@ class ProfileND(ParallelAnalysisInterface):
         >>> import yt
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
         >>> ad = ds.all_data()
-        >>> profile = yt.create_profile(ad, ["density", "temperature"],
-        ...                            "cell_mass", weight_field=None,
+        >>> profile = yt.create_profile(ad, [("gas", "density"), ("gas", "temperature")],
+        ...                            ("gas", "cell_mass"), weight_field=None,
         ...                             n_bins=(128, 128))
         >>> fn = profile.save_as_dataset()
         >>> prof_ds = yt.load(fn)
-        >>> print (prof_ds.data["cell_mass"])
+        >>> print (prof_ds.data[("gas", "cell_mass")])
         (128, 128)
-        >>> print (prof_ds.data["x"].shape) # x bins as 1D array
+        >>> print (prof_ds.data[("index", "x")].shape) # x bins as 1D array
         (128,)
-        >>> print (prof_ds.data["density"]) # x bins as 2D array
+        >>> print (prof_ds.data[("gas", "density")]) # x bins as 2D array
         (128, 128)
-        >>> p = yt.PhasePlot(prof_ds.data, "density", "temperature",
-        ...                  "cell_mass", weight_field=None)
+        >>> p = yt.PhasePlot(prof_ds.data, ("gas", "density"), ("gas", "temperature"),
+        ...                  ("gas", "cell_mass"), weight_field=None)
         >>> p.save()
 
         """
@@ -578,9 +578,9 @@ class Profile1D(ProfileND):
         Examples
         --------
         >>> sp = ds.sphere("c", (0.1, "unitary"))
-        >>> p = sp.profile("radius", ["density", "temperature"])
+        >>> p = sp.profile(("index", "radius"), [("gas", "density"), ("gas", "temperature")])
         >>> df1 = p.to_dataframe()
-        >>> df2 = p.to_dataframe(fields="density", only_used=True)
+        >>> df2 = p.to_dataframe(fields=("gas", "density"), only_used=True)
         """
         import pandas as pd
 
@@ -624,9 +624,9 @@ class Profile1D(ProfileND):
         Examples
         --------
         >>> sp = ds.sphere("c", (0.1, "unitary"))
-        >>> p = sp.profile("radius", ["density", "temperature"])
+        >>> p = sp.profile(("index", "radius"), [("gas", "density"), ("gas", "temperature")])
         >>> qt1 = p.to_astropy_table()
-        >>> qt2 = p.to_astropy_table(fields="density", only_used=True)
+        >>> qt2 = p.to_astropy_table(fields=("gas", "density"), only_used=True)
         """
         from astropy.table import QTable
 

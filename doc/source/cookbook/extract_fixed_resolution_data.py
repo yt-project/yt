@@ -17,7 +17,7 @@ cube = ds.covering_grid(
     left_edge=[0.0, 0.0, 0.0],
     dims=dims,
     # And any fields to preload (this is optional!)
-    fields=["density"],
+    fields=[("gas", "density")],
 )
 
 # Now we open our output file using h5py
@@ -32,4 +32,4 @@ f.close()
 
 # If we want to then access this datacube in the h5 file, we can now...
 f = h5py.File("my_data.h5", mode="r")
-print(f["density"][()])
+print(f[("gas", "density")][()])

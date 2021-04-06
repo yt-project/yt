@@ -517,7 +517,7 @@ class YTDataContainer:
         Examples
         --------
         >>> dd = ds.all_data()
-        >>> df = dd.to_dataframe(["density", "temperature"])
+        >>> df = dd.to_dataframe([("gas", "density"), ("gas", "temperature")])
         """
         import pandas as pd
 
@@ -546,7 +546,7 @@ class YTDataContainer:
         Examples
         --------
         >>> sp = ds.sphere("c", (1.0, "Mpc"))
-        >>> t = sp.to_astropy_table(["density","temperature"])
+        >>> t = sp.to_astropy_table([("gas", "density"),("gas", "temperature")])
         """
         from astropy.table import QTable
 
@@ -586,14 +586,14 @@ class YTDataContainer:
         >>> import yt
         >>> ds = yt.load("enzo_tiny_cosmology/DD0046/DD0046")
         >>> sp = ds.sphere(ds.domain_center, (10, "Mpc"))
-        >>> fn = sp.save_as_dataset(fields=["density", "temperature"])
+        >>> fn = sp.save_as_dataset(fields=[("gas", "density"), ("gas", "temperature")])
         >>> sphere_ds = yt.load(fn)
         >>> # the original data container is available as the data attribute
-        >>> print (sds.data["density"])
+        >>> print (sds.data[("gas", "density")])
         [  4.46237613e-32   4.86830178e-32   4.46335118e-32 ...,   6.43956165e-30
            3.57339907e-30   2.83150720e-30] g/cm**3
         >>> ad = sphere_ds.all_data()
-        >>> print (ad["temperature"])
+        >>> print (ad[("gas", "temperature")])
         [  1.00000000e+00   1.00000000e+00   1.00000000e+00 ...,   4.40108359e+04
            4.54380547e+04   4.72560117e+04] K
 
@@ -913,11 +913,11 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> temp_at_max_rho = reg.argmax("density", axis="temperature")
-        >>> max_rho_xyz = reg.argmax("density")
-        >>> t_mrho, v_mrho = reg.argmax("density", axis=["temperature",
-        ...                 "velocity_magnitude"])
-        >>> x, y, z = reg.argmax("density")
+        >>> temp_at_max_rho = reg.argmax(("gas", "density"), axis=("gas", "temperature"))
+        >>> max_rho_xyz = reg.argmax(("gas", "density"))
+        >>> t_mrho, v_mrho = reg.argmax(("gas", "density"), axis=[("gas", "temperature"),
+        ...                 ("gas", "velocity_magnitude")])
+        >>> x, y, z = reg.argmax(("gas", "density"))
 
         """
         if axis is None:
@@ -955,11 +955,11 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> temp_at_min_rho = reg.argmin("density", axis="temperature")
-        >>> min_rho_xyz = reg.argmin("density")
-        >>> t_mrho, v_mrho = reg.argmin("density", axis=["temperature",
-        ...                 "velocity_magnitude"])
-        >>> x, y, z = reg.argmin("density")
+        >>> temp_at_min_rho = reg.argmin(("gas", "density"), axis=("gas", "temperature"))
+        >>> min_rho_xyz = reg.argmin(("gas", "density"))
+        >>> t_mrho, v_mrho = reg.argmin(("gas", "density"), axis=[("gas", "temperature"),
+        ...                 ("gas", "velocity_magnitude")])
+        >>> x, y, z = reg.argmin(("gas", "density"))
 
         """
         if axis is None:
@@ -1006,8 +1006,8 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> max_temp = reg.max("temperature")
-        >>> max_temp_proj = reg.max("temperature", axis="x")
+        >>> max_temp = reg.max(("gas", "temperature"))
+        >>> max_temp_proj = reg.max(("gas", "temperature"), axis=("index", "x"))
         """
         if axis is None:
             rv = tuple(self._compute_extrema(f)[1] for f in iter_fields(field))
@@ -1041,7 +1041,7 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> min_temp = reg.min("temperature")
+        >>> min_temp = reg.min(("gas", "temperature"))
         """
         if axis is None:
             rv = tuple(self._compute_extrema(f)[0] for f in iter_fields(field))
@@ -1094,7 +1094,7 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> rho_range = reg.ptp("density")
+        >>> rho_range = reg.ptp(("gas", "density"))
         """
         ex = self._compute_extrema(field)
         return ex[1] - ex[0]
@@ -1216,8 +1216,8 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> avg_rho = reg.mean("density", weight="cell_volume")
-        >>> rho_weighted_T = reg.mean("temperature", axis="y", weight="density")
+        >>> avg_rho = reg.mean(("gas", "density"), weight="cell_volume")
+        >>> rho_weighted_T = reg.mean(("gas", "temperature"), axis=("index", "y"), weight=("gas", "density"))
         """
         weight_field = sanitize_weight_field(self.ds, field, weight)
         if axis in self.ds.coordinates.axis_name:
@@ -1251,7 +1251,7 @@ class YTDataContainer:
         --------
 
         >>> total_vol = reg.sum("cell_volume")
-        >>> cell_count = reg.sum("ones", axis="x")
+        >>> cell_count = reg.sum(("index", "ones"), axis=("index", "x"))
         """
         # Because we're using ``sum`` to specifically mean a sum or a
         # projection with the method="sum", we do not utilize the ``mean``
@@ -1286,7 +1286,7 @@ class YTDataContainer:
         Examples
         --------
 
-        >>> column_density = reg.integrate("density", axis="z")
+        >>> column_density = reg.integrate(("gas", "density"), axis=("index", "z"))
         """
         if weight is not None:
             weight_field = sanitize_weight_field(self.ds, field, weight)
@@ -1336,7 +1336,7 @@ class YTDataContainer:
         >>> ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
         >>> sp = ds.sphere("c", 0.1)
         >>> sp_clone = sp.clone()
-        >>> sp["density"]
+        >>> sp[("gas", "density")]
         >>> print(sp.field_data.keys())
         [("gas", "density")]
         >>> print(sp_clone.field_data.keys())

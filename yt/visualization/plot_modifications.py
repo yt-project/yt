@@ -1819,7 +1819,7 @@ class HaloCatalogCallback(PlotCallback):
     >>> import yt
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
-    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p = yt.ProjectionPlot(dds, "x", ("gas", "density"), weight_field=("gas", "density"))
     >>> p.annotate_halos(hds)
     >>> p.save()
 
@@ -1832,7 +1832,7 @@ class HaloCatalogCallback(PlotCallback):
     ...                   dds.domain_center + 0.25*dds.domain_width)
     >>> hregion = hds.box(hds.domain_center - 0.25*hds.domain_width,
     ...                   hds.domain_center + 0.25*hds.domain_width)
-    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density",
+    >>> p = yt.ProjectionPlot(dds, "x", ("gas", "density"), weight_field=("gas", "density"),
     ...                       data_source=dregion, width=0.5)
     >>> p.annotate_halos(hregion)
     >>> p.save()
@@ -1843,7 +1843,7 @@ class HaloCatalogCallback(PlotCallback):
     >>> dds = yt.load("Enzo_64/DD0043/data0043")
     >>> hds = yt.load("rockstar_halos/halos_0.0.bin")
     >>> hc = HaloCatalog(data_ds=dds, halos_ds=hds)
-    >>> p = yt.ProjectionPlot(dds, "x", "density", weight_field="density")
+    >>> p = yt.ProjectionPlot(dds, "x", ("gas", "density"), weight_field=("gas", "density"))
     >>> p.annotate_halos(hc)
     >>> p.save()
 

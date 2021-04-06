@@ -550,7 +550,7 @@ class PlotContainer:
         --------
 
         >>> from yt.mods import SlicePlot
-        >>> slc = SlicePlot(ds, "x", ["Density", "VelocityMagnitude"])
+        >>> slc = SlicePlot(ds, "x", [("gas", "density"), ("gas", "velocity_magnitude")])
         >>> slc.show()
 
         """
@@ -988,7 +988,7 @@ class ImagePlotContainer(PlotContainer):
         label : str
           The new label
 
-        >>>  plot.set_colorbar_label("density", "Dark Matter Density (g cm$^{-3}$)")
+        >>>  plot.set_colorbar_label(("gas", "density"), "Dark Matter Density (g cm$^{-3}$)")
 
         """
         self._colorbar_label[field] = label

@@ -1788,7 +1788,7 @@ class Dataset(abc.ABC):
         Examples
         --------
 
-        >>> grad_fields = ds.add_gradient_fields(("gas","density"))
+        >>> grad_fields = ds.add_gradient_fields(("gas", "density"))
         >>> print(grad_fields)
         ... [('gas', 'density_gradient_x'), ('gas', 'density_gradient_y'),
         ...  ('gas', 'density_gradient_z'), ('gas', 'density_gradient_magnitude')]

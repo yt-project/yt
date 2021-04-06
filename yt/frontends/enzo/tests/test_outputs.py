@@ -35,17 +35,17 @@ p3mini = "PopIII_mini/DD0034/DD0034"
 def color_conservation(ds):
     species_names = ds.field_info.species_names
     dd = ds.all_data()
-    dens_yt = dd["density"].copy()
+    dens_yt = dd[("gas", "density")].copy()
     # Enumerate our species here
     for s in sorted(species_names):
         if s == "El":
             continue
         dens_yt -= dd[f"{s}_density"]
-    dens_yt -= dd["metal_density"]
-    delta_yt = np.abs(dens_yt / dd["density"])
+    dens_yt -= dd[("enzo", "Metal_Density")]
+    delta_yt = np.abs(dens_yt / dd[("gas", "density")])
     # Now we compare color conservation to Enzo's color conservation
     dd = ds.all_data()
-    dens_enzo = dd["Density"].copy()
+    dens_enzo = dd[("enzo", "Density")].copy()
     for f in sorted(ds.field_list):
         ff = f[1]
         if not ff.endswith("_Density"):
@@ -60,7 +60,7 @@ def color_conservation(ds):
         if any([ff.startswith(ss) for ss in start_strings]):
             continue
         dens_enzo -= dd[f]
-    delta_enzo = np.abs(dens_enzo / dd["Density"])
+    delta_enzo = np.abs(dens_enzo / dd[("enzo", "Density")])
     np.testing.assert_almost_equal(delta_yt, delta_enzo)
 
 
@@ -73,7 +73,7 @@ def check_color_conservation(ds):
         if s == "El":
             continue
         dens_yt -= dd[f"{s}_density"]
-    dens_yt -= dd[("gas", "metal_density")]
+    dens_yt -= dd[("enzo", "Metal_Density")]
     delta_yt = np.abs(dens_yt / dd[("gas", "density")])
 
     # Now we compare color conservation to Enzo's color conservation

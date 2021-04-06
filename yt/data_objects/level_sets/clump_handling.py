@@ -227,7 +227,7 @@ class Clump(TreeContainer):
         >>> master_clump.add_info_item("center_of_mass")
         >>> master_clump.add_validator("min_cells", 20)
         >>> find_clumps(master_clump, c_min, c_max, step)
-        >>> fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
+        >>> fn = master_clump.save_as_dataset(fields=[("gas", "density"), ("all", "particle_mass")])
         >>> new_ds = yt.load(fn)
         >>> print (ds.tree["clump", "cell_mass"])
         1296926163.91 Msun
