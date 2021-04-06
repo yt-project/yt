@@ -15,6 +15,7 @@ import time
 import urllib
 import zlib
 from collections import defaultdict
+from itertools import product
 
 import numpy as np
 from matplotlib import image as mpimg
@@ -421,14 +422,25 @@ class AnswerTestingTest:
         if self.reference_storage.reference_name is not None:
             # Compare test generated values against the golden answer
             dd = self.reference_storage.get(self.storage_name)
-            if dd is None or self.description not in dd:
-                raise YTNoOldAnswer(f"{self.storage_name} : {self.description}")
-            ov = dd[self.description]
+            desc_tried = []
+            if dd is None:
+                raise YTNoOldAnswer(f"{self.storage_name} does not exist.")
+
+            for desc in self.brute_force_description:
+                desc_tried.append(desc)
+                if desc in dd:
+                    break
+            else:
+                raise YTNoOldAnswer(
+                    f"{self.storage_name} : tried {', '.join(desc_tried)}"
+                )
+            ov = dd[desc]
             self.compare(nv, ov)
         else:
             # Store results, hence do nothing (in case of --answer-store arg)
             ov = None
-        self.result_storage[self.storage_name][self.description] = nv
+            desc = self.description
+        self.result_storage[self.storage_name][desc] = nv
 
     @property
     def storage_name(self):
@@ -492,6 +504,33 @@ class AnswerTestingTest:
         if suffix:
             args.append(suffix)
         return "_".join(args).replace(".", "_")
+
+    @property
+    def brute_force_description(self):
+        obj_type = getattr(self, "obj_type", None)
+        if obj_type is None:
+            oname = "all"
+        else:
+            oname = "_".join(str(s) for s in obj_type)
+
+        # If a field enters the answer test name, we only
+        # keep the field name and drop the field type, i.e.
+        # ("gas", "density") -> "density"
+        combinations = []
+        for an in self._attrs:
+            tmp = getattr(self, an)
+            if isinstance(tmp, tuple) and len(tmp) == 2:
+                combinations.append([str(_) for _ in (tmp, tmp[0], tmp[1])])
+            else:
+                combinations.append([str(tmp)])
+        suffix = getattr(self, "suffix", None)
+
+        for elem in product(*combinations):
+            args = [self._type_name, str(self.ds), oname]
+            args.extend(elem)
+            if suffix:
+                args.append(suffix)
+            yield "_".join(args).replace(".", "_")
 
 
 class FieldValuesTest(AnswerTestingTest):
@@ -672,18 +711,31 @@ class PixelizedProjectionValuesTest(AnswerTestingTest):
             d[f"{f}_sum"] = proj.field_data[f].sum(dtype="float64")
         return d
 
+    def lax_getter(self, key, dict_like):
+        tries = [key]
+        if isinstance(key, (tuple, list)):
+            tries.extend(key)
+
+        for t in tries:
+            if t in dict_like:
+                return dict_like[t]
+
+        raise AssertionError(f"{key} not in {dict_like}")
+
     def compare(self, new_result, old_result):
         assert len(new_result) == len(old_result)
         for k in new_result:
-            assert k in old_result
+            self.lax_getter(k, old_result)
+
         for k in new_result:
             # weight_field does not have units, so we do not directly compare them
             if k == "weight_field_sum":
                 continue
             try:
-                assert_allclose_units(new_result[k], old_result[k], 1e-10)
+                old_val = self.lax_getter(k, old_result)
+                assert_allclose_units(new_result[k], old_val, 1e-10)
             except AssertionError:
-                dump_images(new_result[k], old_result[k])
+                dump_images(new_result[k], old_val)
                 raise
 
 
