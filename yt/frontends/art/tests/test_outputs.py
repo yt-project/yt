@@ -34,7 +34,7 @@ def test_d9p():
     for field in _fields:
         for axis in [0, 1, 2]:
             for dobj_name in dso:
-                for weight_field in [None, "density"]:
+                for weight_field in [None, ("gas", "density")]:
                     if field[0] not in ds.particle_types:
                         yield PixelizedProjectionValuesTest(
                             d9p, axis, field, weight_field, dobj_name
