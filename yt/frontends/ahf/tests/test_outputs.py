@@ -9,10 +9,10 @@ from yt.utilities.answer_testing.framework import (
 )
 
 _fields = (
-    "particle_position_x",
-    "particle_position_y",
-    "particle_position_z",
-    "particle_mass",
+    ("all", "particle_position_x"),
+    ("all", "particle_position_y"),
+    ("all", "particle_position_z"),
+    ("all", "particle_mass"),
 )
 
 ahf_halos = "ahf_halos/snap_N64L16_135.parameter"
