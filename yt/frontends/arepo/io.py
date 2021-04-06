@@ -22,10 +22,7 @@ class IOHandlerArepoHDF5(IOHandlerGadgetHDF5):
             # we compute one here by finding the radius of the sphere
             # corresponding to the volume of the Voroni cell and multiplying
             # by a user-configurable smoothing factor.
-            hsml = (
-                f[ptype][("arepo", "Masses")][si:ei, ...]
-                / f[ptype][("arepo", "Density")][si:ei, ...]
-            )
+            hsml = f[ptype]["Masses"][si:ei, ...] / f[ptype]["Density"][si:ei, ...]
             hsml *= 3.0 / (4.0 * np.pi)
             hsml **= 1.0 / 3.0
             hsml *= self.ds.smoothing_factor
