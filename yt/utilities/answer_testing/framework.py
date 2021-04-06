@@ -1141,8 +1141,8 @@ class AxialPixelizationTest(AnswerTestingTest):
             slc = ds.slice(axis, center[i])
             xax = ds.coordinates.axis_name[ds.coordinates.x_axis[axis]]
             yax = ds.coordinates.axis_name[ds.coordinates.y_axis[axis]]
-            pix_x = ds.coordinates.pixelize(axis, slc, xax, bounds, (512, 512))
-            pix_y = ds.coordinates.pixelize(axis, slc, yax, bounds, (512, 512))
+            pix_x = ds.coordinates.pixelize(axis, slc, ("gas", xax), bounds, (512, 512))
+            pix_y = ds.coordinates.pixelize(axis, slc, ("gas", yax), bounds, (512, 512))
             # Wipe out invalid values (fillers)
             pix_x[~np.isfinite(pix_x)] = 0.0
             pix_y[~np.isfinite(pix_y)] = 0.0
