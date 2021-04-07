@@ -18,7 +18,7 @@ from yt.utilities.on_demand_imports import (
 )
 
 num_exp = re.compile(r"\d*(\.\d*)?")
-byte_unit_exp = re.compile(r"[KMG]?B")
+byte_unit_exp = re.compile(r"[KMGT]?B")
 
 
 def _parse_byte_size(s: str):
@@ -26,33 +26,49 @@ def _parse_byte_size(s: str):
     Convert a string size specification to integer byte size.
 
     This function should be insensitive to case and whitespace.
+
+    It doesn't always return an int, as a temporary measure to deal with missing
+    or corrupted data in the registry. This should be fixed in the future.
+
     Examples
     --------
-    >>> _parse_byte_size("11B")
-    11
-    >>> _parse_byte_size("10 kB")
-    10000
-    >>> _parse_byte_size("67.4GB")
-    67400000000
-    >>> _parse_byte_size("0.1 MB")
-    100000
-    >>> _parse_byte_size(".1 MB")
-    100000
+    # most of the following examples are adapted from
+    # https://stackoverflow.com/a/31631711/5489622
     >>> _parse_byte_size(None)
     <NA>
     >>> from numpy import nan
     >>> _parse_byte_size(nan)
     <NA>
+    >>> _parse_byte_size("1B")
+    1
+    >>> _parse_byte_size("1.00 KB")
+    1024
+    >>> _parse_byte_size("488.28 KB")
+    500000
+    >>> _parse_byte_size("1.00 MB")
+    1049000
+    >>> _parse_byte_size("47.68 MB")
+    50000000
+    >>> _parse_byte_size("1.00 GB")
+    1074000000
+    >>> _parse_byte_size("4.66 GB")
+    5004000000
+    >>> _parse_byte_size("1.00 TB")
+    1100000000000
+    >>> _parse_byte_size("4.55 TB")
+    5003000000000
     """
     try:
         s = s.upper()
     except AttributeError:
         # input is not a string (likely a np.nan)
         return pd.NA
+
     val = float(re.search(num_exp, s).group())
     unit = re.search(byte_unit_exp, s).group()
-    exponent = {"B": 0, "KB": 3, "MB": 6, "GB": 9}[unit]
-    return int(val * 10 ** exponent)
+    prefixes = ["B", "K", "M", "G", "T"]
+    raw_res = val * 1024 ** prefixes.index(unit[0])
+    return int(float(f"{raw_res:.3e}"))
 
 
 @lru_cache(maxsize=128)
