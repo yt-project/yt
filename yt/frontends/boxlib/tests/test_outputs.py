@@ -31,7 +31,7 @@ _nyx_fields = (
 _warpx_fields = (("mesh", "Ex"), ("mesh", "By"), ("mesh", "jz"))
 _castro_fields = (
     ("boxlib", "Temp"),
-    ("boxlib", "density"),
+    ("gas", "density"),
     ("boxlib", "particle_count"),
 )
 
