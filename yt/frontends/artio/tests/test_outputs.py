@@ -15,9 +15,9 @@ from yt.utilities.answer_testing.framework import (
 )
 
 _fields = (
-    "temperature",
-    "density",
-    "velocity_magnitude",
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
     ("deposit", "all_density"),
     ("deposit", "all_count"),
 )
