@@ -24,10 +24,10 @@ from yt.utilities.answer_testing.framework import (
 from yt.utilities.on_demand_imports import _f90nml as f90nml
 
 _fields = (
-    "temperature",
-    "density",
-    "velocity_magnitude",
-    "pressure_gradient_magnitude",
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+    ("gas", "pressure_gradient_magnitude"),
 )
 
 output_00080 = "output_00080/info_00080.txt"

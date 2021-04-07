@@ -18,7 +18,12 @@ from yt.utilities.answer_testing.framework import (
 )
 from yt.visualization.plot_window import SlicePlot
 
-_fields = ("temperature", "density", "velocity_magnitude", "velocity_divergence")
+_fields = (
+    ("gas", "temperature"),
+    ("gas", "density"),
+    ("gas", "velocity_magnitude"),
+    ("gas", "velocity_divergence"),
+)
 
 two_sphere_test = "ActiveParticleTwoSphere/DD0011/DD0011"
 active_particle_cosmology = "ActiveParticleCosmology/DD0046/DD0046"

@@ -16,7 +16,7 @@ from yt.utilities.answer_testing.framework import (
     small_patch_amr,
 )
 
-_fields = ("temperature", "density", "velocity_magnitude")
+_fields = (("gas", "temperature"), ("gas", "density"), ("gas", "velocity_magnitude"))
 
 sloshing = "GasSloshingLowRes/sloshing_low_res_hdf5_plt_cnt_0300"
 
@@ -30,7 +30,7 @@ def test_sloshing():
         yield test
 
 
-_fields_2d = ("temperature", "density")
+_fields_2d = (("gas", "temperature"), ("gas", "density"))
 
 wt = "WindTunnel/windtunnel_4lev_hdf5_plt_cnt_0030"
 
