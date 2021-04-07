@@ -91,8 +91,24 @@ class YTFieldNotFound(YTException):
         self.field = field
         self.ds = ds
 
+    def _enumerate_alternatives(self):
+        field = self.field
+        ds = self.ds
+        if not (isinstance(field, tuple) and len(field) == 2):
+            return []
+
+        _, fname = field
+
+        return [(ft, fn) for (ft, fn) in ds.derived_field_list if fn == fname]
+
     def __str__(self):
-        return f"Could not find field {self.field} in {self.ds}."
+        msg = f"Could not find field {self.field} in {self.ds}."
+        alternatives = self._enumerate_alternatives()
+
+        if len(alternatives) > 0:
+            msg += "\nPossible alternatives are:\n\t"
+            msg += "\n\t".join(str(_) for _ in alternatives)
+        return msg
 
 
 class YTParticleTypeNotFound(YTException):
