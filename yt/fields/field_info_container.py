@@ -426,6 +426,7 @@ class FieldInfoContainer(dict):
 
     def __setitem__(self, key, value):
         ftype, fname = key
+        # Mark fields with same `fname`s (but difference `ftype`s) as ambiguous
         if any(fname == _fname for _ftype, _fname in self):
             self._ambiguous_field_names[fname].add(ftype)
         super().__setitem__(key, value)

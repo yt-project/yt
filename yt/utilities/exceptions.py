@@ -877,9 +877,9 @@ class YTAmbiguousFieldName(YTException):
 
     def __str__(self):
         msg = (
-            f"The requested field name '{self.fname}'"
+            f"The requested field name '{self.fname}' "
             "is ambiguous and corresponds to any one of "
-            f"the following field types\n {self.possible_ftypes}."
+            f"the following field types\n {self.possible_ftypes}. "
             "Please specify the requested field as an explicit "
             "tuple (ftype, fname)."
         )
