@@ -1,6 +1,5 @@
 import multiprocessing
 import os
-import subprocess
 import sys
 
 import nose
@@ -133,7 +132,3 @@ if __name__ == "__main__":
     while num_jobs:
         result = results.get()
         num_jobs -= 1
-
-    # REMOVE ME
-    p = subprocess.Popen("git diff --patch".split(), stdout=open("diff.patch.xml", "w"))
-    p.wait()
