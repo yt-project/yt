@@ -203,9 +203,9 @@ def test_profile_data():
     )
     p1.save()
 
-    yield YTDataFieldTest(full_fn, "temperature", geometric=False)
-    yield YTDataFieldTest(full_fn, "x", geometric=False)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "temperature"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("index", "x"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
     profile_2d = create_profile(
         ad,
         [("gas", "density"), ("gas", "temperature")],
@@ -228,11 +228,11 @@ def test_profile_data():
     )
     p2.save()
 
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
-    yield YTDataFieldTest(full_fn, "x", geometric=False)
-    yield YTDataFieldTest(full_fn, "temperature", geometric=False)
-    yield YTDataFieldTest(full_fn, "y", geometric=False)
-    yield YTDataFieldTest(full_fn, "cell_mass", geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("index", "x"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "temperature"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("index", "y"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "cell_mass"), geometric=False)
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)
@@ -265,7 +265,7 @@ def test_nonspatial_data():
     full_fn = os.path.join(tmpdir, fn)
     new_ds = load(full_fn)
     assert isinstance(new_ds, YTNonspatialDataset)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)

@@ -86,7 +86,7 @@ def test_old_grid_datacontainer_data():
     )
     compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
 
 
 @requires_ds(enzotiny)
@@ -98,7 +98,7 @@ def test_old_spatial_data():
     proj_ds = data_dir_load(full_fn)
     compare_unit_attributes(ds, proj_ds)
     assert isinstance(proj_ds, YTSpatialPlotDataset)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
 
 
 @requires_ds(enzotiny)
@@ -136,9 +136,9 @@ def test_old_profile_data():
     )
     p1.save()
 
-    yield YTDataFieldTest(full_fn, "temperature", geometric=False)
-    yield YTDataFieldTest(full_fn, "x", geometric=False)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "temperature"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("index", "x"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
     fn = "DD0046_Profile2D.h5"
     full_fn = os.path.join(ytdata_dir, fn)
     prof_2d_ds = data_dir_load(full_fn)
@@ -154,11 +154,11 @@ def test_old_profile_data():
     )
     p2.save()
 
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
-    yield YTDataFieldTest(full_fn, "x", geometric=False)
-    yield YTDataFieldTest(full_fn, "temperature", geometric=False)
-    yield YTDataFieldTest(full_fn, "y", geometric=False)
-    yield YTDataFieldTest(full_fn, "cell_mass", geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("index", "x"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "temperature"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("index", "y"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "cell_mass"), geometric=False)
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
 
@@ -186,4 +186,4 @@ def test_old_nonspatial_data():
     full_fn = os.path.join(ytdata_dir, fn)
     new_ds = data_dir_load(full_fn)
     assert isinstance(new_ds, YTNonspatialDataset)
-    yield YTDataFieldTest(full_fn, "density", geometric=False)
+    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
