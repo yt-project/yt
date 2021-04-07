@@ -1937,8 +1937,8 @@ class HaloCatalogCallback(PlotCallback):
 
         # Convert halo positions to code units of the plotted data
         # and then to units of the plotted window
-        px = halo_data[field_x][:].in_units(units)
-        py = halo_data[field_y][:].in_units(units)
+        px = halo_data[("all", field_x)][:].in_units(units)
+        py = halo_data[("all", field_y)][:].in_units(units)
 
         xplotcenter = (plot.xlim[0] + plot.xlim[1]) / 2
         yplotcenter = (plot.ylim[0] + plot.ylim[1]) / 2
@@ -1961,11 +1961,11 @@ class HaloCatalogCallback(PlotCallback):
         px, py = self._convert_to_plot(plot, [px, py])
 
         # Convert halo radii to a radius in pixels
-        radius = halo_data[self.radius_field][:].in_units(units)
+        radius = halo_data[("all", self.radius_field)][:].in_units(units)
         radius = np.array(radius * pixel_scale * self.factor)
 
         if self.width:
-            pz = halo_data[field_z][:].in_units("code_length")
+            pz = halo_data[("all", field_z)][:].in_units("code_length")
             c = data.center[data.axis]
 
             # I should catch an error here if width isn't in this form
@@ -1985,7 +1985,7 @@ class HaloCatalogCallback(PlotCallback):
         plot._axes.set_ylim(yy0, yy1)
 
         if self.annotate_field:
-            annotate_dat = halo_data[self.annotate_field]
+            annotate_dat = halo_data[("all", self.annotate_field)]
             texts = [f"{float(dat):g}" for dat in annotate_dat]
             labels = []
             for pos_x, pos_y, t in zip(px, py, texts):
