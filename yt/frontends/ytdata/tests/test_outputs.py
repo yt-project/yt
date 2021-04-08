@@ -265,7 +265,7 @@ def test_nonspatial_data():
     full_fn = os.path.join(tmpdir, fn)
     new_ds = load(full_fn)
     assert isinstance(new_ds, YTNonspatialDataset)
-    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "density"), geometric=False)
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)
