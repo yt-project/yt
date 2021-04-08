@@ -738,7 +738,11 @@ class FITSImageData:
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
         data = _astropy.pyfits.HDUList(data)
-        return cls(data, current_time=first_image.current_time)
+        return cls(
+            data,
+            current_time=first_image.current_time,
+            unit_header=first_image[0].header,
+        )
 
     def create_sky_wcs(
         self,
