@@ -5,50 +5,50 @@ import tempfile
 import numpy as np
 
 from yt.loaders import load, load_uniform_grid
-from yt.testing import (  # fake_random_ds,
+from yt.testing import (  # fake_random_ds,; assert_fname,; requires_file,
     assert_array_equal,
-    assert_fname,
-    requires_file,
     requires_module,
 )
-from yt.utilities.answer_testing.framework import data_dir_load
-from yt.visualization.plot_window import ProjectionPlot, SlicePlot
+
+# from yt.utilities.answer_testing.framework import data_dir_load
+
+# from yt.visualization.plot_window import ProjectionPlot, SlicePlot
 
 ytdata_dir = "ytdata_test"
 
 
-@requires_module("h5py")
-@requires_file(os.path.join(ytdata_dir, "slice.h5"))
-@requires_file(os.path.join(ytdata_dir, "proj.h5"))
-@requires_file(os.path.join(ytdata_dir, "oas.h5"))
-def test_old_plot_data():
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
+# @requires_module("h5py")
+# @requires_file(os.path.join(ytdata_dir, "slice.h5"))
+# @requires_file(os.path.join(ytdata_dir, "proj.h5"))
+# @requires_file(os.path.join(ytdata_dir, "oas.h5"))
+# def test_old_plot_data():
+#     tmpdir = tempfile.mkdtemp()
+#     curdir = os.getcwd()
+#     os.chdir(tmpdir)
 
-    fn = "slice.h5"
-    full_fn = os.path.join(ytdata_dir, fn)
-    ds_slice = data_dir_load(full_fn)
-    p = SlicePlot(ds_slice, "z", ("gas", "density"))
-    fn = p.save()
-    assert_fname(fn[0])
+#     fn = "slice.h5"
+#     full_fn = os.path.join(ytdata_dir, fn)
+#     ds_slice = data_dir_load(full_fn)
+#     p = SlicePlot(ds_slice, "z", ("gas", "density"))
+#     fn = p.save()
+#     assert_fname(fn[0])
 
-    fn = "proj.h5"
-    full_fn = os.path.join(ytdata_dir, fn)
-    ds_proj = data_dir_load(full_fn)
-    p = ProjectionPlot(ds_proj, "z", ("gas", "density"))
-    fn = p.save()
-    assert_fname(fn[0])
+#     fn = "proj.h5"
+#     full_fn = os.path.join(ytdata_dir, fn)
+#     ds_proj = data_dir_load(full_fn)
+#     p = ProjectionPlot(ds_proj, "z", ("gas", "density"))
+#     fn = p.save()
+#     assert_fname(fn[0])
 
-    fn = "oas.h5"
-    full_fn = os.path.join(ytdata_dir, fn)
-    ds_oas = data_dir_load(full_fn)
-    p = SlicePlot(ds_oas, [1, 1, 1], ("gas", "density"))
-    fn = p.save()
-    assert_fname(fn[0])
+#     fn = "oas.h5"
+#     full_fn = os.path.join(ytdata_dir, fn)
+#     ds_oas = data_dir_load(full_fn)
+#     p = SlicePlot(ds_oas, [1, 1, 1], ("gas", "density"))
+#     fn = p.save()
+#     assert_fname(fn[0])
 
-    os.chdir(curdir)
-    shutil.rmtree(tmpdir)
+#     os.chdir(curdir)
+#     shutil.rmtree(tmpdir)
 
 
 # @requires_module("h5py")
