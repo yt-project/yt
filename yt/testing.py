@@ -729,8 +729,7 @@ def add_noise_fields(ds):
 
     def _binary_noise(field, data):
         """random binary data"""
-        res = prng.random_integers(0, 1, data.size).astype("float64")
-        return res
+        return prng.randint(low=0, high=2, size=data.size).astype("float64")
 
     def _positive_noise(field, data):
         """random strictly positive data"""
