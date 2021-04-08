@@ -20,6 +20,7 @@ from itertools import product
 import numpy as np
 from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
+from more_itertools import always_iterable
 from nose.plugins import Plugin
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -528,16 +529,24 @@ class AnswerTestingTest:
         else:
             oname = "_".join(str(s) for s in obj_type)
 
+        def enumerate_all_combi(data):
+            ret = [data]
+            if not isinstance(data, tuple):
+                return [str(_) for _ in ret]
+
+            # This will compute all possible combinations involving
+            tmp = [always_iterable(_) for _ in data]
+            ret += list(product(*tmp))
+
+            return [str(_) for _ in ret]
+
         # If a field enters the answer test name, we only
         # keep the field name and drop the field type, i.e.
         # ("gas", "density") -> "density"
         combinations = []
         for an in self._attrs:
             tmp = getattr(self, an)
-            if isinstance(tmp, tuple) and len(tmp) == 2:
-                combinations.append([str(_) for _ in (tmp, tmp[0], tmp[1])])
-            else:
-                combinations.append([str(tmp)])
+            combinations.append(enumerate_all_combi(tmp))
         suffix = getattr(self, "suffix", None)
 
         for elem in product(*combinations):
