@@ -1,5 +1,8 @@
 answer_tests:
 
+  local_art_002: # PR 3081
+    - yt/frontends/art/tests/test_outputs.py:test_d9p
+
   local_amrvac_007: # PR 2945
     - yt/frontends/amrvac/tests/test_outputs.py:test_domain_size
     - yt/frontends/amrvac/tests/test_outputs.py:test_bw_polar_2d
