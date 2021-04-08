@@ -5,10 +5,9 @@ import tempfile
 import numpy as np
 
 from yt.loaders import load, load_uniform_grid
-from yt.testing import (
+from yt.testing import (  # fake_random_ds,
     assert_array_equal,
     assert_fname,
-    fake_random_ds,
     requires_file,
     requires_module,
 )
@@ -52,37 +51,37 @@ def test_old_plot_data():
     shutil.rmtree(tmpdir)
 
 
-@requires_module("h5py")
-def test_plot_data():
-    tmpdir = tempfile.mkdtemp()
-    curdir = os.getcwd()
-    os.chdir(tmpdir)
-    ds = fake_random_ds(16)
+# @requires_module("h5py")
+# def test_plot_data():
+#     tmpdir = tempfile.mkdtemp()
+#     curdir = os.getcwd()
+#     os.chdir(tmpdir)
+#     ds = fake_random_ds(16)
 
-    plot = SlicePlot(ds, "z", ("gas", "density"))
-    fn = plot.data_source.save_as_dataset("slice.h5")
-    ds_slice = load(fn)
-    p = SlicePlot(ds_slice, "z", ("gas", "density"))
-    fn = p.save()
-    assert_fname(fn[0])
+#     plot = SlicePlot(ds, "z", ("gas", "density"))
+#     fn = plot.data_source.save_as_dataset("slice.h5")
+#     ds_slice = load(fn)
+#     p = SlicePlot(ds_slice, "z", ("gas", "density"))
+#     fn = p.save()
+#     assert_fname(fn[0])
 
-    plot = ProjectionPlot(ds, "z", ("gas", "density"))
-    fn = plot.data_source.save_as_dataset("proj.h5")
-    ds_proj = load(fn)
-    p = ProjectionPlot(ds_proj, "z", ("gas", "density"))
-    fn = p.save()
-    assert_fname(fn[0])
+#     plot = ProjectionPlot(ds, "z", ("gas", "density"))
+#     fn = plot.data_source.save_as_dataset("proj.h5")
+#     ds_proj = load(fn)
+#     p = ProjectionPlot(ds_proj, "z", ("gas", "density"))
+#     fn = p.save()
+#     assert_fname(fn[0])
 
-    plot = SlicePlot(ds, [1, 1, 1], ("gas", "density"))
-    fn = plot.data_source.save_as_dataset("oas.h5")
-    ds_oas = load(fn)
-    p = SlicePlot(ds_oas, [1, 1, 1], ("gas", "density"))
-    fn = p.save()
-    assert_fname(fn[0])
+#     plot = SlicePlot(ds, [1, 1, 1], ("gas", "density"))
+#     fn = plot.data_source.save_as_dataset("oas.h5")
+#     ds_oas = load(fn)
+#     p = SlicePlot(ds_oas, [1, 1, 1], ("gas", "density"))
+#     fn = p.save()
+#     assert_fname(fn[0])
 
-    os.chdir(curdir)
-    if tmpdir != ".":
-        shutil.rmtree(tmpdir)
+#     os.chdir(curdir)
+#     if tmpdir != ".":
+#         shutil.rmtree(tmpdir)
 
 
 @requires_module("h5py")
