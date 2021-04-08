@@ -443,9 +443,12 @@ class AnswerTestingTest:
                 if desc in dd:
                     break
             else:
-                raise YTNoOldAnswer(
-                    f"{self.storage_name} : tried {', '.join(desc_tried)}"
-                )
+                err_msg = f"Storage_name: '{self.storage_name}'.\nTried the following keys:\n\t"
+                err_msg += "\n\t".join(desc_tried)
+                err_msg += "\nAvailable keys:\n\t"
+                err_msg += "\n\t".join(list(dd.keys()))
+
+                raise YTNoOldAnswer(err_msg)
             ov = dd[desc]
             self.compare(nv, ov)
         else:
