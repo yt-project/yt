@@ -534,9 +534,12 @@ class AnswerTestingTest:
             if not isinstance(data, tuple):
                 return [str(_) for _ in ret]
 
-            # This will compute all possible combinations involving
+            # This will compute all possible combinations
             tmp = [always_iterable(_) for _ in data]
             ret += list(product(*tmp))
+
+            # Single element
+            ret += [str(_) for _ in data]
 
             return [str(_) for _ in ret]
 
