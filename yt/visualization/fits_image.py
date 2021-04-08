@@ -279,7 +279,7 @@ class FITSImageData:
                         hdu.header[key] = float(value.value)
                         hdu.header.comments[key] = f"[{value.units}]"
                 hdu.header["time"] = float(self.current_time.value)
-                if hasattr(self, "redshift"):
+                if hasattr(self, "current_redshift"):
                     hdu.header["HUBBLE"] = self.hubble_constant
                     hdu.header["REDSHIFT"] = self.current_redshift
                 self.hdulist.append(hdu)
@@ -692,9 +692,7 @@ class FITSImageData:
         self.field_units.pop(key)
         self.fields.remove(key)
         f = _astropy.pyfits.PrimaryHDU(im.data, header=im.header)
-        return FITSImageData(
-            f, current_time=f[0].header["TIME"], unit_header=f[0].header
-        )
+        return FITSImageData(f, current_time=f.header["TIME"], unit_header=f.header)
 
     def close(self):
         self.hdulist.close()
