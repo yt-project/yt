@@ -902,7 +902,7 @@ def requires_module_pytest(*module_names):
 
     So that it can be later renamed to `requires_module`.
     """
-    from pytest.mark import skipif
+    import pytest
 
     from yt.utilities import on_demand_imports as odi
 
@@ -917,7 +917,7 @@ def requires_module_pytest(*module_names):
         ]
 
         # note that order between these two decorators matters
-        @skipif(
+        @pytest.mark.skipif(
             missing,
             reason=f"missing requirement(s): {', '.join(missing)}",
         )
