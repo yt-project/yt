@@ -759,6 +759,8 @@ class YTCoveringGrid(YTSelectionContainer3D):
                 "Length of edges must match the dimensionality of the " "dataset"
             )
         if hasattr(edge, "units"):
+            if edge.units.registry is self.ds.unit_registry:
+                return edge
             edge_units = edge.units.copy()
             edge_units.registry = self.ds.unit_registry
         else:
@@ -2765,6 +2767,8 @@ class YTOctree(YTSelectionContainer3D):
                 "Length of edges must match the dimensionality of the " "dataset"
             )
         if hasattr(edge, "units"):
+            if edge.units.registry is self.ds.unit_registry:
+                return edge
             edge_units = edge.units
         else:
             edge_units = "code_length"
