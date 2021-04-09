@@ -15,12 +15,11 @@ import time
 import urllib
 import zlib
 from collections import defaultdict
-from itertools import product
+from itertools import combinations, product
 
 import numpy as np
 from matplotlib import image as mpimg
 from matplotlib.testing.compare import compare_images
-from more_itertools import always_iterable
 from nose.plugins import Plugin
 
 from yt._maintenance.deprecation import issue_deprecation_warning
@@ -52,6 +51,28 @@ run_big_data = False
 _latest = ytcfg.get("yt", "gold_standard_filename")
 _latest_local = ytcfg.get("yt", "local_standard_filename")
 _url_path = ytcfg.get("yt", "answer_tests_url")
+
+
+def _enumerate_all_combi_helper(element, depth=0):
+    if not isinstance(element, tuple):
+        return [element]
+
+    tmp = []
+    for e in element:
+        if isinstance(e, tuple):
+            tmp.append(_enumerate_all_combi_helper(e, depth + 1))
+        else:
+            tmp.append([e])
+
+    ret = []
+    for i in range(1, len(element) + 1):
+        for combis in combinations(tmp, i):
+            ret.extend(product(*combis))
+    return [_ if len(_) > 1 else _[0] for _ in ret]
+
+
+def enumerate_all_combi(element):
+    return [str(_) for _ in _enumerate_all_combi_helper(element)]
 
 
 class AnswerTesting(Plugin):
@@ -528,20 +549,6 @@ class AnswerTestingTest:
             oname = "all"
         else:
             oname = "_".join(str(s) for s in obj_type)
-
-        def enumerate_all_combi(data):
-            ret = [data]
-            if not isinstance(data, tuple):
-                return [str(_) for _ in ret]
-
-            # This will compute all possible combinations
-            tmp = [always_iterable(_) for _ in data]
-            ret += list(product(*tmp))
-
-            # Single element
-            ret += [str(_) for _ in data]
-
-            return [str(_) for _ in ret]
 
         # If a field enters the answer test name, we only
         # keep the field name and drop the field type, i.e.
