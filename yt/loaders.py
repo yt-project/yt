@@ -1310,7 +1310,11 @@ def load_sample(fn, progressbar: bool = True, timeout=None, **kwargs):
     #
     # however we don't want to do it right now because the "filename" column is
     # currently incomplete
-    specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
+
+    try:
+        specs = registry_table.query(f"`filename` == '{topdir}'").iloc[0]
+    except IndexError as err:
+        raise KeyError(f"Could not find '{fn}' in the registry.") from err
 
     if not specs["load_name"]:
         raise ValueError(

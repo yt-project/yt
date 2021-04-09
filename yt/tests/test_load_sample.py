@@ -122,3 +122,11 @@ def test_registry_byte_size_dtype(sound_subreg):
 @requires_module_pytest("pandas", "requests")
 def test_registry_byte_size_sign(sound_subreg):
     np.testing.assert_array_less(0, sound_subreg["byte_size"])
+
+
+@requires_module_pytest("pandas", "requests")
+def test_unknown_filename():
+    fake_name = "these_are_not_the_files_your_looking_for"
+    with pytest.raises(KeyError) as err:
+        load_sample(fake_name)
+        assert err.exc == f"Could not find '{fake_name}' in the registry."
