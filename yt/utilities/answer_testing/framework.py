@@ -68,11 +68,21 @@ def _enumerate_all_combi_helper(element, depth=0):
     for i in range(1, len(element) + 1):
         for combis in combinations(tmp, i):
             ret.extend(product(*combis))
-    return [_ if len(_) > 1 else _[0] for _ in ret]
+    return [_ if len(_) > 1 else _[0] for _ in ret] + [
+        (_,) if len(_) > 1 else (_[0],) for _ in ret
+    ]
 
 
 def enumerate_all_combi(element):
-    return [str(_) for _ in _enumerate_all_combi_helper(element)]
+    tmp1 = [str(element)]
+    tmp2 = [str(_) for _ in _enumerate_all_combi_helper(element)]
+    tmp3 = []
+    if isinstance(element, tuple):
+        if not isinstance(element[0], tuple):
+            tmp3 += [str(((element[0],), *element[1:]))]
+    if isinstance(element, dict):
+        tmp3 += [str((tuple(), element))]
+    return sorted(tmp1 + tmp2 + tmp3, key=lambda e: -len(e))
 
 
 class AnswerTesting(Plugin):
