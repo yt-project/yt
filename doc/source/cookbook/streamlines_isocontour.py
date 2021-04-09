@@ -1,9 +1,10 @@
-import yt
+import matplotlib.pyplot as plt
 import numpy as np
-from yt.visualization.api import Streamlines
-import matplotlib.pylab as pl
 from mpl_toolkits.mplot3d import Axes3D
 from mpl_toolkits.mplot3d.art3d import Poly3DCollection
+
+import yt
+from yt.visualization.api import Streamlines
 
 # Load the dataset
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -23,7 +24,7 @@ streamlines = Streamlines(ds, pos, "velocity_x", "velocity_y", "velocity_z", len
 streamlines.integrate_through_volume()
 
 # Create a 3D matplotlib figure for visualizing the streamlines
-fig = pl.figure()
+fig = plt.figure()
 ax = Axes3D(fig)
 
 # Trace the streamlines through the volume of the 3D figure
@@ -60,4 +61,4 @@ p3dc.set_facecolors(colors)
 ax.add_collection(p3dc)
 
 # Save the figure
-pl.savefig("streamlines_isocontour.png")
+plt.savefig("streamlines_isocontour.png")

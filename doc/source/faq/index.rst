@@ -143,7 +143,7 @@ kpc, you might run:
 
 .. code-block:: python
 
-    x = x*pf.units['kpc']
+    x = x * pf.units["kpc"]
 
 In yt-3.0, this no longer works.  Conversion factors are tied up in the
 ``length_unit``, ``times_unit``, ``mass_unit``, and ``velocity_unit``
@@ -156,10 +156,10 @@ attributes, which can be converted to any arbitrary desired physical unit:
     print("Mass unit: ", ds.mass_unit)
     print("Velocity unit: ", ds.velocity_unit)
 
-    print("Length unit: ", ds.length_unit.in_units('code_length'))
-    print("Time unit: ", ds.time_unit.in_units('code_time'))
-    print("Mass unit: ", ds.mass_unit.in_units('kg'))
-    print("Velocity unit: ", ds.velocity_unit.in_units('Mpc/year'))
+    print("Length unit: ", ds.length_unit.in_units("code_length"))
+    print("Time unit: ", ds.time_unit.in_units("code_time"))
+    print("Mass unit: ", ds.mass_unit.in_units("kg"))
+    print("Velocity unit: ", ds.velocity_unit.in_units("Mpc/year"))
 
 So to accomplish the example task of converting a scalar variable ``x`` in
 code units to kpc in yt-3.0, you can do one of two things.  If ``x`` is
@@ -167,14 +167,14 @@ already a YTQuantity with units in ``code_length``, you can run:
 
 .. code-block:: python
 
-    x.in_units('kpc')
+    x.in_units("kpc")
 
 However, if ``x`` is just a numpy array or native python variable without
 units, you can convert it to a YTQuantity with units of ``kpc`` by running:
 
 .. code-block:: python
 
-    x = x*ds.length_unit.in_units('kpc')
+    x = x * ds.length_unit.in_units("kpc")
 
 For more information about unit conversion, see :ref:`units`.
 
@@ -188,17 +188,18 @@ individual variables) and ``ds.arr`` (for arrays):
 .. code-block:: python
 
     import yt
+
     ds = yt.load(filename)
-    one_Mpc = ds.quan(1, 'Mpc')
-    x_vector = ds.arr([1,0,0], 'code_length')
+    one_Mpc = ds.quan(1, "Mpc")
+    x_vector = ds.arr([1, 0, 0], "code_length")
 
 You can then naturally exploit the units system:
 
 .. code-block:: python
 
-    print("One Mpc in code_units:", one_Mpc.in_units('code_length'))
-    print("One Mpc in AU:", one_Mpc.in_units('AU'))
-    print("One Mpc in comoving kpc:", one_Mpc.in_units('kpccm'))
+    print("One Mpc in code_units:", one_Mpc.in_units("code_length"))
+    print("One Mpc in AU:", one_Mpc.in_units("AU"))
+    print("One Mpc in comoving kpc:", one_Mpc.in_units("kpccm"))
 
 For more information about unit conversion, see :ref:`units`.
 
@@ -229,7 +230,7 @@ attribute, which returns the data itself:
 
 .. code-block:: python
 
-    x = ds.quan(1, 'kpc')
+    x = ds.quan(1, "kpc")
     x_val = x.v
     print(x_val)
 
@@ -259,7 +260,7 @@ logged, you could type:
 
     ds = load("my_data")
     ds.index
-    ds.field_info['density'].take_log = False
+    ds.field_info["density"].take_log = False
 
 From that point forward, data products such as slices, projections, etc., would
 be presented in linear space. Note that you have to instantiate ds.index before
@@ -379,10 +380,10 @@ unfamiliar, please visit :ref:`loading-data`.
 To make things easier to load these sample datasets, you can add the parent
 directory to your downloaded sample data to your *yt path*.
 If you set the option ``test_data_dir``, in the section ``[yt]``,
-in ``~/.config/yt/ytrc``, yt will search this path for them.
+in ``~/.config/yt/yt.toml``, yt will search this path for them.
 
 This means you can download these datasets to ``/big_drive/data_for_yt`` , add
-the appropriate item to ``~/.config/yt/ytrc``, and no matter which directory you are
+the appropriate item to ``~/.config/yt/yt.toml``, and no matter which directory you are
 in when running yt, it will also check in *that* directory.
 
 
@@ -413,7 +414,9 @@ be a persistent problem add the line:
 
 .. code-block:: python
 
-   from yt.config import ytcfg; ytcfg["yt","serialize"] = "False"
+   from yt.config import ytcfg
+
+   ytcfg["yt", "serialize"] = "False"
 
 to the very top of your yt script.  Turning off serialization is the default
 behavior in yt-3.0.
@@ -423,26 +426,31 @@ behavior in yt-3.0.
 How can I change yt's log level?
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-yt's default log level is ``INFO``. However, you may want less voluminous logging, especially
-if you are in an IPython notebook or running a long or parallel script. On the other
-hand, you may want it to output a lot more, since you can't figure out exactly what's going
-wrong, and you want to output some debugging information. The yt log level can be
-changed using the :ref:`configuration-file`, either by setting it in the
-``$HOME/.config/yt/ytrc`` file:
+yt's default log level is ``INFO``. However, you may want less voluminous logging,
+especially if you are in an IPython notebook or running a long or parallel script.
+On the other hand, you may want it to output a lot more, since you can't figure out
+exactly what's going wrong, and you want to output some debugging information.
+The default yt log level can be changed using the :ref:`configuration-file`,
+either by setting it in the ``$HOME/.config/yt/yt.toml`` file:
 
 .. code-block:: bash
 
-   $ yt config set yt loglevel 10  # This sets the log level to "DEBUG"
+   $ yt config set yt log_level 10  # This sets the log level to "DEBUG"
 
 which would produce debug (as well as info, warning, and error) messages, or at runtime:
 
 .. code-block:: python
 
-   from yt.funcs import mylog
-   mylog.setLevel(40) # This sets the log level to "ERROR"
+   yt.set_log_level("error")
 
-which in this case would suppress everything below error messages. For reference, the numerical
-values corresponding to different log levels are:
+This is the same as doing:
+
+.. code-block:: python
+
+   yt.set_log_level(40)
+
+which in this case would suppress everything below error messages. For reference,
+the numerical values corresponding to different log levels are:
 
 .. csv-table::
    :header: Level, Numeric Value

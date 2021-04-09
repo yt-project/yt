@@ -1,6 +1,9 @@
 # distutils: sources = FIXED_INTERP
 # distutils: include_dirs = LIB_DIR
 # distutils: libraries = STD_LIBS
+# distutils: language = c++
+# distutils: extra_compile_args = CPP14_FLAG
+# distutils: extra_link_args = CPP14_FLAG
 """
 Image sampler definitions
 
@@ -28,7 +31,8 @@ cdef class PartitionedGrid:
                   mask,
                   np.ndarray[np.float64_t, ndim=1] left_edge,
                   np.ndarray[np.float64_t, ndim=1] right_edge,
-                  np.ndarray[np.int64_t, ndim=1] dims):
+                  np.ndarray[np.int64_t, ndim=1] dims,
+                  int n_fields = -1):
         # The data is likely brought in via a slice, so we copy it
         cdef np.ndarray[np.float64_t, ndim=3] tdata
         cdef np.ndarray[np.uint8_t, ndim=3] mask_data
@@ -39,7 +43,10 @@ cdef class PartitionedGrid:
         self.container = <VolumeContainer *> \
             malloc(sizeof(VolumeContainer))
         cdef VolumeContainer *c = self.container # convenience
-        cdef int n_fields = len(data)
+        if n_fields == -1:
+            n_fields = len(data)
+        cdef int n_data = len(data)
+
         c.n_fields = n_fields
         for i in range(3):
             c.left_edge[i] = left_edge[i]
@@ -51,7 +58,7 @@ cdef class PartitionedGrid:
         self.source_mask = mask
         mask_data = mask
         c.data = <np.float64_t **> malloc(sizeof(np.float64_t*) * n_fields)
-        for i in range(n_fields):
+        for i in range(n_data):
             tdata = data[i]
             c.data[i] = <np.float64_t *> tdata.data
         c.mask = <np.uint8_t *> mask_data.data
@@ -150,4 +157,3 @@ cdef class PartitionedGrid:
         if vel_mag[0] != 0.0:
             for i in range(3):
                 vel[i] /= vel_mag[0]
-

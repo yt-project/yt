@@ -26,7 +26,7 @@ class OWLSSimulation(GadgetSimulation):
     Examples
     --------
     >>> import yt
-    >>> es = yt.simulation("my_simulation.par", "OWLS")
+    >>> es = yt.load_simulation("my_simulation.par", "OWLS")
     >>> es.get_time_series()
     >>> for ds in es:
     ...     print(ds.current_time)

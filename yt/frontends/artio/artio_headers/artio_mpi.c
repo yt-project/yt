@@ -113,7 +113,7 @@ int artio_file_attach_buffer_i( artio_fh *handle, void *buf, int buf_size ) {
 	handle->bfptr = 0;
 	handle->data = (char *)buf;
 
-	return ARTIO_SUCCESS;                                                                                           
+	return ARTIO_SUCCESS;
 }
 
 int artio_file_detach_buffer_i( artio_fh *handle ) {
@@ -126,7 +126,7 @@ int artio_file_detach_buffer_i( artio_fh *handle ) {
 	handle->bfend = -1;
 	handle->bfptr = -1;
 
-	return ARTIO_SUCCESS;   
+	return ARTIO_SUCCESS;
 }
 
 int artio_file_fwrite_i( artio_fh *handle, const void *buf, int64_t count, int type ) {
@@ -155,7 +155,7 @@ int artio_file_fwrite_i( artio_fh *handle, const void *buf, int64_t count, int t
 	if ( handle->data == NULL ) {
 		while ( remain > 0 ) {
 			size32 = MIN( ARTIO_IO_MAX, remain );
-			if ( MPI_File_write( handle->fh, p, size32, 
+			if ( MPI_File_write( handle->fh, p, size32,
 					MPI_BYTE, MPI_STATUS_IGNORE ) != MPI_SUCCESS ) {
 				return ARTIO_ERR_IO_WRITE;
 			}
@@ -169,7 +169,7 @@ int artio_file_fwrite_i( artio_fh *handle, const void *buf, int64_t count, int t
 		/* complete buffer */
 		size32 = handle->bfsize - handle->bfptr;
 		memcpy( handle->data + handle->bfptr, p, size32 );
-		if ( MPI_File_write(handle->fh, handle->data, handle->bfsize, 
+		if ( MPI_File_write(handle->fh, handle->data, handle->bfsize,
 					MPI_BYTE, MPI_STATUS_IGNORE ) != MPI_SUCCESS ) {
 			return ARTIO_ERR_IO_WRITE;
 		}
@@ -177,10 +177,10 @@ int artio_file_fwrite_i( artio_fh *handle, const void *buf, int64_t count, int t
 		remain -= size32;
 
 		while ( remain > handle->bfsize ) {
-			if ( MPI_File_write(handle->fh, p, handle->bfsize, 
+			if ( MPI_File_write(handle->fh, p, handle->bfsize,
 						MPI_BYTE, MPI_STATUS_IGNORE ) != MPI_SUCCESS ) {
 				return ARTIO_ERR_IO_WRITE;
-			} 
+			}
 			remain -= handle->bfsize;
 			p += handle->bfsize;
 		}
@@ -199,7 +199,7 @@ int artio_file_fflush_i(artio_fh *handle) {
 
 	if ( handle->mode & ARTIO_MODE_WRITE ) {
 		if ( handle->bfptr > 0 ) {
-			if ( MPI_File_write(handle->fh, handle->data, handle->bfptr, 
+			if ( MPI_File_write(handle->fh, handle->data, handle->bfptr,
 					MPI_BYTE, MPI_STATUS_IGNORE ) != MPI_SUCCESS ) {
 				return ARTIO_ERR_IO_WRITE;
 			}
@@ -220,7 +220,7 @@ int artio_file_fread_i(artio_fh *handle, void *buf, int64_t count, int type ) {
 	size_t size, avail, remain;
 	int size_read, size32;
 	char *p;
-	
+
 	if ( !(handle->mode & ARTIO_MODE_READ) ) {
 		return ARTIO_ERR_INVALID_FILE_MODE;
 	}
@@ -240,7 +240,7 @@ int artio_file_fread_i(artio_fh *handle, void *buf, int64_t count, int type ) {
 	if ( handle->data == NULL ) {
 		while ( remain > 0 ) {
 			size32 = MIN( ARTIO_IO_MAX, remain );
-			if ( MPI_File_read(handle->fh, p, size32, 
+			if ( MPI_File_read(handle->fh, p, size32,
 					MPI_BYTE, &status ) != MPI_SUCCESS ) {
 				return ARTIO_ERR_IO_READ;
 			}
@@ -254,7 +254,7 @@ int artio_file_fread_i(artio_fh *handle, void *buf, int64_t count, int type ) {
 	} else {
 		if ( handle->bfend == -1 ) {
 			/* load initial data into buffer */
-			if ( MPI_File_read(handle->fh, handle->data, 
+			if ( MPI_File_read(handle->fh, handle->data,
 					handle->bfsize, MPI_BYTE, &status) != MPI_SUCCESS ) {
 				return ARTIO_ERR_IO_READ;
 			}
@@ -263,8 +263,8 @@ int artio_file_fread_i(artio_fh *handle, void *buf, int64_t count, int type ) {
 		}
 
 		/* read from buffer */
-		while ( remain > 0 && 
-				handle->bfend > 0 && 
+		while ( remain > 0 &&
+				handle->bfend > 0 &&
 				handle->bfptr + remain >= handle->bfend ) {
 			avail = handle->bfend - handle->bfptr;
 			memcpy( p, handle->data + handle->bfptr, avail );
@@ -272,7 +272,7 @@ int artio_file_fread_i(artio_fh *handle, void *buf, int64_t count, int type ) {
 			remain -= avail;
 
 			/* refill buffer */
-			if ( MPI_File_read(handle->fh, handle->data, handle->bfsize, 
+			if ( MPI_File_read(handle->fh, handle->data, handle->bfsize,
 					MPI_BYTE, &status ) != MPI_SUCCESS ) {
 				return ARTIO_ERR_IO_READ;
 			}
@@ -284,7 +284,7 @@ int artio_file_fread_i(artio_fh *handle, void *buf, int64_t count, int type ) {
 			if ( handle->bfend == 0 ) {
 				/* ran out of data, eof */
 				return ARTIO_ERR_INSUFFICIENT_DATA;
-			} 
+			}
 
 			memcpy( p, handle->data + handle->bfptr, (size_t)remain );
 			handle->bfptr += (int)remain;
@@ -319,7 +319,7 @@ int artio_file_ftell_i(artio_fh *handle, int64_t *offset) {
 
 	if ( handle->bfend > 0 ) {
 		current -= handle->bfend;
-	} 
+	}
 	if ( handle->bfptr > 0 ) {
 		current += handle->bfptr;
 	}
@@ -337,11 +337,11 @@ int artio_file_fseek_i(artio_fh *handle, int64_t offset, int whence ) {
 				return ARTIO_SUCCESS;
 			} else if ( handle->mode & ARTIO_MODE_READ &&
 					handle->bfend > 0 &&
-                	handle->bfptr + offset >= 0 && 
+                	handle->bfptr + offset >= 0 &&
 					handle->bfptr + offset < handle->bfend ) {
 				handle->bfptr += offset;
 				return ARTIO_SUCCESS;
-			} else { 
+			} else {
 				if ( handle->bfptr > 0 ) {
 					current = (MPI_Offset)offset - handle->bfend + handle->bfptr;
 				} else {
@@ -354,8 +354,8 @@ int artio_file_fseek_i(artio_fh *handle, int64_t offset, int whence ) {
 		} else if ( whence == ARTIO_SEEK_SET ) {
 			MPI_File_get_position( handle->fh, &current );
 			if (handle->mode & ARTIO_MODE_WRITE &&
-					current <= offset && 
-					offset < current + handle->bfsize && 
+					current <= offset &&
+					offset < current + handle->bfsize &&
 					handle->bfptr == offset - current ) {
 				return ARTIO_SUCCESS;
 			} else if ( handle->mode & ARTIO_MODE_READ &&
@@ -371,7 +371,7 @@ int artio_file_fseek_i(artio_fh *handle, int64_t offset, int whence ) {
 			}
 		} else if ( whence == ARTIO_SEEK_END ) {
 			artio_file_fflush(handle);
-			MPI_File_seek( handle->fh, (MPI_Offset)offset, MPI_SEEK_END );	
+			MPI_File_seek( handle->fh, (MPI_Offset)offset, MPI_SEEK_END );
 		} else {
 			/* unknown whence */
 			return ARTIO_ERR_INVALID_SEEK;

@@ -13,13 +13,13 @@ import pytest
 import yaml
 
 from yt.config import ytcfg
-from yt.convenience import load, simulation
-from yt.data_objects.selection_data_containers import YTRegion
+from yt.data_objects.selection_objects.region import YTRegion
 from yt.data_objects.static_output import Dataset
 from yt.frontends.ytdata.api import save_as_dataset
+from yt.loaders import load, load_simulation
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.visualization import particle_plots, plot_window as pw, profile_plotter
-from yt.visualization.volume_rendering.scene import Scene
+from yt.visualization.volume_rendering.api import Scene
 
 
 def _streamline_for_io(params):
@@ -186,7 +186,7 @@ def generate_hash(data):
         if isinstance(data, dict):
             hd = _hash_dict(data)
         else:
-            raise TypeError
+            raise
     return hd
 
 
@@ -220,8 +220,9 @@ def _compare_result(data, outputFile):
         Name of file where answers are already saved.
     """
     # Load the saved data
-    with open(outputFile, "r") as f:
+    with open(outputFile) as f:
         savedData = yaml.safe_load(f)
+
     # Define the comparison function
     def _check_vals(newVals, oldVals):
         for key, value in newVals.items():
@@ -322,7 +323,7 @@ def can_run_sim(sim_fn, sim_type, file_check=False):
     if file_check:
         return os.path.isfile(os.path.join(path, sim_fn))
     try:
-        simulation(sim_fn, sim_type)
+        load_simulation(sim_fn, sim_type)
     except FileNotFoundError:
         return False
     return True
@@ -359,7 +360,7 @@ def requires_ds(ds_fn, file_check=False):
         @functools.wraps(func)
         def skip(*args, **kwargs):
             msg = f"{ds_fn} not found, skipping {func.__name__}."
-            pytest.fail(msg)
+            pytest.skip(msg)
 
         return skip
 
@@ -386,7 +387,7 @@ def requires_sim(sim_fn, sim_type, file_check=False):
         @functools.wraps(func)
         def skip(*args, **kwargs):
             msg = f"{sim_fn} not found, skipping {func.__name__}."
-            pytest.fail(msg)
+            pytest.skip(msg)
 
         return skip
 
@@ -427,7 +428,7 @@ def compare_unit_attributes(ds1, ds2):
 
 def fake_halo_catalog(data):
     filename = "catalog.0.h5"
-    ftypes = dict((field, ".") for field in data)
+    ftypes = {field: "." for field in data}
     extra_attrs = {"data_type": "halo_catalog", "num_halos": data["particle_mass"].size}
     ds = {
         "cosmological_simulation": 1,

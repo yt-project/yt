@@ -13,13 +13,13 @@ import stat
 
 import numpy as np
 
-from yt.data_objects.data_containers import YTSelectionContainer
-from yt.data_objects.static_output import Dataset
-from yt.frontends.halo_catalog.data_structures import (
-    HaloCatalogFile,
-    HaloCatalogParticleIndex,
+from yt.data_objects.selection_objects.data_selection_objects import (
+    YTSelectionContainer,
 )
+from yt.data_objects.static_output import Dataset
+from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
 from yt.funcs import setdefaultattr
+from yt.geometry.particle_geometry_handler import ParticleIndex
 from yt.units import Mpc
 from yt.utilities.cython_fortran_utils import FortranFile
 
@@ -27,8 +27,30 @@ from .definitions import HEADER_ATTRIBUTES
 from .fields import AdaptaHOPFieldInfo
 
 
+class AdaptaHOPParticleIndex(ParticleIndex):
+    def _setup_filenames(self):
+        template = self.dataset.filename_template
+        ndoms = self.dataset.file_count
+        cls = self.dataset._file_class
+        if ndoms > 1:
+            self.data_files = [
+                cls(self.dataset, self.io, template % {"num": i}, i, None)
+                for i in range(ndoms)
+            ]
+        else:
+            self.data_files = [
+                cls(
+                    self.dataset,
+                    self.io,
+                    self.dataset.parameter_filename,
+                    0,
+                    None,
+                )
+            ]
+
+
 class AdaptaHOPDataset(Dataset):
-    _index_class = HaloCatalogParticleIndex
+    _index_class = AdaptaHOPParticleIndex
     _file_class = HaloCatalogFile
     _field_info_class = AdaptaHOPFieldInfo
 
@@ -49,11 +71,12 @@ class AdaptaHOPDataset(Dataset):
         self.over_refine_factor = over_refine_factor
         if parent_ds is None:
             raise RuntimeError(
-                "The AdaptaHOP frontend requires a parent dataset to be passed as `parent_ds`."
+                "The AdaptaHOP frontend requires a parent dataset "
+                "to be passed as `parent_ds`."
             )
         self.parent_ds = parent_ds
 
-        super(AdaptaHOPDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -84,7 +107,7 @@ class AdaptaHOPDataset(Dataset):
         self.current_time = self.quan(params["age"], "Gyr")
         self.omega_lambda = 0.724  # hard coded if not inferred from parent ds
         self.hubble_constant = 0.7  # hard coded if not inferred from parent ds
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.particle_types = "halos"
         self.particle_types_raw = "halos"
 
@@ -102,10 +125,10 @@ class AdaptaHOPDataset(Dataset):
         self.parameters.update(params)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        fname = os.path.split(args[0])[1]
+    def _is_valid(cls, filename, *args, **kwargs):
+        fname = os.path.split(filename)[1]
         if not fname.startswith("tree_bricks") or not re.match(
-            "^tree_bricks\d{3}$", fname
+            r"^tree_bricks\d{3}$", fname
         ):
             return False
         return True
@@ -178,8 +201,10 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
     --------
 
     >>> import yt
-    >>> ds = yt.load('output_00080_halos/tree_bricks080', parent_ds=yt.load('output_00080/info_00080.txt'))
-    >>>
+    >>> ds = yt.load(
+    ...      'output_00080_halos/tree_bricks080',
+    ...       parent_ds=yt.load('output_00080/info_00080.txt')
+    ... )
     >>> ds.halo(1, ptype='io')
     >>> print(halo.mass)
     119.22804260253906 100000000000.0*Msun
@@ -223,7 +248,7 @@ class AdaptaHOPHaloContainer(YTSelectionContainer):
         self._set_halo_member_data()
 
         # Call constructor
-        super(AdaptaHOPHaloContainer, self).__init__(parent_ds, {})
+        super().__init__(parent_ds, {})
 
     def __repr__(self):
         return "%s_%s_%09d" % (self.ds, self.ptype, self.particle_identifier)

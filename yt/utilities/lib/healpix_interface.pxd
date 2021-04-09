@@ -7,10 +7,11 @@ A light interface to a few HEALPix routines
 
 
 import numpy as np
-cimport numpy as np
-cimport cython
 
-from libc.stdio cimport fopen, fclose, FILE
+cimport cython
+cimport numpy as np
+from libc.stdio cimport FILE, fclose, fopen
+
 
 cdef extern from "healpix_vectors.h":
     int pix2vec_nest(long nside, long ipix, double *v)

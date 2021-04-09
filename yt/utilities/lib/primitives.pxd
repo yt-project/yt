@@ -1,8 +1,11 @@
 cimport cython
 cimport cython.floating
+
 import numpy as np
+
 cimport numpy as np
-from vec3_ops cimport dot, subtract, cross
+from vec3_ops cimport cross, dot, subtract
+
 
 cdef struct Ray:
     np.float64_t origin[3]

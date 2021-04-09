@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.funcs import iterable, just_one
+from yt.funcs import is_sequence, just_one
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.utilities.lib.misc_utilities import obtain_relative_velocity_vector
 from yt.utilities.math_utils import (
@@ -105,7 +105,7 @@ def create_los_field(registry, basename, field_units, ftype="gas", slice_info=No
         else:
             fns = field_comps
         ax = data.get_field_parameter("axis")
-        if iterable(ax):
+        if is_sequence(ax):
             # Make sure this is a unit vector
             ax /= np.sqrt(np.dot(ax, ax))
             ret = data[fns[0]] * ax[0] + data[fns[1]] * ax[1] + data[fns[2]] * ax[2]
@@ -402,25 +402,22 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             validators=[ValidateParameter("normal")],
         )
 
-        def _cylindrical_radial(field, data):
-            """This field is deprecated and will be removed in a future version"""
-            return data[ftype, f"{basename}_cylindrical_radius"]
-
-        registry.add_field(
+        registry.alias(
             (ftype, f"cylindrical_radial_{basename}"),
-            sampling_type="local",
-            function=_cylindrical_radial,
-            units=field_units,
+            (ftype, f"{basename}_cylindrical_radius"),
+            deprecate=("4.0.0", "4.1.0"),
         )
 
         def _cylindrical_radial_absolute(field, data):
             """This field is deprecated and will be removed in a future version"""
             return np.abs(data[ftype, f"{basename}_cylindrical_radius"])
 
-        registry.add_field(
+        registry.add_deprecated_field(
             (ftype, f"cylindrical_radial_{basename}_absolute"),
-            sampling_type="local",
             function=_cylindrical_radial_absolute,
+            sampling_type="local",
+            since="4.0.0",
+            removal="4.1.0",
             units=field_units,
             validators=[ValidateParameter("normal")],
         )
@@ -451,25 +448,22 @@ def create_vector_fields(registry, basename, field_units, ftype="gas", slice_inf
             ],
         )
 
-        def _cylindrical_tangential(field, data):
-            """This field is deprecated and will be removed in a future release"""
-            return data[ftype, f"{basename}_cylindrical_theta"]
-
         def _cylindrical_tangential_absolute(field, data):
             """This field is deprecated and will be removed in a future release"""
             return np.abs(data[ftype, f"cylindrical_tangential_{basename}"])
 
-        registry.add_field(
+        registry.alias(
             (ftype, f"cylindrical_tangential_{basename}"),
-            sampling_type="local",
-            function=_cylindrical_tangential,
-            units=field_units,
+            (ftype, f"{basename}_cylindrical_theta"),
+            deprecate=("4.0.0", "4.1.0"),
         )
 
-        registry.add_field(
+        registry.add_deprecated_field(
             (ftype, f"cylindrical_tangential_{basename}_absolute"),
-            sampling_type="local",
             function=_cylindrical_tangential_absolute,
+            sampling_type="local",
+            since="4.0.0",
+            removal="4.1.0",
             units=field_units,
         )
 
@@ -615,13 +609,19 @@ def create_averaged_field(
     validators += [ValidateSpatial(1, [(ftype, basename)])]
 
     def _averaged_field(field, data):
-        nx, ny, nz = data[(ftype, basename)].shape
+        def atleast_4d(array):
+            if array.ndim == 3:
+                return array[..., None]
+            else:
+                return array
+
+        nx, ny, nz, ngrids = atleast_4d(data[(ftype, basename)]).shape
         new_field = data.ds.arr(
-            np.zeros((nx - 2, ny - 2, nz - 2), dtype=np.float64),
+            np.zeros((nx - 2, ny - 2, nz - 2, ngrids), dtype=np.float64),
             (just_one(data[(ftype, basename)]) * just_one(data[(ftype, weight)])).units,
         )
         weight_field = data.ds.arr(
-            np.zeros((nx - 2, ny - 2, nz - 2), dtype=np.float64),
+            np.zeros((nx - 2, ny - 2, nz - 2, ngrids), dtype=np.float64),
             data[(ftype, weight)].units,
         )
         i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
@@ -632,13 +632,22 @@ def create_averaged_field(
                 slice(j, ny - (2 - j)),
                 slice(k, nz - (2 - k)),
             )
-            new_field += data[(ftype, basename)][sl] * data[(ftype, weight)][sl]
-            weight_field += data[(ftype, weight)][sl]
+            new_field += (
+                atleast_4d(data[(ftype, basename)])[sl]
+                * atleast_4d(data[(ftype, weight)])[sl]
+            )
+            weight_field += atleast_4d(data[(ftype, weight)])[sl]
 
         # Now some fancy footwork
-        new_field2 = data.ds.arr(np.zeros((nx, ny, nz)), data[(ftype, basename)].units)
+        new_field2 = data.ds.arr(
+            np.zeros((nx, ny, nz, ngrids)), data[(ftype, basename)].units
+        )
         new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
-        return new_field2
+
+        if data[(ftype, basename)].ndim == 3:
+            return new_field2[..., 0]
+        else:
+            return new_field2
 
     registry.add_field(
         (ftype, f"averaged_{basename}"),

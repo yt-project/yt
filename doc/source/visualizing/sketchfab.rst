@@ -54,6 +54,7 @@ value.  For example:
 .. code-block:: python
 
    import yt
+
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    sphere = ds.sphere("max", (1.0, "Mpc"))
    surface = ds.surface(sphere, "density", 1e-27)
@@ -104,7 +105,7 @@ The ``YTSurface`` object includes a method to upload directly to Sketchfab,
 but it requires that you get an API key first.  You can get this API key by
 creating an account and then going to your "dashboard," where it will be listed
 on the right hand side.  Once you've obtained it, put it into your
-``~/.config/yt/ytrc`` file under the heading ``[yt]`` as the variable
+``~/.config/yt/yt.toml`` file under the heading ``[yt]`` as the variable
 ``sketchfab_api_key``.  If you don't want to do this, you can also supply it as
 an argument to the function ``export_sketchfab``.
 
@@ -114,11 +115,12 @@ Now you can run a script like this:
 
     import yt
     from yt.units import kpc
+
     ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
     dd = ds.sphere(ds.domain_center, (500, "kpc"))
     rho = 1e-28
 
-    bounds = [[dd.center[i] - 250*kpc, dd.center[i] + 250*kpc] for i in range(3)]
+    bounds = [[dd.center[i] - 250 * kpc, dd.center[i] + 250 * kpc] for i in range(3)]
 
     surf = ds.surface(dd, "density", rho)
 
@@ -128,8 +130,8 @@ Now you can run a script like this:
         color_field="temperature",
         color_map="hot",
         color_log=True,
-        bounds=bounds
-   )
+        bounds=bounds,
+    )
 
 and yt will extract a surface, convert to a format that Sketchfab.com
 understands (PLY, in a zip file) and then upload it using your API key.  For
@@ -166,12 +168,14 @@ galaxy simulation:
    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
    rho = [2e-27, 1e-27]
    trans = [1.0, 0.5]
-   filename = './surfaces'
+   filename = "./surfaces"
 
    sphere = ds.sphere("max", (1.0, "Mpc"))
-   for i,r in enumerate(rho):
-       surf = ds.surface(sphere, 'density', r)
-       surf.export_obj(filename, transparency = trans[i], color_field='temperature', plot_index = i)
+   for i, r in enumerate(rho):
+       surf = ds.surface(sphere, "density", r)
+       surf.export_obj(
+           filename, transparency=trans[i], color_field="temperature", plot_index=i
+       )
 
 The calling sequence is fairly similar to the ``export_ply`` function
 `previously used <https://blog.yt-project.org/post/3DSurfacesAndSketchFab/>`__
@@ -233,23 +237,30 @@ to output one more type of variable on your surfaces.  For example:
 
 .. code-block:: python
 
-   import yt
+    import yt
 
-   ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
-   rho = [2e-27, 1e-27]
-   trans = [1.0, 0.5]
-   filename = './surfaces'
+    ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
+    rho = [2e-27, 1e-27]
+    trans = [1.0, 0.5]
+    filename = "./surfaces"
 
-   def emissivity(field, data):
-       return (data['density']*data['density']*np.sqrt(data['temperature']))
-   add_field("emissivity", function=_Emissivity, units=r"g*K/cm**6")
 
-   sphere = ds.sphere("max", (1.0, "Mpc"))
-   for i,r in enumerate(rho):
-       surf = ds.surface(sphere, 'density', r)
-       surf.export_obj(filename, transparency = trans[i],
-                       color_field='temperature', emit_field = 'emissivity',
-		       plot_index = i)
+    def emissivity(field, data):
+        return data["density"] * data["density"] * np.sqrt(data["temperature"])
+
+
+    add_field("emissivity", function=_Emissivity, sampling_type="cell", units=r"g*K/cm**6")
+
+    sphere = ds.sphere("max", (1.0, "Mpc"))
+    for i, r in enumerate(rho):
+        surf = ds.surface(sphere, "density", r)
+        surf.export_obj(
+            filename,
+            transparency=trans[i],
+            color_field="temperature",
+            emit_field="emissivity",
+            plot_index=i,
+        )
 
 will output the same OBJ and MTL as in our previous example, but it will scale
 an emissivity parameter by our new field.  Technically, this makes our outputs
@@ -263,7 +274,7 @@ scripts in Blender.  For example, on a Mac, you would modify the file
 "/Applications/Blender/blender.app/Contents/MacOS/2.65/scripts/addons/io_scene_obj/import_obj.py",
 in the function "create_materials" with:
 
-.. code-block:: python
+.. code-block:: patch
 
    # ...
 
@@ -288,23 +299,23 @@ like the following:
    import bpy
    from math import *
 
-   bpy.ops.import_scene.obj(filepath='./surfaces.obj') # will use new importer
+   bpy.ops.import_scene.obj(filepath="./surfaces.obj")  # will use new importer
 
    # set up lighting = indirect
-   bpy.data.worlds['World'].light_settings.use_indirect_light = True
-   bpy.data.worlds['World'].horizon_color = [0.0, 0.0, 0.0] # background = black
+   bpy.data.worlds["World"].light_settings.use_indirect_light = True
+   bpy.data.worlds["World"].horizon_color = [0.0, 0.0, 0.0]  # background = black
    # have to use approximate, not ray tracing for emitting objects ...
    #   ... for now...
-   bpy.data.worlds['World'].light_settings.gather_method = 'APPROXIMATE'
-   bpy.data.worlds['World'].light_settings.indirect_factor=20. # turn up all emiss
+   bpy.data.worlds["World"].light_settings.gather_method = "APPROXIMATE"
+   bpy.data.worlds["World"].light_settings.indirect_factor = 20.0  # turn up all emiss
 
    # set up camera to be on -x axis, facing toward your object
    scene = bpy.data.scenes["Scene"]
-   scene.camera.location = [-0.12, 0.0, 0.0] # location
-   scene.camera.rotation_euler = [radians(90.), 0.0, radians(-90.)] # face to (0,0,0)
+   scene.camera.location = [-0.12, 0.0, 0.0]  # location
+   scene.camera.rotation_euler = [radians(90.0), 0.0, radians(-90.0)]  # face to (0,0,0)
 
    # render
-   scene.render.filepath ='/Users/jillnaiman/surfaces_blender' # needs full path
+   scene.render.filepath = "/Users/jillnaiman/surfaces_blender"  # needs full path
    bpy.ops.render.render(write_still=True)
 
 This above bit of code would produce an image like so:

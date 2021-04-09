@@ -1,5 +1,6 @@
 # distutils: include_dirs = LIB_DIR_EWAH
 # distutils: language = c++
+# distutils: extra_compile_args = CPP14_FLAG
 # distutils: libraries = STD_LIBS
 """
 Oct container tuned for Particles
@@ -335,7 +336,7 @@ cdef class ParticleOctreeContainer(OctreeContainer):
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef Oct *get_from_index(self, np.uint64_t mi, np.uint8_t order = ORDER_MAX, 
+    cdef Oct *get_from_index(self, np.uint64_t mi, np.uint8_t order = ORDER_MAX,
                              int max_level = 99):
         cdef Oct *cur
         cdef Oct *next
@@ -460,7 +461,7 @@ cdef class ParticleBitmap:
     cdef public FileBitmasks bitmasks
     cdef public BoolArrayCollection collisions
 
-    def __init__(self, left_edge, right_edge, periodicity, file_hash, nfiles, 
+    def __init__(self, left_edge, right_edge, periodicity, file_hash, nfiles,
                  index_order1, index_order2):
         # TODO: Set limit on maximum orders?
         cdef int i
@@ -479,7 +480,7 @@ cdef class ParticleBitmap:
             self.periodicity[i] = <np.uint8_t>periodicity[i]
             self.dims[i] = (1<<index_order1)
             self.dds[i] = (right_edge[i] - left_edge[i])/self.dims[i]
-            self.idds[i] = 1.0/self.dds[i] 
+            self.idds[i] = 1.0/self.dds[i]
             self.dds_mi1[i] = (right_edge[i] - left_edge[i]) / (1<<index_order1)
             self.dds_mi2[i] = self.dds_mi1[i] / (1<<index_order2)
         # We use 64-bit masks
@@ -570,8 +571,8 @@ cdef class ParticleBitmap:
                 continue
             if hsml[p] < 0:
                 raise RuntimeError(
-                    "Smoothing length for particle %s is negative with "
-                    "value \"%s\"" % p, hsml[p])
+                    f"Smoothing length for particle {p} is negative with "
+                    f"value {hsml[p]}")
             radius = hsml[p]
             # We first check if we're bounded within the domain; this follows the logic in the
             # pixelize_cartesian routine.  We assume that no smoothing
@@ -609,9 +610,9 @@ cdef class ParticleBitmap:
                                     particle_counts[miex] += 1
                                     if miex >= msize:
                                         raise IndexError(
-                                            "Index for a softening region " +
-                                            "({}) exceeds ".format(miex) +
-                                            "max ({})".format(msize))
+                                            "Index for a softening region "
+                                            f"({miex}) exceeds "
+                                            f"max ({msize})")
 
     @cython.boundscheck(False)
     @cython.wraparound(False)
@@ -714,7 +715,7 @@ cdef class ParticleBitmap:
             morton_indices[p] = bounded_morton(pos[p, 0], pos[p, 1], pos[p, 2],
                                                LE, RE, self.index_order1)
         # Loop over positions skipping those outside the domain
-        cdef np.ndarray[np.uint64_t, ndim=1, cast=True] sorted_order 
+        cdef np.ndarray[np.uint64_t, ndim=1, cast=True] sorted_order
         if hsml is None:
             sorted_order = np.argsort(morton_indices)
         else:
@@ -813,7 +814,7 @@ cdef class ParticleBitmap:
                                         n_calls += 1
                                         refined_count[miex1] += self.__fill_refined_ranges(s_ppos, radius, LE, RE,
                                                                    dds1, xex, yex, zex,
-                                                                   dds2, 
+                                                                   dds2,
                                                                    coarse_refined_map[miex1])
         cdef np.uint64_t vec_i
         cdef bool_array *buf = NULL
@@ -1076,7 +1077,7 @@ cdef class ParticleBitmap:
     def count_refined(self, ifile):
         r"""Get the number of cells refined for a file."""
         return self.bitmasks.count_refined(ifile)
-    
+
     def count_total(self, ifile):
         r"""Get the total number of cells set for a file."""
         return self.bitmasks.count_total(ifile)
@@ -1132,7 +1133,7 @@ cdef class ParticleBitmap:
         #     over_refine = 0
         # )
         # self.index_octree.n_ref = 1
-        # mi = (<ewah_bool_array*> self.collisions.ewah_keys)[0].toArray() 
+        # mi = (<ewah_bool_array*> self.collisions.ewah_keys)[0].toArray()
         # Change from vector to numpy
         # mi = mi.astype("uint64")
         # self.index_octree.add(mi, self.index_order1)
@@ -1297,7 +1298,7 @@ cdef class ParticleBitmap:
     @cython.wraparound(False)
     @cython.cdivision(True)
     def construct_octree(self, index, io_handler, data_files,
-                         over_refine_factor, 
+                         over_refine_factor,
                          BoolArrayCollection selector_mask,
                          BoolArrayCollection base_mask = None):
         cdef np.uint64_t total_pcount
@@ -1378,7 +1379,7 @@ cdef class ParticleBitmap:
                     for j in range(pos.shape[0]):
                         for k in range(3):
                             ppos[k] = pos32[j,k]
-                        mi = bounded_morton(ppos[0], ppos[1], ppos[2], 
+                        mi = bounded_morton(ppos[0], ppos[1], ppos[2],
                                             DLE, DRE, ORDER_MAX)
                         mi_root = mi >> (3*(ORDER_MAX-self.index_order1))
                         if slct_arr[mi_root] > 0:
@@ -1392,7 +1393,7 @@ cdef class ParticleBitmap:
                     for j in range(pos.shape[0]):
                         for k in range(3):
                             ppos[k] = pos64[j,k]
-                        mi = bounded_morton(ppos[0], ppos[1], ppos[2], 
+                        mi = bounded_morton(ppos[0], ppos[1], ppos[2],
                                             DLE, DRE, ORDER_MAX)
                         mi_root = mi >> (3*(ORDER_MAX-self.index_order1))
                         if slct_arr[mi_root] > 0:
@@ -1539,7 +1540,7 @@ cdef class ParticleBitmapSelector:
             self.file_mask_g[i] = file_mask_g[i]
         # Recurse
         self.recursive_morton_files(level, pos, dds, mi1)
-        # Fill with results 
+        # Fill with results
         for i in range(self.nfiles):
             file_mask_p[i] = self.file_mask_p[i]
             if file_mask_p[i]:
@@ -1630,7 +1631,7 @@ cdef class ParticleBitmapSelector:
         cdef np.uint64_t m
         cdef np.uint32_t ntot
         cdef np.uint64_t mi1_n
-        ntot = morton_neighbors_coarse(mi1, self.max_index1, 
+        ntot = morton_neighbors_coarse(mi1, self.max_index1,
                                        self.periodicity,
                                        self.ngz, self.neighbors,
                                        self.ind1_n, self.neighbor_list1)
@@ -1646,7 +1647,7 @@ cdef class ParticleBitmapSelector:
         cdef np.uint64_t i, m
         cdef np.uint32_t ntot
         cdef np.uint64_t mi1_n
-        ntot = morton_neighbors_coarse(mi1, self.max_index1, 
+        ntot = morton_neighbors_coarse(mi1, self.max_index1,
                                        self.periodicity,
                                        self.ngz, self.neighbors,
                                        self.ind1_n, self.neighbor_list1)
@@ -1676,13 +1677,13 @@ cdef class ParticleBitmapSelector:
             self.coarse_ghosts_bool[mi1_n] = 1
             IF RefinedExternalGhosts == 1:
                 if mi1_n == mi1:
-                    self.refined_ghosts_bool[mi2_n] = 1 
+                    self.refined_ghosts_bool[mi2_n] = 1
                 else:
                     self.refined_ghosts_list._set(mi1_n, mi2_n)
             ELSE:
                 if mi1_n == mi1:
-                    self.refined_ghosts_bool[mi2_n] = 1 
-                elif self.is_refined(mi1_n) == 1: 
+                    self.refined_ghosts_bool[mi2_n] = 1
+                elif self.is_refined(mi1_n) == 1:
                     self.refined_ghosts_list._set(mi1_n, mi2_n)
 
     @cython.boundscheck(False)
@@ -1817,7 +1818,7 @@ cdef class ParticleBitmapSelector:
     @cython.wraparound(False)
     @cython.cdivision(True)
     cdef int recursive_morton_mask(
-        self, np.int32_t level, np.float64_t pos[3], 
+        self, np.int32_t level, np.float64_t pos[3],
         np.float64_t dds[3], np.uint64_t mi1, np.uint64_t cur_ind[3]) except -1:
         cdef np.uint64_t mi2
         cdef np.float64_t npos[3]
@@ -1827,7 +1828,7 @@ cdef class ParticleBitmapSelector:
         cdef np.uint64_t ind1[3]
         cdef np.uint64_t ind2[3]
         cdef np.uint64_t ncur_ind[3]
-        cdef np.uint64_t* zeros = [0, 0, 0] 
+        cdef np.uint64_t* zeros = [0, 0, 0]
         cdef int i, j, k, m, sbbox
         PyErr_CheckSignals()
         for i in range(3):
@@ -1889,7 +1890,7 @@ cdef class ParticleBitmapSelector:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
-    cdef void recursive_morton_files(self, np.int32_t level, np.float64_t pos[3], 
+    cdef void recursive_morton_files(self, np.int32_t level, np.float64_t pos[3],
                                      np.float64_t dds[3], np.uint64_t mi1):
         cdef np.uint64_t mi2
         cdef np.float64_t npos[3]
@@ -2091,7 +2092,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         while end < no:
             beg = end
             index = (indices[beg] >> ((ORDER_MAX - level)*3))
-            while (end < no) and (index == (indices[end] >> ((ORDER_MAX - level)*3))): 
+            while (end < no) and (index == (indices[end] >> ((ORDER_MAX - level)*3))):
                 end += 1
             nind = (end - beg)
             # Add oct
@@ -2144,7 +2145,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             # Determine number of octs with this prefix
             beg = end
             index = (indices[beg] >> ((ORDER_MAX - self.level_offset)*3))
-            while (end < no) and (index == (indices[end] >> ((ORDER_MAX - self.level_offset)*3))): 
+            while (end < no) and (index == (indices[end] >> ((ORDER_MAX - self.level_offset)*3))):
                 end += 1
             nind = (end - beg)
             # Find root for prefix
@@ -2154,7 +2155,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
             while (index_root < self.num_root) and \
                   (self.ipos_to_key(ind) != self.root_nodes[index_root].key):
                 index_root += 1
-            if index_root >= self.num_root: 
+            if index_root >= self.num_root:
                 raise Exception('No root found for {},{},{}'.format(ind[0],ind[1],ind[2]))
             root = self.root_nodes[index_root].node
             # self.get_root(ind, &root)
@@ -2181,7 +2182,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         cdef int i, j, k
         cdef int ind[3]
         cdef Oct *noct
-        
+
         # Initialize empty children
         if o.children == NULL:
             o.children = <Oct **> malloc(sizeof(Oct *)*8)
@@ -2194,7 +2195,7 @@ cdef class ParticleBitmapOctreeContainer(SparseOctreeContainer):
         # # Only allocate and count the indexed oct
         # for i in range(3):
         #     ind[i] = (index >> ((ORDER_MAX - level)*3 + (2 - i))) & 1
-        
+
         # noct = self.allocate_oct()
         # noct.domain = o.domain
         # noct.file_ind = 0

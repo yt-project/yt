@@ -29,7 +29,7 @@
 artio_fh *artio_file_fopen( char * filename, int mode, const artio_context *context) {
 	artio_fh *fh;
 #ifdef ARTIO_DEBUG
-	printf( "artio_file_fopen( filename=%s, mode=%d, context=%p )\n", 
+	printf( "artio_file_fopen( filename=%s, mode=%d, context=%p )\n",
 			filename, mode, context ); fflush(stdout);
 #endif /* ARTIO_DEBUG */
 	fh = artio_file_fopen_i(filename,mode,context);

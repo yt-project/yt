@@ -1,14 +1,14 @@
 import re
 import sys
-from itertools import count
 from numbers import Number as numeric_type
 
 import numpy as np
+from more_itertools import first, mark_ends
 
 from yt.data_objects.construction_data_containers import YTCoveringGrid
 from yt.data_objects.image_array import ImageArray
 from yt.fields.derived_field import DerivedField
-from yt.funcs import ensure_list, fix_axis, issue_deprecation_warning, iterable, mylog
+from yt.funcs import fix_axis, is_sequence, iter_fields, mylog
 from yt.units import dimensions
 from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity
@@ -53,7 +53,7 @@ class FITSImageData:
         unit_header=None,
         **kwargs,
     ):
-        r""" Initialize a FITSImageData object.
+        r"""Initialize a FITSImageData object.
 
         FITSImageData contains a collection of FITS ImageHDU instances and
         WCS information, along with units for each of the images. FITSImageData
@@ -128,16 +128,7 @@ class FITSImageData:
         """
 
         if fields is not None:
-            fields = ensure_list(fields)
-
-        if "units" in kwargs:
-            issue_deprecation_warning(
-                "The 'units' keyword argument has been replaced "
-                "by the 'length_unit' keyword argument and the "
-                "former has been deprecated. Setting 'length_unit' "
-                "to 'units'."
-            )
-            length_unit = kwargs.pop("units")
+            fields = list(iter_fields(fields))
 
         if ds is None:
             ds = getattr(data, "ds", None)
@@ -230,7 +221,7 @@ class FITSImageData:
 
         # Sanity checking names
         s = set()
-        duplicates = set(f for f in self.fields if f in s or s.add(f))
+        duplicates = {f for f in self.fields if f in s or s.add(f)}
         if len(duplicates) > 0:
             for i, fd in enumerate(self.fields):
                 if fd in duplicates:
@@ -244,8 +235,9 @@ class FITSImageData:
                         )
                     self.fields[i] = f"{ftype}_{fname}"
 
-        first = True
-        for i, name, field in zip(count(), self.fields, fields):
+        for is_first, _is_last, (i, (name, field)) in mark_ends(
+            enumerate(zip(self.fields, fields))
+        ):
             if name not in exclude_fields:
                 this_img = img_data[field]
                 if hasattr(img_data[field], "units"):
@@ -269,9 +261,8 @@ class FITSImageData:
                     if i == 0:
                         self.shape = this_img.shape
                     this_img = np.asarray(this_img.T)
-                if first:
+                if is_first:
                     hdu = _astropy.pyfits.PrimaryHDU(this_img)
-                    first = False
                 else:
                     hdu = _astropy.pyfits.ImageHDU(this_img)
                 hdu.name = name
@@ -288,6 +279,9 @@ class FITSImageData:
                         hdu.header[key] = float(value.value)
                         hdu.header.comments[key] = f"[{value.units}]"
                 hdu.header["time"] = float(self.current_time.value)
+                if hasattr(self, "current_redshift"):
+                    hdu.header["HUBBLE"] = self.hubble_constant
+                    hdu.header["REDSHIFT"] = self.current_redshift
                 self.hdulist.append(hdu)
 
         self.dimensionality = len(self.shape)
@@ -320,7 +314,7 @@ class FITSImageData:
             else:
                 # If img_data is just an array we use the width and img_ctr
                 # parameters to determine the cell widths
-                if not iterable(width):
+                if not is_sequence(width):
                     width = [width] * self.dimensionality
                 if isinstance(width[0], YTQuantity):
                     cdelt = [
@@ -357,6 +351,10 @@ class FITSImageData:
         self.current_time = current_time.to(tunit)
 
     def _set_units(self, ds, base_units):
+        if ds is not None:
+            if getattr(ds, "cosmological_simulation", False):
+                self.hubble_constant = ds.hubble_constant
+                self.current_redshift = ds.current_redshift
         attrs = (
             "length_unit",
             "mass_unit",
@@ -394,6 +392,12 @@ class FITSImageData:
             else:
                 uq = None
 
+            if uq is not None and hasattr(self, "hubble_constant"):
+                # Don't store cosmology units
+                atoms = {str(a) for a in uq.units.expr.atoms()}
+                if str(uq.units).startswith("cm") or "h" in atoms or "a" in atoms:
+                    uq.convert_to_cgs()
+
             if uq is not None and uq.units.is_code_unit:
                 mylog.warning(
                     "Cannot use code units of '%s' "
@@ -410,6 +414,9 @@ class FITSImageData:
             setattr(self, attr, uq)
 
     def _set_units_from_header(self, header):
+        if "hubble" in header:
+            self.hubble_constant = header["HUBBLE"]
+            self.current_redshift = header["REDSHIFT"]
         for unit in ["length", "time", "mass", "velocity", "magnetic"]:
             if unit == "magnetic":
                 key = "BFUNIT"
@@ -417,8 +424,9 @@ class FITSImageData:
                 key = unit[0].upper() + "UNIT"
             if key not in header:
                 continue
-            u = YTQuantity(header[key], header.comments[key].strip("[]"))
-            setattr(self, unit + "_unit", u)
+            u = header.comments[key].strip("[]")
+            uq = YTQuantity(header[key], u)
+            setattr(self, unit + "_unit", uq)
 
     def set_wcs(self, wcs, wcsname=None, suffix=None):
         """
@@ -562,7 +570,7 @@ class FITSImageData:
         if output is None:
             output = sys.stdout
         if num_cols == 8:
-            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"
+            header = "No.    Name      Ver    Type      Cards   Dimensions   Format     Units"  # NOQA E501
             format = "{:3d}  {:10}  {:3} {:11}  {:5d}   {}   {}   {}"
         else:
             header = (
@@ -608,14 +616,6 @@ class FITSImageData:
             Additional keyword arguments are passed to
             :meth:`~astropy.io.fits.HDUList.writeto`.
         """
-        if "clobber" in kwargs:
-            issue_deprecation_warning(
-                'The "clobber" keyword argument '
-                'is deprecated. Use the "overwrite" '
-                "argument, which has the same effect, "
-                "instead."
-            )
-            overwrite = kwargs.pop("clobber")
         if fields is None:
             hdus = self.hdulist
         else:
@@ -691,7 +691,8 @@ class FITSImageData:
         im = self.hdulist.pop(idx)
         self.field_units.pop(key)
         self.fields.remove(key)
-        return FITSImageData(_astropy.pyfits.PrimaryHDU(im.data, header=im.header))
+        f = _astropy.pyfits.PrimaryHDU(im.data, header=im.header)
+        return FITSImageData(f, current_time=f.header["TIME"], unit_header=f.header)
 
     def close(self):
         self.hdulist.close()
@@ -721,23 +722,27 @@ class FITSImageData:
         image_list : list of FITSImageData instances
             The images to be combined.
         """
-        image_list = ensure_list(image_list)
-        w = image_list[0].wcs
-        img_shape = image_list[0].shape
+        image_list = image_list if isinstance(image_list, list) else [image_list]
+        first_image = first(image_list)
+
+        w = first_image.wcs
+        img_shape = first_image.shape
         data = []
-        first = True
-        for fid in image_list:
+        for is_first, _is_last, fid in mark_ends(image_list):
             assert_same_wcs(w, fid.wcs)
             if img_shape != fid.shape:
                 raise RuntimeError("Images do not have the same shape!")
             for hdu in fid.hdulist:
-                if first:
+                if is_first:
                     data.append(_astropy.pyfits.PrimaryHDU(hdu.data, header=hdu.header))
-                    first = False
                 else:
                     data.append(_astropy.pyfits.ImageHDU(hdu.data, header=hdu.header))
         data = _astropy.pyfits.HDUList(data)
-        return cls(data, current_time=image_list[0].current_time)
+        return cls(
+            data,
+            current_time=first_image.current_time,
+            unit_header=first_image[0].header,
+        )
 
     def create_sky_wcs(
         self,
@@ -847,7 +852,7 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     else:
         width = ds.coordinates.sanitize_width(axis, width, None)
         unit = str(width[0].units)
-    if iterable(image_res):
+    if is_sequence(image_res):
         nx, ny = image_res
     else:
         nx, ny = image_res, image_res
@@ -866,12 +871,12 @@ def construct_image(ds, axis, data_source, center, image_res, width, length_unit
     cunit = [length_unit] * 2
     ctype = ["LINEAR"] * 2
     cdelt = [dx.in_units(length_unit), dy.in_units(length_unit)]
-    if iterable(axis):
+    if is_sequence(axis):
         crval = center.in_units(length_unit)
     else:
         crval = [center[idx].in_units(length_unit) for idx in axis_wcs[axis]]
     if hasattr(data_source, "to_frb"):
-        if iterable(axis):
+        if is_sequence(axis):
             frb = data_source.to_frb(width[0], (nx, ny), height=width[1])
         else:
             frb = data_source.to_frb(width[0], (nx, ny), center=center, height=width[1])
@@ -977,14 +982,14 @@ class FITSSlice(FITSImageData):
         length_unit=None,
         **kwargs,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         slc = ds.slice(axis, center[axis], **kwargs)
         w, frb, lunit = construct_image(
             ds, axis, slc, dcenter, image_res, width, length_unit
         )
-        super(FITSSlice, self).__init__(frb, fields=fields, length_unit=lunit, wcs=w)
+        super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
 
 class FITSProjection(FITSImageData):
@@ -1051,16 +1056,14 @@ class FITSProjection(FITSImageData):
         length_unit=None,
         **kwargs,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         axis = fix_axis(axis, ds)
         center, dcenter = ds.coordinates.sanitize_center(center, axis)
         prj = ds.proj(fields[0], axis, weight_field=weight_field, **kwargs)
         w, frb, lunit = construct_image(
             ds, axis, prj, dcenter, image_res, width, length_unit
         )
-        super(FITSProjection, self).__init__(
-            frb, fields=fields, length_unit=lunit, wcs=w
-        )
+        super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
 
 class FITSOffAxisSlice(FITSImageData):
@@ -1128,16 +1131,14 @@ class FITSOffAxisSlice(FITSImageData):
         north_vector=None,
         length_unit=None,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         cut = ds.cutting(normal, center, north_vector=north_vector)
         center = ds.arr([0.0] * 2, "code_length")
         w, frb, lunit = construct_image(
             ds, normal, cut, center, image_res, width, length_unit
         )
-        super(FITSOffAxisSlice, self).__init__(
-            frb, fields=fields, length_unit=lunit, wcs=w
-        )
+        super().__init__(frb, fields=fields, length_unit=lunit, wcs=w)
 
 
 class FITSOffAxisProjection(FITSImageData):
@@ -1233,12 +1234,12 @@ class FITSOffAxisProjection(FITSImageData):
         method="integrate",
         length_unit=None,
     ):
-        fields = ensure_list(fields)
+        fields = list(iter_fields(fields))
         center, dcenter = ds.coordinates.sanitize_center(center, 4)
         buf = {}
         width = ds.coordinates.sanitize_width(normal, width, depth)
         wd = tuple(el.in_units("code_length").v for el in width)
-        if not iterable(image_res):
+        if not is_sequence(image_res):
             image_res = (image_res, image_res)
         res = (image_res[0], image_res[1])
         if data_source is None:
@@ -1261,6 +1262,4 @@ class FITSOffAxisProjection(FITSImageData):
         w, not_an_frb, lunit = construct_image(
             ds, normal, buf, center, image_res, width, length_unit
         )
-        super(FITSOffAxisProjection, self).__init__(
-            buf, fields=fields, wcs=w, length_unit=lunit, ds=ds
-        )
+        super().__init__(buf, fields=fields, wcs=w, length_unit=lunit, ds=ds)

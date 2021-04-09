@@ -13,7 +13,7 @@ from yt.utilities.exceptions import YTIllDefinedParticleData
 
 
 def setup():
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 data_path = ytcfg.get("yt", "test_data_dir")
@@ -62,7 +62,7 @@ def test_etc_traj():
 def test_uniqueness():
     n_particles = 2
     n_steps = 2
-    ids = np.arange(n_particles, dtype=int) % (n_particles // 2)
+    ids = np.arange(n_particles, dtype="int64") % (n_particles // 2)
     data = {"particle_index": ids}
     fields = [
         "particle_position_x",

@@ -54,7 +54,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
         self.num_grids = None
 
     def _initialize_data_storage(self):
-        if not ytcfg.getboolean("yt", "serialize"):
+        if not ytcfg.get("yt", "serialize"):
             return
         fn = self.ds.storage_filename
         if fn is None:
@@ -77,7 +77,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
             writeable = os.access(dir_to_check, os.W_OK)
         else:
             writeable = os.access(fn, os.W_OK)
-        writeable = writeable and not ytcfg.getboolean("yt", "onlydeserialize")
+        writeable = writeable and not ytcfg.get("yt", "only_deserialize")
         # We now have our conditional stuff
         self.comm.barrier()
         if not writeable and not exists:
@@ -87,14 +87,14 @@ class Index(ParallelAnalysisInterface, abc.ABC):
                 if not exists:
                     self.__create_data_file(fn)
                 self._data_mode = "a"
-            except IOError:
+            except OSError:
                 self._data_mode = None
                 return
         else:
             self._data_mode = "r"
 
         self.__data_filename = fn
-        self._data_file = h5py.File(fn, self._data_mode)
+        self._data_file = h5py.File(fn, mode=self._data_mode)
 
     def __create_data_file(self, fn):
         # Note that this used to be parallel_root_only; it no longer is,
@@ -143,7 +143,7 @@ class Index(ParallelAnalysisInterface, abc.ABC):
             return
         self._data_file.close()
         del self._data_file
-        self._data_file = h5py.File(self.__data_filename, self._data_mode)
+        self._data_file = h5py.File(self.__data_filename, mode=self._data_mode)
 
     def get_data(self, node, name):
         """

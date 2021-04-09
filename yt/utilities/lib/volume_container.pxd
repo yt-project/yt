@@ -9,13 +9,14 @@ A volume container
 
 cimport numpy as np
 
+
 cdef struct VolumeContainer:
     #-----------------------------------------------------------------------------
     # Encapsulates a volume container used for volume rendering.
     #
     #    n_fields       int              : The number of fields available to the volume renderer.
     #    data           np.float64_t**   : The data within the volume container.
-    #    mask           np.uint8_t*      : The mask of the volume container. It has dimensions one fewer in each direction than data.       
+    #    mask           np.uint8_t*      : The mask of the volume container. It has dimensions one fewer in each direction than data.
     #    left_edge      np.float64_t[3]  : The left edge of the volume container's bounding box.
     #    right_edge     np.float64_t[3]  : The right edge of the volume container's bounding box.
     #    np.float64_t   dds[3]           : The delta dimensions, such that dds[0] = ddx, dds[1] = ddy, dds[2] = ddz.
@@ -41,12 +42,12 @@ cdef inline int vc_index(VolumeContainer *vc, int i, int j, int k):
     #
     # Returns the 3-dimensional index in the volume container given coordinates i, j, k.
     # This is used for 3-dimensional access in a flat container using C-ordering.
-    # This is calculated by: 
+    # This is calculated by:
     #       vc_index = i * vc.dim[1] * vc.dims[2] + j * vc.dims[2] + k
     # and then simplified (as shown below) by combining one multiplication operation.
     #
     # 2-dimensional example:
-    #       A 4 x 3 array may be represented as: 
+    #       A 4 x 3 array may be represented as:
     #                                      a = [0,  1,  2,  3,
     #                                           4,  5,  6,  7,
     #                                           8,  9,  10, 11]

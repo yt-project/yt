@@ -4,7 +4,6 @@ import tempfile
 
 import numpy as np
 
-from yt.convenience import load
 from yt.data_objects.api import create_profile
 from yt.frontends.ytdata.api import (
     YTDataContainerDataset,
@@ -14,6 +13,7 @@ from yt.frontends.ytdata.api import (
     YTSpatialPlotDataset,
     save_as_dataset,
 )
+from yt.loaders import load
 from yt.testing import assert_allclose_units, assert_array_equal, assert_equal
 from yt.units.yt_array import YTArray, YTQuantity
 from yt.utilities.answer_testing.framework import (
@@ -44,7 +44,7 @@ class YTDataFieldTest(AnswerTestingTest):
     _attrs = ("field_name",)
 
     def __init__(self, ds_fn, field, decimals=10, geometric=True):
-        super(YTDataFieldTest, self).__init__(ds_fn)
+        super().__init__(ds_fn)
         self.field = field
         if isinstance(field, tuple) and len(field) == 2:
             self.field_name = field[1]

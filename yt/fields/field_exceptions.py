@@ -8,7 +8,8 @@ class NeedsGridType(ValidationException):
         self.fields = fields
 
     def __str__(self):
-        return f"({self.ghost_zones}, {self.fields})"
+        s = "s" if self.ghost_zones != 1 else ""
+        return f"fields {self.fields} require {self.ghost_zones} ghost zone{s}."
 
 
 class NeedsOriginalGrid(NeedsGridType):

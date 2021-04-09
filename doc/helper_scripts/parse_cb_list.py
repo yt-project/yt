@@ -1,8 +1,9 @@
-from yt.mods import *
 import inspect
 from textwrap import TextWrapper
 
-ds = load("RD0005-mine/RedshiftOutput0005")
+import yt
+
+ds = yt.load("RD0005-mine/RedshiftOutput0005")
 
 output = open("source/visualizing/_cb_docstrings.inc", "w")
 
@@ -29,7 +30,7 @@ def write_docstring(f, name, cls):
     clsname = cls._type_name
     sig = inspect.formatargspec(*inspect.getargspec(cls.__init__))
     sig = sig.replace("**kwargs", "**field_parameters")
-    clsproxy = "yt.visualization.plot_modifications.%s" % (cls.__name__)
+    clsproxy = f"yt.visualization.plot_modifications.{cls.__name__}"
     # docstring = "\n".join(["   %s" % line for line in docstring.split("\n")])
     # print(docstring)
     f.write(
@@ -44,8 +45,8 @@ def write_docstring(f, name, cls):
     # docstring = docstring))
 
 
-for n, c in sorted(callback_registry.items()):
+for n, c in sorted(yt.visualization.api.callback_registry.items()):
     write_docstring(output, n, c)
-    print(".. autoclass:: yt.visualization.plot_modifications.%s" % n)
+    print(f".. autoclass:: yt.visualization.plot_modifications.{n}")
     print("   :members:")
     print()

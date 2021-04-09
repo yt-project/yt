@@ -1,7 +1,7 @@
 import numpy as np
 
 import yt
-from yt.data_objects.level_sets.api import *
+from yt.data_objects.level_sets.api import Clump, find_clumps
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 
@@ -37,6 +37,9 @@ fn = master_clump.save_as_dataset(fields=["density", "particle_mass"])
 
 # We can traverse the clump hierarchy to get a list of all of the 'leaf' clumps
 leaf_clumps = master_clump.leaves
+
+# Get total cell and particle masses for each leaf clump
+leaf_masses = [leaf.quantities.total_mass() for leaf in leaf_clumps]
 
 # If you'd like to visualize these clumps, a list of clumps can be supplied to
 # the "clumps" callback on a plot.  First, we create a projection plot:

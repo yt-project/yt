@@ -6,14 +6,15 @@ import weakref
 from functools import wraps
 
 import numpy as np
+from more_itertools import always_iterable
 
+from yt._maintenance.deprecation import issue_deprecation_warning
 from yt.config import ytcfg
-from yt.convenience import load
 from yt.data_objects.analyzer_objects import AnalysisTask, create_quantity_proxy
 from yt.data_objects.particle_trajectories import ParticleTrajectories
-from yt.funcs import ensure_list, issue_deprecation_warning, iterable, mylog
+from yt.funcs import is_sequence, mylog
 from yt.units.yt_array import YTArray, YTQuantity
-from yt.utilities.exceptions import YTException, YTOutputNotIdentified
+from yt.utilities.exceptions import YTException
 from yt.utilities.object_registries import (
     analysis_task_registry,
     data_object_registry,
@@ -54,22 +55,6 @@ def get_ds_prop(propname):
 
     cls = type(propname, (AnalysisTask,), dict(eval=_eval, _params=tuple()))
     return cls
-
-
-def get_filenames_from_glob_pattern(outputs):
-    """
-    Helper function to DatasetSeries.__new__
-    handle a special case where "outputs" is assumed to be really a pattern string
-    """
-    pattern = outputs
-    epattern = os.path.expanduser(pattern)
-    data_dir = ytcfg.get("yt", "test_data_dir")
-    # if not match if found from the current work dir,
-    # we try to match the pattern from the test data dir
-    file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
-    if not file_list:
-        raise OSError(f"No match found for pattern : {pattern}")
-    return sorted(file_list)
 
 
 attrs = (
@@ -114,10 +99,11 @@ class DatasetSeries:
 
     Parameters
     ----------
-    outputs : list or pattern
+    outputs : list of filenames, or pattern
         A list of filenames, for instance ["DD0001/DD0001", "DD0002/DD0002"],
         or a glob pattern (i.e. containing wildcards '[]?!*') such as "DD*/DD*.index".
         In the latter case, results are sorted automatically.
+        Filenames and patterns can be of type str, os.Pathlike or bytes.
     parallel : True, False or int
         This parameter governs the behavior when .piter() is called on the
         resultant DatasetSeries object.  If this is set to False, the time
@@ -163,13 +149,12 @@ class DatasetSeries:
             mylog.debug("Registering simulation: %s as %s", code_name, cls)
 
     def __new__(cls, outputs, *args, **kwargs):
-        if isinstance(outputs, str):
-            outputs = get_filenames_from_glob_pattern(outputs)
-        ret = super(DatasetSeries, cls).__new__(cls)
         try:
-            ret._pre_outputs = outputs[:]
+            outputs = cls._get_filenames_from_glob_pattern(outputs)
         except TypeError:
-            raise YTOutputNotIdentified(outputs)
+            pass
+        ret = super().__new__(cls)
+        ret._pre_outputs = outputs[:]
         return ret
 
     def __init__(
@@ -182,7 +167,7 @@ class DatasetSeries:
     ):
         # This is needed to properly set _pre_outputs for Simulation subclasses.
         self._mixed_dataset_types = mixed_dataset_types
-        if iterable(outputs) and not isinstance(outputs, str):
+        if is_sequence(outputs) and not isinstance(outputs, str):
             self._pre_outputs = outputs[:]
         self.tasks = AnalysisTaskProxy(self)
         self.params = TimeSeriesParametersContainer(self)
@@ -200,15 +185,21 @@ class DatasetSeries:
         self.parallel = parallel
         self.kwargs = kwargs
 
-    def __iter__(self):
-        # We can make this fancier, but this works
-        for o in self._pre_outputs:
-            if isinstance(o, str):
-                ds = self._load(o, **self.kwargs)
-                self._setup_function(ds)
-                yield ds
-            else:
-                yield o
+    @staticmethod
+    def _get_filenames_from_glob_pattern(outputs):
+        """
+        Helper function to DatasetSeries.__new__
+        handle a special case where "outputs" is assumed to be really a pattern string
+        """
+        pattern = outputs
+        epattern = os.path.expanduser(pattern)
+        data_dir = ytcfg.get("yt", "test_data_dir")
+        # if no match if found from the current work dir,
+        # we try to match the pattern from the test data dir
+        file_list = glob.glob(epattern) or glob.glob(os.path.join(data_dir, epattern))
+        if not file_list:
+            raise FileNotFoundError(f"No match found for pattern : {pattern}")
+        return sorted(file_list)
 
     def __getitem__(self, key):
         if isinstance(key, slice):
@@ -219,7 +210,7 @@ class DatasetSeries:
                 self._pre_outputs[key], parallel=self.parallel, **self.kwargs
             )
         o = self._pre_outputs[key]
-        if isinstance(o, str):
+        if isinstance(o, (str, os.PathLike)):
             o = self._load(o, **self.kwargs)
             self._setup_function(o)
         return o
@@ -340,11 +331,10 @@ class DatasetSeries:
             yield next_ret
 
     def eval(self, tasks, obj=None):
-        tasks = ensure_list(tasks)
         return_values = {}
         for store, ds in self.piter(return_values):
             store.result = []
-            for task in tasks:
+            for task in always_iterable(tasks):
                 try:
                     style = inspect.getargspec(task.eval)[0][1]
                     if style == "ds":
@@ -406,7 +396,9 @@ class DatasetSeries:
         """
         issue_deprecation_warning(
             "DatasetSeries.from_filenames() is deprecated and will be removed "
-            "in a future version of yt. Use DatasetSeries() directly."
+            "in a future version of yt. Use DatasetSeries() directly.",
+            since="4.0.0",
+            removal="4.1.0",
         )
         obj = cls(filenames, parallel=parallel, setup_function=setup_function, **kwargs)
         return obj
@@ -426,6 +418,8 @@ class DatasetSeries:
     _dataset_cls = None
 
     def _load(self, output_fn, **kwargs):
+        from yt.loaders import load
+
         if self._dataset_cls is not None:
             return self._dataset_cls(output_fn, **kwargs)
         elif self._mixed_dataset_types:
@@ -473,8 +467,8 @@ class DatasetSeries:
 
         Note
         ----
-        This function will fail if there are duplicate particle ids or if some of the particle
-        disappear.
+        This function will fail if there are duplicate particle ids or if some of the
+        particle disappear.
         """
         return ParticleTrajectories(
             self, indices, fields=fields, suppress_logging=suppress_logging, ptype=ptype
@@ -508,12 +502,10 @@ class DatasetSeriesObject:
         self.data_object_name = data_object_name
         self._args = args
         self._kwargs = kwargs
-        qs = dict(
-            [
-                (qn, create_quantity_proxy(qv))
-                for qn, qv in derived_quantity_registry.items()
-            ]
-        )
+        qs = {
+            qn: create_quantity_proxy(qv)
+            for qn, qv in derived_quantity_registry.items()
+        }
         self.quantities = TimeSeriesQuantitiesContainer(self, qs)
 
     def eval(self, tasks):
@@ -534,7 +526,7 @@ class SimulationTimeSeries(DatasetSeries):
         """
 
         if not os.path.exists(parameter_filename):
-            raise OSError(parameter_filename)
+            raise FileNotFoundError(parameter_filename)
         self.parameter_filename = parameter_filename
         self.basename = os.path.basename(parameter_filename)
         self.directory = os.path.dirname(parameter_filename)

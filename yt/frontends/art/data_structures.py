@@ -6,7 +6,7 @@ import weakref
 import numpy as np
 
 import yt.utilities.fortran_utils as fpu
-from yt.data_objects.octree_subset import OctreeSubset
+from yt.data_objects.index_subobjects.octree_subset import OctreeSubset
 from yt.data_objects.particle_unions import ParticleUnion
 from yt.data_objects.static_output import Dataset, ParticleFile
 from yt.frontends.art.definitions import (
@@ -43,7 +43,7 @@ class ARTIndex(OctreeIndex):
         self.directory = os.path.dirname(self.index_filename)
         self.max_level = ds.max_level
         self.float_type = np.float64
-        super(ARTIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
 
     def get_smallest_dx(self):
         """
@@ -246,7 +246,7 @@ class ARTDataset(Dataset):
         self.domain_right_edge = np.zeros(3, dtype="float") + 1.0
         self.dimensionality = 3
         self.refine_by = 2
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.cosmological_simulation = True
         self.parameters = {}
         self.parameters.update(constants)
@@ -359,7 +359,7 @@ class ARTDataset(Dataset):
         mylog.info("Max level is %02i", self.max_level)
 
     def create_field_info(self):
-        super(ARTDataset, self).create_field_info()
+        super().create_field_info()
         if "wspecies" in self.parameters:
             # We create dark_matter and stars unions.
             ptr = self.particle_types_raw
@@ -369,12 +369,12 @@ class ARTDataset(Dataset):
             self.add_particle_union(pu)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = f"{args[0]}"
+        f = str(filename)
         prefix, suffix = filename_pattern["amr"]
         if not os.path.isfile(f):
             return False
@@ -391,7 +391,7 @@ class ARTDataset(Dataset):
 
 class ARTParticleFile(ParticleFile):
     def __init__(self, ds, io, filename, file_id):
-        super(ARTParticleFile, self).__init__(ds, io, filename, file_id, range=None)
+        super().__init__(ds, io, filename, file_id, range=None)
         self.total_particles = {}
         for ptype, count in zip(
             ds.particle_types_raw, ds.parameters["total_particles"]
@@ -414,9 +414,6 @@ class ARTParticleIndex(ParticleIndex):
             df = cls(self.dataset, self.io, template % {"num": i}, fi)
             fi += 1
             self.data_files.append(df)
-        self.total_particles = sum(
-            sum(d.total_particles.values()) for d in self.data_files
-        )
 
 
 class DarkMatterARTDataset(ARTDataset):
@@ -528,7 +525,7 @@ class DarkMatterARTDataset(ARTDataset):
         self.domain_right_edge = np.zeros(3, dtype="float") + 1.0
         self.dimensionality = 3
         self.refine_by = 2
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.cosmological_simulation = True
         self.parameters = {}
         self.parameters.update(constants)
@@ -667,12 +664,12 @@ class DarkMatterARTDataset(ARTDataset):
         pass
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
+    def _is_valid(cls, filename, *args, **kwargs):
         """
         Defined for the NMSU file naming scheme.
         This could differ for other formats.
         """
-        f = f"{args[0]}"
+        f = str(filename)
         prefix, suffix = filename_pattern["particle_data"]
         if not os.path.isfile(f):
             return False
@@ -885,10 +882,10 @@ class ARTDomainFile:
 
     def _read_amr_level(self, oct_handler):
         """Open the oct file, read in octs level-by-level.
-           For each oct, only the position, index, level and domain
-           are needed - its position in the octree is found automatically.
-           The most important is finding all the information to feed
-           oct_handler.add
+        For each oct, only the position, index, level and domain
+        are needed - its position in the octree is found automatically.
+        The most important is finding all the information to feed
+        oct_handler.add
         """
         self.level_offsets
         f = open(self.ds._file_amr, "rb")
@@ -937,7 +934,3 @@ class ARTDomainFile:
 
     def included(self, selector):
         return True
-        if getattr(selector, "domain_id", None) is not None:
-            return selector.domain_id == self.domain_id
-        domain_ids = self.ds.index.oct_handler.domain_identify(selector)
-        return self.domain_id in domain_ids

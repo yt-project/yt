@@ -5,7 +5,7 @@ import numpy as np
 
 from yt.config import ytcfg
 from yt.data_objects.api import ImageArray
-from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, iterable, mylog
+from yt.funcs import ensure_numpy_array, get_num_threads, get_pbar, is_sequence, mylog
 from yt.units.yt_array import YTArray
 from yt.utilities.amr_kdtree.api import AMRKDTree
 from yt.utilities.exceptions import YTNotInsideNotebook
@@ -172,16 +172,16 @@ class Camera(ParallelAnalysisInterface):
         ParallelAnalysisInterface.__init__(self)
         if ds is not None:
             self.ds = ds
-        if not iterable(resolution):
+        if not is_sequence(resolution):
             resolution = (resolution, resolution)
         self.resolution = resolution
         self.sub_samples = sub_samples
         self.rotation_vector = north_vector
-        if iterable(width) and len(width) > 1 and isinstance(width[1], str):
+        if is_sequence(width) and len(width) > 1 and isinstance(width[1], str):
             width = self.ds.quan(width[0], units=width[1])
             # Now convert back to code length for subsequent manipulation
             width = width.in_units("code_length").value
-        if not iterable(width):
+        if not is_sequence(width):
             width = (width, width, width)  # left/right, top/bottom, front/back
         if not isinstance(width, YTArray):
             width = self.ds.arr(width, units="code_length")
@@ -632,7 +632,7 @@ class Camera(ParallelAnalysisInterface):
         """
         if width is None:
             width = self.width
-        if not iterable(width):
+        if not is_sequence(width):
             width = (width, width, width)  # left/right, tom/bottom, front/back
         self.width = width
         if center is not None:
@@ -668,10 +668,14 @@ class Camera(ParallelAnalysisInterface):
             self.orienter.unit_vectors[0],
             self.orienter.unit_vectors[1],
             np.array(self.width, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "plane-parallel"}
+        kwargs = {
+            "lens_type": "plane-parallel",
+        }
+        return args, kwargs
 
     def get_sampler(self, args, kwargs):
         if self.use_light:
@@ -1011,7 +1015,7 @@ class Camera(ParallelAnalysisInterface):
             final = self.ds.arr(final, units="code_length")
         if exponential:
             if final_width is not None:
-                if not iterable(final_width):
+                if not is_sequence(final_width):
                     final_width = [final_width, final_width, final_width]
                 if not isinstance(final_width, YTArray):
                     final_width = self.ds.arr(final_width, units="code_length")
@@ -1026,7 +1030,7 @@ class Camera(ParallelAnalysisInterface):
             dx = position_diff ** (1.0 / n_steps)
         else:
             if final_width is not None:
-                if not iterable(final_width):
+                if not is_sequence(final_width):
                     final_width = [final_width, final_width, final_width]
                 if not isinstance(final_width, YTArray):
                     final_width = self.ds.arr(final_width, units="code_length")
@@ -1359,10 +1363,14 @@ class PerspectiveCamera(Camera):
             dummy,
             dummy,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "perspective"}
+        kwargs = {
+            "lens_type": "perspective",
+        }
+        return args, kwargs
 
     def _render(self, double_check, num_threads, image, sampler):
         ncells = sum(b.source_mask.size for b in self.volume.bricks)
@@ -1499,41 +1507,6 @@ class HEALpixCamera(Camera):
     ):
         mylog.error("I am sorry, HEALpix Camera does not work yet in 3.0")
         raise NotImplementedError
-        ParallelAnalysisInterface.__init__(self)
-        if ds is not None:
-            self.ds = ds
-        self.center = np.array(center, dtype="float64")
-        self.radius = radius
-        self.inner_radius = inner_radius
-        self.nside = nside
-        self.use_kd = use_kd
-        if transfer_function is None:
-            transfer_function = ProjectionTransferFunction()
-        self.transfer_function = transfer_function
-
-        if isinstance(self.transfer_function, ProjectionTransferFunction):
-            self._sampler_object = InterpolatedProjectionSampler
-            self._needs_tf = 0
-        else:
-            self._sampler_object = VolumeRenderSampler
-            self._needs_tf = 1
-
-        if fields is None:
-            fields = ["density"]
-        self.fields = fields
-        self.sub_samples = sub_samples
-        self.log_fields = log_fields
-        dd = ds.all_data()
-        efields = dd._determine_fields(self.fields)
-        if self.log_fields is None:
-            self.log_fields = [self.ds._get_field_info(*f).take_log for f in efields]
-        self.use_light = use_light
-        self.light_dir = None
-        self.light_rgba = None
-        if volume is None:
-            volume = AMRKDTree(self.ds, data_source=self.data_source)
-        self.use_kd = isinstance(volume, AMRKDTree)
-        self.volume = volume
 
     def new_image(self):
         image = np.zeros((12 * self.nside ** 2, 1, 4), dtype="float64", order="C")
@@ -1558,10 +1531,12 @@ class HEALpixCamera(Camera):
             uv,
             uv,
             np.zeros(3, dtype="float64"),
+            "KDTree",
         )
         if self._needs_tf:
             args += (self.transfer_function,)
         args += (self.sub_samples,)
+
         return args, {}
 
     def _render(self, double_check, num_threads, image, sampler):
@@ -1731,7 +1706,7 @@ class FisheyeCamera(Camera):
         self.center = np.array(center, dtype="float64")
         self.radius = radius
         self.fov = fov
-        if iterable(resolution):
+        if is_sequence(resolution):
             raise RuntimeError("Resolution must be a single int")
         self.resolution = resolution
         if transfer_function is None:
@@ -1778,6 +1753,7 @@ class FisheyeCamera(Camera):
             uv,
             uv,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
@@ -1845,13 +1821,13 @@ class MosaicCamera(Camera):
         self.procs_per_wg = procs_per_wg
         if ds is not None:
             self.ds = ds
-        if not iterable(resolution):
+        if not is_sequence(resolution):
             resolution = (int(resolution / nimx), int(resolution / nimy))
         self.resolution = resolution
         self.nimx = nimx
         self.nimy = nimy
         self.sub_samples = sub_samples
-        if not iterable(width):
+        if not is_sequence(width):
             width = (width, width, width)  # front/back, left/right, top/bottom
         self.width = np.array([width[0], width[1], width[2]])
         self.center = center
@@ -2099,7 +2075,6 @@ class ProjectionCamera(Camera):
                 def temp_weightfield(a, b):
                     tr = b[f].astype("float64") * b[w]
                     return b.apply_units(tr, a.units)
-                    return tr
 
                 return temp_weightfield
 
@@ -2174,9 +2149,11 @@ class ProjectionCamera(Camera):
             self.orienter.unit_vectors[0],
             self.orienter.unit_vectors[1],
             np.array(self.width, dtype="float64"),
+            "KDTree",
             self.sub_samples,
         )
-        return args, {"lens_type": "plane-parallel"}
+        kwargs = {"lens_type": "plane-parallel"}
+        return args, kwargs
 
     def finalize_image(self, image):
         ds = self.ds
@@ -2416,10 +2393,12 @@ class StereoSphericalCamera(Camera):
             dummy,
             dummy,
             np.zeros(3, dtype="float64"),
+            "KDTree",
             self.transfer_function,
             self.sub_samples,
         )
-        return args, {"lens_type": "stereo-spherical"}
+        kwargs = {"lens_type": "stereo-spherical"}
+        return args, kwargs
 
     def snapshot(
         self,

@@ -447,8 +447,8 @@ cdef class ParticleSmoothOperation:
         # domains for them, and the number of particles for each.
         cdef int ni, i, j, k
         cdef np.int64_t offset, pn, pc
-        cdef np.float64_t pos[3] 
-        cdef np.float64_t ex[2] 
+        cdef np.float64_t pos[3]
+        cdef np.float64_t ex[2]
         cdef np.float64_t DR[2]
         cdef np.float64_t cp, r2_trunc, r2, dist
         dq.neighbor_reset()

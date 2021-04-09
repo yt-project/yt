@@ -45,7 +45,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
     def _read_particle_coords(self, chunks, ptf):
         # This will read chunks and yield the results.
         chunks = list(chunks)
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -69,7 +69,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _yield_coordinates(self, data_file, needed_ptype=None):
         si, ei = data_file.start, data_file.end
-        f = h5py.File(data_file.filename, "r")
+        f = h5py.File(data_file.filename, mode="r")
         pcount = f["/Header"].attrs["NumPart_ThisFile"][:].astype("int")
         np.clip(pcount - si, 0, ei - si, out=pcount)
         pcount = pcount.sum()
@@ -87,12 +87,13 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
             yield key, pos
         f.close()
 
-    def _generate_smoothing_length(self, data_files, kdtree):
+    def _generate_smoothing_length(self, index):
+        data_files = index.data_files
         if not self.ds.gen_hsmls:
             return
         hsml_fn = data_files[0].filename.replace(".hdf5", ".hsml.hdf5")
         if os.path.exists(hsml_fn):
-            with h5py.File(hsml_fn, "r") as f:
+            with h5py.File(hsml_fn, mode="r") as f:
                 file_hash = f.attrs["q"]
             if file_hash != self.ds._file_hash:
                 mylog.warning("Replacing hsml files.")
@@ -116,6 +117,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         for fn, count in counts.items():
             offsets[fn] = offset
             offset += count
+        kdtree = index.kdtree
         positions = uconcatenate(positions)[kdtree.idx]
         hsml = generate_smoothing_length(positions, kdtree, self.ds._num_neighbors)
         dtype = positions.dtype
@@ -158,7 +160,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
 
     def _read_particle_fields(self, chunks, ptf, selector):
         # Now we have all the sizes, and we can allocate
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -232,7 +234,7 @@ class IOHandlerGadgetHDF5(IOHandlerSPH):
         f.close()
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
-        npart = dict((f"PartType{i}", v) for i, v in enumerate(pcount))
+        npart = {f"PartType{i}": v for i, v in enumerate(pcount)}
         return npart
 
     def _identify_fields(self, data_file):
@@ -328,12 +330,12 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         self._vector_fields = dict(self._vector_fields)
         self._fields = ds._field_spec
         self._ptypes = ds._ptype_spec
-        self.data_files = set([])
+        self.data_files = set()
         gformat, endianswap = ds._header.gadget_format
         # gadget format 1 original, 2 with block name
         self._format = gformat
         self._endian = endianswap
-        super(IOHandlerGadgetBinary, self).__init__(ds, *args, **kwargs)
+        super().__init__(ds, *args, **kwargs)
 
     @property
     def var_mass(self):
@@ -349,7 +351,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         raise NotImplementedError
 
     def _read_particle_coords(self, chunks, ptf):
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -358,6 +360,9 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             tp = data_file.total_particles
             f = open(data_file.filename, "rb")
             for ptype in ptf:
+                if tp[ptype] == 0:
+                    # skip if there are no particles
+                    continue
                 f.seek(poff[ptype, "Coordinates"], os.SEEK_SET)
                 pos = self._read_field_from_file(f, tp[ptype], "Coordinates")
                 if ptype == self.ds._sph_ptypes[0]:
@@ -369,7 +374,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
             f.close()
 
     def _read_particle_fields(self, chunks, ptf, selector):
-        data_files = set([])
+        data_files = set()
         for chunk in chunks:
             for obj in chunk.objs:
                 data_files.update(obj.data_files)
@@ -473,7 +478,7 @@ class IOHandlerGadgetBinary(IOHandlerSPH):
         pcount = np.array(data_file.header["Npart"])
         if None not in (si, ei):
             np.clip(pcount - si, 0, ei - si, out=pcount)
-        npart = dict((self._ptypes[i], v) for i, v in enumerate(pcount))
+        npart = {self._ptypes[i]: v for i, v in enumerate(pcount)}
         return npart
 
     # header is 256, but we have 4 at beginning and end for ints

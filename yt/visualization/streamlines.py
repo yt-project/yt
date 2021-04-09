@@ -64,7 +64,7 @@ class Streamlines(ParallelAnalysisInterface):
     --------
     >>> import yt
     >>> import numpy as np
-    >>> import matplotlib.pylab as pl
+    >>> import matplotlib.pyplot as plt
     >>>
     >>> from yt.visualization.api import Streamlines
     >>> from mpl_toolkits.mplot3d import Axes3D
@@ -83,12 +83,12 @@ class Streamlines(ParallelAnalysisInterface):
     >>> streamlines.integrate_through_volume()
     >>>
     >>> # Make a 3D plot of the streamlines and save it to disk
-    >>> fig=pl.figure()
+    >>> fig = plt.figure()
     >>> ax = Axes3D(fig)
     >>> for stream in streamlines.streamlines:
     >>>     stream = stream[np.all(stream != 0.0, axis=1)]
     >>>     ax.plot3D(stream[:,0], stream[:,1], stream[:,2], alpha=0.1)
-    >>> pl.savefig('streamlines.png')
+    >>> plt.savefig('streamlines.png')
     """
 
     def __init__(

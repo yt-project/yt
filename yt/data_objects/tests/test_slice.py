@@ -1,7 +1,7 @@
 import os
 import tempfile
+from unittest import mock
 
-import mock
 import numpy as np
 
 from yt.testing import assert_equal, fake_random_ds
@@ -11,7 +11,7 @@ from yt.units.unit_object import Unit
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def teardown_func(fns):
@@ -75,7 +75,9 @@ def test_slice(pf):
 
 
 def test_slice_over_edges():
-    ds = fake_random_ds(64, nprocs=8, fields=["density"], negative=[False])
+    ds = fake_random_ds(
+        64, nprocs=8, fields=("density",), units=("g/cm**3",), negative=[False]
+    )
     slc = ds.slice(0, 0.0)
     slc["density"]
     slc = ds.slice(1, 0.5)
@@ -83,7 +85,9 @@ def test_slice_over_edges():
 
 
 def test_slice_over_outer_boundary():
-    ds = fake_random_ds(64, nprocs=8, fields=["density"], negative=[False])
+    ds = fake_random_ds(
+        64, nprocs=8, fields=("density",), units=("g/cm**3",), negative=[False]
+    )
     slc = ds.slice(2, 1.0)
     slc["density"]
     assert_equal(slc["density"].size, 0)

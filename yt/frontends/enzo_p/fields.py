@@ -20,8 +20,8 @@ class EnzoPFieldInfo(FieldInfoContainer):
         ("acceleration_z", (acc_units, ["acceleration_z"], None)),
         ("density", (rho_units, ["density"], None)),
         ("density_total", (rho_units, ["total_density"], None)),
-        ("total_energy", (energy_units, ["total_energy"], None)),
-        ("internal_energy", (energy_units, ["internal_energy"], None)),
+        ("total_energy", (energy_units, ["specific_total_energy"], None)),
+        ("internal_energy", (energy_units, ["specific_internal_energy"], None)),
     )
 
     known_particle_fields = (
@@ -38,12 +38,18 @@ class EnzoPFieldInfo(FieldInfoContainer):
     )
 
     def __init__(self, ds, field_list, slice_info=None):
-        super(EnzoPFieldInfo, self).__init__(ds, field_list, slice_info=slice_info)
+        super().__init__(ds, field_list, slice_info=slice_info)
+
+    def setup_fluid_fields(self):
+        super().setup_fluid_fields()
+        self.alias(
+            ("gas", "total_energy"),
+            ("gas", "specific_total_energy"),
+            deprecate=("4.0.0", "4.1.0"),
+        )
 
     def setup_particle_fields(self, ptype, ftype="gas", num_neighbors=64):
-        super(EnzoPFieldInfo, self).setup_particle_fields(
-            ptype, ftype=ftype, num_neighbors=num_neighbors
-        )
+        super().setup_particle_fields(ptype, ftype=ftype, num_neighbors=num_neighbors)
         self.setup_particle_mass_field(ptype)
 
     def setup_particle_mass_field(self, ptype):

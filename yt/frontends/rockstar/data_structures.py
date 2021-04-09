@@ -3,11 +3,11 @@ import os
 
 import numpy as np
 
-import yt.utilities.fortran_utils as fpu
 from yt.data_objects.static_output import ParticleDataset
 from yt.frontends.halo_catalog.data_structures import HaloCatalogFile
 from yt.funcs import setdefaultattr
 from yt.geometry.particle_geometry_handler import ParticleIndex
+from yt.utilities import fortran_utils as fpu
 from yt.utilities.cosmology import Cosmology
 
 from .definitions import header_dt
@@ -22,7 +22,7 @@ class RockstarBinaryFile(HaloCatalogFile):
             f.seek(0, os.SEEK_END)
             self._file_size = f.tell()
 
-        super(RockstarBinaryFile, self).__init__(ds, io, filename, file_id, range)
+        super().__init__(ds, io, filename, file_id, range)
 
     def _read_particle_positions(self, ptype, f=None):
         """
@@ -63,7 +63,7 @@ class RockstarDataset(ParticleDataset):
         index_order=None,
         index_filename=None,
     ):
-        super(RockstarDataset, self).__init__(
+        super().__init__(
             filename,
             dataset_type,
             units_override=units_override,
@@ -94,7 +94,7 @@ class RockstarDataset(ParticleDataset):
         self.current_time = cosmo.lookback_time(self.current_redshift, 1e6).in_units(
             "s"
         )
-        self.periodicity = (True, True, True)
+        self._periodicity = (True, True, True)
         self.particle_types = "halos"
         self.particle_types_raw = "halos"
 
@@ -112,10 +112,10 @@ class RockstarDataset(ParticleDataset):
         setdefaultattr(self, "time_unit", self.length_unit / self.velocity_unit)
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        if not args[0].endswith(".bin"):
+    def _is_valid(cls, filename, *args, **kwargs):
+        if not filename.endswith(".bin"):
             return False
-        with open(args[0], "rb") as f:
+        with open(filename, mode="rb") as f:
             header = fpu.read_cattrs(f, header_dt)
             if header["magic"] == 18077126535843729616:
                 return True

@@ -6,14 +6,12 @@ import weakref
 
 import numpy as np
 
-from yt.data_objects.particle_container import ParticleContainer
+from yt.data_objects.index_subobjects.particle_container import ParticleContainer
 from yt.funcs import get_pbar, only_on_root
 from yt.geometry.geometry_handler import Index, YTDataChunk
 from yt.geometry.particle_oct_container import ParticleBitmap
 from yt.utilities.lib.fnv_hash import fnv_hash
 from yt.utilities.logger import ytLogger as mylog
-
-CHUNKSIZE = 64 ** 3
 
 
 class ParticleIndex(Index):
@@ -23,7 +21,7 @@ class ParticleIndex(Index):
         self.dataset_type = dataset_type
         self.dataset = weakref.proxy(ds)
         self.float_type = np.float64
-        super(ParticleIndex, self).__init__(ds, dataset_type)
+        super().__init__(ds, dataset_type)
         self._initialize_index()
 
     def _setup_geometry(self):
@@ -45,6 +43,37 @@ class ParticleIndex(Index):
     def convert(self, unit):
         return self.dataset.conversion_factors[unit]
 
+    @property
+    def chunksize(self):
+        # This can be overridden in subclasses
+        return 64 ** 3
+
+    _data_files = None
+
+    @property
+    def data_files(self):
+        if self._data_files is not None:
+            return self._data_files
+
+        self._setup_filenames()
+        return self._data_files
+
+    @data_files.setter
+    def data_files(self, value):
+        self._data_files = value
+
+    _total_particles = None
+
+    @property
+    def total_particles(self):
+        if self._total_particles is not None:
+            return self._total_particles
+
+        self._total_particles = sum(
+            sum(d.total_particles.values()) for d in self.data_files
+        )
+        return self._total_particles
+
     def _setup_filenames(self):
         template = self.dataset.filename_template
         ndoms = self.dataset.file_count
@@ -53,18 +82,20 @@ class ParticleIndex(Index):
         fi = 0
         for i in range(int(ndoms)):
             start = 0
-            end = start + CHUNKSIZE
+            if self.chunksize > 0:
+                end = start + self.chunksize
+            else:
+                end = None
             while True:
                 df = cls(self.dataset, self.io, template % {"num": i}, fi, (start, end))
                 if max(df.total_particles.values()) == 0:
                     break
                 fi += 1
                 self.data_files.append(df)
+                if self.chunksize <= 0:
+                    break
                 start = end
-                end += CHUNKSIZE
-        self.total_particles = sum(
-            sum(d.total_particles.values()) for d in self.data_files
-        )
+                end += self.chunksize
 
     def _initialize_index(self):
         ds = self.dataset
@@ -233,7 +264,6 @@ class ParticleIndex(Index):
 
     def _detect_output_fields(self):
         # TODO: Add additional fields
-        self._setup_filenames()
         dsl = []
         units = {}
         pcounts = self._get_particle_type_counts()
@@ -251,7 +281,7 @@ class ParticleIndex(Index):
                     dsl.append(f)
         self.field_list = dsl
         ds = self.dataset
-        ds.particle_types = tuple(set(pt for pt, ds in dsl))
+        ds.particle_types = tuple({pt for pt, ds in dsl})
         # This is an attribute that means these particle types *actually*
         # exist.  As in, they are real, in the dataset.
         ds.field_units.update(units)
@@ -273,10 +303,25 @@ class ParticleIndex(Index):
                     )
                     nfiles = len(file_masks)
                 dobj._chunk_info = [None for _ in range(nfiles)]
+
+                # The following was moved here from ParticleContainer in order
+                # to make the ParticleContainer object pickleable. By having
+                # the base_selector as its own argument, we avoid having to
+                # rebuild the index on unpickling a ParticleContainer.
+                if hasattr(dobj, "base_selector"):
+                    base_selector = dobj.base_selector
+                    base_region = dobj.base_region
+                else:
+                    base_region = dobj
+                    base_selector = dobj.selector
+
                 for i in range(nfiles):
                     domain_id = i + 1
                     dobj._chunk_info[i] = ParticleContainer(
-                        dobj, [self.data_files[dfi[i]]], domain_id=domain_id
+                        base_region,
+                        base_selector,
+                        [self.data_files[dfi[i]]],
+                        domain_id=domain_id,
                     )
                 # NOTE: One fun thing about the way IO works is that it
                 # consolidates things quite nicely.  So we should feel free to

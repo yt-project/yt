@@ -1,7 +1,7 @@
 import os
 import tempfile
+from unittest import mock
 
-import mock
 import numpy as np
 
 from yt.testing import assert_equal, assert_rel_equal, fake_amr_ds, fake_random_ds
@@ -13,7 +13,7 @@ LENGTH_UNIT = 2.0
 def setup():
     from yt.config import ytcfg
 
-    ytcfg["yt", "__withintesting"] = "True"
+    ytcfg["yt", "internals", "within_testing"] = True
 
 
 def teardown_func(fns):

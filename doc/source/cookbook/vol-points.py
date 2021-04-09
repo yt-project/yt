@@ -1,7 +1,8 @@
-import yt
 import numpy as np
-from yt.visualization.volume_rendering.api import PointSource
+
+import yt
 from yt.units import kpc
+from yt.visualization.volume_rendering.api import PointSource
 
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
 

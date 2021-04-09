@@ -34,7 +34,7 @@ class ZBuffer:
     """
 
     def __init__(self, rgba, z):
-        super(ZBuffer, self).__init__()
+        super().__init__()
         assert rgba.shape[: len(z.shape)] == z.shape
         self.rgba = rgba
         self.z = z

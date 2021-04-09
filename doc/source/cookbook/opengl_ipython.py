@@ -1,11 +1,11 @@
 import yt
+from yt.visualization.volume_rendering import glfw_inputhook  # NOQA: F401
+from yt.visualization.volume_rendering.interactive_loop import RenderingContext
 from yt.visualization.volume_rendering.interactive_vr import (
-    SceneGraph,
     BlockCollection,
+    SceneGraph,
     TrackballCamera,
 )
-from yt.visualization.volume_rendering.interactive_loop import RenderingContext
-from yt.visualization.volume_rendering import glfw_inputhook
 
 rc = RenderingContext(1280, 960)
 

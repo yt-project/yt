@@ -7,11 +7,12 @@ from functools import wraps
 from io import StringIO
 
 import numpy as np
+from more_itertools import always_iterable
 
 import yt.utilities.logger
 from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
-from yt.funcs import ensure_list, iterable
+from yt.funcs import is_sequence
 from yt.units.unit_registry import UnitRegistry
 from yt.units.yt_array import YTArray
 from yt.utilities.exceptions import YTNoDataInObjectError
@@ -106,15 +107,11 @@ def enable_parallelism(suppress_logging=False, communicator=None):
         communicator.size,
     )
     communication_system.push(communicator)
-    ytcfg["yt", "__global_parallel_rank"] = str(communicator.rank)
-    ytcfg["yt", "__global_parallel_size"] = str(communicator.size)
-    ytcfg["yt", "__parallel"] = "True"
+    ytcfg["yt", "internals", "global_parallel_rank"] = communicator.rank
+    ytcfg["yt", "internals", "global_parallel_size"] = communicator.size
+    ytcfg["yt", "internals", "parallel"] = True
     if exe_name == "embed_enzo" or ("_parallel" in dir(sys) and sys._parallel):
-        ytcfg["yt", "inline"] = "True"
-    if communicator.rank > 0:
-        if ytcfg.getboolean("yt", "LogFile"):
-            ytcfg["yt", "LogFile"] = "False"
-            yt.utilities.logger.disable_file_logging()
+        ytcfg["yt", "inline"] = True
     yt.utilities.logger.uncolorize_logging()
     # Even though the uncolorize function already resets the format string,
     # we reset it again so that it includes the processor.
@@ -124,12 +121,12 @@ def enable_parallelism(suppress_logging=False, communicator=None):
     if len(yt.utilities.logger.ytLogger.handlers) > 0:
         yt.utilities.logger.ytLogger.handlers[0].setFormatter(f)
 
-    if ytcfg.getboolean("yt", "parallel_traceback"):
+    if ytcfg.get("yt", "parallel_traceback"):
         sys.excepthook = traceback_writer_hook("_%03i" % communicator.rank)
     else:
         sys.excepthook = default_mpi_excepthook
 
-    if ytcfg.getint("yt", "LogLevel") < 20:
+    if ytcfg.get("yt", "log_level") < 20:
         yt.utilities.logger.ytLogger.warning(
             "Log Level is set low -- this could affect parallel performance!"
         )
@@ -177,7 +174,7 @@ class ObjectIterator:
             self._objs = [
                 g
                 for g in gs
-                if g.proc_num == ytcfg.getint("yt", "__topcomm_parallel_rank")
+                if g.proc_num == ytcfg.get("yt", "internals", "topcomm_parallel_rank")
             ]
             self._use_all = True
         else:
@@ -189,8 +186,7 @@ class ObjectIterator:
         self.just_list = just_list
 
     def __iter__(self):
-        for obj in self._objs:
-            yield obj
+        yield from self._objs
 
 
 class ParallelObjectIterator(ObjectIterator):
@@ -264,7 +260,7 @@ class ParallelDummy(type):
     """
 
     def __init__(cls, name, bases, d):
-        super(ParallelDummy, cls).__init__(name, bases, d)
+        super().__init__(name, bases, d)
         skip = d.pop("dont_wrap", [])
         extra = d.pop("extra_wrap", [])
         for attrname in d:
@@ -409,11 +405,10 @@ class ProcessorPool:
 
     @classmethod
     def from_sizes(cls, sizes):
-        sizes = ensure_list(sizes)
         pool = cls()
         rank = pool.comm.rank
-        for i, size in enumerate(sizes):
-            if iterable(size):
+        for i, size in enumerate(always_iterable(sizes)):
+            if is_sequence(size):
                 size, name = size
             else:
                 name = "workgroup_%02i" % i
@@ -501,8 +496,7 @@ def parallel_objects(objects, njobs=0, storage=None, barrier=True, dynamic=False
     if dynamic:
         from .task_queue import dynamic_parallel_objects
 
-        for my_obj in dynamic_parallel_objects(objects, njobs=njobs, storage=storage):
-            yield my_obj
+        yield from dynamic_parallel_objects(objects, njobs=njobs, storage=storage)
         return
 
     if not parallel_capable:
@@ -684,10 +678,10 @@ class CommunicationSystem:
     def _update_parallel_state(self, new_comm):
         from yt.config import ytcfg
 
-        ytcfg["yt", "__topcomm_parallel_size"] = str(new_comm.size)
-        ytcfg["yt", "__topcomm_parallel_rank"] = str(new_comm.rank)
-        if new_comm.rank > 0 and ytcfg.getboolean("yt", "serialize"):
-            ytcfg["yt", "onlydeserialize"] = "True"
+        ytcfg["yt", "internals", "topcomm_parallel_size"] = new_comm.size
+        ytcfg["yt", "internals", "topcomm_parallel_rank"] = new_comm.rank
+        if new_comm.rank > 0 and ytcfg.get("yt", "serialize"):
+            ytcfg["yt", "only_deserialize"] = True
 
     def pop(self):
         self.communicators.pop()
@@ -747,11 +741,11 @@ class Communicator:
         if datatype is not None:
             pass
         elif isinstance(data, dict):
-            datatype == "dict"
+            datatype = "dict"
         elif isinstance(data, np.ndarray):
-            datatype == "array"
+            datatype = "array"
         elif isinstance(data, list):
-            datatype == "list"
+            datatype = "list"
         # Now we have our datatype, and we conduct our operation
         if datatype == "dict" and op == "join":
             if self.comm.rank == 0:
@@ -874,7 +868,7 @@ class Communicator:
     @parallel_passthrough
     def mpi_allreduce(self, data, dtype=None, op="sum"):
         op = op_names[op]
-        if isinstance(data, np.ndarray) and data.dtype != np.bool:
+        if isinstance(data, np.ndarray) and data.dtype != bool:
             if dtype is None:
                 dtype = data.dtype
             if dtype != data.dtype:
@@ -1186,7 +1180,9 @@ class ParallelAnalysisInterface:
         for field in fields:
             if any(getattr(v, "ghost_zones", 0) > 0 for v in fi[field].validators):
                 continue
-            deps += ensure_list(fi[field].get_dependencies(ds=self.ds).requested)
+            deps += list(
+                always_iterable(fi[field].get_dependencies(ds=self.ds).requested)
+            )
         return list(set(deps))
 
     def _initialize_parallel(self):
@@ -1233,7 +1229,7 @@ class ParallelAnalysisInterface:
             return False, LE, RE, ds
         if not self._distributed and subvol:
             return True, LE, RE, self.ds.region(self.center, LE - padding, RE + padding)
-        elif ytcfg.getboolean("yt", "inline"):
+        elif ytcfg.get("yt", "inline"):
             # At this point, we want to identify the root grid tile to which
             # this processor is assigned.
             # The only way I really know how to do this is to get the level-0
@@ -1270,7 +1266,6 @@ class ParallelAnalysisInterface:
         LE, RE = left_edge[:], right_edge[:]
         if not self._distributed:
             raise NotImplementedError
-            return LE, RE  # , re
 
         cc = MPI.Compute_dims(self.comm.size / rank_ratio, 3)
         mi = self.comm.rank % (self.comm.size // rank_ratio)

@@ -13,23 +13,36 @@ class YTException(Exception):
 # Data access exceptions:
 
 
-class YTOutputNotIdentified(YTException):
-    def __init__(self, filename, args=None, kwargs=None):
+class YTUnidentifiedDataType(YTException):
+    def __init__(self, filename, *args, **kwargs):
         self.filename = filename
         self.args = args
         self.kwargs = kwargs
 
     def __str__(self):
-        msg = f"Could not determine input format from {self.filename}"
-        if self.args is not None:
-            msg += ", {self.args}"
-        if self.kwargs is not None:
-            msg += f", {self.kwargs}"
-        msg += "."
+        msg = [f"Could not determine input format from `'{self.filename}'"]
+        if self.args:
+            msg.append(", ".join(str(a) for a in self.args))
+        if self.kwargs:
+            msg.append(", ".join(f"{k}={v}" for k, v in self.kwargs.items()))
+        msg = ", ".join(msg) + "`."
         return msg
 
 
-class YTAmbiguousDataType(YTOutputNotIdentified):
+class YTOutputNotIdentified(YTUnidentifiedDataType):
+    def __init__(self, filename, args=None, kwargs=None):
+        super(YTUnidentifiedDataType, self).__init__(filename, args, kwargs)
+        # this cannot be imported at the module level (creates circular imports)
+        from yt._maintenance.deprecation import issue_deprecation_warning
+
+        issue_deprecation_warning(
+            "YTOutputNotIdentified is a deprecated alias for YTUnidentifiedDataType",
+            since="4.0.0",
+            removal="4.1.0",
+        )
+
+
+class YTAmbiguousDataType(YTUnidentifiedDataType):
     def __init__(self, filename, candidates):
         self.filename = filename
         self.candidates = candidates
@@ -51,7 +64,7 @@ class YTSphereTooSmall(YTException):
         self.smallest_cell = smallest_cell
 
     def __str__(self):
-        return "%0.5e < %0.5e" % (self.radius, self.smallest_cell)
+        return f"{self.radius:0.5e} < {self.smallest_cell:0.5e}"
 
 
 class YTAxesNotOrthogonalError(YTException):
@@ -176,8 +189,8 @@ class NoStoppingCondition(YTException):
 
     def __str__(self):
         return (
-            "Simulation %s has no stopping condition.  StopTime or StopCycle should be set."
-            % self.ds
+            "Simulation %s has no stopping condition. "
+            "StopTime or StopCycle should be set." % self.ds
         )
 
 
@@ -324,7 +337,7 @@ class YTNoAPIKey(YTException):
         self.config_name = config_name
 
     def __str__(self):
-        return "You need to set an API key for %s in ~/.config/yt/ytrc as %s" % (
+        return "You need to set an API key for {} in ~/.config/yt/ytrc as {}".format(
             self.service,
             self.config_name,
         )
@@ -381,7 +394,7 @@ class YTDomainOverflow(YTException):
         self.dre = dre
 
     def __str__(self):
-        return "Particle bounds %s and %s exceed domain bounds %s and %s" % (
+        return "Particle bounds {} and {} exceed domain bounds {} and {}".format(
             self.mi,
             self.ma,
             self.dle,
@@ -405,7 +418,7 @@ class YTIllDefinedFilter(YTException):
         self.s2 = s2
 
     def __str__(self):
-        return "Filter '%s' ill-defined.  Applied to shape %s but is shape %s." % (
+        return "Filter '{}' ill-defined.  Applied to shape {} but is shape {}.".format(
             self.filter,
             self.s1,
             self.s2,
@@ -432,7 +445,7 @@ class YTIllDefinedBounds(YTException):
         self.ub = ub
 
     def __str__(self):
-        v = "The bounds %0.3e and %0.3e are ill-defined. " % (self.lb, self.ub)
+        v = f"The bounds {self.lb:0.3e} and {self.ub:0.3e} are ill-defined. "
         v += "Typically this happens when a log binning is specified "
         v += "and zero or negative values are given for the bounds."
         return v
@@ -471,13 +484,8 @@ class YTRockstarMultiMassNotSupported(YTException):
         self.ptype = ptype
 
     def __str__(self):
-        v = "Particle type '%s' has minimum mass %0.3e and maximum " % (
-            self.ptype,
-            self.mi,
-        )
-        v += "mass %0.3e.  Multi-mass particles are not currently supported." % (
-            self.ma
-        )
+        v = f"Particle type '{self.ptype}' has minimum mass {self.mi:0.3e} and maximum "
+        v += f"mass {self.ma:0.3e}.  Multi-mass particles are not currently supported."
         return v
 
 
@@ -492,7 +500,7 @@ class YTElementTypeNotRecognized(YTException):
         self.num_nodes = num_nodes
 
     def __str__(self):
-        return "Element type not recognized - dim = %s, num_nodes = %s" % (
+        return "Element type not recognized - dim = {}, num_nodes = {}".format(
             self.dim,
             self.num_nodes,
         )
@@ -594,13 +602,11 @@ class YTInvalidUnitEquivalence(Exception):
 
 
 class YTPlotCallbackError(Exception):
-    def __init__(self, callback, error):
+    def __init__(self, callback):
         self.callback = "annotate_" + callback
-        self.error = error
 
     def __str__(self):
-        msg = "%s callback failed with the following error: %s"
-        return msg % (self.callback, self.error)
+        return f"{self.callback} callback failed"
 
 
 class YTPixelizeError(YTException):
@@ -856,3 +862,9 @@ class YTArrayTooLargeToDisplay(YTException):
         msg += "We do not support displaying arrays larger\n"
         msg += f"than size {self.max_size}."
         return msg
+
+
+class GenerationInProgress(Exception):
+    def __init__(self, fields):
+        self.fields = fields
+        super().__init__()

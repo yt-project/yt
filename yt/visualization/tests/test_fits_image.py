@@ -4,8 +4,8 @@ import tempfile
 
 from numpy.testing import assert_allclose, assert_equal
 
-from yt.convenience import load
-from yt.testing import fake_random_ds, requires_module
+from yt.loaders import load
+from yt.testing import fake_random_ds, requires_file, requires_module
 from yt.utilities.on_demand_imports import _astropy
 from yt.visualization.fits_image import (
     FITSImageData,
@@ -20,8 +20,8 @@ from yt.visualization.volume_rendering.off_axis_projection import off_axis_proje
 
 @requires_module("astropy")
 def test_fits_image():
-    tmpdir = tempfile.mkdtemp()
     curdir = os.getcwd()
+    tmpdir = tempfile.mkdtemp()
     os.chdir(tmpdir)
 
     fields = ("density", "temperature")
@@ -188,5 +188,28 @@ def test_fits_image():
     data_conv = _astropy.conv.convolve(fid4["density"].data.d, kernel)
     assert_allclose(data_conv, fid7["density"].data.d)
 
+    # We need to manually close all the file descriptors so
+    # that windows can delete the folder that contains them.
+    ds2.close()
+    for fid in (fid1, fid2, fid3, fid4, fid5, fid6, fid7, new_fid1, new_fid3):
+        fid.close()
+
     os.chdir(curdir)
     shutil.rmtree(tmpdir)
+
+
+etc = "enzo_tiny_cosmology/DD0046/DD0046"
+
+
+@requires_module("astropy")
+@requires_file(etc)
+def test_fits_cosmo():
+    ds = load(etc)
+
+    fid = FITSProjection(ds, "z", ["density"])
+    assert fid.wcs.wcs.cunit[0] == "kpc"
+    assert fid.wcs.wcs.cunit[1] == "kpc"
+    assert ds.hubble_constant == fid.hubble_constant
+    assert ds.current_redshift == fid.current_redshift
+    assert fid["density"].header["HUBBLE"] == ds.hubble_constant
+    assert fid["density"].header["REDSHIFT"] == ds.current_redshift

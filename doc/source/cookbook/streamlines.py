@@ -1,10 +1,10 @@
-import yt
+import matplotlib.pyplot as plt
 import numpy as np
-import matplotlib.pylab as pl
-
-from yt.visualization.api import Streamlines
-from yt.units import Mpc
 from mpl_toolkits.mplot3d import Axes3D
+
+import yt
+from yt.units import Mpc
+from yt.visualization.api import Streamlines
 
 # Load the dataset
 ds = yt.load("IsolatedGalaxy/galaxy0030/galaxy0030")
@@ -32,11 +32,11 @@ streamlines = Streamlines(
 streamlines.integrate_through_volume()
 
 # Create a 3D plot, trace the streamlines through the 3D volume of the plot
-fig = pl.figure()
+fig = plt.figure()
 ax = Axes3D(fig)
 for stream in streamlines.streamlines:
     stream = stream[np.all(stream != 0.0, axis=1)]
     ax.plot3D(stream[:, 0], stream[:, 1], stream[:, 2], alpha=0.1)
 
 # Save the plot to disk.
-pl.savefig("streamlines.png")
+plt.savefig("streamlines.png")

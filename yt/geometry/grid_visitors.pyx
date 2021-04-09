@@ -103,7 +103,7 @@ cdef void icoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
     # Nice and easy icoord setter.
     if selected == 0: return
     cdef int i
-    cdef np.int64_t *icoords = <np.int64_t*> data.array 
+    cdef np.int64_t *icoords = <np.int64_t*> data.array
     for i in range(3):
         icoords[data.index * 3 + i] = data.pos[i] + data.grid.start_index[i]
     data.index += 1
@@ -125,7 +125,7 @@ cdef void fwidth_cells(GridVisitorData *data, np.uint8_t selected) nogil:
     # Fill with our dds.
     if selected == 0: return
     cdef int i
-    cdef np.float64_t *fwidth = <np.float64_t*> data.array 
+    cdef np.float64_t *fwidth = <np.float64_t*> data.array
     for i in range(3):
         fwidth[data.index * 3 + i] = data.grid.dds[i]
     data.index += 1
@@ -137,7 +137,7 @@ cdef void fcoords_cells(GridVisitorData *data, np.uint8_t selected) nogil:
     # Simple cell-centered position filling.
     if selected == 0: return
     cdef int i
-    cdef np.float64_t *fcoords = <np.float64_t*> data.array 
+    cdef np.float64_t *fcoords = <np.float64_t*> data.array
     for i in range(3):
         fcoords[data.index * 3 + i] = data.grid.left_edge[i] + \
             (0.5 + data.pos[i])*data.grid.dds[i]

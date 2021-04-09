@@ -1,102 +1,103 @@
-import argparse
 import configparser
 import os
-import shutil
 import sys
 
-from yt.config import _OLD_CONFIG_FILE, CURRENT_CONFIG_FILE, YTConfigParser
+from yt.config import YTConfig, old_config_file, ytcfg_defaults
 
-CONFIG = YTConfigParser()
-CONFIG.read([CURRENT_CONFIG_FILE])
+CONFIG = YTConfig()
+
+
+def _cast_bool_helper(value):
+    if value == "True":
+        return True
+    elif value == "False":
+        return False
+    else:
+        raise ValueError("Cannot safely cast to bool")
+
+
+def _expand_all(s):
+    return os.path.expandvars(os.path.expanduser(s))
+
+
+def _cast_value_helper(value, types=(_cast_bool_helper, int, float, _expand_all)):
+    for t in types:
+        try:
+            retval = t(value)
+            return retval
+        except ValueError:
+            pass
 
 
 def get_config(section, option):
-    return CONFIG.get(section, option)
+    *option_path, option_name = option.split(".")
+    return CONFIG.get(section, *option_path, option_name)
 
 
-def set_config(section, option, value):
+def set_config(section, option, value, config_file):
     if not CONFIG.has_section(section):
         CONFIG.add_section(section)
-    CONFIG.set(section, option, value)
-    write_config()
+
+    option_path = option.split(".")
+    CONFIG.set(section, *option_path, _cast_value_helper(value))
+    write_config(config_file)
 
 
-def write_config(fd=None):
-    if fd is None:
-        with open(CURRENT_CONFIG_FILE, "w") as fd:
-            CONFIG.write(fd)
-    else:
-        CONFIG.write(fd)
+def write_config(config_file):
+    CONFIG.write(config_file)
 
 
 def migrate_config():
-    if not os.path.exists(_OLD_CONFIG_FILE):
+    if not os.path.exists(old_config_file()):
         print("Old config not found.")
-        sys.exit()
-    CONFIG.read(_OLD_CONFIG_FILE)
-    print(f"Writing a new config file to: {CURRENT_CONFIG_FILE}")
-    write_config()
-    print(f"Backing up the old config file: {_OLD_CONFIG_FILE}.bak")
-    os.rename(_OLD_CONFIG_FILE, _OLD_CONFIG_FILE + ".bak")
+        sys.exit(1)
 
-    old_config_dir = os.path.dirname(_OLD_CONFIG_FILE)
-    try:
-        plugin_file = CONFIG.get("yt", "pluginfilename")
-        if plugin_file and os.path.exists(os.path.join(old_config_dir, plugin_file)):
-            print(f"Migrating plugin file {plugin_file} to new location")
-            shutil.copyfile(
-                os.path.join(old_config_dir, plugin_file),
-                os.path.join(os.path.dirname(CURRENT_CONFIG_FILE), plugin_file),
-            )
-            print(f"Backing up the old plugin file: {_OLD_CONFIG_FILE}.bak")
-            plugin_file = os.path.join(old_config_dir, plugin_file)
-            os.rename(plugin_file, plugin_file + ".bak")
-    except configparser.NoOptionError:
-        pass
+    old_config = configparser.RawConfigParser()
+    # Preserve case:
+    # See https://stackoverflow.com/questions/1611799/preserve-case-in-configparser
+    old_config.optionxform = str
+    old_config.read(old_config_file())
 
+    # In order to migrate, we'll convert everything to lowercase, and map that
+    # to the new snake_case convention
+    def normalize_key(key):
+        return key.replace("_", "").lower()
 
-def rm_config(section, option):
-    CONFIG.remove_option(section, option)
-    write_config()
+    def usesCamelCase(key):
+        if key != key.lower():
+            return True
+        else:
+            return False
 
+    old_keys_to_new = {normalize_key(k): k for k in ytcfg_defaults["yt"].keys()}
 
-def main():
-    parser = argparse.ArgumentParser(
-        description="Get and set configuration values for yt"
-    )
-    subparsers = parser.add_subparsers(help="sub-command help", dest="cmd")
+    config_as_dict = {}
+    for section in old_config:
+        if section == "DEFAULT":
+            continue
+        config_as_dict[section] = {}
+        for key, value in old_config[section].items():
+            # Cast value to the most specific type possible
+            cast_value = _cast_value_helper(value)
 
-    get_parser = subparsers.add_parser("get", help="get a config value")
-    set_parser = subparsers.add_parser("set", help="set a config value")
-    rm_parser = subparsers.add_parser("rm", help="remove a config option")
-    subparsers.add_parser("migrate", help="migrate old config file")
-    subparsers.add_parser("list", help="show all config values")
+            # Normalize the key (if present in the defaults)
+            if normalize_key(key) in old_keys_to_new and section == "yt":
+                new_key = old_keys_to_new[normalize_key(key)]
+            else:
+                new_key = key
 
-    get_parser.add_argument("section", help="The section containing the option.")
-    get_parser.add_argument("option", help="The option to retrieve.")
+            config_as_dict[section][new_key] = cast_value
 
-    set_parser.add_argument("section", help="The section containing the option.")
-    set_parser.add_argument("option", help="The option to set.")
-    set_parser.add_argument("value", help="The value to set the option to.")
+    CONFIG.update(config_as_dict)
 
-    rm_parser.add_argument(
-        "section", help="The section containing the option to remove."
-    )
-    rm_parser.add_argument("option", help="The option to remove.")
-
-    args = parser.parse_args()
-
-    if args.cmd == "get":
-        print(get_config(args.section, args.option))
-    elif args.cmd == "set":
-        set_config(args.section, args.option, args.value)
-    elif args.cmd == "list":
-        write_config(sys.stdout)
-    elif args.cmd == "migrate":
-        migrate_config()
-    elif args.cmd == "rm":
-        rm_config(args.section, args.option)
+    global_config_file = YTConfig.get_global_config_file()
+    print(f"Writing a new config file to: {global_config_file}")
+    write_config(global_config_file)
+    print(f"Backing up the old config file: {old_config_file()}.bak")
+    os.rename(old_config_file(), old_config_file() + ".bak")
 
 
-if __name__ == "__main__":
-    main()  # pragma: no cover
+def rm_config(section, option, config_file):
+    option_path = option.split(".")
+    CONFIG.remove(section, *option_path)
+    write_config(config_file)

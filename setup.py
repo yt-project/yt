@@ -1,12 +1,12 @@
 import glob
 import os
-import sys
-from distutils.version import LooseVersion
+from collections import defaultdict
+from distutils.ccompiler import get_default_compiler
 
-import pkg_resources
-from setuptools import find_packages, setup
+from setuptools import Distribution, find_packages, setup
 
 from setupext import (
+    check_CPP14_flags,
     check_for_openmp,
     check_for_pyembree,
     create_build_ext,
@@ -14,18 +14,6 @@ from setupext import (
 )
 
 install_ccompiler()
-
-try:
-    distribute_ver = LooseVersion(pkg_resources.get_distribution("distribute").version)
-    if distribute_ver < LooseVersion("0.7.3"):
-        print("Distribute is a legacy package obsoleted by setuptools.")
-        print("We strongly recommend that you just uninstall it.")
-        print("If for some reason you cannot do it, you'll need to upgrade it")
-        print("to latest version before proceeding:")
-        print("    pip install -U distribute")
-        sys.exit(1)
-except pkg_resources.DistributionNotFound:
-    pass  # yay!
 
 VERSION = "4.0.dev0"
 
@@ -35,15 +23,23 @@ if os.path.exists("MANIFEST"):
 with open("README.md") as file:
     long_description = file.read()
 
-if check_for_openmp():
-    omp_args = ["-fopenmp"]
-else:
-    omp_args = []
+CPP14_CONFIG = defaultdict(
+    lambda: check_CPP14_flags(["-std=c++14", "-std=c++1y", "-std=gnu++0x"]),
+    {"msvc": ["/std:c++14"]},
+)
+CPP03_CONFIG = defaultdict(lambda: ["-std=c++03"], {"msvc": ["/std:c++03"]})
+
+_COMPILER = get_default_compiler()
+
+omp_args, _ = check_for_openmp()
 
 if os.name == "nt":
     std_libs = []
 else:
     std_libs = ["m"]
+
+CPP14_FLAG = CPP14_CONFIG[_COMPILER]
+CPP03_FLAG = CPP03_CONFIG[_COMPILER]
 
 cythonize_aliases = {
     "LIB_DIR": "yt/utilities/lib/",
@@ -56,8 +52,10 @@ cythonize_aliases = {
     ],
     "STD_LIBS": std_libs,
     "OMP_ARGS": omp_args,
-    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.c",
+    "FIXED_INTERP": "yt/utilities/lib/fixed_interpolator.cpp",
     "ARTIO_SOURCE": glob.glob("yt/frontends/artio/artio_headers/*.c"),
+    "CPP14_FLAG": CPP14_FLAG,
+    "CPP03_FLAG": CPP03_FLAG,
 }
 
 lib_exts = [
@@ -76,6 +74,16 @@ lib_exts += embree_libs
 
 # This overrides using lib_exts, so it has to happen after lib_exts is fully defined
 build_ext, sdist = create_build_ext(lib_exts, cythonize_aliases)
+
+# Force setuptools to consider that there are ext modules, even if empty.
+# See https://github.com/yt-project/yt/issues/2922 and
+# https://stackoverflow.com/a/62668026/2601223 for the fix.
+class BinaryDistribution(Distribution):
+    """Distribution which always forces a binary package with platform name."""
+
+    def has_ext_modules(self):
+        return True
+
 
 if __name__ == "__main__":
     setup(
@@ -98,6 +106,7 @@ if __name__ == "__main__":
             "Programming Language :: Python :: 3.6",
             "Programming Language :: Python :: 3.7",
             "Programming Language :: Python :: 3.8",
+            "Programming Language :: Python :: 3.9",
             "Topic :: Scientific/Engineering :: Astronomy",
             "Topic :: Scientific/Engineering :: Physics",
             "Topic :: Scientific/Engineering :: Visualization",
@@ -105,7 +114,9 @@ if __name__ == "__main__":
         ],
         keywords="astronomy astrophysics visualization " + "amr adaptivemeshrefinement",
         entry_points={
-            "console_scripts": ["yt = yt.utilities.command_line:run_main",],
+            "console_scripts": [
+                "yt = yt.utilities.command_line:run_main",
+            ],
             "nose.plugins.0.10": [
                 "answer-testing = yt.utilities.answer_testing.framework:AnswerTesting"
             ],
@@ -113,12 +124,15 @@ if __name__ == "__main__":
         packages=find_packages(),
         include_package_data=True,
         install_requires=[
-            "matplotlib>=1.5.3",
+            "matplotlib>=2.0.2,<3.4",
             "setuptools>=19.6",
             "sympy>=1.2",
             "numpy>=1.10.4",
             "IPython>=1.0",
             "unyt>=2.7.2",
+            "more_itertools>=8.4",
+            "tqdm>=3.4.0",
+            "toml>=0.10.2",
         ],
         extras_require={"hub": ["girder_client"], "mapserver": ["bottle"]},
         cmdclass={"sdist": sdist, "build_ext": build_ext},
@@ -134,6 +148,7 @@ if __name__ == "__main__":
         license="BSD 3-Clause",
         zip_safe=False,
         scripts=["scripts/iyt"],
+        distclass=BinaryDistribution,
         ext_modules=[],  # !!! We override this inside build_ext above
         python_requires=">=3.6",
     )

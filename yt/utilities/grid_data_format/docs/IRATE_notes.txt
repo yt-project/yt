@@ -36,4 +36,3 @@ takes care of all the details for this).
 convention - that's what we've been using elsewhere in IRATE.  This is
 an arbitrary choice, but it would be nice for it to be consistent
 throughout the format.
-

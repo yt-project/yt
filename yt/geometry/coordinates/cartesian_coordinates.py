@@ -1,6 +1,6 @@
 import numpy as np
 
-from yt.data_objects.unstructured_mesh import SemiStructuredMesh
+from yt.data_objects.index_subobjects.unstructured_mesh import SemiStructuredMesh
 from yt.funcs import mylog
 from yt.units.yt_array import YTArray, uconcatenate, uvstack
 from yt.utilities.lib.pixelization_routines import (
@@ -90,7 +90,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
     name = "cartesian"
 
     def __init__(self, ds, ordering=("x", "y", "z")):
-        super(CartesianCoordinateHandler, self).__init__(ds, ordering)
+        super().__init__(ds, ordering)
 
     def setup_fields(self, registry):
         for axi, ax in enumerate(self.axis_order):
@@ -254,7 +254,13 @@ class CartesianCoordinateHandler(CoordinateHandler):
             offset = index.meshes[mesh_id]._index_offset
             ad = self.ds.all_data()
             field_data = ad[field]
-            if field_data.shape[1] == 27:
+
+            # if this is an element field, promote to 2D here
+            if len(field_data.shape) == 1:
+                field_data = np.expand_dims(field_data, 1)
+            # if this is a higher-order element, we demote to 1st order
+            # here, for now.
+            elif field_data.shape[1] == 27:
                 # hexahedral
                 mylog.warning(
                     "High order elements not yet supported, dropping to 1st order."
@@ -282,7 +288,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         self, data_source, field, bounds, size, antialias, dim, periodic
     ):
         from yt.data_objects.construction_data_containers import YTParticleProj
-        from yt.data_objects.selection_data_containers import YTSlice
+        from yt.data_objects.selection_objects.slices import YTSlice
         from yt.frontends.sph.data_structures import ParticleDataset
         from yt.frontends.stream.data_structures import StreamParticlesDataset
 
@@ -366,6 +372,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                     # We use code length here, but to get the path length right
                     # we need to multiply by the conversion factor between
@@ -393,6 +401,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                             weight_field=chunk[weight].in_units(wounits),
                         )
                     mylog.info(
@@ -412,6 +422,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[weight].in_units(wounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                     normalization_2d_utility(buff, weight_buff)
             elif isinstance(data_source, YTSlice):
@@ -433,6 +445,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                             chunk[ptype, "density"].to("code_density"),
                             chunk[field].in_units(ounits),
                             bnds,
+                            check_period=int(periodic),
+                            period=period,
                         )
                         if normalize:
                             pixelize_sph_kernel_slice(
@@ -444,6 +458,8 @@ class CartesianCoordinateHandler(CoordinateHandler):
                                 chunk[ptype, "density"].to("code_density"),
                                 np.ones(chunk[ptype, "density"].shape[0]),
                                 bnds,
+                                check_period=int(periodic),
+                                period=period,
                             )
 
                     if normalize:

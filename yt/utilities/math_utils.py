@@ -5,7 +5,7 @@ import numpy as np
 from yt.units.yt_array import YTArray
 
 prec_accum = {
-    np.int: np.int64,
+    int: np.int64,
     np.int8: np.int64,
     np.int16: np.int64,
     np.int32: np.int64,
@@ -14,11 +14,11 @@ prec_accum = {
     np.uint16: np.uint64,
     np.uint32: np.uint64,
     np.uint64: np.uint64,
-    np.float: np.float64,
+    float: np.float64,
     np.float16: np.float64,
     np.float32: np.float64,
     np.float64: np.float64,
-    np.complex: np.complex128,
+    complex: np.complex128,
     np.complex64: np.complex128,
     np.complex128: np.complex128,
     np.dtype("int"): np.int64,
@@ -165,9 +165,16 @@ def periodic_ray(start, end, left=None, right=None):
     >>> start = yt.YTArray([0.5, 0.5, 0.5])
     >>> end = yt.YTArray([1.25, 1.25, 1.25])
     >>> periodic_ray(start, end)
-    [[YTArray([0.5, 0.5, 0.5]) (dimensionless), YTArray([1., 1., 1.]) (dimensionless)],
-     [YTArray([0., 0., 0.]) (dimensionless), YTArray([0.25, 0.25, 0.25]) (dimensionless)]]
-
+    [
+        [
+            YTArray([0.5, 0.5, 0.5]) (dimensionless),
+            YTArray([1., 1., 1.]) (dimensionless)
+        ],
+        [
+            YTArray([0., 0., 0.]) (dimensionless),
+            YTArray([0.25, 0.25, 0.25]) (dimensionless)
+        ]
+     ]
     """
 
     if left is None:
@@ -298,7 +305,7 @@ def rotate_vector_3D(a, dim, angle):
         mod = True
         a = np.array([a])
     if a.shape[1] != 3:
-        raise SyntaxError("The second dimension of the array a must be == 3!")
+        raise ValueError("The second dimension of the array a must be == 3!")
     if dim == 0:
         R = np.array(
             [
@@ -324,7 +331,7 @@ def rotate_vector_3D(a, dim, angle):
             ]
         )
     else:
-        raise SyntaxError("dim must be 0, 1, or 2!")
+        raise ValueError("dim must be 0, 1, or 2!")
     if mod:
         return np.dot(R, a.T).T[0]
     else:

@@ -6,7 +6,7 @@ from re import match
 
 import numpy as np
 
-from yt.data_objects.grid_patch import AMRGridPatch
+from yt.data_objects.index_subobjects.grid_patch import AMRGridPatch
 from yt.data_objects.static_output import Dataset
 from yt.data_objects.time_series import DatasetSeries
 from yt.frontends.open_pmd.fields import OpenPMDFieldInfo
@@ -15,7 +15,7 @@ from yt.funcs import setdefaultattr
 from yt.geometry.grid_geometry_handler import GridIndex
 from yt.utilities.file_handler import HDF5FileHandler, warn_h5py
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5py
 
 ompd_known_versions = [
     StrictVersion("1.0.0"),
@@ -29,8 +29,8 @@ class OpenPMDGrid(AMRGridPatch):
     """Represents chunk of data on-disk.
 
     This defines the index and offset for every mesh and particle type.
-    It also defines parents and children grids. Since openPMD does not have multiple levels of refinement,
-    there are no parents or children for any grid.
+    It also defines parents and children grids. Since openPMD does not have multiple
+    levels of refinement there are no parents or children for any grid.
     """
 
     _id_offset = 0
@@ -112,8 +112,9 @@ class OpenPMDHierarchy(GridIndex):
     def _detect_output_fields(self):
         """Populates ``self.field_list`` with native fields (mesh and particle) on disk.
 
-        Each entry is a tuple of two strings. The first element is the on-disk fluid type or particle type.
-        The second element is the name of the field in yt. This string is later used for accessing the data.
+        Each entry is a tuple of two strings. The first element is the on-disk fluid
+        type or particle type. The second element is the name of the field in yt.
+        This string is later used for accessing the data.
         Convention suggests that the on-disk fluid type should be "openPMD",
         the on-disk particle type (for a single species of particles) is "io"
         or (for multiple species of particles) the particle name on-disk.
@@ -132,7 +133,7 @@ class OpenPMDHierarchy(GridIndex):
                     for axis in mesh.keys():
                         mesh_fields.append(mname.replace("_", "-") + "_" + axis)
                 except AttributeError:
-                    # This is a h5.Dataset (i.e. no axes)
+                    # This is a h5py.Dataset (i.e. no axes)
                     mesh_fields.append(mname.replace("_", "-"))
         except (KeyError, TypeError, AttributeError):
             pass
@@ -152,8 +153,8 @@ class OpenPMDHierarchy(GridIndex):
                         )
                     elif "particlePatches" not in recname:
                         try:
-                            # Create a field for every axis (x,y,z) of every property (position)
-                            # of every species (electrons)
+                            # Create a field for every axis (x,y,z) of every
+                            # property (position) of every species (electrons)
                             axes = list(record.keys())
                             if str(recname) == "position":
                                 recname = "positionCoarse"
@@ -176,7 +177,8 @@ class OpenPMDHierarchy(GridIndex):
                     else:
                         pass
             if len(list(particles.keys())) > 1:
-                # There is more than one particle species, use the specific names as field types
+                # There is more than one particle species,
+                # use the specific names as field types
                 self.field_list.extend(
                     [
                         (
@@ -216,7 +218,7 @@ class OpenPMDHierarchy(GridIndex):
             meshes = f[bp + mp]
             for mname in meshes.keys():
                 mesh = meshes[mname]
-                if isinstance(mesh, h5.Group):
+                if isinstance(mesh, h5py.Group):
                     shape = mesh[list(mesh.keys())[0]].shape
                 else:
                     shape = mesh.shape
@@ -314,9 +316,7 @@ class OpenPMDHierarchy(GridIndex):
                 0, domain_dimension[0], num_grids + 1, dtype=np.int32
             )
             grid_edge_offset = (
-                grid_dim_offset
-                * np.float(domain_dimension[0]) ** -1
-                * (gre[0] - gle[0])
+                grid_dim_offset * float(domain_dimension[0]) ** -1 * (gre[0] - gle[0])
                 + gle[0]
             )
             mesh_names = []
@@ -386,7 +386,8 @@ class OpenPMDHierarchy(GridIndex):
                 particle_names = []
                 for (pname, size) in self.numparts.items():
                     if size == count:
-                        # Since this is not part of a particlePatch, we can include multiple same-sized ptypes
+                        # Since this is not part of a particlePatch,
+                        # we can include multiple same-sized ptypes
                         particle_names.append(str(pname))
                         handled_ptypes.append(str(pname))
             else:
@@ -426,9 +427,10 @@ class OpenPMDDataset(Dataset):
 
     Notes
     -----
-    It is assumed that all meshes cover the same region. Their resolution can be different.
-    It is assumed that all particles reside in this same region exclusively.
-    It is assumed that the particle and mesh positions are *absolute* with respect to the simulation origin.
+    It is assumed that
+    - all meshes cover the same region. Their resolution can be different.
+    - all particles reside in this same region exclusively.
+    - particle and mesh positions are *absolute* with respect to the simulation origin.
     """
 
     _index_class = OpenPMDHierarchy
@@ -535,7 +537,8 @@ class OpenPMDDataset(Dataset):
         """Handle conversion between different physical units and the code units.
 
         Every dataset in openPMD can have different code <-> physical scaling.
-        The individual factor is obtained by multiplying with "unitSI" reading getting data from disk.
+        The individual factor is obtained by multiplying with "unitSI" reading getting
+        data from disk.
         """
         setdefaultattr(self, "length_unit", self.quan(1.0, "m"))
         setdefaultattr(self, "mass_unit", self.quan(1.0, "kg"))
@@ -544,15 +547,14 @@ class OpenPMDDataset(Dataset):
         setdefaultattr(self, "magnetic_unit", self.quan(1.0, "T"))
 
     def _parse_parameter_file(self):
-        """Read in metadata describing the overall data on-disk.
-        """
+        """Read in metadata describing the overall data on-disk."""
         f = self._handle
         bp = self.base_path
         mp = self.meshes_path
 
         self.unique_identifier = 0
         self.parameters = 0
-        self.periodicity = np.zeros(3, dtype=np.bool)
+        self._periodicity = np.zeros(3, dtype="bool")
         self.refine_by = 1
         self.cosmological_simulation = 0
 
@@ -563,7 +565,7 @@ class OpenPMDDataset(Dataset):
             meshes = f[bp + mp]
             for mname in meshes.keys():
                 mesh = meshes[mname]
-                if isinstance(mesh, h5.Group):
+                if isinstance(mesh, h5py.Group):
                     shape = np.asarray(mesh[list(mesh.keys())[0]].shape)
                 else:
                     shape = np.asarray(mesh.shape)
@@ -602,12 +604,11 @@ class OpenPMDDataset(Dataset):
         self.current_time = f[bp].attrs["time"] * f[bp].attrs["timeUnitSI"]
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        """Checks whether the supplied file can be read by this frontend.
-        """
-        warn_h5py(args[0])
+    def _is_valid(cls, filename, *args, **kwargs):
+        """Checks whether the supplied file can be read by this frontend."""
+        warn_h5py(filename)
         try:
-            with h5.File(args[0], "r") as f:
+            with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
                 for i in opmd_required_attributes:
                     if i not in attrs:
@@ -635,11 +636,11 @@ class OpenPMDDatasetSeries(DatasetSeries):
     mixed_dataset_types = False
 
     def __init__(self, filename):
-        super(OpenPMDDatasetSeries, self).__init__([])
-        self.handle = h5.File(filename, "r")
+        super().__init__([])
+        self.handle = h5py.File(filename, mode="r")
         self.filename = filename
         self._pre_outputs = sorted(
-            np.asarray(list(self.handle["/data"].keys()), dtype=np.int)
+            np.asarray(list(self.handle["/data"].keys()), dtype="int64")
         )
 
     def __iter__(self):
@@ -664,16 +665,16 @@ class OpenPMDGroupBasedDataset(Dataset):
     _index_class = OpenPMDHierarchy
     _field_info_class = OpenPMDFieldInfo
 
-    def __new__(cls, *args, **kwargs):
+    def __new__(cls, filename, *args, **kwargs):
         ret = object.__new__(OpenPMDDatasetSeries)
-        ret.__init__(args[0])
+        ret.__init__(filename)
         return ret
 
     @classmethod
-    def _is_valid(self, *args, **kwargs):
-        warn_h5py(args[0])
+    def _is_valid(cls, filename, *args, **kwargs):
+        warn_h5py(filename)
         try:
-            with h5.File(args[0], "r") as f:
+            with h5py.File(filename, mode="r") as f:
                 attrs = list(f["/"].attrs.keys())
                 for i in opmd_required_attributes:
                     if i not in attrs:

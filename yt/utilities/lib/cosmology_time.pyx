@@ -81,4 +81,3 @@ cpdef friedman(double O_mat_0,double O_vac_0,double O_k_0):
     tau_out[n_out] = tau
 
     return tau_out,t_out,delta_tau,ntable,age_tot
- 

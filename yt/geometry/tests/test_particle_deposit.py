@@ -1,7 +1,7 @@
 from numpy.testing import assert_allclose, assert_array_less, assert_raises
 
 import yt
-from yt.convenience import load
+from yt.loaders import load
 from yt.testing import fake_random_ds, requires_file
 from yt.utilities.exceptions import YTBoundsDefinitionError
 

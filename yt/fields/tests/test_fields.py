@@ -142,7 +142,7 @@ def get_base_ds(nprocs):
     ds.parameters["EOSType"] = 1.0
     ds.parameters["EOSSoundSpeed"] = 1.0
     ds.conversion_factors["Time"] = 1.0
-    ds.conversion_factors.update(dict((f, 1.0) for f in fields))
+    ds.conversion_factors.update({f: 1.0 for f in fields})
     ds.gamma = 5.0 / 3.0
     ds.current_redshift = 0.0001
     ds.cosmological_simulation = 1
@@ -238,8 +238,40 @@ def test_add_gradient_fields():
             assert str(ret.units) == "1/cm"
 
 
+def test_add_gradient_fields_by_fname():
+    ds = fake_amr_ds(fields=("density", "temperature"), units=("g/cm**3", "K"))
+    actual = ds.add_gradient_fields("density")
+    expected = [
+        ("gas", "density_gradient_x"),
+        ("gas", "density_gradient_y"),
+        ("gas", "density_gradient_z"),
+        ("gas", "density_gradient_magnitude"),
+    ]
+    assert_equal(actual, expected)
+
+
+def test_add_gradient_multiple_fields():
+    ds = fake_amr_ds(fields=("density", "temperature"), units=("g/cm**3", "K"))
+    actual = ds.add_gradient_fields([("gas", "density"), ("gas", "temperature")])
+    expected = [
+        ("gas", "density_gradient_x"),
+        ("gas", "density_gradient_y"),
+        ("gas", "density_gradient_z"),
+        ("gas", "density_gradient_magnitude"),
+        ("gas", "temperature_gradient_x"),
+        ("gas", "temperature_gradient_y"),
+        ("gas", "temperature_gradient_z"),
+        ("gas", "temperature_gradient_magnitude"),
+    ]
+    assert_equal(actual, expected)
+
+    ds = fake_amr_ds(fields=("density", "temperature"), units=("g/cm**3", "K"))
+    actual = ds.add_gradient_fields(["density", "temperature"])
+    assert_equal(actual, expected)
+
+
 def test_add_gradient_fields_curvilinear():
-    ds = fake_amr_ds(fields=["density"], geometry="spherical")
+    ds = fake_amr_ds(fields=["density"], units=["g/cm**3"], geometry="spherical")
     gfields = ds.add_gradient_fields(("gas", "density"))
     gfields += ds.add_gradient_fields(("index", "ones"))
     field_list = [
@@ -452,21 +484,21 @@ def test_ion_field_labels():
 
     # by default labels should use roman numerals
     default_labels = {
-        "O_p1_number_density": "$\\rm{O\ II\ Number\ Density}$",
-        "O2_p1_number_density": "$\\rm{O_{2}\ II\ Number\ Density}$",
-        "CO2_p1_number_density": "$\\rm{CO_{2}\ II\ Number\ Density}$",
-        "Co_p1_number_density": "$\\rm{Co\ II\ Number\ Density}$",
-        "O2_p2_number_density": "$\\rm{O_{2}\ III\ Number\ Density}$",
-        "H2O_p1_number_density": "$\\rm{H_{2}O\ II\ Number\ Density}$",
+        "O_p1_number_density": "$\\rm{O\\ II\\ Number\\ Density}$",
+        "O2_p1_number_density": "$\\rm{O_{2}\\ II\\ Number\\ Density}$",
+        "CO2_p1_number_density": "$\\rm{CO_{2}\\ II\\ Number\\ Density}$",
+        "Co_p1_number_density": "$\\rm{Co\\ II\\ Number\\ Density}$",
+        "O2_p2_number_density": "$\\rm{O_{2}\\ III\\ Number\\ Density}$",
+        "H2O_p1_number_density": "$\\rm{H_{2}O\\ II\\ Number\\ Density}$",
     }
 
     pm_labels = {
-        "O_p1_number_density": "$\\rm{{O}^{+}\ Number\ Density}$",
-        "O2_p1_number_density": "$\\rm{{O_{2}}^{+}\ Number\ Density}$",
-        "CO2_p1_number_density": "$\\rm{{CO_{2}}^{+}\ Number\ Density}$",
-        "Co_p1_number_density": "$\\rm{{Co}^{+}\ Number\ Density}$",
-        "O2_p2_number_density": "$\\rm{{O_{2}}^{++}\ Number\ Density}$",
-        "H2O_p1_number_density": "$\\rm{{H_{2}O}^{+}\ Number\ Density}$",
+        "O_p1_number_density": "$\\rm{{O}^{+}\\ Number\\ Density}$",
+        "O2_p1_number_density": "$\\rm{{O_{2}}^{+}\\ Number\\ Density}$",
+        "CO2_p1_number_density": "$\\rm{{CO_{2}}^{+}\\ Number\\ Density}$",
+        "Co_p1_number_density": "$\\rm{{Co}^{+}\\ Number\\ Density}$",
+        "O2_p2_number_density": "$\\rm{{O_{2}}^{++}\\ Number\\ Density}$",
+        "H2O_p1_number_density": "$\\rm{{H_{2}O}^{+}\\ Number\\ Density}$",
     }
 
     fobj = ds.fields.stream

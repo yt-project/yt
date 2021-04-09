@@ -1,18 +1,31 @@
 import contextlib
 import os
+import shutil
 import sys
+import tempfile
 import unittest
 import unittest.mock as mock
-from configparser import NoOptionError
 from io import StringIO
 
 import yt.config
 import yt.utilities.command_line
-from yt.config import _OLD_CONFIG_FILE, CONFIG_DIR, CURRENT_CONFIG_FILE, YTConfigParser
-from yt.fields.tests.test_fields_plugins import TEST_PLUGIN_FILE
+from yt.config import YTConfig, old_config_file
 
 _TEST_PLUGIN = "_test_plugin.py"
-_DUMMY_CFG = ["[yt]", "loglevel = 49", "pluginfilename = " + _TEST_PLUGIN]
+# NOTE: the normalization of the crazy camel-case will be checked
+_DUMMY_CFG_INI = f"""[yt]
+logLevel = 49
+pluginfilename = {_TEST_PLUGIN}
+boolean_stuff = True
+chunk_size = 3
+"""
+
+_DUMMY_CFG_TOML = f"""[yt]
+log_level = 49
+plugin_filename = "{_TEST_PLUGIN}"
+boolean_stuff = true
+chunk_size = 3
+"""
 
 
 @contextlib.contextmanager
@@ -32,24 +45,19 @@ class SysExitException(Exception):
     pass
 
 
-def setUpModule():
-    for cfgfile in (CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE):
-        if os.path.exists(cfgfile):
-            os.rename(cfgfile, cfgfile + ".bak_test")
-
-            if cfgfile == CURRENT_CONFIG_FILE:
-                yt.utilities.configure.CONFIG = YTConfigParser()
-                if not yt.utilities.configure.CONFIG.has_section("yt"):
-                    yt.utilities.configure.CONFIG.add_section("yt")
-
-
-def tearDownModule():
-    for cfgfile in (CURRENT_CONFIG_FILE, _OLD_CONFIG_FILE):
-        if os.path.exists(cfgfile + ".bak_test"):
-            os.rename(cfgfile + ".bak_test", cfgfile)
-
-
 class TestYTConfig(unittest.TestCase):
+    def setUp(self):
+        self.xdg_config_home = os.environ.get("XDG_CONFIG_HOME")
+        self.tmpdir = tempfile.mkdtemp()
+        os.environ["XDG_CONFIG_HOME"] = self.tmpdir
+
+    def tearDown(self):
+        shutil.rmtree(self.tmpdir)
+        if self.xdg_config_home:
+            os.environ["XDG_CONFIG_HOME"] = self.xdg_config_home
+        else:
+            os.environ.pop("XDG_CONFIG_HOME")
+
     def _runYTConfig(self, args):
         args = ["yt", "config"] + args
         retcode = 0
@@ -65,12 +73,25 @@ class TestYTConfig(unittest.TestCase):
         return {"rc": retcode, "stdout": output[0], "stderr": output[1]}
 
     def _testKeyValue(self, key, val_set, val_get):
-        info = self._runYTConfig(["set", "yt", key, val_set])
+        info = self._runYTConfig(["set", "yt", key, str(val_set)])
         self.assertEqual(info["rc"], 0)
 
         info = self._runYTConfig(["get", "yt", key])
         self.assertEqual(info["rc"], 0)
-        self.assertEqual(info["stdout"].strip(), val_get)
+        self.assertEqual(info["stdout"].strip(), str(val_get))
+
+        info = self._runYTConfig(["rm", "yt", key])
+        self.assertEqual(info["rc"], 0)
+
+    def _testKeyTypeError(self, key, val1, val2, expect_error):
+        info = self._runYTConfig(["set", "yt", key, str(val1)])
+        self.assertEqual(info["rc"], 0)
+
+        if expect_error:
+            with self.assertRaises(TypeError):
+                info = self._runYTConfig(["set", "yt", key, str(val2)])
+        else:
+            info = self._runYTConfig(["set", "yt", key, str(val2)])
 
         info = self._runYTConfig(["rm", "yt", key])
         self.assertEqual(info["rc"], 0)
@@ -78,14 +99,10 @@ class TestYTConfig(unittest.TestCase):
 
 class TestYTConfigCommands(TestYTConfig):
     def testConfigCommands(self):
-        # stub out test if mock isn't installed in Python2
-        if mock is None:
-            return
-
         def remove_spaces_and_breaks(s):
             return "".join(s.split())
 
-        self.assertFalse(os.path.exists(CURRENT_CONFIG_FILE))
+        self.assertFalse(os.path.exists(YTConfig.get_global_config_file()))
 
         info = self._runYTConfig(["--help"])
         self.assertEqual(info["rc"], 0)
@@ -97,9 +114,9 @@ class TestYTConfigCommands(TestYTConfig):
 
         info = self._runYTConfig(["list"])
         self.assertEqual(info["rc"], 0)
-        self.assertIn("[yt]", info["stdout"])
+        self.assertEqual(info["stdout"], "")
 
-        self._testKeyValue("__parallel", "True", "True")
+        self._testKeyValue("internals.parallel", True, True)
         self._testKeyValue(
             "test_data_dir", "~/yt-data", os.path.expanduser("~/yt-data")
         )
@@ -107,73 +124,70 @@ class TestYTConfigCommands(TestYTConfig):
             "test_data_dir", "$HOME/yt-data", os.path.expandvars("$HOME/yt-data")
         )
 
-        with self.assertRaises(NoOptionError):
+        with self.assertRaises(KeyError):
             self._runYTConfig(["get", "yt", "foo"])
 
+        # Check TypeErrors are raised when changing the type of an entry
+        self._testKeyTypeError("foo.bar", "test", 10, expect_error=True)
+        self._testKeyTypeError("foo.bar", "test", False, expect_error=True)
+
+        # Check no type error are raised when *not* changing the type
+        self._testKeyTypeError("foo.bar", 10, 20, expect_error=False)
+        self._testKeyTypeError("foo.bar", "foo", "bar", expect_error=False)
+
     def tearDown(self):
-        if os.path.exists(CURRENT_CONFIG_FILE):
-            os.remove(CURRENT_CONFIG_FILE)
+        if os.path.exists(YTConfig.get_global_config_file()):
+            os.remove(YTConfig.get_global_config_file())
+
+
+class TestYTConfigGlobalLocal(TestYTConfig):
+    def setUp(self):
+        super().setUp()
+        with open(YTConfig.get_local_config_file(), mode="w") as f:
+            f.writelines("[yt]\n")
+        with open(YTConfig.get_global_config_file(), mode="w") as f:
+            f.writelines("[yt]\n")
+
+    def testAmbiguousConfig(self):
+        info = self._runYTConfig(["list"])
+        self.assertFalse(len(info["rc"]) == 0)
+
+        for cmd in (["list", "--local"], ["list", "--global"]):
+            info = self._runYTConfig(cmd)
+            self.assertEqual(info["rc"], 0)
 
 
 class TestYTConfigMigration(TestYTConfig):
     def setUp(self):
-        if not os.path.exists(os.path.dirname(_OLD_CONFIG_FILE)):
-            os.makedirs(os.path.dirname(_OLD_CONFIG_FILE))
+        super().setUp()
+        if not os.path.exists(os.path.dirname(old_config_file())):
+            os.makedirs(os.path.dirname(old_config_file()))
 
-        with open(_OLD_CONFIG_FILE, "w") as fh:
-            for line in _DUMMY_CFG:
-                fh.write(f"{line}\n")
+        with open(old_config_file(), "w") as fh:
+            fh.write(_DUMMY_CFG_INI)
 
-        if os.path.exists(CURRENT_CONFIG_FILE):
-            os.remove(CURRENT_CONFIG_FILE)
-
-        my_plugin_name = _TEST_PLUGIN
-        old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
-        for base_prefix in ("", CONFIG_DIR, old_config_dir):
-            potential_plugin_file = os.path.join(base_prefix, my_plugin_name)
-            if os.path.isfile(potential_plugin_file):
-                os.rename(potential_plugin_file, potential_plugin_file + ".bak_test")
-
-        plugin_file = os.path.join(old_config_dir, my_plugin_name)
-        with open(plugin_file, "w") as fh:
-            fh.write(TEST_PLUGIN_FILE)
+        if os.path.exists(YTConfig.get_global_config_file()):
+            os.remove(YTConfig.get_global_config_file())
 
     def tearDown(self):
-        if os.path.exists(CURRENT_CONFIG_FILE):
-            os.remove(CURRENT_CONFIG_FILE)
-        if os.path.exists(_OLD_CONFIG_FILE + ".bak"):
-            os.remove(_OLD_CONFIG_FILE + ".bak")
-
-        my_plugin_name = _TEST_PLUGIN
-        plugin_file = os.path.join(CONFIG_DIR, my_plugin_name)
-        if os.path.exists(plugin_file):
-            os.remove(plugin_file)
-
-        old_config_dir = os.path.join(os.path.expanduser("~"), ".yt")
-        for base_prefix in ("", CONFIG_DIR, old_config_dir):
-            potential_plugin_file = os.path.join(base_prefix, my_plugin_name)
-            if os.path.isfile(potential_plugin_file + ".bak_test"):
-                os.rename(potential_plugin_file + ".bak_test", potential_plugin_file)
+        if os.path.exists(YTConfig.get_global_config_file()):
+            os.remove(YTConfig.get_global_config_file())
+        if os.path.exists(old_config_file() + ".bak"):
+            os.remove(old_config_file() + ".bak")
+        super().tearDown()
 
     def testConfigMigration(self):
-        old_config_dir = os.path.dirname(_OLD_CONFIG_FILE)
-        new_config_dir = os.path.dirname(CURRENT_CONFIG_FILE)
-
-        self.assertFalse(os.path.exists(CURRENT_CONFIG_FILE))
-        self.assertTrue(os.path.exists(_OLD_CONFIG_FILE))
-        self.assertTrue(os.path.exists(os.path.join(old_config_dir, _TEST_PLUGIN)))
+        self.assertFalse(os.path.exists(YTConfig.get_global_config_file()))
+        self.assertTrue(os.path.exists(old_config_file()))
 
         info = self._runYTConfig(["migrate"])
         self.assertEqual(info["rc"], 0)
 
-        self.assertTrue(os.path.exists(CURRENT_CONFIG_FILE))
-        self.assertFalse(os.path.exists(_OLD_CONFIG_FILE))
-        self.assertTrue(os.path.exists(_OLD_CONFIG_FILE + ".bak"))
-        self.assertTrue(os.path.exists(os.path.join(new_config_dir, _TEST_PLUGIN)))
-        self.assertTrue(
-            os.path.exists(os.path.join(old_config_dir, _TEST_PLUGIN + ".bak"))
-        )
+        self.assertTrue(os.path.exists(YTConfig.get_global_config_file()))
+        self.assertFalse(os.path.exists(old_config_file()))
+        self.assertTrue(os.path.exists(old_config_file() + ".bak"))
 
-        with open(CURRENT_CONFIG_FILE, "r") as fh:
-            new_cfg = "".join(fh.readlines())
-        self.assertEqual(new_cfg.strip().split("\n"), _DUMMY_CFG)
+        with open(YTConfig.get_global_config_file()) as fh:
+            new_cfg = fh.read()
+
+        self.assertEqual(new_cfg, _DUMMY_CFG_TOML)

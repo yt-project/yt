@@ -1,6 +1,7 @@
-import yt
 import matplotlib.pyplot as plt
 from mpl_toolkits.axes_grid1 import AxesGrid
+
+import yt
 
 fig = plt.figure()
 
@@ -23,7 +24,15 @@ for i, SnapNum in enumerate([10, 40]):
     # Load the data and create a single plot
     ds = yt.load("enzo_tiny_cosmology/DD00%2d/DD00%2d" % (SnapNum, SnapNum))
     ad = ds.all_data()
-    p = yt.PhasePlot(ad, "density", "temperature", ["cell_mass",], weight_field=None)
+    p = yt.PhasePlot(
+        ad,
+        "density",
+        "temperature",
+        [
+            "cell_mass",
+        ],
+        weight_field=None,
+    )
 
     # Ensure the axes and colorbar limits match for all plots
     p.set_xlim(1.0e-32, 8.0e-26)

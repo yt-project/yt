@@ -79,11 +79,11 @@ These will almost never need to be instantiated on their own.
 .. autosummary::
 
    ~yt.data_objects.data_containers.YTDataContainer
-   ~yt.data_objects.data_containers.YTSelectionContainer
-   ~yt.data_objects.data_containers.YTSelectionContainer0D
-   ~yt.data_objects.data_containers.YTSelectionContainer1D
-   ~yt.data_objects.data_containers.YTSelectionContainer2D
-   ~yt.data_objects.data_containers.YTSelectionContainer3D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer0D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer1D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer2D
+   ~yt.data_objects.selection_objects.data_selection_objects.YTSelectionContainer3D
 
 Selection Objects
 +++++++++++++++++
@@ -93,18 +93,22 @@ geometric.
 
 .. autosummary::
 
-   ~yt.data_objects.selection_data_containers.YTPoint
-   ~yt.data_objects.selection_data_containers.YTOrthoRay
-   ~yt.data_objects.selection_data_containers.YTRay
-   ~yt.data_objects.selection_data_containers.YTSlice
-   ~yt.data_objects.selection_data_containers.YTCuttingPlane
-   ~yt.data_objects.selection_data_containers.YTDisk
-   ~yt.data_objects.selection_data_containers.YTRegion
-   ~yt.data_objects.selection_data_containers.YTDataCollection
-   ~yt.data_objects.selection_data_containers.YTSphere
-   ~yt.data_objects.selection_data_containers.YTEllipsoid
-   ~yt.data_objects.selection_data_containers.YTCutRegion
-   ~yt.data_objects.grid_patch.AMRGridPatch
+   ~yt.data_objects.selection_objects.point.YTPoint
+   ~yt.data_objects.selection_objects.ray.YTOrthoRay
+   ~yt.data_objects.selection_objects.ray.YTRay
+   ~yt.data_objects.selection_objects.slices.YTSlice
+   ~yt.data_objects.selection_objects.slices.YTCuttingPlane
+   ~yt.data_objects.selection_objects.disk.YTDisk
+   ~yt.data_objects.selection_objects.region.YTRegion
+   ~yt.data_objects.selection_objects.object_collection.YTDataCollection
+   ~yt.data_objects.selection_objects.spheroids.YTSphere
+   ~yt.data_objects.selection_objects.spheroids.YTEllipsoid
+   ~yt.data_objects.selection_objects.cur_region.YTCutRegion
+   ~yt.data_objects.index_subobjects.grid_patch.AMRGridPatch
+   ~yt.data_objects.index_subobjects.octree_subset.OctreeSubset
+   ~yt.data_objects.index_subobjects.particle_container.ParticleContainer
+   ~yt.data_objects.index_subobjects.unstructured_mesh.UnstructuredMesh
+   ~yt.data_objects.index_subobjects.unstructured_mesh.SemiStructuredMesh
 
 Construction Objects
 ++++++++++++++++++++
@@ -132,6 +136,7 @@ datasets.
 
    ~yt.data_objects.time_series.DatasetSeries
    ~yt.data_objects.time_series.DatasetSeriesObject
+   ~yt.data_objects.time_series.SimulationTimeSeries
    ~yt.data_objects.time_series.TimeSeriesQuantitiesContainer
    ~yt.data_objects.time_series.AnalysisTaskProxy
    ~yt.data_objects.particle_trajectories.ParticleTrajectories
@@ -189,7 +194,7 @@ AMRVAC
    ~yt.frontends.amrvac.data_structures.AMRVACDataset
    ~yt.frontends.amrvac.fields.AMRVACFieldInfo
    ~yt.frontends.amrvac.io.AMRVACIOHandler
-   ~yt.frontends.amrvac.read_amrvac_namelist
+   ~yt.frontends.amrvac.io.read_amrvac_namelist
 
 ARTIO
 ^^^^^
@@ -318,10 +323,10 @@ Halo Catalogs
    ~yt.frontends.gadget_fof.io.IOHandlerGadgetFOFHaloHDF5
    ~yt.frontends.gadget_fof.fields.GadgetFOFFieldInfo
    ~yt.frontends.gadget_fof.fields.GadgetFOFHaloFieldInfo
-   ~yt.frontends.halo_catalog.data_structures.HaloCatalogHDF5File
-   ~yt.frontends.halo_catalog.data_structures.HaloCatalogDataset
-   ~yt.frontends.halo_catalog.fields.HaloCatalogFieldInfo
-   ~yt.frontends.halo_catalog.io.IOHandlerHaloCatalogHDF5
+   ~yt.frontends.halo_catalog.data_structures.YTHaloCatalogFile
+   ~yt.frontends.halo_catalog.data_structures.YTHaloCatalogDataset
+   ~yt.frontends.halo_catalog.fields.YTHaloCatalogFieldInfo
+   ~yt.frontends.halo_catalog.io.IOHandlerYTHaloCatalog
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindParticleIndex
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindHDF5File
    ~yt.frontends.owls_subfind.data_structures.OWLSSubfindDataset
@@ -446,14 +451,15 @@ Loading Data
 
 .. autosummary::
 
-   ~yt.convenience.load
-   ~yt.convenience.simulation
-   ~yt.frontends.stream.data_structures.load_uniform_grid
-   ~yt.frontends.stream.data_structures.load_amr_grids
-   ~yt.frontends.stream.data_structures.load_particles
-   ~yt.frontends.stream.data_structures.load_octree
-   ~yt.frontends.stream.data_structures.load_hexahedral_mesh
-   ~yt.frontends.stream.data_structures.load_unstructured_mesh
+   ~yt.loaders.load
+   ~yt.loaders.simulation
+   ~yt.loaders.load_uniform_grid
+   ~yt.loaders.load_amr_grids
+   ~yt.loaders.load_particles
+   ~yt.loaders.load_octree
+   ~yt.loaders.load_hexahedral_mesh
+   ~yt.loaders.load_unstructured_mesh
+   ~yt.loaders.load_sample
 
 Derived Datatypes
 -----------------
@@ -720,18 +726,16 @@ Function List
 
 .. autosummary::
 
-   ~yt.convenience.load
    ~yt.frontends.ytdata.utilities.save_as_dataset
    ~yt.data_objects.static_output.Dataset.all_data
    ~yt.data_objects.static_output.Dataset.box
-   ~yt.funcs.deprecate
-   ~yt.funcs.ensure_list
    ~yt.funcs.enable_plugins
    ~yt.funcs.get_pbar
    ~yt.funcs.humanize_time
    ~yt.funcs.insert_ipython
    ~yt.funcs.is_root
-   ~yt.funcs.iterable
+   ~yt.funcs.is_sequence
+   ~yt.funcs.iter_fields
    ~yt.funcs.just_one
    ~yt.funcs.only_on_root
    ~yt.funcs.paste_traceback

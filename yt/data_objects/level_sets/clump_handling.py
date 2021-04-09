@@ -4,7 +4,7 @@ import numpy as np
 
 from yt.fields.derived_field import ValidateSpatial
 from yt.frontends.ytdata.utilities import save_as_dataset
-from yt.funcs import get_output_filename, issue_deprecation_warning, mylog
+from yt.funcs import get_output_filename, mylog
 from yt.utilities.tree_container import TreeContainer
 
 from .clump_info_items import clump_info_registry
@@ -153,7 +153,7 @@ class Clump(TreeContainer):
         # Here, cids is the set of slices and values, keyed by the
         # parent_grid_id, that defines the contours.  So we can figure out all
         # the unique values of the contours by examining the list here.
-        unique_contours = set([])
+        unique_contours = set()
         for sl_list in cids.values():
             for _sl, ff in sl_list:
                 unique_contours.update(np.unique(ff))
@@ -187,8 +187,7 @@ class Clump(TreeContainer):
     def __iter__(self):
         yield self
         for child in self.children:
-            for a_node in child:
-                yield a_node
+            yield from child
 
     def save_as_dataset(self, filename=None, fields=None):
         r"""Export clump tree to a reloadable yt dataset.
@@ -256,14 +255,12 @@ class Clump(TreeContainer):
         filename = get_output_filename(filename, keyword, ".h5")
 
         # collect clump info fields
-        clump_info = dict([(ci.name, []) for ci in self.base.clump_info])
+        clump_info = {ci.name: [] for ci in self.base.clump_info}
         clump_info.update(
-            dict(
-                [
-                    (field, [])
-                    for field in ["clump_id", "parent_id", "contour_key", "contour_id"]
-                ]
-            )
+            {
+                field: []
+                for field in ["clump_id", "parent_id", "contour_key", "contour_id"]
+            }
         )
         for clump in self:
             clump_info["clump_id"].append(clump.clump_id)
@@ -290,7 +287,7 @@ class Clump(TreeContainer):
             else:
                 clump_info[ci] = np.array(clump_info[ci])
 
-        ftypes = dict([(ci, "clump") for ci in clump_info])
+        ftypes = {ci: "clump" for ci in clump_info}
 
         # collect data fields
         if fields is not None:
@@ -455,13 +452,3 @@ def find_clumps(clump, min_val, max_val, d_clump):
                 len(clump.children),
             )
             clump.children = []
-
-
-def get_lowest_clumps(clump, clump_list=None):
-    "Return a list of all clumps at the bottom of the index."
-
-    issue_deprecation_warning(
-        "This function has been deprecated in favor of accessing a "
-        + "clump's leaf nodes via 'clump.leaves'."
-    )
-    return clump.leaves

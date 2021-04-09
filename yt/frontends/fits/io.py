@@ -9,7 +9,7 @@ class IOHandlerFITS(BaseIOHandler):
     _dataset_type = "fits"
 
     def __init__(self, ds):
-        super(IOHandlerFITS, self).__init__(ds)
+        super().__init__(ds)
         self.ds = ds
         self._handle = ds._handle
 

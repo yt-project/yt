@@ -76,9 +76,9 @@ class TaskQueueRoot(TaskQueueNonRoot):
         self.comm.probe_loop(1, self.handle_assignment)
         return self.finalize(self.results)
 
-    def insert_result(self, source_id, result):
-        task_id = self.assignments[source_id]
-        self.results[task_id] = result
+    def insert_result(self, source_id, rstore):
+        task_id = rstore.result_id
+        self.results[task_id] = rstore.result
 
     def assign_task(self, source_id):
         if self._remaining == 0:
@@ -176,7 +176,7 @@ def dynamic_parallel_objects(tasks, njobs=0, storage=None, broadcast=True):
             for task in my_q:
                 rstore = ResultsStorage()
                 yield rstore, task
-                my_q.send_result(rstore.result)
+                my_q.send_result(rstore)
 
     if storage is not None:
         if broadcast:

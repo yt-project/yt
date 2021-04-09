@@ -5,7 +5,7 @@ from yt.fields.magnetic_field import setup_magnetic_field_aliases
 from yt.frontends.open_pmd.misc import is_const_component, parse_unit_dimension
 from yt.units.yt_array import YTQuantity
 from yt.utilities.logger import ytLogger as mylog
-from yt.utilities.on_demand_imports import _h5py as h5
+from yt.utilities.on_demand_imports import _h5py as h5py
 from yt.utilities.physical_constants import mu_0, speed_of_light
 
 
@@ -103,7 +103,7 @@ def setup_absolute_positions(self, ptype):
 
 
 class OpenPMDFieldInfo(FieldInfoContainer):
-    """Specifies which fields from the dataset yt should know about.
+    r"""Specifies which fields from the dataset yt should know about.
 
     ``self.known_other_fields`` and ``self.known_particle_fields`` must be populated.
     Entries for both of these lists must be tuples of the form ("name", ("units",
@@ -134,7 +134,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     References
     ----------
     * http://yt-project.org/docs/dev/analyzing/fields.html
-    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures
+    * http://yt-project.org/docs/dev/developing/creating_frontend.html#data-meaning-structures  # NOQA E501
     * https://github.com/openPMD/openPMD-standard/blob/latest/STANDARD.md
     * [1] http://yt-project.org/docs/dev/reference/field_list.html#universal-fields
     """
@@ -151,11 +151,12 @@ class OpenPMDFieldInfo(FieldInfoContainer):
             fields = f[bp + mp]
             for fname in fields.keys():
                 field = fields[fname]
-                if isinstance(field, h5.Dataset) or is_const_component(field):
-                    # Don't consider axes. This appears to be a vector field of single dimensionality
+                if isinstance(field, h5py.Dataset) or is_const_component(field):
+                    # Don't consider axes.
+                    # This appears to be a vector field of single dimensionality
                     ytname = str("_".join([fname.replace("_", "-")]))
                     parsed = parse_unit_dimension(
-                        np.asarray(field.attrs["unitDimension"], dtype=np.int)
+                        np.asarray(field.attrs["unitDimension"], dtype="int64")
                     )
                     unit = str(YTQuantity(1, parsed).units)
                     aliases = []
@@ -168,7 +169,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     for axis in field.keys():
                         ytname = str("_".join([fname.replace("_", "-"), axis]))
                         parsed = parse_unit_dimension(
-                            np.asarray(field.attrs["unitDimension"], dtype=np.int)
+                            np.asarray(field.attrs["unitDimension"], dtype="int64")
                         )
                         unit = str(YTQuantity(1, parsed).units)
                         aliases = []
@@ -195,9 +196,11 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                         if ytattrib == "position":
                             # Symbolically rename position to preserve yt's
                             # interpretation of the pfield particle_position is later
-                            # derived in setup_absolute_positions in the way yt expects it
+                            # derived in setup_absolute_positions in the way yt expects
                             ytattrib = "positionCoarse"
-                        if isinstance(record, h5.Dataset) or is_const_component(record):
+                        if isinstance(record, h5py.Dataset) or is_const_component(
+                            record
+                        ):
                             name = ["particle", ytattrib]
                             self.known_particle_fields += (
                                 (str("_".join(name)), (unit, [], None)),
@@ -213,7 +216,8 @@ class OpenPMDFieldInfo(FieldInfoContainer):
                     except (KeyError):
                         if recname != "particlePatches":
                             mylog.info(
-                                "open_pmd - %s_%s does not seem to have unitDimension",
+                                "open_pmd - %s_%s does not seem to have "
+                                "unitDimension",
                                 pname,
                                 recname,
                             )
@@ -222,7 +226,7 @@ class OpenPMDFieldInfo(FieldInfoContainer):
         except (KeyError, TypeError, AttributeError):
             pass
 
-        super(OpenPMDFieldInfo, self).__init__(ds, field_list)
+        super().__init__(ds, field_list)
 
     def setup_fluid_fields(self):
         """Defines which derived mesh fields to create.
@@ -237,10 +241,11 @@ class OpenPMDFieldInfo(FieldInfoContainer):
     def setup_particle_fields(self, ptype):
         """Defines which derived particle fields to create.
 
-        This will be called for every entry in `OpenPMDDataset``'s ``self.particle_types``.
+        This will be called for every entry in
+        `OpenPMDDataset``'s ``self.particle_types``.
         If a field can not be calculated, it will simply be skipped.
         """
         setup_absolute_positions(self, ptype)
         setup_kinetic_energy(self, ptype)
         setup_velocity(self, ptype)
-        super(OpenPMDFieldInfo, self).setup_particle_fields(ptype)
+        super().setup_particle_fields(ptype)
