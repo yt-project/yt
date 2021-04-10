@@ -327,7 +327,7 @@ _common_options = dict(
         type=str,
         dest="field",
         default="density",
-        help=("Field to color by, " "use a comma to separate field tuple values"),
+        help=("Field to color by, use a comma to separate field tuple values"),
     ),
     weight=dict(
         short="-g",
@@ -1906,7 +1906,7 @@ class YTDownloadData(YTCommand):
             )
         elif not args.location:
             raise RuntimeError(
-                "You need to specify download location. See " "--help for details."
+                "You need to specify download location. See --help for details."
             )
         data_url = f"http://yt-project.org/data/{args.filename}"
         if args.location in ["test_data_dir", "supp_data_dir"]:

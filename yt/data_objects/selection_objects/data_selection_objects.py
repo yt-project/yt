@@ -1414,7 +1414,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         """
         if self.ds.geometry != "cartesian":
             raise NotImplementedError(
-                "get_bbox is currently only implemented " "for cartesian geometries!"
+                "get_bbox is currently only implemented for cartesian geometries!"
             )
         le, re = self._get_bbox()
         le.convert_to_units("code_length")

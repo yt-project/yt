@@ -276,7 +276,7 @@ def read_embree_location():
         # Attempt to compile a test script.
         filename = r"test.cpp"
         file = open(filename, "wt", 1)
-        file.write('#include "embree2/rtcore.h"\n' "int main() {\n" "return 0;\n" "}")
+        file.write('#include "embree2/rtcore.h"\n' "int main() {\nreturn 0;\n" "}")
         file.flush()
         p = Popen(
             compiler + ["-I%s/include/" % rd, filename],
@@ -289,7 +289,7 @@ def read_embree_location():
 
         if exit_code != 0:
             log.warn(
-                "Pyembree is installed, but I could not compile Embree " "test code."
+                "Pyembree is installed, but I could not compile Embree test code."
             )
             log.warn("The error message was: ")
             log.warn(err)

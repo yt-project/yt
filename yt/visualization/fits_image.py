@@ -203,7 +203,7 @@ class FITSImageData:
         elif isinstance(data, np.ndarray):
             if fields is None:
                 mylog.warning(
-                    "No field name given for this array. " "Calling it 'image_data'."
+                    "No field name given for this array. Calling it 'image_data'."
                 )
                 fn = "image_data"
                 fields = [fn]
@@ -408,7 +408,7 @@ class FITSImageData:
                 uq.convert_to_cgs()
 
             if attr == "length_unit" and uq.value != 1.0:
-                mylog.warning("Converting length units " "from %s to %s.", uq, uq.units)
+                mylog.warning("Converting length units from %s to %s.", uq, uq.units)
                 uq = YTQuantity(1.0, uq.units)
 
             setattr(self, attr, uq)

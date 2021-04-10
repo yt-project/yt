@@ -395,9 +395,7 @@ class YTParticleProj(YTProj):
         )
 
     def _handle_chunk(self, chunk, fields, tree):
-        raise NotImplementedError(
-            "Particle projections have not yet been " "implemented"
-        )
+        raise NotImplementedError("Particle projections have not yet been implemented")
 
 
 class YTQuadTreeProj(YTProj):
@@ -756,7 +754,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
-                "Length of edges must match the dimensionality of the " "dataset"
+                "Length of edges must match the dimensionality of the dataset"
             )
         if hasattr(edge, "units"):
             edge_units = edge.units.copy()
@@ -2762,7 +2760,7 @@ class YTOctree(YTSelectionContainer3D):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
-                "Length of edges must match the dimensionality of the " "dataset"
+                "Length of edges must match the dimensionality of the dataset"
             )
         if hasattr(edge, "units"):
             edge_units = edge.units
