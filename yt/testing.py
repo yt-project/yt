@@ -729,8 +729,7 @@ def add_noise_fields(ds):
 
     def _binary_noise(field, data):
         """random binary data"""
-        res = prng.random_integers(0, 1, data.size).astype("float64")
-        return res
+        return prng.randint(low=0, high=2, size=data.size).astype("float64")
 
     def _positive_noise(field, data):
         """random strictly positive data"""
@@ -1109,7 +1108,7 @@ def check_results(func):
             st = _rv.std(dtype="float64")
             su = _rv.sum(dtype="float64")
             si = _rv.size
-            ha = hashlib.md5(_rv.tostring()).hexdigest()
+            ha = hashlib.md5(_rv.tobytes()).hexdigest()
             fn = f"func_results_ref_{name}.cpkl"
             with open(fn, "wb") as f:
                 pickle.dump((mi, ma, st, su, si, ha), f)
@@ -1138,7 +1137,7 @@ def check_results(func):
                 _rv.std(dtype="float64"),
                 _rv.sum(dtype="float64"),
                 _rv.size,
-                hashlib.md5(_rv.tostring()).hexdigest(),
+                hashlib.md5(_rv.tobytes()).hexdigest(),
             )
             fn = f"func_results_ref_{name}.cpkl"
             if not os.path.exists(fn):

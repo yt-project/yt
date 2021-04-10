@@ -31,6 +31,6 @@ cdef class DataCollectionSelector(SelectorObject):
         return mask.astype("bool")
 
     def _hash_vals(self):
-        return (hash(self.obj_ids.tostring()), self.nids)
+        return (hash(self.obj_ids.tobytes()), self.nids)
 
 data_collection_selector = DataCollectionSelector
