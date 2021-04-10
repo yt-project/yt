@@ -236,7 +236,7 @@ class OpenPMDHierarchy(GridIndex):
                     for (patch, size) in enumerate(
                         species["/particlePatches/numParticles"]
                     ):
-                        self.numparts[pname + "#" + str(patch)] = size
+                        self.numparts[f"{pname}#{patch}"] = size
                 else:
                     axis = list(species["/position"].keys())[0]
                     if is_const_component(species["/position/" + axis]):

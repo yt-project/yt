@@ -794,7 +794,7 @@ class FITSImageData:
             scaleq = YTQuantity(sky_scale[0], sky_scale[1])
         if scaleq.units.dimensions != dimensions.angle / dimensions.length:
             raise RuntimeError(
-                f"sky_scale {sky_scale} not in correct " + "dimensions of angle/length!"
+                f"sky_scale {sky_scale} not in correct dimensions of angle/length!"
             )
         deltas = old_wcs.wcs.cdelt
         units = [str(unit) for unit in old_wcs.wcs.cunit]

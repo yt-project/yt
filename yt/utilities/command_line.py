@@ -911,7 +911,7 @@ class YTInstInfoCmd(YTCommand):
             action="store",
             default=None,
             dest="outputfile",
-            help="File into which the current revision number will be" + "stored",
+            help="File into which the current revision number will be stored",
         ),
     )
     description = """

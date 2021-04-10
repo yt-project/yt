@@ -499,7 +499,7 @@ def _read_child_mask_level(f, level_child_offsets, level, nLevel, nhydro_vars):
 
 
 nchem = 8 + 2
-dtyp = np.dtype(">i4,>i8,>i8" + f",>{nchem}f4" + ",>%sf4" % (2) + ",>i4")
+dtyp = np.dtype(f">i4,>i8,>i8,>{nchem}f4,>2f4,>i4")
 
 
 def _read_child_level(
