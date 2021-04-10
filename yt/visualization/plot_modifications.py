@@ -2487,7 +2487,7 @@ class TimestampCallback(PlotCallback):
                     toffset = plot.ds.quan(self.time_offset, self.time_unit)
                 elif not isinstance(self.time_offset, YTQuantity):
                     raise RuntimeError(
-                        "'time_offset' must be a float, tuple, orYTQuantity!"
+                        "'time_offset' must be a float, tuple, or YTQuantity!"
                     )
                 t -= toffset.in_units(self.time_unit)
             try:

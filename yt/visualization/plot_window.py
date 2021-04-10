@@ -932,7 +932,7 @@ class PWViewerMPL(PlotWindow):
         y_in_bounds = yc >= yllim and yc <= yrlim
 
         if not x_in_bounds and not y_in_bounds:
-            msg = "origin inputs not in bounds of specified coordinate sytemdomain."
+            msg = "origin inputs not in bounds of specified coordinate system domain."
             msg = msg.format(self.origin)
             raise RuntimeError(msg)
 
