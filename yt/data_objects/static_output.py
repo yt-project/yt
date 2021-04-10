@@ -1113,6 +1113,9 @@ class Dataset(abc.ABC):
         )
         if unit_system != "code":
             us = unit_system_registry[str(unit_system).lower()]
+
+        us._code_flag = unit_system == "code"
+
         self.unit_system = us
         self.unit_registry.unit_system = self.unit_system
 

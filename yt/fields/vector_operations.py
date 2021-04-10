@@ -609,13 +609,19 @@ def create_averaged_field(
     validators += [ValidateSpatial(1, [(ftype, basename)])]
 
     def _averaged_field(field, data):
-        nx, ny, nz = data[(ftype, basename)].shape
+        def atleast_4d(array):
+            if array.ndim == 3:
+                return array[..., None]
+            else:
+                return array
+
+        nx, ny, nz, ngrids = atleast_4d(data[(ftype, basename)]).shape
         new_field = data.ds.arr(
-            np.zeros((nx - 2, ny - 2, nz - 2), dtype=np.float64),
+            np.zeros((nx - 2, ny - 2, nz - 2, ngrids), dtype=np.float64),
             (just_one(data[(ftype, basename)]) * just_one(data[(ftype, weight)])).units,
         )
         weight_field = data.ds.arr(
-            np.zeros((nx - 2, ny - 2, nz - 2), dtype=np.float64),
+            np.zeros((nx - 2, ny - 2, nz - 2, ngrids), dtype=np.float64),
             data[(ftype, weight)].units,
         )
         i_i, j_i, k_i = np.mgrid[0:3, 0:3, 0:3]
@@ -626,13 +632,22 @@ def create_averaged_field(
                 slice(j, ny - (2 - j)),
                 slice(k, nz - (2 - k)),
             )
-            new_field += data[(ftype, basename)][sl] * data[(ftype, weight)][sl]
-            weight_field += data[(ftype, weight)][sl]
+            new_field += (
+                atleast_4d(data[(ftype, basename)])[sl]
+                * atleast_4d(data[(ftype, weight)])[sl]
+            )
+            weight_field += atleast_4d(data[(ftype, weight)])[sl]
 
         # Now some fancy footwork
-        new_field2 = data.ds.arr(np.zeros((nx, ny, nz)), data[(ftype, basename)].units)
+        new_field2 = data.ds.arr(
+            np.zeros((nx, ny, nz, ngrids)), data[(ftype, basename)].units
+        )
         new_field2[1:-1, 1:-1, 1:-1] = new_field / weight_field
-        return new_field2
+
+        if data[(ftype, basename)].ndim == 3:
+            return new_field2[..., 0]
+        else:
+            return new_field2
 
     registry.add_field(
         (ftype, f"averaged_{basename}"),
