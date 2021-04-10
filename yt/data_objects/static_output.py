@@ -628,7 +628,7 @@ class Dataset(abc.ABC):
                 )
         else:
             raise ValueError(
-                "{} not a recognized format_property. Available"
+                "{} not a recognized format_property. Available "
                 "properties are: {}".format(
                     format_property, list(available_formats.keys())
                 )
@@ -1681,7 +1681,7 @@ class Dataset(abc.ABC):
         The field name tuple for the newly created field.
         """
         issue_deprecation_warning(
-            "This method is deprecated."
+            "This method is deprecated. "
             "Since yt-4.0, it's no longer necessary to add a field specifically for "
             "smoothing, because the global octree is removed. The old behavior of "
             "interpolating onto a grid structure can be recovered through data objects "

@@ -142,7 +142,7 @@ class BoxLibParticleHeader:
                 self.real_type = known_real_types[particle_real_type]
             except KeyError:
                 warnings.warn(
-                    f"yt did not recognize particle real type {particle_real_type}"
+                    f"yt did not recognize particle real type {particle_real_type} "
                     "assuming double",
                     category=RuntimeWarning,
                 )

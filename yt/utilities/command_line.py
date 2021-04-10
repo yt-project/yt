@@ -276,8 +276,8 @@ _common_options = dict(
         default=False,
         action="store_true",
         help=(
-            "Reinstall the full yt stack in the current location."
-            "This option has been deprecated and will not have any"
+            "Reinstall the full yt stack in the current location. "
+            "This option has been deprecated and will not have any "
             "effect."
         ),
     ),
