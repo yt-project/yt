@@ -2487,7 +2487,7 @@ class TimestampCallback(PlotCallback):
                     toffset = plot.ds.quan(self.time_offset, self.time_unit)
                 elif not isinstance(self.time_offset, YTQuantity):
                     raise RuntimeError(
-                        "'time_offset' must be a float, tuple, or" "YTQuantity!"
+                        "'time_offset' must be a float, tuple, or YTQuantity!"
                     )
                 t -= toffset.in_units(self.time_unit)
             try:
@@ -2512,7 +2512,7 @@ class TimestampCallback(PlotCallback):
                 z = plot.data.ds.current_redshift
             except AttributeError:
                 raise AttributeError(
-                    "Dataset does not have current_redshift. " "Set redshift=False."
+                    "Dataset does not have current_redshift. Set redshift=False."
                 )
             # Replace instances of -0.0* with 0.0* to avoid
             # negative null redshifts (e.g., "-0.00").

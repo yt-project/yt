@@ -65,9 +65,7 @@ class TestImageWriter(unittest.TestCase):
 
         with assert_raises(RuntimeError) as ex:
             write_bitmap(np.ones([16, 16]), None)
-        desired = (
-            "Expecting image array of shape (N,M,3) " "or (N,M,4), received (16, 16)"
-        )
+        desired = "Expecting image array of shape (N,M,3) or (N,M,4), received (16, 16)"
         assert_equal(str(ex.exception)[:50], desired[:50])
 
     def test_strip_colormap_data(self):

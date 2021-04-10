@@ -688,7 +688,7 @@ class MeshSource(OpaqueSource):
         assert self.data_source is not None
         if self.field[0] == "all":
             raise NotImplementedError(
-                "Mesh unions are not implemented " "for 3D rendering"
+                "Mesh unions are not implemented for 3D rendering"
             )
 
         if self.engine == "embree":
@@ -698,7 +698,7 @@ class MeshSource(OpaqueSource):
             self.build_volume_bvh()
         else:
             raise NotImplementedError(
-                "Invalid ray-tracing engine selected. " "Choices are 'embree' and 'yt'."
+                "Invalid ray-tracing engine selected. Choices are 'embree' and 'yt'."
             )
 
     def cmap():

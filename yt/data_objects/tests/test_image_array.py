@@ -118,7 +118,7 @@ class TestImageArray(unittest.TestCase):
             # Trigger a warning.
             im_arr.write_png("clipped.png", clip_ratio=0.5)
             assert str(w[0].message) == (
-                "'clip_ratio' keyword is deprecated." " Use 'sigma_clip' instead"
+                "'clip_ratio' keyword is deprecated. Use 'sigma_clip' instead"
             )
 
     def test_image_array_background(self):

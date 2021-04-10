@@ -425,7 +425,7 @@ class HydroFieldFileHandler(FieldFileHandler):
         # Allow some wiggle room for users to add too many variables
         count_extra = 0
         while len(fields) < nvar:
-            fields.append("var" + str(len(fields)))
+            fields.append(f"var_{len(fields)}")
             count_extra += 1
         if count_extra > 0:
             mylog.debug("Detected %s extra fluid fields.", count_extra)
