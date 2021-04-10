@@ -1,7 +1,6 @@
 import logging
 import os
 import textwrap
-from time import time
 
 import numpy as np
 import pytest
@@ -42,9 +41,7 @@ def capturable_logger(caplog):
 @requires_module_pytest("pandas", "pooch")
 @pytest.mark.usefixtures("capturable_logger")
 def test_load_sample_small_dataset(tmp_data_dir, caplog):
-    start = time()
     ds = load_sample("ToroShockTube", progressbar=False, timeout=30)
-    elapsed1 = time() - start
     assert isinstance(ds, EnzoDataset)
 
     text = textwrap.dedent(
@@ -64,13 +61,8 @@ def test_load_sample_small_dataset(tmp_data_dir, caplog):
 
     caplog.clear()
     # loading a second time should not result in a download request
-    start = time()
     ds2 = load_sample("ToroShockTube")
-    elapsed2 = time() - start
     assert isinstance(ds2, EnzoDataset)
-
-    # caching should make a significant runtime difference even in fast networks
-    assert elapsed2 < elapsed1
 
     text = textwrap.dedent(
         f"""
