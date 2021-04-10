@@ -3,11 +3,6 @@ from matplotlib import cm as mcm, colors as cc
 
 from . import _colormap_data as _cm
 
-try:
-    import cmocean
-except ImportError:
-    cmocean = None
-
 
 def is_colormap(cmap):
     return isinstance(cmap, cc.Colormap)
@@ -170,18 +165,6 @@ cdict = {
 
 add_colormap("purple_mm", cdict)
 
-# Add colormaps from cmocean, if it's installed
-if cmocean is not None:
-    cmo_cmapnames = cmocean.cm.cmapnames
-    cmo_cmapnames += [f"{name}_r" for name in cmo_cmapnames]
-    for cmname in cmo_cmapnames:
-        cm = getattr(cmocean.cm, cmname)
-        # cmocean has a colormap named 'algae', so let's avoid overwriting
-        # yt's algae or any other colormap we've already added
-        if cmname in yt_colormaps:
-            cmname = cmname + "_cmocean"
-        yt_colormaps[cmname] = cm
-        mcm.register_cmap(cmname, yt_colormaps[cmname])
 
 # Add colormaps in _colormap_data.py that weren't defined here
 _vs = np.linspace(0, 1, 256)

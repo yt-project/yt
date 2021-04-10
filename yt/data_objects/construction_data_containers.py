@@ -2681,7 +2681,7 @@ class YTOctree(YTSelectionContainer3D):
             )
         positions = np.concatenate(positions)
 
-        if positions == []:
+        if not positions.size:
             self._octree = None
             return
 

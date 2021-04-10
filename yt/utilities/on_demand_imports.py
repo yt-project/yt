@@ -233,18 +233,18 @@ _cartopy = cartopy_imports()
 
 class pooch_imports:
     _name = "pooch"
+    _module = None
 
-    _pooch = None
+    def __init__(self):
+        try:
+            import pooch as myself
 
-    @property
-    def pooch(self):
-        if self._pooch is None:
-            try:
-                import pooch as pooch
-            except ImportError:
-                pooch = NotAModule(self._name)
-            self._pooch = pooch
-        return self._pooch
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
 
 
 _pooch = pooch_imports()
@@ -645,3 +645,22 @@ class requests_imports:
 
 
 _requests = requests_imports()
+
+
+class pandas_imports:
+    _name = "pandas"
+    _module = None
+
+    def __init__(self):
+        try:
+            import pandas as myself
+
+            self._module = myself
+        except ImportError:
+            self._module = NotAModule(self._name)
+
+    def __getattr__(self, attr):
+        return getattr(self._module, attr)
+
+
+_pandas = pandas_imports()

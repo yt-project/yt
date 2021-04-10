@@ -15,7 +15,6 @@ from yt.funcs import is_sequence, mylog, validate_width_tuple
 from yt.geometry.geometry_handler import is_curvilinear
 from yt.geometry.unstructured_mesh_handler import UnstructuredIndex
 from yt.units import dimensions
-from yt.units.unit_object import Unit
 from yt.units.yt_array import YTArray, YTQuantity, uhstack
 from yt.utilities.exceptions import YTDataTypeUnsupported
 from yt.utilities.lib.geometry_utils import triangle_plane_intersect
@@ -2471,10 +2470,9 @@ class TimestampCallback(PlotCallback):
         if self.time:
             # If no time_units are set, then identify a best fit time unit
             if self.time_unit is None:
-                if plot.ds.unit_system.name.startswith("us"):
-                    # if the unit system name startswith "us", that means it is
-                    # in code units and we should not convert to seconds for
-                    # the plot.
+                if plot.ds.unit_system._code_flag:
+                    # if the unit system is in code units
+                    # we should not convert to seconds for the plot.
                     self.time_unit = plot.ds.unit_system.base_units[dimensions.time]
                 else:
                     # in the case of non- code units then we
@@ -2492,15 +2490,16 @@ class TimestampCallback(PlotCallback):
                         "'time_offset' must be a float, tuple, or" "YTQuantity!"
                     )
                 t -= toffset.in_units(self.time_unit)
-            if isinstance(self.time_unit, Unit):
+            try:
                 # here the time unit will be in brackets on the annotation.
-                # This will most likely be in "code_time".
                 un = self.time_unit.latex_representation()
                 time_unit = r"$\ \ (" + un + r")$"
-            else:
-                # the 'smallest_appropriate_unit' function will return a
-                # string, so we shouldn't need to format it further.
-                time_unit = self.time_unit
+            except AttributeError as err:
+                if plot.ds.unit_system._code_flag == "code":
+                    raise RuntimeError(
+                        "The time unit str repr didn't match expectations, something is wrong."
+                    ) from err
+                time_unit = str(self.time_unit).replace("_", " ")
             self.text += self.time_format.format(time=float(t), units=time_unit)
 
         # If time and redshift both shown, do one on top of the other

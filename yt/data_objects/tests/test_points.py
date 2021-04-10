@@ -64,7 +64,7 @@ def test_fast_find_field_values_at_points():
     # sample 100 particles
     nparticles = 100
     ppos = ad["all", "particle_position"]
-    ppos = ppos[np.random.random_integers(0, len(ppos) - 1, size=nparticles)]
+    ppos = ppos[np.random.randint(low=0, high=len(ppos), size=nparticles)]
 
     ppos_den = ds.find_field_values_at_points(("gas", "density"), ppos)
     ppos_vel = ds.find_field_values_at_points(("gas", "velocity_x"), ppos)

@@ -521,7 +521,7 @@ class YTDataContainer:
         >>> dd = ds.all_data()
         >>> df = dd.to_dataframe([("gas", "density"), ("gas", "temperature")])
         """
-        import pandas as pd
+        from yt.utilities.on_demand_imports import _pandas as pd
 
         data = {}
         fields = self._determine_fields(fields)
@@ -1345,7 +1345,7 @@ class YTDataContainer:
         []
         """
         args = self.__reduce__()
-        return args[0](self.ds, *args[1][1:])[1]
+        return args[0](self.ds, *args[1][1:])
 
     def __repr__(self):
         # We'll do this the slow way to be clear what's going on
@@ -1492,29 +1492,16 @@ class YTDataContainer:
                 o.field_parameters = cache_fp
 
 
-# Many of these items are set up specifically to ensure that
-# we are not breaking old pickle files.  This means we must only call the
-# _reconstruct_object and that we cannot mandate any additional arguments to
-# the reconstruction function.
+# PR3124: Given that save_as_dataset is now the recommended method for saving
+# objects (see Issue 2021 and references therein), the following has been re-written.
+#
+# Original comments (still true):
 #
 # In the future, this would be better off being set up to more directly
 # reference objects or retain state, perhaps with a context manager.
 #
 # One final detail: time series or multiple datasets in a single pickle
 # seems problematic.
-
-
-class ReconstructedObject(tuple):
-    pass
-
-
-def _check_nested_args(arg, ref_ds):
-    if not isinstance(arg, (tuple, list, ReconstructedObject)):
-        return arg
-    elif isinstance(arg, ReconstructedObject) and ref_ds == arg[0]:
-        return arg[1]
-    narg = [_check_nested_args(a, ref_ds) for a in arg]
-    return narg
 
 
 def _get_ds_by_hash(hash):
@@ -1531,17 +1518,31 @@ def _get_ds_by_hash(hash):
 
 
 def _reconstruct_object(*args, **kwargs):
-    dsid = args[0]
-    dtype = args[1]
+    # returns a reconstructed YTDataContainer. As of PR 3124, we now return
+    # the actual YTDataContainer rather than a (ds, YTDataContainer) tuple.
+
+    # pull out some arguments
+    dsid = args[0]  # the hash id
+    dtype = args[1]  # DataContainer type (e.g., 'region')
+    field_parameters = args[-1]  # the field parameters
+
+    # re-instantiate the base dataset from the hash and ParameterFileStore
     ds = _get_ds_by_hash(dsid)
+    override_weakref = False
     if not ds:
+        override_weakref = True
         datasets = ParameterFileStore()
         ds = datasets.get_ds_hash(dsid)
-    field_parameters = args[-1]
-    # will be much nicer when we can do dsid, *a, fp = args
-    args = args[2:-1]
-    new_args = [_check_nested_args(a, ds) for a in args]
+
+    # instantiate the class with remainder of the args and adjust the state
     cls = getattr(ds, dtype)
-    obj = cls(*new_args)
+    obj = cls(*args[2:-1])
     obj.field_parameters.update(field_parameters)
-    return ReconstructedObject((ds, obj))
+
+    # any nested ds references are weakref.proxy(ds), so need to ensure the ds
+    # we just loaded persists when we leave this function (nosetests fail without
+    # this) if we did not have an actual dataset as an argument.
+    if hasattr(obj, "ds") and override_weakref:
+        obj.ds = ds
+
+    return obj

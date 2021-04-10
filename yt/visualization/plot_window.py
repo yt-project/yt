@@ -11,6 +11,7 @@ from mpl_toolkits.axes_grid1 import ImageGrid
 from unyt.exceptions import UnitConversionError
 
 from yt._maintenance.deprecation import issue_deprecation_warning
+from yt.config import ytcfg
 from yt.data_objects.image_array import ImageArray
 from yt.frontends.ytdata.data_structures import YTSpatialPlotDataset
 from yt.funcs import fix_axis, fix_unitary, is_sequence, iter_fields, mylog, obj_length
@@ -228,6 +229,14 @@ class PlotWindow(ImagePlotContainer):
                 self._field_transform[field] = log_transform
             else:
                 self._field_transform[field] = linear_transform
+
+            log, linthresh = self._log_config[field]
+            if log is not None:
+                self.set_log(field, log, linthresh=linthresh)
+
+            # Access the dictionary to force the key to be created
+            self._units_config[field]
+
         self.setup_callbacks()
         self._setup_plots()
 
@@ -290,15 +299,56 @@ class PlotWindow(ImagePlotContainer):
         # At this point the frb has the valid bounds, size, aliasing, etc.
         if old_fields is None:
             self._frb._get_data_source_fields()
+
+            # New frb, apply default units (if any)
+            for field, field_unit in self._units_config.items():
+                if field_unit is None:
+                    continue
+
+                field_unit = Unit(field_unit, registry=self.ds.unit_registry)
+                is_projected = getattr(self, "projected", False)
+                if is_projected:
+                    # Obtain config
+                    path_length_units = Unit(
+                        ytcfg.get_most_specific(
+                            "plot", *field, "path_length_units", fallback="cm"
+                        ),
+                        registry=self.ds.unit_registry,
+                    )
+                    units = field_unit * path_length_units
+                else:
+                    units = field_unit
+                try:
+                    self.frb[field].convert_to_units(units)
+                except UnitConversionError:
+                    msg = (
+                        "Could not apply default units from configuration.\n"
+                        "Tried converting projected field %s from %s to %s, retaining units %s:\n"
+                        "\tgot units for field: %s"
+                    )
+                    args = [
+                        field,
+                        self.frb[field].units,
+                        units,
+                        field_unit,
+                        units,
+                    ]
+                    if is_projected:
+                        msg += "\n\tgot units for integration length: %s"
+                        args += [path_length_units]
+
+                    msg += "\nCheck your configuration file."
+
+                    mylog.error(msg, *args)
         else:
             # Restore the old fields
-            for key, unit in zip(old_fields, old_units):
+            for key, units in zip(old_fields, old_units):
                 self._frb[key]
                 equiv = self._equivalencies[key]
                 if equiv[0] is None:
-                    self._frb[key].convert_to_units(unit)
+                    self._frb[key].convert_to_units(units)
                 else:
-                    self.frb.set_unit(key, unit, equiv[0], equiv[1])
+                    self.frb.set_unit(key, units, equiv[0], equiv[1])
 
         # Restore the override fields
         for key in self.override_fields:
@@ -903,7 +953,7 @@ class PWViewerMPL(PlotWindow):
             axis_index = self.data_source.axis
 
             xc, yc = self._setup_origin()
-            if self.ds.unit_system.name.startswith("us") or self.ds.no_cgs_equiv_length:
+            if self.ds.unit_system._code_flag or self.ds.no_cgs_equiv_length:
                 # this should happen only if the dataset was initialized with
                 # argument unit_system="code" or if it's set to have no CGS
                 # equivalent.  This only needs to happen here in the specific
@@ -956,16 +1006,36 @@ class PWViewerMPL(PlotWindow):
                 elif np.nanmax(image) > 0.0 and np.nanmin(image) < 0:
                     msg = (
                         "Plot image for field %s has both positive "
-                        "and negative values. Min = %f, Max = %f."
+                        "and negative/zero values. Min = %f, Max = %f."
                         % (f, np.nanmin(image), np.nanmax(image))
                     )
                     use_symlog = True
+                elif np.nanmax(image) > 0.0 and np.nanmin(image) == 0:
+                    # normally, a LogNorm scaling would still be OK here because
+                    # LogNorm will mask 0 values when calculating vmin. But
+                    # due to a bug in matplotlib's imshow, if the data range
+                    # spans many orders of magnitude while containing zero points
+                    # vmin can get rescaled to 0, resulting in an error when the image
+                    # gets drawn. So here we switch to symlog to avoid that until
+                    # a fix is in -- see PR #3161 and linked issue.
+                    cutoff_sigdigs = 15
+                    if (
+                        np.log10(np.nanmax(image[np.isfinite(image)]))
+                        - np.log10(np.nanmin(image[image > 0]))
+                        > cutoff_sigdigs
+                    ):
+                        msg = (
+                            "Plot image for field %s has both positive "
+                            "and zero values with large dynamic range." % (f,)
+                        )
+                        use_symlog = True
                 if msg is not None:
                     mylog.warning(msg)
                     if use_symlog:
                         mylog.warning(
-                            "Switching to symlog colorbar scaling "
-                            "unless linear scaling is specified later"
+                            "Log-scaling specified: switching to symlog "
+                            "colorbar scaling unless linear scaling is "
+                            "specified later"
                         )
                         self._field_transform[f] = symlog_transform
                         self._field_transform[f].func = None
@@ -1008,7 +1078,7 @@ class PWViewerMPL(PlotWindow):
                 ia,
                 self._field_transform[f].name,
                 self._field_transform[f].func,
-                self._colormaps[f],
+                self._colormap_config[f],
                 extent,
                 zlim,
                 self.figure_size,

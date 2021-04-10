@@ -23,6 +23,7 @@ rho_units = "code_density"
 vel_units = "code_velocity"
 pressure_units = "code_pressure"
 ener_units = "code_mass * code_velocity**2"
+specific_ener_units = "code_velocity**2"
 ang_mom_units = "code_mass * code_velocity * code_length"
 cooling_function_units = " erg * cm**3 /s"
 cooling_function_prime_units = " erg * cm**3 /s/K"
@@ -90,7 +91,7 @@ class RAMSESFieldInfo(FieldInfoContainer):
         ("x-acceleration", (ra_units, ["acceleration_x"], None)),
         ("y-acceleration", (ra_units, ["acceleration_y"], None)),
         ("z-acceleration", (ra_units, ["acceleration_z"], None)),
-        ("Potential", (ener_units, ["potential"], None)),
+        ("Potential", (specific_ener_units, ["potential"], None)),
         ("B_x_left", (b_units, ["magnetic_field_x_left"], None)),
         ("B_x_right", (b_units, ["magnetic_field_x_right"], None)),
         ("B_y_left", (b_units, ["magnetic_field_y_left"], None)),
@@ -180,6 +181,21 @@ class RAMSESFieldInfo(FieldInfoContainer):
         # Load magnetic fields
         if ("gas", "magnetic_field_x_left") in self:
             self.create_magnetic_fields()
+
+        # Potential field
+        if ("gravity", "Potential") in self:
+            self.create_gravity_fields()
+
+    def create_gravity_fields(self):
+        def potential_energy(field, data):
+            return data["gas", "potential"] * data["gas", "cell_mass"]
+
+        self.add_field(
+            ("gas", "potential_energy"),
+            sampling_type="cell",
+            function=potential_energy,
+            units=self.ds.unit_system["energy"],
+        )
 
     def create_magnetic_fields(self):
         # Calculate cell-centred magnetic fields from face-centred

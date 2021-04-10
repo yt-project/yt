@@ -1087,7 +1087,7 @@ class PhasePlot(ImagePlotContainer):
             if splat_color is not None:
                 cmap = matplotlib.colors.ListedColormap(splat_color, "dummy")
             else:
-                cmap = self._colormaps[f]
+                cmap = self._colormap_config[f]
 
             self.plots[f] = PhasePlotMPL(
                 self.profile.x,

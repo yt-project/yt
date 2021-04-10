@@ -369,17 +369,28 @@ def test_custom_hydro_def():
 
 
 @requires_file(output_00080)
+@requires_file(ramses_sink)
 def test_grav_detection():
-    ds = yt.load(output_00080)
+    for path, has_potential in ((output_00080, False), (ramses_sink, True)):
+        ds = yt.load(path)
 
-    # Test detection
-    for k in "xyz":
-        assert ("gravity", f"{k}-acceleration") in ds.field_list
-        assert ("gas", f"acceleration_{k}") in ds.derived_field_list
+        # Test detection
+        for k in "xyz":
+            assert ("gravity", f"{k}-acceleration") in ds.field_list
+            assert ("gas", f"acceleration_{k}") in ds.derived_field_list
 
-    # Test access
-    for k in "xyz":
-        ds.r["gas", f"acceleration_{k}"]
+        if has_potential:
+            assert ("gravity", "Potential") in ds.field_list
+            assert ("gas", "potential") in ds.derived_field_list
+            assert ("gas", "potential_energy") in ds.derived_field_list
+
+        # Test access
+        for k in "xyz":
+            ds.r["gas", f"acceleration_{k}"].to("m/s**2")
+
+        if has_potential:
+            ds.r["gas", "potential"].to("m**2/s**2")
+            ds.r["gas", "potential_energy"].to("kg*m**2/s**2")
 
 
 @requires_file(ramses_sink)

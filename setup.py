@@ -123,6 +123,7 @@ if __name__ == "__main__":
         },
         packages=find_packages(),
         include_package_data=True,
+        package_data={"yt": ["sample_data_registry.json"]},
         install_requires=[
             "matplotlib>=2.0.2,<3.4",
             "setuptools>=19.6",
