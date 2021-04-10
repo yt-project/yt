@@ -401,7 +401,7 @@ class WithDensityParticleGenerator(ParticleGenerator):
             m = np.random.uniform(high=1.01 * max_mass, size=num_particles_left)
             idxs = np.random.randint(low=0, high=num_cells, size=num_particles_left)
             m_true = (
-                 data_source[density_field] * data_source[("gas", "cell_volume")]
+                data_source[density_field] * data_source[("gas", "cell_volume")]
             ).flat[idxs]
             accept = m <= m_true
             num_accepted = accept.sum()
