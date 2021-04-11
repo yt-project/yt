@@ -155,10 +155,11 @@ class YTDataContainer:
             return self.ds.arr(arr, units=units)
 
     def _first_matching_field(self, field):
-        # FIXME? Should be moved elsewhere?
         for ftype, fname in self.ds.derived_field_list:
             if fname == field:
                 return (ftype, fname)
+
+        raise YTFieldNotFound(field, self.ds)
 
     def _set_center(self, center):
         if center is None:

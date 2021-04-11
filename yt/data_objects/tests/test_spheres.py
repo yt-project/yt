@@ -9,7 +9,7 @@ from yt.testing import (
     periodicity_cases,
     requires_module,
 )
-from yt.utilities.exceptions import YTException
+from yt.utilities.exceptions import YTException, YTFieldNotFound
 
 
 def setup():
@@ -111,6 +111,16 @@ def test_sphere_center():
     sp1 = ds.sphere("min", (0.25, "unitary"))
     sp2 = ds.sphere("min_density", (0.25, "unitary"))
     assert_array_equal(sp1.center, sp2.center)
+
+
+def test_center_error():
+    ds = fake_random_ds(16, nprocs=16)
+
+    with assert_raises(YTFieldNotFound):
+        ds.sphere("min_non_existing_field_name", (0.25, "unitary"))
+
+    with assert_raises(YTFieldNotFound):
+        ds.sphere("max_non_existing_field_name", (0.25, "unitary"))
 
 
 @requires_module("miniball")
