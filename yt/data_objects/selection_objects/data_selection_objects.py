@@ -692,7 +692,19 @@ class YTSelectionContainer3D(YTSelectionContainer):
         )
         return cr
 
-    def _operation_helper(self, operation, field, value, units=None):
+    def _build_operator_cut(self, operation, field, value, units=None):
+        """
+        Given an operation (>, >=, etc.), a field and a value,
+        return the cut_region implementing it.
+
+        This is only meant to be used internally.
+
+        Example
+        -------
+        >>> ds._build_operator_cut(">", ("gas", "density"), 1e-24)
+        ... # is equivalent to
+        ... ds.cut_region(['obj["gas", "density"] > 1e-24'])
+        """
         ftype, fname = self._determine_fields(field)[0]
         if units is None:
             field_cuts = f'obj["{ftype}", "{fname}"] {operation} {value}'
@@ -702,7 +714,19 @@ class YTSelectionContainer3D(YTSelectionContainer):
             )
         return self.cut_region(field_cuts)
 
-    def _function_helper(self, function, field, units=None, **kwargs):
+    def _build_function_cut(self, function, field, units=None, **kwargs):
+        """
+        Given a function (np.abs, np.all) and a field,
+        return the cut_region implementing it.
+
+        This is only meant to be used internally.
+
+        Example
+        -------
+        >>> ds._build_function_cut("np.isnan", ("gas", "density"), locals={"np": np})
+        ... # is equivalent to
+        ... ds.cut_region(['np.isnan(obj["gas", "density"])'], locals={"np": np})
+        """
         ftype, fname = self._determine_fields(field)[0]
         if units is None:
             field_cuts = f'{function}(obj["{ftype}", "{fname}"])'
@@ -743,7 +767,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
 
         """
-        return self._operation_helper("<=", field, value, units)
+        return self._build_operator_cut("<=", field, value, units)
 
     def include_above(self, field, value, units=None):
         """
@@ -780,7 +804,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
         """
 
-        return self._operation_helper(">", field, value, units)
+        return self._build_operator_cut(">", field, value, units)
 
     def exclude_equal(self, field, value, units=None):
         """
@@ -811,7 +835,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.exclude_equal(('gas', 'temperature'), 1e6)
         >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
         """
-        return self._operation_helper("!=", field, value, units)
+        return self._build_operator_cut("!=", field, value, units)
 
     def include_equal(self, field, value, units=None):
         """
@@ -841,7 +865,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.include_equal(('gas', 'temperature'), 1e6)
         >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
         """
-        return self._operation_helper("==", field, value, units)
+        return self._build_operator_cut("==", field, value, units)
 
     def exclude_inside(self, field, min_value, max_value, units=None):
         """
@@ -1024,7 +1048,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.exclude_below(('gas', 'temperature'), 1e6)
         >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
         """
-        return self._operation_helper(">=", field, value, units)
+        return self._build_operator_cut(">=", field, value, units)
 
     def exclude_nan(self, field, units=None):
         """
@@ -1054,7 +1078,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.exclude_nan(('gas', 'temperature'))
         >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
         """
-        return self._function_helper("~np.isnan", field, units, locals={"np": np})
+        return self._build_function_cut("~np.isnan", field, units, locals={"np": np})
 
     def include_below(self, field, value, units=None):
         """
@@ -1085,7 +1109,7 @@ class YTSelectionContainer3D(YTSelectionContainer):
         >>> cr = ad.include_below(('gas', 'temperature'), 1e5, 1e6)
         >>> print cr.quantities.total_quantity(("gas", "cell_mass")).in_units('Msun')
         """
-        return self._operation_helper("<", field, value, units)
+        return self._build_operator_cut("<", field, value, units)
 
     def extract_isocontours(
         self, field, value, filename=None, rescale=False, sample_values=None
