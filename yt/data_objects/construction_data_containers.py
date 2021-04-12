@@ -395,9 +395,7 @@ class YTParticleProj(YTProj):
         )
 
     def _handle_chunk(self, chunk, fields, tree):
-        raise NotImplementedError(
-            "Particle projections have not yet been " "implemented"
-        )
+        raise NotImplementedError("Particle projections have not yet been implemented")
 
 
 class YTQuadTreeProj(YTProj):
@@ -756,7 +754,7 @@ class YTCoveringGrid(YTSelectionContainer3D):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
-                "Length of edges must match the dimensionality of the " "dataset"
+                "Length of edges must match the dimensionality of the dataset"
             )
         if hasattr(edge, "units"):
             edge_units = edge.units.copy()
@@ -1999,7 +1997,7 @@ class YTSurface(YTSelectionContainer3D):
             fobj.write("# yt OBJ file\n")
             fobj.write("# www.yt-project.org\n")
             fobj.write(
-                "mtllib " + filename + ".mtl\n\n"
+                f"mtllib {filename}.mtl\n\n"
             )  # use this material file for the faces
             fmtl.write("# yt MLT file\n")
             fmtl.write("# www.yt-project.org\n\n")
@@ -2059,11 +2057,9 @@ class YTSurface(YTSelectionContainer3D):
                 v[ax][:] = tmp
         # (1) write all colors per surface to mtl file
         for i in range(0, lut[0].shape[0]):
-            omname = (
-                "material_" + str(i) + "_" + str(plot_index)
-            )  # name of the material
+            omname = f"material_{i}_{plot_index}"  # name of the material
             fmtl.write(
-                "newmtl " + omname + "\n"
+                f"newmtl {omname}\n"
             )  # the specific material (color) for this face
             fmtl.write(f"Ka {0.0:.6f} {0.0:.6f} {0.0:.6f}\n")  # ambient color, keep off
             fmtl.write(
@@ -2075,22 +2071,18 @@ class YTSurface(YTSelectionContainer3D):
             fmtl.write(f"d {transparency:.6f}\n")  # transparency
             fmtl.write(f"em {emiss[i]:.6f}\n")  # emissivity per color
             fmtl.write("illum 2\n")  # not relevant, 2 means highlights on?
-            fmtl.write("Ns %.6f\n\n" % (0.0))  # keep off, some other specular thing
+            fmtl.write(f"Ns {0:.6f}\n\n")  # keep off, some other specular thing
         # (2) write vertices
         for i in range(0, self.vertices.shape[1]):
             fobj.write(f"v {v['x'][i]:.6f} {v['y'][i]:.6f} {v['z'][i]:.6f}\n")
         fobj.write("#done defining vertices\n\n")
         # (3) define faces and materials for each face
         for i in range(0, self.triangles.shape[0]):
-            omname = (
-                "material_" + str(f["cind"][i]) + "_" + str(plot_index)
-            )  # which color to use
+            omname = f"material_{f['cind'][i]}_{plot_index}"  # which color to use
             fobj.write(
-                "usemtl " + omname + "\n"
+                f"usemtl {omname}\n"
             )  # which material to use for this face (color)
-            fobj.write(
-                "f " + str(cc) + " " + str(cc + 1) + " " + str(cc + 2) + "\n\n"
-            )  # vertices to color
+            fobj.write(f"f {cc} {cc+1} {cc+2}\n\n")  # vertices to color
             cc = cc + 3
         fmtl.close()
         fobj.close()
@@ -2766,7 +2758,7 @@ class YTOctree(YTSelectionContainer3D):
             edge = [edge] * len(self.ds.domain_left_edge)
         if len(edge) != len(self.ds.domain_left_edge):
             raise RuntimeError(
-                "Length of edges must match the dimensionality of the " "dataset"
+                "Length of edges must match the dimensionality of the dataset"
             )
         if hasattr(edge, "units"):
             edge_units = edge.units

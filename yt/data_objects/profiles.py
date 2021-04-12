@@ -1296,7 +1296,7 @@ def create_profile(
                     bin_fields[1] in logs and logs[bin_fields[1]]
                 ):
                     raise RuntimeError(
-                        "CIC deposition is only implemented for linear-scaled " "axes"
+                        "CIC deposition is only implemented for linear-scaled axes"
                     )
             else:
                 logs = {bin_fields[0]: False, bin_fields[1]: False}

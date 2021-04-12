@@ -69,7 +69,7 @@ def pytest_configure(config):
     # Register custom marks for answer tests and big data
     config.addinivalue_line("markers", "answer_test: Run the answer tests.")
     config.addinivalue_line(
-        "markers", "big_data: Run answer tests that require" " large data files."
+        "markers", "big_data: Run answer tests that require large data files."
     )
 
 

@@ -684,7 +684,7 @@ class EnzoSimulation(SimulationTimeSeries):
         f = open(filename, "w")
         for q, output in enumerate(outputs):
             f.write(
-                ("CosmologyOutputRedshift[%d] = %." + str(decimals) + "f\n")
+                (f"CosmologyOutputRedshift[%d] = %.{decimals}f\n")
                 % ((q + start_index), output["redshift"])
             )
         f.close()

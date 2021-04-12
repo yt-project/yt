@@ -276,8 +276,8 @@ _common_options = dict(
         default=False,
         action="store_true",
         help=(
-            "Reinstall the full yt stack in the current location."
-            "This option has been deprecated and will not have any"
+            "Reinstall the full yt stack in the current location. "
+            "This option has been deprecated and will not have any "
             "effect."
         ),
     ),
@@ -327,7 +327,7 @@ _common_options = dict(
         type=str,
         dest="field",
         default="density",
-        help=("Field to color by, " "use a comma to separate field tuple values"),
+        help=("Field to color by, use a comma to separate field tuple values"),
     ),
     weight=dict(
         short="-g",
@@ -911,7 +911,7 @@ class YTInstInfoCmd(YTCommand):
             action="store",
             default=None,
             dest="outputfile",
-            help="File into which the current revision number will be" + "stored",
+            help="File into which the current revision number will be stored",
         ),
     )
     description = """
@@ -1906,7 +1906,7 @@ class YTDownloadData(YTCommand):
             )
         elif not args.location:
             raise RuntimeError(
-                "You need to specify download location. See " "--help for details."
+                "You need to specify download location. See --help for details."
             )
         data_url = f"http://yt-project.org/data/{args.filename}"
         if args.location in ["test_data_dir", "supp_data_dir"]:

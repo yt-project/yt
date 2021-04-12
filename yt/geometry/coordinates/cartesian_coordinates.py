@@ -228,7 +228,7 @@ class CartesianCoordinateHandler(CoordinateHandler):
         """
         if npoints < 2:
             raise ValueError(
-                "Must have at least two sample points in order " "to draw a line plot."
+                "Must have at least two sample points in order to draw a line plot."
             )
         index = self.ds.index
         if hasattr(index, "meshes") and not isinstance(

@@ -792,9 +792,9 @@ class YTDataContainer:
             from firefly_api.reader import Reader
         except ImportError as e:
             raise ImportError(
-                "Can't find firefly_api, ensure it"
-                "is in your python path or install it with"
-                "'$ pip install firefly_api'. It is also available"
+                "Can't find firefly_api, ensure it "
+                "is in your python path or install it with "
+                "'$ pip install firefly_api'. It is also available "
                 "on github at github.com/agurvich/firefly_api"
             ) from e
 
@@ -1050,9 +1050,7 @@ class YTDataContainer:
                 return rv[0]
             return rv
         elif axis in self.ds.coordinates.axis_name:
-            raise NotImplementedError(
-                "Minimum intensity projection not" " implemented."
-            )
+            raise NotImplementedError("Minimum intensity projection not implemented.")
         else:
             raise NotImplementedError(f"Unknown axis {axis}")
 
