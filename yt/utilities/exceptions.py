@@ -1,8 +1,9 @@
 # We don't need to import 'exceptions'
 import os.path
 
-import numpy as np
 from unyt.exceptions import UnitOperationError
+
+from yt.funcs import levenshtein
 
 
 class YTException(Exception):
@@ -85,57 +86,6 @@ class YTNoDataInObjectError(YTException):
         if self.obj_type == "slice":
             s += "  It may lie on a grid face.  Try offsetting slightly."
         return s
-
-
-def levenshtein(seq1, seq2, max_dist):
-    """
-    Compute the levenshtein distance between seq1 and seq2.
-    From https://stackabuse.com/levenshtein-distance-and-text-similarity-in-python/
-
-    Parameters
-    ----------
-    seq1, seq2 : str
-        The strings to compute the distance between
-    max_dist : integer
-        Maximum distance returned (see notes)
-
-    Returns
-    -------
-    The Levensthein distance as an integer.
-
-    Notes
-    -----
-    This computes the Levenshtein distance, i.e. the number of edits to change
-    seq1 into seq2. If a maximum distance is passed, the algorithm will stop as soon
-    as the number of edits goes above the value. This allows for an earlier break
-    and speeds calculations up.
-    """
-    size_x = len(seq1) + 1
-    size_y = len(seq2) + 1
-    if abs(size_x - size_y) > max_dist:
-        return max_dist + 1
-    matrix = np.zeros((size_x, size_y), dtype=int)
-    for x in range(size_x):
-        matrix[x, 0] = x
-    for y in range(size_y):
-        matrix[0, y] = y
-
-    for x in range(1, size_x):
-        for y in range(1, size_y):
-            if seq1[x - 1] == seq2[y - 1]:
-                matrix[x, y] = min(
-                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1], matrix[x, y - 1] + 1
-                )
-            else:
-                matrix[x, y] = min(
-                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1] + 1, matrix[x, y - 1] + 1
-                )
-
-        # Early break: the minimum distance is already larger than
-        # maximum allow value, can return safely.
-        if matrix[x].min() > max_dist:
-            return max_dist + 1
-    return matrix[size_x - 1, size_y - 1]
 
 
 class YTFieldNotFound(YTException):
