@@ -316,6 +316,7 @@ class VelocityCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        ftype = plot.data._current_fluid_type
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
             if is_curvilinear(plot.data.ds.geometry):
@@ -326,8 +327,8 @@ class VelocityCallback(PlotCallback):
                 )
         if plot._type_name == "CuttingPlane":
             qcb = CuttingQuiverCallback(
-                ("gas", "cutting_plane_velocity_x"),
-                ("gas", "cutting_plane_velocity_y"),
+                (ftype, "cutting_plane_velocity_x"),
+                (ftype, "cutting_plane_velocity_y"),
                 self.factor,
                 scale=self.scale,
                 normalize=self.normalize,
@@ -352,13 +353,13 @@ class VelocityCallback(PlotCallback):
             ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
-                xv = ("gas", "velocity_cartesian_x")
-                yv = ("gas", "velocity_cartesian_y")
+                xv = (ftype, "velocity_cartesian_x")
+                yv = (ftype, "velocity_cartesian_y")
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = ("gas", f"velocity_{axis_names[xax]}")
-                yv = ("gas", f"velocity_{axis_names[yax]}")
+                xv = (ftype, f"velocity_{axis_names[xax]}")
+                yv = (ftype, f"velocity_{axis_names[yax]}")
 
             # determine the full fields including field type
             xv = plot.data._determine_fields(xv)[0]
@@ -405,6 +406,7 @@ class MagFieldCallback(PlotCallback):
         self.plot_args = plot_args
 
     def __call__(self, plot):
+        ftype = plot.data._current_fluid_type
         # Instantiation of these is cheap
         if plot._type_name == "CuttingPlane":
             if is_curvilinear(plot.data.ds.geometry):
@@ -414,8 +416,8 @@ class MagFieldCallback(PlotCallback):
                     % plot.data.ds.geometry
                 )
             qcb = CuttingQuiverCallback(
-                ("gas", "cutting_plane_magnetic_field_x"),
-                ("gas", "cutting_plane_magnetic_field_y"),
+                (ftype, "cutting_plane_magnetic_field_x"),
+                (ftype, "cutting_plane_magnetic_field_y"),
                 self.factor,
                 scale=self.scale,
                 scale_units=self.scale_units,
@@ -433,13 +435,13 @@ class MagFieldCallback(PlotCallback):
             ):
                 # polar_z and cyl_z is aligned with carteian_z
                 # should convert r-theta plane to x-y plane
-                xv = ("gas", "magnetic_field_cartesian_x")
-                yv = ("gas", "magnetic_field_cartesian_y")
+                xv = (ftype, "magnetic_field_cartesian_x")
+                yv = (ftype, "magnetic_field_cartesian_y")
             else:
                 # for other cases (even for cylindrical geometry),
                 # orthogonal planes are generically Cartesian
-                xv = ("gas", f"magnetic_field_{axis_names[xax]}")
-                yv = ("gas", f"magnetic_field_{axis_names[yax]}")
+                xv = (ftype, f"magnetic_field_{axis_names[xax]}")
+                yv = (ftype, f"magnetic_field_{axis_names[yax]}")
 
             qcb = QuiverCallback(
                 xv,
