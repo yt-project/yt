@@ -408,9 +408,55 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    def fill_mask(self, gobj):
+        # This is for an irregular grid.  We make no assumptions about
+        # the shape of the dds values, except that we will regularize to the
+        # max dimension.
+        cdef np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask
+        child_mask = gobj.child_mask
+        cdef np.ndarray[np.uint8_t, ndim=3] mask
+        cdef int dim[3]
+        _ensure_code(gobj.cell_widths[0])
+        _ensure_code(gobj.cell_widths[1])
+        _ensure_code(gobj.cell_widths[2])
+        _ensure_code(gobj.LeftEdge)
+        _ensure_code(gobj.RightEdge)
+        cdef np.ndarray[np.float64_t, ndim=1] oleft_edge = gobj.LeftEdge.d
+        cdef np.ndarray[np.float64_t, ndim=1] oright_edge = gobj.RightEdge.d
+        cdef np.ndarray[np.float64_t, ndim=1] ocell_width
+        cdef int i, n = 0
+        cdef np.float64_t left_edge[3]
+        cdef np.float64_t right_edge[3]
+        cdef np.float64_t **dds
+        dds = <np.float64_t**> malloc(sizeof(np.float64_t*)*3)
+        for i in range(3):
+            dim[i] = gobj.ActiveDimensions[i]
+            left_edge[i] = oleft_edge[i]
+            right_edge[i] = oright_edge[i]
+            dds[i] = <np.float64_t *> malloc(sizeof(np.float64_t) * dim[i])
+            ocell_width = gobj.cell_widths[i]
+            for j in range(dim[i]):
+                dds[i][j] = ocell_width[j]
+        mask = np.zeros(gobj.ActiveDimensions, dtype='uint8')
+        # Check for the level bounds
+        cdef np.int32_t level = gobj.Level
+        # We set this to 1 if we ignore child_mask
+        cdef int total
+        total = self.fill_mask_selector(left_edge, right_edge,
+                                        dds, dim, child_mask,
+                                        mask, level)
+        for i in range(3):
+            free(dds[i])
+        free(dds)
+        if total == 0: return None
+        return mask.astype("bool")
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef int fill_mask_selector(self, np.float64_t left_edge[3],
                                 np.float64_t right_edge[3],
-                                np.ndarray[np.float64_t, ndim=2] dds, int dim[3],
+                                np.float64_t **dds, int dim[3],
                                 np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
                                 np.ndarray[np.uint8_t, ndim=3] mask,
                                 int level):
@@ -429,7 +475,7 @@ cdef class SelectorObject:
             c = left_edge[i]
             for j in range(dim[i]):
                 offsets[i][j] = c
-                c += dds[i, j]
+                c += dds[i][j]
         with nogil:
             # We need to keep in mind that it is entirely possible to
             # accumulate round-off error by doing lots of additions, etc.
@@ -437,13 +483,13 @@ cdef class SelectorObject:
             # array. I mean, we don't necessarily *have* to do that, but it
             # seems OK.
             for i in range(dim[0]):
-                tdds[0] = dds[0, i]
+                tdds[0] = dds[0][i]
                 pos[0] = offsets[0][i] + 0.5 * tdds[0]
                 for j in range(dim[1]):
-                    tdds[1] = dds[1, j]
+                    tdds[1] = dds[1][j]
                     pos[1] = offsets[1][j] + 0.5 * tdds[1]
                     for k in range(dim[2]):
-                        tdds[2] = dds[2, k]
+                        tdds[2] = dds[2][k]
                         pos[2] = offsets[2][k] + 0.5 * tdds[2]
                         if child_mask[i, j, k] == 1 or this_level == 1:
                             mask[i, j, k] = self.select_cell(pos, tdds)
