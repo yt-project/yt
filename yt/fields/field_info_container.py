@@ -1,4 +1,3 @@
-from collections import defaultdict
 from numbers import Number as numeric_type
 from typing import Optional, Tuple
 
@@ -62,7 +61,6 @@ class FieldInfoContainer(dict):
         self.slice_info = slice_info
         self.field_aliases = {}
         self.species_names = []
-        self._ambiguous_field_names = defaultdict(set)
         if ds is not None and is_curvilinear(ds.geometry):
             self.curvilinear = True
         else:
@@ -423,12 +421,6 @@ class FieldInfoContainer(dict):
     def add_output_field(self, name, sampling_type, **kwargs):
         kwargs.setdefault("ds", self.ds)
         self[name] = DerivedField(name, sampling_type, NullFunc, **kwargs)
-
-    def __setitem__(self, key, value):
-        ftype, fname = key
-        if any(fname == _fname for _ftype, _fname in self):
-            self._ambiguous_field_names[fname].add(ftype)
-        super().__setitem__(key, value)
 
     def alias(
         self,
