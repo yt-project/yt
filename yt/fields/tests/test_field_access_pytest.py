@@ -30,7 +30,7 @@ def test_unexisting_field_access():
         if (ft, fn) in ds.derived_field_list:
             continue
 
-        with pytest.raises(YTFieldNotFound, match="") as excinfo:
+        with pytest.raises(YTFieldNotFound) as excinfo:
             ad[(ft, fn)]
 
         # Make sure the existing field has been suggested
