@@ -88,9 +88,31 @@ class YTNoDataInObjectError(YTException):
 
 
 def levenshtein(seq1, seq2, max_dist):
+    """
+    Compute the levenshtein distance between seq1 and seq2.
+    From https://stackabuse.com/levenshtein-distance-and-text-similarity-in-python/
+
+    Parameters
+    ----------
+    seq1, seq2 : str
+        The strings to compute the distance between
+    max_dist : integer
+        Maximum distance returned (see notes)
+
+    Returns
+    -------
+    The Levensthein distance as an integer.
+
+    Notes
+    -----
+    This computes the Levenshtein distance, i.e. the number of edits to change
+    seq1 into seq2. If a maximum distance is passed, the algorithm will stop as soon
+    as the number of edits goes above the value. This allows for an earlier break
+    and speeds calculations up.
+    """
     size_x = len(seq1) + 1
     size_y = len(seq2) + 1
-    if abs(size_x - size_y) >= max_dist:
+    if abs(size_x - size_y) > max_dist:
         return max_dist + 1
     matrix = np.zeros((size_x, size_y), dtype=int)
     for x in range(size_x):
