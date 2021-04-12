@@ -1,5 +1,6 @@
 import os
 import weakref
+from collections import defaultdict
 from contextlib import contextmanager
 
 import numpy as np
@@ -476,18 +477,15 @@ class YTDataContainer:
         field_order += diff_fields
         field_order = sorted(self._determine_fields(field_order))
 
-        field_shapes = {}
+        field_shapes = defaultdict(list)
         for field in field_order:
-            field_shapes[field] = self[field].shape
+            shape = self[field].shape
+            field_shapes[shape].append(field)
 
         # Check all fields have the same shape
-        all_field_shapes = {shape for shape in field_shapes.values()}
-        if len(all_field_shapes) != 1:
+        if len(field_shapes) != 1:
             err_msg = ["Got fields with different number of elements:\n"]
-            for shape in all_field_shapes:
-                these_fields = [
-                    field for field, s in field_shapes.items() if s == shape
-                ]
+            for shape, these_fields in field_shapes.items():
                 err_msg.append(f"\t {these_fields} with shape {shape}")
             raise YTException("\n".join(err_msg))
 
