@@ -408,6 +408,54 @@ cdef class SelectorObject:
     @cython.boundscheck(False)
     @cython.wraparound(False)
     @cython.cdivision(True)
+    cdef int fill_mask_selector(self, np.float64_t left_edge[3],
+                                np.float64_t right_edge[3],
+                                np.ndarray[np.float64_t, ndim=2] dds, int dim[3],
+                                np.ndarray[np.uint8_t, ndim=3, cast=True] child_mask,
+                                np.ndarray[np.uint8_t, ndim=3] mask,
+                                int level):
+        cdef int i, j, k
+        cdef int total = 0, this_level = 0
+        cdef np.float64_t pos[3]
+        if level < self.min_level or level > self.max_level:
+            return 0
+        if level == self.max_level:
+            this_level = 1
+        cdef np.float64_t *offsets[3]
+        cdef np.float64_t c = 0.0
+        cdef np.float64_t tdds[3]
+        for i in range(3):
+            offsets[i] = <np.float64_t *> malloc(dim[i] * sizeof(np.float64_t))
+            c = left_edge[i]
+            for j in range(dim[i]):
+                offsets[i][j] = c
+                c += dds[i, j]
+        with nogil:
+            # We need to keep in mind that it is entirely possible to
+            # accumulate round-off error by doing lots of additions, etc.
+            # That's one of the reasons we construct (ahead of time) the edge
+            # array. I mean, we don't necessarily *have* to do that, but it
+            # seems OK.
+            for i in range(dim[0]):
+                tdds[0] = dds[0, i]
+                pos[0] = offsets[0][i] + 0.5 * tdds[0]
+                for j in range(dim[1]):
+                    tdds[1] = dds[1, j]
+                    pos[1] = offsets[1][j] + 0.5 * tdds[1]
+                    for k in range(dim[2]):
+                        tdds[2] = dds[2, k]
+                        pos[2] = offsets[2][k] + 0.5 * tdds[2]
+                        if child_mask[i, j, k] == 1 or this_level == 1:
+                            mask[i, j, k] = self.select_cell(pos, tdds)
+                            total += mask[i, j, k]
+        free(offsets[0])
+        free(offsets[1])
+        free(offsets[2])
+        return total
+
+    @cython.boundscheck(False)
+    @cython.wraparound(False)
+    @cython.cdivision(True)
     cdef void visit_grid_cells(self, GridVisitorData *data,
                               grid_visitor_function *func,
                               np.uint8_t *cached_mask = NULL):
