@@ -539,14 +539,7 @@ class AnswerTestingTest:
         else:
             oname = "_".join(str(s) for s in obj_type)
         args = [self._type_name, str(self.ds), oname]
-        # If a field enters the answer test name, we only
-        # keep the field name and drop the field type, i.e.
-        # ("gas", "density") -> "density"
-        for an in self._attrs:
-            tmp = getattr(self, an)
-            if "field" in an and isinstance(tmp, tuple) and len(tmp) == 2:
-                tmp = tmp[1]
-            args.append(str(tmp))
+        args += [str(getattr(self, an)) for an in self._attrs]
         suffix = getattr(self, "suffix", None)
         if suffix:
             args.append(suffix)
