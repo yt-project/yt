@@ -1,6 +1,7 @@
 # We don't need to import 'exceptions'
 import os.path
 
+import numpy as np
 from unyt.exceptions import UnitOperationError
 
 
@@ -86,13 +87,79 @@ class YTNoDataInObjectError(YTException):
         return s
 
 
+def levenshtein(seq1, seq2, max_dist):
+    size_x = len(seq1) + 1
+    size_y = len(seq2) + 1
+    if abs(size_x - size_y) >= max_dist:
+        return max_dist + 1
+    matrix = np.zeros((size_x, size_y), dtype=int)
+    for x in range(size_x):
+        matrix[x, 0] = x
+    for y in range(size_y):
+        matrix[0, y] = y
+
+    for x in range(1, size_x):
+        for y in range(1, size_y):
+            if seq1[x - 1] == seq2[y - 1]:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1], matrix[x, y - 1] + 1
+                )
+            else:
+                matrix[x, y] = min(
+                    matrix[x - 1, y] + 1, matrix[x - 1, y - 1] + 1, matrix[x, y - 1] + 1
+                )
+    return matrix[size_x - 1, size_y - 1]
+
+
 class YTFieldNotFound(YTException):
     def __init__(self, field, ds):
         self.field = field
         self.ds = ds
+        self._find_suggestions()
+
+    def _find_suggestions(self):
+        field = self.field
+        ds = self.ds
+
+        suggestions = {}
+        if not isinstance(field, tuple):
+            ftype, fname = None, field
+        else:
+            ftype, fname = field
+
+        max_distance = 4
+
+        # Suggest (ftype, fname), with alternative ftype
+        for ft, fn in ds.derived_field_list:
+            if fn.lower() == fname.lower() and ft.lower() != ftype.lower():
+                suggestions[ft, fn] = 0
+
+        if ftype is not None:
+            # Suggest close matches using levenstein distance
+            fields_str = {_: str(_).lower() for _ in ds.derived_field_list}
+            field_str = str(field).lower()
+
+            for (ft, fn), fs in fields_str.items():
+                distance = levenshtein(field_str, fs, max_dist=max_distance)
+                if distance < max_distance:
+                    if (ft, fn) in suggestions:
+                        continue
+                    suggestions[ft, fn] = distance
+
+        # Return suggestions sorted by increasing distance (first are most likely)
+        self.suggestions = [
+            (ft, fn)
+            for (ft, fn), distance in sorted(suggestions.items(), key=lambda v: v[1])
+        ]
 
     def __str__(self):
-        return f"Could not find field {self.field} in {self.ds}."
+        msg = f"Could not find field {self.field} in {self.ds}."
+        suggestions = self.suggestions
+
+        if len(suggestions) > 0:
+            msg += "\nDid you mean:\n\t"
+            msg += "\n\t".join(str(_) for _ in suggestions)
+        return msg
 
 
 class YTParticleTypeNotFound(YTException):
