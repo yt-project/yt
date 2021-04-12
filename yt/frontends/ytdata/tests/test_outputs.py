@@ -146,7 +146,7 @@ def test_grid_datacontainer_data():
     assert_array_equal(frb[("gas", "density")], frb_ds.data[("gas", "density")])
     compare_unit_attributes(ds, frb_ds)
     assert isinstance(frb_ds, YTGridDataset)
-    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("grid", "density"), geometric=False)
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)
@@ -203,9 +203,9 @@ def test_profile_data():
     )
     p1.save()
 
-    yield YTDataFieldTest(full_fn, ("gas", "temperature"), geometric=False)
-    yield YTDataFieldTest(full_fn, ("index", "x"), geometric=False)
-    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "temperature"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "x"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "density"), geometric=False)
     profile_2d = create_profile(
         ad,
         [("gas", "density"), ("gas", "temperature")],
@@ -228,11 +228,11 @@ def test_profile_data():
     )
     p2.save()
 
-    yield YTDataFieldTest(full_fn, ("gas", "density"), geometric=False)
-    yield YTDataFieldTest(full_fn, ("index", "x"), geometric=False)
-    yield YTDataFieldTest(full_fn, ("gas", "temperature"), geometric=False)
-    yield YTDataFieldTest(full_fn, ("index", "y"), geometric=False)
-    yield YTDataFieldTest(full_fn, ("gas", "cell_mass"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "density"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "x"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "temperature"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "y"), geometric=False)
+    yield YTDataFieldTest(full_fn, ("data", "cell_mass"), geometric=False)
     os.chdir(curdir)
     if tmpdir != ".":
         shutil.rmtree(tmpdir)
